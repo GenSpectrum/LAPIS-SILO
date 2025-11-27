@@ -101,7 +101,7 @@ std::unique_ptr<operators::Operator> makeDifference(
 }
 
 template <typename SymbolType>
-std::unique_ptr<operators::Operator> compileWithMissingSymbolOrReference(
+std::unique_ptr<operators::Operator> compileWithMissingSymbolAndReference(
    const SequenceColumnPartition<SymbolType>& sequence_column_partition,
    uint32_t position_idx,
    const std::vector<typename SymbolType::Symbol>& symbols
@@ -240,7 +240,7 @@ std::unique_ptr<operators::Operator> SymbolInSet<SymbolType>::compile(
       std::find(symbols.begin(), symbols.end(), SymbolType::SYMBOL_MISSING) != symbols.end();
 
    if (includes_reference && includes_missing_symbol) {
-      return compileWithMissingSymbolOrReference(sequence_column_partition, position_idx, symbols);
+      return compileWithMissingSymbolAndReference(sequence_column_partition, position_idx, symbols);
    }
    if (includes_missing_symbol) {
       return compileWithMissingSymbol(sequence_column_partition, position_idx, symbols);
