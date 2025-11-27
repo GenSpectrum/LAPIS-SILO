@@ -7,21 +7,31 @@ void BitmapBuilderByContainer::addContainer(
    roaring::internal::container_t* container,
    uint8_t typecode
 ) {
-   SILO_ASSERT(current_v_tile_index <= v_index);
-   if (current_v_tile_index != v_index) {
-      if (current_container != nullptr) {
-         roaring::internal::ra_append(
-            &result_bitmap.roaring.high_low_container,
-            current_v_tile_index,
-            current_container,
-            current_typecode
-         );
-      }
+   if (current_v_tile_index > v_index) {
+      throw std::runtime_error(
+         "containers must be inserted into BitmapBuilderByContainer by increasing v_index"
+      );
+   }
+   // first container received
+   if (current_container == nullptr) {
       current_v_tile_index = v_index;
       current_typecode = typecode;
       current_container = roaring::internal::container_clone(container, typecode);
-   } else { /* current_v_tile_index == sequence_diff_key.v_index */
-      SILO_ASSERT(current_container != nullptr);
+   }
+   // current_container is finished
+   else if (current_v_tile_index != v_index) {
+      roaring::internal::ra_append(
+         &result_bitmap.roaring.high_low_container,
+         current_v_tile_index,
+         current_container,
+         current_typecode
+      );
+      current_v_tile_index = v_index;
+      current_typecode = typecode;
+      current_container = roaring::internal::container_clone(container, typecode);
+   }
+   // add a container to current_container
+   else { /* current_v_tile_index == sequence_diff_key.v_index */
       uint8_t result_typecode;
       roaring::internal::container_t* result_container = roaring::internal::container_ior(
          current_container, current_typecode, container, typecode, &result_typecode

@@ -8,7 +8,7 @@ namespace silo::roaring_util {
 
 class BitmapBuilderByContainer {
    roaring::Roaring result_bitmap;
-   int32_t current_v_tile_index = -1;
+   uint16_t current_v_tile_index = 0;
    roaring::internal::container_t* current_container = nullptr;
    uint8_t current_typecode = 0;
 
