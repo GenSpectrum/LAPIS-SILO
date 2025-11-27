@@ -29,6 +29,23 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/generators/")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ---------------------------------------------------------------------------
+# Allocator
+# ---------------------------------------------------------------------------
+
+option(USE_MIMALLOC "Use mimalloc allocator" ON)
+
+# Only use mimalloc in Release mode, because of conflicts with ASAN
+if(USE_MIMALLOC AND ${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    message("Using mimalloc as allocator")
+    find_package(mimalloc REQUIRED)
+    add_compile_definitions(SILO_USE_MIMALLOC=1)
+    set(MIMALLOC_LIB mimalloc-static)
+else()
+    set(MIMALLOC_LIB "")
+endif()
+
+
+# ---------------------------------------------------------------------------
 # Compile definitions
 # ---------------------------------------------------------------------------
 
@@ -113,6 +130,7 @@ add_library(silolib OBJECT ${SRC_SILO_WITHOUT_MAIN})
 target_link_libraries(
         silolib
         PUBLIC
+        ${MIMALLOC_LIB} # this should be first
         Arrow::arrow_static
         ArrowAcero::arrow_acero_static
         ${Boost_LIBRARIES}
