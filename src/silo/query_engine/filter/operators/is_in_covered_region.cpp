@@ -1,78 +1,68 @@
 #include "silo/query_engine/filter/operators/is_in_covered_region.h"
 
+#include <memory>
 #include <string>
 
 #include <fmt/format.h>
 #include <roaring/roaring.hh>
 
 #include "evobench/evobench.hpp"
-#include "silo/common/panic.h"
-#include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/filter/operators/operator.h"
+#include "silo/query_engine/filter/operators/selection.h"
 
 namespace silo::query_engine::filter::operators {
 
 IsInCoveredRegion::IsInCoveredRegion(
-   const std::vector<std::pair<uint32_t, uint32_t>>* covered_region_ranges,
-   const std::map<uint32_t, roaring::Roaring>* covered_region_bitmaps,
-   uint32_t row_count,
-   Comparator comparator,
-   uint32_t value
+   const storage::column::HorizontalCoverageIndex* horizontal_coverage_index,
+   uint32_t position_idx,
+   Comparator comparator
 )
-    : covered_region_ranges(covered_region_ranges),
-      covered_region_bitmaps(covered_region_bitmaps),
-      row_count(row_count),
-      comparator(comparator),
-      value(value) {
-   SILO_ASSERT_EQ(row_count, covered_region_ranges->size());
-}
+    : horizontal_coverage_index(horizontal_coverage_index),
+      position_idx(position_idx),
+      comparator(comparator) {}
 
 IsInCoveredRegion::~IsInCoveredRegion() noexcept = default;
 
 std::string IsInCoveredRegion::toString() const {
-   return fmt::format("IsInCoveredRegion({})", value);
+   return fmt::format(
+      "{}IsInCoveredRegion({})", comparator == Comparator::IS_COVERED ? "" : "!", position_idx
+   );
 }
 
-Type IsInCoveredRegion::type() const {
-   return IS_IN_COVERED_REGION;
+bool IsInCoveredRegion::isCovered(uint32_t row_id) const {
+   const auto& [start, end] = horizontal_coverage_index->start_end.at(row_id);
+   // Check whether `value` is covered -> value in [start, end) and not in row_bitmap
+
+   // Is it outside the range?
+   if (position_idx < start || position_idx >= end) {
+      return false;
+   }
+
+   if (auto row_bitmap = horizontal_coverage_index->horizontal_bitmaps.find(row_id);
+       row_bitmap != horizontal_coverage_index->horizontal_bitmaps.end()) {
+      bool is_covered = !row_bitmap->second.contains(position_idx);
+      return is_covered;
+   }
+   // If no bitmap is there, the entire range is covered
+   return true;
 }
 
-CopyOnWriteBitmap IsInCoveredRegion::evaluate() const {
-   EVOBENCH_SCOPE("IsInCoveredRegion", "evaluate");
-   roaring::Roaring result_bitmap;
-   auto bitmap_iter = covered_region_bitmaps->begin();
-   for (size_t row_idx = 0; row_idx < row_count; ++row_idx) {
-      const auto& [start, end] = covered_region_ranges->at(row_idx);
-      std::optional<const roaring::Roaring*> row_bitmap = std::nullopt;
-      if (bitmap_iter != covered_region_bitmaps->end() && bitmap_iter->first == row_idx) {
-         row_bitmap = &bitmap_iter->second;
-         bitmap_iter++;
-      }
-      // Check whether `value` is covered -> value in [start, end) and not in row_bitmap
-      if (start <= value && value < end) {
-         if (!row_bitmap.has_value() || !row_bitmap.value()->contains(value)) {
-            result_bitmap.add(row_idx);
-         }
-      }
-   }
-   if (comparator == Comparator::NOT_COVERED) {
-      result_bitmap.flip(0, row_count);
-   }
-   return CopyOnWriteBitmap{std::move(result_bitmap)};
+bool IsInCoveredRegion::match(uint32_t row_id) const {
+   return isCovered(row_id) == (comparator == Comparator::IS_COVERED);
 }
 
-std::unique_ptr<Operator> IsInCoveredRegion::negate(
-   std::unique_ptr<IsInCoveredRegion>&& is_in_covered_region
-) {
-   switch (is_in_covered_region->comparator) {
-      case Comparator::NOT_COVERED:
-         is_in_covered_region->comparator = Comparator::COVERED;
-         break;
-      case Comparator::COVERED:
-         is_in_covered_region->comparator = Comparator::NOT_COVERED;
-         break;
-   }
-   return is_in_covered_region;
+std::unique_ptr<Predicate> IsInCoveredRegion::copy() const {
+   return std::make_unique<operators::IsInCoveredRegion>(
+      horizontal_coverage_index, position_idx, comparator
+   );
+}
+
+std::unique_ptr<Predicate> IsInCoveredRegion::negate() const {
+   Comparator negated_comparator = comparator == Comparator::IS_COVERED
+                                      ? IsInCoveredRegion::Comparator::IS_NOT_COVERED
+                                      : IsInCoveredRegion::Comparator::IS_COVERED;
+   return std::make_unique<operators::IsInCoveredRegion>(
+      horizontal_coverage_index, position_idx, negated_comparator
+   );
 }
 
 }  // namespace silo::query_engine::filter::operators
