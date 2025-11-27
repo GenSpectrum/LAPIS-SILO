@@ -1,12 +1,9 @@
 #include "silo/query_engine/filter/operators/selection.h"
 
-#include <array>
+#include <algorithm>
 #include <cmath>
 #include <compare>
-#include <iomanip>
 #include <iterator>
-#include <sstream>
-#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -15,7 +12,6 @@
 #include <roaring/roaring.hh>
 
 #include "evobench/evobench.hpp"
-#include "silo/common/date.h"
 #include "silo/common/german_string.h"
 #include "silo/common/panic.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
@@ -27,13 +23,28 @@ namespace silo::query_engine::filter::operators {
 using storage::column::StringColumnPartition;
 
 Selection::Selection(
-   std::unique_ptr<Operator>&& child_operator,
+   std::optional<std::unique_ptr<Operator>> child_operator,
    std::vector<std::unique_ptr<Predicate>>&& predicates,
    uint32_t row_count
 )
     : child_operator(std::move(child_operator)),
       predicates(std::move(predicates)),
-      row_count(row_count) {}
+      row_count(row_count) {
+   std::ranges::sort(this->predicates, [&row_count](const auto& left, const auto& right) {
+      return left->estimateSelectivity(row_count) < right->estimateSelectivity(row_count);
+   });
+}
+
+Selection::Selection(
+   std::unique_ptr<Operator>&& child_operator,
+   std::vector<std::unique_ptr<Predicate>>&& predicates,
+   uint32_t row_count
+)
+    : Selection(
+         std::optional<std::unique_ptr<Operator>>{std::move(child_operator)},
+         std::move(predicates),
+         row_count
+      ) {}
 
 Selection::Selection(
    std::unique_ptr<Operator>&& child_operator,
@@ -46,8 +57,7 @@ Selection::Selection(
 }
 
 Selection::Selection(std::vector<std::unique_ptr<Predicate>>&& predicates, uint32_t row_count)
-    : predicates(std::move(predicates)),
-      row_count(row_count) {}
+    : Selection(std::nullopt, std::move(predicates), row_count) {}
 
 Selection::Selection(std::unique_ptr<Predicate> predicate, uint32_t row_count)
     : row_count(row_count) {
@@ -63,14 +73,19 @@ std::string Selection::toString() const {
       std::back_inserter(predicate_strings),
       [](const auto& predicate) { return predicate->toString(); }
    );
-   return "Select[" + boost::algorithm::join(predicate_strings, ",") + "](" + ")";
+   std::string child_operator_string;
+   if (child_operator.has_value()) {
+      child_operator_string = child_operator.value()->toString();
+   }
+   return "Select[" + boost::algorithm::join(predicate_strings, ",") + "](" +
+          child_operator_string + ")";
 }
 
 Type Selection::type() const {
    return SELECTION;
 }
 
-bool Selection::matchesPredicates(uint32_t row) const {
+bool Selection::matchesPredicates(const PredicateVector& predicates, uint32_t row) {
    return std::ranges::all_of(predicates, [&](const auto& predicate) {
       return predicate->match(row);
    });
@@ -78,19 +93,44 @@ bool Selection::matchesPredicates(uint32_t row) const {
 
 CopyOnWriteBitmap Selection::evaluate() const {
    EVOBENCH_SCOPE("Selection", "evaluate");
-   roaring::Roaring result;
    if (child_operator.has_value()) {
       CopyOnWriteBitmap child_result = (*child_operator)->evaluate();
+      // Do not iterate over bitmap, if child result is larger than 10%
+      if (child_result.getConstReference().cardinality() > row_count / 10) {
+         SILO_ASSERT(!predicates.empty());
+         auto most_selective_predicate_bitmap = predicates.front()->makeBitmap(row_count);
+         child_result.getMutable() &= most_selective_predicate_bitmap;
+
+         if (predicates.size() == 1) {
+            return CopyOnWriteBitmap{std::move(child_result)};
+         }
+
+         // Apply all remaining predicates as before `matchesPredicates`
+         PredicateVector remaining_predicates;
+         remaining_predicates.reserve(predicates.size() - 1);
+         for (size_t i = 1; i < predicates.size(); ++i) {
+            remaining_predicates.push_back(predicates.at(i)->copy());
+         }
+         roaring::Roaring result;
+         for (const uint32_t row : child_result.getConstReference()) {
+            if (matchesPredicates(remaining_predicates, row)) {
+               result.add(row);
+            }
+         }
+         return CopyOnWriteBitmap{std::move(result)};
+      }
+      roaring::Roaring result;
       for (const uint32_t row : child_result.getConstReference()) {
-         if (matchesPredicates(row)) {
+         if (matchesPredicates(predicates, row)) {
             result.add(row);
          }
       }
-   } else {
-      for (uint32_t row = 0; row < row_count; ++row) {
-         if (matchesPredicates(row)) {
-            result.add(row);
-         }
+      return CopyOnWriteBitmap{std::move(result)};
+   }
+   roaring::Roaring result;
+   for (uint32_t row = 0; row < row_count; ++row) {
+      if (matchesPredicates(predicates, row)) {
+         result.add(row);
       }
    }
    return CopyOnWriteBitmap{std::move(result)};
@@ -110,10 +150,12 @@ bool strongOrderingMatchesComparator(std::strong_ordering strong_ordering, Compa
    if (strong_ordering == std::strong_ordering::equal) {
       return comparator == Comparator::HIGHER_OR_EQUALS ||
              comparator == Comparator::LESS_OR_EQUALS || comparator == Comparator::EQUALS;
-   } else if (strong_ordering == std::strong_ordering::less) {
+   }
+   if (strong_ordering == std::strong_ordering::less) {
       return comparator == Comparator::LESS || comparator == Comparator::LESS_OR_EQUALS ||
              comparator == Comparator::NOT_EQUALS;
-   } else if (strong_ordering == std::strong_ordering::greater) {
+   }
+   if (strong_ordering == std::strong_ordering::greater) {
       return comparator == Comparator::HIGHER || comparator == Comparator::HIGHER_OR_EQUALS ||
              comparator == Comparator::NOT_EQUALS;
    }

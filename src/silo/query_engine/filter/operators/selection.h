@@ -6,12 +6,10 @@
 #include <string>
 #include <vector>
 
-#include "silo/common/german_string.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column.h"
-#include "silo/storage/column/float_column.h"
 #include "silo/storage/column/string_column.h"
 
 namespace silo::query_engine::filter::expressions {
@@ -26,13 +24,32 @@ class Predicate {
 
    [[nodiscard]] virtual std::string toString() const = 0;
    [[nodiscard]] virtual bool match(uint32_t row_id) const = 0;
+   // Often there are faster ways to generate the results, than calling match on each row.
+   // Optimise that case by overriding this method
+   [[nodiscard]] virtual roaring::Roaring makeBitmap(uint32_t row_count) const {
+      roaring::Roaring result;
+      for (size_t i = 0; i < row_count; ++i) {
+         if (match(i)) {
+            result.add(i);
+         }
+      }
+      return result;
+   };
+   [[nodiscard]] virtual double estimateSelectivity(uint32_t /*row_count*/) const { return 0.5; }
    [[nodiscard]] virtual std::unique_ptr<Predicate> copy() const = 0;
    [[nodiscard]] virtual std::unique_ptr<Predicate> negate() const = 0;
 };
 
 using PredicateVector = std::vector<std::unique_ptr<Predicate>>;
 
-enum class Comparator { EQUALS, LESS, HIGHER, LESS_OR_EQUALS, HIGHER_OR_EQUALS, NOT_EQUALS };
+enum class Comparator : uint8_t {
+   EQUALS,
+   LESS,
+   HIGHER,
+   LESS_OR_EQUALS,
+   HIGHER_OR_EQUALS,
+   NOT_EQUALS
+};
 
 inline std::string displayComparator(Comparator comparator) {
    switch (comparator) {
@@ -156,6 +173,12 @@ class Selection : public Operator {
    std::vector<std::unique_ptr<Predicate>> predicates;
    uint32_t row_count;
 
+   Selection(
+      std::optional<std::unique_ptr<Operator>> child_operator,
+      std::vector<std::unique_ptr<Predicate>>&& predicates,
+      uint32_t row_count
+   );
+
   public:
    Selection(
       std::unique_ptr<Operator>&& child_operator,
@@ -184,7 +207,7 @@ class Selection : public Operator {
    static std::unique_ptr<Operator> negate(std::unique_ptr<Selection>&& selection);
 
   private:
-   [[nodiscard]] virtual bool matchesPredicates(uint32_t row) const;
+   [[nodiscard]] static bool matchesPredicates(const PredicateVector& predicates, uint32_t row);
 };
 
 }  // namespace silo::query_engine::filter::operators
