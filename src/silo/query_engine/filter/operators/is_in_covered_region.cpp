@@ -50,6 +50,22 @@ bool IsInCoveredRegion::match(uint32_t row_id) const {
    return isCovered(row_id) == (comparator == Comparator::IS_COVERED);
 }
 
+roaring::Roaring IsInCoveredRegion::makeBitmap(uint32_t row_count) const {
+   EVOBENCH_SCOPE("IsInCoveredRegion", "makeBitmap");
+   auto coverage_bitmap =
+      horizontal_coverage_index->getCoverageBitmapForPositions<1>(position_idx).at(0);
+   if (comparator == Comparator::IS_NOT_COVERED) {
+      coverage_bitmap.flip(0, row_count);
+      return coverage_bitmap;
+   }
+   return coverage_bitmap;
+}
+
+double IsInCoveredRegion::estimateSelectivity(uint32_t /*row_count*/) const {
+   EVOBENCH_SCOPE("IsInCoveredRegion", "estimateSelectivity");
+   return 0.1;
+}
+
 std::unique_ptr<Predicate> IsInCoveredRegion::copy() const {
    return std::make_unique<operators::IsInCoveredRegion>(
       horizontal_coverage_index, position_idx, comparator
