@@ -133,12 +133,13 @@ std::unique_ptr<operators::Operator> compileWithMissingSymbol(
    );
 
    operators::OperatorVector operators_for_union;
-   operators_for_union.push_back(std::make_unique<operators::IsInCoveredRegion>(
-      &sequence_column_partition.horizontal_coverage_index.start_end,
-      &sequence_column_partition.horizontal_coverage_index.horizontal_bitmaps,
-      sequence_column_partition.sequence_count,
-      operators::IsInCoveredRegion::Comparator::NOT_COVERED,
-      position_idx
+   operators_for_union.push_back(std::make_unique<operators::Selection>(
+      std::make_unique<operators::IsInCoveredRegion>(
+         &sequence_column_partition.horizontal_coverage_index,
+         position_idx,
+         operators::IsInCoveredRegion::Comparator::IS_NOT_COVERED
+      ),
+      sequence_column_partition.sequence_count
    ));
    operators_for_union.push_back(std::make_unique<operators::IndexScan>(
       CopyOnWriteBitmap{std::move(bitmap)}, sequence_column_partition.sequence_count
@@ -162,12 +163,13 @@ std::unique_ptr<operators::Operator> compileWithReference(
    );
 
    return makeDifference(
-      std::make_unique<operators::IsInCoveredRegion>(
-         &sequence_column_partition.horizontal_coverage_index.start_end,
-         &sequence_column_partition.horizontal_coverage_index.horizontal_bitmaps,
-         sequence_column_partition.sequence_count,
-         operators::IsInCoveredRegion::Comparator::COVERED,
-         position_idx
+      std::make_unique<operators::Selection>(
+         std::make_unique<operators::IsInCoveredRegion>(
+            &sequence_column_partition.horizontal_coverage_index,
+            position_idx,
+            operators::IsInCoveredRegion::Comparator::IS_COVERED
+         ),
+         sequence_column_partition.sequence_count
       ),
       std::make_unique<operators::IndexScan>(
          CopyOnWriteBitmap{std::move(bitmap)}, sequence_column_partition.sequence_count
