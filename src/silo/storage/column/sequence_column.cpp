@@ -41,7 +41,7 @@ SequenceColumnPartition<SymbolType>::SequenceColumnPartition(
       genome_length(metadata->reference_sequence.size()),
       reference_sequence_string(referenceSequenceToString<SymbolType>(metadata->reference_sequence)
       ),
-      horizontal_coverage_index(genome_length) {
+      horizontal_coverage_index() {
    lazy_buffer.reserve(BUFFER_SIZE);
    SILO_ASSERT_GT(genome_length, 0);
 }
@@ -139,15 +139,51 @@ void SequenceColumnPartition<SymbolType>::finalize() {
 
    insertion_index.buildIndex();
 
+   const SequenceColumnInfo info_after_filling = calculateInfo();
+
+   SPDLOG_DEBUG("Adapting local reference");
+   constexpr size_t BATCH_SIZE = 1024;
+   for (uint32_t position_range_start = 0; position_range_start < genome_length;
+        position_range_start += BATCH_SIZE) {
+      auto coverage_bitmaps =
+         horizontal_coverage_index.getCoverageBitmapForPositions<BATCH_SIZE>(position_range_start);
+
+      size_t range_size = std::min(BATCH_SIZE, genome_length - position_range_start);
+      for (size_t position_idx = position_range_start;
+           position_idx < position_range_start + range_size;
+           ++position_idx) {
+         const roaring::Roaring& coverage_bitmap =
+            coverage_bitmaps[position_idx - position_range_start];
+         auto new_reference_symbol = vertical_sequence_index.adaptLocalReference(
+            coverage_bitmap, position_idx, metadata->reference_sequence.at(position_idx)
+         );
+         if (new_reference_symbol.has_value()) {
+            SPDLOG_DEBUG(
+               "At position {} adapted local reference symbol to '{}'",
+               position_idx,
+               SymbolType::symbolToChar(new_reference_symbol.value())
+            );
+            indexing_differences_to_reference_sequence.emplace(
+               position_idx, new_reference_symbol.value()
+            );
+         }
+      }
+   }
+
+   const SequenceColumnInfo info_after_adaption = calculateInfo();
+
    SPDLOG_DEBUG("Optimizing bitmaps");
 
-   const SequenceColumnInfo info_before_optimisation = calculateInfo();
    optimizeBitmaps();
 
+   const SequenceColumnInfo info_after_optimisation = calculateInfo();
+
    SPDLOG_DEBUG(
-      "Sequence store partition info after filling it: {}, and after optimising: {}",
-      info_before_optimisation,
-      calculateInfo()
+      "Sequence store partition info after filling it: {}, after local reference adaption: {}, and "
+      "after optimising: {}",
+      info_after_filling,
+      info_after_adaption,
+      info_after_optimisation
    );
 }
 }  // namespace silo::storage::column

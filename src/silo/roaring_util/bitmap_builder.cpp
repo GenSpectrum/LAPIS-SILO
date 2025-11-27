@@ -56,4 +56,25 @@ roaring::Roaring BitmapBuilderByContainer::getBitmap() && {
    return std::move(result_bitmap);
 }
 
+void BitmapBuilderByRange::add(uint32_t pos) {
+   if (pos == current_range_end) {
+      current_range_end++;
+   } else {
+      flush();
+      current_range_start = pos;
+      current_range_end = pos + 1;
+   }
+}
+
+void BitmapBuilderByRange::flush() {
+   if (current_range_start < current_range_end) {
+      bitmap.addRange(current_range_start, current_range_end);
+   }
+}
+
+roaring::Roaring BitmapBuilderByRange::getBitmap() && {
+   flush();
+   return std::move(bitmap);
+}
+
 }  // namespace silo::roaring_util

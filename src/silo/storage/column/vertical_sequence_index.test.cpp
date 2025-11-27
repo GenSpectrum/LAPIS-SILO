@@ -308,6 +308,136 @@ TEST_F(VerticalSequenceIndexTest, OutOfBoundsRowIds) {
    EXPECT_NO_THROW(index.overwriteSymbolsInSequences(sequences, row_ids));
 }
 
+TEST_F(VerticalSequenceIndexTest, referenceAdaptsSingleSymbol) {
+   uint32_t position = 0;
+
+   // 1 sequence: [A]
+   // Reference is C -> should be changed to A
+
+   SymbolMap<Nucleotide, std::vector<uint32_t>> ids;
+   ids[Nucleotide::Symbol::A] = {0};
+   index.addSymbolsToPositions(position, ids);
+
+   EXPECT_EQ(
+      index.getMatchingContainersAsBitmap(position, {Nucleotide::Symbol::A}), roaring::Roaring{0}
+   );
+
+   auto adapted_reference = index.adaptLocalReference({0}, position, Nucleotide::Symbol::C);
+   EXPECT_TRUE(adapted_reference.has_value());
+   EXPECT_EQ(adapted_reference.value(), Nucleotide::Symbol::A);
+
+   EXPECT_EQ(
+      index.getMatchingContainersAsBitmap(position, {Nucleotide::Symbol::A}), roaring::Roaring{}
+   );
+   EXPECT_EQ(
+      index.getMatchingContainersAsBitmap(position, {Nucleotide::Symbol::C}), roaring::Roaring{}
+   );
+}
+
+TEST_F(VerticalSequenceIndexTest, referenceAdaptsSingleSymbolWhenSomeSymbolsAreMissing) {
+   uint32_t position = 0;
+
+   // 3 sequences: [A, N, N]
+   // Reference is C -> should be changed to A
+
+   SymbolMap<Nucleotide, std::vector<uint32_t>> ids;
+   ids[Nucleotide::Symbol::A] = {0};
+   index.addSymbolsToPositions(position, ids);
+
+   auto adapted_reference = index.adaptLocalReference({0}, position, Nucleotide::Symbol::C);
+   EXPECT_TRUE(adapted_reference.has_value());
+   EXPECT_EQ(adapted_reference.value(), Nucleotide::Symbol::A);
+
+   EXPECT_EQ(
+      index.getMatchingContainersAsBitmap(position, {Nucleotide::Symbol::A}), roaring::Roaring{}
+   );
+   EXPECT_EQ(
+      index.getMatchingContainersAsBitmap(position, {Nucleotide::Symbol::C}), roaring::Roaring{}
+   );
+}
+
+TEST_F(VerticalSequenceIndexTest, referenceDoesNotAdaptSingleSymbol) {
+   uint32_t position = 0;
+
+   // 2 sequences: [A, implicit C]
+   // Reference is C -> should not be changed
+
+   SymbolMap<Nucleotide, std::vector<uint32_t>> ids;
+   ids[Nucleotide::Symbol::A] = {0};
+   index.addSymbolsToPositions(position, ids);
+
+   auto adapted_reference = index.adaptLocalReference({0, 1}, position, Nucleotide::Symbol::C);
+   EXPECT_FALSE(adapted_reference.has_value());
+}
+
+TEST_F(VerticalSequenceIndexTest, referenceDoesNotAdaptSingleSymbolWhenSomeSymbolsAreMissing) {
+   uint32_t position = 0;
+
+   // 7 sequences: [A, N, implicit T, N, implicit T, implicit T, A]
+   // Reference is T -> should not be changed
+
+   SymbolMap<Nucleotide, std::vector<uint32_t>> ids;
+   ids[Nucleotide::Symbol::A] = {0, 6};
+   index.addSymbolsToPositions(position, ids);
+
+   auto adapted_reference =
+      index.adaptLocalReference({0, 2, 4, 5, 6}, position, Nucleotide::Symbol::T);
+   EXPECT_FALSE(adapted_reference.has_value());
+}
+
+TEST_F(VerticalSequenceIndexTest, adaptsAndFlipsCorrectly) {
+   uint32_t position = 0;
+
+   // 7 sequences: [A, N, implicit T, N, A, implicit T, A]
+   // Reference is T -> should not be changed
+
+   SymbolMap<Nucleotide, std::vector<uint32_t>> ids;
+   ids[Nucleotide::Symbol::A] = {0, 4, 6};
+   index.addSymbolsToPositions(position, ids);
+
+   auto adapted_reference =
+      index.adaptLocalReference({0, 2, 4, 5, 6}, position, Nucleotide::Symbol::T);
+   EXPECT_TRUE(adapted_reference.has_value());
+   EXPECT_EQ(adapted_reference.value(), Nucleotide::Symbol::A);
+
+   EXPECT_EQ(
+      index.getMatchingContainersAsBitmap(position, {Nucleotide::Symbol::A}), roaring::Roaring{}
+   );
+   EXPECT_EQ(
+      index.getMatchingContainersAsBitmap(position, {Nucleotide::Symbol::T}),
+      (roaring::Roaring{2, 5})
+   );
+}
+
+TEST_F(VerticalSequenceIndexTest, adaptsAndFlipsCorrectlyWithManySymbols) {
+   uint32_t position = 0;
+
+   // 10 sequences: [A, N, implicit T, N, A, -, -, -, implicit T, A]
+   // Reference is T -> should not be changed
+
+   SymbolMap<Nucleotide, std::vector<uint32_t>> ids;
+   ids[Nucleotide::Symbol::A] = {0, 4, 9};
+   ids[Nucleotide::Symbol::GAP] = {5, 6, 7};
+   index.addSymbolsToPositions(position, ids);
+
+   auto adapted_reference =
+      index.adaptLocalReference({0, 2, 4, 5, 6, 7, 8, 9}, position, Nucleotide::Symbol::T);
+   EXPECT_TRUE(adapted_reference.has_value());
+   EXPECT_EQ(adapted_reference.value(), Nucleotide::Symbol::GAP);
+
+   EXPECT_EQ(
+      index.getMatchingContainersAsBitmap(position, {Nucleotide::Symbol::A}),
+      (roaring::Roaring{0, 4, 9})
+   );
+   EXPECT_EQ(
+      index.getMatchingContainersAsBitmap(position, {Nucleotide::Symbol::T}),
+      (roaring::Roaring{2, 8})
+   );
+   EXPECT_EQ(
+      index.getMatchingContainersAsBitmap(position, {Nucleotide::Symbol::GAP}), (roaring::Roaring{})
+   );
+}
+
 using silo::storage::column::splitIdsIntoBatches;
 
 TEST(splitIdsIntoBatches, EmptyVector) {

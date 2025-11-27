@@ -91,6 +91,24 @@ class VerticalSequenceIndex {
 
    std::pair<const_iterator, const_iterator> getRangeForPosition(uint32_t position_idx) const;
 
+   SymbolMap<SymbolType, uint32_t> computeSymbolCountsForPosition(
+      std::map<SequenceDiffKey, SequenceDiff>::const_iterator start,
+      std::map<SequenceDiffKey, SequenceDiff>::const_iterator end,
+      SymbolType::Symbol global_reference_symbol,
+      uint32_t coverage_cardinality
+   ) const;
+
+   SymbolType::Symbol getSymbolWithHighestCount(
+      const SymbolMap<SymbolType, uint32_t>& symbol_counts,
+      SymbolType::Symbol global_reference_symbol
+   ) const;
+
+   std::optional<typename SymbolType::Symbol> adaptLocalReference(
+      const roaring::Roaring& coverage_bitmap,
+      uint32_t position_idx,
+      SymbolType::Symbol global_reference_symbol
+   );
+
    SequenceDiff& getContainerOrCreateWithCapacity(const SequenceDiffKey& key, int32_t capacity);
 
    roaring::Roaring getMatchingContainersAsBitmap(
