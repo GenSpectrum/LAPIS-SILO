@@ -1,5 +1,6 @@
 #include "silo/storage/column/vertical_sequence_index.h"
 
+#include <cstdint>
 #include <optional>
 #include <roaring/roaring.hh>
 
@@ -57,6 +58,103 @@ std::pair<const_iterator<SymbolType>, const_iterator<SymbolType>> VerticalSequen
          SequenceDiffKey{position_idx + 1, 0, static_cast<SymbolType::Symbol>(0)}
       )
    };
+}
+
+template <typename SymbolType>
+SymbolMap<SymbolType, uint32_t> VerticalSequenceIndex<SymbolType>::computeSymbolCountsForPosition(
+   std::map<SequenceDiffKey, SequenceDiff>::const_iterator start,
+   std::map<SequenceDiffKey, SequenceDiff>::const_iterator end,
+   SymbolType::Symbol global_reference_symbol,
+   uint32_t coverage_cardinality
+) const {
+   SymbolMap<SymbolType, uint32_t> symbol_counts;
+   for (const auto& symbol : SymbolType::SYMBOLS) {
+      symbol_counts[symbol] = 0;
+   }
+   symbol_counts[global_reference_symbol] = coverage_cardinality;
+
+   for (auto it = start; it != end; ++it) {
+      const auto& [sequence_diff_key, sequence_diff] = *it;
+      SILO_ASSERT(sequence_diff_key.symbol != global_reference_symbol);
+      symbol_counts[sequence_diff_key.symbol] += sequence_diff.cardinality;
+      symbol_counts[global_reference_symbol] -= sequence_diff.cardinality;
+   }
+   return symbol_counts;
+}
+
+template <typename SymbolType>
+SymbolType::Symbol VerticalSequenceIndex<SymbolType>::getSymbolWithHighestCount(
+   const SymbolMap<SymbolType, uint32_t>& symbol_counts,
+   SymbolType::Symbol global_reference_symbol
+) const {
+   // Find the symbol with the highest count
+   typename SymbolType::Symbol best_symbol = global_reference_symbol;
+   uint32_t best_count = symbol_counts.at(global_reference_symbol);
+   for (const auto& symbol : SymbolType::SYMBOLS) {
+      if (symbol == global_reference_symbol) {
+         continue;
+      }
+      if (symbol_counts.at(symbol) > best_count) {
+         best_symbol = symbol;
+         best_count = symbol_counts.at(symbol);
+      }
+   }
+   return best_symbol;
+}
+
+template <typename SymbolType>
+std::optional<typename SymbolType::Symbol> VerticalSequenceIndex<SymbolType>::adaptLocalReference(
+   const roaring::Roaring& coverage_bitmap,
+   uint32_t position_idx,
+   SymbolType::Symbol global_reference_symbol
+) {
+   auto [start, end] = getRangeForPosition(position_idx);
+
+   SymbolMap<SymbolType, uint32_t> symbol_counts = computeSymbolCountsForPosition(
+      start, end, global_reference_symbol, coverage_bitmap.cardinality()
+   );
+   // Find the symbol with the highest count
+   typename SymbolType::Symbol best_symbol =
+      getSymbolWithHighestCount(symbol_counts, global_reference_symbol);
+   if (best_symbol == global_reference_symbol) {
+      return std::nullopt;
+   }
+   typename SymbolType::Symbol new_reference_symbol = best_symbol;
+   roaring::Roaring old_reference_bitmap = coverage_bitmap;
+
+   old_reference_bitmap -= getMatchingContainersAsBitmap(
+      position_idx, {SymbolType::SYMBOLS.begin(), SymbolType::SYMBOLS.end()}
+   );
+
+   const auto& roaring_array = old_reference_bitmap.roaring.high_low_container;
+   SILO_ASSERT_LT(roaring_array.size, UINT16_MAX);
+   auto num_containers = static_cast<uint16_t>(roaring_array.size);
+   for (uint16_t container_idx = 0; container_idx < num_containers; ++container_idx) {
+      uint8_t typecode = roaring_array.typecodes[container_idx];
+      auto* container =
+         roaring::internal::container_clone(roaring_array.containers[container_idx], typecode);
+      uint32_t cardinality = roaring::internal::container_get_cardinality(container, typecode);
+      uint16_t v_index = roaring_array.keys[container_idx];
+
+      auto key = SequenceDiffKey{position_idx, v_index, global_reference_symbol};
+      vertical_bitmaps.insert(
+         {key,
+          SequenceDiff{.container = container, .cardinality = cardinality, .typecode = typecode}}
+      );
+   }
+
+   std::vector<uint16_t> v_indices_to_remove;
+   for (auto it = start; it != end; ++it) {
+      const auto& [sequence_diff_key, sequence_diff] = *it;
+      if (sequence_diff_key.symbol == new_reference_symbol) {
+         v_indices_to_remove.push_back(sequence_diff_key.v_index);
+      }
+   }
+   for (auto v_index : v_indices_to_remove) {
+      vertical_bitmaps.erase(SequenceDiffKey{position_idx, v_index, new_reference_symbol});
+   }
+
+   return new_reference_symbol;
 }
 
 template <typename SymbolType>
