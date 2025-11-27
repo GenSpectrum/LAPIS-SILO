@@ -18,4 +18,18 @@ class BitmapBuilderByContainer {
    roaring::Roaring getBitmap() &&;
 };
 
+class BitmapBuilderByRange {
+   roaring::Roaring bitmap;
+
+   uint32_t current_range_start = 0;
+   uint32_t current_range_end = 0;
+
+  public:
+   void add(uint32_t pos);
+
+   void flush();
+
+   roaring::Roaring getBitmap() &&;
+};
+
 }  // namespace silo::roaring_util

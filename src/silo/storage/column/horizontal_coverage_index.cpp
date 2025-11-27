@@ -23,13 +23,25 @@ void HorizontalCoverageIndex::insertCoverage(
 
    start_end.emplace_back(start, end);
 
+   uint16_t sequence_idx_upper_bits = sequence_idx >> 16;
+   uint16_t sequence_idx_lower_bits = sequence_idx & 0xFFFF;
+
+   if (sequence_idx_lower_bits == 0) {
+      batch_start_ends.emplace_back(start, end);
+   } else {
+      auto& [batch_start, batch_end] = batch_start_ends.back();
+      batch_start = std::min(batch_start, start);
+      batch_end = std::max(batch_end, end);
+   }
+   SILO_ASSERT_EQ(batch_start_ends.size(), sequence_idx_upper_bits + 1);
+
    // We also have a row_wise bitmap, that covers all N symbols that are within the covered region
    roaring::Roaring horizontal_bitmap;
    horizontal_bitmap.addMany(
       positions_with_symbol_missing.size(), positions_with_symbol_missing.data()
    );
    horizontal_bitmap.removeRange(0, start);
-   horizontal_bitmap.removeRange(end, genome_length);
+   horizontal_bitmap.removeRange(end, UINT32_MAX);
    horizontal_bitmap.runOptimize();
    horizontal_bitmap.shrinkToFit();
 
@@ -98,11 +110,13 @@ void HorizontalCoverageIndex::overwriteCoverageInSequence(
    uint32_t id_in_reconstructed_sequences = 0;
    for (uint32_t row_id : row_ids) {
       const auto [start, end] = start_end.at(row_id);
+      size_t sequence_size = sequences.at(id_in_reconstructed_sequences).size();
+
       for (uint32_t position_idx = 0; position_idx < start; position_idx++) {
          sequences.at(id_in_reconstructed_sequences).at(position_idx) =
             SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
       }
-      for (uint32_t position_idx = end; position_idx < genome_length; position_idx++) {
+      for (uint32_t position_idx = end; position_idx < sequence_size; position_idx++) {
          sequences.at(id_in_reconstructed_sequences).at(position_idx) =
             SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
       }
