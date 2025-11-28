@@ -7,15 +7,15 @@ if [ $# -ne 0 ]; then
     exit 1
 fi
 
-if [ -e "$DATASET_DIR"/good-api-query-log.csv ]; then
+if [ -e "$QUERIES_DIR"/good-api-query-log.csv ]; then
     set -x
     "$API_QUERY"-log compare \
                 --queries "$QUERIES_DIR"/queries.ndjson \
                 --ignore-from "$QUERIES_DIR"/ignore_queries_for_checksum_regex.txt \
-                "$DATASET_DIR"/good-api-query-log.csv "$API_QUERY_LOG_CSV"
+                "$QUERIES_DIR"/good-api-query-log.csv "$API_QUERY_LOG_CSV"
 else
     echo -n "There's no good-api-query-log.csv for '$QUERIES'. "
     echo "Automatically install the current file as presumably good:"
     set -x
-    cp -a "$API_QUERY_LOG_CSV" "$DATASET_DIR"/good-api-query-log.csv
+    cp -a "$API_QUERY_LOG_CSV" "$QUERIES_DIR"/good-api-query-log.csv
 fi
