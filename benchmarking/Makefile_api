@@ -23,10 +23,10 @@ ifeq ($(REPEAT),)
 $(error "REPEAT must be a natural number, missing")
 endif
 
-ifeq ($(SILO_QUERIES),)
-SILO_QUERIES_PATH=$(DATASET_DIR)/silo_queries.ndjson
+ifeq ($(QUERIES),)
+QUERIES_PATH=$(DATASET_DIR)/silo_queries.ndjson
 else
-SILO_QUERIES_PATH=$(DATASET_DIR)/$(SILO_QUERIES)
+QUERIES_PATH=$(DATASET_DIR)/$(QUERIES)
 endif
 
 # ---- Get dependencies --------------------------------------------------------
@@ -67,9 +67,9 @@ dependencies: $(API_QUERY)
 	bin/stop-silo
 	touch .silo.stopped
 
-bench: $(SILO_QUERIES_PATH) $(API_QUERY) .silo.stopped
+bench: $(QUERIES_PATH) $(API_QUERY) .silo.stopped
 	@echo "running benchmark"
 	make -f Makefile_api .silo.pid
-	$(API_QUERY) iter $(API_QUERY_OPTS) --repeat $(REPEAT) $(SILO_QUERIES_PATH) --drop --log-csv $(API_QUERY_LOG_CSV) --concurrency $(CONCURRENCY)
+	$(API_QUERY) iter $(API_QUERY_OPTS) --repeat $(REPEAT) $(QUERIES_PATH) --drop --log-csv $(API_QUERY_LOG_CSV) --concurrency $(CONCURRENCY)
 	make -f Makefile_api .silo.stopped
-	$(API_QUERY)-log compare --queries $(SILO_QUERIES_PATH) --ignore-from $(DATASET_DIR)/ignore_queries_for_checksum_regex.txt $(DATASET_DIR)/good-api-query-log.csv $(API_QUERY_LOG_CSV)
+	$(API_QUERY)-log compare --queries $(QUERIES_PATH) --ignore-from $(DATASET_DIR)/ignore_queries_for_checksum_regex.txt $(DATASET_DIR)/good-api-query-log.csv $(API_QUERY_LOG_CSV)
