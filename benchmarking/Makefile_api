@@ -76,4 +76,4 @@ bench: $(QUERIES_DIR)/queries.ndjson $(API_QUERY) .silo.stopped
 	make -f Makefile_api .silo.pid
 	bin/api-query-iter
 	make -f Makefile_api .silo.stopped
-	api-query-log-compare
+	bin/api-query-log-compare
