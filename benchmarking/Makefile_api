@@ -25,7 +25,7 @@ endif
 
 # ---- Get dependencies --------------------------------------------------------
 
-API_QUERY_VERSION=f28f644b54427575319a6e98f668fc023824b303
+API_QUERY_VERSION=e005495f09b76e8c418a43cc07bf2f398e4c48bd
 
 API_QUERY_DIR=api-query
 API_QUERY_CLONE=$(API_QUERY_DIR)/Cargo.toml
