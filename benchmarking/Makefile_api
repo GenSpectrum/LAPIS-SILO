@@ -12,6 +12,7 @@ API_QUERY_OPTS=--randomize
 else
 $(error "RANDOMIZED must be either 0 or 1, got '$(RANDOMIZED)'")
 endif
+export API_QUERY_OPTS
 
 # Passed to api-query
 ifeq ($(CONCURRENCY),)
@@ -28,6 +29,7 @@ QUERIES_DIR=$(DATASET_DIR)/queries
 else
 QUERIES_DIR=$(DATASET_DIR)/$(QUERIES)
 endif
+export QUERIES_DIR
 
 # ---- Get dependencies --------------------------------------------------------
 
@@ -38,8 +40,10 @@ API_QUERY_CLONE=$(API_QUERY_DIR)/Cargo.toml
 API_QUERY_CHECKOUT_STAMP_DIR=$(API_QUERY_DIR)/.git/.checkout
 API_QUERY_CHECKOUT=$(API_QUERY_CHECKOUT_STAMP_DIR)/$(API_QUERY_VERSION)
 API_QUERY=$(API_QUERY_DIR)/target/release/api-query
+export API_QUERY
 
 API_QUERY_LOG_CSV:=$(OUTPUT_DIR)/api-query-log-$(shell bin/date-rfc-3339).csv
+export API_QUERY_LOG_CSV
 
 $(API_QUERY_CLONE):
 	git clone https://github.com/GenSpectrum/api-query $(API_QUERY_DIR)
@@ -70,9 +74,6 @@ dependencies: $(API_QUERY)
 bench: $(QUERIES_DIR)/queries.ndjson $(API_QUERY) .silo.stopped
 	@echo "running benchmark"
 	make -f Makefile_api .silo.pid
-	$(API_QUERY) iter $(API_QUERY_OPTS) --repeat $(REPEAT) --concurrency $(CONCURRENCY) $(QUERIES_DIR)/queries.ndjson \
-    --drop --log-csv $(API_QUERY_LOG_CSV)
+	bin/api-query-iter
 	make -f Makefile_api .silo.stopped
-	$(API_QUERY)-log compare --queries $(QUERIES_DIR)/queries.ndjson \
-    --ignore-from $(QUERIES_DIR)/ignore_queries_for_checksum_regex.txt \
-    $(DATASET_DIR)/good-api-query-log.csv $(API_QUERY_LOG_CSV)
+	api-query-log-compare

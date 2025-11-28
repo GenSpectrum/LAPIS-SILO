@@ -1,0 +1,15 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+if [ $# -ne 0 ]; then
+    echo "usage: all parameters must be passed as env variables"
+    exit 1
+fi
+
+set -x
+
+"$API_QUERY"-log compare \
+            --queries "$QUERIES_DIR"/queries.ndjson \
+            --ignore-from "$QUERIES_DIR"/ignore_queries_for_checksum_regex.txt \
+            "$DATASET_DIR"/good-api-query-log.csv "$API_QUERY_LOG_CSV"
