@@ -24,10 +24,14 @@ $(error "REPEAT must be a natural number, missing")
 endif
 
 ifeq ($(QUERIES),)
-QUERIES_PATH=$(DATASET_DIR)/silo_queries.ndjson
+QUERIES_DIR=$(DATASET_DIR)/queries
 else
-QUERIES_PATH=$(DATASET_DIR)/$(QUERIES)
+QUERIES_DIR=$(DATASET_DIR)/$(QUERIES)
 endif
+
+QUERIES_NDJSON=$(QUERIES_DIR)/queries.ndjson
+QUERIES_GOOD_QUERY_LOG=$(QUERIES_DIR)/good-api-query-log.csv
+
 
 # ---- Get dependencies --------------------------------------------------------
 
