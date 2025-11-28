@@ -29,10 +29,6 @@ else
 QUERIES_DIR=$(DATASET_DIR)/$(QUERIES)
 endif
 
-QUERIES_NDJSON=$(QUERIES_DIR)/queries.ndjson
-QUERIES_GOOD_QUERY_LOG=$(QUERIES_DIR)/good-api-query-log.csv
-
-
 # ---- Get dependencies --------------------------------------------------------
 
 API_QUERY_VERSION=f28f644b54427575319a6e98f668fc023824b303
@@ -71,9 +67,12 @@ dependencies: $(API_QUERY)
 	bin/stop-silo
 	touch .silo.stopped
 
-bench: $(QUERIES_PATH) $(API_QUERY) .silo.stopped
+bench: $(QUERIES_DIR)/queries.ndjson $(API_QUERY) .silo.stopped
 	@echo "running benchmark"
 	make -f Makefile_api .silo.pid
-	$(API_QUERY) iter $(API_QUERY_OPTS) --repeat $(REPEAT) $(QUERIES_PATH) --drop --log-csv $(API_QUERY_LOG_CSV) --concurrency $(CONCURRENCY)
+	$(API_QUERY) iter $(API_QUERY_OPTS) --repeat $(REPEAT) --concurrency $(CONCURRENCY) $(QUERIES_DIR)/queries.ndjson \
+    --drop --log-csv $(API_QUERY_LOG_CSV)
 	make -f Makefile_api .silo.stopped
-	$(API_QUERY)-log compare --queries $(QUERIES_PATH) --ignore-from $(DATASET_DIR)/ignore_queries_for_checksum_regex.txt $(DATASET_DIR)/good-api-query-log.csv $(API_QUERY_LOG_CSV)
+	$(API_QUERY)-log compare --queries $(QUERIES_DIR)/queries.ndjson \
+    --ignore-from $(QUERIES_DIR)/ignore_queries_for_checksum_regex.txt \
+    $(DATASET_DIR)/good-api-query-log.csv $(API_QUERY_LOG_CSV)
