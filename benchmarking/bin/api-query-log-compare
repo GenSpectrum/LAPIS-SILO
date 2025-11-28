@@ -1,0 +1,21 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+if [ $# -ne 0 ]; then
+    echo "usage: all parameters must be passed as env variables"
+    exit 1
+fi
+
+if [ -e "$QUERIES_DIR"/good-api-query-log.csv ]; then
+    set -x
+    "$API_QUERY"-log compare \
+                --queries "$QUERIES_DIR"/queries.ndjson \
+                --ignore-from "$QUERIES_DIR"/ignore_queries_for_checksum_regex.txt \
+                "$QUERIES_DIR"/good-api-query-log.csv "$API_QUERY_LOG_CSV"
+else
+    echo -n "There's no good-api-query-log.csv for '$QUERIES'. "
+    echo "Automatically install the current file as presumably good:"
+    set -x
+    cp -a "$API_QUERY_LOG_CSV" "$QUERIES_DIR"/good-api-query-log.csv
+fi
