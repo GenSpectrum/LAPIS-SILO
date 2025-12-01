@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+
 using silo::Nucleotide;
 
 TEST(NucleotideSymbol, enumShouldHaveSameLengthAsArrayOfSymbols) {
@@ -29,10 +31,8 @@ TEST(NucleotideSymbol, conversionFromCharacterRoundTrip) {
 TEST(NucleotideSymbol, ambiguousSymbols) {
    for (const auto& symbol : Nucleotide::SYMBOLS) {
       auto ambiguous_symbols_for_symbol = Nucleotide::AMBIGUITY_SYMBOLS.at(symbol);
-      bool contains_self =
-         std::find(
-            ambiguous_symbols_for_symbol.begin(), ambiguous_symbols_for_symbol.end(), symbol
-         ) != ambiguous_symbols_for_symbol.end();
+      bool contains_self = std::ranges::find(ambiguous_symbols_for_symbol, symbol) !=
+                           ambiguous_symbols_for_symbol.end();
       EXPECT_TRUE(contains_self);
    }
 }

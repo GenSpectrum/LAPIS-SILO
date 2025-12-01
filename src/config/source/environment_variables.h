@@ -37,7 +37,7 @@ class EnvironmentVariables {
       const char* const* envp
    );
 
-   [[nodiscard]] inline std::string debugContext() const { return "environment variables"; };
+   [[nodiscard]] static std::string debugContext() { return "environment variables"; };
 
    static std::string configKeyPathToString(const ConfigKeyPath& key_path);
 

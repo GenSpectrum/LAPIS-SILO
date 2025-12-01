@@ -85,6 +85,8 @@ using silo::config::ConfigValue;
 using silo::config::ConfigValueType;
 using silo::config::YamlFile;
 
+namespace {
+
 auto foo_key = YamlFile::stringToConfigKeyPath("foo");
 auto bar_key = YamlFile::stringToConfigKeyPath("bar");
 ConfigSpecification specification{
@@ -97,6 +99,8 @@ ConfigSpecification specification{
        ),
        ConfigAttributeSpecification::createWithoutDefault(bar_key, ConfigValueType::INT32, "help")}
 };
+
+}  // namespace
 
 TEST(CommandLineArguments, verifyOneArgument) {
    std::vector<std::string> arguments{"--foo"};

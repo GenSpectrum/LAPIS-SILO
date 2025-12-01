@@ -9,7 +9,6 @@
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
-#include "silo/common/fmt_formatters.h"
 #include "silo/persistence/exception.h"
 
 namespace silo {
@@ -135,7 +134,7 @@ void DataVersion::saveToFile(const std::filesystem::path& save_file) const {
    std::ofstream file{save_file};
    if (!file) {
       throw silo::persistence::SaveDatabaseException(
-         fmt::format("Could not save data version to file '{}'", save_file)
+         fmt::format("Could not save data version to file '{}'", save_file.string())
       );
    }
    YAML::Node yaml_representation;

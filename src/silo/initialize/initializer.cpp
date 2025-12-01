@@ -9,7 +9,6 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/panic.h"
 #include "silo/common/phylo_tree.h"
-#include "silo/common/table_reader.h"
 #include "silo/database.h"
 #include "silo/initialize/initialize_exception.h"
 #include "silo/storage/column/column_type_visitor.h"

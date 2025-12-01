@@ -5,10 +5,7 @@
 
 #include <fmt/format.h>
 
-#include "config/config_interface.h"
-#include "config/config_source_interface.h"
 #include "config/config_specification.h"
-#include "silo/config/config_defaults.h"
 
 namespace silo::config {
 

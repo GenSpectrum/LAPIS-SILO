@@ -1,18 +1,11 @@
 #pragma once
 
-#include <cstdint>
 #include <filesystem>
 #include <optional>
 #include <string>
-#include <string_view>
-#include <unordered_map>
 
 #include <fmt/format.h>
 
-#include "config/config_interface.h"
-#include "config/source/yaml_file.h"
-#include "silo/common/json_type_definitions.h"
-#include "silo/config/config_defaults.h"
 #include "silo/config/initialize_config.h"
 
 namespace silo::config {
@@ -39,7 +32,7 @@ class PreprocessingConfig {
       const VerifiedConfigAttributes& env_source
    );
 
-   std::optional<std::filesystem::path> getInputFilePath() const;
+   [[nodiscard]] std::optional<std::filesystem::path> getInputFilePath() const;
 
    NLOHMANN_DEFINE_TYPE_INTRUSIVE(PreprocessingConfig, initialization_files, input_file)
 };

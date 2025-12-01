@@ -2,8 +2,6 @@
 
 #include "config/config_interface.h"
 #include "config/source/yaml_file.h"
-#include "silo/common/json_type_definitions.h"
-#include "silo/config/config_defaults.h"
 
 using silo::config::ConfigKeyPath;
 using silo::config::YamlFile;

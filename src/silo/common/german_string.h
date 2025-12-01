@@ -4,14 +4,12 @@
 #include <compare>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <functional>
-#include <iomanip>
 #include <optional>
-#include <string>
 
 #include <boost/serialization/access.hpp>
 
-#include "silo/common/bidirectional_string_map.h"
 #include "silo/common/panic.h"
 #include "silo/storage/vector/variable_data_registry.h"
 
@@ -55,7 +53,7 @@ class GermanString {
       SILO_ASSERT(PREFIX_START + PREFIX_LENGTH <= data.size());
       SILO_ASSERT(SUFFIX_ID_START + sizeof(suffix_id_type) <= data.size());
       *reinterpret_cast<length_type*>(data.data()) = length;
-      std::memcpy(data.data() + PREFIX_START, prefix.data(), PREFIX_LENGTH);
+      std::memcpy(data.data() + PREFIX_START, prefix.data(), prefix.size());
       *reinterpret_cast<suffix_id_type*>(data.data() + SUFFIX_ID_START) = suffix_offset;
    }
 
@@ -63,18 +61,20 @@ class GermanString {
       length_type short_string_length = short_string.size();
       SILO_ASSERT(short_string_length <= SHORT_STRING_SIZE);
       *reinterpret_cast<length_type*>(data.data()) = short_string_length;
-      std::memcpy(data.data() + PREFIX_START, short_string.data(), short_string_length);
+      std::memcpy(data.data() + PREFIX_START, short_string.data(), short_string.size());
    }
 
-   inline length_type length() const { return *reinterpret_cast<const length_type*>(data.data()); }
+   [[nodiscard]] length_type length() const {
+      return *reinterpret_cast<const length_type*>(data.data());
+   }
 
-   inline bool isInPlace() const { return length() <= I; }
+   [[nodiscard]] bool isInPlace() const { return length() <= I; }
 
-   std::string_view getShortString() const {
+   [[nodiscard]] std::string_view getShortString() const {
       return std::string_view{reinterpret_cast<const char*>(data.data() + PREFIX_START), length()};
    }
 
-   std::string_view prefix() const {
+   [[nodiscard]] std::string_view prefix() const {
       return std::string_view{
          reinterpret_cast<const char*>(data.data() + PREFIX_START), PREFIX_LENGTH
       };
@@ -86,7 +86,7 @@ class GermanString {
 
    // Compares this to other without looking up the suffix. We might be able to differentiate using
    // only the prefix and length
-   std::optional<std::strong_ordering> fastCompare(std::string_view other) const {
+   [[nodiscard]] std::optional<std::strong_ordering> fastCompare(std::string_view other) const {
       if (length() <= SHORT_STRING_SIZE) {
          auto this_string = this->getShortString();
          return std::lexicographical_compare_three_way(
@@ -94,7 +94,10 @@ class GermanString {
          );
       }
 
-      const int prefix_compare = std::memcmp(this->prefix().data(), other.data(), PREFIX_LENGTH);
+      std::string_view other_prefix = other.substr(0, PREFIX_LENGTH);
+
+      const int prefix_compare =
+         std::memcmp(this->prefix().data(), other_prefix.data(), other_prefix.size());
       if (prefix_compare < 0) {
          return std::strong_ordering::less;
       }

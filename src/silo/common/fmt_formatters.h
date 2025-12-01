@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <filesystem>
-#include <optional>
 
 #include <fmt/format.h>
 #include <yaml-cpp/yaml.h>

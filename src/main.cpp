@@ -4,13 +4,11 @@
 
 #include <arrow/compute/api.h>
 
+#include "config/config_interface.h"
 #include "evobench/evobench.hpp"
 #include "silo/api/api.h"
 #include "silo/api/logging.h"
 #include "silo/append/append.h"
-#include "silo/append/database_inserter.h"
-#include "silo/append/ndjson_line_reader.h"
-#include "silo/common/input_stream_wrapper.h"
 #include "silo/common/overloaded.h"
 #include "silo/common/panic.h"
 #include "silo/common/version.h"
@@ -62,7 +60,7 @@ int runApi(const silo::config::RuntimeConfig& runtime_config) {
    return server.runApi(runtime_config);
 }
 
-enum class ExecutionMode { INITIALIZE, APPEND, API, PREPROCESSING };
+enum class ExecutionMode : uint8_t { INITIALIZE, APPEND, API, PREPROCESSING };
 
 int mainWhichMayThrowExceptions(int argc, char** argv) {
    setupLogger();
@@ -122,7 +120,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    switch (mode) {
       case ExecutionMode::PREPROCESSING:
          return std::visit(
-            overloaded{
+            Overloaded{
                [&](const silo::config::PreprocessingConfig& preprocessing_config) {
                   SPDLOG_INFO("preprocessing_config = {}", preprocessing_config);
                   return runPreprocessor(preprocessing_config);
@@ -133,7 +131,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
          );
       case ExecutionMode::INITIALIZE:
          return std::visit(
-            overloaded{
+            Overloaded{
                [&](const silo::config::InitializeConfig& initialize_config) {
                   SPDLOG_INFO("initialize_config = {}", initialize_config);
                   return runInitializer(initialize_config);
@@ -144,7 +142,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
          );
       case ExecutionMode::APPEND:
          return std::visit(
-            overloaded{
+            Overloaded{
                [&](const silo::config::AppendConfig& append_config) {
                   SPDLOG_INFO("append_config = {}", append_config);
                   return runAppend(append_config);
@@ -155,7 +153,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
          );
       case ExecutionMode::API:
          return std::visit(
-            overloaded{
+            Overloaded{
                [&](const silo::config::RuntimeConfig& runtime_config) {
                   SPDLOG_INFO("runtime_config = {}", runtime_config);
                   return runApi(runtime_config);

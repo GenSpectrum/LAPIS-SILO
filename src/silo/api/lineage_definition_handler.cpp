@@ -1,11 +1,11 @@
 #include "silo/api/lineage_definition_handler.h"
 
-#include <map>
 #include <string>
 
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 #include <nlohmann/json.hpp>
+#include <utility>
 
 #include "silo/api/active_database.h"
 #include "silo/api/error_request_handler.h"
@@ -16,11 +16,11 @@ LineageDefinitionHandler::LineageDefinitionHandler(
    std::shared_ptr<ActiveDatabase> database_handle,
    std::string column_name
 )
-    : database_handle(database_handle),
+    : database_handle(std::move(database_handle)),
       column_name(std::move(column_name)) {}
 
 void LineageDefinitionHandler::get(
-   Poco::Net::HTTPServerRequest& request,
+   Poco::Net::HTTPServerRequest& /*request*/,
    Poco::Net::HTTPServerResponse& response
 ) {
    const auto database = database_handle->getActiveDatabase();
@@ -48,9 +48,10 @@ void LineageDefinitionHandler::get(
       });
       return;
    }
-   auto metadata = database->table->schema
-                      .getColumnMetadata<storage::column::IndexedStringColumnPartition>(column_name)
-                      .value();
+   auto* metadata =
+      database->table->schema
+         .getColumnMetadata<storage::column::IndexedStringColumnPartition>(column_name)
+         .value();
    if (!metadata->lineage_tree.has_value()) {
       response.setContentType("application/json");
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);

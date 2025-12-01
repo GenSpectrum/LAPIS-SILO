@@ -1,5 +1,6 @@
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <arrow/acero/exec_plan.h>
@@ -64,7 +65,7 @@ class TableScanGenerator {
    )
        : exec_batch_builder(columns),
          partition_filters(std::move(partition_filters_)),
-         table(table),
+         table(std::move(table)),
          batch_size_cutoff(batch_size_cutoff) {
       current_partition_idx = 0;
       if (!partition_filters.empty()) {

@@ -15,6 +15,6 @@ void HealthHandler::get(
 ) {
    response.setContentType("application/json");
    response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
-   response.send() << "{\"status\":\"UP\"}";
+   response.send() << R"({"status":"UP"})";
 }
 }  // namespace silo::api

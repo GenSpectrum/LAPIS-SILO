@@ -1,14 +1,11 @@
 #include "silo/config/initialize_config.h"
 
 #include <filesystem>
-#include <system_error>
 
 #include <spdlog/spdlog.h>
 
 #include "config/config_interface.h"
-#include "silo/common/fmt_formatters.h"
-#include "silo/common/json_type_definitions.h"
-#include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/config/config_defaults.h"
 
 namespace {
 using silo::config::ConfigKeyPath;
@@ -110,6 +107,7 @@ std::filesystem::path InitializationFiles::getDatabaseConfigFilename() const {
 
 std::vector<std::filesystem::path> InitializationFiles::getLineageDefinitionFilenames() const {
    std::vector<std::filesystem::path> paths;
+   paths.reserve(lineage_definition_files.size());
    for (const auto& file_name : lineage_definition_files) {
       paths.push_back(directory / file_name);
    }

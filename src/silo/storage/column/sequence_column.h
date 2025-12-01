@@ -14,7 +14,6 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/common/table_reader.h"
 #include "silo/storage/column/horizontal_coverage_index.h"
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/column/vertical_sequence_index.h"

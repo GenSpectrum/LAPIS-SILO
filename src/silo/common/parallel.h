@@ -12,40 +12,40 @@
 
 namespace silo::common {
 
-class blocked_range {
+class BlockedRange {
    size_t begin_;
    size_t end_;
 
   public:
-   blocked_range(size_t begin, size_t end)
+   BlockedRange(size_t begin, size_t end)
        : begin_(begin),
          end_(end) {
       SILO_ASSERT_LE(begin, end);
    }
-   size_t begin() const { return begin_; }
-   size_t end() const { return end_; }
-   size_t size() const { return end_ - begin_; }
+   [[nodiscard]] size_t begin() const { return begin_; }
+   [[nodiscard]] size_t end() const { return end_; }
+   [[nodiscard]] size_t size() const { return end_ - begin_; }
 };
 
-void parallel_for(
-   blocked_range range,
+void parallelFor(
+   BlockedRange range,
    size_t positions_per_process,
-   std::invocable<blocked_range> auto&& f
+   std::invocable<BlockedRange> auto&& func
 ) {
    size_t num_chunks = range.size() / positions_per_process;
    if (range.size() % positions_per_process) {
       num_chunks++;
    }
 
-   auto pool = arrow::internal::GetCpuThreadPool();
+   auto* pool = arrow::internal::GetCpuThreadPool();
    std::vector<arrow::Future<std::optional<std::exception_ptr>>> futures;
    for (size_t chunk = 0; chunk < num_chunks; chunk++) {
       const size_t last_chunk = num_chunks - 1;
       auto fut = pool
                     ->Submit(
-                       [chunk, last_chunk, range, positions_per_process, &f](
+                       [chunk, last_chunk, range, positions_per_process, &func](
                        ) -> std::optional<std::exception_ptr> {
-                          const size_t pos_begin = range.begin() + chunk * positions_per_process;
+                          const size_t pos_begin = range.begin() + (chunk * positions_per_process);
                           size_t pos_end;
                           if (chunk < last_chunk) {
                              pos_end = pos_begin + positions_per_process;
@@ -54,7 +54,7 @@ void parallel_for(
                           }
 
                           try {
-                             f(blocked_range{pos_begin, pos_end});
+                             func(BlockedRange{pos_begin, pos_end});
                           } catch (...) {
                              return {std::current_exception()};
                           }

@@ -1,8 +1,5 @@
 #include "silo/append/append.h"
 
-#include <fstream>
-#include <istream>
-
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/common/input_stream_wrapper.h"
@@ -13,7 +10,7 @@ using silo::Database;
 
 class AppendError : public std::runtime_error {
   public:
-   AppendError(std::string error_message)
+   explicit AppendError(const std::string& error_message)
        : std::runtime_error(error_message) {}
 };
 

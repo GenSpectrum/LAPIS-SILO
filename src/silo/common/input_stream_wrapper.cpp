@@ -10,7 +10,6 @@
 #include <boost/iostreams/filter/zstd.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
-#include "silo/common/json_type_definitions.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace {
@@ -60,12 +59,11 @@ InputStreamWrapper InputStreamWrapper::openFileOrStdIn(
    const std::optional<std::filesystem::path>& maybe_filename
 ) {
    if (maybe_filename.has_value()) {
-      SPDLOG_DEBUG("Given input file: {}", maybe_filename.value());
+      SPDLOG_DEBUG("Given input file: {}", maybe_filename.value().string());
       return InputStreamWrapper{maybe_filename.value()};
-   } else {
-      SPDLOG_DEBUG("No input file given, instead opening stdin");
-      return InputStreamWrapper{std::make_unique<std::istream>(std::cin.rdbuf())};
    }
+   SPDLOG_DEBUG("No input file given, instead opening stdin");
+   return InputStreamWrapper{std::make_unique<std::istream>(std::cin.rdbuf())};
 }
 
 }  // namespace silo

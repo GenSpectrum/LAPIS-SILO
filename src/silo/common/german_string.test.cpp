@@ -1,5 +1,4 @@
 #include "silo/common/german_string.h"
-#include "silo/common/bidirectional_string_map.h"
 
 #include <gtest/gtest.h>
 

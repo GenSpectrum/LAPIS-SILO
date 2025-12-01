@@ -1,11 +1,9 @@
 #include "silo/api/silo_directory_watcher.h"
 
 #include <cxxabi.h>
-#include <fstream>
 #include <optional>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include <spdlog/spdlog.h>
 
@@ -18,7 +16,7 @@ silo::api::SiloDirectoryWatcher::SiloDirectoryWatcher(
    std::shared_ptr<ActiveDatabase> database_handle
 )
     : silo_directory(std::move(silo_directory)),
-      database_handle(database_handle),
+      database_handle(std::move(database_handle)),
       timer(0, 2000) {
    timer.start(
       Poco::TimerCallback<SiloDirectoryWatcher>(*this, &SiloDirectoryWatcher::checkDirectoryForData)
@@ -32,7 +30,7 @@ void silo::api::SiloDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer
       SPDLOG_INFO("No data found in {} for ingestion", silo_directory);
       return;
    }
-   auto most_recent_database_state = maybe_most_recent_database_state.value();
+   const auto& most_recent_database_state = maybe_most_recent_database_state.value();
 
    {
       try {

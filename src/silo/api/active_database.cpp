@@ -11,7 +11,7 @@
 namespace {
 void monitorReferenceCountThenTrimAllocations(
    silo::DataVersion::Timestamp data_version,
-   std::weak_ptr<silo::Database> weak_ptr
+   const std::weak_ptr<silo::Database>& weak_ptr
 ) {
    while (true) {
       if (auto shared = weak_ptr.lock()) {
@@ -38,12 +38,12 @@ namespace silo::api {
 void silo::api::ActiveDatabase::setActiveDatabase(silo::Database&& new_database) {
    auto active_database = std::atomic_load(&database);
    if (active_database != nullptr) {
-      std::thread monitorThread(
+      std::thread monitor_thread(
          monitorReferenceCountThenTrimAllocations,
          database->getDataVersionTimestamp(),
          std::weak_ptr<silo::Database>(active_database)
       );
-      monitorThread.detach();
+      monitor_thread.detach();
    }
 
    auto new_database_pointer = std::make_shared<silo::Database>(std::move(new_database));

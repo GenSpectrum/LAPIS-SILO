@@ -3,7 +3,6 @@
 #include <array>
 #include <cstdint>
 #include <optional>
-#include <string>
 #include <string_view>
 #include <vector>
 
@@ -108,7 +107,7 @@ class AminoAcid {
 
    static constexpr Symbol SYMBOL_MISSING = Symbol::X;
 
-   static inline char symbolToChar(AminoAcid::Symbol symbol) {
+   static char symbolToChar(AminoAcid::Symbol symbol) {
       switch (symbol) {
          case Symbol::GAP:
             return '-';
@@ -170,7 +169,7 @@ class AminoAcid {
       SILO_UNREACHABLE();
    }
 
-   static inline std::optional<AminoAcid::Symbol> charToSymbol(char character) {
+   static std::optional<AminoAcid::Symbol> charToSymbol(char character) {
       switch (character) {
          case '-':
             return Symbol::GAP;

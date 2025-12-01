@@ -9,6 +9,7 @@
 #include <Poco/StreamCopier.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
+#include <utility>
 
 #include "evobench/evobench.hpp"
 #include "silo/api/active_database.h"
@@ -22,12 +23,12 @@ QueryHandler::QueryHandler(
    std::shared_ptr<ActiveDatabase> database_handle,
    config::QueryOptions query_options
 )
-    : query_options(std::move(query_options)),
-      database_handle(database_handle) {}
+    : query_options(query_options),
+      database_handle(std::move(database_handle)) {}
 
 namespace {
 
-uint64_t DEFAULT_TIMEOUT_TWO_MINUTES = 120;
+const uint64_t DEFAULT_TIMEOUT_TWO_MINUTES = 120;
 
 }
 

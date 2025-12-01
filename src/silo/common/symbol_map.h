@@ -1,6 +1,7 @@
 #pragma once
 
-#include <vector>
+#include <array>
+#include <cstdint>
 
 #include <boost/serialization/access.hpp>
 
@@ -21,9 +22,9 @@ class SymbolMap {
    std::array<T, SymbolType::COUNT> data;
 
   public:
-   SymbolMap() {}
+   SymbolMap() = default;
 
-   SymbolMap(std::array<T, SymbolType::COUNT>&& data)
+   explicit SymbolMap(std::array<T, SymbolType::COUNT>&& data)
        : data(data) {}
 
    T& operator[](typename SymbolType::Symbol symbol) {

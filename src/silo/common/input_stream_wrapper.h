@@ -4,7 +4,6 @@
 #include <fstream>
 #include <memory>
 #include <optional>
-#include <sstream>
 
 #include <boost/iostreams/filtering_stream.hpp>
 

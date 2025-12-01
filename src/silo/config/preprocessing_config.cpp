@@ -1,13 +1,11 @@
 #include "silo/config/preprocessing_config.h"
 
 #include <filesystem>
-#include <system_error>
 
 #include <spdlog/spdlog.h>
 
 #include "config/config_interface.h"
-#include "silo/common/fmt_formatters.h"
-#include "silo/common/json_type_definitions.h"
+#include "silo/config/config_defaults.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace {

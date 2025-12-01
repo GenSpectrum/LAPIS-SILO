@@ -5,6 +5,7 @@
 #include <boost/serialization/deque.hpp>
 
 #include "silo/common/german_string.h"
+#include "silo/common/types.h"
 #include "silo/storage/buffer/page.h"
 
 namespace silo::storage::vector {
@@ -36,26 +37,24 @@ class GermanStringPage {
    buffer::Page page;
 
   public:
-   GermanStringPage()
-       : page() {
-      std::memset(page.buffer, 0, sizeof(Header));
-   }
+   GermanStringPage() { std::memset(page.buffer, 0, sizeof(Header)); }
 
-   uint16_t& n() const { return *reinterpret_cast<uint16_t*>(page.buffer); }
+   [[nodiscard]] uint16_t& n() const { return *reinterpret_cast<uint16_t*>(page.buffer); }
 
-   bool full() { return n() == MAX_STRINGS_PER_PAGE; }
+   [[nodiscard]] bool full() const { return n() == MAX_STRINGS_PER_PAGE; }
 
-   size_t insert(const SiloString& silo_string) {
+   [[nodiscard]] size_t insert(const SiloString& silo_string) const {
       SILO_ASSERT(full() == false);
       uint8_t* start_of_next_string_struct =
-         page.buffer + sizeof(Header) + n() * sizeof(SiloString);
+         page.buffer + sizeof(Header) + (n() * sizeof(SiloString));
       new (start_of_next_string_struct) SiloString(silo_string);
       return n()++;
    }
 
    const SiloString& get(Idx& row_id) const {
       SILO_ASSERT(row_id < n());
-      uint8_t* start_of_string_struct = page.buffer + sizeof(Header) + row_id * sizeof(SiloString);
+      uint8_t* start_of_string_struct =
+         page.buffer + sizeof(Header) + (row_id * sizeof(SiloString));
       return *reinterpret_cast<SiloString*>(start_of_string_struct);
    }
 
@@ -76,13 +75,13 @@ class GermanStringRegistry {
   public:
    Idx insert(const SiloString& silo_string);
 
-   SiloString get(Idx row_id) const;
+   [[nodiscard]] SiloString get(Idx row_id) const;
 
-   size_t numValues() const {
+   [[nodiscard]] size_t numValues() const {
       if (german_string_pages.empty()) {
          return 0;
       }
-      return (german_string_pages.size() - 1) * GermanStringPage::MAX_STRINGS_PER_PAGE +
+      return ((german_string_pages.size() - 1) * GermanStringPage::MAX_STRINGS_PER_PAGE) +
              german_string_pages.back().n();
    }
 

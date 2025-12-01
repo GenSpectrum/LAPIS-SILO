@@ -1,5 +1,6 @@
 #include "silo/common/aa_symbols.h"
 
+#include <algorithm>
 #include <array>
 #include <optional>
 
@@ -34,15 +35,10 @@ TEST(AminoAcidSymbol, conversionFromCharacterRoundTrip) {
 TEST(AminoAcidSymbol, ambiguousSymbols) {
    for (const auto& symbol : AminoAcid::SYMBOLS) {
       auto ambiguous_symbols_for_symbol = AminoAcid::AMBIGUITY_SYMBOLS.at(symbol);
-      bool contains_self =
-         std::find(
-            ambiguous_symbols_for_symbol.begin(), ambiguous_symbols_for_symbol.end(), symbol
-         ) != ambiguous_symbols_for_symbol.end();
-      bool contains_x = std::find(
-                           ambiguous_symbols_for_symbol.begin(),
-                           ambiguous_symbols_for_symbol.end(),
-                           AminoAcid::Symbol::X
-                        ) != ambiguous_symbols_for_symbol.end();
+      bool contains_self = std::ranges::find(ambiguous_symbols_for_symbol, symbol) !=
+                           ambiguous_symbols_for_symbol.end();
+      bool contains_x = std::ranges::find(ambiguous_symbols_for_symbol, AminoAcid::Symbol::X) !=
+                        ambiguous_symbols_for_symbol.end();
       EXPECT_TRUE(contains_self);
       EXPECT_TRUE(contains_x);
    }

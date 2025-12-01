@@ -1,9 +1,8 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 
 namespace silo {
 // Referencing to silo internal pointers
-typedef uint32_t Idx;
+using Idx = uint32_t;
 }  // namespace silo

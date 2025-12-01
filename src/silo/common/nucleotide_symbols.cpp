@@ -1,5 +1,4 @@
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/common/panic.h"
 
 namespace silo {
 

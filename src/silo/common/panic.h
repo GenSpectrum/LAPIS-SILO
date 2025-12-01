@@ -62,21 +62,23 @@ namespace silo::common {
 
 [[noreturn]] void assertFailure(const char* msg, const char* file, int line);
 
-#define SILO_INTERNAL_ASSERT_OP_(prefix_str, e1, op, e2)                                  \
-   do {                                                                                   \
-      auto internal_assert_op__v1 = (e1);                                                 \
-      auto internal_assert_op__v2 = (e2);                                                 \
-      if (!(internal_assert_op__v1 op internal_assert_op__v2)) {                          \
-         silo::common::assertOpFailure(                                                   \
-            prefix_str,                                                                   \
-            #e1,                                                                          \
-            #op,                                                                          \
-            #e2,                                                                          \
-            fmt::format("{} " #op " {}", internal_assert_op__v1, internal_assert_op__v2), \
-            __FILE__,                                                                     \
-            __LINE__                                                                      \
-         );                                                                               \
-      }                                                                                   \
+#define SILO_INTERNAL_ASSERT_OP_(prefix_str, e1, op, e2)                                 \
+   do {                                                                                  \
+      auto silo_internal_assert_op__v1 = (e1);                                           \
+      auto silo_internal_assert_op__v2 = (e2);                                           \
+      if (!(silo_internal_assert_op__v1 op silo_internal_assert_op__v2)) {               \
+         silo::common::assertOpFailure(                                                  \
+            prefix_str,                                                                  \
+            #e1,                                                                         \
+            #op,                                                                         \
+            #e2,                                                                         \
+            fmt::format(                                                                 \
+               "{} " #op " {}", silo_internal_assert_op__v1, silo_internal_assert_op__v2 \
+            ),                                                                           \
+            __FILE__,                                                                    \
+            __LINE__                                                                     \
+         );                                                                              \
+      }                                                                                  \
    } while (0)
 
 #define SILO_ASSERT_OP_(partial_prefix, e1, op, e2) \

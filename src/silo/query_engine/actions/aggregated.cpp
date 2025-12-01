@@ -83,9 +83,8 @@ arrow::Result<QueryPlan> Aggregated::toQueryPlanImpl(
    EVOBENCH_SCOPE("Aggregated", "toQueryPlanImpl");
    if (group_by_fields.empty()) {
       return makeAggregateWithoutGrouping(table, partition_filters, query_options, request_id);
-   } else {
-      return makeAggregateWithGrouping(table, partition_filters, query_options, request_id);
    }
+   return makeAggregateWithGrouping(table, partition_filters, query_options, request_id);
 }
 
 arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(

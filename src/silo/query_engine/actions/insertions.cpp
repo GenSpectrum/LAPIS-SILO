@@ -1,11 +1,9 @@
 #include "silo/query_engine/actions/insertions.h"
 
 #include <algorithm>
-#include <map>
 #include <optional>
 #include <unordered_map>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include <arrow/acero/options.h>
@@ -206,7 +204,7 @@ template <typename SymbolType>
 arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& query_options,
+   const config::QueryOptions& /*query_options*/,
    std::string_view request_id
 ) const {
    EVOBENCH_SCOPE("InsertionAggregation", "toQueryPlanImpl");
