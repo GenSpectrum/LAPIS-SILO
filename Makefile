@@ -23,7 +23,7 @@ ${SILO_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
 
 output: ${SILO_EXECUTABLE}
 	export SPDLOG_LEVEL=debug; \
-    ${SILO_EXECUTABLE} preprocessing --database-config database_config.yaml --preprocessing-config testBaseData/test_preprocessing_config.yaml
+	${SILO_EXECUTABLE} preprocessing --database-config database_config.yaml --preprocessing-config testBaseData/test_preprocessing_config.yaml
 
 
 ${RUNNING_SILO_FLAG}: ${SILO_EXECUTABLE} output
@@ -67,4 +67,4 @@ full-clean: clean
 	rm -rf build
 
 .PHONY:
-	full-clean clean clean-api e2e format all test all-tests format ci
+	full-clean clean clean-api e2e format all test all-tests ci
