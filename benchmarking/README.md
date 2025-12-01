@@ -39,13 +39,26 @@ a server on
  1. Make sure that you have dataset folders as configured in the evobench config file (`evobench-run.ron`); see [Offer dataset versioning #32](https://github.com/GenSpectrum/evobench/issues/32) for the required folder structure. Each versioned dataset folder needs these files (or symlinks to them):
 
         database_config.yaml
-        good-api-query-log.csv
-        ignore_queries_for_checksum_regex.txt
         input_file.ndjson.zst
         possibly: lineage_definitions.yaml
         preprocessing_config.yaml
+        queries/ignore_queries_for_checksum_regex.txt
+        queries/queries.ndjson
         reference_genomes.json
-        silo_queries.ndjson
+
+    Note that a file `queries/good-api-query-log.csv` is automatically
+    stored upon the first benchmarking run; it is assumed to contain
+    the proper checksums. Later runs compare against that file and
+    flag differences that are not ignored via the regex in
+    `ignore_queries_for_checksum_regex.txt` (leave empty to not ignore
+    anything) as errors. If that happens, you are to check which
+    version is legit, or ignore those queries via the regex. The regex
+    syntax is the one supported by [Rust's regex
+    crate](https://docs.rs/regex/1.12.2/regex/).
+
+    If you use the `QUERIES` evobench custom variable (i.e. env
+    variable), which names a subfolder, you need to provide a
+    corresponding alternative folder to the `queries/` folder.
 
  1. Run an instance of a daemon, `evobench-run --verbose run daemon`
     (the `--verbose` allows you to see what's going on, feel free to
