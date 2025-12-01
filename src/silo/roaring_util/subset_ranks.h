@@ -7,9 +7,9 @@
 namespace silo::roaring_util {
 
 std::vector<uint64_t> roaringSubsetRanks(
-   const roaring::internal::container_t* c_a,
+   const roaring::internal::container_t* container_a,
    uint8_t type_a,
-   const roaring::internal::container_t* c_b,
+   const roaring::internal::container_t* container_b,
    uint8_t type_b,
    uint32_t base
 );
