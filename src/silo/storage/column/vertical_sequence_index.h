@@ -78,6 +78,44 @@ class VerticalSequenceIndex {
             }
          }
       }
+
+      SequenceDiff()
+          : container(nullptr),
+            cardinality(0),
+            typecode(0) {}
+
+      SequenceDiff(
+         roaring::internal::container_t* container,
+         uint32_t cardinality,
+         uint8_t typecode
+      )
+          : container(container),
+            cardinality(cardinality),
+            typecode(typecode) {}
+
+      SequenceDiff(SequenceDiff&& other) noexcept
+          : container(other.container),
+            cardinality(other.cardinality),
+            typecode(other.typecode) {
+         other.container = nullptr;
+      }
+      SequenceDiff& operator=(SequenceDiff&& other) noexcept {
+         if (this != &other) {
+            std::swap(container, other.container);
+            std::swap(cardinality, other.cardinality);
+            std::swap(typecode, other.typecode);
+         }
+         return *this;
+      }
+
+      SequenceDiff(const SequenceDiff&) = delete;
+      SequenceDiff& operator=(const SequenceDiff&) = delete;
+
+      ~SequenceDiff() {
+         if (container != nullptr) {
+            roaring::internal::container_free(container, typecode);
+         }
+      }
    };
    static_assert(sizeof(SequenceDiff) == 16);
 

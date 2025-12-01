@@ -32,6 +32,8 @@ std::vector<uint64_t> roaringSubsetRanks(
       a_and_b_as_vector.data(), container_a_and_b, type_a_and_b, base
    );
 
+   roaring::internal::container_free(container_a_and_b, type_a_and_b);
+
    if (a_and_b_as_vector.empty()) {
       return {};
    }
