@@ -21,7 +21,7 @@ std::vector<uint64_t> roaringSubsetRanks(
    uint32_t base
 ) {
    uint8_t type_a_and_b;
-   auto container_a_and_b =
+   auto* container_a_and_b =
       roaring::internal::container_and(container_a, type_a, container_b, type_b, &type_a_and_b);
 
    size_t cardinality =
