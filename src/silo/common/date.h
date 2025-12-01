@@ -6,7 +6,7 @@
 
 namespace silo::common {
 
-typedef uint32_t Date;
+using Date = uint32_t;
 
 const Date NULL_DATE = 0;
 

@@ -4,13 +4,10 @@
 //! to hold configuration data.
 
 #include <optional>
-#include <span>
-#include <variant>
 
 #include "config/config_key_path.h"
 #include "config/config_value.h"
 #include "config/verified_config_attributes.h"
-#include "silo/common/cons_list.h"
 
 namespace silo::config {
 

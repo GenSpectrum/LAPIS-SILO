@@ -1,8 +1,10 @@
 #include "silo/append/database_inserter.h"
 
 #include <algorithm>
+#include <utility>
 
 #include "evobench/evobench.hpp"
+#include "silo/append/append_exception.h"
 #include "silo/common/error.h"
 #include "silo/schema/duplicate_primary_key_exception.h"
 
@@ -86,7 +88,8 @@ std::expected<simdjson::ondemand::object, std::string> iterateToObject(
          return std::unexpected(
             "the ndjson line does not contain valid json (incomplete object or array)"
          );
-      } else if (error == simdjson::INCORRECT_TYPE) {
+      }
+      if (error == simdjson::INCORRECT_TYPE) {
          simdjson::ondemand::json_type type;
          error = ndjson_line.type().get(type);
          if (!error) {
@@ -128,10 +131,9 @@ TablePartitionInserter::sniffFieldOrder(simdjson::ondemand::document_reference n
          raw_key_sv
       );
 
-      auto maybe_column_metadata =
-         std::find_if(columns_in_table.begin(), columns_in_table.end(), [&](const auto& x) {
-            return x.name == unescaped_key;
-         });
+      auto maybe_column_metadata = std::ranges::find_if(
+         columns_in_table, [&](const auto& identifier) { return identifier.name == unescaped_key; }
+      );
       if (maybe_column_metadata == columns_in_table.end()) {
          SPDLOG_WARN(
             "The field '{}' which is contained in the input json file is not in the database. "
@@ -140,17 +142,15 @@ TablePartitionInserter::sniffFieldOrder(simdjson::ondemand::document_reference n
          );
          continue;
       }
-      order_in_json_line.push_back(SniffedField{*maybe_column_metadata, std::string{raw_key_sv}});
+      order_in_json_line.push_back(SniffedField{
+         .column_identifier = *maybe_column_metadata, .escaped_key = std::string{raw_key_sv}
+      });
    }
    for (const auto& column_metadata : columns_in_table) {
       bool contained_in_sniffed_fields =
-         std::find_if(
-            order_in_json_line.begin(),
-            order_in_json_line.end(),
-            [&](const auto& sniffed_field) {
-               return sniffed_field.column_identifier.name == column_metadata.name;
-            }
-         ) != order_in_json_line.end();
+         std::ranges::find_if(order_in_json_line, [&](const auto& sniffed_field) {
+            return sniffed_field.column_identifier.name == column_metadata.name;
+         }) != order_in_json_line.end();
       if (!contained_in_sniffed_fields) {
          return std::unexpected{
             fmt::format("the column '{}' is not contained in the object", column_metadata.name)
@@ -167,7 +167,7 @@ std::expected<void, std::string> TablePartitionInserter::insert(
 ) const {
    EVOBENCH_SCOPE_EVERY(20, "TablePartitionInserter", "insert");
    ASSIGN_OR_RAISE(auto object, iterateToObject(ndjson_line));
-   for (auto sniffed_field : field_order_hint) {
+   for (const auto& sniffed_field : field_order_hint) {
       ASSIGN_OR_RAISE(auto column_value, findFieldWithFallbacks(object, sniffed_field));
       auto success_or_error = table_partition->columns.addJsonValueToColumn(
          sniffed_field.column_identifier, column_value
@@ -200,7 +200,7 @@ TableInserter::Commit TableInserter::commit() const {
 }
 
 TablePartitionInserter::Commit appendDataToTablePartition(
-   TablePartitionInserter partition_inserter,
+   const TablePartitionInserter& partition_inserter,
    NdjsonLineReader& input_data
 ) {
    EVOBENCH_SCOPE("TablePartitionInserter", "appendDataToTablePartition");
@@ -249,7 +249,7 @@ TableInserter::Commit appendDataToTable(
    std::shared_ptr<silo::storage::Table> table,
    NdjsonLineReader& input_data
 ) {
-   TableInserter table_inserter(table);
+   TableInserter table_inserter(std::move(table));
 
    // TODO(#738) make partition configurable
    auto table_partition = table_inserter.openNewPartition();

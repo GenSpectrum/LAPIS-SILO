@@ -35,7 +35,7 @@ SiloDataSource SiloDataSource::checkValidDataSource(
          candidate_data_source_path.string()
       );
    }
-   auto data_version_in_file = maybe_data_version_in_file.value();
+   const auto& data_version_in_file = maybe_data_version_in_file.value();
 
    if (data_version_in_file.getTimestamp() != folder_name_timestamp) {
       throw InvalidSiloDataSourceException(

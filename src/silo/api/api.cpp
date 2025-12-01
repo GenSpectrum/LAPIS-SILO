@@ -37,7 +37,7 @@ int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
 
    auto worker_threads_to_use = runtime_config.api_options.parallel_threads;
    if (worker_threads_to_use == 0) {
-      worker_threads_to_use = std::thread::hardware_concurrency();
+      worker_threads_to_use = static_cast<int32_t>(std::thread::hardware_concurrency());
    }
    SPDLOG_INFO("Using {} threads for http connections", worker_threads_to_use);
    poco_parameter->setMaxThreads(worker_threads_to_use);

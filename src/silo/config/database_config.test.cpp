@@ -7,7 +7,6 @@
 
 using silo::config::ConfigException;
 using silo::config::DatabaseConfig;
-using silo::config::DatabaseSchema;
 using silo::config::toDatabaseValueType;
 using silo::config::ValueType;
 using silo::schema::ColumnType;
@@ -239,7 +238,7 @@ defaultAminoAcidSequence: null
 }
 
 TEST(DatabaseConfig, shouldReadConfigWithoutErrors) {
-   const auto config_yaml =
+   const char* const config_yaml =
       R"(
 defaultNucleotideSequence: "main"
 schema:
@@ -263,7 +262,7 @@ schema:
 }
 
 TEST(DatabaseConfig, shouldThrowIfPrimaryKeyIsNotInMetadata) {
-   const auto config_yaml =
+   const char* const config_yaml =
       R"(
 defaultNucleotideSequence: "main"
 schema:
@@ -278,7 +277,7 @@ schema:
 }
 
 TEST(DatabaseConfig, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
-   const auto config_yaml =
+   const char* const config_yaml =
       R"(
 defaultNucleotideSequence: "main"
 schema:
@@ -297,7 +296,7 @@ schema:
 }
 
 TEST(DatabaseConfig, givenMetadataToGenerateIndexForThatIsNotStringThenThrows) {
-   const auto config_yaml =
+   const char* const config_yaml =
       R"(
 defaultNucleotideSequence: "main"
 schema:
@@ -321,7 +320,7 @@ schema:
 }
 
 TEST(DatabaseConfig, givenLineageIndexAndNotGenerateThenThrows) {
-   const auto config_yaml =
+   const char* const config_yaml =
       R"(
 defaultNucleotideSequence: "main"
 schema:
@@ -345,7 +344,7 @@ schema:
 }
 
 TEST(DatabaseConfig, givenPhyloTreeIndexAndGenerateThenThrows) {
-   const auto config_yaml =
+   const char* const config_yaml =
       R"(
 defaultNucleotideSequence: "main"
 schema:

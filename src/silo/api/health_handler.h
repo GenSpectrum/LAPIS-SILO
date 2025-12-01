@@ -3,7 +3,6 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 
-#include "active_database.h"
 #include "rest_resource.h"
 
 namespace silo::api {

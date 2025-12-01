@@ -4,6 +4,7 @@
 
 #include <malloc.h>
 
+#include <filesystem>
 #include <fstream>
 #include <optional>
 #include <regex>
@@ -14,10 +15,10 @@
 namespace {
 
 std::optional<uint32_t> parseVmRSSLine(const std::string& line) {
-   static const std::regex vmRssRegex("VmRSS:\\s*(\\d+) kB");
+   static const std::regex vm_rss_regex("VmRSS:\\s*(\\d+) kB");
    std::smatch match;
 
-   if (std::regex_search(line, match, vmRssRegex) && match.size() > 1) {
+   if (std::regex_search(line, match, vm_rss_regex) && match.size() > 1) {
       try {
          return std::stol(match.str(1));
       } catch (const std::out_of_range& oor) {
@@ -45,7 +46,7 @@ std::optional<uint32_t> getResidentSetSize() noexcept {
 
    std::string line;
    while (std::getline(file, line)) {
-      if (line.rfind("VmRSS:", 0) == 0) {
+      if (line.starts_with("VmRSS:")) {
          return parseVmRSSLine(line);
       }
    }
@@ -54,7 +55,7 @@ std::optional<uint32_t> getResidentSetSize() noexcept {
    return std::nullopt;
 }
 
-const long FIVE_SECONDS = 5000;
+const int64_t FIVE_SECONDS = 5000;
 
 }  // namespace
 

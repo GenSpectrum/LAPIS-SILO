@@ -1,12 +1,10 @@
 #pragma once
 
 #include <iterator>
-#include <ranges>
 
 #include <simdjson.h>
 
 #include "evobench/evobench.hpp"
-#include "silo/append/append_exception.h"
 
 namespace silo::append {
 
@@ -15,10 +13,10 @@ class NdjsonLineReader {
    std::string line_buffer;
    simdjson::ondemand::parser parser;
    simdjson::ondemand::document json_document_buffer;
-   simdjson::error_code error;
+   simdjson::error_code error{};
 
   public:
-   class iterator {
+   class Iterator {
      public:
       using value_type =
          std::pair<simdjson::simdjson_result<simdjson::ondemand::document>, std::string_view>;
@@ -28,13 +26,12 @@ class NdjsonLineReader {
       using difference_type = std::ptrdiff_t;
       using iterator_category = std::input_iterator_tag;
 
-      iterator()
+      Iterator()
           : stream(nullptr),
             at_end(true) {}
 
-      iterator(NdjsonLineReader* stream)
-          : stream(stream),
-            at_end(false) {
+      explicit Iterator(NdjsonLineReader* stream)
+          : stream(stream) {
          ++(*this);  // prime first json
       }
 
@@ -47,7 +44,7 @@ class NdjsonLineReader {
          };
       }
 
-      iterator& operator++() {
+      Iterator& operator++() {
          EVOBENCH_SCOPE_EVERY(21, "NdjsonLineReader::Iterator", "operator++");
          if (stream->error) {
             at_end = true;
@@ -59,15 +56,15 @@ class NdjsonLineReader {
          return *this;
       }
 
-      iterator operator++(int) {
-         iterator tmp = *this;
+      Iterator operator++(int) {
+         Iterator tmp = *this;
          ++(*this);
          return tmp;
       }
 
-      bool operator==(const iterator& other) const { return at_end && other.at_end; }
+      bool operator==(const Iterator& other) const { return at_end && other.at_end; }
 
-      bool operator!=(const iterator& other) const { return !(*this == other); }
+      bool operator!=(const Iterator& other) const { return !(*this == other); }
 
      private:
       // The stream in which the iterator is operating
@@ -76,14 +73,10 @@ class NdjsonLineReader {
    };
 
    explicit NdjsonLineReader(std::istream& input_stream)
-       : input_stream(&input_stream),
-         line_buffer(),
-         parser(),
-         json_document_buffer(),
-         error(){};
+       : input_stream(&input_stream){};
 
-   [[nodiscard]] iterator begin() { return iterator(this); }
-   [[nodiscard]] iterator end() const { return iterator(); }
+   [[nodiscard]] Iterator begin() { return Iterator(this); }
+   [[nodiscard]] static Iterator end() { return {}; }
 
   private:
    bool next() {

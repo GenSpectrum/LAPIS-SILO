@@ -1,18 +1,16 @@
 #pragma once
 
 #include <filesystem>
-#include <optional>
 #include <string>
 #include <utility>
 #include <variant>
 #include <vector>
 
-#include "config/config_key_path.h"
 #include "silo/common/panic.h"
 
 namespace silo::config {
 
-enum class ConfigValueType { STRING, PATH, INT32, UINT32, UINT16, BOOL, LIST };
+enum class ConfigValueType : uint8_t { STRING, PATH, INT32, UINT32, UINT16, BOOL, LIST };
 
 constexpr std::string_view configValueTypeToString(ConfigValueType type) {
    switch (type) {

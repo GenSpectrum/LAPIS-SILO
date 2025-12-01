@@ -60,7 +60,7 @@ class TreeAction : public Action {
       bool print_nodes_not_in_tree
    ) const = 0;
 
-   arrow::Result<QueryPlan> toQueryPlanImpl(
+   [[nodiscard]] arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> partition_filters,
       const config::QueryOptions& query_options,

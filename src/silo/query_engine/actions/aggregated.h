@@ -18,33 +18,34 @@ struct GroupByField {
 
 class Aggregated : public Action {
   public:
-   Aggregated(std::vector<std::string> group_by_fields);
+   explicit Aggregated(std::vector<std::string> group_by_fields);
 
-   std::vector<schema::ColumnIdentifier> getOutputSchema(const schema::TableSchema& table_schema
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema(
+      const schema::TableSchema& table_schema
    ) const override;
 
-   std::string_view getType() const override { return "Aggregated"; }
+   [[nodiscard]] std::string_view getType() const override { return "Aggregated"; }
 
   private:
    std::vector<GroupByField> group_by_fields;
 
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
-   arrow::Result<QueryPlan> toQueryPlanImpl(
+   [[nodiscard]] arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> partition_filters,
       const config::QueryOptions& query_options,
       std::string_view request_id
    ) const override;
 
-   arrow::Result<QueryPlan> makeAggregateWithoutGrouping(
+   [[nodiscard]] arrow::Result<QueryPlan> makeAggregateWithoutGrouping(
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> partition_filters,
       const config::QueryOptions& query_options,
       std::string_view request_id
    ) const;
 
-   arrow::Result<QueryPlan> makeAggregateWithGrouping(
+   [[nodiscard]] arrow::Result<QueryPlan> makeAggregateWithGrouping(
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> partition_filters,
       const config::QueryOptions& query_options,

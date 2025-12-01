@@ -43,14 +43,14 @@ A.11:
       reference_genomes,
       lineage_trees,
       phylo_tree_file,
-      /*without_unaligned_columns=*/false
+      /*without_unaligned_sequences=*/false
    );
    const auto& table_schema = schema.getDefaultTableSchema();
 
    ASSERT_EQ(schema.tables.size(), 1);
-   const size_t expected_number_of_columns = database_config.schema.metadata.size() +
-                                             reference_genomes.aa_sequence_names.size() +
-                                             reference_genomes.nucleotide_sequence_names.size() * 2;
+   const size_t expected_number_of_columns =
+      database_config.schema.metadata.size() + reference_genomes.aa_sequence_names.size() +
+      (reference_genomes.nucleotide_sequence_names.size() * 2);
    ASSERT_EQ(table_schema.getColumnIdentifiers().size(), expected_number_of_columns);
    ASSERT_EQ(table_schema.primary_key.name, database_config.schema.primary_key);
 
@@ -113,7 +113,7 @@ A.11:
          .getColumnMetadata<silo::storage::column::IndexedStringColumnPartition>("pango_lineage")
          .has_value()
    );
-   auto pango_metadata =
+   auto* pango_metadata =
       table_schema
          .getColumnMetadata<silo::storage::column::IndexedStringColumnPartition>("pango_lineage")
          .value();
@@ -209,7 +209,7 @@ A.11:
    ASSERT_EQ(table_schema.primary_key.type, ColumnType::STRING);
 }
 
-class findLineageTreeForName : public ::testing::Test {
+class FindLineageTreeForName : public ::testing::Test {
   protected:
    void SetUp() override {
       // Set up test data
@@ -236,7 +236,7 @@ some_parent: ~)")
 };
 
 // Test finding with exact match (no prefix/suffix)
-TEST_F(findLineageTreeForName, FindLineageTree_ExactMatch) {
+TEST_F(FindLineageTreeForName, FindLineageTree_ExactMatch) {
    std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
    lineage_trees["test_tree"] = test_lineage_tree1;
 
@@ -247,7 +247,7 @@ TEST_F(findLineageTreeForName, FindLineageTree_ExactMatch) {
 }
 
 // Test finding with various suffixes
-TEST_F(findLineageTreeForName, FindLineageTree_WithFileEnding) {
+TEST_F(FindLineageTreeForName, FindLineageTree_WithFileEnding) {
    std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
 
    lineage_trees["test.yaml"] = test_lineage_tree1;
@@ -258,7 +258,7 @@ TEST_F(findLineageTreeForName, FindLineageTree_WithFileEnding) {
 }
 
 // Test not found scenario
-TEST_F(findLineageTreeForName, FindLineageTree_NotFound) {
+TEST_F(FindLineageTreeForName, FindLineageTree_NotFound) {
    std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
 
    lineage_trees["completely_different_name"] = test_lineage_tree1;
@@ -269,7 +269,7 @@ TEST_F(findLineageTreeForName, FindLineageTree_NotFound) {
 }
 
 // Test empty map
-TEST_F(findLineageTreeForName, FindLineageTree_EmptyMap) {
+TEST_F(FindLineageTreeForName, FindLineageTree_EmptyMap) {
    std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
 
    auto result = Initializer::findLineageTreeForName(lineage_trees, "test");
@@ -277,7 +277,7 @@ TEST_F(findLineageTreeForName, FindLineageTree_EmptyMap) {
 }
 
 // Test case sensitivity
-TEST_F(findLineageTreeForName, FindLineageTree_CaseSensitive) {
+TEST_F(FindLineageTreeForName, FindLineageTree_CaseSensitive) {
    std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
 
    lineage_trees["Test"] = test_lineage_tree1;
@@ -292,7 +292,7 @@ TEST_F(findLineageTreeForName, FindLineageTree_CaseSensitive) {
 }
 
 // Test with special characters in name
-TEST_F(findLineageTreeForName, FindLineageTree_SpecialCharacters) {
+TEST_F(FindLineageTreeForName, FindLineageTree_SpecialCharacters) {
    std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
 
    lineage_trees["test-name_123"] = test_lineage_tree1;

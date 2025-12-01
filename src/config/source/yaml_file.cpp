@@ -1,8 +1,7 @@
 #include "config/source/yaml_file.h"
 
+#include <algorithm>
 #include <fstream>
-#include <istream>
-#include <unordered_set>
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
@@ -11,7 +10,7 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include "config/config_exception.h"
-#include "silo/common/fmt_formatters.h"
+#include "silo/common/cons_list.h"
 
 using silo::config::ConfigKeyPath;
 
@@ -149,12 +148,7 @@ std::string YamlFile::configKeyPathToString(const ConfigKeyPath& config_key_path
 ConfigKeyPath YamlFile::stringToConfigKeyPath(const std::string& key_path_string) {
    const std::vector<std::string> camel_case_strings = splitByDot(key_path_string);
    std::vector<std::vector<std::string>> result_path;
-   std::transform(
-      camel_case_strings.begin(),
-      camel_case_strings.end(),
-      std::back_inserter(result_path),
-      splitCamelCase
-   );
+   std::ranges::transform(camel_case_strings, std::back_inserter(result_path), splitCamelCase);
    auto result = ConfigKeyPath::tryFrom(result_path);
    if (result == std::nullopt) {
       throw ConfigException(fmt::format("'{}' is not a valid YamlPath", key_path_string));
@@ -181,7 +175,7 @@ YamlFile YamlFile::fromYAML(const std::string& debug_context, const std::string&
 YamlFile YamlFile::readFile(const std::filesystem::path& path) {
    std::ifstream file(path, std::ios::in | std::ios::binary);
    if (file.fail()) {
-      throw std::runtime_error(fmt::format("Could not open the YAML file: '{}'", path));
+      throw std::runtime_error(fmt::format("Could not open the YAML file: '{}'", path.string()));
    }
 
    std::ostringstream contents;
@@ -189,7 +183,8 @@ YamlFile YamlFile::readFile(const std::filesystem::path& path) {
       contents << file.rdbuf();
    }
    if (contents.fail()) {
-      throw std::runtime_error(fmt::format("Error when reading the YAML file: '{}'", path));
+      throw std::runtime_error(fmt::format("Error when reading the YAML file: '{}'", path.string())
+      );
    }
 
    return fromYAML(fmt::format("file: '{}'", path.string()), contents.str());

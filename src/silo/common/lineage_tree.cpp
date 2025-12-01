@@ -1,7 +1,6 @@
 #include "silo/common/lineage_tree.h"
 
 #include <deque>
-#include <numeric>
 #include <queue>
 #include <set>
 #include <vector>
@@ -144,7 +143,8 @@ std::set<Idx> LineageTree::getAllParents(
          const auto& current_parents = child_to_parent_relation.at(current);
          if (current_parents.empty()) {
             continue;
-         } else if (current_parents.size() == 1) {
+         }
+         if (current_parents.size() == 1) {
             queue.emplace_back(current_parents.at(0));
          } else if (follow_recombinant_edges == RecombinantEdgeFollowingMode::ALWAYS_FOLLOW) {
             for (Idx parent : current_parents) {
@@ -213,35 +213,35 @@ std::optional<Idx> getMostRecentCommonAncestor(
    const std::vector<std::vector<Idx>>& child_to_parent_relation,
    const std::vector<size_t>& topological_rank
 ) {
-   static auto max_heap_comparator = [](const std::pair<size_t, Idx>& a,
-                                        const std::pair<size_t, Idx>& b) {
-      return a.first < b.first;
+   static auto max_heap_comparator = [](const std::pair<size_t, Idx>& left,
+                                        const std::pair<size_t, Idx>& right) {
+      return left.first < right.first;
    };
    SILO_ASSERT(child_to_parent_relation.at(recombinant_node).size() >= 2);
    std::priority_queue<
       std::pair<size_t, Idx>,
       std::vector<std::pair<size_t, Idx>>,
       decltype(max_heap_comparator)>
-      pq(max_heap_comparator);
+      priority_queue(max_heap_comparator);
    std::set<Idx> seen;
    for (auto parent : child_to_parent_relation.at(recombinant_node)) {
       seen.emplace(parent);
-      pq.emplace(topological_rank.at(parent), parent);
+      priority_queue.emplace(topological_rank.at(parent), parent);
    }
-   while (pq.size() > 1) {
-      Idx current = pq.top().second;
-      pq.pop();
+   while (priority_queue.size() > 1) {
+      Idx current = priority_queue.top().second;
+      priority_queue.pop();
       if (child_to_parent_relation.at(current).empty()) {
          return std::nullopt;
       }
       for (Idx parent : child_to_parent_relation.at(current)) {
          if (!seen.contains(parent)) {
             seen.emplace(parent);
-            pq.emplace(topological_rank.at(parent), parent);
+            priority_queue.emplace(topological_rank.at(parent), parent);
          }
       }
    }
-   return pq.top().second;
+   return priority_queue.top().second;
 }
 }  // namespace
 

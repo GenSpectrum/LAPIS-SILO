@@ -18,7 +18,7 @@ class CommandLineArguments {
    explicit CommandLineArguments(std::span<const std::string> args_)
        : args(args_.begin(), args_.end()) {}
 
-   [[nodiscard]] inline std::string debugContext() const { return "command line arguments"; };
+   [[nodiscard]] static std::string debugContext() { return "command line arguments"; };
 
    static std::string configKeyPathToString(const ConfigKeyPath& key_path);
 

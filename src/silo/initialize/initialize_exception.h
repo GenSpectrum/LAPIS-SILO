@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <fmt/format.h>
+
 namespace silo::initialize {
 
 class InitializeException : public std::runtime_error {

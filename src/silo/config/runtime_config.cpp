@@ -1,15 +1,15 @@
 #include "silo/config/runtime_config.h"
 
-#include <stdexcept>
 #include <string>
 
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
+#include <nlohmann/json.hpp>
 
 #include "config/config_interface.h"
 #include "config/source/yaml_file.h"
-#include "silo/common/fmt_formatters.h"
 #include "silo/common/json_type_definitions.h"
+#include "silo/config/config_defaults.h"
 
 namespace {
 using silo::config::ConfigKeyPath;

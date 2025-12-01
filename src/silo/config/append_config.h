@@ -1,19 +1,14 @@
 #pragma once
 
-#include <cstdint>
 #include <filesystem>
 #include <optional>
 #include <string>
-#include <string_view>
-#include <unordered_map>
 
 #include <Poco/Util/OptionSet.h>
 #include <fmt/format.h>
+#include <nlohmann/json.hpp>
 
-#include "config/config_interface.h"
-#include "config/source/yaml_file.h"
-#include "silo/common/json_type_definitions.h"
-#include "silo/config/config_defaults.h"
+#include "config/config_specification.h"
 
 namespace silo::config {
 

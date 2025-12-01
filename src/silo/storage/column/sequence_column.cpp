@@ -15,7 +15,6 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/string_utils.h"
 #include "silo/common/symbol_map.h"
-#include "silo/common/table_reader.h"
 #include "silo/storage/insertion_format_exception.h"
 
 namespace silo::storage::column {

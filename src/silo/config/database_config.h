@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -14,7 +13,7 @@
 
 namespace silo::config {
 
-enum class ValueType { STRING, DATE, BOOL, INT, FLOAT };
+enum class ValueType : uint8_t { STRING, DATE, BOOL, INT, FLOAT };
 
 ValueType toDatabaseValueType(std::string_view type);
 
@@ -88,7 +87,7 @@ struct convert<silo::config::DatabaseMetadata> {
 template <>
 class [[maybe_unused]] fmt::formatter<silo::config::DatabaseConfig> : fmt::formatter<std::string> {
   public:
-   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+   static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
       const silo::config::DatabaseConfig& database_config,
       fmt::format_context& ctx
@@ -98,7 +97,7 @@ class [[maybe_unused]] fmt::formatter<silo::config::DatabaseConfig> : fmt::forma
 template <>
 class [[maybe_unused]] fmt::formatter<silo::config::DatabaseSchema> {
   public:
-   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+   static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
       const silo::config::DatabaseSchema& database_schema,
       fmt::format_context& ctx
@@ -108,7 +107,7 @@ class [[maybe_unused]] fmt::formatter<silo::config::DatabaseSchema> {
 template <>
 class [[maybe_unused]] fmt::formatter<silo::config::DatabaseMetadata> {
   public:
-   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+   static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
       const silo::config::DatabaseMetadata& database_metadata,
       format_context& ctx
@@ -118,7 +117,7 @@ class [[maybe_unused]] fmt::formatter<silo::config::DatabaseMetadata> {
 template <>
 class [[maybe_unused]] fmt::formatter<silo::config::ValueType> {
   public:
-   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+   static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
       const silo::config::ValueType& value_type,
       format_context& ctx

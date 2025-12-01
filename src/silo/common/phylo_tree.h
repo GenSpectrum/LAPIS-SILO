@@ -12,7 +12,6 @@
 
 #include <nlohmann/json.hpp>
 
-#include "silo/common/panic.h"
 #include "silo/common/tree_node_id.h"
 
 namespace silo::common {
@@ -28,8 +27,8 @@ class TreeNode {
    std::optional<float> branch_length;
    int depth;
 
-   bool isLeaf() { return children.empty(); }
-   bool rowIndexExists() const { return row_index.has_value(); }
+   [[nodiscard]] bool isLeaf() const { return children.empty(); }
+   [[nodiscard]] bool rowIndexExists() const { return row_index.has_value(); }
 
    friend class boost::serialization::access;
    template <class Archive>
@@ -89,7 +88,7 @@ class PhyloTree {
 
    // Functions for querying the phylogenetic tree
 
-   std::optional<TreeNodeId> getTreeNodeId(const std::string& node_label);
+   std::optional<TreeNodeId> getTreeNodeId(const std::string& node_label) const;
 
    // returns a bitmap of all descendants node{node_id} that are also in the database
    roaring::Roaring getDescendants(const TreeNodeId& node_id);
@@ -116,14 +115,14 @@ class PhyloTree {
   private:
    friend class boost::serialization::access;
    template <class Archive>
-   void save(Archive& ar, const unsigned int version) const;
+   void save(Archive& archive, unsigned int version) const;
 
    template <class Archive>
-   void load(Archive& ar, const unsigned int version);
+   void load(Archive& archive, unsigned int version);
 
    template <class Archive>
-   void serialize(Archive& ar, const unsigned int version) {
-      boost::serialization::split_member(ar, *this, version);
+   void serialize(Archive& archive, const unsigned int version) {
+      boost::serialization::split_member(archive, *this, version);
    }
 };
 

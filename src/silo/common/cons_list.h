@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <functional>
-#include <memory>
 #include <optional>
 
 template <typename T>

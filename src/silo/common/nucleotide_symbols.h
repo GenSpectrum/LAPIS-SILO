@@ -3,7 +3,6 @@
 #include <array>
 #include <cstdint>
 #include <optional>
-#include <string>
 #include <string_view>
 #include <vector>
 
@@ -95,7 +94,7 @@ class Nucleotide {
 
    static constexpr Symbol SYMBOL_MISSING = Symbol::N;
 
-   static inline char symbolToChar(Nucleotide::Symbol symbol) {
+   static char symbolToChar(Nucleotide::Symbol symbol) {
       switch (symbol) {
          case Symbol::GAP:
             return '-';
@@ -133,7 +132,7 @@ class Nucleotide {
       SILO_UNREACHABLE();
    }
 
-   static inline std::optional<Nucleotide::Symbol> charToSymbol(char character) {
+   static std::optional<Nucleotide::Symbol> charToSymbol(char character) {
       switch (character) {
          case '-':
             return Symbol::GAP;

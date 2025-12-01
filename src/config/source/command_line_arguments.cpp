@@ -1,7 +1,5 @@
 #include "config/source/command_line_arguments.h"
 
-#include <map>
-
 #include <fmt/format.h>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/join.hpp>

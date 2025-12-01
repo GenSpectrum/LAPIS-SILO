@@ -1,9 +1,5 @@
 #include "silo/common/aa_symbols.h"
 
-#include <cstddef>
-#include <string>
-
-#include "silo/common/panic.h"
 #include "silo/common/symbol_map.h"
 
 namespace silo {

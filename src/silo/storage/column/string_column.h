@@ -4,7 +4,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <vector>
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_free.hpp>
@@ -27,7 +26,7 @@ class StringColumnMetadata : public ColumnMetadata {
 
    std::optional<silo::common::PhyloTree> phylo_tree;
 
-   StringColumnMetadata(std::string column_name)
+   explicit StringColumnMetadata(std::string column_name)
        : ColumnMetadata(std::move(column_name)) {}
 
    StringColumnMetadata(std::string column_name, silo::common::PhyloTree phylo_tree)
@@ -82,18 +81,18 @@ class StringColumnPartition {
 
    [[nodiscard]] bool isNull(size_t row_id) const;
 
-   SiloString getValue(size_t row_id) const { return fixed_string_data.get(row_id); }
+   [[nodiscard]] SiloString getValue(size_t row_id) const { return fixed_string_data.get(row_id); }
 
-   std::string getValueString(size_t row_id) const {
+   [[nodiscard]] std::string getValueString(size_t row_id) const {
       auto german_string = getValue(row_id);
       return lookupValue(german_string);
    }
 
-   size_t numValues() const { return fixed_string_data.numValues(); }
+   [[nodiscard]] size_t numValues() const { return fixed_string_data.numValues(); }
 
    /// This includes an (re)allocation of the resulting string, one should generally
    /// work with the SiloString and @lookupSuffix instead
-   [[nodiscard]] inline std::string lookupValue(SiloString string) const {
+   [[nodiscard]] std::string lookupValue(SiloString string) const {
       if (string.isInPlace()) {
          auto string_view = string.getShortString();
          return std::string{string_view};
@@ -112,9 +111,9 @@ class StringColumnPartition {
       return result;
    }
 
-   inline roaring::Roaring getDescendants(const TreeNodeId& parent) const {
+   [[nodiscard]] roaring::Roaring getDescendants(const TreeNodeId& parent) const {
       if (!metadata->phylo_tree.has_value()) {
-         return roaring::Roaring();
+         return {};
       }
       return metadata->phylo_tree->getDescendants(parent);
    }
@@ -137,13 +136,13 @@ BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::StringColumnMetadata);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void save(
-   Archive& ar,
+   Archive& archive,
    const silo::storage::column::StringColumnMetadata& object,
    [[maybe_unused]] const uint32_t version
 ) {
-   ar & object.column_name;
-   ar & object.dictionary;
-   ar & object.phylo_tree;
+   archive & object.column_name;
+   archive & object.dictionary;
+   archive & object.phylo_tree;
 }
 }  // namespace boost::serialization
 
@@ -151,16 +150,16 @@ BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<silo::storage::column::StringColu
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void load(
-   Archive& ar,
+   Archive& archive,
    std::shared_ptr<silo::storage::column::StringColumnMetadata>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
    silo::common::BidirectionalStringMap dictionary;
    std::optional<silo::common::PhyloTree> phylo_tree;
-   ar & column_name;
-   ar & dictionary;
-   ar & phylo_tree;
+   archive & column_name;
+   archive & dictionary;
+   archive & phylo_tree;
    if (phylo_tree.has_value()) {
       object = std::make_shared<silo::storage::column::StringColumnMetadata>(
          std::move(column_name), std::move(dictionary), std::move(phylo_tree.value())

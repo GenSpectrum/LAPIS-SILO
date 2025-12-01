@@ -48,7 +48,7 @@ class DataVersion {
 
    [[nodiscard]] bool isCompatibleVersion() const;
 
-   Timestamp getTimestamp() const;
+   [[nodiscard]] Timestamp getTimestamp() const;
 
    static DataVersion mineDataVersion();
 

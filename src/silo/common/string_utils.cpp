@@ -1,6 +1,5 @@
 #include "silo/common/string_utils.h"
 
-#include <algorithm>
 #include <stdexcept>
 
 #include <fmt/format.h>

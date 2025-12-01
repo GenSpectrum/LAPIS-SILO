@@ -2,7 +2,6 @@
 #include <iomanip>
 #include <optional>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 
 #include <spdlog/spdlog.h>

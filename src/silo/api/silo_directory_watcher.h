@@ -1,12 +1,8 @@
 #pragma once
 
-#include <filesystem>
-#include <optional>
-
 #include <Poco/Timer.h>
 
 #include "silo/api/active_database.h"
-#include "silo/common/data_version.h"
 #include "silo/common/silo_directory.h"
 
 namespace silo::api {

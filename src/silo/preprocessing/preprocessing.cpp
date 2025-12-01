@@ -1,5 +1,6 @@
 #include "silo/preprocessing/preprocessing.h"
 
+#include "silo/append/append_exception.h"
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/common/input_stream_wrapper.h"

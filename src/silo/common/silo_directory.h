@@ -4,6 +4,7 @@
 
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
+#include <utility>
 
 #include <silo/common/data_version.h>
 #include <silo/common/fmt_formatters.h>
@@ -21,13 +22,13 @@ class InvalidSiloDataSourceException : public std::runtime_error {
 };
 
 class SiloDataSource {
-   SiloDataSource() = delete;
-
    SiloDataSource(std::filesystem::path path, silo::DataVersion data_version)
-       : path(path),
-         data_version(data_version) {}
+       : path(std::move(path)),
+         data_version(std::move(data_version)) {}
 
   public:
+   SiloDataSource() = delete;
+
    std::filesystem::path path;
    silo::DataVersion data_version;
 
@@ -35,7 +36,7 @@ class SiloDataSource {
       const std::filesystem::path& candidate_data_source_path
    );
 
-   std::string toDebugString() const;
+   [[nodiscard]] std::string toDebugString() const;
 };
 
 class SiloDirectory {
@@ -45,7 +46,7 @@ class SiloDirectory {
    explicit SiloDirectory(std::filesystem::path directory)
        : directory(std::move(directory)) {}
 
-   std::optional<SiloDataSource> getMostRecentDataDirectory() const;
+   [[nodiscard]] std::optional<SiloDataSource> getMostRecentDataDirectory() const;
 
    NLOHMANN_DEFINE_TYPE_INTRUSIVE(SiloDirectory, directory);
 };

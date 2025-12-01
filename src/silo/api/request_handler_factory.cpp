@@ -1,6 +1,7 @@
 #include "silo/api/request_handler_factory.h"
 
 #include <string>
+#include <utility>
 
 #include <Poco/Net/HTTPRequestHandler.h>
 #include <Poco/Net/HTTPServerRequest.h>
@@ -22,7 +23,7 @@ SiloRequestHandlerFactory::SiloRequestHandlerFactory(
    std::shared_ptr<ActiveDatabase> database_handle
 )
     : runtime_config(std::move(runtime_config)),
-      database_handle(database_handle) {}
+      database_handle(std::move(database_handle)) {}
 
 Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
    const Poco::Net::HTTPServerRequest& request
@@ -37,7 +38,7 @@ Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
 std::unique_ptr<Poco::Net::HTTPRequestHandler> SiloRequestHandlerFactory::routeRequest(
    const Poco::URI& uri
 ) {
-   const auto path = uri.getPath();
+   std::string_view path = uri.getPath();
    std::vector<std::string> segments;
    uri.getPathSegments(segments);
 

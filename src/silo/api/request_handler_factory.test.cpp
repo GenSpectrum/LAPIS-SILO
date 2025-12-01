@@ -17,9 +17,11 @@ namespace {
 std::unique_ptr<SiloRequestHandlerFactory> createRequestHandlerWithInitializedDatabase() {
    auto handle = std::make_shared<silo::api::ActiveDatabase>();
    silo::schema::TableSchema table_schema;
-   table_schema.primary_key = {"primary_key", silo::schema::ColumnType::STRING};
+   table_schema.primary_key = {.name = "primary_key", .type = silo::schema::ColumnType::STRING};
    table_schema.column_metadata.emplace(
-      silo::schema::ColumnIdentifier{"primary_key", silo::schema::ColumnType::STRING},
+      silo::schema::ColumnIdentifier{
+         .name = "primary_key", .type = silo::schema::ColumnType::STRING
+      },
       std::make_shared<silo::storage::column::StringColumnMetadata>("primary_key")
    );
    silo::schema::DatabaseSchema schema;

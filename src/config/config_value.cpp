@@ -4,8 +4,6 @@
 #include <boost/functional/hash.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include "config/config_exception.h"
-#include "config/source/yaml_file.h"
 #include "silo/common/panic.h"
 
 namespace silo::config {

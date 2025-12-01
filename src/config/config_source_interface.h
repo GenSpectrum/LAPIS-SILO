@@ -1,7 +1,6 @@
 #pragma once
 
 #include "config/config_specification.h"
-#include "config/verified_config_attributes.h"
 
 namespace silo::config {
 

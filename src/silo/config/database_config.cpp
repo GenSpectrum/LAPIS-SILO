@@ -242,7 +242,7 @@ namespace {
 std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfig& config) {
    std::map<std::string, ValueType> metadata_map;
    for (const auto& metadata : config.schema.metadata) {
-      if (metadata_map.find(metadata.name) != metadata_map.end()) {
+      if (metadata_map.contains(metadata.name)) {
          throw ConfigException("Metadata " + metadata.name + " is defined twice in the config");
       }
 
@@ -299,7 +299,7 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
       throw ConfigException("Database config without fields not possible");
    }
 
-   if (metadata_map.find(config.schema.primary_key) == metadata_map.end()) {
+   if (!metadata_map.contains(config.schema.primary_key)) {
       throw ConfigException("Primary key is not in metadata");
    }
 }

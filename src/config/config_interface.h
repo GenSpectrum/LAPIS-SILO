@@ -6,16 +6,13 @@
 #include <variant>
 
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #include "config/config_exception.h"
-#include "config/config_source_interface.h"
 #include "config/config_specification.h"
 #include "config/source/command_line_arguments.h"
 #include "config/source/environment_variables.h"
 #include "config/source/yaml_file.h"
-#include "silo/common/cons_list.h"
-#include "silo/common/fmt_formatters.h"
-#include "silo/common/overloaded.h"
 
 namespace silo::config {
 
@@ -27,7 +24,7 @@ namespace silo::config {
 // and instead creating a factory method would also be possible.
 template <typename C>
 concept Config = requires(
-   C c,
+   C config,
    const VerifiedConfigAttributes& config_source,
    const VerifiedCommandLineArguments& cmd_source
 ) {
@@ -48,10 +45,10 @@ concept Config = requires(
    /// exceptions, except overwriteFrom can call SILO_PANIC when there
    /// is an inconsistency (bug) between ConfigSpecification and
    /// overwriteFrom implementation.
-   { c.overwriteFrom(config_source) } -> std::same_as<void>;
+   { config.overwriteFrom(config_source) } -> std::same_as<void>;
 
    /// Validation / Sanity checks about the values of this config
-   { c.validate() } -> std::same_as<void>;
+   { config.validate() } -> std::same_as<void>;
 };
 
 std::optional<std::filesystem::path> getConfigFilePath(
