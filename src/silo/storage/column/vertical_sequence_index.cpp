@@ -137,10 +137,7 @@ std::optional<typename SymbolType::Symbol> VerticalSequenceIndex<SymbolType>::ad
       uint16_t v_index = roaring_array.keys[container_idx];
 
       auto key = SequenceDiffKey{position_idx, v_index, global_reference_symbol};
-      vertical_bitmaps.insert(
-         {key,
-          SequenceDiff{.container = container, .cardinality = cardinality, .typecode = typecode}}
-      );
+      vertical_bitmaps.insert({key, SequenceDiff(container, cardinality, typecode)});
    }
 
    std::vector<uint16_t> v_indices_to_remove;
@@ -175,9 +172,7 @@ VerticalSequenceIndex<SymbolType>::SequenceDiff& VerticalSequenceIndex<
       typecode = BITSET_CONTAINER_TYPE;
    }
    SILO_ASSERT(container != nullptr);
-   return vertical_bitmaps
-      .insert({key, SequenceDiff{.container = container, .cardinality = 0, .typecode = typecode}})
-      .first->second;
+   return vertical_bitmaps.insert({key, SequenceDiff(container, 0, typecode)}).first->second;
 }
 
 using silo::roaring_util::BitmapBuilderByContainer;
