@@ -2,8 +2,6 @@
 
 #if defined(__linux__)
 
-#include <malloc.h>
-
 #include <filesystem>
 #include <fstream>
 #include <optional>
@@ -11,6 +9,8 @@
 #include <string>
 
 #include <spdlog/spdlog.h>
+
+#include "silo/common/allocator.h"
 
 namespace {
 
@@ -73,8 +73,7 @@ void MemoryMonitor::checkRssAndLimit(Poco::Timer& /*timer*/) {
       SPDLOG_INFO("Current memory consumption: {} KB", rss.value());
 
       if (soft_memory_limit_in_kb.has_value() && rss.value() > soft_memory_limit_in_kb.value()) {
-         SPDLOG_INFO("Manually invoking malloc_trim() to give back memory to OS.");
-         malloc_trim(0);
+         silo::common::Allocator::trim();
       }
    }
 }
