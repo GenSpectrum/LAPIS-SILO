@@ -1,6 +1,7 @@
 #include "silo/query_engine/filter/operators/is_in_covered_region.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <fmt/format.h>

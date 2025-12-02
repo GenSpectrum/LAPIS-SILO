@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
