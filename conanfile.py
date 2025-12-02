@@ -8,9 +8,10 @@ class SiloRecipe(ConanFile):
     requires = [
         "arrow/22.0.0",
         "boost/1.85.0",
-        "poco/1.13.3",
-        "nlohmann_json/3.12.0",
         "gtest/1.16.0",
+        "mimalloc/2.2.4",
+        "nlohmann_json/3.12.0",
+        "poco/1.13.3",
         "re2/20240702",
         "roaring/4.2.1",
         "simdjson/3.12.3",
@@ -22,6 +23,7 @@ class SiloRecipe(ConanFile):
     default_options = {
         "abseil/*:shared": False,
 
+        "arrow/*:with_mimalloc": False,
         "arrow/*:compute": True,
         "arrow/*:acero": True,
 
@@ -65,6 +67,9 @@ class SiloRecipe(ConanFile):
 
         "hwloc/*:shared": False,
 
+        # this statically overrides the `malloc` symbol to use mimalloc
+        "mimalloc/*:override": True,
+
         "poco/*:shared": False,
         "poco/*:enable_json": True,
         "poco/*:enable_net": True,
@@ -104,6 +109,7 @@ class SiloRecipe(ConanFile):
         deps.set_property("boost", "cmake_find_mode", "both")
         deps.set_property("gtest", "cmake_find_mode", "both")
         deps.set_property("hwloc", "cmake_find_mode", "both")
+        deps.set_property("mimalloc", "cmake_find_mode", "both")
         deps.set_property("nlohmann_json", "cmake_find_mode", "both")
         deps.set_property("pcre2", "cmake_find_mode", "both")
         deps.set_property("poco", "cmake_find_mode", "both")
