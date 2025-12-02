@@ -7,6 +7,9 @@ DEPENDENCIES_FLAG=dependencies
 
 ci: format all-tests
 
+conanprofile:
+	conan profile detect && conan profile show --context build > conanprofile
+
 ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 	conan install . --update --build=missing --profile ./conanprofile --profile:build ./conanprofile \
 	  --settings '&:build_type=Debug' --output-folder=build/Debug/generators && \
