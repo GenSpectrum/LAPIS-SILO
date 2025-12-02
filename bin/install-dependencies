@@ -1,35 +1,32 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 
-set -meu pipefail
+set -euo pipefail
 
-function ensure-conan {
+function ensure-uv {
+  # Check whether uv is globally available
+  if command -v uv &> /dev/null
+  then
+    return 0
+  fi
 
-# check whether conan is globally available
-if command -v conan &> /dev/null
-then
-  return 0
-fi
-
-# check whether a venv is available, otherwise create one
-if [ ! -d ".venv" ]; then
-  python3 -m venv .venv
-fi
-
-# activate virtual environment
-source .venv/bin/activate
-
-# check if conan is in the virtual environment
-if command -v conan &> /dev/null
-then
-  return 0
-fi
-
-# If the conan version changes, execute `pip install conan=<VERSION> && pip freeze > requirements.txt`
-python3 -m pip install -r requirements.txt
-
+  # Install uv using pip (recommended installation method)
+  echo "Installing uv..."
+  python3 -m pip install --user uv
+  
+  # Add user bin to PATH if not already there
+  export PATH="$HOME/.local/bin:$PATH"
 }
 
-ensure-conan
+ensure-uv
 
-conan install . --update --build=missing --profile ./conanprofile --profile:build ./conanprofile \
-  --settings '&:build_type=Debug' --output-folder=build/Debug/generators
+# Use uv to run conan directly - it will automatically:
+# 1. Create/use a virtual environment
+# 2. Install dependencies from requirements.txt
+# 3. Execute the command
+uv run --with-requirements requirements.txt conan install . \
+  --update \
+  --build=missing \
+  --profile ./conanprofile \
+  --profile:build ./conanprofile \
+  --settings '&:build_type=Debug' \
+  --output-folder=build/Debug/generators
