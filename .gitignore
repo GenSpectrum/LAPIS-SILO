@@ -74,6 +74,10 @@ conanprofile
 # Node modules
 **/node_modules/
 
+# Python
+.venv/
+src/conan_loader.egg-info/
+
 # Rust build output files
 **/target/
 
