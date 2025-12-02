@@ -7,14 +7,15 @@ class SiloRecipe(ConanFile):
 
     requires = [
         "arrow/22.0.0",
-        "boost/1.85.0",
-        "poco/1.13.3",
+        "boost/1.88.0",
+        "gtest/1.17.0",
+        "mimalloc/2.2.4",
         "nlohmann_json/3.12.0",
-        "gtest/1.16.0",
-        "re2/20240702",
+        "poco/1.14.2",
+        "re2/20251105",
         "roaring/4.2.1",
-        "simdjson/3.12.3",
-        "spdlog/1.15.1",
+        "simdjson/4.2.2",
+        "spdlog/1.16.0",
         "yaml-cpp/0.8.0",
         "zstd/1.5.7",
     ]
@@ -22,6 +23,7 @@ class SiloRecipe(ConanFile):
     default_options = {
         "abseil/*:shared": False,
 
+        "arrow/*:with_mimalloc": False,
         "arrow/*:compute": True,
         "arrow/*:acero": True,
 
@@ -37,6 +39,7 @@ class SiloRecipe(ConanFile):
         "boost/*:without_regex": False,
         "boost/*:without_atomic": True,
         "boost/*:without_chrono": True,
+        "boost/*:without_cobalt": True,
         "boost/*:without_context": True,
         "boost/*:without_contract": True,
         "boost/*:without_coroutine": True,
@@ -52,6 +55,7 @@ class SiloRecipe(ConanFile):
         "boost/*:without_math": True,
         "boost/*:without_mpi": True,
         "boost/*:without_nowide": True,
+        "boost/*:without_process": True,
         "boost/*:without_program_options": True,
         "boost/*:without_python": True,
         "boost/*:without_stacktrace": True,
@@ -64,6 +68,8 @@ class SiloRecipe(ConanFile):
         "gtest/*:no_main": True,
 
         "hwloc/*:shared": False,
+
+        "mimalloc/*:override": True,
 
         "poco/*:shared": False,
         "poco/*:enable_json": True,
