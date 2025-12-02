@@ -1,0 +1,35 @@
+#!/bin/env bash
+
+set -meu pipefail
+
+function ensure-conan {
+
+# check whether conan is globally available
+if command -v conan &> /dev/null
+then
+  return 0
+fi
+
+# check whether a venv is available, otherwise create one
+if [ ! -d ".venv" ]; then
+  python3 -m venv .venv
+fi
+
+# activate virtual environment
+source .venv/bin/activate
+
+# check if conan is in the virtual environment
+if command -v conan &> /dev/null
+then
+  return 0
+fi
+
+# If the conan version changes, execute `pip install conan=<VERSION> && pip freeze > requirements.txt`
+python3 -m pip install -r requirements.txt
+
+}
+
+ensure-conan
+
+conan install . --update --build=missing --profile ./conanprofile --profile:build ./conanprofile \
+  --settings '&:build_type=Debug' --output-folder=build/Debug/generators

@@ -74,6 +74,9 @@ conanprofile
 # Node modules
 **/node_modules/
 
+# Python
+.venv/
+
 # Rust build output files
 **/target/
 
