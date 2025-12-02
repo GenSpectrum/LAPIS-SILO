@@ -1,5 +1,7 @@
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 
+#include <ios>
+
 #include <arrow/acero/options.h>
 #include <arrow/array.h>
 #include <arrow/array/array_binary.h>
@@ -14,6 +16,16 @@ namespace silo::query_engine::exec_node {
 
 namespace {
 
+void writeChunked(std::ostream& output, std::string_view content) {
+   const size_t chunk_size = 8192;
+   for (size_t pos = 0; pos < content.size(); pos += chunk_size) {
+      size_t remaining_size = content.size() - pos;
+      size_t write_size = std::min(chunk_size, remaining_size);
+      output.write(content.data() + pos, static_cast<std::streamsize>(write_size));
+      output.flush();  // Flush after each small chunk
+   }
+}
+
 template <size_t BATCH_SIZE>
 struct BatchedStringStream {
    std::array<std::stringstream, BATCH_SIZE> streams;
@@ -26,7 +38,7 @@ struct BatchedStringStream {
 
    void operator>>(std::ostream& output) {
       for (size_t i = 0; i < BATCH_SIZE; ++i) {
-         output << streams[i].rdbuf();
+         writeChunked(output, std::move(streams[i]).str());
       }
    }
 };
@@ -205,7 +217,7 @@ arrow::Result<arrow::acero::BackpressureMonitor*> createGenerator(
       auto node, arrow::acero::MakeExecNode(std::string{"sink"}, plan, {input}, options)
    );
    node->SetLabel("final sink of the plan");
-   return backpressure_monitor;
+   return arrow::Result<arrow::acero::BackpressureMonitor*>{backpressure_monitor};
 }
 
 }  // namespace silo::query_engine::exec_node
