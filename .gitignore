@@ -76,6 +76,7 @@ conanprofile
 
 # Python
 .venv/
+src/conan_loader.egg-info/
 
 # Rust build output files
 **/target/

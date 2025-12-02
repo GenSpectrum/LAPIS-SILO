@@ -3,18 +3,29 @@
 set -euo pipefail
 
 function ensure-uv {
-  # Check whether uv is globally available
+  # check whether uv is available
   if command -v uv &> /dev/null
   then
+    echo "uv is already installed"
     return 0
   fi
 
-  # Install uv using pip (recommended installation method)
-  echo "Installing uv..."
-  python3 -m pip install --user uv
-  
-  # Add user bin to PATH if not already there
-  export PATH="$HOME/.local/bin:$PATH"
+  # check whether a venv is available, otherwise create one
+  if [ ! -d ".venv" ]; then
+    python3 -m venv .venv
+  fi
+
+  # activate virtual environment
+  source .venv/bin/activate
+
+  # check if uv is in the virtual environment
+  if command -v uv &> /dev/null
+  then
+    echo "uv is already in the .venv environment"
+    return 0
+  fi
+
+  python3 -m pip install uv==0.9.14
 }
 
 ensure-uv
