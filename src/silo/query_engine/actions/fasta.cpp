@@ -7,15 +7,7 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/common/numbers.h"
-#include "silo/common/panic.h"
-#include "silo/common/range.h"
-#include "silo/database.h"
 #include "silo/query_engine/bad_request.h"
-#include "silo/query_engine/copy_on_write_bitmap.h"
-
-using silo::common::add1;
-using silo::common::Range;
 
 namespace silo::query_engine::actions {
 
@@ -27,7 +19,7 @@ std::vector<schema::ColumnIdentifier> Fasta::getOutputSchema(
       table_schema.getColumnByType<storage::column::ZstdCompressedStringColumnPartition>();
    for (const auto& sequence_name : sequence_names) {
       schema::ColumnIdentifier column_identifier{
-         sequence_name, schema::ColumnType::ZSTD_COMPRESSED_STRING
+         .name = sequence_name, .type = schema::ColumnType::ZSTD_COMPRESSED_STRING
       };
       CHECK_SILO_QUERY(
          std::ranges::find(columns_in_database, column_identifier) != columns_in_database.end(),

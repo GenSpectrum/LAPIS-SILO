@@ -7,6 +7,7 @@
 #include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
+#include "silo/common/panic.h"
 #include "silo/roaring_util/bitmap_builder.h"
 
 namespace silo::storage::column {
@@ -32,17 +33,17 @@ class HorizontalCoverageIndex {
    template <typename SymbolType>
    void insertSequenceCoverage(std::string sequence, uint32_t offset);
 
-   template <size_t BATCH_SIZE>
-   [[nodiscard]] std::array<roaring::Roaring, BATCH_SIZE> getCoverageBitmapForPositions(
+   template <size_t BatchSize>
+   [[nodiscard]] std::array<roaring::Roaring, BatchSize> getCoverageBitmapForPositions(
       uint32_t position
    ) const {
       size_t row_count = start_end.size();
 
       uint32_t range_start = position;
-      uint32_t range_end = position + BATCH_SIZE;
+      uint32_t range_end = position + BatchSize;
 
       using silo::roaring_util::BitmapBuilderByRange;
-      std::array<BitmapBuilderByRange, BATCH_SIZE> result_builders;
+      std::array<BitmapBuilderByRange, BatchSize> result_builders;
 
       for (uint32_t row_id_upper_bits = 0; row_id_upper_bits << 16 < row_count;
            ++row_id_upper_bits) {
@@ -65,7 +66,7 @@ class HorizontalCoverageIndex {
          }
       }
 
-      std::array<roaring::Roaring, BATCH_SIZE> result;
+      std::array<roaring::Roaring, BatchSize> result;
       std::ranges::transform(result_builders, result.begin(), [](BitmapBuilderByRange& builder) {
          return std::move(builder).getBitmap();
       });

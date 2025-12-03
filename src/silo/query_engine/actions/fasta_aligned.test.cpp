@@ -1,5 +1,3 @@
-#include "silo/query_engine/actions/fasta_aligned.h"
-
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <nlohmann/json.hpp>
@@ -8,16 +6,14 @@
 
 namespace {
 using silo::ReferenceGenomes;
-using silo::config::DatabaseConfig;
-using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
 using boost::uuids::random_generator;
 
 nlohmann::json createDataWithNucleotideSequence(const std::string& nucleotideSequence) {
-   static std::atomic_int id = 0;
-   const auto primary_key = id++;
+   static std::atomic_int row_id = 0;
+   const auto primary_key = row_id++;
 
    return nlohmann::json::parse(fmt::format(
       R"(

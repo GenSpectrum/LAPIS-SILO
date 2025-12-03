@@ -11,22 +11,13 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/phylo_tree.h"
-#include "silo/common/tree_node_id.h"
-#include "silo/config/database_config.h"
-#include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
-#include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
 #include "silo/schema/database_schema.h"
-#include "silo/storage/column_group.h"
-#include "silo/storage/table.h"
 
 namespace silo::query_engine::actions {
 using silo::common::NewickResponse;
 using silo::common::PhyloTree;
-using silo::common::TreeNodeId;
-using silo::schema::ColumnType;
 
 PhyloSubtree::PhyloSubtree(
    std::string column_name,
@@ -36,18 +27,15 @@ PhyloSubtree::PhyloSubtree(
     : TreeAction(std::move(column_name), print_nodes_not_in_tree),
       contract_unary_nodes(contract_unary_nodes) {}
 
-using silo::query_engine::filter::operators::Operator;
-
 arrow::Status PhyloSubtree::addResponseToBuilder(
    NodeValuesResponse& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
-   const PhyloTree& phylo_tree,
-   bool print_nodes_not_in_tree
+   const PhyloTree& phylo_tree
 ) const {
    NewickResponse response =
       phylo_tree.toNewickString(all_node_ids.node_values, contract_unary_nodes);
-   int32_t missing_node_count =
-      all_node_ids.missing_node_count + static_cast<int32_t>(response.not_in_tree.size());
+   auto missing_node_count =
+      static_cast<int32_t>(all_node_ids.missing_node_count + response.not_in_tree.size());
 
    if (auto builder = output_builder.find("subtreeNewick"); builder != output_builder.end()) {
       ARROW_RETURN_NOT_OK(builder->second.insert(response.newick_string));
@@ -64,7 +52,7 @@ arrow::Status PhyloSubtree::addResponseToBuilder(
 }
 
 std::vector<schema::ColumnIdentifier> PhyloSubtree::getOutputSchema(
-   const schema::TableSchema& table_schema
+   const schema::TableSchema& /*table_schema*/
 ) const {
    auto base = makeBaseOutputSchema();
    base.emplace_back("subtreeNewick", schema::ColumnType::STRING);

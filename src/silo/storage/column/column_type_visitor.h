@@ -1,8 +1,5 @@
 #pragma once
 
-#include <functional>
-#include <unordered_map>
-
 #include "silo/common/panic.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/bool_column.h"

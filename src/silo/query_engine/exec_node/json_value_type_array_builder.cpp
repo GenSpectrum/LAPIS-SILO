@@ -6,7 +6,7 @@
 
 namespace silo::query_engine::exec_node {
 
-JsonValueTypeArrayBuilder::JsonValueTypeArrayBuilder(std::shared_ptr<arrow::DataType> type) {
+JsonValueTypeArrayBuilder::JsonValueTypeArrayBuilder(const std::shared_ptr<arrow::DataType>& type) {
    if (type == arrow::int32()) {
       builder = arrow::Int32Builder{};
    } else if (type == arrow::float64()) {
@@ -25,8 +25,8 @@ arrow::Status JsonValueTypeArrayBuilder::insert(
 ) {
    if (!value.has_value()) {
       return std::visit(
-         [&](auto& b) {
-            ARROW_RETURN_NOT_OK(b.AppendNull());
+         [](auto& builder) {
+            ARROW_RETURN_NOT_OK(builder.AppendNull());
             return arrow::Status::OK();
          },
          builder
@@ -34,19 +34,19 @@ arrow::Status JsonValueTypeArrayBuilder::insert(
    }
 
    return std::visit(
-      [&](auto&& val) {
+      [this](auto&& val) {
          using T = std::decay_t<decltype(val)>;
          return std::visit(
-            [&](auto& b) {
-               using B = std::decay_t<decltype(b)>;
+            [&val](auto& builder) {
+               using B = std::decay_t<decltype(builder)>;
                if constexpr (std::is_same_v<T, int32_t> && std::is_same_v<B, arrow::Int32Builder>) {
-                  ARROW_RETURN_NOT_OK(b.Append(val));
+                  ARROW_RETURN_NOT_OK(builder.Append(val));
                } else if constexpr (std::is_same_v<T, double> && std::is_same_v<B, arrow::DoubleBuilder>) {
-                  ARROW_RETURN_NOT_OK(b.Append(val));
+                  ARROW_RETURN_NOT_OK(builder.Append(val));
                } else if constexpr (std::is_same_v<T, std::string> && std::is_same_v<B, arrow::StringBuilder>) {
-                  ARROW_RETURN_NOT_OK(b.Append(val));
+                  ARROW_RETURN_NOT_OK(builder.Append(val));
                } else if constexpr (std::is_same_v<T, bool> && std::is_same_v<B, arrow::BooleanBuilder>) {
-                  ARROW_RETURN_NOT_OK(b.Append(val));
+                  ARROW_RETURN_NOT_OK(builder.Append(val));
                } else {
                   SILO_PANIC("Type mismatch between value and builder");
                }
@@ -60,28 +60,9 @@ arrow::Status JsonValueTypeArrayBuilder::insert(
 }
 
 arrow::Result<arrow::Datum> JsonValueTypeArrayBuilder::toDatum() {
-   return std::visit(
-             [&](auto& b) {
-                using B = std::decay_t<decltype(b)>;
-                if constexpr (std::is_same_v<B, arrow::Int32Builder>) {
-                   auto& array = get<arrow::Int32Builder>(builder);
-                   return array.Finish();
-                } else if constexpr (std::is_same_v<B, arrow::DoubleBuilder>) {
-                   auto& array = get<arrow::DoubleBuilder>(builder);
-                   return array.Finish();
-                } else if constexpr (std::is_same_v<B, arrow::StringBuilder>) {
-                   auto& array = get<arrow::StringBuilder>(builder);
-                   return array.Finish();
-                } else if constexpr (std::is_same_v<B, arrow::BooleanBuilder>) {
-                   auto& array = get<arrow::BooleanBuilder>(builder);
-                   return array.Finish();
-                } else {
-                   SILO_PANIC("Type mismatch between value and builder");
-                }
-             },
-             builder
-   )
-      .Map([](auto&& x) { return arrow::Datum{x}; });
+   return std::visit([](auto& builder) { return builder.Finish(); }, builder).Map([](auto&& array) {
+      return arrow::Datum{array};
+   });
 }
 
 }  // namespace silo::query_engine::exec_node

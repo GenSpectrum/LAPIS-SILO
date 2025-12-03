@@ -8,9 +8,9 @@
 #include "arrow/acero/options.h"
 #include "arrow/builder.h"
 
-using arrow::acero::ExecNode;
-using arrow::acero::ExecPlan;
 using silo::query_engine::QueryPlan;
+
+namespace {
 
 arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable() {
    std::shared_ptr<arrow::Schema> schema = arrow::schema({arrow::field("id", arrow::int32())});
@@ -22,6 +22,7 @@ arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable() {
    ARROW_ASSIGN_OR_RAISE(std::shared_ptr<arrow::Array> id_array, id_builder.Finish());
    return arrow::Table::Make(schema, {id_array});
 }
+}  // namespace
 
 TEST(QueryPlan, timesOutWhenAnInvalidPlanDoesNotFinish) {
    EXPECT_THAT(

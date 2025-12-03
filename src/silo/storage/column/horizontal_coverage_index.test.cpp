@@ -53,7 +53,7 @@ TEST_F(HorizontalCoverageIndexTest, InsertSequenceWithOffset) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, InsertEmptySequence) {
-   std::string sequence = "";
+   std::string sequence;
    EXPECT_NO_THROW(index->insertSequenceCoverage<Nucleotide>(sequence, 0));
 }
 
@@ -391,7 +391,7 @@ TEST_F(HorizontalCoverageIndexTest, LongSequence) {
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{0});
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH / 4).at(0), roaring::Roaring{0});
    EXPECT_EQ(
-      index->getCoverageBitmapForPositions<1>(GENOME_LENGTH / 2 - 1).at(0), roaring::Roaring{0}
+      index->getCoverageBitmapForPositions<1>((GENOME_LENGTH / 2) - 1).at(0), roaring::Roaring{0}
    );
 
    // Verify uncovered

@@ -1,9 +1,6 @@
 #pragma once
 
 #include <cstdbool>
-#include <deque>
-#include <string>
-#include <vector>
 
 #include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
@@ -19,7 +16,6 @@ class BoolColumnPartition {
    static constexpr schema::ColumnType TYPE = schema::ColumnType::BOOL;
    using value_type = bool;
 
-  public:
    roaring::Roaring true_bitmap;
    roaring::Roaring false_bitmap;
    roaring::Roaring null_bitmap;
@@ -32,14 +28,11 @@ class BoolColumnPartition {
   public:
    explicit BoolColumnPartition(Metadata* metadata);
 
-   size_t numValues() const { return num_values; }
+   [[nodiscard]] size_t numValues() const { return num_values; }
 
    [[nodiscard]] bool getValue(size_t row_id) const {
       SILO_ASSERT(!null_bitmap.contains(row_id));
-      if (true_bitmap.contains(row_id)) {
-         return true;
-      }
-      return false;
+      return true_bitmap.contains(row_id);
    }
 
    [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }

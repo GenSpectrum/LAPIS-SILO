@@ -32,7 +32,7 @@ std::shared_ptr<Query> Query::parseQuery(const std::string& query_string) {
 }
 
 QueryPlan Query::toQueryPlan(
-   std::shared_ptr<Database> database,
+   const std::shared_ptr<Database>& database,
    const config::QueryOptions& query_options,
    std::string_view request_id
 ) const {

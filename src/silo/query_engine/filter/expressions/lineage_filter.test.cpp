@@ -1,15 +1,11 @@
 #include <nlohmann/json.hpp>
 
-#include <optional>
-
 #include "silo/preprocessing/lineage_definition_file.h"
 #include "silo/test/query_fixture.test.h"
 
 namespace {
 using silo::ReferenceGenomes;
 using silo::common::LineageTreeAndIdMap;
-using silo::config::DatabaseConfig;
-using silo::config::ValueType;
 using silo::preprocessing::LineageDefinitionFile;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;

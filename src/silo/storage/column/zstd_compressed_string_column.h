@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <deque>
-#include <filesystem>
 #include <string>
 
 #include <boost/serialization/access.hpp>
@@ -22,7 +20,6 @@ class ZstdCompressedStringColumnMetadata : public ColumnMetadata {
    ZstdDecompressor decompressor;
    std::string dictionary_string;
 
-  public:
    explicit ZstdCompressedStringColumnMetadata(
       std::string column_name,
       std::string dictionary_string
@@ -49,11 +46,11 @@ class ZstdCompressedStringColumnPartition {
    void insertNull();
    void insert(std::string_view value);
 
-   size_t numValues() const { return values.size(); }
+   [[nodiscard]] size_t numValues() const { return values.size(); }
 
-   std::optional<std::string> getDecompressed(size_t row_id) const;
+   [[nodiscard]] std::optional<std::string> getDecompressed(size_t row_id) const;
 
-   std::optional<std::string> getCompressed(size_t row_id) const;
+   [[nodiscard]] std::optional<std::string> getCompressed(size_t row_id) const;
 
   private:
    friend class boost::serialization::access;
@@ -71,12 +68,12 @@ BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::ZstdCompressedStringColumn
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void save(
-   Archive& ar,
+   Archive& archive,
    const silo::storage::column::ZstdCompressedStringColumnMetadata& object,
    [[maybe_unused]] const uint32_t version
 ) {
-   ar & object.column_name;
-   ar & object.dictionary_string;
+   archive & object.column_name;
+   archive & object.dictionary_string;
 }
 }  // namespace boost::serialization
 
@@ -85,14 +82,14 @@ BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void load(
-   Archive& ar,
+   Archive& archive,
    std::shared_ptr<silo::storage::column::ZstdCompressedStringColumnMetadata>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
    std::string dictionary_string;
-   ar & column_name;
-   ar & dictionary_string;
+   archive & column_name;
+   archive & dictionary_string;
    object = std::make_shared<silo::storage::column::ZstdCompressedStringColumnMetadata>(
       std::move(column_name), std::move(dictionary_string)
    );

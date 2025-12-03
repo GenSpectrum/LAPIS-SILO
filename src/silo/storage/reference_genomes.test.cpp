@@ -2,9 +2,6 @@
 
 #include <gtest/gtest.h>
 
-#include "silo/common/aa_symbols.h"
-#include "silo/common/nucleotide_symbols.h"
-
 TEST(ReferenceGenome, readFromFile) {
    auto under_test =
       silo::ReferenceGenomes::readFromFile("testBaseData/exampleDataset/reference_genomes.json");

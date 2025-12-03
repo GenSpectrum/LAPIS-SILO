@@ -11,7 +11,7 @@
 namespace silo {
 
 ZstdDecompressor::ZstdDecompressor(std::shared_ptr<ZstdDDictionary> zstd_dictionary)
-    : zstd_dictionary(zstd_dictionary) {}
+    : zstd_dictionary(std::move(zstd_dictionary)) {}
 
 void ZstdDecompressor::decompress(const std::string& input, std::string& buffer) {
    decompress(input.data(), input.size(), buffer);

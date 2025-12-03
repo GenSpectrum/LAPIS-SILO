@@ -8,7 +8,7 @@
 #include <fmt/ranges.h>
 
 #include "evobench/evobench.hpp"
-#include "silo/query_engine/exec_node/ndjson_sink.h"
+#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/exec_node/table_scan.h"
 #include "silo/schema/database_schema.h"
 
@@ -16,9 +16,10 @@ namespace silo::query_engine::actions {
 
 void SimpleSelectAction::validateOrderByFields(const schema::TableSchema& schema) const {
    auto output_schema = getOutputSchema(schema);
-   auto output_schema_fields = output_schema |
-                               std::views::transform([](const auto& x) { return x.name; }) |
-                               std::views::common;
+   auto output_schema_fields =
+      output_schema |
+      std::views::transform([](const auto& identifier) { return identifier.name; }) |
+      std::views::common;
    for (const OrderByField& field : order_by_fields) {
       CHECK_SILO_QUERY(
          std::ranges::find(output_schema_fields, field.name) != std::end(output_schema_fields),
@@ -45,7 +46,7 @@ arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
       exec_node::makeTableScan(
          arrow_plan.get(),
          getOutputSchema(table->schema),
-         partition_filters,
+         std::move(partition_filters),
          table,
          query_options.materialization_cutoff
       )

@@ -3,7 +3,7 @@
 #include <optional>
 #include <string>
 
-#include "silo/database.h"
+#include "silo/schema/database_schema.h"
 
 namespace silo {
 

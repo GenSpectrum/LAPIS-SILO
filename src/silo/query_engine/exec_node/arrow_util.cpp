@@ -2,12 +2,10 @@
 
 namespace silo::query_engine::exec_node {
 
-const std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column_type) {
+std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column_type) {
    switch (column_type) {
       case schema::ColumnType::STRING:
-         return arrow::utf8();
       case schema::ColumnType::INDEXED_STRING:
-         return arrow::utf8();
       case schema::ColumnType::DATE:
          return arrow::utf8();
       case schema::ColumnType::BOOL:
@@ -19,9 +17,7 @@ const std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType 
       case schema::ColumnType::FLOAT:
          return arrow::float64();
       case schema::ColumnType::AMINO_ACID_SEQUENCE:
-         return arrow::binary();
       case schema::ColumnType::NUCLEOTIDE_SEQUENCE:
-         return arrow::binary();
       case schema::ColumnType::ZSTD_COMPRESSED_STRING:
          return arrow::binary();
    }

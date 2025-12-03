@@ -1,4 +1,5 @@
 #include "silo/query_engine/exec_node/table_scan.h"
+#include <utility>
 
 #include <roaring/containers/array.h>
 #include <roaring/containers/bitset.h>
@@ -7,7 +8,9 @@
 #include <roaring/roaring.h>
 #include <roaring/roaring.hh>
 
+#include "evobench/evobench.hpp"
 #include "silo/query_engine/batched_bitmap_reader.h"
+#include "silo/storage/column/column_type_visitor.h"
 
 namespace silo::query_engine::exec_node {
 
@@ -73,7 +76,7 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
       "ColumnEntryAppender",
       columnTypeToString(storage::column::SequenceColumnPartition<Nucleotide>::TYPE)
    );
-   auto array =
+   auto* array =
       table_scan_node
          .getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<Nucleotide>>()
          .at(column_name);
@@ -93,7 +96,7 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
       "ColumnEntryAppender",
       columnTypeToString(storage::column::SequenceColumnPartition<AminoAcid>::TYPE)
    );
-   auto array =
+   auto* array =
       table_scan_node
          .getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<AminoAcid>>()
          .at(column_name);
@@ -113,11 +116,11 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStr
       "ColumnEntryAppender",
       columnTypeToString(storage::column::ZstdCompressedStringColumnPartition::TYPE)
    );
-   auto array =
+   auto* array =
       table_scan_node
          .getColumnTypeArrayBuilders<storage::column::ZstdCompressedStringColumnPartition>()
          .at(column_name);
-   auto& column =
+   const auto& column =
       table_partition.columns.getColumns<storage::column::ZstdCompressedStringColumnPartition>().at(
          column_name
       );
@@ -236,7 +239,9 @@ arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 ) {
-   exec_node::TableScanGenerator generator(columns, partition_filters_, table, batch_size_cutoff);
+   exec_node::TableScanGenerator generator(
+      columns, std::move(partition_filters_), std::move(table), batch_size_cutoff
+   );
    arrow::acero::SourceNodeOptions source_node_options{
       exec_node::columnsToArrowSchema(columns), generator, arrow::Ordering::Implicit()
    };

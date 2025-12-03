@@ -8,8 +8,7 @@
 namespace silo {
 
 ZstdCompressor::ZstdCompressor(std::shared_ptr<silo::ZstdCDictionary> dictionary)
-    : buffer(),
-      dictionary(std::move(dictionary)) {}
+    : dictionary(std::move(dictionary)) {}
 
 std::string_view ZstdCompressor::compress(const char* input_data, size_t input_size) {
    size_t size_bound = ZSTD_compressBound(input_size);

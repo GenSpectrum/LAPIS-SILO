@@ -1,20 +1,14 @@
 #include "silo/query_engine/actions/fasta_aligned.h"
 
-#include <iostream>
-#include <map>
 #include <optional>
-#include <utility>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/common/panic.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
-#include "silo/storage/column/sequence_column.h"
-#include "silo/storage/table.h"
 
 namespace silo::query_engine::actions {
 

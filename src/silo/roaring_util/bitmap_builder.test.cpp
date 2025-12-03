@@ -93,7 +93,7 @@ TEST_F(BitmapBuilderByContainerTest, MultipleContainersDifferentTiles) {
       CONTAINER_SIZE + 10,
       CONTAINER_SIZE + 20,
       CONTAINER_SIZE + 30,
-      2 * CONTAINER_SIZE + 100
+      (2 * CONTAINER_SIZE) + 100
    };
    EXPECT_EQ(result, expected);
 
@@ -166,9 +166,9 @@ TEST_F(BitmapBuilderByContainerTest, AscendingOrder) {
    roaring::Roaring expected = {
       0,
       CONTAINER_SIZE + 10,
-      2 * CONTAINER_SIZE + 20,
-      3 * CONTAINER_SIZE + 30,
-      4 * CONTAINER_SIZE + 40
+      (2 * CONTAINER_SIZE) + 20,
+      (3 * CONTAINER_SIZE) + 30,
+      (4 * CONTAINER_SIZE) + 40
    };
    EXPECT_EQ(result, expected);
 }
@@ -177,6 +177,7 @@ TEST_F(BitmapBuilderByContainerTest, LargeContainer) {
    BitmapBuilderByContainer builder;
 
    std::vector<uint16_t> values;
+   values.reserve(CONTAINER_SIZE);
    for (uint32_t i = 0; i < CONTAINER_SIZE; ++i) {
       values.push_back(i);
    }
@@ -198,24 +199,24 @@ TEST_F(BitmapBuilderByContainerTest, MixedOperations) {
    BitmapBuilderByContainer builder;
 
    // Tile 0, first batch
-   auto [c1, t1] = createContainer({1, 2, 3});
-   builder.addContainer(0, c1, t1);
+   auto [container_1, typecode_1] = createContainer({1, 2, 3});
+   builder.addContainer(0, container_1, typecode_1);
 
    // Tile 0, second batch (merge)
-   auto [c2, t2] = createContainer({4, 5, 6});
-   builder.addContainer(0, c2, t2);
+   auto [container_2, typecode_2] = createContainer({4, 5, 6});
+   builder.addContainer(0, container_2, typecode_2);
 
    // Tile 0, third batch (merge)
-   auto [c4, t4] = createContainer({7, 8});
-   builder.addContainer(0, c4, t4);
+   auto [container_4, typecode_4] = createContainer({7, 8});
+   builder.addContainer(0, container_4, typecode_4);
 
    // Tile 1
-   auto [c3, t3] = createContainer({10, 20});
-   builder.addContainer(1, c3, t3);
+   auto [container_3, typecode_3] = createContainer({10, 20});
+   builder.addContainer(1, container_3, typecode_3);
 
    // Tile 2
-   auto [c5, t5] = createContainer({100});
-   builder.addContainer(2, c5, t5);
+   auto [container_5, typecode_5] = createContainer({100});
+   builder.addContainer(2, container_5, typecode_5);
 
    roaring::Roaring result = std::move(builder).getBitmap();
 
@@ -225,13 +226,13 @@ TEST_F(BitmapBuilderByContainerTest, MixedOperations) {
    EXPECT_TRUE(result.contains(8));
    EXPECT_TRUE(result.contains(CONTAINER_SIZE + 10));
    EXPECT_TRUE(result.contains(CONTAINER_SIZE + 20));
-   EXPECT_TRUE(result.contains(2 * CONTAINER_SIZE + 100));
+   EXPECT_TRUE(result.contains((2 * CONTAINER_SIZE) + 100));
 
-   roaring::internal::container_free(c1, t1);
-   roaring::internal::container_free(c2, t2);
-   roaring::internal::container_free(c3, t3);
-   roaring::internal::container_free(c4, t4);
-   roaring::internal::container_free(c5, t5);
+   roaring::internal::container_free(container_1, typecode_1);
+   roaring::internal::container_free(container_2, typecode_2);
+   roaring::internal::container_free(container_3, typecode_3);
+   roaring::internal::container_free(container_4, typecode_4);
+   roaring::internal::container_free(container_5, typecode_5);
 }
 
 TEST_F(BitmapBuilderByContainerTest, SingleTileMultipleAdditions) {
@@ -240,8 +241,9 @@ TEST_F(BitmapBuilderByContainerTest, SingleTileMultipleAdditions) {
    // Add multiple batches to tile 5
    for (int batch = 0; batch < 10; ++batch) {
       std::vector<uint16_t> values;
+      values.reserve(10);
       for (int i = 0; i < 10; ++i) {
-         values.push_back(batch * 10 + i);
+         values.push_back((batch * 10) + i);
       }
       auto [container, typecode] = createContainer(values);
       builder.addContainer(5, container, typecode);

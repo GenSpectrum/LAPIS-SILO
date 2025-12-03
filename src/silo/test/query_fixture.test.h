@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <vector>
 
@@ -11,13 +10,10 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/append/database_inserter.h"
-#include "silo/common/fmt_formatters.h"
 #include "silo/common/lineage_tree.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/config/database_config.h"
-#include "silo/config/preprocessing_config.h"
 #include "silo/database.h"
-#include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
 #include "silo/query_engine/query.h"
 #include "silo/query_engine/query_plan.h"
@@ -52,7 +48,7 @@ namespace silo::test {
    );                                                                                            \
                                                                                                  \
    TEST_P(TEST_SUITE_NAME##FixtureAlias, testQuery) {                                            \
-      const auto scenario = GetParam();                                                          \
+      const auto& scenario = GetParam();                                                         \
       runTest(scenario);                                                                         \
    };
 
@@ -87,9 +83,9 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       auto database = std::make_shared<Database>(
          Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
             silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
-            std::move(test_data.reference_genomes),
-            std::move(test_data.lineage_trees),
-            std::move(test_data.phylo_tree_file),
+            test_data.reference_genomes,
+            test_data.lineage_trees,
+            test_data.phylo_tree_file,
             test_data.without_unaligned_sequences
          )}
       );
@@ -106,7 +102,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       shared_database = database;
    }
 
-   void runTest(silo::test::QueryTestScenario scenario) {
+   void runTest(const silo::test::QueryTestScenario& scenario) {
       if (!shared_database) {
          FAIL() << "There was an error when setting up the test suite. Database not initialized.";
       }
@@ -131,7 +127,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          std::string line;
          while (std::getline(buffer, line)) {
             auto line_object = nlohmann::json::parse(line);
-            std::cout << line_object.dump() << std::endl;
+            std::cout << line_object.dump() << '\n';
             actual_ndjson_result_as_array.push_back(line_object);
          }
          ASSERT_EQ(actual_ndjson_result_as_array, scenario.expected_query_result);
@@ -139,6 +135,6 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
    }
 };
 
-nlohmann::json negateFilter(const nlohmann::json& filter);
+nlohmann::json negateFilter(const nlohmann::json& query);
 
 }  // namespace silo::test

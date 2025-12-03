@@ -10,18 +10,19 @@ namespace {
 class RoaringSubsetRanksTest : public ::testing::Test {
   protected:
    // Helper to create a container from a vector of values
-   std::pair<roaring::internal::container_t*, uint8_t> createContainer(
+   static std::pair<roaring::internal::container_t*, uint8_t> createContainer(
       const std::vector<uint16_t>& values
    ) {
       assert(not values.empty());
-      roaring::Roaring r;
+      roaring::Roaring bitmap;
       for (uint16_t val : values) {
-         r.add(val);
+         bitmap.add(val);
       }
-      auto cloned_container = roaring::internal::container_clone(
-         r.roaring.high_low_container.containers[0], r.roaring.high_low_container.typecodes[0]
+      auto* cloned_container = roaring::internal::container_clone(
+         bitmap.roaring.high_low_container.containers[0],
+         bitmap.roaring.high_low_container.typecodes[0]
       );
-      return {cloned_container, r.roaring.high_low_container.typecodes[0]};
+      return {cloned_container, bitmap.roaring.high_low_container.typecodes[0]};
    }
 };
 

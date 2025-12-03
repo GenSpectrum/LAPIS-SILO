@@ -1,4 +1,3 @@
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -7,8 +6,6 @@
 #include "silo/test/query_fixture.test.h"
 
 using silo::ReferenceGenomes;
-using silo::config::DatabaseConfig;
-using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 

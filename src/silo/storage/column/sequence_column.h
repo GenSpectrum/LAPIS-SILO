@@ -146,7 +146,7 @@ class SequenceColumnPartition {
 template <>
 class [[maybe_unused]] fmt::formatter<silo::storage::column::SequenceColumnInfo> {
   public:
-   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+   static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
       const silo::storage::column::SequenceColumnInfo& sequence_store_info,
       format_context& ctx

@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -33,11 +32,11 @@ class Intersection : public Operator {
 
    ~Intersection() noexcept override;
 
-   virtual std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] Type type() const override;
 
-   virtual CopyOnWriteBitmap evaluate() const override;
+   [[nodiscard]] CopyOnWriteBitmap evaluate() const override;
 
    static std::unique_ptr<Operator> negate(std::unique_ptr<Intersection>&& intersection);
 };

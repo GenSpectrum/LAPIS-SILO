@@ -18,7 +18,7 @@
 
 namespace silo::query_engine::exec_node {
 
-const std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column_type);
+std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column_type);
 
 std::shared_ptr<arrow::Schema> columnsToArrowSchema(
    const std::vector<silo::schema::ColumnIdentifier>& columns

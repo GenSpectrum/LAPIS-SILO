@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cstddef>
 #include <deque>
-#include <vector>
+#include <memory>
+#include <string_view>
 
 #include <boost/serialization/deque.hpp>
 
@@ -30,7 +30,7 @@ class VariableDataRegistry {
 
    VariableDataRegistry::Identifier insert(std::string_view data);
 
-   DataList get(VariableDataRegistry::Identifier id) const;
+   [[nodiscard]] DataList get(VariableDataRegistry::Identifier identifier) const;
 
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {

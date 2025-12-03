@@ -15,7 +15,9 @@ VariableDataRegistry::Identifier VariableDataRegistry::insert(std::string_view d
    if (page_id > UINT32_MAX) {
       SILO_PANIC("Maximum number of variable string data reached. Aborting.");
    }
-   VariableDataRegistry::Identifier id{.page_id = static_cast<uint32_t>(page_id), .offset = offset};
+   VariableDataRegistry::Identifier identifier{
+      .page_id = static_cast<uint32_t>(page_id), .offset = offset
+   };
    offset += sizeof(size_t);
 
    if (offset == buffer::PAGE_SIZE) {
@@ -34,7 +36,7 @@ VariableDataRegistry::Identifier VariableDataRegistry::insert(std::string_view d
             remaining_data.length()
          );
          offset += remaining_data.length();
-         return id;
+         return identifier;
       }
       std::memcpy(
          variable_data_pages.back().buffer + offset,
@@ -57,21 +59,24 @@ VariableDataRegistry::DataList getDataFromPage(
    size_t length_on_page = std::min(length, buffer::PAGE_SIZE - offset);
    char* start_pointer_on_page = reinterpret_cast<char*>(page.buffer + offset);
    std::string_view data_on_page{start_pointer_on_page, length_on_page};
-   return VariableDataRegistry::DataList{data_on_page, nullptr};
+   return VariableDataRegistry::DataList{.data = data_on_page, .continuation = nullptr};
 }
 
 }  // namespace
 
-VariableDataRegistry::DataList VariableDataRegistry::get(VariableDataRegistry::Identifier id
+VariableDataRegistry::DataList VariableDataRegistry::get(VariableDataRegistry::Identifier identifier
 ) const {
-   auto length = *reinterpret_cast<size_t*>(variable_data_pages.at(id.page_id).buffer + id.offset);
+   auto length = *reinterpret_cast<size_t*>(
+      variable_data_pages.at(identifier.page_id).buffer + identifier.offset
+   );
 
-   VariableDataRegistry::DataList ret =
-      getDataFromPage(variable_data_pages.at(id.page_id), id.offset + sizeof(size_t), length);
+   VariableDataRegistry::DataList ret = getDataFromPage(
+      variable_data_pages.at(identifier.page_id), identifier.offset + sizeof(size_t), length
+   );
    length -= ret.data.length();
 
    VariableDataRegistry::DataList* current = &ret;
-   auto current_page = id.page_id + 1;
+   auto current_page = identifier.page_id + 1;
    while (length > 0) {
       // Continuation data is always at offset 0. Length is only stored on first page and then
       // directly spills to the beginning of next page. Append-only data-structure

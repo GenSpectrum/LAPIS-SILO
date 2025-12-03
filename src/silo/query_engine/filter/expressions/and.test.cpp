@@ -6,17 +6,15 @@
 
 namespace {
 using silo::ReferenceGenomes;
-using silo::config::DatabaseConfig;
-using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
 using boost::uuids::random_generator;
 
 nlohmann::json createData(const std::string& country, const std::string& date) {
-   static std::atomic_int id = 0;
-   const auto primary_key = id++;
-   std::string age = id % 2 == 0 ? "null" : fmt::format("{}", 3 * id + 4);
+   static std::atomic_int row_id = 0;
+   const auto primary_key = row_id++;
+   std::string age = row_id % 2 == 0 ? "null" : fmt::format("{}", (3 * row_id) + 4);
    float coverage = 0.9;
 
    return nlohmann::json::parse(fmt::format(

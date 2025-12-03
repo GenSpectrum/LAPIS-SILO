@@ -23,7 +23,7 @@
 namespace silo {
 
 Database::Database(schema::DatabaseSchema database_schema)
-    : schema(database_schema),
+    : schema(std::move(database_schema)),
       table(std::make_shared<storage::Table>(schema.getDefaultTableSchema())) {}
 
 DatabaseInfo Database::getDatabaseInfo() const {

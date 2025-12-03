@@ -17,7 +17,7 @@ class JsonValueTypeArrayBuilder {
       builder;
 
   public:
-   JsonValueTypeArrayBuilder(std::shared_ptr<arrow::DataType> type);
+   explicit JsonValueTypeArrayBuilder(const std::shared_ptr<arrow::DataType>& type);
 
    arrow::Status insert(const std::optional<std::variant<std::string, bool, int32_t, double>>& value
    );

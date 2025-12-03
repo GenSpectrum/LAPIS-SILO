@@ -4,16 +4,17 @@
 #include <arrow/api.h>
 #include <arrow/compute/api.h>
 #include <arrow/testing/gtest_util.h>
+#include <arrow/util/future.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <chrono>
-#include <thread>
 #include <vector>
 
-using namespace silo::query_engine::exec_node;
-using namespace arrow;
-using namespace arrow::acero;
-using namespace arrow::compute;
+using arrow::AsyncGenerator;
+using arrow::ExecBatch;
+using arrow::acero::BackpressureMonitor;
+
+using silo::query_engine::exec_node::ThrottledBatchReslicer;
 
 // Mock BackpressureMonitor for testing
 class MockBackpressureMonitor : public BackpressureMonitor {
@@ -35,7 +36,7 @@ class ThrottledBatchReslicerTest : public ::testing::Test {
    std::unique_ptr<MockBackpressureMonitor> mock_backpressure_monitor;
 
    // Helper function to create a simple ExecBatch with integer data
-   ExecBatch CreateTestBatch(int64_t length, int32_t start_value = 0) {
+   static ExecBatch createTestBatch(int64_t length, int32_t start_value = 0) {
       auto builder = std::make_shared<arrow::Int32Builder>();
       for (int32_t i = 0; i < length; ++i) {
          ARROW_EXPECT_OK(builder->Append(start_value + i));
@@ -47,26 +48,26 @@ class ThrottledBatchReslicerTest : public ::testing::Test {
    }
 
    // Helper to create async generator from vector of batches
-   AsyncGenerator<std::optional<ExecBatch>> CreateGenerator(
+   static AsyncGenerator<std::optional<ExecBatch>> createGenerator(
       std::vector<std::optional<ExecBatch>> batches
    ) {
-      auto batches_wrapped = std::make_shared<decltype(batches)>(batches);
-      auto it = std::make_shared<decltype(batches_wrapped->begin())>(batches_wrapped->begin());
-      auto end_it = batches_wrapped->end();
+      auto batches_wrapped = std::make_shared<decltype(batches)>(std::move(batches));
+      auto iter = std::make_shared<decltype(batches_wrapped->begin())>(batches_wrapped->begin());
+      auto end_iter = batches_wrapped->end();
 
-      return [batches_wrapped, it, end_it]() -> Future<std::optional<ExecBatch>> {
-         if (*it == end_it) {
+      return [batches_wrapped, iter, end_iter]() -> arrow::Future<std::optional<ExecBatch>> {
+         if (*iter == end_iter) {
             return std::optional<ExecBatch>{std::nullopt};
          }
-         auto result = **it;
-         ++(*it);
+         auto result = **iter;
+         ++(*iter);
          return result;
       };
    }
 };
 
 TEST_F(ThrottledBatchReslicerTest, ConstructorValidation) {
-   auto generator = CreateGenerator({});
+   auto generator = createGenerator({});
 
    // Valid construction should not throw
    EXPECT_NO_THROW({
@@ -90,39 +91,39 @@ TEST_F(ThrottledBatchReslicerTest, ConstructorValidation) {
 }
 
 TEST_F(ThrottledBatchReslicerTest, EmptyInput) {
-   auto generator = CreateGenerator({std::nullopt});
+   auto generator = createGenerator({std::nullopt});
 
    ThrottledBatchReslicer reslicer(
       generator, 100, std::chrono::milliseconds(10), mock_backpressure_monitor.get()
    );
 
    auto future = reslicer();
-   auto result = future.result();
+   const auto& result = future.result();
 
    ASSERT_TRUE(result.ok());
    EXPECT_FALSE(result.ValueOrDie().has_value());
 }
 
 TEST_F(ThrottledBatchReslicerTest, EmptyBatch) {
-   auto empty_batch = CreateTestBatch(0);
-   auto generator = CreateGenerator({empty_batch, std::nullopt});
+   auto empty_batch = createTestBatch(0);
+   auto generator = createGenerator({empty_batch, std::nullopt});
 
    ThrottledBatchReslicer reslicer(
       generator, 100, std::chrono::milliseconds(10), mock_backpressure_monitor.get()
    );
 
    auto future = reslicer();
-   auto result = future.result();
+   const auto& result = future.result();
 
    ASSERT_TRUE(result.ok());
-   auto batch = result.ValueOrDie();
+   const auto& batch = result.ValueOrDie();
    ASSERT_TRUE(batch.has_value());
    EXPECT_EQ(batch->length, 0);
 }
 
 TEST_F(ThrottledBatchReslicerTest, BatchSmallerThanTargetSize) {
-   auto small_batch = CreateTestBatch(50);  // Smaller than target size
-   auto generator = CreateGenerator({small_batch, std::nullopt});
+   auto small_batch = createTestBatch(50);  // Smaller than target size
+   auto generator = createGenerator({small_batch, std::nullopt});
 
    ThrottledBatchReslicer reslicer(
       generator,
@@ -147,8 +148,8 @@ TEST_F(ThrottledBatchReslicerTest, BatchSmallerThanTargetSize) {
 }
 
 TEST_F(ThrottledBatchReslicerTest, BatchEqualToTargetSize) {
-   auto exact_batch = CreateTestBatch(100);
-   auto generator = CreateGenerator({exact_batch, std::nullopt});
+   auto exact_batch = createTestBatch(100);
+   auto generator = createGenerator({exact_batch, std::nullopt});
 
    ThrottledBatchReslicer reslicer(
       generator,
@@ -158,17 +159,17 @@ TEST_F(ThrottledBatchReslicerTest, BatchEqualToTargetSize) {
    );
 
    auto future = reslicer();
-   auto result = future.result();
+   const auto& result = future.result();
 
    ASSERT_TRUE(result.ok());
-   auto batch = result.ValueOrDie();
+   const auto& batch = result.ValueOrDie();
    ASSERT_TRUE(batch.has_value());
    EXPECT_EQ(batch->length, 100);
 }
 
 TEST_F(ThrottledBatchReslicerTest, BatchLargerThanTargetSize) {
-   auto large_batch = CreateTestBatch(250);
-   auto generator = CreateGenerator({large_batch, std::nullopt});
+   auto large_batch = createTestBatch(250);
+   auto generator = createGenerator({large_batch, std::nullopt});
 
    ThrottledBatchReslicer reslicer(
       generator,
@@ -179,39 +180,39 @@ TEST_F(ThrottledBatchReslicerTest, BatchLargerThanTargetSize) {
 
    // First call should return first slice
    auto future1 = reslicer();
-   auto result1 = future1.result();
+   const auto& result1 = future1.result();
    ASSERT_TRUE(result1.ok());
-   auto batch1 = result1.ValueOrDie();
+   const auto& batch1 = result1.ValueOrDie();
    ASSERT_TRUE(batch1.has_value());
    EXPECT_EQ(batch1->length, 100);
 
    // Second call should return second slice
    auto future2 = reslicer();
-   auto result2 = future2.result();
+   const auto& result2 = future2.result();
    ASSERT_TRUE(result2.ok());
-   auto batch2 = result2.ValueOrDie();
+   const auto& batch2 = result2.ValueOrDie();
    ASSERT_TRUE(batch2.has_value());
    EXPECT_EQ(batch2->length, 100);
 
    // Third call should return remaining slice
    auto future3 = reslicer();
-   auto result3 = future3.result();
+   const auto& result3 = future3.result();
    ASSERT_TRUE(result3.ok());
-   auto batch3 = result3.ValueOrDie();
+   const auto& batch3 = result3.ValueOrDie();
    ASSERT_TRUE(batch3.has_value());
    EXPECT_EQ(batch3->length, 50);
 
    // Fourth call should return nullopt (end of input)
    auto future4 = reslicer();
-   auto result4 = future4.result();
+   const auto& result4 = future4.result();
    ASSERT_TRUE(result4.ok());
    EXPECT_FALSE(result4.ValueOrDie().has_value());
 }
 
 TEST_F(ThrottledBatchReslicerTest, MultipleBatches) {
-   auto batch1 = CreateTestBatch(150, 0);
-   auto batch2 = CreateTestBatch(75, 150);
-   auto generator = CreateGenerator({batch1, batch2, std::nullopt});
+   auto batch1 = createTestBatch(150, 0);
+   auto batch2 = createTestBatch(75, 150);
+   auto generator = createGenerator({batch1, batch2, std::nullopt});
 
    ThrottledBatchReslicer reslicer(
       generator, 100, std::chrono::milliseconds(1), mock_backpressure_monitor.get()
@@ -222,9 +223,9 @@ TEST_F(ThrottledBatchReslicerTest, MultipleBatches) {
    // Process all batches
    while (true) {
       auto future = reslicer();
-      auto result = future.result();
+      const auto& result = future.result();
       ASSERT_TRUE(result.ok());
-      auto batch = result.ValueOrDie();
+      const auto& batch = result.ValueOrDie();
 
       if (!batch.has_value()) {
          break;
@@ -238,15 +239,15 @@ TEST_F(ThrottledBatchReslicerTest, MultipleBatches) {
 }
 
 TEST_F(ThrottledBatchReslicerTest, ThrottlingDelay) {
-   auto large_batch = CreateTestBatch(200);
-   auto generator = CreateGenerator({large_batch, std::nullopt});
+   auto large_batch = createTestBatch(200);
+   auto generator = createGenerator({large_batch, std::nullopt});
 
    const auto delay = std::chrono::milliseconds(50);
    ThrottledBatchReslicer reslicer(generator, 100, delay, mock_backpressure_monitor.get());
 
    // First call should not have delay (no previous batch)
    auto future1 = reslicer();
-   auto result1 = future1.result();
+   const auto& result1 = future1.result();
    ASSERT_TRUE(result1.ok());
    EXPECT_TRUE(result1.ValueOrDie().has_value());
 
@@ -254,7 +255,7 @@ TEST_F(ThrottledBatchReslicerTest, ThrottlingDelay) {
 
    // Second call should have delay
    auto future2 = reslicer();
-   auto result2 = future2.result();
+   const auto& result2 = future2.result();
    ASSERT_TRUE(result2.ok());
    EXPECT_TRUE(result2.ValueOrDie().has_value());
 
@@ -266,8 +267,8 @@ TEST_F(ThrottledBatchReslicerTest, ThrottlingDelay) {
 }
 
 TEST_F(ThrottledBatchReslicerTest, BackpressureMonitorLogging) {
-   auto batch = CreateTestBatch(50);
-   auto generator = CreateGenerator({batch, std::nullopt});
+   auto batch = createTestBatch(50);
+   auto generator = createGenerator({batch, std::nullopt});
 
    // Set up expectations for backpressure monitor calls
    EXPECT_CALL(*mock_backpressure_monitor, bytes_in_use()).Times(::testing::AtLeast(1));
@@ -278,7 +279,7 @@ TEST_F(ThrottledBatchReslicerTest, BackpressureMonitorLogging) {
    );
 
    auto future = reslicer();
-   auto result = future.result();
+   const auto& result = future.result();
    ASSERT_TRUE(result.ok());
 }
 
@@ -292,7 +293,7 @@ TEST_F(ThrottledBatchReslicerTest, DataIntegrity) {
    ARROW_EXPECT_OK(builder->Finish(&array));
 
    auto batch = ExecBatch({array}, 150);
-   auto generator = CreateGenerator({batch, std::nullopt});
+   auto generator = createGenerator({batch, std::nullopt});
 
    ThrottledBatchReslicer reslicer(
       generator, 100, std::chrono::milliseconds(1), mock_backpressure_monitor.get()
@@ -300,9 +301,9 @@ TEST_F(ThrottledBatchReslicerTest, DataIntegrity) {
 
    // Get first slice (0-99)
    auto future1 = reslicer();
-   auto result1 = future1.result();
+   const auto& result1 = future1.result();
    ASSERT_TRUE(result1.ok());
-   auto batch1 = result1.ValueOrDie();
+   const auto& batch1 = result1.ValueOrDie();
    ASSERT_TRUE(batch1.has_value());
    EXPECT_EQ(batch1->length, 100);
 
@@ -314,9 +315,9 @@ TEST_F(ThrottledBatchReslicerTest, DataIntegrity) {
 
    // Get second slice (100-149)
    auto future2 = reslicer();
-   auto result2 = future2.result();
+   const auto& result2 = future2.result();
    ASSERT_TRUE(result2.ok());
-   auto batch2 = result2.ValueOrDie();
+   const auto& batch2 = result2.ValueOrDie();
    ASSERT_TRUE(batch2.has_value());
    EXPECT_EQ(batch2->length, 50);
 
@@ -329,7 +330,7 @@ TEST_F(ThrottledBatchReslicerTest, DataIntegrity) {
 
 TEST_F(ThrottledBatchReslicerTest, ExceptionHandling) {
    // Create a generator that throws an exception
-   auto throwing_generator = []() -> Future<std::optional<ExecBatch>> {
+   auto throwing_generator = []() -> arrow::Future<std::optional<ExecBatch>> {
       throw std::runtime_error("Test exception");
    };
 
@@ -338,7 +339,7 @@ TEST_F(ThrottledBatchReslicerTest, ExceptionHandling) {
    );
 
    auto future = reslicer();
-   auto result = future.result();
+   const auto& result = future.result();
 
    // Should return an error status, not throw
    EXPECT_FALSE(result.ok());
@@ -347,8 +348,8 @@ TEST_F(ThrottledBatchReslicerTest, ExceptionHandling) {
 
 // Performance test to ensure throttling works correctly under load
 TEST_F(ThrottledBatchReslicerTest, PerformanceThrottling) {
-   auto large_batch = CreateTestBatch(1000);
-   auto generator = CreateGenerator({large_batch, std::nullopt});
+   auto large_batch = createTestBatch(1000);
+   auto generator = createGenerator({large_batch, std::nullopt});
 
    const auto delay = std::chrono::milliseconds(10);
    ThrottledBatchReslicer reslicer(generator, 100, delay, mock_backpressure_monitor.get());
@@ -358,9 +359,9 @@ TEST_F(ThrottledBatchReslicerTest, PerformanceThrottling) {
 
    while (true) {
       auto future = reslicer();
-      auto result = future.result();
+      const auto& result = future.result();
       ASSERT_TRUE(result.ok());
-      auto batch = result.ValueOrDie();
+      const auto& batch = result.ValueOrDie();
 
       if (!batch.has_value()) {
          break;

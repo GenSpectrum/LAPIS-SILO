@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <utility>
+
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
 #include <arrow/acero/query_context.h>
@@ -20,9 +22,10 @@
 #include "silo/zstd/zstd_compressor.h"
 #include "silo/zstd/zstd_dictionary.h"
 
+namespace {
 arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable(
    std::vector<std::optional<std::string>> values,
-   std::string dictionary_string
+   std::string_view dictionary_string
 ) {
    std::shared_ptr<arrow::Schema> schema = arrow::schema(
       {arrow::field("id", arrow::int32()),
@@ -34,9 +37,9 @@ arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable(
 
    arrow::Int32Builder id_builder;
    arrow::BinaryBuilder value_builder;
-   int32_t id = 1;
+   int32_t id_column_value = 1;
    for (auto& value : values) {
-      ARROW_RETURN_NOT_OK(id_builder.Append(id++));
+      ARROW_RETURN_NOT_OK(id_builder.Append(id_column_value++));
       if (value.has_value()) {
          ARROW_RETURN_NOT_OK(value_builder.Append(compressor.compress(value->data(), value->size()))
          );
@@ -50,22 +53,21 @@ arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable(
 }
 
 using silo::query_engine::exec_node::ZstdDecompressExpression;
-
 std::shared_ptr<arrow::Table> runValuesThroughProjection(
    std::vector<std::optional<std::string>> values,
-   std::string dictionary_string
+   const std::string& dictionary_string
 ) {
-   auto input_table = setupTestTable(values, dictionary_string).ValueOrDie();
+   auto input_table = setupTestTable(std::move(values), dictionary_string).ValueOrDie();
 
    auto arrow_plan = arrow::acero::ExecPlan::Make().ValueOrDie();
 
    arrow::acero::TableSourceNodeOptions source_options{input_table};
-   auto node =
+   auto* node =
       arrow::acero::MakeExecNode("table_source", arrow_plan.get(), {}, source_options).ValueOrDie();
 
    arrow::acero::ProjectNodeOptions project_options(
       {arrow::compute::field_ref("id"),
-       ZstdDecompressExpression::Make(
+       ZstdDecompressExpression::make(
           arrow::compute::field_ref("some_zstd_compressed_column"), dictionary_string
        )}
    );
@@ -107,6 +109,7 @@ void assertDecompressedStringArray(
       }
    }
 }
+}  // namespace
 
 TEST(ZstdDecompressExpression, decompressesValues) {
    std::vector<std::optional<std::string>> values = {"ACGT", "ACCT", "ACGG"};
@@ -128,12 +131,13 @@ TEST(ZstdDecompressExpression, empty) {
 
 TEST(ZstdDecompressExpression, largeSet) {
    std::vector<std::optional<std::string>> values = {};
+   values.reserve(25002);
    for (size_t i = 0; i < 15000; ++i) {
-      values.push_back("ACGT");
+      values.emplace_back("ACGT");
    }
-   values.push_back(std::nullopt);
+   values.emplace_back(std::nullopt);
    for (size_t i = 0; i < 10000; ++i) {
-      values.push_back("AAAA");
+      values.emplace_back("AAAA");
    }
    auto result_table = runValuesThroughProjection(values, "ACGTC");
    assertDecompressedStringArray(values, result_table);

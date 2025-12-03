@@ -15,6 +15,8 @@
 #include <arrow/type_traits.h>
 #include <spdlog/spdlog.h>
 
+#include <utility>
+
 #include "evobench/evobench.hpp"
 #include "silo/common/panic.h"
 #include "silo/zstd/zstd_context.h"
@@ -25,7 +27,7 @@ namespace silo::query_engine::exec_node {
 
 namespace {
 struct BinaryDecompressKernel {
-   static arrow::Status Exec(
+   static arrow::Status exec(
       arrow::compute::KernelContext* context,
       const arrow::compute::ExecSpan& input,
       arrow::compute::ExecResult* out
@@ -86,9 +88,9 @@ struct BinaryDecompressKernel {
    }
 };
 
-arrow::Result<std::string> RegisterCustomFunctionImpl() {
+arrow::Result<std::string> registerCustomFunctionImpl() {
    std::string function_name = "silo_zstd_decompressor";
-   auto registry = arrow::compute::GetFunctionRegistry();
+   auto* registry = arrow::compute::GetFunctionRegistry();
 
    std::string summary =
       "Decompresses each value of zstd_compressed_binary using the scalar dictionary";
@@ -105,7 +107,7 @@ arrow::Result<std::string> RegisterCustomFunctionImpl() {
 
    {
       arrow::compute::ScalarKernel kernel;
-      kernel.exec = BinaryDecompressKernel::Exec;
+      kernel.exec = BinaryDecompressKernel::exec;
       kernel.signature =
          arrow::compute::KernelSignature::Make({arrow::binary(), arrow::binary()}, arrow::utf8());
       kernel.null_handling = arrow::compute::NullHandling::INTERSECTION;
@@ -118,9 +120,9 @@ arrow::Result<std::string> RegisterCustomFunctionImpl() {
    return function_name;
 }
 
-std::string RegisterCustomFunction() {
+std::string registerCustomFunction() {
    std::string function_name;
-   auto status = RegisterCustomFunctionImpl().Value(&function_name);
+   auto status = registerCustomFunctionImpl().Value(&function_name);
    if (!status.ok()) {
       throw std::runtime_error(fmt::format("Err: {}", status.ToString()));
    }
@@ -128,16 +130,17 @@ std::string RegisterCustomFunction() {
 }
 }  // namespace
 
-arrow::Expression ZstdDecompressExpression::Make(
+arrow::Expression ZstdDecompressExpression::make(
    arrow::Expression input_expression,
    std::string dictionary_string
 ) {
-   static std::string function_name = RegisterCustomFunction();
+   static std::string function_name = registerCustomFunction();
 
    auto dict_scalar = std::make_shared<arrow::BinaryScalar>(std::move(dictionary_string));
 
    return arrow::compute::call(
-      function_name, {input_expression, arrow::compute::literal(arrow::Datum(dict_scalar))}
+      function_name,
+      {std::move(input_expression), arrow::compute::literal(arrow::Datum(dict_scalar))}
    );
 }
 

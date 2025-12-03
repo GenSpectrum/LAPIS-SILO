@@ -28,9 +28,9 @@ Checks: >-
 # positives for overridden 'T& operator=(T&)'.
 CheckOptions:
   - key: readability-identifier-length.IgnoredVariableNames
-    value: \_
-  - key: readability-identifier-length.IgnoredVariableNames
-    value: to
+    value: '_|to'
+  - key: readability-identifier-length.IgnoredParameterNames
+    value: '_|to'
   - key: readability-identifier-naming.NamespaceCase
     value: lower_case
   - key: readability-identifier-naming.ClassCase

@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 
 #include <spdlog/spdlog.h>
 #include <roaring/roaring.hh>
@@ -93,11 +92,11 @@ void HorizontalCoverageIndex::insertSequenceCoverage(std::string sequence, uint3
       start_of_covered_region, end_of_covered_region_exclusive, positions_with_symbol_missing
    );
 }
-template void HorizontalCoverageIndex::insertSequenceCoverage<Nucleotide>(
+template void HorizontalCoverageIndex::insertSequenceCoverage<silo::Nucleotide>(
    std::string sequence,
    uint32_t offset
 );
-template void HorizontalCoverageIndex::insertSequenceCoverage<AminoAcid>(
+template void HorizontalCoverageIndex::insertSequenceCoverage<silo::AminoAcid>(
    std::string sequence,
    uint32_t offset
 );

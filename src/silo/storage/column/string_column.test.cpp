@@ -168,7 +168,7 @@ TEST(StringColumn, manyMixedValues) {
    test_values.reserve(50001);
    for (size_t i = 0; i < 50001; ++i) {
       if (i % 2 == 1) {
-         test_values.push_back("SHRT");
+         test_values.emplace_back("SHRT");
       } else if (i % 10000 == 0) {
          test_values.push_back(fmt::format("{}_VERY_VERY_LONG_STRING_{}", i, std::string(i, 'x')));
       } else {

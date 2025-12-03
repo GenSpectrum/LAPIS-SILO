@@ -11,7 +11,6 @@
 
 #include "silo/config/runtime_config.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query_plan.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
@@ -37,7 +36,7 @@ class Action {
    virtual ~Action() = default;
 
    // Returns the type of this action, which is used for logging the performance by Action type
-   virtual std::string_view getType() const = 0;
+   [[nodiscard]] virtual std::string_view getType() const = 0;
 
    QueryPlan toQueryPlan(
       std::shared_ptr<const storage::Table> table,
@@ -53,9 +52,9 @@ class Action {
       std::optional<uint32_t> randomize_seed
    );
 
-   std::optional<arrow::Ordering> getOrdering() const;
+   [[nodiscard]] std::optional<arrow::Ordering> getOrdering() const;
 
-   virtual std::vector<schema::ColumnIdentifier> getOutputSchema(
+   [[nodiscard]] virtual std::vector<schema::ColumnIdentifier> getOutputSchema(
       const silo::schema::TableSchema& table_schema
    ) const = 0;
 
@@ -81,7 +80,7 @@ class Action {
    ) const;
 
   private:
-   virtual arrow::Result<QueryPlan> toQueryPlanImpl(
+   [[nodiscard]] virtual arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> partition_filters,
       const config::QueryOptions& query_options,
@@ -92,7 +91,7 @@ class Action {
       arrow::acero::ExecPlan* arrow_plan,
       arrow::acero::ExecNode* node,
       const std::vector<schema::ColumnIdentifier>& output_fields,
-      const arrow::Ordering ordering,
+      const arrow::Ordering& ordering,
       std::optional<size_t> num_rows_to_produce
    );
 
