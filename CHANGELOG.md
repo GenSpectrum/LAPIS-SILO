@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.9.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.1...v0.9.2) (2025-12-03)
+
+
+### Features
+
+* **benchmarking:** add DEBUG custom variable for running debug builds ([541afc8](https://github.com/GenSpectrum/LAPIS-SILO/commit/541afc89c95bc37e78c6e64d38c3e410d2897c9d))
+* **benchmarking:** update api-query, enable CSV log file w/ checksum comparisons ([3d135d0](https://github.com/GenSpectrum/LAPIS-SILO/commit/3d135d0222d594013c9da27017c015d4ef7bf99b))
+* **build:** add Makefile rule to generate conanprofile ([1a8a334](https://github.com/GenSpectrum/LAPIS-SILO/commit/1a8a334f2ca865545b4d24f7b1d0958d2f63b63f))
+* **build:** tag images with branch name again ([670817c](https://github.com/GenSpectrum/LAPIS-SILO/commit/670817c3f92a902033e8dcae8dcff18798449a4d))
+* **ci:** add CI workflow that also runs the test suite with debug build ([9bdc52b](https://github.com/GenSpectrum/LAPIS-SILO/commit/9bdc52b53aa2a9ae7200a0ec8d2779078542120f))
+* **documentation:** add documentation for sequence storage format ([47e4081](https://github.com/GenSpectrum/LAPIS-SILO/commit/47e40813a2739cda181c02918b084117a5e6e75f))
+* **silo:** add efficient way of computing vertical coverage bitmaps and use them to adapt reference positions ([8e7e9f4](https://github.com/GenSpectrum/LAPIS-SILO/commit/8e7e9f4045717c7bd29ea3860c486fa591ac9b73))
+* **silo:** add reordering of predicates to apply most selective predicates first ([1db8cf0](https://github.com/GenSpectrum/LAPIS-SILO/commit/1db8cf0fbee73080c09c29b45826b6f507b4559b))
+* **silo:** better compression for sequences ([9eb69c7](https://github.com/GenSpectrum/LAPIS-SILO/commit/9eb69c7d5dc62e24677fc0d23338dea88a5e347e))
+* **silo:** change IsInCoveredRegion to predicate instead of being its own filter-operator ([6fef558](https://github.com/GenSpectrum/LAPIS-SILO/commit/6fef558eda987ebeb3b439af3dce682a701a0a08))
+* **silo:** enable rewrite of SymbolInSet expressions under Or ([5489117](https://github.com/GenSpectrum/LAPIS-SILO/commit/54891178bbb647c27015a719459cb3bb15e3b597))
+* **silo:** split compile function into separate rewrite step ([27b7e7c](https://github.com/GenSpectrum/LAPIS-SILO/commit/27b7e7cf8080a9fca8737dc8a39108867e019d29))
+
+
+### Bug Fixes
+
+* **build:** correctly fix the cppstd for installing the arrow dependency ([0c4aed3](https://github.com/GenSpectrum/LAPIS-SILO/commit/0c4aed3e5182fbaaff379c553327a139ad86ef2d))
+* **build:** fix Makefile to not repeatedly invoke `conan install` ([346e6a9](https://github.com/GenSpectrum/LAPIS-SILO/commit/346e6a9f02d9f2ce1a28319a184318cd2ac01534))
+* **silo:** do not add empty coverage bitmaps ([5bd32c7](https://github.com/GenSpectrum/LAPIS-SILO/commit/5bd32c7e3ca32cfcbc95b196784b82066999bfeb))
+* **silo:** remove memory leak in sequence storage ([1da9ecd](https://github.com/GenSpectrum/LAPIS-SILO/commit/1da9ecd244f8df1682e984c9f330368240e6b777))
+
 ## [0.9.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.0...v0.9.1) (2025-10-28)
 
 
