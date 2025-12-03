@@ -6,12 +6,10 @@
 #include <arrow/util/async_generator_fwd.h>
 #include <spdlog/spdlog.h>
 
-#include "silo/common/panic.h"
-
 namespace silo::query_engine::exec_node {
 
 arrow::Status writeBatchAsNdjson(
-   arrow::compute::ExecBatch batch,
+   const arrow::compute::ExecBatch& batch,
    const std::shared_ptr<arrow::Schema>& schema,
    std::ostream* output_stream
 );

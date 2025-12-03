@@ -1,6 +1,7 @@
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 
 #include <ios>
+#include <string_view>
 
 #include <arrow/acero/options.h>
 #include <arrow/array.h>
@@ -10,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include "evobench/evobench.hpp"
+#include "silo/common/panic.h"
 #include "silo/common/size_constants.h"
 
 namespace silo::query_engine::exec_node {
@@ -26,35 +28,36 @@ void writeChunked(std::ostream& output, std::string_view content) {
    }
 }
 
-template <size_t BATCH_SIZE>
+template <size_t BatchSize>
 struct BatchedStringStream {
-   std::array<std::stringstream, BATCH_SIZE> streams;
+   std::array<std::stringstream, BatchSize> streams;
 
    void operator<<(std::string_view bytes) {
-      for (size_t i = 0; i < BATCH_SIZE; ++i) {
+      for (size_t i = 0; i < BatchSize; ++i) {
          streams[i] << bytes;
       }
    }
 
    void operator>>(std::ostream& output) {
-      for (size_t i = 0; i < BATCH_SIZE; ++i) {
-         writeChunked(output, std::move(streams[i]).str());
+      for (size_t i = 0; i < BatchSize; ++i) {
+         std::string content = std::move(streams[i]).str();
+         writeChunked(output, content);
       }
    }
 };
 
-template <size_t BATCH_SIZE>
+template <size_t BatchSize>
 class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
-   BatchedStringStream<BATCH_SIZE>& output_stream;
+   BatchedStringStream<BatchSize>& output_stream;
    size_t& row_base;
 
   public:
-   ArrayToJsonTypeVisitor(BatchedStringStream<BATCH_SIZE>& output_stream, size_t& row_base)
+   ArrayToJsonTypeVisitor(BatchedStringStream<BatchSize>& output_stream, size_t& row_base)
        : output_stream(output_stream),
          row_base(row_base) {}
 
    arrow::Status Visit(const arrow::Int32Array& array) override {
-      for (size_t i = 0; i < BATCH_SIZE; ++i) {
+      for (size_t i = 0; i < BatchSize; ++i) {
          if (array.IsNull(row_base + i)) {
             output_stream.streams.at(i) << "null";
          } else {
@@ -65,7 +68,7 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
    }
 
    arrow::Status Visit(const arrow::Int64Array& array) override {
-      for (size_t i = 0; i < BATCH_SIZE; ++i) {
+      for (size_t i = 0; i < BatchSize; ++i) {
          if (array.IsNull(row_base + i)) {
             output_stream.streams.at(i) << "null";
          } else {
@@ -76,31 +79,31 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
    }
 
    arrow::Status Visit(const arrow::DoubleArray& array) override {
-      for (size_t i = 0; i < BATCH_SIZE; ++i) {
+      for (size_t i = 0; i < BatchSize; ++i) {
          if (array.IsNull(row_base + i)) {
             output_stream.streams.at(i) << "null";
          } else {
-            nlohmann::json j = array.GetView(row_base + i);
-            output_stream.streams.at(i) << j;
+            nlohmann::json json = array.GetView(row_base + i);
+            output_stream.streams.at(i) << json;
          }
       }
       return arrow::Status::OK();
    }
 
    arrow::Status Visit(const arrow::FloatArray& array) override {
-      for (size_t i = 0; i < BATCH_SIZE; ++i) {
+      for (size_t i = 0; i < BatchSize; ++i) {
          if (array.IsNull(row_base + i)) {
             output_stream.streams.at(i) << "null";
          } else {
-            nlohmann::json j = array.GetView(row_base + i);
-            output_stream.streams.at(i) << j;
+            nlohmann::json json = array.GetView(row_base + i);
+            output_stream.streams.at(i) << json;
          }
       }
       return arrow::Status::OK();
    }
 
    arrow::Status Visit(const arrow::StringArray& array) override {
-      for (size_t i = 0; i < BATCH_SIZE; ++i) {
+      for (size_t i = 0; i < BatchSize; ++i) {
          if (array.IsNull(row_base + i)) {
             output_stream.streams.at(i) << "null";
          } else {
@@ -113,7 +116,7 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
    }
 
    arrow::Status Visit(const arrow::BooleanArray& array) override {
-      for (size_t i = 0; i < BATCH_SIZE; ++i) {
+      for (size_t i = 0; i < BatchSize; ++i) {
          if (array.IsNull(row_base + i)) {
             output_stream.streams.at(i) << "null";
          } else {
@@ -124,7 +127,7 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
    }
 };
 
-template <size_t BATCH_SIZE>
+template <size_t BatchSize>
 void sendJsonLinesInBatches(
    size_t& row_idx_base,
    size_t row_count,
@@ -132,10 +135,10 @@ void sendJsonLinesInBatches(
    const std::vector<std::shared_ptr<arrow::Array>>& column_arrays,
    std::ostream& output_stream
 ) {
-   BatchedStringStream<BATCH_SIZE> ndjson_line_streams;
-   ArrayToJsonTypeVisitor<BATCH_SIZE> my_visitor(ndjson_line_streams, row_idx_base);
+   BatchedStringStream<BatchSize> ndjson_line_streams;
+   ArrayToJsonTypeVisitor<BatchSize> my_visitor(ndjson_line_streams, row_idx_base);
    size_t column_count = column_arrays.size();
-   for (; row_idx_base + BATCH_SIZE <= row_count; row_idx_base += BATCH_SIZE) {
+   for (; row_idx_base + BatchSize <= row_count; row_idx_base += BatchSize) {
       ndjson_line_streams << "{";
       for (size_t column_idx = 0; column_idx < column_count; column_idx++) {
          const auto& column_array = column_arrays.at(column_idx);
@@ -149,7 +152,7 @@ void sendJsonLinesInBatches(
          ndjson_line_streams >> output_stream;
       }
    }
-   if constexpr (BATCH_SIZE > 1) {
+   if constexpr (BatchSize > 1) {
       // Send remaining lines
       sendJsonLinesInBatches<1>(
          row_idx_base,
@@ -164,7 +167,7 @@ void sendJsonLinesInBatches(
 }  // namespace
 
 arrow::Status writeBatchAsNdjson(
-   arrow::compute::ExecBatch batch,
+   const arrow::compute::ExecBatch& batch,
    const std::shared_ptr<arrow::Schema>& schema,
    std::ostream* output_stream
 ) {
@@ -180,8 +183,9 @@ arrow::Status writeBatchAsNdjson(
    for (const auto& column_name : schema->fields()) {
       nlohmann::json column_name_json = column_name->name();
       std::string json_formatted_column_name;
-      if (!first_column)
+      if (!first_column) {
          json_formatted_column_name += ",";
+      }
       first_column = false;
       json_formatted_column_name += column_name_json.dump();
       json_formatted_column_name += ":";
@@ -217,7 +221,7 @@ arrow::Result<arrow::acero::BackpressureMonitor*> createGenerator(
       auto node, arrow::acero::MakeExecNode(std::string{"sink"}, plan, {input}, options)
    );
    node->SetLabel("final sink of the plan");
-   return arrow::Result<arrow::acero::BackpressureMonitor*>{backpressure_monitor};
+   return backpressure_monitor;
 }
 
 }  // namespace silo::query_engine::exec_node
