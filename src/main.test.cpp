@@ -10,6 +10,8 @@
 #include "silo/common/log.h"
 #include "silo/common/panic.h"
 
+namespace {
+
 int changeCwdToTestFolder() {
    // Look for the test data directory (`testBaseData`) in the current directory and up to
    // <search_depth> directories above the current directory. If found, change the current working
@@ -28,6 +30,8 @@ int changeCwdToTestFolder() {
    );
    return 1;
 }
+
+}  // namespace
 
 int main(int argc, char* argv[]) {
    if (auto exit = changeCwdToTestFolder()) {

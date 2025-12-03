@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <deque>
-#include <string>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
@@ -37,7 +35,7 @@ class IntColumnPartition {
       return values.at(row_id);
    }
 
-   size_t numValues() const { return values.size(); }
+   [[nodiscard]] size_t numValues() const { return values.size(); }
 
    void insert(int32_t value);
 

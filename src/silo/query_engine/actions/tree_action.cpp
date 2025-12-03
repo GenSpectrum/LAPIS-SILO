@@ -11,12 +11,10 @@
 #include <nlohmann/json.hpp>
 
 #include "evobench/evobench.hpp"
-#include "silo/common/phylo_tree.h"
-#include "silo/common/tree_node_id.h"
-#include "silo/config/database_config.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
+#include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/table.h"
@@ -28,18 +26,18 @@ TreeAction::TreeAction(std::string column_name, bool print_nodes_not_in_tree)
     : column_name(std::move(column_name)),
       print_nodes_not_in_tree(print_nodes_not_in_tree) {}
 
-using silo::query_engine::filter::operators::Operator;
-
-void TreeAction::validateOrderByFields(const schema::TableSchema& schema) const {
+void TreeAction::validateOrderByFields(const schema::TableSchema& /*schema*/) const {
    std::vector<std::string_view> allowed{myResultFieldName(), "missingNodeCount"};
    if (print_nodes_not_in_tree) {
-      allowed.push_back("missingFromTree");
+      allowed.emplace_back("missingFromTree");
    }
 
    for (const auto& field : order_by_fields) {
-      bool ok = std::ranges::any_of(allowed, [&](std::string_view f) { return f == field.name; });
+      bool is_valid_field = std::ranges::any_of(allowed, [&](std::string_view allowed_name) {
+         return allowed_name == field.name;
+      });
       CHECK_SILO_QUERY(
-         ok,
+         is_valid_field,
          "OrderByField {} is not contained in the result of this operation. "
          "Allowed values are {}.",
          field.name,
@@ -49,10 +47,10 @@ void TreeAction::validateOrderByFields(const schema::TableSchema& schema) const 
 }
 
 NodeValuesResponse TreeAction::getNodeValues(
-   std::shared_ptr<const storage::Table> table,
+   const storage::Table& table,
    const std::string& column_name,
    std::vector<CopyOnWriteBitmap>& bitmap_filter
-) const {
+) {
    size_t num_rows = 0;
    for (const auto& filter : bitmap_filter) {
       num_rows += filter.getConstReference().cardinality();
@@ -60,8 +58,8 @@ NodeValuesResponse TreeAction::getNodeValues(
    std::unordered_set<std::string> all_tree_node_ids;
    uint32_t num_empty = 0;
    all_tree_node_ids.reserve(num_rows);
-   for (size_t i = 0; i < table->getNumberOfPartitions(); ++i) {
-      const storage::TablePartition& table_partition = table->getPartition(i);
+   for (size_t i = 0; i < table.getNumberOfPartitions(); ++i) {
+      const storage::TablePartition& table_partition = table.getPartition(i);
       const auto& string_column = table_partition.columns.string_columns.at(column_name);
 
       CopyOnWriteBitmap& filter = bitmap_filter[i];
@@ -78,13 +76,15 @@ NodeValuesResponse TreeAction::getNodeValues(
          }
       }
    }
-   return NodeValuesResponse{std::move(all_tree_node_ids), num_empty};
+   return NodeValuesResponse{
+      .node_values = std::move(all_tree_node_ids), .missing_node_count = num_empty
+   };
 }
 
 arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& query_options,
+   const config::QueryOptions& /*query_options*/,
    std::string_view request_id
 ) const {
    CHECK_SILO_QUERY(
@@ -111,10 +111,9 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
    );
    const auto& phylo_tree = optional_table_metadata.value()->phylo_tree.value();
    auto output_fields = getOutputSchema(table->schema);
-   auto evaluated_partition_filters = partition_filters;
+   auto evaluated_partition_filters = std::move(partition_filters);
 
    auto column_name_to_evaluate = column_name;
-   auto print_missing_nodes = print_nodes_not_in_tree;
 
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
       [this,
@@ -123,14 +122,13 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
        output_fields,
        evaluated_partition_filters,
        &phylo_tree,
-       produced = false,
-       print_missing_nodes]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+       already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       EVOBENCH_SCOPE("TreeAction", "producer");
-      if (produced == true) {
+      if (already_produced) {
          std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
-      produced = true;
+      already_produced = true;
 
       std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder> output_builder;
       for (const auto& output_field : output_fields) {
@@ -140,11 +138,9 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
       }
 
       auto node_values =
-         this->getNodeValues(table, column_name_to_evaluate, evaluated_partition_filters);
+         getNodeValues(*table, column_name_to_evaluate, evaluated_partition_filters);
 
-      ARROW_RETURN_NOT_OK(
-         this->addResponseToBuilder(node_values, output_builder, phylo_tree, print_missing_nodes)
-      );
+      ARROW_RETURN_NOT_OK(this->addResponseToBuilder(node_values, output_builder, phylo_tree));
 
       // Order of result_columns is relevant as it needs to be consistent with vector in schema
       std::vector<arrow::Datum> result_columns;

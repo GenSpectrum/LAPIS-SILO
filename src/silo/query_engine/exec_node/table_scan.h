@@ -10,12 +10,9 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json_fwd.hpp>
 
-#include "evobench/evobench.hpp"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/batched_bitmap_reader.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
-#include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/table.h"
 
 namespace silo::query_engine::exec_node {
@@ -26,7 +23,7 @@ class ExecBatchBuilder {
    std::vector<silo::schema::ColumnIdentifier> output_fields;
 
   public:
-   ExecBatchBuilder(std::vector<silo::schema::ColumnIdentifier> output_fields);
+   explicit ExecBatchBuilder(std::vector<silo::schema::ColumnIdentifier> output_fields);
 
    template <storage::column::Column Column>
    std::map<std::string, ArrowBuilder<Column>*> getColumnTypeArrayBuilders() {

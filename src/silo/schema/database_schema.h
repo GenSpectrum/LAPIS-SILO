@@ -182,7 +182,7 @@ class DatabaseSchema {
    [[nodiscard]] const TableSchema& getDefaultTableSchema() const;
 
    static DatabaseSchema loadFromFile(const std::filesystem::path& file_path);
-   void saveToFile(const std::filesystem::path& file_path);
+   void saveToFile(const std::filesystem::path& file_path) const;
 };
 
 }  // namespace silo::schema

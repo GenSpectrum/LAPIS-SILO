@@ -1,15 +1,11 @@
 #include <nlohmann/json.hpp>
 
-#include <optional>
-
 #include "silo/test/query_fixture.test.h"
 
 namespace {
 using nlohmann::json;
 
 using silo::ReferenceGenomes;
-using silo::config::DatabaseConfig;
-using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 

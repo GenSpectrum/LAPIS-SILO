@@ -17,10 +17,6 @@
 
 #include "silo/storage/column/column_metadata.h"
 #include "silo/storage/column/column_type_visitor.h"
-#include "silo/storage/column/indexed_string_column.h"
-#include "silo/storage/column/sequence_column.h"
-#include "silo/storage/column/string_column.h"
-#include "silo/storage/column/zstd_compressed_string_column.h"
 
 namespace silo::schema {
 
@@ -30,17 +26,18 @@ bool isSequenceColumn(ColumnType type) {
 }
 
 std::optional<ColumnIdentifier> TableSchema::getColumn(std::string_view name) const {
-   auto it = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
+   auto iter = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
       return metadata_pair.first.name == name;
    });
-   if (it == column_metadata.end()) {
+   if (iter == column_metadata.end()) {
       return std::nullopt;
    }
-   return it->first;
+   return iter->first;
 }
 
 std::vector<ColumnIdentifier> TableSchema::getColumnIdentifiers() const {
    std::vector<ColumnIdentifier> result;
+   result.reserve(column_metadata.size());
    for (const auto& [column_identifier, _] : column_metadata) {
       result.push_back(column_identifier);
    }
@@ -60,7 +57,10 @@ std::optional<ColumnIdentifier> TableSchema::getDefaultSequenceName<AminoAcid>()
 class ColumnMetadataSaverByType {
   public:
    template <storage::column::Column ColumnType, class Archive>
-   void operator()(Archive& archive, std::shared_ptr<storage::column::ColumnMetadata> metadata) {
+   void operator()(
+      Archive& archive,
+      const std::shared_ptr<storage::column::ColumnMetadata>& metadata
+   ) {
       auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(metadata.get());
       SILO_ASSERT(typed_metadata != nullptr);
       archive << *typed_metadata;
@@ -78,12 +78,13 @@ class ColumnMetadataLoaderByType {
 };
 
 template <class Archive>
-void TableSchema::save(Archive& archive, const unsigned int version) const {
+void TableSchema::save(Archive& archive, const unsigned int /*version*/) const {
    archive & default_nucleotide_sequence;
    archive & default_aa_sequence;
    archive & primary_key;
 
    std::vector<ColumnIdentifier> column_identifiers;
+   column_identifiers.reserve(column_metadata.size());
    for (const auto& [column_identifier, _] : column_metadata) {
       column_identifiers.push_back(column_identifier);
    }
@@ -97,7 +98,7 @@ void TableSchema::save(Archive& archive, const unsigned int version) const {
 }
 
 template <class Archive>
-void TableSchema::load(Archive& archive, const unsigned int version) {
+void TableSchema::load(Archive& archive, const unsigned int /*version*/) {
    archive & default_nucleotide_sequence;
    archive & default_aa_sequence;
    archive & primary_key;
@@ -114,15 +115,19 @@ void TableSchema::load(Archive& archive, const unsigned int version) {
 }
 
 TableName::TableName(std::string_view name) {
-   for (char c : name) {
-      if (c < 'a' || c > 'z') {
+   for (char character : name) {
+      if (character < 'a' || character > 'z') {
          throw std::runtime_error("Table names may only contain lower-case letters");
       }
    }
    this->name = name;
 }
 
+namespace {
+
 TableName default_table_name{"default"};
+
+}
 
 const TableName& TableName::getDefault() {
    return default_table_name;
@@ -136,7 +141,7 @@ const TableSchema& DatabaseSchema::getDefaultTableSchema() const {
 
 namespace silo::schema {
 
-void DatabaseSchema::saveToFile(const std::filesystem::path& file_path) {
+void DatabaseSchema::saveToFile(const std::filesystem::path& file_path) const {
    std::ofstream database_schema_file{file_path, std::ios::binary};
    boost::archive::binary_oarchive output_archive(database_schema_file);
    output_archive << tables;

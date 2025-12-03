@@ -16,11 +16,14 @@ arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
    arrow::acero::ExecNode* root,
    std::string_view request_id
 ) {
-   QueryPlan query_plan{arrow_plan, request_id};
+   arrow::acero::BackpressureMonitor* backpressure_monitor;
+   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> results_generator;
    ARROW_ASSIGN_OR_RAISE(
-      query_plan.backpressure_monitor,
-      exec_node::createGenerator(arrow_plan.get(), root, &query_plan.results_generator)
+      backpressure_monitor, exec_node::createGenerator(arrow_plan.get(), root, &results_generator)
    );
+   QueryPlan query_plan{
+      std::move(arrow_plan), std::move(results_generator), backpressure_monitor, request_id
+   };
    query_plan.results_schema = root->output_schema();
    ARROW_RETURN_NOT_OK(query_plan.arrow_plan->Validate());
    return query_plan;
@@ -77,7 +80,7 @@ arrow::Status QueryPlan::executeAndWriteImpl(
             );
          }
       }
-   } guard{request_id, arrow_plan};
+   } guard{.request_id = request_id, .plan = arrow_plan};
 
    while (true) {
       arrow::Future<std::optional<arrow::ExecBatch>> future_batch = results_generator();

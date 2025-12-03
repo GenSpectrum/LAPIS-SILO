@@ -1,6 +1,5 @@
 #include "silo/zstd/zstd_context.h"
 
-#include <memory>
 #include <utility>
 
 namespace silo {

@@ -3,14 +3,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "silo/storage/column/indexed_string_column.h"
-
 using silo::Idx;
 using silo::common::LineageTree;
 using silo::common::RecombinantEdgeFollowingMode;
 using silo::storage::LineageIndex;
-using silo::storage::column::IndexedStringColumnMetadata;
-using silo::storage::column::IndexedStringColumnPartition;
 
 /*      v
  *      1
@@ -31,7 +27,6 @@ LineageTree createDoubleDiamondLineageTree() {
       6, {{1, 2}, {2, 3}, {1, 0}, {0, 3}, {3, 4}, {0, 5}, {5, 4}}, {}, {}
    );
 }
-}  // namespace
 
 void assertEqualHelper(std::optional<const roaring::Roaring*>& actual, roaring::Roaring& expected) {
    ASSERT_EQ(actual.has_value(), !expected.isEmpty());
@@ -39,6 +34,7 @@ void assertEqualHelper(std::optional<const roaring::Roaring*>& actual, roaring::
       ASSERT_EQ(*actual.value(), expected);
    }
 }
+}  // namespace
 
 TEST(LineageIndex, someTreeValuesCorrectBehavior) {
    auto lineage_tree = createDoubleDiamondLineageTree();

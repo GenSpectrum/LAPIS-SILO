@@ -1,10 +1,6 @@
 #include "silo/storage/column/int_column.h"
 
-#include <stdexcept>
-
 #include <spdlog/spdlog.h>
-
-#include "silo/preprocessing/preprocessing_exception.h"
 
 namespace silo::storage::column {
 

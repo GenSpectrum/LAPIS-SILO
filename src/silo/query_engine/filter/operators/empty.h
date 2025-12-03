@@ -20,9 +20,9 @@ class Empty : public Operator {
 
    [[nodiscard]] Type type() const override;
 
-   CopyOnWriteBitmap evaluate() const override;
+   [[nodiscard]] CopyOnWriteBitmap evaluate() const override;
 
-   virtual std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    static std::unique_ptr<Operator> negate(std::unique_ptr<Empty>&& empty);
 };

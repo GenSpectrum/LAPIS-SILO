@@ -33,7 +33,7 @@ class ZstdDDictionary final {
    ZSTD_DDict* value;
 
   public:
-   ZstdDDictionary(std::string_view data);
+   explicit ZstdDDictionary(std::string_view data);
 
    ZstdDDictionary(const ZstdDDictionary& other) = delete;
    ZstdDDictionary& operator=(const ZstdDDictionary& other) = delete;

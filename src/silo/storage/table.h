@@ -1,7 +1,6 @@
 #pragma once
 
 #include "silo/schema/database_schema.h"
-#include "silo/storage/column_group.h"
 #include "silo/storage/table_partition.h"
 
 namespace silo::storage {
@@ -12,12 +11,12 @@ class Table {
   public:
    schema::TableSchema schema;
 
-   Table(schema::TableSchema schema)
+   explicit Table(schema::TableSchema schema)
        : schema(std::move(schema)) {}
 
-   size_t getNumberOfPartitions() const;
+   [[nodiscard]] size_t getNumberOfPartitions() const;
 
-   const TablePartition& getPartition(size_t partition_idx) const;
+   [[nodiscard]] const TablePartition& getPartition(size_t partition_idx) const;
 
    std::shared_ptr<TablePartition> addPartition();
 

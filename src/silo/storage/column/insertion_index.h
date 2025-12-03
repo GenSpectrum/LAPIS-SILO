@@ -12,9 +12,6 @@
 #include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/common/aa_symbols.h"
-#include "silo/common/nucleotide_symbols.h"
-
 namespace silo::storage::insertion {
 
 template <typename SymbolType>
@@ -70,11 +67,13 @@ class InsertionPosition {
       const std::regex& search_pattern
    ) const;
 
-   std::unique_ptr<roaring::Roaring> searchWithRegex(const std::regex& regex_search_pattern) const;
+   [[nodiscard]] std::unique_ptr<roaring::Roaring> searchWithRegex(
+      const std::regex& regex_search_pattern
+   ) const;
 
    void buildThreeMerIndex();
 
-   std::unique_ptr<roaring::Roaring> search(const std::string& search_pattern) const;
+   [[nodiscard]] std::unique_ptr<roaring::Roaring> search(const std::string& search_pattern) const;
 };
 
 template <typename SymbolType>

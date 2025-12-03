@@ -16,7 +16,6 @@
 #include <boost/serialization/vector.hpp>
 
 #include "evobench/evobench.hpp"
-#include "silo/common/fmt_formatters.h"
 #include "silo/persistence/exception.h"
 #include "silo/roaring_util/roaring_serialize.h"
 #include "silo/schema/duplicate_primary_key_exception.h"
@@ -43,7 +42,7 @@ void Table::validatePrimaryKeyUnique() const {
 
    std::unordered_set<std::string> unique_keys;
    unique_keys.reserve(total_rows);
-   for (auto& partition : partitions) {
+   for (const auto& partition : partitions) {
       auto& primary_key_column = partition->columns.string_columns.at(primary_key.name);
       auto num_values = primary_key_column.numValues();
       for (size_t i = 0; i < num_values; ++i) {
@@ -119,7 +118,7 @@ void Table::loadData(const std::filesystem::path& save_directory) {
 
          if (!file_vec.back()) {
             throw persistence::SaveDatabaseException(
-               fmt::format("Cannot open partition input file {} for loading", file)
+               fmt::format("Cannot open partition input file {} for loading", file.string())
             );
          }
       }

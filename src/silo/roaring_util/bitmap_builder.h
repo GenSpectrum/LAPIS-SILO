@@ -2,8 +2,6 @@
 
 #include <roaring/roaring.hh>
 
-#include "silo/common/panic.h"
-
 namespace silo::roaring_util {
 
 class BitmapBuilderByContainer {

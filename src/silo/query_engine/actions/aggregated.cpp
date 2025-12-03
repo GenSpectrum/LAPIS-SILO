@@ -82,9 +82,13 @@ arrow::Result<QueryPlan> Aggregated::toQueryPlanImpl(
 ) const {
    EVOBENCH_SCOPE("Aggregated", "toQueryPlanImpl");
    if (group_by_fields.empty()) {
-      return makeAggregateWithoutGrouping(table, partition_filters, query_options, request_id);
+      return makeAggregateWithoutGrouping(
+         std::move(table), std::move(partition_filters), query_options, request_id
+      );
    }
-   return makeAggregateWithGrouping(table, partition_filters, query_options, request_id);
+   return makeAggregateWithGrouping(
+      std::move(table), std::move(partition_filters), query_options, request_id
+   );
 }
 
 arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
@@ -93,19 +97,22 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
    const config::QueryOptions& /*query_options*/,
    std::string_view request_id
 ) const {
+   const auto& table_schema = table->schema;
+
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [table, partition_filters, produced = false](
-      ) mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
-      if (produced == true) {
+      [table = std::move(table),
+       partition_filters = std::move(partition_filters),
+       already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+      if (already_produced) {
          std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
-      produced = true;
+      already_produced = true;
 
       int32_t result_count = 0;
 
       for (const auto& partition_filter : partition_filters) {
-         result_count += static_cast<uint32_t>(partition_filter.getConstReference().cardinality());
+         result_count += static_cast<int32_t>(partition_filter.getConstReference().cardinality());
       }
 
       arrow::Int32Builder result_builder{};
@@ -123,7 +130,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
    arrow::acero::SourceNodeOptions options{
-      exec_node::columnsToArrowSchema(getOutputSchema(table->schema)),
+      exec_node::columnsToArrowSchema(getOutputSchema(table_schema)),
       std::move(producer),
       arrow::Ordering::Implicit()
    };
@@ -140,6 +147,8 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
    const config::QueryOptions& query_options,
    std::string_view request_id
 ) const {
+   const auto& table_schema = table->schema;
+
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
    std::vector<schema::ColumnIdentifier> group_by_fields_identifiers =
@@ -151,8 +160,8 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
       exec_node::makeTableScan(
          arrow_plan.get(),
          group_by_fields_identifiers,
-         partition_filters,
-         table,
+         std::move(partition_filters),
+         std::move(table),
          query_options.materialization_cutoff
       )
    );
@@ -164,8 +173,9 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
    };
 
    std::vector<arrow::FieldRef> field_refs;
-   for (auto group_by_field : group_by_fields_identifiers) {
-      field_refs.emplace_back(arrow::FieldRef{group_by_field.name});
+   field_refs.reserve(group_by_fields_identifiers.size());
+   for (const auto& group_by_field : group_by_fields_identifiers) {
+      field_refs.emplace_back(group_by_field.name);
    }
    arrow::acero::AggregateNodeOptions aggregate_node_options({aggregate}, field_refs);
    ARROW_ASSIGN_OR_RAISE(
@@ -173,11 +183,11 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
       arrow::acero::MakeExecNode("aggregate", arrow_plan.get(), {node}, aggregate_node_options)
    );
 
-   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, table->schema));
+   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, table_schema));
 
    ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
 
-   ARROW_ASSIGN_OR_RAISE(node, addZstdDecompressNode(arrow_plan.get(), node, table->schema));
+   ARROW_ASSIGN_OR_RAISE(node, addZstdDecompressNode(arrow_plan.get(), node, table_schema));
 
    return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
 }

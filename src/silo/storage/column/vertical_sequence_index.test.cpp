@@ -34,8 +34,8 @@ TEST_F(VerticalSequenceIndexTest, AddAndRetrieveSinglePosition) {
 
    std::vector<std::string> sequences(5, "N");
    roaring::Roaring row_ids;
-   for (uint32_t i = 0; i < 5; i++) {
-      row_ids.add(i);
+   for (uint32_t row_id = 0; row_id < 5; row_id++) {
+      row_ids.add(row_id);
    }
 
    index.overwriteSymbolsInSequences(sequences, row_ids);
@@ -69,8 +69,8 @@ TEST_F(VerticalSequenceIndexTest, AddMultiplePositions) {
 
    std::vector<std::string> sequences(num_seqs, "NNN");
    roaring::Roaring row_ids;
-   for (uint32_t i = 0; i < num_seqs; i++) {
-      row_ids.add(i);
+   for (uint32_t row_id = 0; row_id < num_seqs; row_id++) {
+      row_ids.add(row_id);
    }
 
    index.overwriteSymbolsInSequences(sequences, row_ids);
@@ -125,8 +125,8 @@ TEST_F(VerticalSequenceIndexTest, EmptySymbolMap) {
 
    std::vector<std::string> sequences(5, "C");
    roaring::Roaring row_ids;
-   for (uint32_t i = 0; i < 5; i++) {
-      row_ids.add(i);
+   for (uint32_t row_id = 0; row_id < 5; row_id++) {
+      row_ids.add(row_id);
    }
 
    index.overwriteSymbolsInSequences(sequences, row_ids);
@@ -172,8 +172,8 @@ TEST_F(VerticalSequenceIndexTest, LargeNumberOfSequences) {
 
    SymbolMap<Nucleotide, std::vector<uint32_t>> ids_0;
    SymbolMap<Nucleotide, std::vector<uint32_t>> ids_1;
-   for (uint32_t i = 0; i < num_seqs; i++) {
-      ids_0[Nucleotide::Symbol::A].push_back(i);
+   for (uint32_t row_id = 0; row_id < num_seqs; row_id++) {
+      ids_0[Nucleotide::Symbol::A].push_back(row_id);
    }
 
    ids_1[Nucleotide::Symbol::G].push_back(0);
@@ -184,8 +184,8 @@ TEST_F(VerticalSequenceIndexTest, LargeNumberOfSequences) {
 
    std::vector<std::string> sequences(num_seqs, "NN");
    roaring::Roaring row_ids;
-   for (uint32_t i = 0; i < num_seqs; i++) {
-      row_ids.add(i);
+   for (uint32_t row_id = 0; row_id < num_seqs; row_id++) {
+      row_ids.add(row_id);
    }
 
    index.overwriteSymbolsInSequences(sequences, row_ids);
@@ -223,9 +223,9 @@ TEST_F(VerticalSequenceIndexTest, NonContiguousPositions) {
 
 TEST_F(VerticalSequenceIndexTest, AllDifferentNucleotideSymbols) {
    SymbolMap<Nucleotide, std::vector<uint32_t>> ids;
-   uint32_t i = 0;
+   uint32_t row_id = 0;
    for (const auto& symbol : Nucleotide::SYMBOLS) {
-      ids[symbol] = {i++};
+      ids[symbol] = {row_id++};
    }
    index.addSymbolsToPositions(0, ids);
 
@@ -235,19 +235,19 @@ TEST_F(VerticalSequenceIndexTest, AllDifferentNucleotideSymbols) {
 
    index.overwriteSymbolsInSequences(sequences, row_ids);
 
-   i = 0;
+   row_id = 0;
    for (const auto& symbol : Nucleotide::SYMBOLS) {
-      EXPECT_EQ(sequences[i], fmt::format("{}", Nucleotide::symbolToChar(symbol)));
-      ++i;
+      EXPECT_EQ(sequences[row_id], fmt::format("{}", Nucleotide::symbolToChar(symbol)));
+      ++row_id;
    }
 }
 
 TEST(AminoAcidVerticalSequenceIndexTest, AllDifferentAminoAcidSymbols) {
    VerticalSequenceIndex<AminoAcid> index;
    SymbolMap<AminoAcid, std::vector<uint32_t>> ids;
-   uint32_t i = 0;
+   uint32_t row_id = 0;
    for (const auto& symbol : AminoAcid::SYMBOLS) {
-      ids[symbol] = {i++};
+      ids[symbol] = {row_id++};
    }
    index.addSymbolsToPositions(0, ids);
 
@@ -257,20 +257,20 @@ TEST(AminoAcidVerticalSequenceIndexTest, AllDifferentAminoAcidSymbols) {
 
    index.overwriteSymbolsInSequences(sequences, row_ids);
 
-   i = 0;
+   row_id = 0;
    for (const auto& symbol : AminoAcid::SYMBOLS) {
-      EXPECT_EQ(sequences[i], fmt::format("{}", AminoAcid::symbolToChar(symbol)));
-      ++i;
+      EXPECT_EQ(sequences[row_id], fmt::format("{}", AminoAcid::symbolToChar(symbol)));
+      ++row_id;
    }
 }
 
 TEST_F(VerticalSequenceIndexTest, SparseRowSelection) {
    SymbolMap<Nucleotide, std::vector<uint32_t>> ids;
-   for (uint32_t i = 0; i < 100; i++) {
-      if (i % 2 == 0) {
-         ids[Nucleotide::Symbol::B].push_back(i);
+   for (uint32_t row_id = 0; row_id < 100; row_id++) {
+      if (row_id % 2 == 0) {
+         ids[Nucleotide::Symbol::B].push_back(row_id);
       } else {
-         ids[Nucleotide::Symbol::Y].push_back(i);
+         ids[Nucleotide::Symbol::Y].push_back(row_id);
       }
    }
    index.addSymbolsToPositions(0, ids);
@@ -278,17 +278,17 @@ TEST_F(VerticalSequenceIndexTest, SparseRowSelection) {
    // Select only even rows
    std::vector<std::string> sequences(100, "N");
    roaring::Roaring row_ids;
-   for (uint32_t i = 0; i < 100; i++) {
-      row_ids.add(i);
+   for (uint32_t row_id = 0; row_id < 100; row_id++) {
+      row_ids.add(row_id);
    }
 
    index.overwriteSymbolsInSequences(sequences, row_ids);
 
-   for (uint32_t i = 0; i < 100; i++) {
-      if (i % 2 == 0) {
-         EXPECT_EQ(sequences[i], "B");
+   for (uint32_t row_id = 0; row_id < 100; row_id++) {
+      if (row_id % 2 == 0) {
+         EXPECT_EQ(sequences[row_id], "B");
       } else {
-         EXPECT_EQ(sequences[i], "Y");
+         EXPECT_EQ(sequences[row_id], "Y");
       }
    }
 }
@@ -533,10 +533,10 @@ TEST(splitIdsIntoBatches, ConsecutiveBatches) {
    auto result = splitIdsIntoBatches(input);
 
    ASSERT_EQ(result.size(), 4);
-   for (size_t i = 0; i < result.size(); ++i) {
-      EXPECT_EQ(result[i].first, i + 1);
-      ASSERT_EQ(result[i].second.size(), 1);
-      EXPECT_EQ(result[i].second[0], 0x0000);
+   for (size_t row_id = 0; row_id < result.size(); ++row_id) {
+      EXPECT_EQ(result[row_id].first, row_id + 1);
+      ASSERT_EQ(result[row_id].second.size(), 1);
+      EXPECT_EQ(result[row_id].second[0], 0x0000);
    }
 }
 
@@ -609,9 +609,9 @@ TEST(splitIdsIntoBatches, AlternatingBatches) {
    auto result = splitIdsIntoBatches(input);
 
    ASSERT_EQ(result.size(), 4);
-   for (size_t i = 0; i < result.size(); ++i) {
-      EXPECT_EQ(result[i].first, i + 1);
-      ASSERT_EQ(result[i].second.size(), 1);
-      EXPECT_EQ(result[i].second[0], 0x0001);
+   for (size_t row_id = 0; row_id < result.size(); ++row_id) {
+      EXPECT_EQ(result[row_id].first, row_id + 1);
+      ASSERT_EQ(result[row_id].second.size(), 1);
+      EXPECT_EQ(result[row_id].second[0], 0x0001);
    }
 }

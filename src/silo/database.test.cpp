@@ -2,16 +2,13 @@
 
 #include <filesystem>
 #include <fstream>
-#include <istream>
 #include <map>
 
 #include <gtest/gtest.h>
 
 #include "config/source/yaml_file.h"
-#include "silo/append/append.h"
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
-#include "silo/common/nucleotide_symbols.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
@@ -38,7 +35,7 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
       );
 
    std::map<std::filesystem::path, silo::common::LineageTreeAndIdMap> lineage_trees;
-   for (auto filename : config.initialization_files.getLineageDefinitionFilenames()) {
+   for (const auto& filename : config.initialization_files.getLineageDefinitionFilenames()) {
       lineage_trees[filename] =
          silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(filename);
    }
@@ -52,10 +49,10 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
    auto database = std::make_shared<silo::Database>(
       silo::Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
-         std::move(reference_genomes),
-         std::move(lineage_trees),
-         std::move(phylo_tree_file),
-         /*without_unaligned_columns=*/false
+         reference_genomes,
+         lineage_trees,
+         phylo_tree_file,
+         /*without_unaligned_sequences=*/false
       )}
    );
    std::ifstream input(input_directory / "input.ndjson");

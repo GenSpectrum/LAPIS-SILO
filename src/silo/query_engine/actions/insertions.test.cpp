@@ -1,5 +1,3 @@
-#include "silo/query_engine/actions/insertions.h"
-
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <boost/uuid/uuid_generators.hpp>
@@ -10,8 +8,6 @@
 
 namespace {
 using silo::ReferenceGenomes;
-using silo::config::DatabaseConfig;
-using silo::config::ValueType;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
@@ -21,10 +17,10 @@ nlohmann::json createData(
    std::vector<std::string> insertions,
    std::vector<std::string> aa_insertions
 ) {
-   static std::atomic_int id = 0;
-   const auto primary_key = id++;
+   static std::atomic_int row_id = 0;
+   const auto primary_key = row_id++;
 
-   std::string country = id % 3 == 0 ? "Germany" : "Switzerland";
+   std::string country = row_id % 3 == 0 ? "Germany" : "Switzerland";
 
    for (auto& insertion : insertions) {
       insertion = fmt::format("\"{}\"", insertion);

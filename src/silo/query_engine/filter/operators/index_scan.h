@@ -36,11 +36,11 @@ class IndexScan : public Operator {
 
    ~IndexScan() noexcept override;
 
-   [[nodiscard]] virtual Type type() const override;
+   [[nodiscard]] Type type() const override;
 
-   virtual CopyOnWriteBitmap evaluate() const override;
+   [[nodiscard]] CopyOnWriteBitmap evaluate() const override;
 
-   virtual std::string toString() const override;
+   [[nodiscard]] std::string toString() const override;
 
    static std::unique_ptr<Operator> negate(std::unique_ptr<IndexScan>&& index_scan);
 };

@@ -3,14 +3,13 @@
 namespace silo::storage::vector {
 
 Idx GermanStringRegistry::insert(const silo::SiloString& silo_string) {
-   if (german_string_pages.empty()) {
-      german_string_pages.emplace_back();
-   } else if (german_string_pages.back().full()) {
+   bool need_new_page = german_string_pages.empty() || german_string_pages.back().full();
+   if (need_new_page) {
       german_string_pages.emplace_back();
    }
    size_t page_id = german_string_pages.size() - 1;
    size_t row_in_page = german_string_pages.back().insert(silo_string);
-   return page_id * GermanStringPage::MAX_STRINGS_PER_PAGE + row_in_page;
+   return (page_id * GermanStringPage::MAX_STRINGS_PER_PAGE) + row_in_page;
 }
 
 SiloString GermanStringRegistry::get(Idx row_id) const {

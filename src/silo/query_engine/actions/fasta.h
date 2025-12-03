@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>
 #include <memory>
 #include <vector>
 
@@ -8,7 +7,6 @@
 
 #include "silo/query_engine/actions/simple_select_action.h"
 #include "silo/schema/database_schema.h"
-#include "silo/storage/table.h"
 
 namespace silo::query_engine::actions {
 
@@ -24,7 +22,7 @@ class Fasta : public SimpleSelectAction {
        : sequence_names(std::move(sequence_names)),
          additional_fields(std::move(additional_fields)) {}
 
-   std::vector<schema::ColumnIdentifier> getOutputSchema(
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema(
       const silo::schema::TableSchema& table_schema
    ) const override;
 };

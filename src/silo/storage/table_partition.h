@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <map>
 #include <string>
-#include <vector>
 
 #include <boost/serialization/access.hpp>
 

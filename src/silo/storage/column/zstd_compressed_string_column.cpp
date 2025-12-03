@@ -21,12 +21,12 @@ void ZstdCompressedStringColumnPartition::reserve(size_t row_count) {
 }
 
 void ZstdCompressedStringColumnPartition::insertNull() {
-   values.push_back({});
+   values.emplace_back();
 }
 
 void ZstdCompressedStringColumnPartition::insert(std::string_view value) {
    auto compressed = metadata->compressor.compress(value.data(), value.size());
-   values.push_back(std::string{compressed});
+   values.emplace_back(compressed);
 }
 
 std::optional<std::string> ZstdCompressedStringColumnPartition::getDecompressed(size_t row_id

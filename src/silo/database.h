@@ -1,8 +1,6 @@
 #pragma once
 
-#include <cstddef>
 #include <filesystem>
-#include <string>
 
 #include "silo/common/data_version.h"
 #include "silo/common/silo_directory.h"
@@ -23,7 +21,7 @@ class Database {
    DataVersion data_version_ = DataVersion::mineDataVersion();
 
   public:
-   Database(silo::schema::DatabaseSchema database_schema);
+   explicit Database(silo::schema::DatabaseSchema database_schema);
 
    virtual ~Database() = default;
 
@@ -33,7 +31,7 @@ class Database {
 
    [[nodiscard]] virtual DatabaseInfo getDatabaseInfo() const;
 
-   virtual DataVersion::Timestamp getDataVersionTimestamp() const;
+   [[nodiscard]] virtual DataVersion::Timestamp getDataVersionTimestamp() const;
 };
 
 }  // namespace silo

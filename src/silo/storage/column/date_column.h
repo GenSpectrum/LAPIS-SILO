@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <deque>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
@@ -47,7 +46,7 @@ class DateColumnPartition {
 
    [[nodiscard]] const std::vector<silo::common::Date>& getValues() const;
 
-   size_t numValues() const { return values.size(); }
+   [[nodiscard]] size_t numValues() const { return values.size(); }
 
    [[nodiscard]] bool isNull(size_t row_id) const { return values.at(row_id) == common::NULL_DATE; }
    [[nodiscard]] silo::common::Date getValue(size_t row_id) const { return values.at(row_id); }

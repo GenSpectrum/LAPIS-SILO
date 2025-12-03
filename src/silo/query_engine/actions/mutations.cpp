@@ -88,6 +88,7 @@ __attribute__((noinline)) void initializeCountsWithSequenceCount(
    uint32_t sequence_count
 ) {
    EVOBENCH_SCOPE("Mutations", "initializeCountsWithSequenceCount");
+   // NOLINTNEXTLINE(modernize-loop-convert)
    for (uint32_t position_idx = 0; position_idx < count_per_local_reference_position.size();
         ++position_idx) {
       count_per_local_reference_position[position_idx] += sequence_count;
@@ -481,14 +482,14 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
        output_fields,
        partition_filters,
        sequence_names_to_evaluate,
-       produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+       already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       EVOBENCH_SCOPE("Mutations", "producer");
 
-      if (produced) {
+      if (already_produced) {
          std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
-      produced = true;
+      already_produced = true;
 
       std::unordered_map<std::string, Mutations<SymbolType>::PrefilteredBitmaps>
          bitmaps_to_evaluate = preFilterBitmaps(*table, partition_filters);

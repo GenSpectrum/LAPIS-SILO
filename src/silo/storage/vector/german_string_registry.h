@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 #include <boost/serialization/deque.hpp>
 
 #include "silo/common/german_string.h"

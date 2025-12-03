@@ -1,14 +1,7 @@
 #pragma once
 
-#include <cinttypes>
-#include <map>
-#include <vector>
-
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
-
-#include "silo/common/format_number.h"
-#include "silo/common/nucleotide_symbols.h"
 
 namespace silo {
 
@@ -28,7 +21,7 @@ void to_json(nlohmann::json& json, const silo::DatabaseInfo& databaseInfo);
 template <>
 class [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> {
   public:
-   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+   static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(silo::DatabaseInfo database_info, format_context& ctx)
       -> decltype(ctx.out()) {
       return fmt::format_to(ctx.out(), "{}", nlohmann::json{database_info}.dump());

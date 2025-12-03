@@ -1,5 +1,3 @@
-#include "silo/query_engine/actions/details.h"
-
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <nlohmann/json.hpp>
@@ -8,17 +6,14 @@
 
 namespace {
 using silo::ReferenceGenomes;
-using silo::config::DatabaseConfig;
-using silo::config::ValueType;
-using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
 using boost::uuids::random_generator;
 
 nlohmann::json createData(const std::string& country, const std::string& date) {
-   static std::atomic_int id = 0;
-   const auto primary_key = id++;
-   std::string age = id % 2 == 0 ? "null" : fmt::format("{}", 3 * id + 4);
+   static std::atomic_int row_id = 0;
+   const auto primary_key = row_id++;
+   std::string age = row_id % 2 == 0 ? "null" : fmt::format("{}", (3 * row_id) + 4);
    float coverage = 0.9;
 
    return nlohmann::json::parse(fmt::format(
@@ -73,7 +68,7 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"gene1", "M*"}},
 };
 
-const QueryTestData TEST_DATA{
+const silo::test::QueryTestData TEST_DATA{
    .ndjson_input_data =
       {createData("Switzerland", "2020-01-01"),
        createData("Germany", "2000-03-07"),

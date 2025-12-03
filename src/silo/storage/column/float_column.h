@@ -2,8 +2,6 @@
 
 #include <cmath>
 #include <cstdint>
-#include <deque>
-#include <string>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
@@ -31,11 +29,11 @@ class FloatColumnPartition {
 
    explicit FloatColumnPartition(ColumnMetadata* metadata);
 
-   size_t numValues() const { return values.size(); }
+   [[nodiscard]] size_t numValues() const { return values.size(); }
 
    [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
 
-   double getValue(size_t row_id) const { return values.at(row_id); }
+   [[nodiscard]] double getValue(size_t row_id) const { return values.at(row_id); }
 
    void insert(double value);
 

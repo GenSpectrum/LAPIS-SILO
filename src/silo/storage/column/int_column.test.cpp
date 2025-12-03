@@ -3,8 +3,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "silo/preprocessing/preprocessing_exception.h"
-
 using silo::storage::column::ColumnMetadata;
 using silo::storage::column::IntColumnPartition;
 

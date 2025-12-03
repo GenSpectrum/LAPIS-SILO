@@ -3,9 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
-#include <map>
 #include <memory>
-#include <random>
 #include <utility>
 
 #include <arrow/acero/exec_plan.h>
@@ -28,7 +26,6 @@
 #include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
-#include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/exec_node/throttled_batch_reslicer.h"
 #include "silo/query_engine/exec_node/zstd_decompress_expression.h"
 #include "silo/storage/column/column_type_visitor.h"
@@ -57,7 +54,7 @@ std::optional<arrow::Ordering> Action::getOrdering() const {
    using arrow::compute::SortOrder;
 
    std::vector<arrow::compute::SortKey> sort_keys;
-   for (auto order_by_field : order_by_fields) {
+   for (const auto& order_by_field : order_by_fields) {
       auto sort_order = order_by_field.ascending ? SortOrder::Ascending : SortOrder::Descending;
       sort_keys.emplace_back(order_by_field.name, sort_order);
    }
@@ -224,7 +221,8 @@ QueryPlan Action::toQueryPlan(
    std::string_view request_id
 ) {
    validateOrderByFields(table->schema);
-   auto query_plan = toQueryPlanImpl(table, partition_filters, query_options, request_id);
+   auto query_plan =
+      toQueryPlanImpl(std::move(table), std::move(partition_filters), query_options, request_id);
    if (!query_plan.status().ok()) {
       SILO_PANIC("Arrow error: {}", query_plan.status().ToString());
    };
@@ -235,7 +233,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addSortNode(
    arrow::acero::ExecPlan* arrow_plan,
    arrow::acero::ExecNode* node,
    const std::vector<schema::ColumnIdentifier>& output_fields,
-   const arrow::Ordering ordering,
+   const arrow::Ordering& ordering,
    std::optional<size_t> /*num_rows_to_produce*/
 ) {
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> generator;
@@ -277,14 +275,14 @@ arrow::Result<arrow::acero::ExecNode*> Action::addSortNode(
 
 namespace {
 
-uint64_t hash64(uint64_t x, uint64_t seed) {
-   x ^= seed;
-   x ^= x >> 33;
-   x *= 0xff51afd7ed558ccdULL;
-   x ^= x >> 33;
-   x *= 0xc4ceb9fe1a85ec53ULL;
-   x ^= x >> 33;
-   return x;
+uint64_t hash64(uint64_t value, uint64_t seed) {
+   value ^= seed;
+   value ^= value >> 33;
+   value *= 0xff51afd7ed558ccdULL;
+   value ^= value >> 33;
+   value *= 0xc4ceb9fe1a85ec53ULL;
+   value ^= value >> 33;
+   return value;
 }
 
 arrow::Result<arrow::acero::ExecNode*> removeRandomizeColumn(
@@ -341,7 +339,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addRandomizeColumn(
                return std::nullopt;
             }
 
-            auto input_batch = maybe_input_batch.value();
+            const auto& input_batch = maybe_input_batch.value();
             SILO_ASSERT(!input_batch.values.empty());
             auto rows_in_batch = input_batch.values.at(0).length();
             SILO_ASSERT_NE(rows_in_batch, arrow::Datum::kUnknownLength);
@@ -406,8 +404,8 @@ class ColumnToReferenceSequenceVisitor {
   public:
    template <Column ColumnType>
    std::optional<std::string> operator()(
-      const TableSchema& table_schema,
-      const ColumnIdentifier& column_identifier
+      const TableSchema& /*table_schema*/,
+      const ColumnIdentifier& /*column_identifier*/
    ) {
       return std::nullopt;
    }
@@ -419,7 +417,7 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
    const TableSchema& table_schema,
    const ColumnIdentifier& column_identifier
 ) {
-   auto metadata =
+   auto* metadata =
       table_schema.getColumnMetadata<SequenceColumnPartition<Nucleotide>>(column_identifier.name)
          .value();
    std::string reference;
@@ -435,7 +433,7 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
    const TableSchema& table_schema,
    const ColumnIdentifier& column_identifier
 ) {
-   auto metadata =
+   auto* metadata =
       table_schema.getColumnMetadata<SequenceColumnPartition<AminoAcid>>(column_identifier.name)
          .value();
    std::string reference;
@@ -451,7 +449,7 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
    const TableSchema& table_schema,
    const ColumnIdentifier& column_identifier
 ) {
-   auto metadata =
+   auto* metadata =
       table_schema.getColumnMetadata<ZstdCompressedStringColumnPartition>(column_identifier.name)
          .value();
    return metadata->dictionary_string;
@@ -465,18 +463,17 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
    const silo::schema::TableSchema& table_schema
 ) const {
    auto output_fields = getOutputSchema(table_schema);
-   bool needs_decompression =
-      std::any_of(output_fields.begin(), output_fields.end(), [](const auto& column_identifier) {
-         return schema::isSequenceColumn(column_identifier.type);
-      });
+   bool needs_decompression = std::ranges::any_of(output_fields, [](const auto& column_identifier) {
+      return schema::isSequenceColumn(column_identifier.type);
+   });
    if (needs_decompression) {
       size_t sum_of_reference_genome_sizes = 0;
 
       std::vector<arrow::compute::Expression> column_expressions;
       std::vector<std::string> column_names;
-      for (auto column : getOutputSchema(table_schema)) {
+      for (const auto& column : getOutputSchema(table_schema)) {
          if (auto reference = storage::column::visit(column.type, ColumnToReferenceSequenceVisitor{}, table_schema, column)) {
-            column_expressions.push_back(exec_node::ZstdDecompressExpression::Make(
+            column_expressions.push_back(exec_node::ZstdDecompressExpression::make(
                arrow::compute::field_ref(arrow::FieldRef{column.name}), reference.value()
             ));
             sum_of_reference_genome_sizes += reference.value().length();
@@ -511,7 +508,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
          "additional sink node to help backpressure application before zstd decompression"
       );
 
-      SILO_ASSERT_GT(sum_of_reference_genome_sizes, 0u);
+      SILO_ASSERT_GT(sum_of_reference_genome_sizes, 0U);
 
       // We aim for 64 MB batch size to give the plan time to apply backpressure
       auto maximum_batch_size =
@@ -520,7 +517,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
       // Delay delivery of large number of batches to about 100 MB per second
       // A batch targets 64 MB, therefore we allow 1.5 batches per second.
       // Therefore, we should never emit more than one resliced batch per 0.667 seconds
-      constexpr std::chrono::milliseconds target_batch_rate{667};
+      constexpr std::chrono::milliseconds TARGET_BATCH_RATE{667};
 
       ARROW_ASSIGN_OR_RAISE(
          node,
@@ -531,7 +528,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
             arrow::acero::SourceNodeOptions{
                schema_of_sequence_batches,
                exec_node::ThrottledBatchReslicer{
-                  batch_generator, maximum_batch_size, target_batch_rate, backpressure_monitor
+                  batch_generator, maximum_batch_size, TARGET_BATCH_RATE, backpressure_monitor
                }
             }
          )

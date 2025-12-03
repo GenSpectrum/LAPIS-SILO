@@ -8,7 +8,6 @@
 
 using silo::query_engine::CopyOnWriteBitmap;
 using silo::query_engine::filter::operators::IndexScan;
-using silo::query_engine::filter::operators::Operator;
 using silo::query_engine::filter::operators::Threshold;
 
 using silo::query_engine::filter::operators::OperatorVector;

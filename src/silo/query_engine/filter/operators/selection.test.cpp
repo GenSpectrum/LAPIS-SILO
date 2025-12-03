@@ -14,7 +14,7 @@ using silo::storage::column::IntColumnPartition;
 namespace {
 
 std::pair<std::shared_ptr<ColumnMetadata>, IntColumnPartition> makeTestColumn(
-   const std::vector<int32_t> values
+   const std::vector<int32_t>& values
 ) {
    auto metadata = std::make_shared<ColumnMetadata>("test");
    IntColumnPartition test_column{metadata.get()};

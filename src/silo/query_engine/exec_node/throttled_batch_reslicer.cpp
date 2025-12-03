@@ -64,7 +64,7 @@ arrow::Result<std::optional<arrow::ExecBatch>> ThrottledBatchReslicer::deliverSl
 
    delayForTargetBatchRate();
 
-   int64_t chunk_size = std::min(static_cast<size_t>(batch_size), remaining);
+   int64_t chunk_size = std::min(batch_size, remaining);
    arrow::ExecBatch batch = current_batch.value().Slice(offset, chunk_size);
    offset += chunk_size;
    remaining -= chunk_size;

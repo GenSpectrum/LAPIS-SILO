@@ -10,7 +10,7 @@ BoolColumnPartition::BoolColumnPartition(ColumnMetadata* metadata)
     : metadata(metadata) {}
 
 void BoolColumnPartition::insert(bool value) {
-   if (value == true) {
+   if (value) {
       true_bitmap.add(num_values++);
    } else {
       false_bitmap.add(num_values++);

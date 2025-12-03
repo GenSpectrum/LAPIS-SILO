@@ -1,7 +1,5 @@
 #pragma once
 
-#include <algorithm>
-#include <map>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -13,8 +11,6 @@
 #include <arrow/status.h>
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/common/aa_symbols.h"
-#include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
@@ -50,28 +46,28 @@ class InsertionAggregation : public Action {
 
    std::
       unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps> static preFilterBitmaps(
-         std::shared_ptr<const storage::Table> table,
+         const storage::Table& table,
          const std::vector<std::string>& sequence_names,
          std::vector<CopyOnWriteBitmap>& bitmap_filter
       );
 
   public:
-   InsertionAggregation(std::vector<std::string>&& sequence_names);
+   explicit InsertionAggregation(std::vector<std::string>&& sequence_names);
 
    void validateOrderByFields(const schema::TableSchema& schema) const override;
 
-   arrow::Result<QueryPlan> toQueryPlanImpl(
+   [[nodiscard]] arrow::Result<QueryPlan> toQueryPlanImpl(
       std::shared_ptr<const storage::Table> table,
       std::vector<CopyOnWriteBitmap> partition_filters,
       const config::QueryOptions& query_options,
       std::string_view request_id
    ) const override;
 
-   std::vector<schema::ColumnIdentifier> getOutputSchema(
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema(
       const silo::schema::TableSchema& table_schema
    ) const override;
 
-   std::string_view getType() const override { return "InsertionAggregation"; }
+   [[nodiscard]] std::string_view getType() const override { return "InsertionAggregation"; }
 };
 
 template <typename SymbolType>

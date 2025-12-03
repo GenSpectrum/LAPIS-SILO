@@ -2,20 +2,15 @@
 
 #include <cstdint>
 #include <expected>
-#include <filesystem>
 #include <map>
-#include <optional>
 #include <string>
-#include <variant>
 #include <vector>
 
 #include <simdjson.h>
 #include <boost/serialization/access.hpp>
 
 #include "silo/common/aa_symbols.h"
-#include "silo/common/json_value_type.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/config/database_config.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/bool_column.h"
 #include "silo/storage/column/date_column.h"

@@ -60,11 +60,11 @@ void InsertionAggregation<
 namespace {
 template <typename SymbolType>
 void validateSequenceNames(
-   std::shared_ptr<const storage::Table> table,
+   const storage::Table& table,
    const std::vector<std::string>& sequence_names
 ) {
    for (const std::string& sequence_name : sequence_names) {
-      auto column = table->schema.getColumn(sequence_name);
+      auto column = table.schema.getColumn(sequence_name);
       CHECK_SILO_QUERY(
          column.has_value() && column.value().type == SymbolType::COLUMN_TYPE,
          "The database does not contain the {} sequence '{}'",
@@ -78,13 +78,13 @@ void validateSequenceNames(
 template <typename SymbolType>
 std::unordered_map<std::string, typename InsertionAggregation<SymbolType>::PrefilteredBitmaps>
 InsertionAggregation<SymbolType>::preFilterBitmaps(
-   std::shared_ptr<const storage::Table> table,
+   const storage::Table& table,
    const std::vector<std::string>& sequence_names,
    std::vector<CopyOnWriteBitmap>& bitmap_filter
 ) {
    std::unordered_map<std::string, PrefilteredBitmaps> pre_filtered_bitmaps;
-   for (size_t i = 0; i < table->getNumberOfPartitions(); ++i) {
-      const storage::TablePartition& table_partition = table->getPartition(i);
+   for (size_t i = 0; i < table.getNumberOfPartitions(); ++i) {
+      const storage::TablePartition& table_partition = table.getPartition(i);
 
       for (auto& [sequence_name, sequence_column] :
            table_partition.columns.getColumns<typename SymbolType::Column>()) {
@@ -208,20 +208,23 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    std::string_view request_id
 ) const {
    EVOBENCH_SCOPE("InsertionAggregation", "toQueryPlanImpl");
-   validateSequenceNames<SymbolType>(table, sequence_names);
+   validateSequenceNames<SymbolType>(*table, sequence_names);
    auto sequence_names_to_evaluate = sequence_names;
 
    auto output_fields = getOutputSchema(table->schema);
 
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [table, output_fields, partition_filters, sequence_names_to_evaluate, produced = false](
-      ) mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+      [table,
+       output_fields,
+       partition_filters,
+       sequence_names_to_evaluate,
+       already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       EVOBENCH_SCOPE("InsertionAggregation", "producer");
-      if (produced == true) {
+      if (already_produced) {
          std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
-      produced = true;
+      already_produced = true;
 
       std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder> output_builder;
       for (const auto& output_field : output_fields) {
@@ -231,7 +234,7 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
       }
 
       const auto bitmaps_to_evaluate =
-         preFilterBitmaps(table, sequence_names_to_evaluate, partition_filters);
+         preFilterBitmaps(*table, sequence_names_to_evaluate, partition_filters);
       for (const auto& [sequence_name, prefiltered_bitmaps] : bitmaps_to_evaluate) {
          const auto default_sequence_name = table->schema.getDefaultSequenceName<SymbolType>();
          const bool omit_sequence_in_response =
@@ -278,7 +281,7 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
 
 template <typename SymbolType>
 std::vector<schema::ColumnIdentifier> InsertionAggregation<SymbolType>::getOutputSchema(
-   const silo::schema::TableSchema& table_schema
+   const silo::schema::TableSchema& /*table_schema*/
 ) const {
    std::vector<schema::ColumnIdentifier> fields;
    fields.emplace_back(std::string(POSITION_FIELD_NAME), schema::ColumnType::INT32);

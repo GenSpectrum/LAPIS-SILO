@@ -10,24 +10,14 @@
 #include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
-#include "evobench/evobench.hpp"
 #include "silo/common/phylo_tree.h"
-#include "silo/common/tree_node_id.h"
-#include "silo/config/database_config.h"
-#include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/bad_request.h"
-#include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
 #include "silo/schema/database_schema.h"
-#include "silo/storage/column_group.h"
-#include "silo/storage/table.h"
 
 namespace silo::query_engine::actions {
 using silo::common::MRCAResponse;
 using silo::common::PhyloTree;
-using silo::common::TreeNodeId;
-using silo::schema::ColumnType;
 
 MostRecentCommonAncestor::MostRecentCommonAncestor(
    std::string column_name,
@@ -35,22 +25,19 @@ MostRecentCommonAncestor::MostRecentCommonAncestor(
 )
     : TreeAction(std::move(column_name), print_nodes_not_in_tree) {}
 
-using silo::query_engine::filter::operators::Operator;
-
 arrow::Status MostRecentCommonAncestor::addResponseToBuilder(
    NodeValuesResponse& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
-   const PhyloTree& phylo_tree,
-   bool print_nodes_not_in_tree
+   const PhyloTree& phylo_tree
 ) const {
    MRCAResponse response = phylo_tree.getMRCA(all_node_ids.node_values);
    std::optional<std::string> mrca_node =
-      response.mrca_node_id.transform([](const auto& id) { return id.string; });
+      response.mrca_node_id.transform([](const auto& node_id) { return node_id.string; });
    std::optional<std::string> mrca_parent =
-      response.parent_id_of_mrca.transform([](const auto& id) { return id.string; });
+      response.parent_id_of_mrca.transform([](const auto& node_id) { return node_id.string; });
 
-   int32_t missing_node_count =
-      all_node_ids.missing_node_count + static_cast<int32_t>(response.not_in_tree.size());
+   auto missing_node_count =
+      static_cast<int32_t>(all_node_ids.missing_node_count + response.not_in_tree.size());
 
    if (auto builder = output_builder.find("mrcaNode"); builder != output_builder.end()) {
       ARROW_RETURN_NOT_OK(builder->second.insert(mrca_node));
@@ -73,7 +60,7 @@ arrow::Status MostRecentCommonAncestor::addResponseToBuilder(
 }
 
 std::vector<schema::ColumnIdentifier> MostRecentCommonAncestor::getOutputSchema(
-   const schema::TableSchema& table_schema
+   const schema::TableSchema& /*table_schema*/
 ) const {
    auto base = makeBaseOutputSchema();
    base.emplace_back("mrcaNode", schema::ColumnType::STRING);

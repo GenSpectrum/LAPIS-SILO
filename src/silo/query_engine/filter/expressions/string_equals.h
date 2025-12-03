@@ -5,7 +5,6 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/database.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/table_partition.h"

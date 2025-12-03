@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <utility>
 
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/query_context.h>
@@ -21,8 +22,8 @@ class ThrottledBatchReslicer {
    BackpressureMonitor* backpressure_monitor;
 
    std::optional<arrow::ExecBatch> current_batch;
-   size_t offset;
-   size_t remaining;  // always >0 when current_batch != std::nullopt
+   int64_t offset;
+   int64_t remaining;  // always >0 when current_batch != std::nullopt
 
    std::optional<std::chrono::system_clock::time_point> last_batch_delivered;
 
@@ -33,7 +34,7 @@ class ThrottledBatchReslicer {
       std::chrono::milliseconds target_batch_rate,
       BackpressureMonitor* backpressure_monitor
    )
-       : input_batches(input_batches),
+       : input_batches(std::move(input_batches)),
          batch_size(batch_size),
          target_batch_rate(target_batch_rate),
          backpressure_monitor(backpressure_monitor) {
