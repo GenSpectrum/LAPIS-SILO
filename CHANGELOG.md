@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.2...v0.9.3) (2025-12-04)
+
+
+### Features
+
+* **benchmarking:** add optional `QUERIES` custom variable ([772cd36](https://github.com/GenSpectrum/LAPIS-SILO/commit/772cd36cc6e860d85939f790a42f074ff8586719))
+* **benchmarking:** update api-query to ignore empty ignore regex files ([f572701](https://github.com/GenSpectrum/LAPIS-SILO/commit/f5727015da4a4097bfb71ae711bf3e509cb04d84))
+* **silo:** use mimalloc as the default allocator ([2203db9](https://github.com/GenSpectrum/LAPIS-SILO/commit/2203db9c09ac507210e66c4386ee2bd076de6440))
+
 ## [0.9.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.1...v0.9.2) (2025-12-03)
 
 
