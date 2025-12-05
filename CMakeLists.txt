@@ -128,9 +128,10 @@ endif ()
 # Targets
 # ---------------------------------------------------------------------------
 
-add_library(silolib_obj OBJECT ${SRC_SILO_WITHOUT_MAIN})
+add_library(silolib OBJECT ${SRC_SILO_WITHOUT_MAIN})
+set_target_properties(silolib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(
-        silolib_obj
+        silolib
         PUBLIC
         Arrow::arrow_static
         ArrowAcero::arrow_acero_static
@@ -148,12 +149,12 @@ target_link_libraries(
         re2::re2
 )
 
-add_executable(silo "${CMAKE_SOURCE_DIR}/src/main.cpp" $<TARGET_OBJECTS:silolib_obj>)
+add_executable(silo "${CMAKE_SOURCE_DIR}/src/main.cpp")
 target_link_libraries(
         silo
         PUBLIC
         ${MIMALLOC_LIB} # this should be first
-        silolib_obj
+        silolib
 )
 
 # ---------------------------------------------------------------------------
@@ -164,14 +165,90 @@ enable_testing()
 find_package(GTest REQUIRED)
 include_directories(${GTest_INCLUDE_DIRS})
 
-add_executable(silo_test ${SRC_TEST} $<TARGET_OBJECTS:silolib_obj>)
+add_executable(silo_test ${SRC_TEST})
 if (NOT GTest_LIBRARIES)
     set(GTest_LIBRARIES gtest gmock)
 endif ()
-target_link_libraries(silo_test PUBLIC ${GTest_LIBRARIES} silolib_obj)
+target_link_libraries(silo_test PUBLIC ${GTest_LIBRARIES} silolib)
 
 # ---------------------------------------------------------------------------
 # Benchmarks
 # ---------------------------------------------------------------------------
 
 add_subdirectory(performance)
+
+# ---------------------------------------------------------------------------
+# Python Bindings
+# ---------------------------------------------------------------------------
+
+option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
+
+if(BUILD_PYTHON_BINDINGS)
+    find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+
+    # Find Cython
+    execute_process(
+        COMMAND "${Python3_EXECUTABLE}" -c "import Cython; print(Cython.__version__)"
+        OUTPUT_VARIABLE CYTHON_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE CYTHON_NOT_FOUND
+    )
+
+    if(CYTHON_NOT_FOUND)
+        message(FATAL_ERROR "Cython not found. Install with: pip install Cython")
+    endif()
+
+    message(STATUS "Found Cython version: ${CYTHON_VERSION}")
+
+    # Cython modules to build
+    set(CYTHON_MODULES database)
+
+    # Build each Cython module
+    foreach(module ${CYTHON_MODULES})
+        set(pyx_file "${CMAKE_SOURCE_DIR}/python/pysilo/${module}.pyx")
+        set(cpp_file "${CMAKE_BINARY_DIR}/python/pysilo/${module}.cpp")
+
+        # Run Cython to generate C++ file
+        add_custom_command(
+            OUTPUT ${cpp_file}
+            COMMAND ${Python3_EXECUTABLE} -m cython
+                --cplus
+                -3
+                -I "${CMAKE_SOURCE_DIR}/python/pysilo"
+                -o ${cpp_file}
+                ${pyx_file}
+            DEPENDS ${pyx_file}
+            COMMENT "Cythonizing ${module}.pyx"
+        )
+
+        # Create Python extension module
+        Python3_add_library(${module} MODULE ${cpp_file})
+
+        # Set include directories
+        target_include_directories(${module} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_SOURCE_DIR}/python/pysilo
+        )
+
+        # Link against silolib
+        target_link_libraries(${module} PRIVATE silolib)
+
+        # Set output name and location
+        set_target_properties(${module} PROPERTIES
+            PREFIX ""
+            OUTPUT_NAME "${module}"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/pysilo"
+        )
+
+        # Install to Python package directory
+        # Note: CMAKE_INSTALL_PREFIX is set by setup.py to point to the pysilo directory
+        install(TARGETS ${module}
+            LIBRARY DESTINATION .
+        )
+    endforeach()
+
+    # Install Python package files
+    install(FILES "${CMAKE_SOURCE_DIR}/python/pysilo/__init__.py"
+        DESTINATION .
+    )
+endif()

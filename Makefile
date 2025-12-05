@@ -49,7 +49,12 @@ e2e: ${RUNNING_SILO_FLAG}
 test: ${SILO_EXECUTABLE}
 	build/Debug/silo_test --gtest_filter='*' --gtest_color=no
 
-all-tests: test e2e
+python-tests:
+	pip install -q pytest
+	pip install -q .
+	pytest python/tests -v
+
+all-tests: test e2e python-tests
 
 endToEndTests/node_modules: endToEndTests/package-lock.json
 	cd endToEndTests && npm ci
@@ -76,4 +81,4 @@ full-clean: clean
 	rm -rf build
 
 .PHONY:
-	full-clean clean clean-api e2e format check-format all test all-tests ci
+	full-clean clean clean-api e2e format check-format all test all-tests ci python-tests

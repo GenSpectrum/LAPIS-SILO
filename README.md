@@ -30,6 +30,85 @@ execute `./build_with_conan.py --clean`.
 Since in any approach, a developer has to remember to either trigger a clean build or to adapt the CMakeLists.txt, we
 decided for the approach with less maintenance effort, since it will automatically work in GitHub Actions.
 
+## Python Bindings
+
+SILO provides Python bindings via Cython. The bindings wrap the core C++ `Database` class.
+
+### Prerequisites
+
+- Python 3.8+
+- Cython >= 3.0
+- C++ dependencies built via conan (see [Building](#building))
+
+### Building Python Bindings
+
+First, build the C++ dependencies:
+
+```shell
+./build_with_conan.py --release
+```
+
+Then install the Python package:
+
+```shell
+pip install .
+```
+
+For development (editable install):
+
+```shell
+pip install -e .
+```
+
+The build process:
+1. Locates pre-built conan dependencies in `build/Release/generators` or `build/Debug/generators`
+2. Runs CMake with `-DBUILD_PYTHON_BINDINGS=ON`
+3. Builds the C++ library and Cython extension
+4. Installs to your Python environment
+
+### Usage
+
+```python
+from pysilo import Database
+
+# Create a new database
+db = Database()
+
+# Or load from a saved state
+db = Database("/path/to/saved/database")
+
+# Create a nucleotide sequence table
+db.create_nucleotide_sequence_table(
+    table_name="sequences",
+    primary_key_name="id",
+    sequence_name="main",
+    reference_sequence="ACGT..."
+)
+
+# Append data from file
+db.append_data_from_file("sequences", "/path/to/data.ndjson")
+
+# Get reference sequence
+ref = db.get_nucleotide_reference_sequence("sequences", "main")
+
+# Get filtered bitmap (list of matching row indices)
+indices = db.get_filtered_bitmap("sequences", "some_filter")
+
+# Get prevalent mutations
+mutations = db.get_prevalent_mutations(
+    table_name="sequences",
+    sequence_name="main",
+    prevalence_threshold=0.05,
+    filter_expression=""
+)
+
+# Save database state
+db.save_checkpoint("/path/to/save/directory")
+
+# Print all data (to stdout)
+db.print_all_data("sequences")
+```
+
 ### Running SILO locally with CLion
 
 `.run` contains run configurations for CLion that are ready to use.
