@@ -163,6 +163,7 @@ class TableName {
 
    static const TableName& getDefault();
 
+   bool operator==(const TableName& other) const { return name == other.name; }
    bool operator<(const TableName& other) const { return name < other.name; }
 
    TableName() = default;
@@ -183,6 +184,8 @@ class DatabaseSchema {
 
    static DatabaseSchema loadFromFile(const std::filesystem::path& file_path);
    void saveToFile(const std::filesystem::path& file_path) const;
+
+   void addTable(TableName name, TableSchema schema);
 };
 
 }  // namespace silo::schema

@@ -38,14 +38,21 @@ QueryPlan Query::toQueryPlan(
 ) const {
    SPDLOG_DEBUG("Request Id [{}] - Parsed filter: {}", request_id, filter->toString());
 
+   auto table_name = schema::TableName::getDefault();
+
+   auto maybe_table = database->tables.find(table_name);
+   CHECK_SILO_QUERY(
+      maybe_table != database->tables.end(),
+      "The table with name {} is not contained in the database."
+   );
+   const auto& table = maybe_table->second;
+
    std::vector<CopyOnWriteBitmap> partition_filters;
-   partition_filters.reserve(database->table->getNumberOfPartitions());
-   for (size_t partition_index = 0; partition_index < database->table->getNumberOfPartitions();
+   partition_filters.reserve(table->getNumberOfPartitions());
+   for (size_t partition_index = 0; partition_index < table->getNumberOfPartitions();
         partition_index++) {
       auto filter_after_rewrite = filter->rewrite(
-         *database->table,
-         database->table->getPartition(partition_index),
-         Expression::AmbiguityMode::NONE
+         *table, table->getPartition(partition_index), Expression::AmbiguityMode::NONE
       );
       SPDLOG_DEBUG(
          "Request Id [{}] - Filter after rewrite for partition {}: {}",
@@ -53,9 +60,8 @@ QueryPlan Query::toQueryPlan(
          partition_index,
          filter_after_rewrite->toString()
       );
-      auto filter_operator = filter_after_rewrite->compile(
-         *database->table, database->table->getPartition(partition_index)
-      );
+      auto filter_operator =
+         filter_after_rewrite->compile(*table, table->getPartition(partition_index));
       SPDLOG_DEBUG(
          "Request Id [{}] - Filter operator tree for partition {}: {}",
          request_id,
@@ -65,7 +71,7 @@ QueryPlan Query::toQueryPlan(
       partition_filters.emplace_back(filter_operator->evaluate());
    };
 
-   return action->toQueryPlan(database->table, partition_filters, query_options, request_id);
+   return action->toQueryPlan(table, partition_filters, query_options, request_id);
 }
 
 }  // namespace silo::query_engine

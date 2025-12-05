@@ -260,7 +260,9 @@ TableInserter::Commit appendDataToTable(
 }
 
 void appendDataToDatabase(Database& database, NdjsonLineReader& input_data) {
-   appendDataToTable(database.table, input_data);
+   SILO_ASSERT(database.tables.contains(schema::TableName::getDefault()));
+   auto& table = database.tables.at(schema::TableName::getDefault());
+   appendDataToTable(table, input_data);
    database.updateDataVersion();
 }
 

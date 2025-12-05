@@ -4,8 +4,8 @@
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/common/input_stream_wrapper.h"
-#include "silo/initialize/initialize_exception.h"
-#include "silo/initialize/initializer.h"
+#include "silo/create_table/create_table.h"
+#include "silo/create_table/create_table_exception.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace silo::preprocessing {
@@ -13,8 +13,10 @@ namespace silo::preprocessing {
 Database preprocessing(const config::PreprocessingConfig& preprocessing_config) {
    try {
       SPDLOG_INFO("preprocessing - initializing Database");
-      auto database =
-         initialize::Initializer::initializeDatabase(preprocessing_config.initialization_files);
+      Database database;
+      create_table::CreateTable::createTableInDatabase(
+         schema::TableName::getDefault(), preprocessing_config.initialization_files, database
+      );
 
       SPDLOG_INFO("preprocessing - successfully initialized Database, now opening input");
       auto input = InputStreamWrapper::openFileOrStdIn(preprocessing_config.getInputFilePath());
@@ -25,7 +27,7 @@ Database preprocessing(const config::PreprocessingConfig& preprocessing_config) 
 
       SPDLOG_INFO("preprocessing - finished preprocessing");
       return database;
-   } catch (const initialize::InitializeException& exception) {
+   } catch (const create_table::CreateTableException& exception) {
       throw preprocessing::PreprocessingException(
          "preprocessing - exception when initializing database: {}", exception.what()
       );

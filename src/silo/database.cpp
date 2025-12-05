@@ -23,37 +23,54 @@
 namespace silo {
 
 Database::Database(schema::DatabaseSchema database_schema)
-    : schema(std::move(database_schema)),
-      table(std::make_shared<storage::Table>(schema.getDefaultTableSchema())) {}
+    : schema(std::move(database_schema)) {
+   for (const auto& [table_name, table_schema] : schema.tables) {
+      tables.emplace(table_name, std::make_shared<storage::Table>(table_schema));
+   }
+}
 
-DatabaseInfo Database::getDatabaseInfo() const {
-   uint32_t sequence_count = 0;
-   uint64_t vertical_bitmaps_size = 0;
-   size_t horizontal_bitmaps_size = 0;
+void Database::createTable(
+   silo::schema::TableName table_name,
+   silo::schema::TableSchema table_schema
+) {
+   tables.emplace(table_name, std::make_shared<storage::Table>(table_schema));
+   schema.tables.emplace(std::move(table_name), std::move(table_schema));
+}
 
-   for (size_t partition_idx = 0; partition_idx < table->getNumberOfPartitions(); ++partition_idx) {
-      const storage::TablePartition& table_partition = table->getPartition(partition_idx);
+namespace {
+
+void addTableStatisticsToDatabaseInfo(DatabaseInfo& database_info, const storage::Table& table) {
+   for (size_t partition_idx = 0; partition_idx < table.getNumberOfPartitions(); ++partition_idx) {
+      const storage::TablePartition& table_partition = table.getPartition(partition_idx);
       // TODO(#743) try to analyze size accuracy relative to RSS
       for (const auto& [_, seq_column] : table_partition.columns.nuc_columns) {
          auto info = seq_column.getInfo();
-         vertical_bitmaps_size += info.vertical_bitmaps_size;
-         horizontal_bitmaps_size += info.horizontal_bitmaps_size;
+         database_info.vertical_bitmaps_size += info.vertical_bitmaps_size;
+         database_info.horizontal_bitmaps_size += info.horizontal_bitmaps_size;
       }
       for (const auto& [_, seq_column] : table_partition.columns.aa_columns) {
          auto info = seq_column.getInfo();
-         vertical_bitmaps_size += info.vertical_bitmaps_size;
-         horizontal_bitmaps_size += info.horizontal_bitmaps_size;
+         database_info.vertical_bitmaps_size += info.vertical_bitmaps_size;
+         database_info.horizontal_bitmaps_size += info.horizontal_bitmaps_size;
       }
-      sequence_count += table_partition.sequence_count;
+      database_info.sequence_count += table_partition.sequence_count;
    }
+}
 
-   return DatabaseInfo{
+}  // namespace
+
+DatabaseInfo Database::getDatabaseInfo() const {
+   DatabaseInfo database_info{
       .version = silo::RELEASE_VERSION,
-      .sequence_count = sequence_count,
-      .vertical_bitmaps_size = vertical_bitmaps_size,
-      .horizontal_bitmaps_size = horizontal_bitmaps_size,
-      .number_of_partitions = table->getNumberOfPartitions()
+      .sequence_count = 0,
+      .vertical_bitmaps_size = 0,
+      .horizontal_bitmaps_size = 0,
+      .number_of_partitions = tables.at(schema::TableName::getDefault())->getNumberOfPartitions()
    };
+   for (const auto& [_, table] : tables) {
+      addTableStatisticsToDatabaseInfo(database_info, *table);
+   }
+   return database_info;
 }
 
 const std::string DATABASE_SCHEMA_FILENAME = "database_schema.silo";
@@ -98,10 +115,11 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    const auto database_schema_path = versioned_save_directory / DATABASE_SCHEMA_FILENAME;
    schema.saveToFile(database_schema_path);
 
-   std::string table_name = schema.tables.begin()->first.getName();
-   SPDLOG_DEBUG("Saving table data");
-   std::filesystem::create_directory(versioned_save_directory / table_name);
-   table->saveData(versioned_save_directory / table_name);
+   for (const auto& [table_name, table] : tables) {
+      SPDLOG_DEBUG("Saving table data for table {}", table_name.getName());
+      std::filesystem::create_directory(versioned_save_directory / table_name.getName());
+      table->saveData(versioned_save_directory / table_name.getName());
+   }
 
    data_version_.saveToFile(versioned_save_directory / DATA_VERSION_FILENAME);
 }
@@ -133,9 +151,17 @@ Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_sourc
 
    Database database{schema};
 
-   std::string table_name = schema.tables.begin()->first.getName();
-   SPDLOG_DEBUG("Loading data for table ");
-   database.table->loadData(save_directory / table_name);
+      for (const auto& [table_name, _] : schema.tables) {
+         SPDLOG_INFO("contains schema {}", table_name.getName());
+      }
+      for (const auto& [table_name, _] : database.tables) {
+         SPDLOG_INFO("contains table {}", table_name.getName());
+      }
+
+   for (const auto& [table_name, _] : schema.tables) {
+      SPDLOG_DEBUG("Loading data for table {}", table_name.getName());
+      database.tables.at(table_name)->loadData(save_directory / table_name.getName());
+   }
 
    database.data_version_ = loadDataVersion(save_directory / DATA_VERSION_FILENAME);
 

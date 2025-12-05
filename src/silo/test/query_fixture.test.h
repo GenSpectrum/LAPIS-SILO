@@ -13,8 +13,8 @@
 #include "silo/common/lineage_tree.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/config/database_config.h"
+#include "silo/create_table/create_table.h"
 #include "silo/database.h"
-#include "silo/initialize/initializer.h"
 #include "silo/query_engine/query.h"
 #include "silo/query_engine/query_plan.h"
 #include "silo/storage/reference_genomes.h"
@@ -80,15 +80,15 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       const DataContainer data_container;
       const QueryTestData& test_data = data_container.test_data;
 
-      auto database = std::make_shared<Database>(
-         Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
-            silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
-            test_data.reference_genomes,
-            test_data.lineage_trees,
-            test_data.phylo_tree_file,
-            test_data.without_unaligned_sequences
-         )}
+      auto database = std::make_shared<Database>();
+      auto table_schema = silo::create_table::CreateTable::createSchemaFromConfigFiles(
+         silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
+         test_data.reference_genomes,
+         test_data.lineage_trees,
+         test_data.phylo_tree_file,
+         test_data.without_unaligned_sequences
       );
+      database->createTable(schema::TableName::getDefault(), table_schema);
 
       std::stringstream ndjson_objects;
       for (const auto& object : test_data.ndjson_input_data) {

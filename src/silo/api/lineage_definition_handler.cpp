@@ -9,6 +9,7 @@
 
 #include "silo/api/active_database.h"
 #include "silo/api/error_request_handler.h"
+#include "silo/query_engine/bad_request.h"
 
 namespace silo::api {
 
@@ -27,40 +28,26 @@ void LineageDefinitionHandler::get(
 
    response.set("data-version", database->getDataVersionTimestamp().value);
 
-   auto column_identifier = database->table->schema.getColumn(column_name);
+   schema::TableName table_name = schema::TableName::getDefault();
+
+   auto table = database->tables.find(table_name);
+   if (table == database->tables.end()) {
+      throw BadRequest("The database does not contain a table with name {}", table_name.getName());
+   }
+
+   auto column_identifier = table->second->schema.getColumn(column_name);
    if (column_identifier == std::nullopt) {
-      response.setContentType("application/json");
-      response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
-      std::ostream& out_stream = response.send();
-      out_stream << nlohmann::json(ErrorResponse{
-         .error = "Bad request",
-         .message = fmt::format("The column {} does not exist in this instance.", column_name)
-      });
-      return;
+      throw BadRequest("The column {} does not exist in this instance.", column_name);
    }
    if (column_identifier.value().type != schema::ColumnType::INDEXED_STRING) {
-      response.setContentType("application/json");
-      response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
-      std::ostream& out_stream = response.send();
-      out_stream << nlohmann::json(ErrorResponse{
-         .error = "Bad request",
-         .message = fmt::format("The column {} is not of type indexed-string.", column_name)
-      });
-      return;
+      throw BadRequest("The column {} is not of type indexed-string.", column_name);
    }
    auto* metadata =
-      database->table->schema
+      table->second->schema
          .getColumnMetadata<storage::column::IndexedStringColumnPartition>(column_name)
          .value();
    if (!metadata->lineage_tree.has_value()) {
-      response.setContentType("application/json");
-      response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
-      std::ostream& out_stream = response.send();
-      out_stream << nlohmann::json(ErrorResponse{
-         .error = "Bad request",
-         .message = fmt::format("The column {} does not have a lineageIndex defined.", column_name)
-      });
-      return;
+      throw BadRequest("The column {} does not have a lineageIndex defined.", column_name);
    }
    const std::string lineage_definition_yaml = metadata->lineage_tree.value().file;
    response.setContentType("application/yaml");

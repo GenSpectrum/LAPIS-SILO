@@ -5,7 +5,7 @@
 #include "silo/common/bidirectional_string_map.h"
 #include "silo/common/german_string.h"
 #include "silo/common/tree_node_id.h"
-#include "silo/initialize/initialize_exception.h"
+#include "silo/create_table/create_table_exception.h"
 
 using silo::common::TreeNodeId;
 
@@ -33,7 +33,7 @@ void StringColumnPartition::insert(std::string_view value) {
          return;
       }
       if (child_it->second->rowIndexExists()) {
-         throw silo::initialize::InitializeException(
+         throw silo::create_table::CreateTableException(
             fmt::format("Node '{}' already exists in the phylogenetic tree.", value)
          );
       }

@@ -7,13 +7,17 @@
 #include "silo/database.h"
 #include "silo/storage/reference_genomes.h"
 
-namespace silo::initialize {
+namespace silo::create_table {
 
-class Initializer {
+class CreateTable {
   public:
-   static Database initializeDatabase(const config::InitializationFiles& initialization_files);
+   static void createTableInDatabase(
+      schema::TableName table_name,
+      const config::InitializationFiles& initialization_files,
+      Database& database
+   );
 
-   static silo::schema::DatabaseSchema createSchemaFromConfigFiles(
+   static silo::schema::TableSchema createSchemaFromConfigFiles(
       config::DatabaseConfig database_config,
       ReferenceGenomes reference_genomes,
       const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
@@ -26,4 +30,4 @@ class Initializer {
       const std::string& lineage_tree_name
    );
 };
-}  // namespace silo::initialize
+}  // namespace silo::create_table

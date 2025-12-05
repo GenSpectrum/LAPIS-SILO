@@ -2,11 +2,11 @@
 
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
-#include "silo/initialize/initializer.h"
+#include "silo/create_table/create_table.h"
 #include "silo/query_engine/actions/mutations.h"
-#include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/filter/expressions/negation.h"
 #include "silo/query_engine/filter/expressions/string_equals.h"
+#include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/query.h"
 
 namespace {
@@ -31,15 +31,15 @@ schema:
 
    silo::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
 
-   return std::make_shared<silo::Database>(
-      silo::Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
-         std::move(database_config),
-         std::move(reference_genomes),
-         {},
-         silo::common::PhyloTree{},
-         /*without_unaligned_sequences=*/true
-      )}
-   );
+   auto database = std::make_shared<silo::Database>();
+   database->createTable(silo::schema::TableName::getDefault(), silo::create_table::CreateTable::createSchemaFromConfigFiles(
+      std::move(database_config),
+      std::move(reference_genomes),
+      {},
+      silo::common::PhyloTree{},
+      /*without_unaligned_sequences=*/true
+   ));
+   return database;
 }
 
 size_t current_id = 0;

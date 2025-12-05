@@ -13,7 +13,7 @@ namespace silo {
 class Database {
   public:
    schema::DatabaseSchema schema;
-   std::shared_ptr<storage::Table> table;
+   std::map<schema::TableName, std::shared_ptr<storage::Table>> tables;
 
    void updateDataVersion();
 
@@ -21,9 +21,13 @@ class Database {
    DataVersion data_version_ = DataVersion::mineDataVersion();
 
   public:
+   Database() = default;
+
    explicit Database(silo::schema::DatabaseSchema database_schema);
 
    virtual ~Database() = default;
+
+   void createTable(silo::schema::TableName table_name, silo::schema::TableSchema table_schema);
 
    void saveDatabaseState(const std::filesystem::path& save_directory);
 

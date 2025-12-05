@@ -1,4 +1,4 @@
-#include "silo/initialize/initializer.h"
+#include "silo/create_table/create_table.h"
 
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
@@ -9,15 +9,19 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/panic.h"
 #include "silo/common/phylo_tree.h"
+#include "silo/create_table/create_table_exception.h"
 #include "silo/database.h"
-#include "silo/initialize/initialize_exception.h"
 #include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 #include "silo/storage/reference_genomes.h"
 
-namespace silo::initialize {
+namespace silo::create_table {
 
-Database Initializer::initializeDatabase(const config::InitializationFiles& initialization_files) {
+void CreateTable::createTableInDatabase(
+   schema::TableName table_name,
+   const config::InitializationFiles& initialization_files,
+   Database& database
+) {
    EVOBENCH_SCOPE("Initializer", "initializeDatabase");
    std::map<std::filesystem::path, common::LineageTreeAndIdMap> lineage_trees;
    for (const auto& filename : initialization_files.getLineageDefinitionFilenames()) {
@@ -35,14 +39,14 @@ Database Initializer::initializeDatabase(const config::InitializationFiles& init
       initialization_files.getDatabaseConfigFilename()
    );
 
-   silo::schema::DatabaseSchema schema = createSchemaFromConfigFiles(
+   schema::TableSchema table_schema = createSchemaFromConfigFiles(
       validated_config,
       ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilename()),
       lineage_trees,
       phylo_tree_file,
       initialization_files.without_unaligned_sequences
    );
-   return Database{schema};
+   database.createTable(std::move(table_name), table_schema);
 }
 
 struct ColumnMetadataInitializer {
@@ -66,12 +70,12 @@ void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumnP
 ) {
    if (config_metadata.generate_lineage_index.has_value()) {
       auto lineage_tree_name = config_metadata.generate_lineage_index.value();
-      auto lineage_tree = Initializer::findLineageTreeForName(lineage_trees, lineage_tree_name);
+      auto lineage_tree = CreateTable::findLineageTreeForName(lineage_trees, lineage_tree_name);
       if (not lineage_tree.has_value()) {
          auto keys =
             lineage_trees | std::views::keys |
             std::views::transform([](const std::filesystem::path& path) { return path.string(); });
-         throw silo::initialize::InitializeException(
+         throw silo::create_table::CreateTableException(
             "Column '{}' has lineage tree '{}' configured, but did not find corresponding lineage "
             "tree in the provided lineageDefinitionFilenames: {}",
             config_metadata.name,
@@ -178,7 +182,7 @@ void assertDefaultSequencesAreInReference(
       std::ranges::find(nuc_sequence_names, *database_config.default_nucleotide_sequence) ==
          nuc_sequence_names.end();
    if (default_nucleotide_sequence_is_not_in_reference) {
-      throw silo::initialize::InitializeException(
+      throw silo::create_table::CreateTableException(
          "The default nucleotide sequence that is set in the database config is not contained in "
          "the reference genomes."
       );
@@ -188,7 +192,7 @@ void assertDefaultSequencesAreInReference(
       std::ranges::find(aa_sequence_names, *database_config.default_amino_acid_sequence) ==
          aa_sequence_names.end();
    if (default_amino_acid_sequence_is_not_in_reference) {
-      throw silo::initialize::InitializeException(
+      throw silo::create_table::CreateTableException(
          "The default amino acid sequence that is set in the database config is not contained in "
          "the reference genomes."
       );
@@ -203,7 +207,7 @@ void assertPrimaryKeyInMetadata(const silo::config::DatabaseConfig& database_con
       }
    );
    if (primary_key_metadata == database_config.schema.metadata.end()) {
-      throw silo::initialize::InitializeException(
+      throw silo::create_table::CreateTableException(
          "The primary key is not contained in the metadata."
       );
    }
@@ -218,7 +222,7 @@ void assertPrimaryKeyOfTypeString(const silo::config::DatabaseConfig& database_c
    );
    auto primary_key_type = primary_key_metadata->getColumnType();
    if (primary_key_type != schema::ColumnType::STRING) {
-      throw silo::initialize::InitializeException(
+      throw silo::create_table::CreateTableException(
          "The primary key must be of type STRING but it is of type {}",
          columnTypeToString(primary_key_type)
       );
@@ -232,7 +236,7 @@ const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
 
 }  // namespace
 
-silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
+silo::schema::TableSchema CreateTable::createSchemaFromConfigFiles(
    config::DatabaseConfig database_config,
    ReferenceGenomes reference_genomes,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
@@ -318,10 +322,10 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
          .type = schema::ColumnType::AMINO_ACID_SEQUENCE
       };
    }
-   return silo::schema::DatabaseSchema{.tables = {{schema::TableName{"default"}, table_schema}}};
+   return table_schema;
 }
 
-std::optional<common::LineageTreeAndIdMap> Initializer::findLineageTreeForName(
+std::optional<common::LineageTreeAndIdMap> CreateTable::findLineageTreeForName(
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
    const std::string& lineage_tree_name
 ) {
@@ -333,4 +337,4 @@ std::optional<common::LineageTreeAndIdMap> Initializer::findLineageTreeForName(
    return std::nullopt;
 }
 
-}  // namespace silo::initialize
+}  // namespace silo::create_table

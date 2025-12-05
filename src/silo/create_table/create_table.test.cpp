@@ -1,4 +1,4 @@
-#include "silo/initialize/initializer.h"
+#include "silo/create_table/create_table.h"
 
 #include <gtest/gtest.h>
 
@@ -8,7 +8,7 @@
 using silo::ReferenceGenomes;
 using silo::common::LineageTreeAndIdMap;
 using silo::common::PhyloTree;
-using silo::initialize::Initializer;
+using silo::create_table::CreateTable;
 
 TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    silo::config::DatabaseConfig database_config =
@@ -38,16 +38,14 @@ A.11:
 )")
        )}
    };
-   auto schema = Initializer::createSchemaFromConfigFiles(
+   auto table_schema = CreateTable::createSchemaFromConfigFiles(
       database_config,
       reference_genomes,
       lineage_trees,
       phylo_tree_file,
       /*without_unaligned_sequences=*/false
    );
-   const auto& table_schema = schema.getDefaultTableSchema();
 
-   ASSERT_EQ(schema.tables.size(), 1);
    const size_t expected_number_of_columns =
       database_config.schema.metadata.size() + reference_genomes.aa_sequence_names.size() +
       (reference_genomes.nucleotide_sequence_names.size() * 2);
@@ -240,7 +238,7 @@ TEST_F(FindLineageTreeForName, FindLineageTree_ExactMatch) {
    std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
    lineage_trees["test_tree"] = test_lineage_tree1;
 
-   auto result = Initializer::findLineageTreeForName(lineage_trees, "test_tree");
+   auto result = CreateTable::findLineageTreeForName(lineage_trees, "test_tree");
 
    ASSERT_TRUE(result.has_value());
    EXPECT_EQ(result.value().file, test_lineage_tree1.file);
@@ -252,7 +250,7 @@ TEST_F(FindLineageTreeForName, FindLineageTree_WithFileEnding) {
 
    lineage_trees["test.yaml"] = test_lineage_tree1;
 
-   auto result1 = Initializer::findLineageTreeForName(lineage_trees, "test");
+   auto result1 = CreateTable::findLineageTreeForName(lineage_trees, "test");
    ASSERT_TRUE(result1.has_value());
    EXPECT_EQ(result1.value().file, test_lineage_tree1.file);
 }
@@ -264,7 +262,7 @@ TEST_F(FindLineageTreeForName, FindLineageTree_NotFound) {
    lineage_trees["completely_different_name"] = test_lineage_tree1;
    lineage_trees["another_name.yaml"] = test_lineage_tree2;
 
-   auto result = Initializer::findLineageTreeForName(lineage_trees, "test");
+   auto result = CreateTable::findLineageTreeForName(lineage_trees, "test");
    EXPECT_FALSE(result.has_value());
 }
 
@@ -272,7 +270,7 @@ TEST_F(FindLineageTreeForName, FindLineageTree_NotFound) {
 TEST_F(FindLineageTreeForName, FindLineageTree_EmptyMap) {
    std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
 
-   auto result = Initializer::findLineageTreeForName(lineage_trees, "test");
+   auto result = CreateTable::findLineageTreeForName(lineage_trees, "test");
    EXPECT_FALSE(result.has_value());
 }
 
@@ -283,10 +281,10 @@ TEST_F(FindLineageTreeForName, FindLineageTree_CaseSensitive) {
    lineage_trees["Test"] = test_lineage_tree1;
    lineage_trees["TEST"] = test_lineage_tree2;
 
-   auto result = Initializer::findLineageTreeForName(lineage_trees, "test");
+   auto result = CreateTable::findLineageTreeForName(lineage_trees, "test");
    EXPECT_FALSE(result.has_value());  // Should not find due to case mismatch
 
-   auto result_correct_case = Initializer::findLineageTreeForName(lineage_trees, "Test");
+   auto result_correct_case = CreateTable::findLineageTreeForName(lineage_trees, "Test");
    ASSERT_TRUE(result_correct_case.has_value());
    EXPECT_EQ(result_correct_case.value().file, test_lineage_tree1.file);
 }
@@ -298,7 +296,7 @@ TEST_F(FindLineageTreeForName, FindLineageTree_SpecialCharacters) {
    lineage_trees["test-name_123"] = test_lineage_tree1;
    lineage_trees["lineage_definition_test-name_123.yaml"] = test_lineage_tree2;
 
-   auto result = Initializer::findLineageTreeForName(lineage_trees, "test-name_123");
+   auto result = CreateTable::findLineageTreeForName(lineage_trees, "test-name_123");
    ASSERT_TRUE(result.has_value());
    EXPECT_EQ(result.value().file, test_lineage_tree1.file);
 }

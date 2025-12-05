@@ -16,9 +16,9 @@
 #include "silo/config/initialize_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/runtime_config.h"
+#include "silo/create_table/create_table.h"
+#include "silo/create_table/create_table_exception.h"
 #include "silo/database.h"
-#include "silo/initialize/initialize_exception.h"
-#include "silo/initialize/initializer.h"
 #include "silo/preprocessing/preprocessing.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
@@ -29,11 +29,12 @@ int runInitializer(const silo::config::InitializeConfig& initialize_config) {
    EVOBENCH_SCOPE("top-level", "runInitializer");
    try {
       auto database =
-         silo::initialize::Initializer::initializeDatabase(initialize_config.initialization_files);
+         silo::create_table::Initializer::initializeDatabase(initialize_config.initialization_files
+         );
       database.saveDatabaseState(initialize_config.output_directory);
       return 0;
-   } catch (const silo::initialize::InitializeException& preprocessing_exception) {
-      SPDLOG_ERROR("initialize - error: {}", preprocessing_exception.what());
+   } catch (const silo::create_table::CreateTableException& preprocessing_exception) {
+      SPDLOG_ERROR("create_table - error: {}", preprocessing_exception.what());
       return 1;
    }
 }

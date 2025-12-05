@@ -11,8 +11,8 @@
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/config/preprocessing_config.h"
+#include "silo/create_table/create_table.h"
 #include "silo/database_info.h"
-#include "silo/initialize/initializer.h"
 #include "silo/storage/reference_genomes.h"
 
 using silo::config::PreprocessingConfig;
@@ -46,14 +46,16 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
       phylo_tree_file = silo::common::PhyloTree::fromFile(opt_path.value());
    }
 
-   auto database = std::make_shared<silo::Database>(
-      silo::Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
+   auto database = std::make_shared<silo::Database>();
+   database->createTable(
+      silo::schema::TableName::getDefault(),
+      silo::create_table::CreateTable::createSchemaFromConfigFiles(
          std::move(database_config),
          reference_genomes,
          lineage_trees,
          phylo_tree_file,
          /*without_unaligned_sequences=*/false
-      )}
+      )
    );
    std::ifstream input(input_directory / "input.ndjson");
    auto input_data_stream = silo::append::NdjsonLineReader{input};
