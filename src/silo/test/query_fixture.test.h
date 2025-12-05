@@ -80,15 +80,15 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       const DataContainer data_container;
       const QueryTestData& test_data = data_container.test_data;
 
-      auto database = std::make_shared<Database>(
-         Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
-            silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
-            test_data.reference_genomes,
-            test_data.lineage_trees,
-            test_data.phylo_tree_file,
-            test_data.without_unaligned_sequences
-         )}
+      auto database = std::make_shared<Database>();
+      auto table_schema = silo::initialize::Initializer::createSchemaFromConfigFiles(
+         silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
+         test_data.reference_genomes,
+         test_data.lineage_trees,
+         test_data.phylo_tree_file,
+         test_data.without_unaligned_sequences
       );
+      database->createTable(schema::TableName::getDefault(), table_schema);
 
       std::stringstream ndjson_objects;
       for (const auto& object : test_data.ndjson_input_data) {
@@ -112,7 +112,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          try {
             auto query = query_engine::Query::parseQuery(scenario.query.dump());
             std::stringstream buffer;
-            auto query_plan = query->toQueryPlan(shared_database, query_options, "some_id");
+            auto query_plan = shared_database->createQueryPlan(*query, query_options, "some_id");
             query_plan.executeAndWrite(&buffer, /*timeout_in_seconds=*/3);
             FAIL() << "Expected an error in test case, but nothing was thrown";
          } catch (const std::exception& e) {
@@ -121,7 +121,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       } else {
          auto query = query_engine::Query::parseQuery(scenario.query.dump());
          std::stringstream buffer;
-         auto query_plan = query->toQueryPlan(shared_database, query_options, "some_id");
+         auto query_plan = shared_database->createQueryPlan(*query, query_options, "some_id");
          query_plan.executeAndWrite(&buffer, /*timeout_in_seconds=*/3);
          nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
          std::string line;

@@ -214,7 +214,7 @@ arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBa
       auto row_ids = current_bitmap_reader.value().nextBatch();
       if (row_ids.has_value()) {
          ARROW_RETURN_NOT_OK(exec_batch_builder.appendEntries(
-            table->getPartition(current_partition_idx), row_ids.value()
+            *table->getPartition(current_partition_idx), row_ids.value()
          ));
          ARROW_ASSIGN_OR_RAISE(auto batch, exec_batch_builder.finishBatch());
          SPDLOG_DEBUG("Finished arrow::ExecBatch with length: {}", batch.length);

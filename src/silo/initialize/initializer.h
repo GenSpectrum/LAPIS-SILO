@@ -11,9 +11,13 @@ namespace silo::initialize {
 
 class Initializer {
   public:
-   static Database initializeDatabase(const config::InitializationFiles& initialization_files);
+   static void createTableInDatabase(
+      schema::TableName table_name,
+      const config::InitializationFiles& initialization_files,
+      Database& database
+   );
 
-   static silo::schema::DatabaseSchema createSchemaFromConfigFiles(
+   static silo::schema::TableSchema createSchemaFromConfigFiles(
       config::DatabaseConfig database_config,
       ReferenceGenomes reference_genomes,
       const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,

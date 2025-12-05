@@ -28,9 +28,13 @@ namespace {
 int runInitializer(const silo::config::InitializeConfig& initialize_config) {
    EVOBENCH_SCOPE("top-level", "runInitializer");
    try {
-      auto database =
-         silo::initialize::Initializer::initializeDatabase(initialize_config.initialization_files);
-      database.saveDatabaseState(initialize_config.output_directory);
+      auto database = std::make_shared<silo::Database>();
+      // TODO(#1091) make this configurable
+      auto table_name = silo::schema::TableName::getDefault();
+      silo::initialize::Initializer::createTableInDatabase(
+         table_name, initialize_config.initialization_files, *database
+      );
+      database->saveDatabaseState(initialize_config.output_directory);
       return 0;
    } catch (const silo::initialize::InitializeException& preprocessing_exception) {
       SPDLOG_ERROR("initialize - error: {}", preprocessing_exception.what());

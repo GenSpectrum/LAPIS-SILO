@@ -187,7 +187,10 @@ TablePartitionInserter::Commit TablePartitionInserter::commit() const {
 }
 
 TablePartitionInserter TableInserter::openNewPartition() const {
-   return TablePartitionInserter{table->addPartition()};
+   if (table->getNumberOfPartitions() == 0) {
+      return TablePartitionInserter{table->addPartition()};
+   }
+   return TablePartitionInserter{table->getPartition(0)};
 }
 
 TableInserter::Commit TableInserter::commit() const {
@@ -260,7 +263,9 @@ TableInserter::Commit appendDataToTable(
 }
 
 void appendDataToDatabase(Database& database, NdjsonLineReader& input_data) {
-   appendDataToTable(database.table, input_data);
+   SILO_ASSERT(database.tables.contains(schema::TableName::getDefault()));
+   auto& table = database.tables.at(schema::TableName::getDefault());
+   appendDataToTable(table, input_data);
    database.updateDataVersion();
 }
 
