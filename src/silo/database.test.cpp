@@ -7,13 +7,12 @@
 #include <gtest/gtest.h>
 
 #include "config/source/yaml_file.h"
-#include "silo/append/database_inserter.h"
-#include "silo/append/ndjson_line_reader.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
 #include "silo/query_engine/actions/aggregated.h"
+#include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/filter/expressions/true.h"
 #include "silo/storage/reference_genomes.h"
 
@@ -136,8 +135,8 @@ using silo::storage::column::StringColumnMetadata;
 
 TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
    silo::Database database;
-   ColumnIdentifier primary_key{"key", ColumnType::STRING};
-   ColumnIdentifier sequence_column{"sequence", ColumnType::NUCLEOTIDE_SEQUENCE};
+   ColumnIdentifier primary_key{.name = "key", .type = ColumnType::STRING};
+   ColumnIdentifier sequence_column{.name = "sequence", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
    std::vector<Nucleotide::Symbol> reference_sequence{
       Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
    };
@@ -171,7 +170,7 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
 
    std::stringstream second_table_data;
    second_table_data
-      << "{\"key\":\"id_1\",\"sequence\":{\"sequence\":\"AAAA\",\"insertions\":[],\"offset\":0}}";
+      << R"({"key":"id_1","sequence":{"sequence":"AAAA","insertions":[],"offset":0}})";
    database.appendData(second_table_name, second_table_data);
 
    aggregated_all_query.table_name = second_table_name;

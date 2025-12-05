@@ -6,21 +6,68 @@
 #include <fstream>
 #include <map>
 #include <optional>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
+#include <arrow/api.h>
+#include <arrow/io/memory.h>
+#include <arrow/ipc/writer.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 #include "silo/append/database_inserter.h"
+#include "silo/common/aa_symbols.h"
 #include "silo/common/data_version.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/common/silo_directory.h"
 #include "silo/common/version.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
+#include "silo/query_engine/actions/action.h"
+#include "silo/query_engine/actions/fasta_aligned.h"
+#include "silo/query_engine/actions/mutations.h"
+#include "silo/query_engine/exec_node/ndjson_sink.h"
+#include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/illegal_query_exception.h"
+#include "silo/query_engine/query.h"
 #include "silo/schema/database_schema.h"
-#include "silo/storage/table_partition.h"
+#include "silo/storage/column/sequence_column.h"
+
+namespace {
+template <typename SymbolType>
+std::optional<std::vector<typename SymbolType::Symbol>> stringToSymbolVector(
+   const std::string& sequence
+) {
+   const size_t size = sequence.size();
+   std::vector<typename SymbolType::Symbol> result;
+   result.reserve(size);
+   for (size_t i = 0; i < size; ++i) {
+      if (i + 1 < size && sequence[i] == '\\') {
+         ++i;
+      }
+      auto symbol = SymbolType::charToSymbol(sequence[i]);
+      if (symbol == std::nullopt) {
+         return std::nullopt;
+      }
+      result.emplace_back(symbol.value());
+   }
+   return result;
+}
+
+template <typename SymbolType>
+std::string symbolVectorToString(const std::vector<typename SymbolType::Symbol>& sequence) {
+   const size_t size = sequence.size();
+   std::string result;
+   result.reserve(size);
+   for (const auto& symbol : sequence) {
+      auto character = SymbolType::symbolToChar(symbol);
+      result += character;
+   }
+   return result;
+}
+}  // namespace
 
 namespace silo {
 
@@ -36,13 +83,270 @@ void Database::createTable(schema::TableName table_name, silo::schema::TableSche
    schema.tables.emplace(std::move(table_name), std::move(table_schema));
 }
 
-void Database::appendData(schema::TableName table_name, std::istream& input_stream) {
+void Database::appendData(const schema::TableName& table_name, std::istream& input_stream) {
    silo::append::NdjsonLineReader input_data{input_stream};
    SILO_ASSERT(tables.contains(table_name));
    auto& table = tables.at(table_name);
    silo::append::appendDataToTable(table, input_data);
    updateDataVersion();
    SPDLOG_INFO("Database info: {}", getDatabaseInfo());
+}
+
+void Database::createNucleotideSequenceTable(
+   const std::string& table_name,
+   const std::string& primary_key_name,
+   const std::string& sequence_name,
+   const std::string& reference_sequence,
+   const std::vector<std::string>& extra_string_columns
+) {
+   silo::schema::TableSchema table_schema;
+   schema::ColumnIdentifier primary_key = {
+      .name = primary_key_name, .type = schema::ColumnType::STRING
+   };
+   table_schema.column_metadata.emplace(
+      primary_key, std::make_shared<storage::column::StringColumnMetadata>(primary_key_name)
+   );
+   auto reference_sequence_vector = stringToSymbolVector<Nucleotide>(reference_sequence).value();
+   table_schema.column_metadata.emplace(
+      schema::ColumnIdentifier{
+         .name = sequence_name, .type = schema::ColumnType::NUCLEOTIDE_SEQUENCE
+      },
+      std::make_shared<storage::column::SequenceColumnMetadata<Nucleotide>>(
+         sequence_name, std::move(reference_sequence_vector)
+      )
+   );
+   for (const auto& column_name : extra_string_columns) {
+      table_schema.column_metadata.emplace(
+         schema::ColumnIdentifier{.name = column_name, .type = schema::ColumnType::STRING},
+         std::make_shared<storage::column::StringColumnMetadata>(column_name)
+      );
+   }
+   table_schema.primary_key = primary_key;
+   createTable(schema::TableName(table_name), std::move(table_schema));
+}
+
+void Database::createGeneTable(
+   const std::string& table_name,
+   const std::string& primary_key_name,
+   const std::string& sequence_name,
+   const std::string& reference_sequence,
+   const std::vector<std::string>& extra_string_columns
+) {
+   silo::schema::TableSchema table_schema;
+   schema::ColumnIdentifier primary_key = {
+      .name = primary_key_name, .type = schema::ColumnType::STRING
+   };
+   table_schema.column_metadata.emplace(
+      primary_key, std::make_shared<storage::column::StringColumnMetadata>(primary_key_name)
+   );
+   auto reference_sequence_vector = stringToSymbolVector<AminoAcid>(reference_sequence).value();
+   table_schema.column_metadata.emplace(
+      schema::ColumnIdentifier{
+         .name = sequence_name, .type = schema::ColumnType::AMINO_ACID_SEQUENCE
+      },
+      std::make_shared<storage::column::SequenceColumnMetadata<AminoAcid>>(
+         sequence_name, std::move(reference_sequence_vector)
+      )
+   );
+   for (const auto& column_name : extra_string_columns) {
+      table_schema.column_metadata.emplace(
+         schema::ColumnIdentifier{.name = column_name, .type = schema::ColumnType::STRING},
+         std::make_shared<storage::column::StringColumnMetadata>(column_name)
+      );
+   }
+   table_schema.primary_key = primary_key;
+   createTable(schema::TableName(table_name), std::move(table_schema));
+}
+
+void Database::appendDataFromFile(const std::string& table_name, const std::string& file_name) {
+   std::ifstream input_stream(file_name);
+   silo::append::NdjsonLineReader input_data{input_stream};
+   silo::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
+   SPDLOG_INFO("Database info: {}", getDatabaseInfo());
+}
+
+void Database::appendDataFromString(const std::string& table_name, std::string json_string) {
+   std::stringstream input_stream(std::move(json_string));
+   silo::append::NdjsonLineReader input_data{input_stream};
+   silo::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
+}
+
+using silo::query_engine::Query;
+using silo::query_engine::actions::Action;
+using silo::query_engine::actions::FastaAligned;
+using silo::query_engine::filter::expressions::Expression;
+using silo::query_engine::filter::expressions::True;
+
+void Database::printAllData(const std::string& table_name) const {
+   if (!schema.tables.contains(schema::TableName{table_name})) {
+      throw std::runtime_error{fmt::format("The database does not contain table {}", table_name)};
+   }
+
+   std::vector<std::string> sequence_column_identifiers;
+   std::vector<std::string> non_sequence_column_identifiers;
+   for (const auto& [column_identifier, _] :
+        schema.tables.at(schema::TableName{table_name}).column_metadata) {
+      if (isSequenceColumn(column_identifier.type)) {
+         if (column_identifier.type != schema::ColumnType::ZSTD_COMPRESSED_STRING) {
+            sequence_column_identifiers.push_back(column_identifier.name);
+         }
+      } else {
+         non_sequence_column_identifiers.push_back(column_identifier.name);
+      }
+   }
+
+   std::unique_ptr<Expression> filter = std::make_unique<True>();
+   std::unique_ptr<Action> action = std::make_unique<FastaAligned>(
+      std::move(sequence_column_identifiers), std::move(non_sequence_column_identifiers)
+   );
+
+   auto query = Query(schema::TableName{table_name}, std::move(filter), std::move(action));
+   auto query_plan = createQueryPlan(query, config::QueryOptions{}, "printAllData");
+   query_plan.executeAndWrite(&std::cout, /*timeout_in_seconds=*/100);
+}
+
+std::string Database::getNucleotideReferenceSequence(
+   const std::string& table_name,
+   const std::string& sequence_name
+) {
+   auto maybe_table_schema = schema.tables.find(schema::TableName{table_name});
+   if (maybe_table_schema == schema.tables.end()) {
+      throw std::runtime_error{fmt::format("The database does not contain table {}", table_name)};
+   }
+   const auto& table_schema = maybe_table_schema->second;
+
+   auto maybe_sequence_column_metadata =
+      table_schema.getColumnMetadata<storage::column::SequenceColumnPartition<Nucleotide>>(
+         sequence_name
+      );
+   if (maybe_sequence_column_metadata == std::nullopt) {
+      SPDLOG_ERROR(
+         "The database table {} does not contain the nucleotide sequence column {}",
+         table_name,
+         sequence_name
+      );
+      return {};
+   }
+
+   const auto& sequence_column_metadata = maybe_sequence_column_metadata.value();
+
+   return symbolVectorToString<Nucleotide>(sequence_column_metadata->reference_sequence);
+}
+
+std::string Database::getAminoAcidReferenceSequence(
+   const std::string& table_name,
+   const std::string& sequence_name
+) {
+   auto maybe_table_schema = schema.tables.find(schema::TableName{table_name});
+   if (maybe_table_schema == schema.tables.end()) {
+      throw std::runtime_error{fmt::format("The database does not contain table {}", table_name)};
+   }
+   const auto& table_schema = maybe_table_schema->second;
+
+   auto maybe_sequence_column_metadata =
+      table_schema.getColumnMetadata<storage::column::SequenceColumnPartition<AminoAcid>>(
+         sequence_name
+      );
+   if (maybe_sequence_column_metadata == std::nullopt) {
+      SPDLOG_ERROR(
+         "The database table {} does not contain the nucleotide sequence column {}",
+         table_name,
+         sequence_name
+      );
+      return {};
+   }
+
+   const auto& sequence_column_metadata = maybe_sequence_column_metadata.value();
+
+   return symbolVectorToString<AminoAcid>(sequence_column_metadata->reference_sequence);
+}
+
+roaring::Roaring Database::getFilteredBitmap(
+   const std::string& table_name,
+   const std::string& filter
+) {
+   nlohmann::json filter_json = nlohmann::json::parse(filter);
+   std::unique_ptr<Expression> filter_expression = filter_json;
+   auto maybe_table = tables.find(schema::TableName{table_name});
+   if (maybe_table == tables.end()) {
+      SPDLOG_ERROR("The database does not contain the table {}", table_name);
+      return {};
+   }
+   auto table = maybe_table->second;
+   if (table->getNumberOfPartitions() == 0) {
+      SPDLOG_WARN("The table is empty");
+      return {};
+   }
+   if (table->getNumberOfPartitions() > 1) {
+      SPDLOG_ERROR(
+         "The table should not contain more than one partition (actual: {}), internal error.",
+         table->getNumberOfPartitions()
+      );
+      return {};
+   }
+   auto rewritten_filter_expression =
+      filter_expression->rewrite(*table, *table->getPartition(0), Expression::AmbiguityMode::NONE);
+   auto filter_operator = rewritten_filter_expression->compile(*table, *table->getPartition(0));
+   roaring::Roaring bitmap = filter_operator->evaluate().getConstReference();
+   return bitmap;
+}
+
+template <typename SymbolType>
+std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentMutations(
+   const std::string& table_name,
+   const std::string& sequence_name,
+   double prevalence_threshold,
+   const std::string& filter
+) const {
+   using SymbolMutations = silo::query_engine::actions::Mutations<SymbolType>;
+
+   nlohmann::json filter_json = nlohmann::json::parse(filter);
+   std::unique_ptr<Expression> filter_expression = filter_json;
+   std::unique_ptr<Action> action = std::make_unique<SymbolMutations>(
+      std::vector<std::string>{sequence_name},
+      prevalence_threshold,
+      std::vector<std::string_view>{
+         SymbolMutations::COUNT_FIELD_NAME, SymbolMutations::MUTATION_FIELD_NAME
+      }
+   );
+
+   auto query =
+      Query(schema::TableName{table_name}, std::move(filter_expression), std::move(action));
+   auto query_plan = createQueryPlan(query, config::QueryOptions{}, "getPrevalentMutations");
+   std::stringstream result_stream;
+   query_plan.executeAndWrite(&result_stream, /*timeout_in_seconds=*/100);
+
+   std::vector<std::pair<uint64_t, std::string>> result;
+   std::string json_line;
+   while (result_stream >> json_line) {
+      auto line = nlohmann::json::parse(json_line);
+      SILO_ASSERT(line.contains(SymbolMutations::COUNT_FIELD_NAME));
+      uint64_t count = line[SymbolMutations::COUNT_FIELD_NAME].template get<uint64_t>();
+      SILO_ASSERT(line.contains(SymbolMutations::MUTATION_FIELD_NAME));
+      std::string mutation = line[SymbolMutations::MUTATION_FIELD_NAME].template get<std::string>();
+      result.emplace_back(count, mutation);
+   }
+   return result;
+}
+
+std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentNucMutations(
+   const std::string& table_name,
+   const std::string& sequence_name,
+   double prevalence_threshold,
+   const std::string& filter
+) const {
+   return getPrevalentMutations<Nucleotide>(
+      table_name, sequence_name, prevalence_threshold, filter
+   );
+}
+
+std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentAminoAcidMutations(
+   const std::string& table_name,
+   const std::string& sequence_name,
+   double prevalence_threshold,
+   const std::string& filter
+) const {
+   return getPrevalentMutations<AminoAcid>(table_name, sequence_name, prevalence_threshold, filter);
 }
 
 namespace {
@@ -150,6 +454,17 @@ DataVersion loadDataVersion(const std::filesystem::path& filename) {
    return data_version.value();
 }
 }  // namespace
+
+std::optional<Database> Database::loadDatabaseStateFromPath(
+   const std::filesystem::path& save_directory
+) {
+   SiloDirectory silo_directory{save_directory};
+   auto silo_data_source = silo_directory.getMostRecentDataDirectory();
+   if (silo_data_source.has_value()) {
+      return loadDatabaseState(silo_data_source.value());
+   }
+   return std::nullopt;
+}
 
 Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_source) {
    SPDLOG_INFO("Loading database from data source: {}", silo_data_source.toDebugString());

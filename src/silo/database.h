@@ -30,11 +30,71 @@ class Database {
 
    void createTable(schema::TableName table_name, silo::schema::TableSchema table_schema);
 
-   void appendData(schema::TableName table_name, std::istream& input_stream);
+   void appendData(const schema::TableName& table_name, std::istream& input_stream);
 
    void query(query_engine::Query query);
 
+   void createNucleotideSequenceTable(
+      const std::string& table_name,
+      const std::string& primary_key_name,
+      const std::string& sequence_name,
+      const std::string& reference_sequence,
+      const std::vector<std::string>& extra_string_columns = {}
+   );
+
+   void createGeneTable(
+      const std::string& table_name,
+      const std::string& primary_key_name,
+      const std::string& sequence_name,
+      const std::string& reference_sequence,
+      const std::vector<std::string>& extra_string_columns = {}
+   );
+
+   void appendDataFromFile(const std::string& table_name, const std::string& file_name);
+
+   void appendDataFromString(const std::string& table_name, std::string json_string);
+
+   void printAllData(const std::string& table_name) const;
+
+   std::string getNucleotideReferenceSequence(
+      const std::string& table_name,
+      const std::string& sequence_name
+   );
+
+   std::string getAminoAcidReferenceSequence(
+      const std::string& table_name,
+      const std::string& sequence_name
+   );
+
+   roaring::Roaring getFilteredBitmap(const std::string& table_name, const std::string& filter);
+
+   template <typename SymbolType>
+   [[nodiscard]] std::vector<std::pair<uint64_t, std::string>> getPrevalentMutations(
+      const std::string& table_name,
+      const std::string& sequence_name,
+      double prevalence_threshold,
+      const std::string& filter
+   ) const;
+
+   [[nodiscard]] std::vector<std::pair<uint64_t, std::string>> getPrevalentNucMutations(
+      const std::string& table_name,
+      const std::string& sequence_name,
+      double prevalence_threshold,
+      const std::string& filter
+   ) const;
+
+   [[nodiscard]] std::vector<std::pair<uint64_t, std::string>> getPrevalentAminoAcidMutations(
+      const std::string& table_name,
+      const std::string& sequence_name,
+      double prevalence_threshold,
+      const std::string& filter
+   ) const;
+
    void saveDatabaseState(const std::filesystem::path& save_directory);
+
+   static std::optional<Database> loadDatabaseStateFromPath(
+      const std::filesystem::path& save_directory
+   );
 
    static Database loadDatabaseState(const silo::SiloDataSource& silo_data_source);
 
