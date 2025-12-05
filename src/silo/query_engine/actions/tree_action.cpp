@@ -59,8 +59,8 @@ NodeValuesResponse TreeAction::getNodeValues(
    uint32_t num_empty = 0;
    all_tree_node_ids.reserve(num_rows);
    for (size_t i = 0; i < table.getNumberOfPartitions(); ++i) {
-      const storage::TablePartition& table_partition = table.getPartition(i);
-      const auto& string_column = table_partition.columns.string_columns.at(column_name);
+      auto table_partition = table.getPartition(i);
+      const auto& string_column = table_partition->columns.string_columns.at(column_name);
 
       CopyOnWriteBitmap& filter = bitmap_filter[i];
       const size_t cardinality = filter.getConstReference().cardinality();

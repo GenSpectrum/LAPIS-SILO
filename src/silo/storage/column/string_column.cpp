@@ -34,7 +34,7 @@ void StringColumnPartition::insert(std::string_view value) {
       }
       if (child_it->second->rowIndexExists()) {
          throw silo::initialize::InitializeException(
-            fmt::format("Node '{}' already exists in the phylogenetic tree.", value)
+            "Node '{}' already exists in the phylogenetic tree.", value
          );
       }
       child_it->second->row_index = row_id;

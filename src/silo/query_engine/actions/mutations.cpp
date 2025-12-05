@@ -55,15 +55,15 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
    ) {
    std::unordered_map<std::string, PrefilteredBitmaps> bitmaps_to_evaluate;
    for (size_t i = 0; i < table.getNumberOfPartitions(); ++i) {
-      const storage::TablePartition& table_partition = table.getPartition(i);
+      auto table_partition = table.getPartition(i);
       CopyOnWriteBitmap& filter = bitmap_filter[i];
       const size_t cardinality = filter.getConstReference().cardinality();
       if (cardinality == 0) {
          continue;
       }
-      if (cardinality == table_partition.sequence_count) {
+      if (cardinality == table_partition->sequence_count) {
          for (const auto& [sequence_name, sequence_store] :
-              table_partition.columns.getColumns<typename SymbolType::Column>()) {
+              table_partition->columns.getColumns<typename SymbolType::Column>()) {
             bitmaps_to_evaluate[sequence_name].full_bitmaps.emplace_back(
                cardinality, sequence_store
             );
@@ -73,7 +73,7 @@ std::unordered_map<std::string, typename Mutations<SymbolType>::PrefilteredBitma
             filter.getMutable().runOptimize();
          }
          for (const auto& [sequence_name, sequence_store] :
-              table_partition.columns.getColumns<typename SymbolType::Column>()) {
+              table_partition->columns.getColumns<typename SymbolType::Column>()) {
             bitmaps_to_evaluate[sequence_name].bitmaps.emplace_back(filter, sequence_store);
          }
       }

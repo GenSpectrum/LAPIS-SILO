@@ -97,7 +97,7 @@ class Mutations : public Action {
 
   public:
    explicit Mutations(
-      std::vector<std::string>&& sequence_names,
+      std::vector<std::string>&& aa_sequence_names,
       double min_proportion,
       std::vector<std::string_view>&& fields
    );

@@ -13,6 +13,8 @@
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
+#include "silo/query_engine/actions/aggregated.h"
+#include "silo/query_engine/filter/expressions/true.h"
 #include "silo/storage/reference_genomes.h"
 
 using silo::config::PreprocessingConfig;
@@ -46,14 +48,16 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
       phylo_tree_file = silo::common::PhyloTree::fromFile(opt_path.value());
    }
 
-   auto database = std::make_shared<silo::Database>(
-      silo::Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
+   auto database = std::make_shared<silo::Database>();
+   database->createTable(
+      silo::schema::TableName::getDefault(),
+      silo::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
          reference_genomes,
          lineage_trees,
          phylo_tree_file,
          /*without_unaligned_sequences=*/false
-      )}
+      )
    );
    std::ifstream input(input_directory / "input.ndjson");
    auto input_data_stream = silo::append::NdjsonLineReader{input};
@@ -119,4 +123,63 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
 
    EXPECT_EQ(database_info_after_append.sequence_count, 7);
    EXPECT_GT(data_version_after_append, data_version);
+}
+
+using silo::Nucleotide;
+using silo::query_engine::Query;
+using silo::query_engine::actions::Aggregated;
+using silo::query_engine::filter::expressions::True;
+using silo::schema::ColumnIdentifier;
+using silo::schema::ColumnType;
+using silo::schema::TableSchema;
+using silo::storage::column::ColumnMetadata;
+using silo::storage::column::SequenceColumnMetadata;
+using silo::storage::column::StringColumnMetadata;
+
+TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
+   silo::Database database;
+   ColumnIdentifier primary_key{"key", ColumnType::STRING};
+   ColumnIdentifier sequence_column{"sequence", ColumnType::NUCLEOTIDE_SEQUENCE};
+   std::vector<Nucleotide::Symbol> reference_sequence{
+      Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
+   };
+
+   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
+      {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
+      {sequence_column,
+       std::make_shared<SequenceColumnMetadata<Nucleotide>>(
+          sequence_column.name, std::move(reference_sequence)
+       )},
+   };
+   silo::schema::TableName first_table_name{"first"};
+   database.createTable(first_table_name, TableSchema(column_metadata, primary_key));
+
+   std::ifstream first_table_data{"testBaseData/example.ndjson"};
+   database.appendData(first_table_name, first_table_data);
+
+   Query aggregated_all_query(
+      first_table_name,
+      std::make_unique<True>(),
+      std::make_unique<Aggregated>(std::vector<std::string>{})
+   );
+   auto query_plan_1 =
+      database.createQueryPlan(aggregated_all_query, silo::config::QueryOptions{}, "test_query_1");
+   std::stringstream result;
+   query_plan_1.executeAndWrite(&result, 100);
+   ASSERT_EQ(result.str(), "{\"count\":20}\n");
+
+   silo::schema::TableName second_table_name{"second"};
+   database.createTable(second_table_name, TableSchema(column_metadata, primary_key));
+
+   std::stringstream second_table_data;
+   second_table_data
+      << "{\"key\":\"id_1\",\"sequence\":{\"sequence\":\"AAAA\",\"insertions\":[],\"offset\":0}}";
+   database.appendData(second_table_name, second_table_data);
+
+   aggregated_all_query.table_name = second_table_name;
+   auto query_plan_2 =
+      database.createQueryPlan(aggregated_all_query, silo::config::QueryOptions{}, "test_query_2");
+   std::stringstream result_2;
+   query_plan_2.executeAndWrite(&result_2, 100);
+   ASSERT_EQ(result_2.str(), "{\"count\":1}\n");
 }

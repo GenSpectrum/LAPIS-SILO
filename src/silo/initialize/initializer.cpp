@@ -17,7 +17,11 @@
 
 namespace silo::initialize {
 
-Database Initializer::initializeDatabase(const config::InitializationFiles& initialization_files) {
+void Initializer::createTableInDatabase(
+   schema::TableName table_name,
+   const config::InitializationFiles& initialization_files,
+   Database& database
+) {
    EVOBENCH_SCOPE("Initializer", "initializeDatabase");
    std::map<std::filesystem::path, common::LineageTreeAndIdMap> lineage_trees;
    for (const auto& filename : initialization_files.getLineageDefinitionFilenames()) {
@@ -35,14 +39,14 @@ Database Initializer::initializeDatabase(const config::InitializationFiles& init
       initialization_files.getDatabaseConfigFilename()
    );
 
-   silo::schema::DatabaseSchema schema = createSchemaFromConfigFiles(
+   schema::TableSchema table_schema = createSchemaFromConfigFiles(
       validated_config,
       ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilename()),
       lineage_trees,
       phylo_tree_file,
       initialization_files.without_unaligned_sequences
    );
-   return Database{schema};
+   database.createTable(std::move(table_name), table_schema);
 }
 
 struct ColumnMetadataInitializer {
@@ -232,7 +236,7 @@ const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
 
 }  // namespace
 
-silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
+silo::schema::TableSchema Initializer::createSchemaFromConfigFiles(
    config::DatabaseConfig database_config,
    ReferenceGenomes reference_genomes,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
@@ -318,7 +322,7 @@ silo::schema::DatabaseSchema Initializer::createSchemaFromConfigFiles(
          .type = schema::ColumnType::AMINO_ACID_SEQUENCE
       };
    }
-   return silo::schema::DatabaseSchema{.tables = {{schema::TableName{"default"}, table_schema}}};
+   return table_schema;
 }
 
 std::optional<common::LineageTreeAndIdMap> Initializer::findLineageTreeForName(

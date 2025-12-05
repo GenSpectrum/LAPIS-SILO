@@ -31,15 +31,15 @@ schema:
 
    silo::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
 
-   return std::make_shared<silo::Database>(
-      silo::Database{silo::initialize::Initializer::createSchemaFromConfigFiles(
-         std::move(database_config),
-         std::move(reference_genomes),
-         {},
-         silo::common::PhyloTree{},
-         /*without_unaligned_sequences=*/true
-      )}
-   );
+   auto database = std::make_shared<silo::Database>();
+   database->createTable(silo::schema::TableName::getDefault(), silo::initialize::Initializer::createSchemaFromConfigFiles(
+      std::move(database_config),
+      std::move(reference_genomes),
+      {},
+      silo::common::PhyloTree{},
+      /*without_unaligned_sequences=*/true
+   ));
+   return database;
 }
 
 size_t current_id = 0;
@@ -114,7 +114,7 @@ void executeMutationsAllQuery(std::shared_ptr<Database> database){
 
    Query query{std::make_unique<True>(), std::make_unique<Mutations<Nucleotide>>(std::vector<std::string>{"main"}, 0.05, std::move(all_fields))};
 
-   auto query_plan = query.toQueryPlan(std::move(database), {}, "test_query");
+   auto query_plan = database->createQueryPlan(query, {}, "test_query");
    std::stringstream result;
    query_plan.executeAndWrite(&result, /*timeout_in_seconds=*/3);
    printClipped(result.str());
@@ -125,7 +125,7 @@ void executeMutationsAlmostAllQuery(std::shared_ptr<Database> database){
 
    Query query{std::make_unique<Negation>(std::make_unique<StringEquals>("key", "3")), std::make_unique<Mutations<Nucleotide>>(std::vector<std::string>{"main"}, 0.05, std::move(all_fields))};
 
-   auto query_plan = query.toQueryPlan(std::move(database), {}, "test_query");
+   auto query_plan = database->createQueryPlan(query, {}, "test_query");
    std::stringstream result;
    query_plan.executeAndWrite(&result, /*timeout_in_seconds=*/3);
    printClipped(result.str());

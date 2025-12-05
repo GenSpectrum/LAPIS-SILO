@@ -6,6 +6,7 @@
 #include <ranges>
 #include <vector>
 
+#include <spdlog/spdlog.h>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_member.hpp>
 
@@ -112,24 +113,16 @@ class TableSchema {
    }
 
    template <storage::column::Column ColumnType>
-   std::optional<typename ColumnType::Metadata*> getColumnMetadata(std::string_view name) {
-      auto iter = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
-         return metadata_pair.first.name == name;
-      });
-      if (iter == column_metadata.end() || iter->first.type != ColumnType::TYPE) {
-         return std::nullopt;
-      }
-      auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(iter->second.get());
-      SILO_ASSERT(typed_metadata != nullptr);
-      return typed_metadata;
-   }
-
-   template <storage::column::Column ColumnType>
    std::optional<typename ColumnType::Metadata*> getColumnMetadata(std::string_view name) const {
       auto iter = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
          return metadata_pair.first.name == name;
       });
       if (iter == column_metadata.end() || iter->first.type != ColumnType::TYPE) {
+         SPDLOG_INFO(
+            "Mismatching type found: expected {} vs actual {}",
+            columnTypeToString(ColumnType::TYPE),
+            columnTypeToString(iter->first.type)
+         );
          return std::nullopt;
       }
       auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(iter->second.get());
@@ -163,6 +156,7 @@ class TableName {
 
    static const TableName& getDefault();
 
+   bool operator==(const TableName& other) const { return name == other.name; }
    bool operator<(const TableName& other) const { return name < other.name; }
 
    TableName() = default;

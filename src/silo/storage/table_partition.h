@@ -28,6 +28,12 @@ class TablePartition {
 
    explicit TablePartition(schema::TableSchema& schema);
 
+   TablePartition(TablePartition&& other) = default;
+   TablePartition& operator=(TablePartition&& other) = default;
+
+   TablePartition(const TablePartition& other) = delete;
+   TablePartition& operator=(const TablePartition& other) = delete;
+
    void validate() const;
 
    void finalize();

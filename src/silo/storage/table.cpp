@@ -56,8 +56,8 @@ void Table::validatePrimaryKeyUnique() const {
    SPDLOG_DEBUG("Found {} distinct primary keys.", unique_keys.size());
 }
 
-const TablePartition& Table::getPartition(size_t partition_idx) const {
-   return *partitions.at(partition_idx);
+std::shared_ptr<TablePartition> Table::getPartition(size_t partition_idx) const {
+   return partitions.at(partition_idx);
 }
 
 std::shared_ptr<storage::TablePartition> Table::addPartition() {

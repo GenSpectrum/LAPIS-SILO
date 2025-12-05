@@ -4,7 +4,6 @@
 #include <string>
 
 #include "silo/config/runtime_config.h"
-#include "silo/database.h"
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 
@@ -13,20 +12,23 @@ namespace silo::query_engine {
 using filter::expressions::Expression;
 
 struct Query {
+   schema::TableName table_name;
    std::unique_ptr<Expression> filter;
    std::unique_ptr<actions::Action> action;
 
-   explicit Query(std::unique_ptr<Expression> filter, std::unique_ptr<actions::Action> action)
-       : filter(std::move(filter)),
+   explicit Query(
+      schema::TableName table_name,
+      std::unique_ptr<Expression> filter,
+      std::unique_ptr<actions::Action> action
+   )
+       : table_name(std::move(table_name)),
+         filter(std::move(filter)),
          action(std::move(action)) {}
 
-   static std::shared_ptr<Query> parseQuery(const std::string& query_string);
+   explicit Query(std::unique_ptr<Expression> filter, std::unique_ptr<actions::Action> action)
+       : Query(schema::TableName::getDefault(), std::move(filter), std::move(action)) {}
 
-   [[nodiscard]] QueryPlan toQueryPlan(
-      const std::shared_ptr<silo::Database>& database,
-      const config::QueryOptions& query_options,
-      std::string_view request_id
-   ) const;
+   static std::shared_ptr<Query> parseQuery(const std::string& query_string);
 };
 
 }  // namespace silo::query_engine

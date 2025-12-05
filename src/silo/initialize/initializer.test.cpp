@@ -38,16 +38,14 @@ A.11:
 )")
        )}
    };
-   auto schema = Initializer::createSchemaFromConfigFiles(
+   auto table_schema = Initializer::createSchemaFromConfigFiles(
       database_config,
       reference_genomes,
       lineage_trees,
       phylo_tree_file,
       /*without_unaligned_sequences=*/false
    );
-   const auto& table_schema = schema.getDefaultTableSchema();
 
-   ASSERT_EQ(schema.tables.size(), 1);
    const size_t expected_number_of_columns =
       database_config.schema.metadata.size() + reference_genomes.aa_sequence_names.size() +
       (reference_genomes.nucleotide_sequence_names.size() * 2);

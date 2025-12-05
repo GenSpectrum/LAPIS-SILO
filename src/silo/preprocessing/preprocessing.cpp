@@ -13,8 +13,10 @@ namespace silo::preprocessing {
 Database preprocessing(const config::PreprocessingConfig& preprocessing_config) {
    try {
       SPDLOG_INFO("preprocessing - initializing Database");
-      auto database =
-         initialize::Initializer::initializeDatabase(preprocessing_config.initialization_files);
+      Database database;
+      initialize::Initializer::createTableInDatabase(
+         schema::TableName::getDefault(), preprocessing_config.initialization_files, database
+      );
 
       SPDLOG_INFO("preprocessing - successfully initialized Database, now opening input");
       auto input = InputStreamWrapper::openFileOrStdIn(preprocessing_config.getInputFilePath());

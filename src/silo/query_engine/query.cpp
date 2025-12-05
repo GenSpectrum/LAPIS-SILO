@@ -31,41 +31,4 @@ std::shared_ptr<Query> Query::parseQuery(const std::string& query_string) {
    }
 }
 
-QueryPlan Query::toQueryPlan(
-   const std::shared_ptr<Database>& database,
-   const config::QueryOptions& query_options,
-   std::string_view request_id
-) const {
-   SPDLOG_DEBUG("Request Id [{}] - Parsed filter: {}", request_id, filter->toString());
-
-   std::vector<CopyOnWriteBitmap> partition_filters;
-   partition_filters.reserve(database->table->getNumberOfPartitions());
-   for (size_t partition_index = 0; partition_index < database->table->getNumberOfPartitions();
-        partition_index++) {
-      auto filter_after_rewrite = filter->rewrite(
-         *database->table,
-         database->table->getPartition(partition_index),
-         Expression::AmbiguityMode::NONE
-      );
-      SPDLOG_DEBUG(
-         "Request Id [{}] - Filter after rewrite for partition {}: {}",
-         request_id,
-         partition_index,
-         filter_after_rewrite->toString()
-      );
-      auto filter_operator = filter_after_rewrite->compile(
-         *database->table, database->table->getPartition(partition_index)
-      );
-      SPDLOG_DEBUG(
-         "Request Id [{}] - Filter operator tree for partition {}: {}",
-         request_id,
-         partition_index,
-         filter_operator->toString()
-      );
-      partition_filters.emplace_back(filter_operator->evaluate());
-   };
-
-   return action->toQueryPlan(database->table, partition_filters, query_options, request_id);
-}
-
 }  // namespace silo::query_engine

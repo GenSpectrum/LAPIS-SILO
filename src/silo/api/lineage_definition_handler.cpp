@@ -27,7 +27,22 @@ void LineageDefinitionHandler::get(
 
    response.set("data-version", database->getDataVersionTimestamp().value);
 
-   auto column_identifier = database->table->schema.getColumn(column_name);
+   schema::TableName table_name = schema::TableName::getDefault();
+
+   auto table = database->tables.find(table_name);
+   if (table == database->tables.end()) {
+      response.setContentType("application/json");
+      response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
+      std::ostream& out_stream = response.send();
+      out_stream << nlohmann::json(ErrorResponse{
+         .error = "Bad request",
+         .message =
+            fmt::format("The database does not contain a table with name {}", table_name.getName())
+      });
+      return;
+   }
+
+   auto column_identifier = table->second->schema.getColumn(column_name);
    if (column_identifier == std::nullopt) {
       response.setContentType("application/json");
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
@@ -49,7 +64,7 @@ void LineageDefinitionHandler::get(
       return;
    }
    auto* metadata =
-      database->table->schema
+      table->second->schema
          .getColumnMetadata<storage::column::IndexedStringColumnPartition>(column_name)
          .value();
    if (!metadata->lineage_tree.has_value()) {

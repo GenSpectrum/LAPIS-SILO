@@ -84,10 +84,10 @@ InsertionAggregation<SymbolType>::preFilterBitmaps(
 ) {
    std::unordered_map<std::string, PrefilteredBitmaps> pre_filtered_bitmaps;
    for (size_t i = 0; i < table.getNumberOfPartitions(); ++i) {
-      const storage::TablePartition& table_partition = table.getPartition(i);
+      auto table_partition = table.getPartition(i);
 
       for (auto& [sequence_name, sequence_column] :
-           table_partition.columns.getColumns<typename SymbolType::Column>()) {
+           table_partition->columns.getColumns<typename SymbolType::Column>()) {
          if (sequence_names.empty() ||
              std::ranges::find(sequence_names, sequence_name) != sequence_names.end()) {
             CopyOnWriteBitmap& filter = bitmap_filter[i];
@@ -95,7 +95,7 @@ InsertionAggregation<SymbolType>::preFilterBitmaps(
             if (cardinality == 0) {
                continue;
             }
-            if (cardinality == table_partition.sequence_count) {
+            if (cardinality == table_partition->sequence_count) {
                pre_filtered_bitmaps[sequence_name].full_bitmaps.emplace_back(
                   cardinality, sequence_column.insertion_index
                );
