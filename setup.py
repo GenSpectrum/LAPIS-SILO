@@ -4,6 +4,7 @@ from setuptools.command.build_ext import build_ext
 import os
 import sys
 import subprocess
+import shutil
 from pathlib import Path
 
 class CMakeBuildExt(build_ext):
@@ -12,6 +13,8 @@ class CMakeBuildExt(build_ext):
     def run(self):
         # Run CMake to build everything
         self._run_cmake()
+        # Copy .so files to package directory
+        self._copy_extensions()
         # Don't call parent run() - CMake already built the extensions
 
     def _run_cmake(self):
@@ -64,6 +67,31 @@ class CMakeBuildExt(build_ext):
                 print(f"-- Warning: Failed to build {module}: {e}")
         print("-- Finished building Python extension modules")
 
+    def _copy_extensions(self):
+        """Copy built .so files to the build lib directory for installation"""
+        source_dir = Path(__file__).parent.absolute()
+        cmake_build_dir = source_dir / "build" / "Debug" / "python" / "pysilo"
+
+        # Get the build lib directory from setuptools
+        build_lib = Path(self.build_lib) / "pysilo"
+        build_lib.mkdir(parents=True, exist_ok=True)
+
+        print(f"-- Copying extension modules to {build_lib}")
+        for module in ['column_type', 'column_identifier', 'database']:
+            for ext in ['.so', '.pyd']:
+                so_file = cmake_build_dir / f"{module}{ext}"
+                if so_file.exists():
+                    dest_file = build_lib / f"{module}{ext}"
+                    print(f"-- Copying {so_file} to {dest_file}")
+                    shutil.copy2(so_file, dest_file)
+
+        # Also copy libsilolib.so to the package directory
+        silolib = source_dir / "build" / "Debug" / "libsilolib.so"
+        if silolib.exists():
+            dest_lib = build_lib / "libsilolib.so"
+            print(f"-- Copying {silolib} to {dest_lib}")
+            shutil.copy2(silolib, dest_lib)
+
     def get_outputs(self):
         """Return list of built extension files"""
         # Return the .so files that CMake built
@@ -83,6 +111,9 @@ setup(
     version="0.1.0",
     packages=["pysilo"],
     package_dir={"pysilo": "python/pysilo"},
+    package_data={
+        "pysilo": ["*.so", "*.pyd"],  # Include compiled extension modules
+    },
     # Dummy extension to trigger build_ext
     ext_modules=[Extension("pysilo.__dummy__", sources=[])],
     cmdclass={

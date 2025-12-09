@@ -2,7 +2,7 @@
 from libcpp.string cimport string
 from column_identifier cimport ColumnIdentifier as CppColumnIdentifier
 from column_type cimport ColumnType as CppColumnType
-import column_type
+from . import column_type
 
 # Inline helper functions
 cdef CppColumnType py_to_cpp_column_type(column_type):
