@@ -2,15 +2,28 @@
 from libcpp.string cimport string
 from column_identifier cimport ColumnIdentifier as CppColumnIdentifier
 from column_type cimport ColumnType as CppColumnType
-from column_type import ColumnType
-# Import the helper functions from column_type.pyx
-from column_type cimport to_cpp_column_type, from_cpp_column_type
+import column_type
 
+# Inline helper functions
+cdef CppColumnType py_to_cpp_column_type(column_type):
+    """Convert Python ColumnType to C++ ColumnType"""
+    if isinstance(column_type, int):
+        return <CppColumnType>column_type
+    elif isinstance(column_type, column_type.ColumnType):
+        return <CppColumnType>column_type.value
+    else:
+        raise TypeError(f"Expected ColumnType or int, got {type(column_type)}")
+
+cdef object cpp_to_py_column_type(CppColumnType cpp_type):
+    """Convert C++ ColumnType to Python ColumnType"""
+    return column_type.ColumnType(<int>cpp_type)
+
+# Python wrapper class - use a different name!
 cdef class PyColumnIdentifier:
     """Python wrapper for C++ ColumnIdentifier"""
     cdef CppColumnIdentifier c_identifier
     
-    def __init__(self, str name, column_type):
+    def __init__(self, str name, col_type):
         """
         Create a ColumnIdentifier
         
@@ -18,11 +31,11 @@ cdef class PyColumnIdentifier:
         ----------
         name : str
             Column name
-        column_type : ColumnType or int
+        col_type : ColumnType or int
             Column type
         """
         cdef string cpp_name = name.encode('utf-8')
-        cdef CppColumnType cpp_type = to_cpp_column_type(column_type)
+        cdef CppColumnType cpp_type = py_to_cpp_column_type(col_type)
         self.c_identifier = CppColumnIdentifier(cpp_name, cpp_type)
     
     @property
@@ -36,14 +49,14 @@ cdef class PyColumnIdentifier:
         self.c_identifier.name = value.encode('utf-8')
     
     @property
-    def type(self) -> ColumnType:
+    def type(self):
         """Get the column type"""
-        return from_cpp_column_type(self.c_identifier.type)
+        return cpp_to_py_column_type(self.c_identifier.type)
     
     @type.setter
-    def type(self, column_type):
+    def type(self, col_type):
         """Set the column type"""
-        self.c_identifier.type = to_cpp_column_type(column_type)
+        self.c_identifier.type = py_to_cpp_column_type(col_type)
     
     def __eq__(self, PyColumnIdentifier other):
         """Check equality"""
@@ -61,6 +74,3 @@ cdef class PyColumnIdentifier:
     
     def __repr__(self):
         return f"ColumnIdentifier(name='{self.name}', type={self.type.name})"
-
-# Alias for convenience
-ColumnIdentifier = PyColumnIdentifier

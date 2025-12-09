@@ -1,83 +1,89 @@
+# python/pysilo/database.pyx
 from libcpp.string cimport string
 from libcpp.vector cimport vector
 from database cimport Database as CppDatabase
 from column_identifier cimport ColumnIdentifier as CppColumnIdentifier
-from column_identifier import ColumnIdentifier
-from typing import List
+from column_identifier import PyColumnIdentifier
+import os
 
-cdef class Database:
-    """
-    Python wrapper for the C++ Database class.
-    
-    Provides methods to create tables and append data.
-    """
-    cdef CppDatabase* c_database  # Pointer to the C++ Database object
+cdef class PyDatabase:
+    """Python wrapper for C++ Database"""
+    cdef CppDatabase* c_database
     
     def __cinit__(self):
-        """Initialize the C++ Database object"""
         self.c_database = new CppDatabase()
     
     def __dealloc__(self):
-        """Clean up the C++ Database object"""
         if self.c_database != NULL:
             del self.c_database
     
     def create_table(self, str table_name, list fields):
         """
-        Create a new table with specified columns.
+        Create a new table
         
         Parameters
         ----------
         table_name : str
-            Name of the table to create
+            Name of the table
         fields : list of ColumnIdentifier
-            List of column identifiers defining the table schema
-        
-        Examples
-        --------
-        >>> from your_module import Database, ColumnIdentifier, ColumnType
-        >>> db = Database()
-        >>> fields = [
-        ...     ColumnIdentifier("id", ColumnType.INT32),
-        ...     ColumnIdentifier("name", ColumnType.STRING),
-        ...     ColumnIdentifier("age", ColumnType.INT32)
-        ... ]
-        >>> db.create_table("users", fields)
+            List of column identifiers
         """
+        if not table_name or not table_name.strip():
+            raise ValueError("table_name cannot be empty")
+        
+        if not fields:
+            raise ValueError("fields list cannot be empty")
+        
         cdef string cpp_table_name = table_name.encode('utf-8')
         cdef vector[CppColumnIdentifier] cpp_fields
-        cdef ColumnIdentifier field
+        cdef PyColumnIdentifier field
         
-        # Convert Python list to C++ vector
-        for field in fields:
-            if not isinstance(field, ColumnIdentifier):
-                raise TypeError(f"Expected ColumnIdentifier, got {type(field)}")
+        for i, field in enumerate(fields):
+            if not isinstance(field, PyColumnIdentifier):
+                raise TypeError(
+                    f"Field at index {i} must be ColumnIdentifier, "
+                    f"got {type(field).__name__}"
+                )
             cpp_fields.push_back(field.c_identifier)
         
-        # Call the C++ method
-        self.c_database.createTable(cpp_table_name, cpp_fields)
+        try:
+            self.c_database.createTable(cpp_table_name, cpp_fields)
+        except Exception as e:
+            raise RuntimeError(f"Failed to create table '{table_name}': {e}")
     
     def append_data(self, str table_name, str file_name):
         """
-        Append data from a file to an existing table.
+        Append data from file to table
         
         Parameters
         ----------
         table_name : str
-            Name of the table to append data to
+            Name of the table
         file_name : str
-            Path to the file containing data to append
-        
-        Examples
-        --------
-        >>> db = Database()
-        >>> db.append_data("users", "/path/to/data.csv")
+            Path to data file
         """
+        if not table_name or not table_name.strip():
+            raise ValueError("table_name cannot be empty")
+        
+        if not file_name or not file_name.strip():
+            raise ValueError("file_name cannot be empty")
+        
+        if not os.path.exists(file_name):
+            raise FileNotFoundError(f"File not found: {file_name}")
+        
         cdef string cpp_table_name = table_name.encode('utf-8')
         cdef string cpp_file_name = file_name.encode('utf-8')
         
-        # Call the C++ method
-        self.c_database.appendData(cpp_table_name, cpp_file_name)
+        try:
+            self.c_database.appendData(cpp_table_name, cpp_file_name)
+        except Exception as e:
+            raise RuntimeError(f"Failed to append data: {e}")
     
     def __repr__(self):
         return "Database()"
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return False
