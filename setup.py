@@ -1,124 +1,161 @@
-# setup.py
-from setuptools import setup, Extension
-from setuptools.command.build_ext import build_ext
-import os
-import sys
-import subprocess
-import shutil
-from pathlib import Path
+#!/usr/bin/env python
 
-class CMakeBuildExt(build_ext):
-    """Custom build_ext that runs CMake to build extensions"""
+import contextlib
+import os
+import os.path
+from os.path import join as pjoin
+import sys
+import warnings
+
+# Use distutils to ensure compatibility across Python versions for sysconfig
+from distutils import sysconfig 
+
+from setuptools import setup, Extension, Distribution
+from Cython.Distutils import build_ext as _build_ext
+import Cython
+
+# Check Cython version requirement
+if Cython.__version__ < '3':
+    raise Exception(
+        'Please update your Cython version. Supported Cython >= 3')
+
+# --- Utility Functions ---
+
+ext_suffix = sysconfig.get_config_var('EXT_SUFFIX')
+
+@contextlib.contextmanager
+def changed_dir(dirname):
+    oldcwd = os.getcwd()
+    os.chdir(dirname)
+    try:
+        yield
+    finally:
+        os.chdir(oldcwd)
+
+# --- Custom build_ext Command ---
+
+class build_ext(_build_ext):
+
+    # Define custom options needed for CMake
+    user_options = ([
+        ('build-type=', None, 'build type (debug or release), default release'),
+    ] + _build_ext.user_options)
+
+    def initialize_options(self):
+        _build_ext.initialize_options(self)
 
     def run(self):
-        # Run CMake to build everything
+        # 1. Run CMake to configure, build, and install targets
         self._run_cmake()
-        # Copy .so files to package directory
-        self._copy_extensions()
-        # Don't call parent run() - CMake already built the extensions
+        
+        # 2. Let the parent class handle copying the installed files
+        # from the temporary install prefix to the final build/lib folder.
+        _build_ext.run(self)
 
     def _run_cmake(self):
-        """Run CMake to configure and build the project"""
-        source_dir = Path(__file__).parent.absolute()
-        build_dir = source_dir / "build" / "Debug"
+        """Run CMake to configure, build, and install the C++ targets."""
+        # The directory containing this setup.py
+        source = os.path.dirname(os.path.abspath(__file__))
 
-        # Create build directory if it doesn't exist
-        build_dir.mkdir(parents=True, exist_ok=True)
+        # Get setuptools build directories
+        build_cmd = self.get_finalized_command('build')
+        saved_cwd = os.getcwd()
+        build_temp = pjoin(saved_cwd, build_cmd.build_temp)
 
-        # Check if CMake has already been configured
-        cmake_cache = build_dir / "CMakeCache.txt"
-        if not cmake_cache.exists():
+        if not os.path.isdir(build_temp):
+            self.mkpath(build_temp)
+        
+        # Define the temporary install location for CMake (crucial)
+        install_prefix = pjoin(build_temp, "install") 
+
+        # Change to the build directory
+        with changed_dir(build_temp):
+            
+            # --- CONFIGURE ---
+            cmake_options = [
+                f'-DCMAKE_INSTALL_PREFIX={install_prefix}',
+                f'-DPYTHON_EXECUTABLE={sys.executable}',
+                # Your project-specific flag
+                '-DBUILD_PYTHON_BINDINGS=ON', 
+                f'-DCMAKE_BUILD_TYPE={self.build_type.upper()}'
+            ]
+            
             print("-- Running cmake to configure project")
-            # Configure with CMake
-            cmake_args = [
-                'cmake',
-                f'-S{source_dir}',
-                f'-B{build_dir}',
-                '-DBUILD_PYTHON_BINDINGS=ON',
-            ]
-            subprocess.check_call(cmake_args)
-            print("-- Finished cmake configuration")
-        else:
-            print("-- CMake already configured, skipping configuration")
+            self.spawn(['cmake'] + cmake_options + [source])
+            
+            # --- BUILD AND INSTALL (Consolidated) ---
+            print("-- Running cmake --build and install targets")
+            
+            # Build tool arguments (e.g., -j for parallel building)
+            build_tool_args = []
+            if sys.platform != 'win32':
+                build_tool_args.append('--')
+                parallel = str(os.cpu_count() or 1)
+                build_tool_args.append(f'-j{parallel}')
 
-        # Build the project
-        print("-- Running cmake --build")
-        build_args = [
-            'cmake',
-            '--build', str(build_dir),
-            '--target', 'silolib',
-            '-j', str(os.cpu_count() or 1)
-        ]
-        subprocess.check_call(build_args)
-        print("-- Finished cmake --build for silolib")
+            # Use the 'install' target to build and stage ALL targets (modules, libsilolib)
+            self.spawn(['cmake', 
+                        '--build', '.', 
+                        '--config', self.build_type, 
+                        '--target', 'install'] + build_tool_args)
+            
+            print(f"-- CMake install finished. Files staged in: {install_prefix}")
 
-        # Build Python modules
-        print("-- Building Python extension modules")
-        for module in ['column_type', 'column_identifier', 'database']:
-            module_args = [
-                'cmake',
-                '--build', str(build_dir),
-                '--target', module
-            ]
-            try:
-                subprocess.check_call(module_args)
-                print(f"-- Built {module} successfully")
-            except subprocess.CalledProcessError as e:
-                print(f"-- Warning: Failed to build {module}: {e}")
-        print("-- Finished building Python extension modules")
-
-    def _copy_extensions(self):
-        """Copy built .so files to the build lib directory for installation"""
-        source_dir = Path(__file__).parent.absolute()
-        cmake_build_dir = source_dir / "build" / "Debug" / "python" / "pysilo"
-
-        # Get the build lib directory from setuptools
-        build_lib = Path(self.build_lib) / "pysilo"
-        build_lib.mkdir(parents=True, exist_ok=True)
-
-        print(f"-- Copying extension modules to {build_lib}")
-        for module in ['column_type', 'column_identifier', 'database']:
-            for ext in ['.so', '.pyd']:
-                so_file = cmake_build_dir / f"{module}{ext}"
-                if so_file.exists():
-                    dest_file = build_lib / f"{module}{ext}"
-                    print(f"-- Copying {so_file} to {dest_file}")
-                    shutil.copy2(so_file, dest_file)
-
-        # Also copy libsilolib.so to the package directory
-        silolib = source_dir / "build" / "Debug" / "libsilolib.so"
-        if silolib.exists():
-            dest_lib = build_lib / "libsilolib.so"
-            print(f"-- Copying {silolib} to {dest_lib}")
-            shutil.copy2(silolib, dest_lib)
 
     def get_outputs(self):
-        """Return list of built extension files"""
-        # Return the .so files that CMake built
-        build_dir = Path(__file__).parent / "build" / "Debug" / "python" / "pysilo"
+        """Returns the list of built extension files (.so/.pyd)"""
+        # We rely on the install step to place files in the package directory
+        build_py = self.get_finalized_command('build_py')
+        build_dir = build_py.get_package_dir('pysilo')
+        
+        # Manually list expected module names
+        module_names = ['column_type', 'column_identifier', 'database']
+        
         outputs = []
-        if build_dir.exists():
-            for module in ['column_type', 'column_identifier', 'database']:
-                # Find the .so file (or .pyd on Windows)
-                for ext in ['.so', '.pyd']:
-                    so_file = build_dir / f"{module}{ext}"
-                    if so_file.exists():
-                        outputs.append(str(so_file))
+        for name in module_names:
+            # Construct the expected final path in the build directory
+            filename = name + ext_suffix
+            outputs.append(pjoin(build_dir, filename))
+            
+        # Add the core library (libsilolib.so) if it's installed alongside
+        outputs.append(pjoin(build_dir, "libsilolib" + ext_suffix))
+        
         return outputs
+
+    # The other methods like get_names, get_ext_generated_cpp_source, etc., 
+    # are removed as they are specific to Arrow's complex build tracking.
+
+# --- Distribution Setup ---
+
+class BinaryDistribution(Distribution):
+    """Custom distribution class to signal that this package has extension modules."""
+    def has_ext_modules(foo):
+        return True
+
 
 setup(
     name="pysilo",
     version="0.1.0",
     packages=["pysilo"],
     package_dir={"pysilo": "python/pysilo"},
+    
+    # Define package data so setuptools knows to include the compiled extensions
+    # and Cython headers in the final wheel/sdist.
     package_data={
-        "pysilo": ["*.so", "*.pyd"],  # Include compiled extension modules
+        "pysilo": [
+            "*.so", "*.pyd", # Compiled extensions
+            "*.pxd", "*.pyx", # Cython source headers (CRUCIAL FIX)
+            "libsilolib.so" # Core C++ library (MUST be installed by CMake)
+        ],
     },
-    # Dummy extension to trigger build_ext
-    ext_modules=[Extension("pysilo.__dummy__", sources=[])],
+    
+    distclass=BinaryDistribution,
+    # Dummy extension is mandatory to trigger the 'build_ext' command
+    ext_modules=[Extension('__dummy__', sources=[])],
     cmdclass={
-        'build_ext': CMakeBuildExt,
+        'build_ext': build_ext
     },
+    
     python_requires=">=3.8",
     install_requires=[
         "Cython>=3.0",
