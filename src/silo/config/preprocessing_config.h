@@ -6,7 +6,7 @@
 
 #include <fmt/format.h>
 
-#include "silo/config/initialize_config.h"
+#include "silo/config/create_table_config.h"
 
 namespace silo::config {
 

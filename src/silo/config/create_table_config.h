@@ -42,17 +42,18 @@ class InitializationFiles {
    );
 };
 
-class InitializeConfig {
+class CreateTableConfig {
    friend class PreprocessingConfig;
-   friend class fmt::formatter<silo::config::InitializeConfig>;
+   friend class fmt::formatter<silo::config::CreateTableConfig>;
 
-   InitializeConfig() = default;
+   CreateTableConfig() = default;
 
   public:
+   std::optional<std::string> table_name;
    InitializationFiles initialization_files;
    std::filesystem::path output_directory;
    /// Create PreprocessingConfig with all default values from the specification
-   static InitializeConfig withDefaults();
+   static CreateTableConfig withDefaults();
 
    static ConfigSpecification getConfigSpecification();
 
@@ -65,16 +66,16 @@ class InitializeConfig {
       const VerifiedConfigAttributes& env_source
    );
 
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE(InitializeConfig, initialization_files, output_directory);
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE(CreateTableConfig, initialization_files, output_directory);
 };
 
 }  // namespace silo::config
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::InitializeConfig>
+struct [[maybe_unused]] fmt::formatter<silo::config::CreateTableConfig>
     : fmt::formatter<std::string> {
    [[maybe_unused]] static auto format(
-      const silo::config::InitializeConfig& initialize_config,
+      const silo::config::CreateTableConfig& create_table_config,
       format_context& ctx
    ) -> decltype(ctx.out());
 };

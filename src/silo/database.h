@@ -29,6 +29,8 @@ class Database {
 
    void createTable(silo::schema::TableName table_name, silo::schema::TableSchema table_schema);
 
+   void appendData(std::string table_name, );
+
    void saveDatabaseState(const std::filesystem::path& save_directory);
 
    static Database loadDatabaseState(const silo::SiloDataSource& silo_data_source);

@@ -184,8 +184,6 @@ class DatabaseSchema {
 
    static DatabaseSchema loadFromFile(const std::filesystem::path& file_path);
    void saveToFile(const std::filesystem::path& file_path) const;
-
-   void addTable(TableName name, TableSchema schema);
 };
 
 }  // namespace silo::schema

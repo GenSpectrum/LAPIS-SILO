@@ -13,7 +13,7 @@
 #include "silo/common/panic.h"
 #include "silo/common/version.h"
 #include "silo/config/append_config.h"
-#include "silo/config/initialize_config.h"
+#include "silo/config/create_table_config.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/config/runtime_config.h"
 #include "silo/create_table/create_table.h"
@@ -24,14 +24,14 @@
 
 namespace {
 
-/// Does not throw exceptions
-int runInitializer(const silo::config::InitializeConfig& initialize_config) {
+int runCreateTable(const silo::config::CreateTableConfig& create_table_config) {
    EVOBENCH_SCOPE("top-level", "runInitializer");
    try {
-      auto database =
-         silo::create_table::Initializer::initializeDatabase(initialize_config.initialization_files
-         );
-      database.saveDatabaseState(initialize_config.output_directory);
+      auto database = std::make_shared<silo::Database>();
+      auto table_name = create_table_config.table_name.transform([](const auto& str){return
+                                                                                          silo::schema::TableName(str);}).value_or(silo::schema::TableName::getDefault());
+      silo::create_table::CreateTable::createTableInDatabase(table_name, create_table_config.initialization_files, *database);
+      database->saveDatabaseState(create_table_config.output_directory);
       return 0;
    } catch (const silo::create_table::CreateTableException& preprocessing_exception) {
       SPDLOG_ERROR("create_table - error: {}", preprocessing_exception.what());
@@ -61,7 +61,7 @@ int runApi(const silo::config::RuntimeConfig& runtime_config) {
    return server.runApi(runtime_config);
 }
 
-enum class ExecutionMode : uint8_t { INITIALIZE, APPEND, API, PREPROCESSING };
+enum class ExecutionMode : uint8_t { CREATE_TABLE, APPEND, API, PREPROCESSING };
 
 int mainWhichMayThrowExceptions(int argc, char** argv) {
    setupLogger();
@@ -78,7 +78,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    ExecutionMode mode;
    if (args.empty()) {
       std::cerr << program_name
-                << ": need 'preprocessing', 'initialize', 'append' or 'api' as the first program "
+                << ": need 'preprocessing', 'createTable', 'append' or 'api' as the first program "
                    "argument.\n";
       return 1;
    }
@@ -91,11 +91,11 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
       mode = ExecutionMode::APPEND;
    } else if (mode_argument == "api") {
       mode = ExecutionMode::API;
-   } else if (mode_argument == "initialize") {
-      mode = ExecutionMode::INITIALIZE;
+   } else if (mode_argument == "createTable") {
+      mode = ExecutionMode::CREATE_TABLE;
    } else {
       std::cerr << program_name
-                << ": need 'preprocessing', 'initialize', 'append' or 'api' as the first program "
+                << ": need 'preprocessing', 'createTable', 'append' or 'api' as the first program "
                    "argument, got '"
                 << mode_argument << "'\n";
       return 1;
@@ -130,16 +130,16 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
             },
             silo::config::getConfig<silo::config::PreprocessingConfig>(args, env_allow_list)
          );
-      case ExecutionMode::INITIALIZE:
+      case ExecutionMode::CREATE_TABLE:
          return std::visit(
             Overloaded{
-               [&](const silo::config::InitializeConfig& initialize_config) {
-                  SPDLOG_INFO("initialize_config = {}", initialize_config);
-                  return runInitializer(initialize_config);
+               [&](const silo::config::CreateTableConfig& create_table_config) {
+                  SPDLOG_INFO("create_table_config = {}", create_table_config);
+                  return runCreateTable(create_table_config);
                },
                [&](int32_t exit_code) { return exit_code; }
             },
-            silo::config::getConfig<silo::config::InitializeConfig>(args, env_allow_list)
+            silo::config::getConfig<silo::config::CreateTableConfig>(args, env_allow_list)
          );
       case ExecutionMode::APPEND:
          return std::visit(
@@ -170,6 +170,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
 }  // namespace
 
 int main(int argc, char** argv) {
+   std::cout << "Reached main()" << std::endl;
    try {
       return mainWhichMayThrowExceptions(argc, argv);
    } catch (const std::exception& error) {

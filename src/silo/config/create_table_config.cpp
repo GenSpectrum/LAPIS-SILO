@@ -1,4 +1,4 @@
-#include "silo/config/initialize_config.h"
+#include "silo/config/create_table_config.h"
 
 #include <filesystem>
 
@@ -14,8 +14,8 @@ using silo::config::YamlFile;
 // Using functions instead of global variables because of
 // initialization order issues.
 
-ConfigKeyPath initializeConfigOptionKey() {
-   return YamlFile::stringToConfigKeyPath("initializeConfig");
+ConfigKeyPath createTableConfigOptionKey() {
+   return YamlFile::stringToConfigKeyPath("createTableConfig");
 }
 ConfigKeyPath inputDirectoryOptionKey() {
    return YamlFile::stringToConfigKeyPath("inputDirectory");
@@ -43,12 +43,12 @@ ConfigKeyPath withoutUnalignedSequencesOptionKey() {
 namespace silo::config {
 
 // Specification of the fields in inputs to the PreprocessingConfig struct
-ConfigSpecification InitializeConfig::getConfigSpecification() {
+ConfigSpecification CreateTableConfig::getConfigSpecification() {
    return ConfigSpecification{
       .program_name = "silo initialize",
       .attribute_specifications{
          ConfigAttributeSpecification::createWithoutDefault(
-            initializeConfigOptionKey(),
+            createTableConfigOptionKey(),
             ConfigValueType::PATH,
             "The path to an initialize config that should be read before overwriting\n"
             "its values with environment variables and other CLI arguments."
@@ -93,13 +93,13 @@ ConfigSpecification InitializeConfig::getConfigSpecification() {
    };
 }
 
-InitializeConfig InitializeConfig::withDefaults() {
-   InitializeConfig result;
+CreateTableConfig CreateTableConfig::withDefaults() {
+   CreateTableConfig result;
    result.overwriteFrom(getConfigSpecification().getConfigSourceFromDefaults());
    return result;
 }
 
-void InitializeConfig::validate() const {}
+void CreateTableConfig::validate() const {}
 
 std::filesystem::path InitializationFiles::getDatabaseConfigFilename() const {
    return directory / database_config_file;
@@ -124,7 +124,7 @@ std::filesystem::path InitializationFiles::getReferenceGenomeFilename() const {
    return directory / reference_genome_file;
 }
 
-void InitializeConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
+void CreateTableConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
    if (auto var = config_source.getPath(inputDirectoryOptionKey())) {
       initialization_files.directory = var.value();
    }
@@ -148,12 +148,12 @@ void InitializeConfig::overwriteFrom(const VerifiedConfigAttributes& config_sour
    }
 }
 
-std::vector<std::filesystem::path> InitializeConfig::getConfigFilePaths(
+std::vector<std::filesystem::path> CreateTableConfig::getConfigFilePaths(
    const VerifiedCommandLineArguments& cmd_source,
    const VerifiedConfigAttributes& env_source
 ) {
    std::vector<std::filesystem::path> result;
-   auto runtime_config = getConfigFilePath(initializeConfigOptionKey(), cmd_source, env_source);
+   auto runtime_config = getConfigFilePath(createTableConfigOptionKey(), cmd_source, env_source);
    if (runtime_config.has_value()) {
       result.emplace_back(runtime_config.value());
    }
@@ -162,10 +162,10 @@ std::vector<std::filesystem::path> InitializeConfig::getConfigFilePaths(
 
 }  // namespace silo::config
 
-[[maybe_unused]] auto fmt::formatter<silo::config::InitializeConfig>::format(
-   const silo::config::InitializeConfig& initialize_config,
+[[maybe_unused]] auto fmt::formatter<silo::config::CreateTableConfig>::format(
+   const silo::config::CreateTableConfig& create_table_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   nlohmann::json json = initialize_config;
+   nlohmann::json json = create_table_config;
    return fmt::format_to(ctx.out(), "{}", json.dump());
 }

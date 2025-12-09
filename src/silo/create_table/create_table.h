@@ -2,8 +2,8 @@
 
 #include "silo/common/lineage_tree.h"
 #include "silo/common/phylo_tree.h"
+#include "silo/config/create_table_config.h"
 #include "silo/config/database_config.h"
-#include "silo/config/initialize_config.h"
 #include "silo/database.h"
 #include "silo/storage/reference_genomes.h"
 
