@@ -1,15 +1,9 @@
-# column_type.pyx
+# python/pysilo/column_type.pyx
 from enum import IntEnum
-
-# Import the C++ enum
 from column_type cimport ColumnType as CppColumnType
 
 class ColumnType(IntEnum):
-    """
-    Column type enumeration
-
-    Represents the different data types that can be stored in columns.
-    """
+    """Column type enumeration"""
     STRING = <int>CppColumnType.STRING
     INDEXED_STRING = <int>CppColumnType.INDEXED_STRING
     DATE = <int>CppColumnType.DATE
@@ -21,7 +15,7 @@ class ColumnType(IntEnum):
     ZSTD_COMPRESSED_STRING = <int>CppColumnType.ZSTD_COMPRESSED_STRING
     INT64 = <int>CppColumnType.INT64
 
-# Conversion helper functions
+# Helper functions - these go in .pyx not .pxd!
 cdef CppColumnType to_cpp_column_type(column_type):
     """Convert Python ColumnType to C++ ColumnType"""
     if isinstance(column_type, int):

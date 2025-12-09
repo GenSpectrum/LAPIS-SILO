@@ -1,5 +1,5 @@
-cdef extern from "silo/schema/column_type.h" namespace "silo::schema":
-    cdef enum class ColumnType(unsigned char):  # uint8_t = unsigned char
+cdef extern from "silo/schema/database_schema.h" namespace "silo::schema":
+    cdef enum class ColumnType(unsigned char):
         STRING
         INDEXED_STRING
         DATE

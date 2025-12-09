@@ -1,6 +1,8 @@
 /Data
 /silo
 
+.venv/
+
 .DS_Store
 
 /logs/
