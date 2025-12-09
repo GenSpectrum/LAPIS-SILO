@@ -10,3 +10,7 @@ cdef extern from "silo/schema/database_schema.h" namespace "silo::schema":
         ColumnType type
         bint operator<(const ColumnIdentifier& other)
         bint operator==(const ColumnIdentifier& other)
+
+# Python wrapper class declaration
+cdef class PyColumnIdentifier:
+    cdef ColumnIdentifier c_identifier

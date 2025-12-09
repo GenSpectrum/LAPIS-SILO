@@ -3,7 +3,7 @@ from libcpp.string cimport string
 from libcpp.vector cimport vector
 from database cimport Database as CppDatabase
 from column_identifier cimport ColumnIdentifier as CppColumnIdentifier
-from column_identifier import PyColumnIdentifier
+from column_identifier cimport PyColumnIdentifier
 import os
 
 cdef class PyDatabase:

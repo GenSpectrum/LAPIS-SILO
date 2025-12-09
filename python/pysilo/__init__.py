@@ -1,7 +1,7 @@
 # python/pysilo/__init__.py
 """PySilo - Python bindings for Silo"""
 
-from .column_type import ColumnType
+from .column_type import PyColumnType as ColumnType
 from .column_identifier import PyColumnIdentifier as ColumnIdentifier
 from .database import PyDatabase as Database
 

@@ -9,20 +9,19 @@ cdef CppColumnType py_to_cpp_column_type(column_type):
     """Convert Python ColumnType to C++ ColumnType"""
     if isinstance(column_type, int):
         return <CppColumnType>column_type
-    elif isinstance(column_type, column_type.ColumnType):
+    elif isinstance(column_type, column_type.PyColumnType):
         return <CppColumnType>column_type.value
     else:
         raise TypeError(f"Expected ColumnType or int, got {type(column_type)}")
 
 cdef object cpp_to_py_column_type(CppColumnType cpp_type):
     """Convert C++ ColumnType to Python ColumnType"""
-    return column_type.ColumnType(<int>cpp_type)
+    return column_type.PyColumnType(<int>cpp_type)
 
 # Python wrapper class - use a different name!
 cdef class PyColumnIdentifier:
     """Python wrapper for C++ ColumnIdentifier"""
-    cdef CppColumnIdentifier c_identifier
-    
+
     def __init__(self, str name, col_type):
         """
         Create a ColumnIdentifier
