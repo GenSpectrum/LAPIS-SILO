@@ -240,11 +240,19 @@ if(BUILD_PYTHON_BINDINGS)
         )
 
         # Install to Python package directory
+        # Note: CMAKE_INSTALL_PREFIX is set by setup.py to point to the pysilo directory
         install(TARGETS ${module}
-            LIBRARY DESTINATION python/pysilo
+            LIBRARY DESTINATION .
         )
-    endforeach()  
+    endforeach()
+
+    # Install Python package files
     install(FILES "${CMAKE_SOURCE_DIR}/python/pysilo/__init__.py"
-        DESTINATION python/pysilo
+        DESTINATION .
+    )
+
+    # Install libsilolib.so alongside the Python extensions
+    install(TARGETS silolib
+        LIBRARY DESTINATION .
     )
 endif()

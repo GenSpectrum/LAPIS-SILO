@@ -31,7 +31,8 @@ def changed_dir(dirname):
 # --- Custom build_ext Command ---
 
 class build_ext(_build_ext):
-    
+    _found_modules = []
+
     # Define custom options needed for CMake
     user_options = ([
         ('build-type=', None, 'build type (debug or release), default release'),
@@ -42,98 +43,114 @@ class build_ext(_build_ext):
         # Default to Release for Python bindings (avoids ASan issues)
         self.build_type = "Release"
 
+    def build_extensions(self):
+        # Remove the dummy extension before building
+        self.extensions = [ext for ext in self.extensions if ext.name != '__dummy__']
+        _build_ext.build_extensions(self)
+
     def run(self):
         # 1. Run CMake build/install
         self._run_cmake()
-        
-        # 2. Let the parent class handle copying the installed files
+
+        # 2. Let the parent class handle the rest
         _build_ext.run(self)
 
     def _run_cmake(self):
         """Run CMake to configure, build, and install the C++ targets."""
+        # The directory containing this setup.py
         source = os.path.dirname(os.path.abspath(__file__))
+
+        # Get setuptools build directories (following Arrow's pattern)
+        build_cmd = self.get_finalized_command('build')
+        saved_cwd = os.getcwd()
+        build_temp = pjoin(saved_cwd, build_cmd.build_temp)
+        build_lib = pjoin(saved_cwd, build_cmd.build_lib)
+
+        if not os.path.isdir(build_temp):
+            self.mkpath(build_temp)
+
+        # Install directly to setuptools' build_lib directory
+        # This way setuptools finds the files without manual copying
+        install_prefix = pjoin(build_lib, "pysilo")
 
         # Configuration name (e.g., Debug, Release)
         config_name = self.build_type.capitalize()
-        
-        # Calculate the desired build directory: <project_root>/build/Debug or /Release
-        build_dir = pjoin(source, "build", config_name)
-        
-        if not os.path.isdir(build_dir):
-            self.mkpath(build_dir)
-        
-        # Define the temporary install location for CMake. 
-        # This directory must be inside the build directory for setuptools to find it.
-        install_prefix = pjoin(build_dir, "install") 
 
-        # Change to the build directory
-        with changed_dir(build_dir):
-            
+        # Change to the build_temp directory
+        with changed_dir(build_temp):
+            # Find existing conan generators directory
+            # Try build/{config_name}/generators first, then build/{other_config}/generators
+            conan_generators_dir = None
+            for config in [config_name, 'Release', 'Debug']:
+                candidate = pjoin(source, "build", config, "generators")
+                if os.path.exists(candidate):
+                    conan_generators_dir = candidate
+                    break
+
+            if not conan_generators_dir:
+                raise RuntimeError(
+                    "Conan dependencies not found. Please run the following first:\n"
+                    f"  mkdir -p build/{config_name} && cd build/{config_name}\n"
+                    "  conan install ../..\n"
+                    "  cmake ../.. -DBUILD_PYTHON_BINDINGS=OFF\n"
+                    "  cmake --build .\n"
+                    "Then retry: pip install ."
+                )
+
+            print(f"-- Using conan dependencies from {conan_generators_dir}")
+
             # --- CONFIGURE ---
             cmake_options = [
-                # Use -S and -B to point to the source and the build directory
-                # Since we are already inside the build_dir, -B is '.'
-                f'-S{source}', 
-                f'-B{build_dir}',
-                
                 f'-DCMAKE_INSTALL_PREFIX={install_prefix}',
                 f'-DPYTHON_EXECUTABLE={sys.executable}',
-                
-                # Pass the configuration type to CMake
                 f'-DCMAKE_BUILD_TYPE={config_name}',
-                
-                # Your project-specific flag
-                '-DBUILD_PYTHON_BINDINGS=ON', 
+                f'-DCMAKE_PREFIX_PATH={conan_generators_dir}',
+                f'-DCMAKE_MODULE_PATH={conan_generators_dir}',
+                '-DBUILD_PYTHON_BINDINGS=ON',
             ]
-            
-            print(f"-- Running cmake to configure project in {build_dir}")
-            # Use 'cmake' command instead of self.spawn for clarity of initial configuration
-            os.environ['CMAKE_COMMAND'] = 'cmake'
-            self.spawn(['cmake'] + cmake_options)
-            
-            # --- BUILD AND INSTALL (Consolidated) ---
-            print("-- Running cmake --build and install targets")
-            
+
+            print(f"-- Running cmake to configure project in {build_temp}")
+            print(f"-- Will install to: {install_prefix}")
+            self.spawn(['cmake'] + cmake_options + [source])
+
+            # --- BUILD AND INSTALL ---
+            print("-- Running cmake --build")
+
             build_tool_args = []
             if sys.platform != 'win32':
                 build_tool_args.append('--')
                 parallel = str(os.cpu_count() or 1)
                 build_tool_args.append(f'-j{parallel}')
 
-            # Build and stage ALL targets (modules, libsilolib)
-            self.spawn(['cmake', 
-                        '--build', '.', 
-                        '--config', config_name, # Pass the config name again
-                        '--target', 'install'] + build_tool_args)
-            
+            # Build all targets
+            self.spawn(['cmake', '--build', '.', '--config', config_name] + build_tool_args)
+
+            # Install to setuptools' build directory
+            print(f"-- Running cmake --build --target install")
+            self.spawn(['cmake', '--build', '.', '--config', config_name, '--target', 'install'] + build_tool_args)
+
             print(f"-- CMake install finished. Files staged in: {install_prefix}")
 
+        # Discover which modules were actually built
+        self._found_modules = []
+        module_names = ['database']
+        for name in module_names:
+            built_path = pjoin(install_prefix, name + ext_suffix)
+            if os.path.exists(built_path):
+                self._found_modules.append(name)
+                print(f"-- Found built module: {name}")
+
+
+    def _get_build_dir(self):
+        """Get the package directory from build_py command"""
+        build_py = self.get_finalized_command('build_py')
+        return build_py.get_package_dir('pysilo')
 
     def get_outputs(self):
         """Returns the list of built extension files (.so/.pyd)"""
-        
-        # 1. Determine the build directory where files were staged
-        config_name = self.build_type.capitalize()
-        build_dir_root = pjoin(os.path.dirname(os.path.abspath(__file__)), "build", config_name)
-        
-        # 2. Get the package directory where files were installed inside the staging area
-        # This should match the DESTINATION used in your CMakeLists.txt (e.g., python/pysilo)
-        installed_package_dir = pjoin(build_dir_root, "install", "python", "pysilo")
-        
-        outputs = []
-        # Manually list expected module names
-        module_names = ['database']
-        
-        for name in module_names:
-            filename = name + ext_suffix
-            # Crucially, we return the path from the final build/lib folder, 
-            # not the temp staging folder.
-            outputs.append(pjoin(self.get_finalized_command('build_py').get_package_dir('pysilo'), filename))
-        
-        # Add the core library 
-        outputs.append(pjoin(self.get_finalized_command('build_py').get_package_dir('pysilo'), "libsilolib" + ext_suffix))
-        
-        return outputs
+        # Return paths to the built modules in setuptools' build directory
+        return [pjoin(self._get_build_dir(), name + ext_suffix)
+                for name in getattr(self, '_found_modules', [])]
 
 # --- Distribution Setup ---
 
