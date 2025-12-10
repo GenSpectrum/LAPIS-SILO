@@ -5,3 +5,34 @@ requires = [
     "Cython>=3.0.0",
 ]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "pysilo"
+version = "0.1.0"
+description = "Python bindings for SILO - high-performance sequence database"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}  # Update with your actual license
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: C++",
+]
+dependencies = [
+    "Cython>=3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/GenSpectrum/LAPIS-SILO"
+Repository = "https://github.com/GenSpectrum/LAPIS-SILO"
+Issues = "https://github.com/GenSpectrum/LAPIS-SILO/issues"
