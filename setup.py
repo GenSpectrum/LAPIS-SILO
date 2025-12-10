@@ -39,8 +39,8 @@ class build_ext(_build_ext):
 
     def initialize_options(self):
         _build_ext.initialize_options(self)
-        # Default to Release unless environment variable is set
-        self.build_type = "Debug"
+        # Default to Release for Python bindings (avoids ASan issues)
+        self.build_type = "Release"
 
     def run(self):
         # 1. Run CMake build/install
@@ -122,7 +122,7 @@ class build_ext(_build_ext):
         
         outputs = []
         # Manually list expected module names
-        module_names = ['column_type', 'column_identifier', 'database']
+        module_names = ['database']
         
         for name in module_names:
             filename = name + ext_suffix

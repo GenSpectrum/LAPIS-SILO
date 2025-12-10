@@ -198,7 +198,7 @@ if(BUILD_PYTHON_BINDINGS)
     message(STATUS "Found Cython version: ${CYTHON_VERSION}")
     
     # Cython modules to build
-    set(CYTHON_MODULES column_identifier column_type database)
+    set(CYTHON_MODULES database)
 
     # Build each Cython module
     foreach(module ${CYTHON_MODULES})
@@ -235,11 +235,16 @@ if(BUILD_PYTHON_BINDINGS)
             PREFIX ""
             OUTPUT_NAME "${module}"
             LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/pysilo"
+            INSTALL_RPATH "$ORIGIN"
+            BUILD_WITH_INSTALL_RPATH TRUE
         )
-        
+
         # Install to Python package directory
         install(TARGETS ${module}
             LIBRARY DESTINATION python/pysilo
         )
-    endforeach()
+    endforeach()  
+    install(FILES "${CMAKE_SOURCE_DIR}/python/pysilo/__init__.py"
+        DESTINATION python/pysilo
+    )
 endif()

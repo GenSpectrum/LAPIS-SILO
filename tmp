@@ -1,0 +1,18 @@
+cd /home/alexander/LAPIS-SILO/build/Debug && cmake ../.. && cmake --build . --target column_identifier 2>&1
+
+cd /home/alexander/LAPIS-SILO && pip uninstall pysilo -y && pip install . --no-cache-dir 2>&1
+
+cd /home/alexander/LAPIS-SILO && pip uninstall pysilo -y && pip install . --no-cache-dir 2>&1 | grep -E "(Copying|Successfully|wheel)"
+
+ASAN_OPTIONS=detect_leaks=0 LD_PRELOAD=$(gcc -print-file-name=libasan.so) python3 << 'EOF'
+import pysilo
+
+database = pysilo.Database()
+
+database.create_table("test","key","seq","ACGT")
+
+EOF
+
+cp ./build/Debug/python/pysilo/database.so ./.venv/lib/python3.12/site-packages/pysilo/ && cp ./build/Debug/libsilolib.so ./.venv/lib/python3.12/site-packages/pysilo/
+
+ll ./build/Debug/libsilolib.so ./.venv/lib64/python3.12/site-packages/pysilo/

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <vector>
 
 #include "silo/common/data_version.h"
 #include "silo/common/silo_directory.h"
@@ -30,7 +29,12 @@ class Database {
 
    void createTable(std::string table_name, silo::schema::TableSchema table_schema);
 
-   void createSimpleTable(const std::string& table_name, const std::vector<schema::ColumnIdentifier>& columns) {}
+   void createNucleotideSequenceTable(
+      const std::string& table_name,
+      const std::string& primary_key_name,
+      const std::string& sequence_name,
+      const std::string& reference_sequence
+   );
 
    void appendData(std::string table_name, std::string file_name);
 

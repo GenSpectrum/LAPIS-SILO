@@ -1,9 +1,9 @@
 #include "silo/database.h"
 
 #include <array>
-#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <map>
 #include <optional>
 #include <string>
@@ -12,13 +12,37 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
+#include "silo/append/database_inserter.h"
 #include "silo/common/data_version.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/common/silo_directory.h"
 #include "silo/common/version.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table_partition.h"
+
+namespace {
+template <typename SymbolType>
+std::optional<std::vector<typename SymbolType::Symbol>> stringToSymbolVector(
+   const std::string& sequence
+) {
+   const size_t size = sequence.size();
+   std::vector<typename SymbolType::Symbol> result;
+   result.reserve(size);
+   for (size_t i = 0; i < size; ++i) {
+      if (i + 1 < size && sequence[i] == '\\') {
+         ++i;
+      }
+      auto symbol = SymbolType::charToSymbol(sequence[i]);
+      if (symbol == std::nullopt) {
+         return std::nullopt;
+      }
+      result.emplace_back(*symbol);
+   }
+   return result;
+}
+}  // namespace
 
 namespace silo {
 
@@ -29,12 +53,40 @@ Database::Database(schema::DatabaseSchema database_schema)
    }
 }
 
-void Database::createTable(
-   std::string table_name,
-   silo::schema::TableSchema table_schema
-) {
-   tables.emplace(silo::schema::TableName{table_name}, std::make_shared<storage::Table>(table_schema));
+void Database::createTable(std::string table_name, silo::schema::TableSchema table_schema) {
+   tables.emplace(
+      silo::schema::TableName{table_name}, std::make_shared<storage::Table>(table_schema)
+   );
    schema.tables.emplace(std::move(table_name), std::move(table_schema));
+}
+
+void Database::createNucleotideSequenceTable(
+   const std::string& table_name,
+   const std::string& primary_key_name,
+   const std::string& sequence_name,
+   const std::string& reference_sequence
+) {
+   silo::schema::TableSchema table_schema;
+   table_schema.column_metadata.emplace(
+      schema::ColumnIdentifier{.name = primary_key_name, .type = schema::ColumnType::STRING},
+      std::make_shared<storage::column::StringColumnMetadata>(primary_key_name)
+   );
+   auto reference_sequence_vector = stringToSymbolVector<Nucleotide>(reference_sequence).value();
+   table_schema.column_metadata.emplace(
+      schema::ColumnIdentifier{
+         .name = primary_key_name, .type = schema::ColumnType::NUCLEOTIDE_SEQUENCE
+      },
+      std::make_shared<storage::column::SequenceColumnMetadata<Nucleotide>>(
+         sequence_name, std::move(reference_sequence_vector)
+      )
+   );
+   createTable(table_name, std::move(table_schema));
+}
+
+void Database::appendData(std::string table_name, std::string file_name) {
+   std::ifstream input_stream(file_name);
+   silo::append::NdjsonLineReader input_data{input_stream};
+   silo::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
 }
 
 namespace {
@@ -151,12 +203,12 @@ Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_sourc
 
    Database database{schema};
 
-      for (const auto& [table_name, _] : schema.tables) {
-         SPDLOG_INFO("contains schema {}", table_name.getName());
-      }
-      for (const auto& [table_name, _] : database.tables) {
-         SPDLOG_INFO("contains table {}", table_name.getName());
-      }
+   for (const auto& [table_name, _] : schema.tables) {
+      SPDLOG_INFO("contains schema {}", table_name.getName());
+   }
+   for (const auto& [table_name, _] : database.tables) {
+      SPDLOG_INFO("contains table {}", table_name.getName());
+   }
 
    for (const auto& [table_name, _] : schema.tables) {
       SPDLOG_DEBUG("Loading data for table {}", table_name.getName());

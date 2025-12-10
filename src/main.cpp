@@ -28,9 +28,12 @@ int runCreateTable(const silo::config::CreateTableConfig& create_table_config) {
    EVOBENCH_SCOPE("top-level", "runInitializer");
    try {
       auto database = std::make_shared<silo::Database>();
-      auto table_name = create_table_config.table_name.transform([](const auto& str){return
-                                                                                          silo::schema::TableName(str);}).value_or(silo::schema::TableName::getDefault());
-      silo::create_table::CreateTable::createTableInDatabase(table_name, create_table_config.initialization_files, *database);
+      auto table_name = create_table_config.table_name
+                           .transform([](const auto& str) { return silo::schema::TableName(str); })
+                           .value_or(silo::schema::TableName::getDefault());
+      silo::create_table::CreateTable::createTableInDatabase(
+         table_name, create_table_config.initialization_files, *database
+      );
       database->saveDatabaseState(create_table_config.output_directory);
       return 0;
    } catch (const silo::create_table::CreateTableException& preprocessing_exception) {
