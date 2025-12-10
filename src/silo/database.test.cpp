@@ -48,7 +48,7 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
 
    auto database = std::make_shared<silo::Database>();
    database->createTable(
-      silo::schema::TableName::getDefault(),
+      silo::schema::TableName::getDefault().getName(),
       silo::create_table::CreateTable::createSchemaFromConfigFiles(
          std::move(database_config),
          reference_genomes,

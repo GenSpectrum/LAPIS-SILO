@@ -46,7 +46,7 @@ void CreateTable::createTableInDatabase(
       phylo_tree_file,
       initialization_files.without_unaligned_sequences
    );
-   database.createTable(std::move(table_name), table_schema);
+   database.createTable(std::move(table_name).getName(), table_schema);
 }
 
 struct ColumnMetadataInitializer {

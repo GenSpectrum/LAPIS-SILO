@@ -198,12 +198,8 @@ if(BUILD_PYTHON_BINDINGS)
     message(STATUS "Found Cython version: ${CYTHON_VERSION}")
     
     # Cython modules to build
-    set(CYTHON_MODULES
-        column_type
-        column_identifier
-        database
-    )
-    
+    set(CYTHON_MODULES column_identifier column_type database)
+
     # Build each Cython module
     foreach(module ${CYTHON_MODULES})
         set(pyx_file "${CMAKE_SOURCE_DIR}/python/pysilo/${module}.pyx")

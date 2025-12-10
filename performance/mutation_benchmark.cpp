@@ -32,7 +32,7 @@ schema:
    silo::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
 
    auto database = std::make_shared<silo::Database>();
-   database->createTable(silo::schema::TableName::getDefault(), silo::create_table::CreateTable::createSchemaFromConfigFiles(
+   database->createTable(silo::schema::TableName::getDefault().getName(), silo::create_table::CreateTable::createSchemaFromConfigFiles(
       std::move(database_config),
       std::move(reference_genomes),
       {},

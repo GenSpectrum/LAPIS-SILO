@@ -88,7 +88,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          test_data.phylo_tree_file,
          test_data.without_unaligned_sequences
       );
-      database->createTable(schema::TableName::getDefault(), table_schema);
+      database->createTable(schema::TableName::getDefault().getName(), table_schema);
 
       std::stringstream ndjson_objects;
       for (const auto& object : test_data.ndjson_input_data) {

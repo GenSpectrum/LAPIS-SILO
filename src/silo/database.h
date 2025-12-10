@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <vector>
 
 #include "silo/common/data_version.h"
 #include "silo/common/silo_directory.h"
@@ -27,7 +28,9 @@ class Database {
 
    virtual ~Database() = default;
 
-   void createTable(silo::schema::TableName table_name, silo::schema::TableSchema table_schema);
+   void createTable(std::string table_name, silo::schema::TableSchema table_schema);
+
+   void createSimpleTable(const std::string& table_name, const std::vector<schema::ColumnIdentifier>& columns) {}
 
    void appendData(std::string table_name, std::string file_name);
 

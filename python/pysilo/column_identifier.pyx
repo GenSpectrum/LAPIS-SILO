@@ -1,4 +1,3 @@
-# python/pysilo/column_identifier.pyx
 from libcpp.string cimport string
 from column_identifier cimport ColumnIdentifier as CppColumnIdentifier
 from column_type cimport ColumnType as CppColumnType

@@ -47,7 +47,7 @@ cdef class PyDatabase:
             cpp_fields.push_back(field.c_identifier)
         
         try:
-            self.c_database.createTable(cpp_table_name, cpp_fields)
+            self.c_database.createSimpleTable(cpp_table_name, cpp_fields)
         except Exception as e:
             raise RuntimeError(f"Failed to create table '{table_name}': {e}")
     

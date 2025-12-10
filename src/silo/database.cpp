@@ -30,10 +30,10 @@ Database::Database(schema::DatabaseSchema database_schema)
 }
 
 void Database::createTable(
-   silo::schema::TableName table_name,
+   std::string table_name,
    silo::schema::TableSchema table_schema
 ) {
-   tables.emplace(table_name, std::make_shared<storage::Table>(table_schema));
+   tables.emplace(silo::schema::TableName{table_name}, std::make_shared<storage::Table>(table_schema));
    schema.tables.emplace(std::move(table_name), std::move(table_schema));
 }
 
