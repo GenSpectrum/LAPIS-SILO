@@ -24,11 +24,13 @@ ifeq ($(REPEAT),)
 $(error "REPEAT must be a natural number, missing")
 endif
 
+
 ifeq ($(QUERIES),)
-QUERIES_DIR=$(DATASET_DIR)/queries
-else
-QUERIES_DIR=$(DATASET_DIR)/$(QUERIES)
+QUERIES=queries
 endif
+export QUERIES
+
+QUERIES_DIR=$(DATASET_DIR)/$(QUERIES)
 export QUERIES_DIR
 
 # ---- Get dependencies --------------------------------------------------------
