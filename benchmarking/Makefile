@@ -37,11 +37,11 @@ endif
 # Should sorted input be used?
 ifeq ($(SORTED),0)
 INPUT_FILE = $(DATASET_DIR)/input_file.ndjson.zst
-OUTPUT_DIR = $(DATASET)-$(COMMIT_ID)-output
+OUTPUT_DIR ?= $(DATASET)-$(COMMIT_ID)-output
 else ifeq ($(SORTED),1)
 # OK to write back into the $(DATASET_DIR)?
 INPUT_FILE = $(DATASET_DIR)/sorted_input_file.ndjson.zst
-OUTPUT_DIR = $(DATASET)-$(COMMIT_ID)-sorted_output
+OUTPUT_DIR ?= $(DATASET)-$(COMMIT_ID)-sorted_output
 else
 $(error "SORTED must be either 0 or 1, got '$(SORTED)'")
 endif
