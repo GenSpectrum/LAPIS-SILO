@@ -8,8 +8,15 @@ bin/run-silo > "$BENCH_OUTPUT_LOG" &
 disown %
 
 echo "Waiting for pid file..."
+n=0
 until [ -e .silo.pid ]; do
-    sleep 0.1
+    n=$(( n + 1 ))
+    if (( n > 180 )); then
+        echo "Timing out waiting for SILO to come up. Output so far:"
+        cat "$BENCH_OUTPUT_LOG"
+        exit 1
+    fi
+    sleep 1
 done
 echo "done."
 
