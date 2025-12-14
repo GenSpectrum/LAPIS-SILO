@@ -6,7 +6,7 @@ if [ -e .silo.pid ]; then
     pid=$(cat .silo.pid)
     if kill -INT "$pid"; then
 
-        echo -n "Waiting for silo (PID $pid) to shut down..."
+        echo "Waiting for silo (PID $pid) to shut down..."
         while kill -0 "$pid"; do 
             sleep 0.5
         done
@@ -14,7 +14,7 @@ if [ -e .silo.pid ]; then
 
     rm -f .silo.pid
     
-    echo done.
+    echo "done."
     
 else
     echo "Not running (there is no .silo.pid file)"
