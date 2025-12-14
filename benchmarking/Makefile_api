@@ -35,7 +35,7 @@ export QUERIES_DIR
 
 # ---- Get dependencies --------------------------------------------------------
 
-API_QUERY_VERSION=e005495f09b76e8c418a43cc07bf2f398e4c48bd
+API_QUERY_VERSION=eb682c8c602578f6b6d4548f5c2b11b14de5b7ed
 
 API_QUERY_DIR=api-query
 API_QUERY_CLONE=$(API_QUERY_DIR)/Cargo.toml

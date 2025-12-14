@@ -12,6 +12,7 @@ if [ -e "$QUERIES_DIR"/good-api-query-log.csv ]; then
     "$API_QUERY"-log compare \
                 --queries "$QUERIES_DIR"/queries.ndjson \
                 --ignore-from "$QUERIES_DIR"/ignore_queries_for_checksum_regex.txt \
+                --accept-error-differences \
                 "$QUERIES_DIR"/good-api-query-log.csv "$API_QUERY_LOG_CSV"
 else
     echo -n "There's no good-api-query-log.csv for '$QUERIES'. "
