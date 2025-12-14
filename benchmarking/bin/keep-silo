@@ -1,0 +1,33 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+# Check if KEPT_SILO=.kept_silo -- if so, just touch that file if not
+# exists, and let make short-cut. Otherwise, see if we need to keep
+# it.
+
+# Is keeping actually asked for?
+if [ -n "${SILOBENCHMARKING_KEPT_BINARIES_BASEDIR-}" ] && [ -n "$COMMIT_TAGS" ]; then
+    if [ ! -e "$KEPT_SILO_GZ" ]; then
+        rm -f "$KEPT_SILO"
+        cp "$SILO" "$KEPT_SILO"
+        gzip "$KEPT_SILO"
+
+        symlink="$SILOBENCHMARKING_KEPT_BINARIES_BASEDIR/silo-current.gz"
+        rm -f "$symlink"
+        ln -s "$(basename "$KEPT_SILO_GZ")" "$symlink"
+
+        commit_tags="$SILOBENCHMARKING_KEPT_BINARIES_BASEDIR/_current_commit_tags.txt"
+        commit_tags_tmp="$commit_tags".tmp
+        rm -f "$commit_tags_tmp"
+        printf '%s\n' "$COMMIT_TAGS" > "$commit_tags_tmp"
+        mv "$commit_tags_tmp" "$commit_tags"
+    fi
+
+else
+    # Make alternative stamp to satisfy make. Only touch once, to
+    # avoid spurious rebuilds.
+    if [ ! -e "$KEPT_SILO_GZ" ]; then
+        touch "$KEPT_SILO_GZ"
+    fi
+fi

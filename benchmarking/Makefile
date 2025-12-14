@@ -60,24 +60,39 @@ export BUILD
 
 SILO=../build/$(BUILD)/silo_$(COMMIT_ID)
 export SILO
+
+ifeq ($(SILOBENCHMARKING_KEPT_BINARIES_BASEDIR),0)
+KEPT_SILO=.kept_silo
+else
+KEPT_SILO=$(SILOBENCHMARKING_KEPT_BINARIES_BASEDIR)/silo-$(COMMIT_TAGS)
+endif
+KEPT_SILO_GZ=$(KEPT_SILO).gz
+export KEPT_SILO
+export KEPT_SILO_GZ
+
 PREPROCESSING_STAMP = $(OUTPUT_DIR)/.done
 export PREPROCESSING_STAMP
 
+
 $(SILO):
 	bin/build-silo
+
+$(KEPT_SILO_GZ): $(SILO)
+	bin/keep-silo
+
 
 # ---- Benchmarking targets ----------------------------------------------------
 
 # Want data on the preprocessing, hence remove the stamp and let it
 # re-run. Do not also run the api since it would clobber the log file
 # from the preprocessing.
-preprocessing: $(SILO)
+preprocessing: $(SILO) $(KEPT_SILO_GZ)
 	rm -f $(PREPROCESSING_STAMP)
 	make -f Makefile_preprocessing
 
 # Want data on the api; still run the preprocessing if needed but
 # without logging
-api: $(SILO)
+api: $(SILO) $(KEPT_SILO_GZ)
 	( unset EVOBENCH_LOG; make -f Makefile_preprocessing )
 	make -f Makefile_api
 
