@@ -7,7 +7,7 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/query_engine/bad_request.h"
+#include "silo/query_engine/illegal_query_exception.h"
 
 namespace silo::query_engine::actions {
 

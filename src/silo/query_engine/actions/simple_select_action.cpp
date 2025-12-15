@@ -8,8 +8,8 @@
 #include <fmt/ranges.h>
 
 #include "evobench/evobench.hpp"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/exec_node/table_scan.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/schema/database_schema.h"
 
 namespace silo::query_engine::actions {

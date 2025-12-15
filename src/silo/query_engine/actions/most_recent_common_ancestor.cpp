@@ -11,8 +11,8 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/phylo_tree.h"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/schema/database_schema.h"
 
 namespace silo::query_engine::actions {

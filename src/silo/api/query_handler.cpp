@@ -13,8 +13,9 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/api/active_database.h"
+#include "silo/api/bad_request.h"
 #include "silo/api/error_request_handler.h"
-#include "silo/query_engine/bad_request.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/query.h"
 
 namespace silo::api {
@@ -61,13 +62,8 @@ void QueryHandler::post(
       EVOBENCH_SCOPE("QueryPlan", "executeAndWrite");
       EVOBENCH_KEY_VALUE("of query_type", query->action->getType());
       query_plan.executeAndWrite(&out_stream, DEFAULT_TIMEOUT_TWO_MINUTES);
-
-   } catch (const silo::BadRequest& ex) {
-      response.setContentType("application/json");
-      SPDLOG_INFO("Query is invalid: {}", query_string, ex.what());
-      response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
-      std::ostream& out_stream = response.send();
-      out_stream << nlohmann::json(ErrorResponse{.error = "Bad request", .message = ex.what()});
+   } catch (const silo::query_engine::IllegalQueryException& ex) {
+      throw BadRequest(ex.what());
    }
 }
 

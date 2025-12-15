@@ -23,11 +23,11 @@
 #include "silo/query_engine/actions/most_recent_common_ancestor.h"
 #include "silo/query_engine/actions/mutations.h"
 #include "silo/query_engine/actions/phylo_subtree.h"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/throttled_batch_reslicer.h"
 #include "silo/query_engine/exec_node/zstd_decompress_expression.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/column/column_type_visitor.h"
 
 namespace silo::query_engine::actions {
@@ -182,7 +182,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    } else if (expression_type == "AminoAcidInsertions") {
       action = json.get<std::unique_ptr<InsertionAggregation<AminoAcid>>>();
    } else {
-      throw BadRequest(expression_type + " is not a valid action");
+      throw query_engine::IllegalQueryException("{} is not a valid action", expression_type);
    }
 
    std::vector<OrderByField> order_by_fields;

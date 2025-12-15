@@ -11,9 +11,9 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/table_scan.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/table.h"
 
 using silo::query_engine::CopyOnWriteBitmap;

@@ -6,7 +6,6 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/and.h"
 #include "silo/query_engine/filter/expressions/bool_equals.h"
 #include "silo/query_engine/filter/expressions/date_between.h"
@@ -28,6 +27,7 @@
 #include "silo/query_engine/filter/expressions/string_search.h"
 #include "silo/query_engine/filter/expressions/symbol_equals.h"
 #include "silo/query_engine/filter/expressions/true.h"
+#include "silo/query_engine/illegal_query_exception.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -101,7 +101,9 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
    } else if (expression_type == "AminoAcidInsertionContains") {
       filter = json.get<std::unique_ptr<InsertionContains<AminoAcid>>>();
    } else {
-      throw BadRequest("Unknown object filter type '" + expression_type + "'");
+      throw query_engine::IllegalQueryException(
+         "Unknown object filter type '" + expression_type + "'"
+      );
    }
 }
 

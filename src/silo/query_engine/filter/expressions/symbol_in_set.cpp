@@ -8,7 +8,6 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/intersection.h"
@@ -16,6 +15,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/filter/operators/union.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/query_compilation_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 

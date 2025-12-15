@@ -7,10 +7,10 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/expressions/symbol_in_set.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/query_compilation_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/table.h"

@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/api/active_database.h"
+#include "silo/api/bad_request.h"
 
 namespace silo::api {
 ErrorRequestHandler::ErrorRequestHandler(
@@ -40,6 +41,13 @@ void ErrorRequestHandler::handleRequest(
       std::ostream& out_stream = response.send();
       out_stream << nlohmann::json(
          ErrorResponse{.error = "Service Temporarily Unavailable", .message = message}
+      );
+   } catch (const api::BadRequest& exception) {
+      response.setContentType("application/json");
+      response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
+      std::ostream& out_stream = response.send();
+      out_stream << nlohmann::json(
+         ErrorResponse{.error = "Bad request", .message = exception.what()}
       );
    } catch (const std::exception& exception) {
       SPDLOG_ERROR("Caught exception: {}", exception.what());

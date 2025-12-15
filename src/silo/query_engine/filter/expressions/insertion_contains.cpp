@@ -8,11 +8,11 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/bitmap_producer.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/column/sequence_column.h"
@@ -78,7 +78,7 @@ std::unique_ptr<operators::Operator> InsertionContains<SymbolType>::compile(
             auto search_result = sequence_store.insertion_index.search(position_idx, value);
             return CopyOnWriteBitmap(std::move(*search_result));
          } catch (const silo::storage::InsertionFormatException& exception) {
-            throw silo::BadRequest(
+            throw silo::query_engine::IllegalQueryException(
                "The field 'value' in the InsertionContains expression does not contain a valid "
                "regex "
                "pattern: \"{}\". It must only consist of {} symbols and the regex symbol '.*'. "
