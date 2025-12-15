@@ -12,9 +12,9 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column_group.h"
 #include "silo/storage/table.h"

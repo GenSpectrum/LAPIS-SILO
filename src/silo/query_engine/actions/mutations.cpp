@@ -21,10 +21,10 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/symbol_map.h"
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table_partition.h"
 
@@ -623,7 +623,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
    );
    const double min_proportion = json[MIN_PROPORTION_FIELD_NAME].get<double>();
    if (min_proportion < 0 || min_proportion > 1) {
-      throw BadRequest(
+      throw IllegalQueryException(
          "Invalid proportion: " + MIN_PROPORTION_FIELD_NAME + " must be in interval [0.0, 1.0]"
       );
    }

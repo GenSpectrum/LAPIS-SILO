@@ -17,9 +17,9 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/table_partition.h"
 

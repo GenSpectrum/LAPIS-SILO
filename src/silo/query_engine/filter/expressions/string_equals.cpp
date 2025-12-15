@@ -7,12 +7,12 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/panic.h"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {

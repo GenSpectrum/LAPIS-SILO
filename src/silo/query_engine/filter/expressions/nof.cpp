@@ -6,7 +6,6 @@
 
 #include <nlohmann/json.hpp>
 
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/and.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/expressions/negation.h"
@@ -17,6 +16,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/threshold.h"
 #include "silo/query_engine/filter/operators/union.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/table_partition.h"
 
 namespace {

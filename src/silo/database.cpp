@@ -18,7 +18,7 @@
 #include "silo/common/version.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
-#include "silo/query_engine/bad_request.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table_partition.h"
 

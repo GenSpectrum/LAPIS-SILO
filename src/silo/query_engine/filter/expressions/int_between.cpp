@@ -7,12 +7,12 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/table_partition.h"
 
 using silo::storage::column::IntColumnPartition;

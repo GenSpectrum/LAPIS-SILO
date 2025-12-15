@@ -8,9 +8,9 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/date.h"
-#include "silo/query_engine/bad_request.h"
 #include "silo/query_engine/filter/operators/range_selection.h"
 #include "silo/query_engine/filter/operators/selection.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/column/date_column.h"
 #include "silo/storage/table_partition.h"
 

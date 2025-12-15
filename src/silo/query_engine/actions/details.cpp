@@ -3,7 +3,7 @@
 #include <utility>
 
 #include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/bad_request.h"
+#include "silo/query_engine/illegal_query_exception.h"
 
 namespace silo::query_engine::actions {
 Details::Details(std::vector<std::string> fields)

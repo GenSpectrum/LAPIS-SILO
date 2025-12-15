@@ -1,19 +1,11 @@
 #pragma once
 
-#include <stdexcept>
-#include <string>
+#include <exception>
+#include <typeinfo>
 
 #include <fmt/format.h>
 
-#define CHECK_SILO_QUERY(condition, ...)      \
-   do {                                       \
-      bool condition_bool = condition;        \
-      if (!(condition_bool)) {                \
-         throw silo::BadRequest(__VA_ARGS__); \
-      }                                       \
-   } while (0);
-
-namespace silo {
+namespace silo::api {
 
 class [[maybe_unused]] BadRequest : public std::runtime_error {
   public:
@@ -25,4 +17,4 @@ class [[maybe_unused]] BadRequest : public std::runtime_error {
        : std::runtime_error(fmt::format(fmt_str, std::forward<Args>(args)...)) {}
 };
 
-}  // namespace silo
+}  // namespace silo::api
