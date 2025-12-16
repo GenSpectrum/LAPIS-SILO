@@ -22,8 +22,7 @@ Database preprocessing(const config::PreprocessingConfig& preprocessing_config) 
       auto input = InputStreamWrapper::openFileOrStdIn(preprocessing_config.getInputFilePath());
 
       SPDLOG_INFO("preprocessing - appending data to Database");
-      auto input_data = append::NdjsonLineReader{input.getInputStream()};
-      append::appendDataToDatabase(database, input_data);
+      database.appendData(schema::TableName::getDefault(), input.getInputStream());
 
       SPDLOG_INFO("preprocessing - finished preprocessing");
       return database;

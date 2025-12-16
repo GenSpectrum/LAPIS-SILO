@@ -60,8 +60,7 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
       )
    );
    std::ifstream input(input_directory / "input.ndjson");
-   auto input_data_stream = silo::append::NdjsonLineReader{input};
-   silo::append::appendDataToDatabase(*database, input_data_stream);
+   database->appendData(silo::schema::TableName::getDefault(), input);
    return database;
 }
 }  // namespace
@@ -114,9 +113,8 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
 {"primaryKey": "key7", "pango_lineage": "B", "date": "2021-03-21", "region": "Europe", "country": "Switzerland", "division": "Basel", "unsorted_date": null, "age": null, "qc_value": 0.94, "test_boolean_column": true, "float_value": null, "main": {"sequence": "AAAAAAAA", "insertions": []}, "testSecondSequence": {"sequence": "ACAT", "insertions": []}, "unaligned_main": "AAAAAAAA", "unaligned_testSecondSequence": "ACAT", "E": {"sequence": "MYSF*", "insertions": ["214:EPE"]}, "M": {"sequence": "XXXX*", "insertions": []}}
 )";
    std::stringstream more_data_stream{more_data};
-   silo::append::NdjsonLineReader reader(more_data_stream);
 
-   silo::append::appendDataToDatabase(database, reader);
+   database.appendData(silo::schema::TableName::getDefault(), more_data_stream);
 
    const auto database_info_after_append = database.getDatabaseInfo();
    auto data_version_after_append = database.getDataVersionTimestamp();

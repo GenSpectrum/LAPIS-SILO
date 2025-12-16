@@ -96,8 +96,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       }
       std::istream ndjson_objects_istream(ndjson_objects.rdbuf());
 
-      silo::append::NdjsonLineReader reader{ndjson_objects_istream};
-      silo::append::appendDataToDatabase(*database, reader);
+      database->appendData(schema::TableName::getDefault(), ndjson_objects_istream);
 
       shared_database = database;
    }

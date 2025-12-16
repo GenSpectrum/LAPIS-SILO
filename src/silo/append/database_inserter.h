@@ -7,7 +7,7 @@
 #include <spdlog/spdlog.h>
 
 #include "silo/append/ndjson_line_reader.h"
-#include "silo/database.h"
+#include "silo/storage/table.h"
 #include "silo/storage/table_partition.h"
 
 namespace silo::append {
@@ -74,7 +74,5 @@ TableInserter::Commit appendDataToTable(
    std::shared_ptr<silo::storage::Table> table,
    NdjsonLineReader& input_data
 );
-
-void appendDataToDatabase(Database& database, NdjsonLineReader& input_data);
 
 }  // namespace silo::append

@@ -262,11 +262,4 @@ TableInserter::Commit appendDataToTable(
    return table_inserter.commit();
 }
 
-void appendDataToDatabase(Database& database, NdjsonLineReader& input_data) {
-   SILO_ASSERT(database.tables.contains(schema::TableName::getDefault()));
-   auto& table = database.tables.at(schema::TableName::getDefault());
-   appendDataToTable(table, input_data);
-   database.updateDataVersion();
-}
-
 }  // namespace silo::append
