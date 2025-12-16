@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.9.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.2...v0.9.3) (2025-12-16)
+
+
+### Features
+
+* **benchmarking:** add optional `QUERIES` custom variable ([772cd36](https://github.com/GenSpectrum/LAPIS-SILO/commit/772cd36cc6e860d85939f790a42f074ff8586719))
+* **benchmarking:** allow avoidance of preprocessing by setting `OUTPUT_DIR` ([74c8b84](https://github.com/GenSpectrum/LAPIS-SILO/commit/74c8b844204d10a0483d141c7a05ac0d7972a839))
+* **benchmarking:** optionally store the produced binaries ([7bb482c](https://github.com/GenSpectrum/LAPIS-SILO/commit/7bb482c6fde55847701d9d9743cb520c047d60bb)), closes [#1087](https://github.com/GenSpectrum/LAPIS-SILO/issues/1087)
+* **benchmarking:** update api-query to ignore empty ignore regex files ([f572701](https://github.com/GenSpectrum/LAPIS-SILO/commit/f5727015da4a4097bfb71ae711bf3e509cb04d84))
+* **silo:** add function to dynamically create tables in a silo instance ([b70f1df](https://github.com/GenSpectrum/LAPIS-SILO/commit/b70f1df863210d0467289f48e481179b54674ba9))
+* **silo:** use mimalloc as the default allocator ([2203db9](https://github.com/GenSpectrum/LAPIS-SILO/commit/2203db9c09ac507210e66c4386ee2bd076de6440))
+
+
+### Bug Fixes
+
+* **benchmarking:** accept differences in HTTP error responses ([df3e18b](https://github.com/GenSpectrum/LAPIS-SILO/commit/df3e18b5203bc9b9916e82beaef9303edd92c8fd))
+* **benchmarking:** set a timeout waiting for SILO to start ([f50e38d](https://github.com/GenSpectrum/LAPIS-SILO/commit/f50e38d4e0b3b24dee9aa09ff9af18af3a81eeb0))
+* **benchmarking:** set default for `QUERIES` env var, not just `QUERIES_DIR` ([20ad729](https://github.com/GenSpectrum/LAPIS-SILO/commit/20ad729da0a48fa98125c48f26945116c5919eff))
+
 ## [0.9.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.1...v0.9.2) (2025-12-03)
 
 
