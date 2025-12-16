@@ -80,8 +80,7 @@ std::shared_ptr<Database> setupTestDatabase(){
 
    auto database = initializeDatabaseWithSingleReference(reference);
 
-   auto input_data_stream = silo::append::NdjsonLineReader{input_buffer};
-   silo::append::appendDataToDatabase(*database, input_data_stream);
+   database->appendData(silo::schema::TableName::getDefault(), input_buffer);
 
    return database;
 }

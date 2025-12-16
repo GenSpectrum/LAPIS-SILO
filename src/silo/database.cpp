@@ -38,7 +38,10 @@ void Database::createTable(schema::TableName table_name, silo::schema::TableSche
 
 void Database::appendData(schema::TableName table_name, std::istream& input_stream) {
    silo::append::NdjsonLineReader input_data{input_stream};
-   silo::append::appendDataToTable(tables.at(table_name), input_data);
+   SILO_ASSERT(tables.contains(table_name));
+   auto& table = tables.at(table_name);
+   silo::append::appendDataToTable(table, input_data);
+   updateDataVersion();
    SPDLOG_INFO("Database info: {}", getDatabaseInfo());
 }
 
