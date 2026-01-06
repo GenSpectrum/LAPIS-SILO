@@ -1,4 +1,4 @@
-use serde::{Deserialize};
+use serde::Deserialize;
 use serde_json::{Map, Value};
 use std::io::{self, BufRead, BufReader};
 
@@ -30,7 +30,8 @@ fn transform_data(input: InputData) -> Map<String, Value> {
         if sequence_value.is_null() {
             result.insert(segment_key.clone(), Value::Null);
         } else {
-            let insertions = input.nucleotide_insertions
+            let insertions = input
+                .nucleotide_insertions
                 .get(&segment_key)
                 .cloned()
                 .unwrap_or(Value::Array(vec![]));
@@ -48,7 +49,8 @@ fn transform_data(input: InputData) -> Map<String, Value> {
         if sequence_value.is_null() {
             result.insert(gene_key.clone(), Value::Null);
         } else {
-            let insertions = input.amino_acid_insertions
+            let insertions = input
+                .amino_acid_insertions
                 .get(&gene_key)
                 .cloned()
                 .unwrap_or(Value::Array(vec![]));
@@ -97,6 +99,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn test_transform_floats_correctly() {
+        let input = r#"{
+            "metadata": {"key": "id1", "col":0.9994409243384271},
+            "alignedNucleotideSequences": {"segment1": null},
+            "unalignedNucleotideSequences": {"segment1": null},
+            "alignedAminoAcidSequences": {"gene1": null},
+            "nucleotideInsertions": {"segment1": []},
+            "aminoAcidInsertions": {"gene1": []}
+        }"#;
+
+        let input_data: InputData = serde_json::from_str(input).unwrap();
+        let result = transform_data(input_data);
+
+        assert_eq!(result.get("key"), Some(&json!("id1")));
+        assert_eq!(
+            serde_json::to_string(result.get("col").unwrap()).unwrap(),
+            "0.9994409243384271"
+        );
+    }
 
     #[test]
     fn test_transform_null_values() {
