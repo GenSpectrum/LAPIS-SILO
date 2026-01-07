@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.3...v0.9.4) (2026-01-07)
+
+
+### Bug Fixes
+
+* **legacyNdjsonTransformer:** correctly parse floats with serde_json by setting the feature flag `float_roundtrip` ([8d38b27](https://github.com/GenSpectrum/LAPIS-SILO/commit/8d38b2739524cca52857d9d09ff05e9373cea4df))
+
 ## [0.9.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.2...v0.9.3) (2025-12-16)
 
 
