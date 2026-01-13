@@ -35,7 +35,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(USE_MIMALLOC "Use mimalloc allocator" ON)
 
 # Only use mimalloc in Release mode, because of conflicts with ASAN
-if(USE_MIMALLOC AND ${CMAKE_BUILD_TYPE} STREQUAL "Release")
+# And only on Linux, because Mac has some specialties that occur
+# at program startup before mimalloc is loaded, which can lead to
+# mixing of allocations and thus Segmentation Faults
+if(USE_MIMALLOC AND ${CMAKE_BUILD_TYPE} STREQUAL "Release" AND LINUX)
     message("Using mimalloc as allocator")
     find_package(mimalloc REQUIRED)
     set(MIMALLOC_LIB mimalloc-static)
