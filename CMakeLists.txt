@@ -38,7 +38,6 @@ option(USE_MIMALLOC "Use mimalloc allocator" ON)
 if(USE_MIMALLOC AND ${CMAKE_BUILD_TYPE} STREQUAL "Release")
     message("Using mimalloc as allocator")
     find_package(mimalloc REQUIRED)
-    add_compile_definitions(SILO_USE_MIMALLOC=1)
     set(MIMALLOC_LIB mimalloc-static)
 else()
     set(MIMALLOC_LIB "")
@@ -126,11 +125,10 @@ endif ()
 # Targets
 # ---------------------------------------------------------------------------
 
-add_library(silolib OBJECT ${SRC_SILO_WITHOUT_MAIN})
+add_library(silolib_obj OBJECT ${SRC_SILO_WITHOUT_MAIN})
 target_link_libraries(
-        silolib
+        silolib_obj
         PUBLIC
-        ${MIMALLOC_LIB} # this should be first
         Arrow::arrow_static
         ArrowAcero::arrow_acero_static
         ${Boost_LIBRARIES}
@@ -147,11 +145,12 @@ target_link_libraries(
         re2::re2
 )
 
-add_executable(silo "${CMAKE_SOURCE_DIR}/src/main.cpp" $<TARGET_OBJECTS:silolib>)
+add_executable(silo "${CMAKE_SOURCE_DIR}/src/main.cpp" $<TARGET_OBJECTS:silolib_obj>)
 target_link_libraries(
         silo
         PUBLIC
-        silolib
+        ${MIMALLOC_LIB} # this should be first
+        silolib_obj
 )
 
 # ---------------------------------------------------------------------------
@@ -162,11 +161,11 @@ enable_testing()
 find_package(GTest REQUIRED)
 include_directories(${GTest_INCLUDE_DIRS})
 
-add_executable(silo_test ${SRC_TEST} $<TARGET_OBJECTS:silolib>)
+add_executable(silo_test ${SRC_TEST} $<TARGET_OBJECTS:silolib_obj>)
 if (NOT GTest_LIBRARIES)
     set(GTest_LIBRARIES gtest gmock)
 endif ()
-target_link_libraries(silo_test PUBLIC ${GTest_LIBRARIES} silolib)
+target_link_libraries(silo_test PUBLIC ${GTest_LIBRARIES} silolib_obj)
 
 # ---------------------------------------------------------------------------
 # Benchmarks

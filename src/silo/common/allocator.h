@@ -1,6 +1,4 @@
-#ifdef SILO_USE_MIMALLOC
-#include <mimalloc.h>
-#elif defined(__linux__)
+#if defined(__linux__)
 #include <malloc.h>
 #endif
 
@@ -10,13 +8,7 @@ namespace silo::common {
 
 class Allocator {
   public:
-#ifdef SILO_USE_MIMALLOC
-   static void trim() {
-      SPDLOG_INFO("Manually invoking mi_collect(true) to give back memory to OS.");
-      mi_collect(true);
-      mi_collect(true);  // This should be invoked twice
-   }
-#elif defined(__linux__)
+#if defined(__linux__)
    static void trim() {
       SPDLOG_INFO("Manually invoking malloc_trim() to give back memory to OS.");
       malloc_trim(0);
