@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.3...v0.9.4) (2026-01-15)
+
+
+### Bug Fixes
+
+* **legacyNdjsonTransformer:** correctly parse floats with serde_json by setting the feature flag `float_roundtrip` ([8d38b27](https://github.com/GenSpectrum/LAPIS-SILO/commit/8d38b2739524cca52857d9d09ff05e9373cea4df))
+* **silo:** do not use mimalloc on Mac ([6d78de8](https://github.com/GenSpectrum/LAPIS-SILO/commit/6d78de8e935c6341c95b8fd0f011a9c899005282))
+* **silo:** only link mimalloc into the final executable, not the library, which might be included differently ([51fa4dc](https://github.com/GenSpectrum/LAPIS-SILO/commit/51fa4dc9ecb092684a91f1fa9f9d904d52c03476))
+
 ## [0.9.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.2...v0.9.3) (2025-12-16)
 
 
