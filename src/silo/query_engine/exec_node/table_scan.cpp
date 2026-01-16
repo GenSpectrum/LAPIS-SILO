@@ -237,10 +237,11 @@ arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    const std::vector<silo::schema::ColumnIdentifier>& columns,
    std::vector<CopyOnWriteBitmap> partition_filters_,
    std::shared_ptr<const storage::Table> table,
-   size_t batch_size_cutoff
+   size_t batch_size_cutoff,
+   ProduceGuard* produce_guard
 ) {
    exec_node::TableScanGenerator generator(
-      columns, std::move(partition_filters_), std::move(table), batch_size_cutoff
+      columns, std::move(partition_filters_), std::move(table), batch_size_cutoff, produce_guard
    );
    arrow::acero::SourceNodeOptions source_node_options{
       exec_node::columnsToArrowSchema(columns), generator, arrow::Ordering::Implicit()

@@ -40,6 +40,12 @@ arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
    EVOBENCH_SCOPE("Select", "toQueryPlanImpl");
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
+   auto produce_guard = std::make_unique<exec_node::ProduceGuard>();
+   SPDLOG_ERROR(
+      "future address: {} in SimpleSelectAction::toQueryPlanImpl",
+      static_cast<void*>(produce_guard.get())
+   );
+
    arrow::acero::ExecNode* node;
    ARROW_ASSIGN_OR_RAISE(
       node,
@@ -48,7 +54,8 @@ arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
          getOutputSchema(table->schema),
          std::move(partition_filters),
          table,
-         query_options.materialization_cutoff
+         query_options.materialization_cutoff,
+         produce_guard.get()
       )
    );
 
@@ -58,7 +65,7 @@ arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
 
    ARROW_ASSIGN_OR_RAISE(node, addZstdDecompressNode(arrow_plan.get(), node, table->schema));
 
-   return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
+   return QueryPlan::makeQueryPlan(arrow_plan, node, request_id, std::move(produce_guard));
 }
 
 }  // namespace silo::query_engine::actions
