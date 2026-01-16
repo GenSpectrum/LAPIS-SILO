@@ -154,6 +154,8 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
    std::vector<schema::ColumnIdentifier> group_by_fields_identifiers =
       bindGroupByFields(table->schema, group_by_fields);
 
+   auto produce_guard = std::make_unique<exec_node::ProduceGuard>();
+
    arrow::acero::ExecNode* node;
    ARROW_ASSIGN_OR_RAISE(
       node,
@@ -162,7 +164,8 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
          group_by_fields_identifiers,
          std::move(partition_filters),
          std::move(table),
-         query_options.materialization_cutoff
+         query_options.materialization_cutoff,
+         produce_guard.get()
       )
    );
 
@@ -189,7 +192,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
 
    ARROW_ASSIGN_OR_RAISE(node, addZstdDecompressNode(arrow_plan.get(), node, table_schema));
 
-   return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
+   return QueryPlan::makeQueryPlan(arrow_plan, node, request_id, std::move(produce_guard));
 }
 
 std::vector<schema::ColumnIdentifier> Aggregated::getOutputSchema(
