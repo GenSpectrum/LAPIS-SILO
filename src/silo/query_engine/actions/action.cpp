@@ -221,12 +221,13 @@ QueryPlan Action::toQueryPlan(
    std::string_view request_id
 ) {
    validateOrderByFields(table->schema);
-   auto query_plan =
+   auto query_plan_or_error =
       toQueryPlanImpl(std::move(table), std::move(partition_filters), query_options, request_id);
-   if (!query_plan.status().ok()) {
-      SILO_PANIC("Arrow error: {}", query_plan.status().ToString());
+   if (!query_plan_or_error.status().ok()) {
+      SILO_PANIC("Arrow error: {}", query_plan_or_error.status().ToString());
    };
-   return query_plan.ValueUnsafe();
+   auto query_plan = std::move(query_plan_or_error).ValueUnsafe();
+   return query_plan;
 }
 
 arrow::Result<arrow::acero::ExecNode*> Action::addSortNode(
