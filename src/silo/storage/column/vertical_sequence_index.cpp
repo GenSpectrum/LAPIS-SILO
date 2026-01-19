@@ -64,20 +64,20 @@ template <typename SymbolType>
 SymbolMap<SymbolType, uint32_t> VerticalSequenceIndex<SymbolType>::computeSymbolCountsForPosition(
    std::map<SequenceDiffKey, SequenceDiff>::const_iterator start,
    std::map<SequenceDiffKey, SequenceDiff>::const_iterator end,
-   SymbolType::Symbol global_reference_symbol,
+   SymbolType::Symbol current_local_reference_symbol,
    uint32_t coverage_cardinality
 ) const {
    SymbolMap<SymbolType, uint32_t> symbol_counts;
    for (const auto& symbol : SymbolType::SYMBOLS) {
       symbol_counts[symbol] = 0;
    }
-   symbol_counts[global_reference_symbol] = coverage_cardinality;
+   symbol_counts[current_local_reference_symbol] = coverage_cardinality;
 
    for (auto it = start; it != end; ++it) {
       const auto& [sequence_diff_key, sequence_diff] = *it;
-      SILO_ASSERT(sequence_diff_key.symbol != global_reference_symbol);
+      SILO_ASSERT(sequence_diff_key.symbol != current_local_reference_symbol);
       symbol_counts[sequence_diff_key.symbol] += sequence_diff.cardinality;
-      symbol_counts[global_reference_symbol] -= sequence_diff.cardinality;
+      symbol_counts[current_local_reference_symbol] -= sequence_diff.cardinality;
    }
    return symbol_counts;
 }
@@ -85,13 +85,13 @@ SymbolMap<SymbolType, uint32_t> VerticalSequenceIndex<SymbolType>::computeSymbol
 template <typename SymbolType>
 SymbolType::Symbol VerticalSequenceIndex<SymbolType>::getSymbolWithHighestCount(
    const SymbolMap<SymbolType, uint32_t>& symbol_counts,
-   SymbolType::Symbol global_reference_symbol
+   SymbolType::Symbol current_local_reference_symbol
 ) const {
    // Find the symbol with the highest count
-   typename SymbolType::Symbol best_symbol = global_reference_symbol;
-   uint32_t best_count = symbol_counts.at(global_reference_symbol);
+   typename SymbolType::Symbol best_symbol = current_local_reference_symbol;
+   uint32_t best_count = symbol_counts.at(current_local_reference_symbol);
    for (const auto& symbol : SymbolType::SYMBOLS) {
-      if (symbol == global_reference_symbol) {
+      if (symbol == current_local_reference_symbol) {
          continue;
       }
       if (symbol_counts.at(symbol) > best_count) {
@@ -106,17 +106,17 @@ template <typename SymbolType>
 std::optional<typename SymbolType::Symbol> VerticalSequenceIndex<SymbolType>::adaptLocalReference(
    const roaring::Roaring& coverage_bitmap,
    uint32_t position_idx,
-   SymbolType::Symbol global_reference_symbol
+   SymbolType::Symbol current_local_reference_symbol
 ) {
    auto [start, end] = getRangeForPosition(position_idx);
 
    SymbolMap<SymbolType, uint32_t> symbol_counts = computeSymbolCountsForPosition(
-      start, end, global_reference_symbol, coverage_bitmap.cardinality()
+      start, end, current_local_reference_symbol, coverage_bitmap.cardinality()
    );
    // Find the symbol with the highest count
    typename SymbolType::Symbol best_symbol =
-      getSymbolWithHighestCount(symbol_counts, global_reference_symbol);
-   if (best_symbol == global_reference_symbol) {
+      getSymbolWithHighestCount(symbol_counts, current_local_reference_symbol);
+   if (best_symbol == current_local_reference_symbol) {
       return std::nullopt;
    }
    typename SymbolType::Symbol new_reference_symbol = best_symbol;
@@ -136,7 +136,7 @@ std::optional<typename SymbolType::Symbol> VerticalSequenceIndex<SymbolType>::ad
       uint32_t cardinality = roaring::internal::container_get_cardinality(container, typecode);
       uint16_t v_index = roaring_array.keys[container_idx];
 
-      auto key = SequenceDiffKey{position_idx, v_index, global_reference_symbol};
+      auto key = SequenceDiffKey{position_idx, v_index, current_local_reference_symbol};
       vertical_bitmaps.insert({key, SequenceDiff(container, cardinality, typecode)});
    }
 

@@ -89,3 +89,61 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartEmpty) {
       )
    );
 }
+
+namespace {
+
+void appendSequence(SequenceColumnPartition<Nucleotide>& column, std::string sequence) {
+   auto& append_handle = column.appendNewSequenceRead();
+   append_handle.offset = 0;
+   append_handle.sequence = std::move(sequence);
+   append_handle.is_valid = true;
+}
+
+}  // namespace
+
+TEST(SequenceColumn, canFinalizeTwice) {
+   SequenceColumnMetadata<Nucleotide> column_metadata{
+      "test_column",
+      {Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T}
+   };
+   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+
+   appendSequence(under_test, "AAGT");
+   appendSequence(under_test, "AAGT");
+   appendSequence(under_test, "AAGT");
+   appendSequence(under_test, "ACGT");
+
+   under_test.finalize();
+
+   ASSERT_EQ(
+      under_test.getLocalReference(),
+      (std::vector<Nucleotide::Symbol>{
+         Nucleotide::Symbol::A, Nucleotide::Symbol::A, Nucleotide::Symbol::G, Nucleotide::Symbol::T
+      })
+   );
+
+   // This returns nothing, because symbol A is equal to reference -> nothing should be stored
+   ASSERT_EQ(
+      under_test.vertical_sequence_index.getMatchingContainersAsBitmap(1, {Nucleotide::Symbol::A}),
+      (roaring::Roaring{})
+   );
+
+   appendSequence(under_test, "ACGT");
+   appendSequence(under_test, "ACGT");
+   appendSequence(under_test, "ACGT");
+   appendSequence(under_test, "ACGT");
+
+   under_test.finalize();
+
+   ASSERT_EQ(
+      under_test.vertical_sequence_index.getMatchingContainersAsBitmap(1, {Nucleotide::Symbol::A}),
+      (roaring::Roaring{0, 1, 2})
+   );
+
+   ASSERT_EQ(
+      under_test.getLocalReference(),
+      (std::vector<Nucleotide::Symbol>{
+         Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
+      })
+   );
+}

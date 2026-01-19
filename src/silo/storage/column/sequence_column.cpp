@@ -19,27 +19,13 @@
 
 namespace silo::storage::column {
 
-namespace {
-
-template <typename SymbolType>
-std::string referenceSequenceToString(
-   const std::vector<typename SymbolType::Symbol>& reference_sequence
-) {
-   std::string result;
-   std::ranges::transform(reference_sequence, std::back_inserter(result), SymbolType::symbolToChar);
-   return result;
-}
-
-}  // namespace
-
 template <typename SymbolType>
 SequenceColumnPartition<SymbolType>::SequenceColumnPartition(
    SequenceColumnMetadata<SymbolType>* metadata
 )
     : metadata(metadata),
       genome_length(metadata->reference_sequence.size()),
-      reference_sequence_string(referenceSequenceToString<SymbolType>(metadata->reference_sequence)
-      ),
+      local_reference_sequence_string(SymbolType::sequenceToString(metadata->reference_sequence)),
       horizontal_coverage_index() {
    lazy_buffer.reserve(BUFFER_SIZE);
    SILO_ASSERT_GT(genome_length, 0);
@@ -154,7 +140,9 @@ void SequenceColumnPartition<SymbolType>::finalize() {
          const roaring::Roaring& coverage_bitmap =
             coverage_bitmaps[position_idx - position_range_start];
          auto new_reference_symbol = vertical_sequence_index.adaptLocalReference(
-            coverage_bitmap, position_idx, metadata->reference_sequence.at(position_idx)
+            coverage_bitmap,
+            position_idx,
+            SymbolType::charToSymbol(local_reference_sequence_string.at(position_idx)).value()
          );
          if (new_reference_symbol.has_value()) {
             SPDLOG_DEBUG(
@@ -162,9 +150,8 @@ void SequenceColumnPartition<SymbolType>::finalize() {
                position_idx,
                SymbolType::symbolToChar(new_reference_symbol.value())
             );
-            indexing_differences_to_reference_sequence.emplace(
-               position_idx, new_reference_symbol.value()
-            );
+            local_reference_sequence_string.at(position_idx) =
+               SymbolType::symbolToChar(new_reference_symbol.value());
          }
       }
    }
@@ -242,7 +229,7 @@ void SequenceColumnPartition<SymbolType>::fillIndexes() {
       for (size_t char_in_sequence = 0; char_in_sequence != sequence.size(); ++char_in_sequence) {
          size_t position_idx = char_in_sequence + offset;
 
-         if (sequence.at(char_in_sequence) == reference_sequence_string.at(position_idx)) {
+         if (sequence.at(char_in_sequence) == local_reference_sequence_string.at(position_idx)) {
             continue;
          }
 
