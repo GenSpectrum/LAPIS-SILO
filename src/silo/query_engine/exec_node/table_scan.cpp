@@ -24,13 +24,7 @@ arrow::Status appendSequences(
 ) {
    size_t cardinality = row_ids.cardinality();
 
-   std::string general_reference = sequence_column_partition.reference_sequence_string;
-
-   std::string partition_reference = general_reference;
-   for (const auto& [position_id, symbol] :
-        sequence_column_partition.indexing_differences_to_reference_sequence) {
-      partition_reference[position_id] = SymbolType::symbolToChar(symbol);
-   }
+   std::string partition_reference = sequence_column_partition.local_reference_sequence_string;
 
    std::vector<std::string> reconstructed_sequences;
    reconstructed_sequences.resize(cardinality, partition_reference);
@@ -43,7 +37,8 @@ arrow::Status appendSequences(
       .template overwriteCoverageInSequence<SymbolType>(reconstructed_sequences, row_ids);
 
    ARROW_RETURN_NOT_OK(output_array.Reserve(cardinality));
-   auto reference_sequence = general_reference;
+   auto reference_sequence =
+      SymbolType::sequenceToString(sequence_column_partition.metadata->reference_sequence);
    auto dictionary = std::make_shared<silo::ZstdCDictionary>(reference_sequence, 3);
    silo::ZstdCompressor compressor{dictionary};
    for (const auto& reconstructed_sequence : reconstructed_sequences) {

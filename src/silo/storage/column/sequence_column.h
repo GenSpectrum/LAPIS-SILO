@@ -72,7 +72,7 @@ class SequenceColumnPartition {
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
-      archive & indexing_differences_to_reference_sequence;
+      archive & local_reference_sequence_string;
       archive & vertical_sequence_index;
       archive & horizontal_coverage_index;
       archive & insertion_index;
@@ -84,10 +84,10 @@ class SequenceColumnPartition {
   public:
    const SequenceColumnMetadata<SymbolType>* metadata;
    const size_t genome_length;
-   // Also store it as a string to speed up insertions
-   const std::string reference_sequence_string;
 
-   std::map<size_t, typename SymbolType::Symbol> indexing_differences_to_reference_sequence;
+   // Store the local reference sequence as a string to speed up insertions
+   std::string local_reference_sequence_string;
+
    VerticalSequenceIndex<SymbolType> vertical_sequence_index;
    HorizontalCoverageIndex horizontal_coverage_index;
    storage::insertion::InsertionIndex<SymbolType> insertion_index;
@@ -99,20 +99,16 @@ class SequenceColumnPartition {
    [[nodiscard]] size_t numValues() const { return sequence_count; }
 
    std::vector<typename SymbolType::Symbol> getLocalReference() const {
-      std::vector<typename SymbolType::Symbol> local_reference = metadata->reference_sequence;
-      for (auto [pos, symbol] : indexing_differences_to_reference_sequence) {
-         local_reference.at(pos) = symbol;
-      }
+      std::vector<typename SymbolType::Symbol> local_reference;
+      for (char chr : local_reference_sequence_string) {
+         local_reference.push_back(SymbolType::charToSymbol(chr).value());
+      };
       return local_reference;
    }
 
    SymbolType::Symbol getLocalReferencePosition(size_t position) const {
       SILO_ASSERT(position < metadata->reference_sequence.size());
-      auto iter = indexing_differences_to_reference_sequence.find(position);
-      if (iter != indexing_differences_to_reference_sequence.end()) {
-         return iter->second;
-      }
-      return metadata->reference_sequence.at(position);
+      return SymbolType::charToSymbol(local_reference_sequence_string.at(position)).value();
    }
 
    [[nodiscard]] SequenceColumnInfo getInfo() const;

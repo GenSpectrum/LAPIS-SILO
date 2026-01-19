@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -256,6 +257,12 @@ class AminoAcid {
          default:
             return std::nullopt;
       }
+   }
+
+   static std::string sequenceToString(const std::vector<Symbol>& reference_sequence) {
+      std::string result;
+      std::ranges::transform(reference_sequence, std::back_inserter(result), symbolToChar);
+      return result;
    }
 };
 
