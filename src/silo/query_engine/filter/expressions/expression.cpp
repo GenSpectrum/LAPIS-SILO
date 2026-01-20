@@ -24,6 +24,7 @@
 #include "silo/query_engine/filter/expressions/or.h"
 #include "silo/query_engine/filter/expressions/phylo_child_filter.h"
 #include "silo/query_engine/filter/expressions/string_equals.h"
+#include "silo/query_engine/filter/expressions/string_in_set.h"
 #include "silo/query_engine/filter/expressions/string_search.h"
 #include "silo/query_engine/filter/expressions/symbol_equals.h"
 #include "silo/query_engine/filter/expressions/true.h"
@@ -80,6 +81,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<PhyloChildFilter>>();
    } else if (expression_type == "StringEquals") {
       filter = json.get<std::unique_ptr<StringEquals>>();
+   } else if (expression_type == "StringInSet") {
+      filter = json.get<std::unique_ptr<StringInSet>>();
    } else if (expression_type == "StringSearch") {
       filter = json.get<std::unique_ptr<StringSearch>>();
    } else if (expression_type == "BooleanEquals") {

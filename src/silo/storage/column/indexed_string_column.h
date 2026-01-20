@@ -61,23 +61,12 @@ class IndexedStringColumnPartition {
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::INDEXED_STRING;
 
-  private:
-   friend class boost::serialization::access;
-   template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
-      // clang-format off
-      archive & value_ids;
-      archive & indexed_values;
-      if(lineage_index.has_value()){
-         archive & lineage_index.value();
-      }
-      // clang-format on
-   }
+   Metadata* metadata;
 
+  private:
    std::vector<Idx> value_ids;
    std::unordered_map<Idx, roaring::Roaring> indexed_values;
    std::optional<LineageIndex> lineage_index;
-   Metadata* metadata;
 
   public:
    explicit IndexedStringColumnPartition(Metadata* metadata);
@@ -110,6 +99,19 @@ class IndexedStringColumnPartition {
    [[nodiscard]] std::optional<silo::Idx> getValueId(const std::string& value) const;
 
    [[nodiscard]] const std::optional<LineageIndex>& getLineageIndex() const;
+
+  private:
+   friend class boost::serialization::access;
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+      // clang-format off
+      archive & value_ids;
+      archive & indexed_values;
+      if(lineage_index.has_value()){
+         archive & lineage_index.value();
+      }
+      // clang-format on
+   }
 };
 
 }  // namespace silo::storage::column
