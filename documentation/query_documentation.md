@@ -132,6 +132,12 @@ If from or to is `null` it will not constrain the value in that regard. `null` w
 
 The `from` bound is inclusive, the `to` bound exclusive.
 
+#### `StringInSet`: `{"column": string, "values": [string]}`
+
+This filter is true for all rows, where the column `column` contains a string value that is in `[string]`.
+
+Returns an error for non-string columns. 
+
 ## Action
 
 This largely corresponds to the [LAPIS endpoint](https://lapis.cov-spectrum.org/open/v2/swagger-ui/index.html) that was being used. Always returns data as ndjson (every line is a separate json element and does not contain line-breaks)
