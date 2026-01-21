@@ -4,3 +4,4 @@ function(add_benchmark BENCH_NAME)
 endfunction(add_benchmark)
 
 add_benchmark(mutation_benchmark)
+add_benchmark(many_string_equals)
