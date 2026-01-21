@@ -4,3 +4,4 @@ function(add_benchmark BENCH_NAME)
 endfunction(add_benchmark)
 
 add_benchmark(mutation_benchmark)
+add_benchmark(many_short_read_filters)
