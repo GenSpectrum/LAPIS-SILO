@@ -5,8 +5,8 @@
 namespace silo::storage::column {
 
 DateColumnPartition::DateColumnPartition(ColumnMetadata* metadata)
-    : is_sorted(true),
-      metadata(metadata) {}
+    : metadata(metadata),
+      is_sorted(true) {}
 
 bool DateColumnPartition::isSorted() const {
    return is_sorted;
@@ -21,6 +21,8 @@ void DateColumnPartition::insert(std::string_view value) {
 }
 
 void DateColumnPartition::insertNull() {
+   size_t row_id = values.size();
+   null_bitmap.add(row_id);
    values.push_back(common::NULL_DATE);
 }
 

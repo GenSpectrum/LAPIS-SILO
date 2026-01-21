@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <boost/serialization/access.hpp>
+#include <roaring/roaring.hh>
 
 #include "silo/common/date.h"
 #include "silo/schema/database_schema.h"
@@ -18,22 +19,14 @@ class DateColumnPartition {
    static constexpr schema::ColumnType TYPE = schema::ColumnType::DATE;
    using value_type = common::Date;
 
-  private:
-   friend class boost::serialization::access;
-   template <class Archive>
-   void serialize(Archive& archive, const uint32_t /* version */) {
-      // clang-format off
-      archive & values;
-      archive & is_sorted;
-      // clang-format on
-   }
+   [[maybe_unused]] Metadata* metadata;
+   roaring::Roaring null_bitmap;
 
+  private:
    std::vector<silo::common::Date> values;
    bool is_sorted;
 
   public:
-   [[maybe_unused]] Metadata* metadata;
-
    explicit DateColumnPartition(Metadata* metadata);
 
    [[nodiscard]] bool isSorted() const;
@@ -48,8 +41,19 @@ class DateColumnPartition {
 
    [[nodiscard]] size_t numValues() const { return values.size(); }
 
-   [[nodiscard]] bool isNull(size_t row_id) const { return values.at(row_id) == common::NULL_DATE; }
+   [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
    [[nodiscard]] silo::common::Date getValue(size_t row_id) const { return values.at(row_id); }
+
+  private:
+   friend class boost::serialization::access;
+   template <class Archive>
+   void serialize(Archive& archive, const uint32_t /* version */) {
+      // clang-format off
+      archive & null_bitmap;
+      archive & values;
+      archive & is_sorted;
+      // clang-format on
+   }
 };
 
 }  // namespace silo::storage::column
