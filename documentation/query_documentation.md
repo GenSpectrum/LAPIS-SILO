@@ -136,7 +136,15 @@ The `from` bound is inclusive, the `to` bound exclusive.
 
 This filter is true for all rows, where the column `column` contains a string value that is in `[string]`.
 
-Returns an error for non-string columns. 
+Returns an error for non-string columns.
+
+#### `IsNull`: `{"column": string}`
+
+This filter is true if the value in `column` is `NULL`.
+
+#### `IsNotNull`: `{"column": string}`
+
+This filter is true if the value in `column` is not `NULL`.
 
 ## Action
 

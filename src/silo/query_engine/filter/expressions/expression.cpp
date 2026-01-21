@@ -17,6 +17,7 @@
 #include "silo/query_engine/filter/expressions/insertion_contains.h"
 #include "silo/query_engine/filter/expressions/int_between.h"
 #include "silo/query_engine/filter/expressions/int_equals.h"
+#include "silo/query_engine/filter/expressions/is_null.h"
 #include "silo/query_engine/filter/expressions/lineage_filter.h"
 #include "silo/query_engine/filter/expressions/maybe.h"
 #include "silo/query_engine/filter/expressions/negation.h"
@@ -103,6 +104,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<InsertionContains<Nucleotide>>>();
    } else if (expression_type == "AminoAcidInsertionContains") {
       filter = json.get<std::unique_ptr<InsertionContains<AminoAcid>>>();
+   } else if (expression_type == "IsNull") {
+      filter = json.get<std::unique_ptr<IsNull>>();
+   } else if (expression_type == "IsNotNull") {
+      filter = std::make_unique<Negation>(json.get<std::unique_ptr<IsNull>>());
    } else {
       throw query_engine::IllegalQueryException(
          "Unknown object filter type '" + expression_type + "'"
