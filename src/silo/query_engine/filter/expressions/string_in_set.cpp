@@ -8,9 +8,10 @@
 
 #include "silo/common/panic.h"
 #include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/expressions/or.h"
+#include "silo/query_engine/filter/expressions/string_equals.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/filter/operators/string_in_set.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/column/indexed_string_column.h"
@@ -32,15 +33,8 @@ std::string StringInSet::toString() const {
 
 std::unique_ptr<Expression> StringInSet::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
+   const storage::TablePartition& table_partition,
    AmbiguityMode /*mode*/
-) const {
-   return std::make_unique<StringInSet>(column_name, values);
-}
-
-std::unique_ptr<operators::Operator> StringInSet::compile(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition
 ) const {
    CHECK_SILO_QUERY(
       table_partition.columns.string_columns.contains(column_name) ||
@@ -49,17 +43,23 @@ std::unique_ptr<operators::Operator> StringInSet::compile(
       column_name
    );
 
-   if (table_partition.columns.indexed_string_columns.contains(column_name)) {
-      const auto& string_column = table_partition.columns.indexed_string_columns.at(column_name);
-      return std::make_unique<operators::Selection>(
-         std::make_unique<operators::StringInSet<IndexedStringColumnPartition>>(
-            &string_column,
-            operators::StringInSet<IndexedStringColumnPartition>::Comparator::IN,
-            values
-         ),
-         table_partition.sequence_count
-      );
+   // We do not change expressions for StringColumn
+   if (table_partition.columns.string_columns.contains(column_name)) {
+      return std::make_unique<StringInSet>(column_name, values);
    }
+
+   // We want to improve IndexedStringColumn by using our Indexes directly -> StringEquals
+   std::vector<std::unique_ptr<Expression>> string_equal_expressions;
+   for (const auto& value : values) {
+      string_equal_expressions.emplace_back(std::make_unique<StringEquals>(column_name, value));
+   }
+   return std::make_unique<Or>(std::move(string_equal_expressions));
+}
+
+std::unique_ptr<operators::Operator> StringInSet::compile(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& table_partition
+) const {
    SILO_ASSERT(table_partition.columns.string_columns.contains(column_name));
    const auto& string_column = table_partition.columns.string_columns.at(column_name);
    return std::make_unique<operators::Selection>(

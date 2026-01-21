@@ -12,7 +12,11 @@
 
 namespace silo::query_engine::filter::expressions {
 
+class Or;
+
 class StringInSet : public Expression {
+   friend class Or;
+
   private:
    std::string column_name;
    std::unordered_set<std::string> values;

@@ -8,6 +8,8 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/expressions/string_in_set.h"
+#include "silo/query_engine/filter/expressions/symbol_in_set.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/full.h"
@@ -15,7 +17,6 @@
 #include "silo/query_engine/filter/operators/union.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/table_partition.h"
-#include "symbol_in_set.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -61,6 +62,39 @@ ExpressionVector Or::rewriteSymbolInSetExpressions(ExpressionVector children) {
    return new_children;
 }
 
+ExpressionVector Or::mergeStringInSetExpressions(ExpressionVector children) {
+   ExpressionVector new_children;
+   using Column = std::string;
+   using Strings = std::unordered_set<std::string>;
+   std::map<Column, Strings> string_in_set_children;
+   for (auto& child : children) {
+      if (auto string_in_set_child = dynamic_cast<StringInSet*>(child.get());
+          string_in_set_child != nullptr) {
+         if (auto it = string_in_set_children.find(string_in_set_child->column_name);
+             it != string_in_set_children.end()) {
+            Strings child_strings = std::move(string_in_set_child->values);
+            for (auto& value : child_strings) {
+               it->second.emplace(std::move(value));
+            }
+         } else {
+            string_in_set_children.emplace(
+               std::move(string_in_set_child->column_name), std::move(string_in_set_child->values)
+            );
+         }
+      } else {
+         new_children.emplace_back(std::move(child));
+      }
+   }
+
+   for (auto& [column_name, strings] : string_in_set_children) {
+      new_children.emplace_back(
+         std::make_unique<StringInSet>(std::move(column_name), std::move(strings))
+      );
+   }
+
+   return new_children;
+}
+
 std::unique_ptr<Expression> Or::rewrite(
    const storage::Table& table,
    const storage::TablePartition& table_partition,
@@ -76,6 +110,7 @@ std::unique_ptr<Expression> Or::rewrite(
    );
    rewritten_children = rewriteSymbolInSetExpressions<Nucleotide>(std::move(rewritten_children));
    rewritten_children = rewriteSymbolInSetExpressions<AminoAcid>(std::move(rewritten_children));
+   rewritten_children = mergeStringInSetExpressions(std::move(rewritten_children));
    if (rewritten_children.size() == 1) {
       return std::move(rewritten_children[0]);
    }

@@ -8,6 +8,8 @@
 
 #include "silo/common/panic.h"
 #include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/expressions/is_null.h"
+#include "silo/query_engine/filter/expressions/string_in_set.h"
 #include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -32,15 +34,8 @@ std::string StringEquals::toString() const {
 
 std::unique_ptr<Expression> StringEquals::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
+   const storage::TablePartition& table_partition,
    AmbiguityMode /*mode*/
-) const {
-   return std::make_unique<StringEquals>(column_name, value);
-}
-
-std::unique_ptr<operators::Operator> StringEquals::compile(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition
 ) const {
    CHECK_SILO_QUERY(
       table_partition.columns.string_columns.contains(column_name) ||
@@ -49,29 +44,36 @@ std::unique_ptr<operators::Operator> StringEquals::compile(
       column_name
    );
 
-   if (table_partition.columns.indexed_string_columns.contains(column_name)) {
-      const auto& string_column = table_partition.columns.indexed_string_columns.at(column_name);
-      const auto bitmap = string_column.filter(value);
-
-      if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
-         return std::make_unique<operators::Empty>(table_partition.sequence_count);
-      }
-      return std::make_unique<operators::IndexScan>(
-         CopyOnWriteBitmap{bitmap.value()}, table_partition.sequence_count
-      );
+   if (value == std::nullopt) {
+      return std::make_unique<IsNull>(column_name);
    }
+
+   // We do not change expressions for IndexedStringColumn
+   if (table_partition.columns.indexed_string_columns.contains(column_name)) {
+      return std::make_unique<StringEquals>(column_name, value);
+   }
+
    SILO_ASSERT(table_partition.columns.string_columns.contains(column_name));
-   const auto& string_column = table_partition.columns.string_columns.at(column_name);
-   if (value.has_value()) {
-      return std::make_unique<operators::Selection>(
-         std::make_unique<operators::CompareToValueSelection<StringColumnPartition>>(
-            string_column, operators::Comparator::EQUALS, value.value()
-         ),
-         table_partition.sequence_count
-      );
+
+   return std::make_unique<StringInSet>(
+      column_name, std::unordered_set<std::string>{value.value()}
+   );
+}
+
+std::unique_ptr<operators::Operator> StringEquals::compile(
+   const storage::Table& /*table*/,
+   const storage::TablePartition& table_partition
+) const {
+   // If it was a StringColumn it should have been rewritten
+   SILO_ASSERT(table_partition.columns.indexed_string_columns.contains(column_name));
+   const auto& string_column = table_partition.columns.indexed_string_columns.at(column_name);
+   const auto bitmap = string_column.filter(value);
+
+   if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
+      return std::make_unique<operators::Empty>(table_partition.sequence_count);
    }
    return std::make_unique<operators::IndexScan>(
-      CopyOnWriteBitmap{&string_column.null_bitmap}, table_partition.sequence_count
+      CopyOnWriteBitmap{bitmap.value()}, table_partition.sequence_count
    );
 }
 

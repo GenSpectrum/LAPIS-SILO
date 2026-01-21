@@ -28,6 +28,8 @@ class Or : public Expression {
    template <typename SymbolType>
    [[nodiscard]] static ExpressionVector rewriteSymbolInSetExpressions(ExpressionVector children);
 
+   [[nodiscard]] static ExpressionVector mergeStringInSetExpressions(ExpressionVector children);
+
    [[nodiscard]] std::unique_ptr<operators::Operator> compile(
       const storage::Table& table,
       const storage::TablePartition& table_partition
