@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.5](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.4...v0.9.5) (2026-01-22)
+
+
+### Features
+
+* **build:** change builder base image to debian ([9e07f48](https://github.com/GenSpectrum/LAPIS-SILO/commit/9e07f483b7187878bf6da960e585a0c244790e66))
+
+
+### Bug Fixes
+
+* **silo:** correctly adapt local reference in incremental appends ([fa2ef25](https://github.com/GenSpectrum/LAPIS-SILO/commit/fa2ef25102e5a7063795f7f8760fe69264b7c31d))
+
 ## [0.9.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.3...v0.9.4) (2026-01-15)
 
 
