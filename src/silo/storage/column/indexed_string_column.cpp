@@ -42,7 +42,10 @@ std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(Idx 
 std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(
    const std::optional<std::string>& value
 ) const {
-   const auto& value_id = metadata->dictionary.getId(value.value_or(""));
+   if (value == std::nullopt) {
+      return &null_bitmap;
+   }
+   const auto& value_id = metadata->dictionary.getId(value.value());
    if (!value_id.has_value()) {
       return std::nullopt;
    }
@@ -73,10 +76,16 @@ std::expected<void, std::string> IndexedStringColumnPartition::insert(std::strin
 }
 
 void IndexedStringColumnPartition::insertNull() {
+   null_bitmap.add(value_ids.size());
+   // We need to add something to the vector, so that the size of the vector remains equal to row_id
+   // but we do not add our row_id to indexed_values[value_id]
    const Idx value_id = metadata->dictionary.getOrCreateId("");
-
-   indexed_values[value_id].add(value_ids.size());
+   indexed_values.try_emplace(value_id);
    value_ids.push_back(value_id);
+}
+
+bool IndexedStringColumnPartition::isNull(size_t row_id) const {
+   return null_bitmap.contains(row_id);
 }
 
 void IndexedStringColumnPartition::reserve(size_t row_count) {
