@@ -42,7 +42,7 @@ std::string LineageFilter::toString() const {
 std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
    const IndexedStringColumnPartition& lineage_column
 ) const {
-   if (!lineage) {
+   if (lineage == std::nullopt) {
       return lineage_column.filter(std::nullopt);
    }
 

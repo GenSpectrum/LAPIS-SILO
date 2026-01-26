@@ -17,12 +17,11 @@ namespace silo::query_engine::exec_node {
 namespace {
 
 template <typename SymbolType>
-arrow::Status appendSequences(
+std::vector<std::string> reconstructNonNullSequences(
    const storage::column::SequenceColumnPartition<SymbolType>& sequence_column_partition,
-   const roaring::Roaring& row_ids,
-   arrow::BinaryBuilder& output_array
+   const roaring::Roaring& non_null_row_ids
 ) {
-   const size_t cardinality = row_ids.cardinality();
+   const size_t cardinality = non_null_row_ids.cardinality();
 
    const std::string partition_reference =
       sequence_column_partition.local_reference_sequence_string;
@@ -31,21 +30,42 @@ arrow::Status appendSequences(
    reconstructed_sequences.resize(cardinality, partition_reference);
 
    sequence_column_partition.vertical_sequence_index.overwriteSymbolsInSequences(
-      reconstructed_sequences, row_ids
+      reconstructed_sequences, non_null_row_ids
    );
 
    sequence_column_partition.horizontal_coverage_index
-      .template overwriteCoverageInSequence<SymbolType>(reconstructed_sequences, row_ids);
+      .template overwriteCoverageInSequence<SymbolType>(reconstructed_sequences, non_null_row_ids);
+   return reconstructed_sequences;
+}
 
-   ARROW_RETURN_NOT_OK(output_array.Reserve(cardinality));
+template <typename SymbolType>
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+arrow::Status appendSequences(
+   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column_partition,
+   const roaring::Roaring& row_ids,
+   arrow::BinaryBuilder& output_array
+) {
+   auto reconstructed_non_null_sequences = reconstructNonNullSequences(
+      sequence_column_partition, row_ids - sequence_column_partition.null_bitmap
+   );
+
+   ARROW_RETURN_NOT_OK(output_array.Reserve(row_ids.cardinality()));
    auto reference_sequence =
       SymbolType::sequenceToString(sequence_column_partition.metadata->reference_sequence);
    auto dictionary = std::make_shared<silo::ZstdCDictionary>(reference_sequence, 3);
    silo::ZstdCompressor compressor{dictionary};
-   for (const auto& reconstructed_sequence : reconstructed_sequences) {
-      ARROW_RETURN_NOT_OK(output_array.Append(
-         compressor.compress(reconstructed_sequence.data(), reconstructed_sequence.size())
-      ));
+
+   auto reconstructed_sequence_iterator = reconstructed_non_null_sequences.begin();
+   for (auto row_id : row_ids) {
+      if (sequence_column_partition.isNull(row_id)) {
+         ARROW_RETURN_NOT_OK(output_array.AppendNull());
+      } else {
+         auto& reconstructed_sequence = *reconstructed_sequence_iterator;
+         ARROW_RETURN_NOT_OK(output_array.Append(
+            compressor.compress(reconstructed_sequence.data(), reconstructed_sequence.size())
+         ));
+         reconstructed_sequence_iterator++;
+      }
    }
    return arrow::Status::OK();
 }

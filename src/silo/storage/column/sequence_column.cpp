@@ -159,8 +159,15 @@ void SequenceColumnPartition<SymbolType>::append(
 
 template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::appendNull() {
+   const size_t row_id = sequence_count;
+   null_bitmap.add(row_id);
    sequence_count += 1;
    horizontal_coverage_index.insertNullSequence();
+}
+
+template <typename SymbolType>
+bool SequenceColumnPartition<SymbolType>::isNull(size_t row_id) const {
+   return null_bitmap.contains(row_id);
 }
 
 template <typename SymbolType>
