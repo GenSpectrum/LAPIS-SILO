@@ -6,13 +6,13 @@
     },
     "filterExpression": {
       "type": "StringSearch",
-      "column": "gisaid_epi_isl",
-      "searchExpression": "^\\D*\\d{6}$"
+      "column": "primary_key",
+      "searchExpression": "^\\D*\\d{1}$"
     }
   },
   "expectedQueryResult": [
     {
-      "count": 12
+      "count": 9
     }
   ]
 }

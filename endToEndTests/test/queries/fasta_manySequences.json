@@ -4,7 +4,7 @@
     "action": {
       "type": "Fasta",
       "sequenceNames": ["unaligned_testSecondSequence"],
-      "orderByFields": ["gisaid_epi_isl"]
+      "orderByFields": ["primary_key"]
     },
     "filterExpression": {
       "type": "StringEquals",
@@ -14,31 +14,31 @@
   },
   "expectedQueryResult": [
     {
-      "gisaid_epi_isl": "EPI_ISL_1001493",
+      "primary_key": "key_1",
       "unaligned_testSecondSequence": "ACGT"
     },
     {
-      "gisaid_epi_isl": "EPI_ISL_1597890",
+      "primary_key": "key_31",
       "unaligned_testSecondSequence": "ACGT"
     },
     {
-      "gisaid_epi_isl": "EPI_ISL_2359636",
+      "primary_key": "key_63",
       "unaligned_testSecondSequence": "ACGT"
     },
     {
-      "gisaid_epi_isl": "EPI_ISL_2367431",
+      "primary_key": "key_65",
       "unaligned_testSecondSequence": "NCGT"
     },
     {
-      "gisaid_epi_isl": "EPI_ISL_2405276",
+      "primary_key": "key_72",
       "unaligned_testSecondSequence": "ACGT"
     },
     {
-      "gisaid_epi_isl": "EPI_ISL_3259931",
+      "primary_key": "key_84",
       "unaligned_testSecondSequence": "JRZFHVKQIQGIVPUNJZCDKLOPDFTWZWXEXKZIHLGFWZNIGUAAPJBXPQCJBFUYHHIOPNDMTMHAFPHMZRCNUGIBRZCNKAJZMWXMBMPQRTZQUHTIFSOBXAQWMESDRWVJQWRE"
     },
     {
-      "gisaid_epi_isl": "EPI_ISL_3465732",
+      "primary_key": "key_87",
       "unaligned_testSecondSequence": "ACGT"
     }
   ]

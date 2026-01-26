@@ -6,8 +6,8 @@
     },
     "filterExpression": {
       "type": "StringSearch",
-      "column": "gisaid_epi_isl",
-      "searchExpression": "^EP"
+      "column": "primary_key",
+      "searchExpression": "^key_"
     }
   },
   "expectedQueryResult": [

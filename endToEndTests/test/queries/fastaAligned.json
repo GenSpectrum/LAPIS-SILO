@@ -4,412 +4,112 @@
     "action": {
       "type": "FastaAligned",
       "sequenceNames": ["testSecondSequence"],
-      "orderByFields": ["gisaid_epi_isl"]
+      "orderByFields": ["primary_key"]
     },
     "filterExpression": {
       "type": "True"
     }
   },
   "expectedQueryResult": [
-    {
-      "gisaid_epi_isl": "EPI_ISL_1001493",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1001920",
-      "testSecondSequence": "ARGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1002052",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1002156",
-      "testSecondSequence": "ACGN"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1003010",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1003036",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1003373",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1003425",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1003519",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1003629",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1003849",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1004495",
-      "testSecondSequence": "ARGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1005148",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1036103",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1080536",
-      "testSecondSequence": "ATGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1119315",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1119584",
-      "testSecondSequence": "ACGN"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1129663",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1130868",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1131102",
-      "testSecondSequence": "AYGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1195052",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1260480",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1273458",
-      "testSecondSequence": "ANGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1273715",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1360935",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1361468",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1407962",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1408062",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1408408",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1408805",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1597890",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1597932",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1599113",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1682849",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1747752",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1747885",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1748215",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1748243",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1748395",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1749892",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1749899",
-      "testSecondSequence": "AAGN"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1749960",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1750503",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1750868",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1760534",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_1840634",
-      "testSecondSequence": "ACGN"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2016901",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2017036",
-      "testSecondSequence": "ANGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2019235",
-      "testSecondSequence": "A-GT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2019350",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2086867",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2180023",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2180995",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2181005",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2213804",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2213934",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2213984",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2214128",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2270139",
-      "testSecondSequence": "NNNN"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2307766",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2307888",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2308054",
-      "testSecondSequence": "NNNN"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2359636",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2360326",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2367431",
-      "testSecondSequence": "NCGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2374969",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2375097",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2375165",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2375247",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2375490",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2379651",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2405276",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2408472",
-      "testSecondSequence": "AAGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2544226",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2544332",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2544452",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_2574088",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_3016465",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_3086369",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_3128737",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_3128796",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_3128811",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_3247294",
-      "testSecondSequence": "NNNN"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_3259931",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_3267832",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_3465556",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_3465732",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_3578231",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_466942",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_581968",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_721941",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_737604",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_737715",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_737860",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_768148",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_830864",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_899725",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_899762",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_931031",
-      "testSecondSequence": "ACGT"
-    },
-    {
-      "gisaid_epi_isl": "EPI_ISL_931279",
-      "testSecondSequence": "ACGT"
-    }
+    { "primary_key": "key_1", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_10", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_100", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_11", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_12", "testSecondSequence": "ARGT" },
+    { "primary_key": "key_13", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_14", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_15", "testSecondSequence": "ATGT" },
+    { "primary_key": "key_16", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_17", "testSecondSequence": "ACGN" },
+    { "primary_key": "key_18", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_19", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_2", "testSecondSequence": "ARGT" },
+    { "primary_key": "key_20", "testSecondSequence": "AYGT" },
+    { "primary_key": "key_21", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_22", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_23", "testSecondSequence": "ANGT" },
+    { "primary_key": "key_24", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_25", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_26", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_27", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_28", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_29", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_3", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_30", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_31", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_32", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_33", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_34", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_35", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_36", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_37", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_38", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_39", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_4", "testSecondSequence": "ACGN" },
+    { "primary_key": "key_40", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_41", "testSecondSequence": "AAGN" },
+    { "primary_key": "key_42", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_43", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_44", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_45", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_46", "testSecondSequence": "ACGN" },
+    { "primary_key": "key_47", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_48", "testSecondSequence": "ANGT" },
+    { "primary_key": "key_49", "testSecondSequence": "A-GT" },
+    { "primary_key": "key_5", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_50", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_51", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_52", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_53", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_54", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_55", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_56", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_57", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_58", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_59", "testSecondSequence": "NNNN" },
+    { "primary_key": "key_6", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_60", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_61", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_62", "testSecondSequence": "NNNN" },
+    { "primary_key": "key_63", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_64", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_65", "testSecondSequence": "NCGT" },
+    { "primary_key": "key_66", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_67", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_68", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_69", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_7", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_70", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_71", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_72", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_73", "testSecondSequence": "AAGT" },
+    { "primary_key": "key_74", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_75", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_76", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_77", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_78", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_79", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_8", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_80", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_81", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_82", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_83", "testSecondSequence": "NNNN" },
+    { "primary_key": "key_84", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_85", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_86", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_87", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_88", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_89", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_9", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_90", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_91", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_92", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_93", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_94", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_95", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_96", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_97", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_98", "testSecondSequence": "ACGT" },
+    { "primary_key": "key_99", "testSecondSequence": "ACGT" }
   ]
 }

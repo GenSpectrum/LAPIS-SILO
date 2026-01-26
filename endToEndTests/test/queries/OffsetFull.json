@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "Details",
-      "orderByFields": ["gisaid_epi_isl"],
+      "orderByFields": ["primary_key"],
       "offset": 100,
       "limit": 90
     },

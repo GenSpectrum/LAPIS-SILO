@@ -109,9 +109,9 @@ TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
    );
 
    ASSERT_EQ(config.schema.instance_name, "sars_cov-2_minimal_test_config");
-   ASSERT_EQ(config.schema.primary_key, "gisaid_epi_isl");
+   ASSERT_EQ(config.schema.primary_key, "primary_key");
    ASSERT_EQ(config.schema.metadata.size(), 9);
-   ASSERT_EQ(config.schema.metadata[0].name, "gisaid_epi_isl");
+   ASSERT_EQ(config.schema.metadata[0].name, "primary_key");
    ASSERT_EQ(config.schema.metadata[0].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[0].generate_index, false);
    ASSERT_EQ(config.schema.metadata[0].generate_lineage_index, std::nullopt);
@@ -165,7 +165,7 @@ schema:
   metadata:
     - name: wrongType
       type: wrong_type
-  primaryKey: gisaid_epi_isl
+  primaryKey: primary_key
 )-";
 
    ASSERT_THROW((void)silo::config::DatabaseConfig::getValidatedConfig(yaml), ConfigException);

@@ -3,7 +3,7 @@
   "query": {
     "action": {
       "type": "Details",
-      "orderByFields": ["gisaid_epi_isl"],
+      "orderByFields": ["primary_key"],
       "offset": 90,
       "limit": 90
     },
@@ -13,134 +13,134 @@
   },
   "expectedQueryResult": [
     {
+      "age": 50,
+      "country": "Switzerland",
+      "date": "2020-08-17",
+      "division": "Basel-Stadt",
+      "pango_lineage": "B.1.160",
+      "primary_key": "key_90",
+      "qc_value": 0.96,
+      "region": "Europe",
+      "test_boolean_column": true,
+      "unsorted_date": "2021-03-25",
+      "usherTree": "key_90"
+    },
+    {
       "age": 53,
       "country": "Switzerland",
       "date": "2020-11-24",
       "division": "Zürich",
-      "gisaid_epi_isl": "EPI_ISL_721941",
       "pango_lineage": "B.1.1.70",
+      "primary_key": "key_91",
       "qc_value": 0.9,
       "region": "Europe",
       "test_boolean_column": false,
       "unsorted_date": "2021-03-15",
-      "usherTree": "EPI_ISL_721941"
+      "usherTree": "key_91"
     },
     {
       "age": 53,
       "country": "Switzerland",
       "date": "2020-12-14",
       "division": "Bern",
-      "gisaid_epi_isl": "EPI_ISL_737604",
       "pango_lineage": "B.1.1",
+      "primary_key": "key_92",
       "qc_value": 0.92,
       "region": "Europe",
       "test_boolean_column": true,
       "unsorted_date": "2021-05-14",
-      "usherTree": "EPI_ISL_737604"
+      "usherTree": "key_92"
     },
     {
       "age": 56,
       "country": "Switzerland",
       "date": "2020-12-13",
       "division": "Bern",
-      "gisaid_epi_isl": "EPI_ISL_737715",
       "pango_lineage": "B.1.177",
+      "primary_key": "key_93",
       "qc_value": 0.89,
       "region": "Europe",
       "test_boolean_column": null,
       "unsorted_date": "2021-05-16",
-      "usherTree": "EPI_ISL_737715"
+      "usherTree": "key_93"
     },
     {
       "age": 56,
       "country": "Switzerland",
       "date": "2020-12-09",
       "division": "Valais",
-      "gisaid_epi_isl": "EPI_ISL_737860",
       "pango_lineage": "B.1.160",
+      "primary_key": "key_94",
       "qc_value": 0.97,
       "region": "Europe",
       "test_boolean_column": false,
       "unsorted_date": "2021-04-28",
-      "usherTree": "EPI_ISL_737860"
+      "usherTree": "key_94"
     },
     {
       "age": 56,
       "country": "Switzerland",
       "date": "2020-12-24",
       "division": "Sankt Gallen",
-      "gisaid_epi_isl": "EPI_ISL_768148",
       "pango_lineage": "GD.1",
+      "primary_key": "key_95",
       "qc_value": 0.98,
       "region": "Europe",
       "test_boolean_column": true,
       "unsorted_date": "2020-03-16",
-      "usherTree": "EPI_ISL_768148"
+      "usherTree": "key_95"
     },
     {
       "age": 50,
       "country": "Switzerland",
       "date": "2020-10-08",
       "division": "Basel-Stadt",
-      "gisaid_epi_isl": "EPI_ISL_830864",
       "pango_lineage": "B.1.177",
+      "primary_key": "key_96",
       "qc_value": 0.97,
       "region": "Europe",
       "test_boolean_column": false,
       "unsorted_date": "2021-03-03",
-      "usherTree": "EPI_ISL_830864"
+      "usherTree": "key_96"
     },
     {
       "age": 59,
       "country": "Switzerland",
       "date": "2021-01-12",
       "division": "Solothurn",
-      "gisaid_epi_isl": "EPI_ISL_899725",
       "pango_lineage": "B.1.177",
+      "primary_key": "key_97",
       "qc_value": 0.96,
       "region": "Europe",
       "test_boolean_column": true,
       "unsorted_date": "2021-07-14",
-      "usherTree": "EPI_ISL_899725"
+      "usherTree": "key_97"
     },
     {
       "age": 58,
       "country": "Switzerland",
       "date": "2020-12-25",
       "division": "Schwyz",
-      "gisaid_epi_isl": "EPI_ISL_899762",
       "pango_lineage": "B.1.177",
+      "primary_key": "key_98",
       "qc_value": 0.97,
       "region": "Europe",
       "test_boolean_column": false,
       "unsorted_date": "2021-07-19",
-      "usherTree": "EPI_ISL_899762"
+      "usherTree": "key_98"
     },
     {
       "age": 50,
       "country": "Switzerland",
       "date": "2020-10-22",
       "division": "Basel-Stadt",
-      "gisaid_epi_isl": "EPI_ISL_931031",
       "pango_lineage": "B.1.177",
+      "primary_key": "key_99",
       "qc_value": 0.95,
       "region": "Europe",
       "test_boolean_column": false,
       "unsorted_date": "2021-05-10",
-      "usherTree": "EPI_ISL_931031"
-    },
-    {
-      "age": 50,
-      "country": "Switzerland",
-      "date": "2020-10-28",
-      "division": "Basel-Stadt",
-      "gisaid_epi_isl": "EPI_ISL_931279",
-      "pango_lineage": "B.1.1",
-      "qc_value": 0.96,
-      "region": "Europe",
-      "test_boolean_column": true,
-      "unsorted_date": "2021-05-11",
-      "usherTree": "EPI_ISL_931279"
+      "usherTree": "key_99"
     }
   ]
 }

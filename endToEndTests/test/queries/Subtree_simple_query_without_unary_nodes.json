@@ -12,20 +12,20 @@
       "children": [
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
-          "value": "EPI_ISL_3247294"
+          "column": "primary_key",
+          "value": "key_83"
         },
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
-          "value": "EPI_ISL_3465732"
+          "column": "primary_key",
+          "value": "key_87"
         }
       ]
     }
   },
   "expectedQueryResult": [
     {
-      "subtreeNewick": "(EPI_ISL_3247294:0.00030342,EPI_ISL_3465732:0.00023744)NODE_0000076;",
+      "subtreeNewick": "(key_83:0.00030342,key_87:0.00023744)NODE_0000076;",
       "missingNodeCount": 0
     }
   ]

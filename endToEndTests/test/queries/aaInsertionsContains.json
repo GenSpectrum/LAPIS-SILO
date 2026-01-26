@@ -3,8 +3,8 @@
   "query": {
     "action": {
       "type": "Details",
-      "fields": ["gisaid_epi_isl"],
-      "orderByFields": ["gisaid_epi_isl"]
+      "fields": ["primary_key"],
+      "orderByFields": ["primary_key"]
     },
     "filterExpression": {
       "type": "AminoAcidInsertionContains",
@@ -15,16 +15,16 @@
   },
   "expectedQueryResult": [
     {
-      "gisaid_epi_isl": "EPI_ISL_1408408"
+      "primary_key": "key_29"
     },
     {
-      "gisaid_epi_isl": "EPI_ISL_1597932"
+      "primary_key": "key_32"
     },
     {
-      "gisaid_epi_isl": "EPI_ISL_1750868"
+      "primary_key": "key_44"
     },
     {
-      "gisaid_epi_isl": "EPI_ISL_581968"
+      "primary_key": "key_90"
     }
   ]
 }

@@ -11,13 +11,13 @@
       "children": [
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
-          "value": "EPI_ISL_1003849"
+          "column": "primary_key",
+          "value": "key_11"
         },
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
-          "value": "EPI_ISL_1260480"
+          "column": "primary_key",
+          "value": "key_22"
         }
       ]
     }
