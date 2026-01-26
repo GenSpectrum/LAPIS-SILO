@@ -21,12 +21,17 @@ void ZstdCompressedStringColumnPartition::reserve(size_t row_count) {
 }
 
 void ZstdCompressedStringColumnPartition::insertNull() {
+   null_bitmap.add(values.size());
    values.emplace_back();
 }
 
 void ZstdCompressedStringColumnPartition::insert(std::string_view value) {
    auto compressed = metadata->compressor.compress(value.data(), value.size());
    values.emplace_back(compressed);
+}
+
+bool ZstdCompressedStringColumnPartition::isNull(size_t row_id) const {
+   return null_bitmap.contains(row_id);
 }
 
 std::optional<std::string> ZstdCompressedStringColumnPartition::getDecompressed(size_t row_id

@@ -179,13 +179,13 @@ schema:
       "accessionVersion": "1.1",
       "country": "Switzerland",
       "someShortGene": "MADS",
-      "secondSegment": "NNNNNNNNNNNNNNNN"
+      "secondSegment": null
    },
    {
       "accessionVersion": "1.3",
       "country": "Germany",
-      "someShortGene": "XXXX",
-      "secondSegment": "NNNNNNNNNNNNNNNN"
+      "someShortGene": null,
+      "secondSegment": null
    }])")
    }
 };
