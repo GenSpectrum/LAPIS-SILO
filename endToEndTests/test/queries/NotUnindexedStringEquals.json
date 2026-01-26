@@ -8,8 +8,8 @@
       "type": "Not",
       "child": {
         "type": "StringEquals",
-        "column": "gisaid_epi_isl",
-        "value": "EPI_ISL_1749899"
+        "column": "primary_key",
+        "value": "key_41"
       }
     }
   },

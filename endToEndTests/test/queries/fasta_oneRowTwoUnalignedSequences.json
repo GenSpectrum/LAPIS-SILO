@@ -7,13 +7,13 @@
     },
     "filterExpression": {
       "type": "StringEquals",
-      "column": "gisaid_epi_isl",
-      "value": "EPI_ISL_1749899"
+      "column": "primary_key",
+      "value": "key_41"
     }
   },
   "expectedQueryResult": [
     {
-      "gisaid_epi_isl": "EPI_ISL_1749899",
+      "primary_key": "key_41",
       "unaligned_main": "some_very_short_string",
       "unaligned_testSecondSequence": "AAGN"
     }

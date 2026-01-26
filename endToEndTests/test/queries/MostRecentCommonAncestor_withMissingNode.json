@@ -12,28 +12,28 @@
       "children": [
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
-          "value": "EPI_ISL_1001493"
+          "column": "primary_key",
+          "value": "key_1"
         },
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
-          "value": "EPI_ISL_1004495"
+          "column": "primary_key",
+          "value": "key_12"
         },
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
-          "value": "EPI_ISL_1003373"
+          "column": "primary_key",
+          "value": "key_7"
         },
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
-          "value": "EPI_ISL_1747752"
+          "column": "primary_key",
+          "value": "key_35"
         },
         {
           "type": "StringEquals",
-          "column": "gisaid_epi_isl",
-          "value": "EPI_ISL_1408408"
+          "column": "primary_key",
+          "value": "key_29"
         }
       ]
     }
@@ -42,7 +42,7 @@
     {
       "mrcaNode": "NODE_0000096",
       "missingNodeCount": 3,
-      "missingFromTree": "EPI_ISL_1001493,EPI_ISL_1747752",
+      "missingFromTree": "key_1,key_35",
       "mrcaParent": "NODE_0000095",
       "mrcaDepth": 25
     }
