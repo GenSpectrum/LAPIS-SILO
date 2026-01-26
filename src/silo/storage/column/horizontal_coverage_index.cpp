@@ -54,7 +54,7 @@ void HorizontalCoverageIndex::insertNullSequence() {
 }
 
 template <typename SymbolType>
-void HorizontalCoverageIndex::insertSequenceCoverage(std::string sequence, uint32_t offset) {
+void HorizontalCoverageIndex::insertSequenceCoverage(std::string_view sequence, uint32_t offset) {
    std::optional<uint32_t> first_non_n_seen;
    std::optional<uint32_t> last_non_n_seen;
 
@@ -93,11 +93,11 @@ void HorizontalCoverageIndex::insertSequenceCoverage(std::string sequence, uint3
    );
 }
 template void HorizontalCoverageIndex::insertSequenceCoverage<silo::Nucleotide>(
-   std::string sequence,
+   std::string_view sequence,
    uint32_t offset
 );
 template void HorizontalCoverageIndex::insertSequenceCoverage<silo::AminoAcid>(
-   std::string sequence,
+   std::string_view sequence,
    uint32_t offset
 );
 
