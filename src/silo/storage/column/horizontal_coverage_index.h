@@ -31,7 +31,7 @@ class HorizontalCoverageIndex {
    void insertNullSequence();
 
    template <typename SymbolType>
-   void insertSequenceCoverage(std::string sequence, uint32_t offset);
+   void insertSequenceCoverage(std::string_view sequence, uint32_t offset);
 
    template <size_t BatchSize>
    [[nodiscard]] std::array<roaring::Roaring, BatchSize> getCoverageBitmapForPositions(

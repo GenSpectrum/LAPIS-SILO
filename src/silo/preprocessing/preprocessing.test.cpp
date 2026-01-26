@@ -1044,7 +1044,7 @@ schema:
 })",
    .assertion{
       .error_message =
-         R"(preprocessing - exception when appending data: illegal character 'E' at position 2 contained in sequence with index 0 in the current buffer.)"
+         R"(preprocessing - exception when appending data: illegal character 'E' at position 2 contained in sequence with index 0 in the current input)"
    }
 };
 
@@ -1056,8 +1056,8 @@ const Scenario<Error> NDJSON_FILE_WITH_SOME_MISSING_KEYS = {
          result.push_back(nlohmann::json::parse(R"({
 "accessionVersion": "1.1",
 "country": "Switzerland",
-"main": {"sequence": "ACET", "insertions": ["123:RNRNRN"]},
-"secondSegment": {"sequence": "ACET", "insertions": ["123:RNRNRN"]},
+"main": {"sequence": "ACCT", "insertions": ["123:RNRNRN"]},
+"secondSegment": {"sequence": "ACCT", "insertions": ["123:RNRNRN"]},
 "someLongGene": {"sequence": "ACDEFGHIKLMNPQRSTVWYBZX", "insertions": []},
 "someShortGene": {"sequence": "MADS", "insertions": ["123:RN"]},
 "unaligned_main": "ACGT",

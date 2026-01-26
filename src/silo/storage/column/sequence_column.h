@@ -36,19 +36,6 @@ class SequenceColumnInfo {
    uint64_t horizontal_bitmaps_size;
 };
 
-struct ReadSequence {
-   bool is_valid = false;
-   std::string sequence;
-   uint32_t offset;
-
-   explicit ReadSequence(std::string_view _sequence, uint32_t _offset = 0)
-       : is_valid(true),
-         sequence(_sequence),
-         offset(_offset) {}
-
-   ReadSequence() = default;
-};
-
 template <typename SymbolType>
 class SequenceColumnMetadata : public ColumnMetadata {
   public:
@@ -113,15 +100,15 @@ class SequenceColumnPartition {
 
    [[nodiscard]] SequenceColumnInfo getInfo() const;
 
-   ReadSequence& appendNewSequenceRead();
+   void append(std::string_view sequence, uint32_t offset, std::vector<std::string> insertions);
 
-   void appendInsertion(const std::string& insertion_and_position);
+   void appendNull();
 
    void finalize();
 
   private:
    static constexpr size_t BUFFER_SIZE = 1024;
-   std::vector<ReadSequence> lazy_buffer;
+   std::vector<SymbolMap<SymbolType, std::vector<uint32_t>>> mutation_buffer;
 
    void fillIndexes();
 

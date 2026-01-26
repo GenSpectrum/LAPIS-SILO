@@ -16,7 +16,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_noTwoParts) {
 
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { under_test.appendInsertion("A"); },
+      [&]() { under_test.append("A", 0, {"A"}); },
       ThrowsMessage<InsertionFormatException>(
          ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected two parts "
                               "(position and non-empty insertion value), instead got: 'A'")
@@ -29,7 +29,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartNotANumber) {
    SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { under_test.appendInsertion("A:G"); },
+      [&]() { under_test.append("A", 0, {"A:G"}); },
       ThrowsMessage<InsertionFormatException>(
          ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected position "
                               "that is parsable as an integer, instead got: 'A:G'")
@@ -43,7 +43,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIllegalSymbol) {
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
       [&]() {
-         under_test.appendInsertion("0:EEEEE");
+         under_test.append("A", 0, {"0:EEEEE"});
          under_test.finalize();
       },
       ThrowsMessage<InsertionFormatException>(
@@ -57,7 +57,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIsANumber) {
    SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { under_test.appendInsertion("0:0"); },
+      [&]() { under_test.append("A", 0, {"0:0"}); },
       ThrowsMessage<InsertionFormatException>(
          ::testing::HasSubstr("Illegal nucleotide character '0' in insertion: 0:0")
       )
@@ -69,7 +69,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartEmpty) {
    SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { under_test.appendInsertion("0:"); },
+      [&]() { under_test.append("A", 0, {"0:"}); },
       ThrowsMessage<InsertionFormatException>(
          ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected two parts "
                               "(position and non-empty insertion value), instead got: '0:'")
@@ -82,24 +82,13 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartEmpty) {
    SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { under_test.appendInsertion(":A"); },
+      [&]() { under_test.append("A", 0, {":A"}); },
       ThrowsMessage<InsertionFormatException>(
          ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected position "
                               "that is parsable as an integer, instead got: ':A'")
       )
    );
 }
-
-namespace {
-
-void appendSequence(SequenceColumnPartition<Nucleotide>& column, std::string sequence) {
-   auto& append_handle = column.appendNewSequenceRead();
-   append_handle.offset = 0;
-   append_handle.sequence = std::move(sequence);
-   append_handle.is_valid = true;
-}
-
-}  // namespace
 
 TEST(SequenceColumn, canFinalizeTwice) {
    SequenceColumnMetadata<Nucleotide> column_metadata{
@@ -108,10 +97,10 @@ TEST(SequenceColumn, canFinalizeTwice) {
    };
    SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
 
-   appendSequence(under_test, "AAGT");
-   appendSequence(under_test, "AAGT");
-   appendSequence(under_test, "AAGT");
-   appendSequence(under_test, "ACGT");
+   under_test.append("AAGT", 0, std::vector<std::string>{});
+   under_test.append("AAGT", 0, std::vector<std::string>{});
+   under_test.append("AAGT", 0, std::vector<std::string>{});
+   under_test.append("ACGT", 0, std::vector<std::string>{});
 
    under_test.finalize();
 
@@ -128,10 +117,10 @@ TEST(SequenceColumn, canFinalizeTwice) {
       (roaring::Roaring{})
    );
 
-   appendSequence(under_test, "ACGT");
-   appendSequence(under_test, "ACGT");
-   appendSequence(under_test, "ACGT");
-   appendSequence(under_test, "ACGT");
+   under_test.append("ACGT", 0, std::vector<std::string>{});
+   under_test.append("ACGT", 0, std::vector<std::string>{});
+   under_test.append("ACGT", 0, std::vector<std::string>{});
+   under_test.append("ACGT", 0, std::vector<std::string>{});
 
    under_test.finalize();
 

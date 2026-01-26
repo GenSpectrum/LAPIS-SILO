@@ -150,14 +150,13 @@ std::expected<void, std::string> insertToSequenceColumn(
 ) {
    auto& sequence_column =
       columns.getColumns<column::SequenceColumnPartition<SymbolType>>().at(column.name);
-   auto& read = sequence_column.appendNewSequenceRead();
    bool is_null;
    auto error = value.is_null().get(is_null);
    RAISE_STRING_ERROR_WITH_CONTEXT(
       error, value, "When checking column field '{}' for null got error: {}", column.name
    );
    if (is_null) {
-      read.is_valid = false;
+      sequence_column.appendNull();
       return {};
    }
    std::string_view sequence;
@@ -184,12 +183,7 @@ std::expected<void, std::string> insertToSequenceColumn(
       "When getting field 'insertions' in column field '{}' got error: {}",
       column.name
    );
-   read.sequence = sequence;
-   read.offset = offset;
-   read.is_valid = true;
-   for (auto& insertion : insertions) {
-      sequence_column.appendInsertion(insertion);
-   }
+   sequence_column.append(std::move(sequence), offset, std::move(insertions));
    return {};
 }
 
