@@ -42,16 +42,6 @@ std::string And::toString() const {
 
 namespace {
 
-template <typename T>
-void inline appendVectorToVector(
-   std::vector<std::unique_ptr<T>>& vec_1,
-   std::vector<std::unique_ptr<T>>& vec_2
-) {
-   std::ranges::transform(vec_1, std::back_inserter(vec_2), [&](std::unique_ptr<T>& ele) {
-      return std::move(ele);
-   });
-}
-
 void logCompiledChildren(
    OperatorVector& non_negated_child_operators,
    OperatorVector& negated_child_operators,
