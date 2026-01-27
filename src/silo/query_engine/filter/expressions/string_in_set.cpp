@@ -28,7 +28,10 @@ StringInSet::StringInSet(std::string column_name, std::unordered_set<std::string
       values(std::move(values)) {}
 
 std::string StringInSet::toString() const {
-   return fmt::format("{} IN [{}]", column_name, fmt::join(values, ","));
+   std::vector<std::string> sorted_values;
+   std::ranges::copy(values, std::back_inserter(sorted_values));
+   std::ranges::sort(sorted_values);
+   return fmt::format("{} IN [{}]", column_name, fmt::join(sorted_values, ","));
 }
 
 std::unique_ptr<Expression> StringInSet::rewrite(

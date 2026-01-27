@@ -318,7 +318,7 @@ TEST(OrToString, shouldHandleNestedStringEquals) {
 
    auto rewritten_or = outer_or.rewrite(table, *table_partition, Or::AmbiguityMode::NONE);
 
-   EXPECT_EQ(rewritten_or->toString(), "key IN [value_3,value_2,value_1]");
+   EXPECT_EQ(rewritten_or->toString(), "key IN [value_1,value_2,value_3]");
 }
 
 }  // namespace silo::query_engine::filter::expressions
