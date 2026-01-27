@@ -14,7 +14,8 @@ namespace silo::query_engine {
 arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
    std::shared_ptr<arrow::acero::ExecPlan> arrow_plan,
    arrow::acero::ExecNode* root,
-   std::string_view request_id
+   std::string_view request_id,
+   std::unique_ptr<exec_node::ProduceGuard> produce_guard
 ) {
    arrow::acero::BackpressureMonitor* backpressure_monitor;
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> results_generator;
@@ -26,7 +27,16 @@ arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
    };
    query_plan.results_schema = root->output_schema();
    ARROW_RETURN_NOT_OK(query_plan.arrow_plan->Validate());
+   query_plan.produce_guard = std::move(produce_guard);
    return query_plan;
+}
+
+arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
+   std::shared_ptr<arrow::acero::ExecPlan> arrow_plan,
+   arrow::acero::ExecNode* root,
+   std::string_view request_id
+) {
+   return makeQueryPlan(arrow_plan, root, request_id, std::make_unique<exec_node::ProduceGuard>());
 }
 
 arrow::Status QueryPlan::executeAndWriteImpl(
@@ -41,6 +51,8 @@ arrow::Status QueryPlan::executeAndWriteImpl(
       "Request Id [{}] - QueryPlan - Plan started producing, will now read the resulting batches.",
       request_id
    );
+
+   produce_guard->future.MarkFinished();
 
    // Ensure plan is stopped on any exit path (timeout/error/exception).
    struct PlanStopGuard {
