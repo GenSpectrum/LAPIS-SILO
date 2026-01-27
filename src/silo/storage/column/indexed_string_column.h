@@ -64,11 +64,11 @@ class IndexedStringColumnPartition {
    using value_type = std::string_view;
 
    Metadata* metadata;
+   roaring::Roaring null_bitmap;
 
   private:
    std::vector<Idx> value_ids;
    std::unordered_map<Idx, roaring::Roaring> indexed_values;
-   roaring::Roaring null_bitmap;
    std::optional<LineageIndex> lineage_index;
 
   public:
