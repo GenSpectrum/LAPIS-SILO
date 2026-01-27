@@ -94,6 +94,25 @@ std::unique_ptr<Expression> buildManyStringEquals(
    return std::make_unique<Or>(std::move(children));
 }
 
+/// Build an OR expression with many StringEquals clauses
+std::unique_ptr<Expression> buildManyNestedStringEquals(
+   const std::string& column,
+   const std::vector<std::string>& values
+) {
+   SILO_ASSERT(values.size() >= 2);
+   ExpressionVector children;
+   children.push_back(std::make_unique<StringEquals>(column, values.at(0)));
+   children.push_back(std::make_unique<StringEquals>(column, values.at(1)));
+   std::unique_ptr<Or> result = std::make_unique<Or>(std::move(children));
+   for (size_t idx = 2; idx < values.size(); ++idx) {
+      children = ExpressionVector{};
+      children.push_back(std::make_unique<StringEquals>(column, values.at(idx)));
+      children.push_back(std::move(result));
+      result = std::make_unique<Or>(std::move(children));
+   }
+   return result;
+}
+
 /// Build a StringInSet expression
 std::unique_ptr<Expression> buildStringInSet(
    const std::string& column,
@@ -194,6 +213,7 @@ int main() {
 
       // Lambda builders that capture search_values
       auto build_or = [&]() { return buildManyStringEquals("accession", search_values); };
+      auto build_nested_or = [&]() { return buildManyNestedStringEquals("accession", search_values); };
       auto build_set = [&]() { return buildStringInSet("accession", search_values); };
 
       // Run benchmarks
@@ -206,6 +226,16 @@ int main() {
          or_result.max_ms
       );
 
+      // Run benchmarks
+      auto nested_or_result = runBenchmark(database, build_nested_or, ITERATIONS);
+      SPDLOG_INFO(
+         "OR(StringEquals, OR(..{}x)): avg={:.2f}ms, min={:.2f}ms, max={:.2f}ms",
+         num_values,
+         nested_or_result.avg_ms,
+         nested_or_result.min_ms,
+         nested_or_result.max_ms
+      );
+
       auto set_result = runBenchmark(database, build_set, ITERATIONS);
       SPDLOG_INFO(
          "StringInSet({}):     avg={:.2f}ms, min={:.2f}ms, max={:.2f}ms",
@@ -214,9 +244,6 @@ int main() {
          set_result.min_ms,
          set_result.max_ms
       );
-
-      double speedup = or_result.avg_ms / set_result.avg_ms;
-      SPDLOG_INFO("Speedup: {:.1f}x", speedup);
 
       SPDLOG_INFO("");
    }
@@ -235,15 +262,15 @@ int main() {
       for (size_t i = 0; i < num_values; ++i) {
          // Every 11th value takes a country from the list
          if (i % 11 == 0) {
-            size_t idx = i % search_countries.size();
-            search_countries.push_back(search_countries.at(idx));
+            size_t idx = i % all_countries.size();
+            search_countries.push_back(all_countries.at(idx));
          } else {
             // Pick values spread across the database
             search_countries.push_back(fmt::format("NOTEXIST{:06}", i));
          }
       }
-
       auto build_or = [&]() { return buildManyStringEquals("country", search_countries); };
+      auto build_nested_or = [&]() { return buildManyNestedStringEquals("country", search_countries); };
       auto build_set = [&]() { return buildStringInSet("country", search_countries); };
 
       auto or_result = runBenchmark(database, build_or, ITERATIONS);
@@ -255,6 +282,16 @@ int main() {
          or_result.max_ms
       );
 
+      // Run benchmarks
+      auto nested_or_result = runBenchmark(database, build_nested_or, ITERATIONS);
+      SPDLOG_INFO(
+         "OR(StringEquals, OR(..{}x)): avg={:.2f}ms, min={:.2f}ms, max={:.2f}ms",
+         num_values,
+         nested_or_result.avg_ms,
+         nested_or_result.min_ms,
+         nested_or_result.max_ms
+      );
+
       auto set_result = runBenchmark(database, build_set, ITERATIONS);
       SPDLOG_INFO(
          "StringInSet({}):     avg={:.2f}ms, min={:.2f}ms, max={:.2f}ms",
@@ -263,9 +300,6 @@ int main() {
          set_result.min_ms,
          set_result.max_ms
       );
-
-      double speedup = or_result.avg_ms / set_result.avg_ms;
-      SPDLOG_INFO("Speedup: {:.1f}x", speedup);
 
       SPDLOG_INFO("");
    }
