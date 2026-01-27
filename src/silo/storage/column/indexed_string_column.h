@@ -62,11 +62,11 @@ class IndexedStringColumnPartition {
    static constexpr schema::ColumnType TYPE = schema::ColumnType::INDEXED_STRING;
 
    Metadata* metadata;
+   roaring::Roaring null_bitmap;
 
   private:
    std::vector<Idx> value_ids;
    std::unordered_map<Idx, roaring::Roaring> indexed_values;
-   roaring::Roaring null_bitmap;
    std::optional<LineageIndex> lineage_index;
 
   public:
