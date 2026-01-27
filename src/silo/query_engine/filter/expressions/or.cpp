@@ -8,8 +8,10 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/filter/expressions/false.h"
 #include "silo/query_engine/filter/expressions/string_in_set.h"
 #include "silo/query_engine/filter/expressions/symbol_in_set.h"
+#include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/full.h"
@@ -33,6 +35,54 @@ std::string Or::toString() const {
       [&](const std::unique_ptr<Expression>& child) { return child->toString(); }
    );
    return "Or(" + boost::algorithm::join(child_strings, " | ") + ")";
+}
+
+std::vector<const Expression*> Or::collectChildren(const ExpressionVector& children) {
+   std::vector<const Expression*> result;
+
+   std::vector<const Expression*> queue;
+   for (auto& direct_child : children) {
+      queue.push_back(direct_child.get());
+   }
+
+   while (!queue.empty()) {
+      auto current = queue.back();
+      queue.pop_back();
+      if (dynamic_cast<const Or*>(current) != nullptr) {
+         const Or* or_child = dynamic_cast<const Or*>(current);
+         for (auto& child : or_child->children) {
+            queue.push_back(child.get());
+         }
+      } else {
+         result.push_back(current);
+      }
+   }
+   return result;
+}
+
+ExpressionVector Or::algebraicSimplification(ExpressionVector unprocessed_child_expressions) {
+   ExpressionVector non_trivial_children;
+   while (!unprocessed_child_expressions.empty()) {
+      auto child = std::move(unprocessed_child_expressions.back());
+      unprocessed_child_expressions.pop_back();
+      if (dynamic_cast<False*>(child.get()) != nullptr) {
+         SPDLOG_TRACE("Skipping 'False' child");
+         continue;
+      }
+      if (dynamic_cast<True*>(child.get()) != nullptr) {
+         SPDLOG_TRACE("Shortcutting because found 'True' child");
+         ExpressionVector singleton_true;
+         singleton_true.emplace_back(std::make_unique<True>());
+         return singleton_true;
+      }
+      if (dynamic_cast<Or*>(child.get()) != nullptr) {
+         auto* or_child = dynamic_cast<Or*>(child.get());
+         appendVectorToVector(or_child->children, unprocessed_child_expressions);
+      } else {
+         non_trivial_children.push_back(std::move(child));
+      }
+   }
+   return non_trivial_children;
 }
 
 template <typename SymbolType>
@@ -100,14 +150,14 @@ std::unique_ptr<Expression> Or::rewrite(
    const storage::TablePartition& table_partition,
    Expression::AmbiguityMode mode
 ) const {
+   std::vector<const Expression*> collected_children = collectChildren(children);
    ExpressionVector rewritten_children;
    std::ranges::transform(
-      children,
+      collected_children,
       std::back_inserter(rewritten_children),
-      [&](const std::unique_ptr<Expression>& child) {
-         return child->rewrite(table, table_partition, mode);
-      }
+      [&](const Expression* child) { return child->rewrite(table, table_partition, mode); }
    );
+   rewritten_children = algebraicSimplification(std::move(rewritten_children));
    rewritten_children = rewriteSymbolInSetExpressions<Nucleotide>(std::move(rewritten_children));
    rewritten_children = rewriteSymbolInSetExpressions<AminoAcid>(std::move(rewritten_children));
    rewritten_children = mergeStringInSetExpressions(std::move(rewritten_children));

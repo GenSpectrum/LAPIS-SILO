@@ -25,6 +25,12 @@ class Or : public Expression {
       AmbiguityMode mode
    ) const override;
 
+   [[nodiscard]] static std::vector<const Expression*> collectChildren(
+      const ExpressionVector& children
+   );
+
+   [[nodiscard]] static ExpressionVector algebraicSimplification(ExpressionVector children);
+
    template <typename SymbolType>
    [[nodiscard]] static ExpressionVector rewriteSymbolInSetExpressions(ExpressionVector children);
 
