@@ -11,9 +11,7 @@ conanprofile:
 	conan profile detect && conan profile show --context build > conanprofile
 
 ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
-	conan install . --update --build=missing --profile ./conanprofile --profile:build ./conanprofile \
-	  --settings '&:build_type=Debug' --output-folder=build/Debug/generators && \
-	touch ${DEPENDENCIES_FLAG}
+	bin/install-dependencies && touch ${DEPENDENCIES_FLAG}
 
 build/Debug/build.ninja: ${DEPENDENCIES_FLAG}
 	cmake -B build/Debug -D CMAKE_BUILD_TYPE=Debug

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+function ensure-uv {
+  # check whether uv is available
+  if command -v uv &> /dev/null
+  then
+    echo "uv is already installed"
+    return 0
+  fi
+
+  # check whether a venv is available, otherwise create one
+  if [ ! -d ".venv" ]; then
+    python3 -m venv .venv
+  fi
+
+  # activate virtual environment
+  source .venv/bin/activate
+
+  # check if uv is in the virtual environment
+  if command -v uv &> /dev/null
+  then
+    echo "uv is already in the .venv environment"
+    return 0
+  fi
+
+  python3 -m pip install uv==0.9.14
+}
+
+ensure-uv
+
+# Use uv to run conan directly - it will automatically:
+# 1. Create/use a virtual environment
+# 2. Install dependencies conforming to the locked versions in uv.lock
+# 3. Execute the conan install command
+uv run --locked \
+  conan install . \
+  --update \
+  --build=missing \
+  --profile ./conanprofile \
+  --profile:build ./conanprofile \
+  --settings '&:build_type=Debug' \
+  --output-folder=build/Debug/generators
