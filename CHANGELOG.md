@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.6](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.5...v0.9.6) (2026-01-28)
+
+
+### Features
+
+* **performance-tests:** add benchmark for nested ors ([34d6986](https://github.com/GenSpectrum/LAPIS-SILO/commit/34d698670a7c227a1aec6a6e41039b85f64ef9e7))
+* **silo:** add a StringInSet expression to filter for many strings ([b67fd5a](https://github.com/GenSpectrum/LAPIS-SILO/commit/b67fd5a40bfc54b1d490e9e132d8b96bb943b2ad))
+* **silo:** add an IsNull filter ([3437b3d](https://github.com/GenSpectrum/LAPIS-SILO/commit/3437b3d12f478cb21e54a8bb47a1cad14611a1e8))
+* **silo:** improve rewriting of nested Or expressions ([24b27a4](https://github.com/GenSpectrum/LAPIS-SILO/commit/24b27a4631c133dfdac28ba2fcf1b22e214e7955))
+* **silo:** rewrite StringEquals and StringInSet expressions during optimization ([23553ae](https://github.com/GenSpectrum/LAPIS-SILO/commit/23553ae09e86c8bc55052878dcc6fff8ac3562d2))
+* **test:** add performance benchmark for many StringEquals filters ([579e6c6](https://github.com/GenSpectrum/LAPIS-SILO/commit/579e6c68d1ba7564dccb07e3b003a904952332cb))
+
 ## [0.9.5](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.4...v0.9.5) (2026-01-22)
 
 
