@@ -65,6 +65,7 @@ class SequenceColumnPartition {
       archive & insertion_index;
       archive & sequence_column_info;
       archive & sequence_count;
+      archive & null_bitmap;
       // clang-format on
    }
 
@@ -79,6 +80,7 @@ class SequenceColumnPartition {
    HorizontalCoverageIndex horizontal_coverage_index;
    storage::insertion::InsertionIndex<SymbolType> insertion_index;
    SequenceColumnInfo sequence_column_info;
+   roaring::Roaring null_bitmap;
    uint32_t sequence_count = 0;
 
    explicit SequenceColumnPartition(Metadata* metadata);
@@ -103,6 +105,8 @@ class SequenceColumnPartition {
    void append(std::string_view sequence, uint32_t offset, std::vector<std::string> insertions);
 
    void appendNull();
+
+   bool isNull(size_t row_id) const;
 
    void finalize();
 

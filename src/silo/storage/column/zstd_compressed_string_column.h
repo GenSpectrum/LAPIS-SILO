@@ -5,6 +5,7 @@
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_free.hpp>
+#include <roaring/roaring.hh>
 
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_metadata.h"
@@ -38,6 +39,7 @@ class ZstdCompressedStringColumnPartition {
    std::vector<std::string> values;
 
   public:
+   roaring::Roaring null_bitmap;
    Metadata* metadata;
 
    explicit ZstdCompressedStringColumnPartition(Metadata* metadata);
@@ -45,6 +47,8 @@ class ZstdCompressedStringColumnPartition {
    void reserve(size_t row_count);
    void insertNull();
    void insert(std::string_view value);
+
+   bool isNull(size_t row_id) const;
 
    [[nodiscard]] size_t numValues() const { return values.size(); }
 
@@ -58,6 +62,7 @@ class ZstdCompressedStringColumnPartition {
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
       // clang-format off
       archive & values;
+      archive & null_bitmap;
       // clang-format on
    }
 };
