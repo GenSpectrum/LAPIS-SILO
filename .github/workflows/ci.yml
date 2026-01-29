@@ -207,9 +207,6 @@ jobs:
       - name: npm install
         run: cd endToEndTests && npm ci
 
-      - name: Check Format
-        run: cd endToEndTests && npm run check-format
-
       - name: Start Docker Container and preprocess data
         run: docker compose -f docker-compose-for-tests-preprocessing-from-ndjson.yml up
         env:

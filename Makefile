@@ -51,8 +51,17 @@ test: ${SILO_EXECUTABLE}
 
 all-tests: test e2e
 
-format:
+endToEndTests/node_modules: endToEndTests/package-lock.json
+	cd endToEndTests && npm ci
+
+format: endToEndTests/node_modules
 	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs clang-format -i
+	cd endToEndTests && npm run format
+	cd endToEndTests && npx prettier --write "../.github/workflows/*.yml"
+
+check-format: endToEndTests/node_modules
+	cd endToEndTests && npm run check-format
+	cd endToEndTests && npx prettier --check "../.github/workflows/*.yml"
 
 clean-api:
 	@if [ -f ${RUNNING_SILO_FLAG} ]; then \
@@ -67,4 +76,4 @@ full-clean: clean
 	rm -rf build
 
 .PHONY:
-	full-clean clean clean-api e2e format all test all-tests ci
+	full-clean clean clean-api e2e format check-format all test all-tests ci
