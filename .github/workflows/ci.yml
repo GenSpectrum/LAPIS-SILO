@@ -123,6 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       packages: write
+      contents: write
     steps:
       - uses: actions/checkout@v6
 
@@ -178,6 +179,51 @@ jobs:
               "${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-arm64" \
               "${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64"
           done
+
+      - name: Extract binaries for release
+        if: env.SILO_VERSION != ''
+        run: |
+          echo "Extracting binaries for version ${{ env.SILO_VERSION }}"
+          mkdir -p artifacts
+          cd artifacts
+
+          for arch in amd64 arm64; do
+            IMAGE="${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-$arch"
+            PLATFORM="linux/$arch"
+            echo "Extracting from $IMAGE ($PLATFORM)"
+
+            binary="./silo-linux-$arch"
+
+            docker create --platform $PLATFORM --name extract-$arch $IMAGE
+            docker cp extract-$arch:/app/silo "./$binary"
+            docker rm extract-$arch
+
+            chmod +x "./$binary"
+
+            echo "Verifying $binary ..."
+            [ -x "$binary" ] || { echo "  ✗ FAILED: File does not exist or is not executable"; exit 1; }
+            file "$binary" | grep -q ELF || { echo "  ✗ FAILED: File is not an ELF binary"; exit 1; }
+            echo "✓ Verified: $binary"
+
+            sha256sum silo-linux-$arch > "./$binary.sha256sum"
+            # Create tar archive so that the file is executable when downloaded from GitHub Releases
+            tar -czf "$binary.tar.gz" "$binary"
+          done
+
+          echo "Files in artifacts/ after extraction:"
+          ls -alh .
+
+      - name: Upload binaries to GitHub Release
+        if: env.SILO_VERSION != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*.tar.gz
+            artifacts/*.sha256sum
+          tag_name: v${{ env.SILO_VERSION }}
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   endToEndTests:
     name: Run End To End Tests
