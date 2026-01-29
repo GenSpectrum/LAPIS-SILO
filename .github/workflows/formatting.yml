@@ -9,12 +9,12 @@ jobs:
     strategy:
       matrix:
         path:
-          - check: 'src'
+          - check: "src"
     steps:
       - uses: actions/checkout@v6
       - name: Run clang-format style check
         uses: jidicula/clang-format-action@v4.16.0
         with:
-          clang-format-version: '17'
+          clang-format-version: "17"
           check-path: ${{ matrix.path['check'] }}
           exclude-regex: ${{ matrix.path['exclude'] }}

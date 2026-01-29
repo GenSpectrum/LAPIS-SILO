@@ -245,7 +245,6 @@ jobs:
       - name: Run linter script
         run: bash ./linter_changes.bash ghcr.io/genspectrum/lapis-silo-dependencies:commit-${{ env.HEAD_SHA }}-amd64
 
-
   linterAll:
     name: Build/Run linter on all files
     needs: dockerImage
@@ -266,11 +265,11 @@ jobs:
         name: Build all files with clang-tidy
         run: |
           docker build -f ./Dockerfile_linter \
-            --build-arg DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:commit-${{ env.HEAD_SHA }}-amd64 . 
-    
+            --build-arg DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:commit-${{ env.HEAD_SHA }}-amd64 .
+
   unitTests:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v6
 
@@ -294,9 +293,9 @@ jobs:
             echo "Image ${IMAGE_FULL} not found, falling back to :latest"
             DOCKER_IMAGE=${LATEST_IMAGE}
           fi
-          
+
           echo "DOCKER_IMAGE=$DOCKER_IMAGE" >> $GITHUB_ENV
-      
+
       - name: Run tests in Docker
         run: |
           docker run --rm \

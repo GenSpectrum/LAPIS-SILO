@@ -34,7 +34,7 @@ jobs:
         id: changelog-preview
         run: |
           changelog=$(npm run --silent release-please-changelog-preview -- --token=${{ secrets.GITHUB_TOKEN }} --target-branch=${{ github.head_ref || github.ref_name }})
-          
+
           echo "changelog<<EOF
           $changelog
           EOF" >> "$GITHUB_OUTPUT"
@@ -47,11 +47,11 @@ jobs:
           header: changelogPreview
           message: |
             This is a preview of the changelog of the next release. If this branch is not up-to-date with the current main branch, the changelog may not be accurate. Rebase your branch on the main branch to get the most accurate changelog.
-            
+
             Note that this might contain changes that are on main, but not yet released.
-            
+
             Changelog:
-            
+
             ${{ steps.changelog-preview.outputs.changelog }}
 
       - name: Write "no change" Comment on PR

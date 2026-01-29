@@ -5,7 +5,6 @@ on:
       - closed
   delete:
 
-
 # Taken from here: https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows#force-deleting-cache-entries
 jobs:
   cleanup:
@@ -20,7 +19,7 @@ jobs:
       - name: Cleanup
         run: |
           gh extension install actions/gh-actions-cache
-          
+
           REPO=${{ github.repository }}
           BRANCH="refs/pull/${{ github.event.pull_request.number }}/merge"
 
