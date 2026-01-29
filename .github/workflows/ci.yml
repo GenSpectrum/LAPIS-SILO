@@ -6,14 +6,15 @@ on:
     workflows: [Release SILO]
     types: [completed]
     branches: [main]
+  workflow_dispatch:
 
 env:
   DOCKER_DEPENDENCY_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo-dependencies
   DOCKER_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo
 
 jobs:
-  dockerImage:
-    name: Build docker images
+  dependencyImage:
+    name: Build dependency image (${{ matrix.arch }})
     strategy:
       matrix:
         arch: ["amd64", "arm64"]
@@ -49,7 +50,7 @@ jobs:
       - name: Check if dependency image exists
         run: |
           EXISTS=$(docker manifest inspect \
-            ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}-${{ matrix.arch }} > /dev/null 2>&1 && 
+            ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}-${{ matrix.arch }} > /dev/null 2>&1 &&
             echo "true" || echo "false")
           echo "CACHE_HIT=$EXISTS" >> $GITHUB_ENV
 
@@ -61,14 +62,45 @@ jobs:
           file: Dockerfile_dependencies
           push: true
           tags: ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}-${{ matrix.arch }}
-          cache-from: type=gha,ref=dependency-image-cache-${{ matrix.arch }}-${{ hashFiles('conanfile.py', 'Dockerfile') }}
-          cache-to: type=gha,mode=min,ref=dependency-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile') }}
+          cache-from: type=gha,ref=dependency-image-cache-${{ matrix.arch }}-${{ hashFiles('conanfile.py', 'Dockerfile_dependencies') }}
+          cache-to: type=gha,mode=min,ref=dependency-image-cache-${{ hashFiles('conanfile.py', 'Dockerfile_dependencies') }}
 
       - name: Tag dependency image with commit hash
         run: |
           docker buildx imagetools create \
             --tag ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ matrix.arch }} \
             ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}-${{ matrix.arch }}
+
+  dockerImage:
+    name: Build docker images
+    needs: dependencyImage
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_run'
+    strategy:
+      matrix:
+        arch: ["amd64", "arm64"]
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-22.04-arm' || 'ubuntu-latest' }}
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Determine HEAD_SHA
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+          else
+            echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
+          fi
 
       - name: Write release_version.txt
         run: |
@@ -166,7 +198,7 @@ jobs:
           tags: |
             type=ref,event=pr
             type=raw,value=${{ github.head_ref || github.ref_name }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}            
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=commit-${{ env.HEAD_SHA }}
             type=semver,value=${{ env.SILO_VERSION }},enable=${{ env.SILO_VERSION != '' }},pattern={{version}}
             type=semver,value=${{ env.SILO_VERSION }},enable=${{ env.SILO_VERSION != '' }},pattern={{major}}.{{minor}}
@@ -268,7 +300,7 @@ jobs:
 
   linterChanges:
     name: Build/Run linter on changed files
-    needs: dockerImage
+    needs: dependencyImage
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -286,12 +318,14 @@ jobs:
           fi
 
       - name: Run linter script
-        run: bash ./linter_changes.bash ghcr.io/genspectrum/lapis-silo-dependencies:commit-${{ env.HEAD_SHA }}-amd64
+        run: bash ./linter_changes.bash ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64
 
   linterAll:
     name: Build/Run linter on all files
-    needs: dockerImage
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'trigger-linter')
+    needs: dependencyImage
+    if: >-
+      github.event_name == 'workflow_run' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-linter'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -308,77 +342,174 @@ jobs:
         name: Build all files with clang-tidy
         run: |
           docker build -f ./Dockerfile_linter \
-            --build-arg DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:commit-${{ env.HEAD_SHA }}-amd64 .
+            --build-arg DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64 .
 
   unitTests:
+    needs: dependencyImage
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v6
 
-      - name: Generate dependency files hash
+      - name: Determine HEAD_SHA
         run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', './Dockerfile_dependencies') }})
-          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
-
-      - name: Choose docker image for executing unit tests
-        run: |
-          DEPENDENCY_TAG="filehash-${{ env.DIR_HASH }}-amd64"
-
-          # Dependency image could already have the cached up-to-date dependencies, :latest is only rebuilt once a day
-          DEPENDENCY_IMAGE="${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:${DEPENDENCY_TAG}"
-          LATEST_IMAGE="${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:latest"
-
-          if docker manifest inspect ${DEPENDENCY_IMAGE} > /dev/null 2>&1; then
-            echo "Using image: ${DEPENDENCY_IMAGE}"
-            DOCKER_IMAGE=${DEPENDENCY_IMAGE}
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
           else
-            echo "Image ${IMAGE_FULL} not found, falling back to :latest"
-            DOCKER_IMAGE=${LATEST_IMAGE}
+            echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
           fi
-
-          echo "DOCKER_IMAGE=$DOCKER_IMAGE" >> $GITHUB_ENV
 
       - name: Run tests in Docker
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
-            ${{ env.DOCKER_IMAGE }} \
-            bash -login -c "mv /src/conanprofile . && make test"
+            ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64 \
+            bash --login -c "mv /src/conanprofile . && make test"
 
   pythonTests:
+    needs: dependencyImage
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v6
 
-      - name: Generate dependency files hash
+      - name: Determine HEAD_SHA
         run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', './Dockerfile_dependencies') }})
-          echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
-
-      - name: Choose docker image for executing Python tests
-        run: |
-          DEPENDENCY_TAG="filehash-${{ env.DIR_HASH }}-amd64"
-
-          DEPENDENCY_IMAGE="${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:${DEPENDENCY_TAG}"
-          LATEST_IMAGE="${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:latest"
-
-          if docker manifest inspect ${DEPENDENCY_IMAGE} > /dev/null 2>&1; then
-            echo "Using image: ${DEPENDENCY_IMAGE}"
-            DOCKER_IMAGE=${DEPENDENCY_IMAGE}
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
           else
-            echo "Image not found, falling back to :latest"
-            DOCKER_IMAGE=${LATEST_IMAGE}
+            echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
           fi
-
-          echo "DOCKER_IMAGE=$DOCKER_IMAGE" >> $GITHUB_ENV
 
       - name: Run Python tests in Docker
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
-            ${{ env.DOCKER_IMAGE }} \
-            bash -login -c "mv /src/conanprofile . && mv /src/build . && pipx install uv && make python-tests"
+            ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64 \
+            bash --login -c "mv /src/conanprofile . && mv /src/build . && make python-tests"
+
+  buildWheelsLinux:
+    name: Build wheel (linux-${{ matrix.arch }})
+    needs: dependencyImage
+    strategy:
+      matrix:
+        arch: ["amd64", "arm64"]
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-22.04-arm' || 'ubuntu-latest' }}
+    permissions:
+      contents: write
+      packages: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine HEAD_SHA
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+          else
+            echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
+          fi
+
+      - name: Build wheel in Docker
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ matrix.arch }} \
+            bash --login -c "
+              set -euo pipefail
+              mv /src/conanprofile .
+
+              # Build the C++ project
+              python3 ./build_with_conan.py --release --parallel 4
+
+              # Build the wheel
+              rm -rf dist
+              uv build --wheel
+
+              # Repair wheel for manylinux compatibility
+              mkdir -p wheelhouse
+              uv tool run auditwheel repair dist/*.whl -w wheelhouse/
+            "
+
+      - name: Upload wheel as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-linux-${{ matrix.arch }}
+          path: wheelhouse/*.whl
+
+      - name: Determine release version
+        run: |
+          git fetch origin 'refs/tags/*:refs/tags/*'
+          if git describe --tags --exact-match >/dev/null 2>&1; then
+            VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+            echo "SILO_VERSION=${VERSION}" >> $GITHUB_ENV
+          fi
+
+      - name: Upload wheel to GitHub release
+        if: env.SILO_VERSION != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          files: wheelhouse/*.whl
+          tag_name: v${{ env.SILO_VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  buildWheelsMacos:
+    name: Build wheel (macos-arm64)
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install Conan
+        run: uv tool install conan
+
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-macos-arm64-${{ hashFiles('conanfile.py', 'Dockerfile_dependencies') }}
+          restore-keys: |
+            conan-macos-arm64-
+
+      - name: Build wheel
+        run: make build-wheel
+
+      - name: Upload wheel as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-macos-arm64
+          path: wheelhouse/*.whl
+
+      - name: Determine release version
+        run: |
+          git fetch origin 'refs/tags/*:refs/tags/*'
+          if git describe --tags --exact-match >/dev/null 2>&1; then
+            VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+            echo "SILO_VERSION=${VERSION}" >> $GITHUB_ENV
+          fi
+
+      - name: Upload wheel to GitHub release
+        if: env.SILO_VERSION != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          files: wheelhouse/*.whl
+          tag_name: v${{ env.SILO_VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

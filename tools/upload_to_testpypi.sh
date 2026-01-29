@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Check that we're running from the repository root
 if [ ! -f "pyproject.toml" ] || [ ! -f "version.txt" ]; then

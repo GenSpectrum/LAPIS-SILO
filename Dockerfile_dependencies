@@ -11,9 +11,10 @@ RUN apt-get update && apt-get dist-upgrade -y \
 RUN python3 -m pipx ensurepath
 # .profile is only sourced on relogin. Dockerfile shells do not login by default.
 # This line tells it to execute all subsequent commands with a prior login
-SHELL ["/bin/bash", "-login", "-c"]
+SHELL ["/bin/bash", "--login", "-c"]
 
 RUN python3 -m pipx install conan==2.16.1
+RUN python3 -m pipx install uv==0.10.2
 
 WORKDIR /src
 COPY conanfile.py conanprofile.docker conanprofile.docker_arm ./

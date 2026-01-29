@@ -102,13 +102,13 @@ class build_ext(_build_ext):
             # --- CONFIGURE ---
             cmake_options = [
                 f'-DCMAKE_INSTALL_PREFIX={install_prefix}',
-                f'-DPYTHON_EXECUTABLE={sys.executable}',
+                f'-DPython3_EXECUTABLE={sys.executable}',
                 f'-DCMAKE_BUILD_TYPE={config_name}',
                 f'-DCMAKE_PREFIX_PATH={conan_generators_dir}',
                 f'-DCMAKE_MODULE_PATH={conan_generators_dir}',
                 '-DBUILD_PYTHON_BINDINGS=ON',
-                # std::filesystem requires macOS 10.15+, var ignored on other OSs
-                '-DCMAKE_OSX_DEPLOYMENT_TARGET=10.15',
+                # var ignored on other OSs
+                '-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
             ]
 
             print(f"-- Running cmake to configure project in {build_temp}")

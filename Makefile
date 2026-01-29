@@ -8,7 +8,8 @@ DEPENDENCIES_FLAG=dependencies
 ci: format all-tests
 
 conanprofile:
-	conan profile detect && conan profile show --context build > conanprofile
+	conan profile detect || true
+	conan profile show --context build > conanprofile
 
 ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 	conan install . --update --build=missing --profile ./conanprofile --profile:build ./conanprofile \
@@ -55,6 +56,21 @@ python-tests: ${DEPENDENCIES_FLAG}
 	uv pip install -q --no-build-isolation ".[test]"
 	.venv/bin/pytest python/tests -v
 
+build-wheel: conanprofile
+	python3 ./build_with_conan.py --release
+	rm -rf dist
+	@if [ "$$(uname)" = "Darwin" ]; then \
+		_PYTHON_HOST_PLATFORM="macosx-15.0-$$(uname -m)" uv build --wheel; \
+	else \
+		uv build --wheel; \
+	fi
+	mkdir -p wheelhouse
+	@if [ "$$(uname)" = "Darwin" ]; then \
+		uv tool run --from delocate delocate-wheel -w wheelhouse/ dist/*.whl; \
+	else \
+		uv tool run auditwheel repair dist/*.whl -w wheelhouse/; \
+	fi
+
 all-tests: test e2e python-tests
 
 endToEndTests/node_modules: endToEndTests/package-lock.json
@@ -82,4 +98,4 @@ full-clean: clean
 	rm -rf build
 
 .PHONY:
-	full-clean clean clean-api e2e format check-format all test all-tests ci python-tests
+	full-clean clean clean-api e2e format check-format all test all-tests ci python-tests build-wheel
