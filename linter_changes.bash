@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Exit on any error
-set -e
+set -euo pipefail
 
 # Check if the image argument is provided, otherwise use :latest
 DOCKER_IMAGE="${1:-ghcr.io/genspectrum/lapis-silo-dependencies:latest}"
