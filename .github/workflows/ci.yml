@@ -192,7 +192,7 @@ jobs:
             PLATFORM="linux/$arch"
             echo "Extracting from $IMAGE ($PLATFORM)"
 
-            binary="./silo-linux-$arch"
+            binary="silo-linux-$arch"
 
             docker create --platform $PLATFORM --name extract-$arch $IMAGE
             docker cp extract-$arch:/app/silo "./$binary"
