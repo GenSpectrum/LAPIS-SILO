@@ -7,6 +7,7 @@
 #include <nlohmann/json.hpp>
 
 #include "evobench/evobench.hpp"
+#include "silo/common/size_constants.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 
 namespace silo::query_engine {
@@ -19,7 +20,7 @@ arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
    arrow::acero::BackpressureMonitor* backpressure_monitor;
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> results_generator;
    ARROW_ASSIGN_OR_RAISE(
-      backpressure_monitor, exec_node::createGenerator(arrow_plan.get(), root, &results_generator)
+      backpressure_monitor, createGenerator(arrow_plan.get(), root, &results_generator)
    );
    QueryPlan query_plan{
       std::move(arrow_plan), std::move(results_generator), backpressure_monitor, request_id
@@ -142,6 +143,28 @@ void QueryPlan::executeAndWrite(std::ostream* output_stream, uint64_t timeout_in
          ));
       }
    }
+}
+
+arrow::Result<arrow::acero::BackpressureMonitor*> QueryPlan::createGenerator(
+   arrow::acero::ExecPlan* plan,
+   arrow::acero::ExecNode* input,
+   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>>* generator
+) {
+   arrow::acero::BackpressureMonitor* backpressure_monitor;
+   arrow::acero::SinkNodeOptions options{
+      generator,
+      arrow::acero::BackpressureOptions{
+         /*.resume_if_below =*/common::S_16_KB,
+         /*.pause_if_above =*/common::S_64_MB
+      },
+      &backpressure_monitor
+   };
+
+   ARROW_ASSIGN_OR_RAISE(
+      auto node, arrow::acero::MakeExecNode(std::string{"sink"}, plan, {input}, options)
+   );
+   node->SetLabel("final sink of the plan");
+   return backpressure_monitor;
 }
 
 }  // namespace silo::query_engine

@@ -14,10 +14,4 @@ arrow::Status writeBatchAsNdjson(
    std::ostream* output_stream
 );
 
-arrow::Result<arrow::acero::BackpressureMonitor*> createGenerator(
-   arrow::acero::ExecPlan* plan,
-   arrow::acero::ExecNode* input,
-   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>>* generator
-);
-
 }  // namespace silo::query_engine::exec_node
