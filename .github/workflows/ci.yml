@@ -205,7 +205,7 @@ jobs:
             file "$binary" | grep -q ELF || { echo "  ✗ FAILED: File is not an ELF binary"; exit 1; }
             echo "✓ Verified: $binary"
 
-            sha256sum silo-linux-$arch > "./$binary.sha256sum"
+            sha256sum "$binary" > "$binary.sha256sum"
             # Create tar archive so that the file is executable when downloaded from GitHub Releases
             tar -czf "$binary.tar.gz" "$binary"
           done
