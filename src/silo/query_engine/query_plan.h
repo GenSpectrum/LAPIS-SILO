@@ -40,6 +40,12 @@ class QueryPlan {
          request_id(request_id) {}
 
    arrow::Status executeAndWriteImpl(std::ostream* output_stream, uint64_t timeout_in_seconds);
+
+   static arrow::Result<arrow::acero::BackpressureMonitor*> createGenerator(
+      arrow::acero::ExecPlan* plan,
+      arrow::acero::ExecNode* input,
+      arrow::AsyncGenerator<std::optional<arrow::ExecBatch>>* generator
+   );
 };
 
 }  // namespace silo::query_engine

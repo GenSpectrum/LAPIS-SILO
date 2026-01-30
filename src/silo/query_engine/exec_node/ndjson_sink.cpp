@@ -12,7 +12,6 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/common/panic.h"
-#include "silo/common/size_constants.h"
 
 namespace silo::query_engine::exec_node {
 
@@ -200,28 +199,6 @@ arrow::Status writeBatchAsNdjson(
       return arrow::Status::IOError("Could not write to network stream");
    }
    return arrow::Status::OK();
-}
-
-arrow::Result<arrow::acero::BackpressureMonitor*> createGenerator(
-   arrow::acero::ExecPlan* plan,
-   arrow::acero::ExecNode* input,
-   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>>* generator
-) {
-   arrow::acero::BackpressureMonitor* backpressure_monitor;
-   arrow::acero::SinkNodeOptions options{
-      generator,
-      arrow::acero::BackpressureOptions{
-         /*.resume_if_below =*/common::S_16_KB,
-         /*.pause_if_above =*/common::S_64_MB
-      },
-      &backpressure_monitor
-   };
-
-   ARROW_ASSIGN_OR_RAISE(
-      auto node, arrow::acero::MakeExecNode(std::string{"sink"}, plan, {input}, options)
-   );
-   node->SetLabel("final sink of the plan");
-   return backpressure_monitor;
 }
 
 }  // namespace silo::query_engine::exec_node
