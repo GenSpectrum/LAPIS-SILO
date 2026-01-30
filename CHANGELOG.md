@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.7](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.6...v0.9.7) (2026-01-30)
+
+
+### Features
+
+* add compiled binaries for linux to GitHub releases ([#1129](https://github.com/GenSpectrum/LAPIS-SILO/issues/1129)) ([c7dd359](https://github.com/GenSpectrum/LAPIS-SILO/commit/c7dd35914c6024a7d5f5d2cbd48af5d8beb9aaf9)), closes [#575](https://github.com/GenSpectrum/LAPIS-SILO/issues/575)
+* **ci:** add a ci formatting job for workflow/*.yml ([a67ed2c](https://github.com/GenSpectrum/LAPIS-SILO/commit/a67ed2cb0584ebc72f0f20f5fb1df4a81cacdde3))
+
 ## [0.9.6](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.5...v0.9.6) (2026-01-28)
 
 
