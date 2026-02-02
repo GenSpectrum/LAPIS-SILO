@@ -414,7 +414,7 @@ const QueryTestScenario FASTA_ALIGNED_WITH_LIMIT_UNSORTED = {
 {"primaryKey":"id_1","segment1":"ATGCN"},
 {"primaryKey":"id_2","segment1":"NNNNN"}])"
    ),
-   .query_options = silo::config::QueryOptions{.materialization_cutoff = 1}
+   .query_options = silo::config::QueryOptions{.materialization_cutoff = 3}
 };
 
 const QueryTestScenario FASTA_ALIGNED_WITH_OFFSET_AND_LIMIT = {
