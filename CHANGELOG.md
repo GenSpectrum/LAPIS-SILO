@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.8](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.7...v0.9.8) (2026-02-04)
+
+
+### Bug Fixes
+
+* **silo:** avoid race-condition in plan clean-up leading to crashes ([0685ad8](https://github.com/GenSpectrum/LAPIS-SILO/commit/0685ad8fa8f35b2108a25314d29777938995a022))
+
 ## [0.9.7](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.6...v0.9.7) (2026-01-30)
 
 
