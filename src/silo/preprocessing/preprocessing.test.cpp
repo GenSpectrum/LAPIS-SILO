@@ -12,6 +12,7 @@
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/query.h"
 #include "silo/query_engine/query_plan.h"
 
@@ -882,6 +883,8 @@ const auto TEST_CASES = ::testing::Values(
 
 INSTANTIATE_TEST_SUITE_P(PreprocessorTest, PreprocessorTestFixture, TEST_CASES, printTestName<Success>);
 
+using silo::query_engine::exec_node::NdjsonSink;
+
 TEST_P(PreprocessorTestFixture, shouldProcessData) {
    const auto& scenario = GetParam();
 
@@ -899,7 +902,8 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
       *query, silo::config::RuntimeConfig::withDefaults().query_options, "some_id"
    );
    std::stringstream actual_result_stream;
-   query_plan.executeAndWrite(&actual_result_stream, /*timeout_in_seconds=*/3);
+   NdjsonSink output_sink{&actual_result_stream, query_plan.results_schema};
+   query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/3);
    nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
    std::string line;
    while (std::getline(actual_result_stream, line)) {

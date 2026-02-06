@@ -8,7 +8,6 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/common/size_constants.h"
-#include "silo/query_engine/exec_node/ndjson_sink.h"
 
 namespace silo::query_engine {
 
@@ -31,7 +30,7 @@ arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
 }
 
 arrow::Status QueryPlan::executeAndWriteImpl(
-   std::ostream* output_stream,
+   exec_node::ArrowBatchSink& output_sink,
    uint64_t timeout_in_seconds
 ) {
    EVOBENCH_SCOPE("QueryPlan", "execute");
@@ -120,16 +119,18 @@ arrow::Status QueryPlan::executeAndWriteImpl(
       );
 
       // TODO(#764) make output format configurable
-      ARROW_RETURN_NOT_OK(
-         exec_node::writeBatchAsNdjson(optional_batch.value(), results_schema, output_stream)
-      );
+      ARROW_RETURN_NOT_OK(output_sink.writeBatch(optional_batch.value()));
    };
+   ARROW_RETURN_NOT_OK(output_sink.finish());
    SPDLOG_DEBUG("Request Id [{}] - QueryPlan - Finished reading all batches.", request_id);
    return arrow::Status::OK();
 }
 
-void QueryPlan::executeAndWrite(std::ostream* output_stream, uint64_t timeout_in_seconds) {
-   auto status = executeAndWriteImpl(output_stream, timeout_in_seconds);
+void QueryPlan::executeAndWrite(
+   exec_node::ArrowBatchSink& output_sink,
+   uint64_t timeout_in_seconds
+) {
+   auto status = executeAndWriteImpl(output_sink, timeout_in_seconds);
    if (!status.ok()) {
       if (status.IsIOError()) {
          SPDLOG_WARN(
@@ -140,7 +141,8 @@ void QueryPlan::executeAndWrite(std::ostream* output_stream, uint64_t timeout_in
       } else {
          throw std::runtime_error(fmt::format(
             "Request Id [{}] - Internal server error. Please notify developers. SILO likely "
-            "constructed an invalid arrow plan and more user-input validation needs to be added: "
+            "constructed an invalid arrow plan and more user-input validation needs to be "
+            "added: "
             "{}",
             request_id,
             status.message()

@@ -107,6 +107,16 @@ class Database {
       const config::QueryOptions& query_options,
       std::string_view request_id
    ) const;
+
+   [[nodiscard]] std::string executeQueryAsArrowIpc(
+      const std::string& table_name,
+      const std::string& query_json
+   ) const;
+
+   [[nodiscard]] std::string getTablesAsArrowIpc() const;
+
+  private:
+   [[nodiscard]] arrow::Result<std::string> getTablesAsArrowIpcImpl() const;
 };
 
 }  // namespace silo

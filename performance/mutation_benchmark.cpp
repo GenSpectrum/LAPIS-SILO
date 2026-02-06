@@ -4,9 +4,10 @@
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
 #include "silo/query_engine/actions/mutations.h"
-#include "silo/query_engine/filter/expressions/true.h"
+#include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/filter/expressions/negation.h"
 #include "silo/query_engine/filter/expressions/string_equals.h"
+#include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/query.h"
 
 namespace {
@@ -115,7 +116,8 @@ void executeMutationsAllQuery(std::shared_ptr<Database> database){
 
    auto query_plan = database->createQueryPlan(query, {}, "test_query");
    std::stringstream result;
-   query_plan.executeAndWrite(&result, /*timeout_in_seconds=*/3);
+   silo::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
+   query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/3);
    printClipped(result.str());
 }
 
@@ -126,7 +128,8 @@ void executeMutationsAlmostAllQuery(std::shared_ptr<Database> database){
 
    auto query_plan = database->createQueryPlan(query, {}, "test_query");
    std::stringstream result;
-   query_plan.executeAndWrite(&result, /*timeout_in_seconds=*/3);
+   silo::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
+   query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/3);
    printClipped(result.str());
 }
 }  // namespace

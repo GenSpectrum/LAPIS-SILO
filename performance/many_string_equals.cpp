@@ -11,6 +11,7 @@
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
 #include "silo/query_engine/actions/aggregated.h"
+#include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/filter/expressions/or.h"
 #include "silo/query_engine/filter/expressions/string_equals.h"
 #include "silo/query_engine/filter/expressions/string_in_set.h"
@@ -125,7 +126,8 @@ std::unique_ptr<Expression> buildStringInSet(
 void executeAggregatedQuery(const std::shared_ptr<Database>& database, Query& query) {
    auto query_plan = database->createQueryPlan(query, {}, "benchmark_query");
    std::stringstream result;
-   query_plan.executeAndWrite(&result, /*timeout_in_seconds=*/60);
+   silo::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
+   query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/60);
 }
 
 struct BenchmarkResult {

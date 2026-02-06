@@ -9,6 +9,7 @@ from cython.operator cimport dereference as deref
 from database cimport Database as CppDatabase, Roaring as CppRoaring
 import os
 import pyroaring
+import pyarrow as pa
 
 cdef class PyDatabase:
     """Python wrapper for C++ Database"""
@@ -55,6 +56,29 @@ cdef class PyDatabase:
             self.c_database.saveDatabaseState(cpp_save_directory)
         except Exception as e:
             raise RuntimeError(f"Failed to save checkpoint to '{save_directory}': {e}")
+
+    def get_tables(self):
+        """
+        Returns a list of all tables in this database
+
+        Returns
+        -------
+        pyarrow.Table
+            pyarrow.Table with a 'table_name' column containing all table names
+
+        """
+        cdef string ipc_buffer
+
+        try:
+            ipc_buffer = self.c_database.getTablesAsArrowIpc()
+
+            # Convert IPC buffer to PyArrow Table
+            ipc_bytes = (<char*> ipc_buffer.data())[:ipc_buffer.size()]
+            buffer_reader = pa.BufferReader(ipc_bytes)
+            reader = pa.ipc.open_stream(buffer_reader)
+            return reader.read_all()
+        except Exception as e:
+            raise RuntimeError(f"Failed to get tables: {e}")
 
     
     def create_nucleotide_sequence_table(self, str table_name, str primary_key_name, str sequence_name, str reference_sequence, list extra_columns=None):
@@ -341,6 +365,8 @@ cdef class PyDatabase:
                 result.append((mutations[i].first, mutations[i].second.decode('utf-8')))
 
             return result
+        except ValueError:
+            raise
         except Exception as e:
             raise RuntimeError(f"Failed to get prevalent mutations: {e}")
 
@@ -397,6 +423,8 @@ cdef class PyDatabase:
                 result.append((mutations[i].first, mutations[i].second.decode('utf-8')))
 
             return result
+        except ValueError:
+            raise
         except Exception as e:
             raise RuntimeError(f"Failed to get prevalent mutations: {e}")
 
@@ -450,8 +478,59 @@ cdef class PyDatabase:
 
             # Deserialize into pyroaring BitMap
             return pyroaring.BitMap.deserialize(serialized)
+        except ValueError:
+            raise
         except Exception as e:
             raise RuntimeError(f"Failed to get filtered bitmap: {e}")
+
+    def execute_query(self, str table_name, str query_json):
+        """
+        Execute a query and return results as a PyArrow Table
+
+        Parameters
+        ----------
+        table_name : str
+            Name of the table to query
+        query_json : str
+            Query in JSON format. Must contain 'filterExpression' and 'action' fields.
+            Example: '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+
+        Returns
+        -------
+        pyarrow.Table
+            Query results as a PyArrow Table. Use .to_batches() to get individual RecordBatches.
+
+        Example
+        -------
+        >>> db = PyDatabase("path/to/database")
+        >>> query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        >>> table = db.execute_query("my_table", query)
+        >>> print(table.schema)
+        >>> df = table.to_pandas()  # Convert to pandas DataFrame
+        """
+        cdef string cpp_table_name
+        cdef string cpp_query_json
+        cdef string ipc_buffer
+
+        if not table_name or not table_name.strip():
+            raise ValueError("table_name cannot be empty")
+        if not query_json or not query_json.strip():
+            raise ValueError("query_json cannot be empty")
+
+        cpp_table_name = table_name.encode('utf-8')
+        cpp_query_json = query_json.encode('utf-8')
+
+        try:
+            ipc_buffer = self.c_database.executeQueryAsArrowIpc(cpp_table_name, cpp_query_json)
+
+            # Convert IPC buffer to PyArrow Table
+            buffer_reader = pa.BufferReader(ipc_buffer)
+            reader = pa.ipc.open_stream(buffer_reader)
+            return reader.read_all()
+        except ValueError:
+            raise
+        except Exception as e:
+            raise RuntimeError(f"Failed to execute query: {e}")
 
     def __repr__(self):
         return "Database()"

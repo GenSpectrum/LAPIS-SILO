@@ -6,12 +6,21 @@
 #include <arrow/util/async_generator_fwd.h>
 #include <spdlog/spdlog.h>
 
+#include "silo/query_engine/exec_node/arrow_batch_sink.h"
+
 namespace silo::query_engine::exec_node {
 
-arrow::Status writeBatchAsNdjson(
-   const arrow::compute::ExecBatch& batch,
-   const std::shared_ptr<arrow::Schema>& schema,
-   std::ostream* output_stream
-);
+class NdjsonSink : public ArrowBatchSink {
+   std::ostream* output_stream;
+   std::shared_ptr<arrow::Schema> schema;
+
+  public:
+   NdjsonSink(std::ostream* output_stream_, std::shared_ptr<arrow::Schema> schema_)
+       : output_stream(output_stream_),
+         schema(schema_) {}
+
+   arrow::Status writeBatch(const arrow::compute::ExecBatch& batch) override;
+   arrow::Status finish() override;
+};
 
 }  // namespace silo::query_engine::exec_node

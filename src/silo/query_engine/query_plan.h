@@ -8,6 +8,8 @@
 #include <arrow/acero/options.h>
 #include <arrow/util/async_generator_fwd.h>
 
+#include "silo/query_engine/exec_node/arrow_batch_sink.h"
+
 namespace silo::query_engine {
 
 class QueryPlan {
@@ -25,7 +27,7 @@ class QueryPlan {
       std::string_view request_id
    );
 
-   void executeAndWrite(std::ostream* output_stream, uint64_t timeout_in_seconds);
+   void executeAndWrite(exec_node::ArrowBatchSink& output_sink, uint64_t timeout_in_seconds);
 
   private:
    QueryPlan(
@@ -39,7 +41,10 @@ class QueryPlan {
          backpressure_monitor(backpressure_monitor),
          request_id(request_id) {}
 
-   arrow::Status executeAndWriteImpl(std::ostream* output_stream, uint64_t timeout_in_seconds);
+   arrow::Status executeAndWriteImpl(
+      exec_node::ArrowBatchSink& output_sink,
+      uint64_t timeout_in_seconds
+   );
 
    static arrow::Result<arrow::acero::BackpressureMonitor*> createGenerator(
       arrow::acero::ExecPlan* plan,
