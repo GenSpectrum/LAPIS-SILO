@@ -165,11 +165,7 @@ void sendJsonLinesInBatches(
 
 }  // namespace
 
-arrow::Status writeBatchAsNdjson(
-   const arrow::compute::ExecBatch& batch,
-   const std::shared_ptr<arrow::Schema>& schema,
-   std::ostream* output_stream
-) {
+arrow::Status NdjsonSink::writeBatch(const arrow::compute::ExecBatch& batch) {
    EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson");
    size_t row_count = batch.length;
    std::vector<std::shared_ptr<arrow::Array>> column_arrays;
@@ -198,6 +194,11 @@ arrow::Status writeBatchAsNdjson(
    if (!*output_stream) {
       return arrow::Status::IOError("Could not write to network stream");
    }
+   return arrow::Status::OK();
+}
+
+arrow::Status NdjsonSink::finish() {
+   // TODO(#480) mark that the download is complete
    return arrow::Status::OK();
 }
 

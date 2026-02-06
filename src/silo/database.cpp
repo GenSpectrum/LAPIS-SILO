@@ -28,6 +28,7 @@
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/actions/fasta_aligned.h"
 #include "silo/query_engine/actions/mutations.h"
+#include "silo/query_engine/exec_node/arrow_ipc_sink.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/illegal_query_exception.h"
@@ -202,7 +203,8 @@ void Database::printAllData(const std::string& table_name) const {
 
    auto query = Query(schema::TableName{table_name}, std::move(filter), std::move(action));
    auto query_plan = createQueryPlan(query, config::QueryOptions{}, "printAllData");
-   query_plan.executeAndWrite(&std::cout, /*timeout_in_seconds=*/100);
+   query_engine::exec_node::NdjsonSink output_sink{&std::cout, query_plan.results_schema};
+   query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/100);
 }
 
 std::string Database::getNucleotideReferenceSequence(
@@ -314,7 +316,8 @@ std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentMutations(
       Query(schema::TableName{table_name}, std::move(filter_expression), std::move(action));
    auto query_plan = createQueryPlan(query, config::QueryOptions{}, "getPrevalentMutations");
    std::stringstream result_stream;
-   query_plan.executeAndWrite(&result_stream, /*timeout_in_seconds=*/100);
+   query_engine::exec_node::NdjsonSink output_sink{&result_stream, query_plan.results_schema};
+   query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/100);
 
    std::vector<std::pair<uint64_t, std::string>> result;
    std::string json_line;
@@ -542,6 +545,61 @@ using query_engine::QueryPlan;
    };
 
    return query.action->toQueryPlan(table, partition_filters, query_options, request_id);
+}
+
+std::string Database::executeQueryAsArrowIpc(
+   const std::string& table_name,
+   const std::string& query_json
+) const {
+   auto query = Query::parseQuery(query_json);
+   query->table_name = schema::TableName{table_name};
+   auto query_plan = createQueryPlan(*query, config::QueryOptions{}, "executeQueryAsArrowIpc");
+   constexpr uint64_t DEFAULT_TIMEOUT_SECONDS = 120;
+   std::ostringstream output_stream;
+   auto output_sink =
+      query_engine::exec_node::ArrowIpcSink::Make(&output_stream, query_plan.results_schema);
+   if (!output_sink.status().ok()) {
+      throw std::runtime_error(
+         fmt::format("Failed to create Arrow IPC writer: {}", output_sink.status().message())
+      );
+   }
+   query_plan.executeAndWrite(output_sink.ValueUnsafe(), DEFAULT_TIMEOUT_SECONDS);
+   return output_stream.str();
+}
+
+std::string Database::getTablesAsArrowIpc() const {
+   std::string result;
+   auto status = getTablesAsArrowIpcImpl().Value(&result);
+   if (!status.ok()) {
+      throw std::runtime_error(
+         fmt::format("Failed to write finish ArrowIpcSink: {}", status.message())
+      );
+   }
+   return result;
+}
+
+arrow::Result<std::string> Database::getTablesAsArrowIpcImpl() const {
+   // Create schema with a single "table_name" column
+   auto arrow_schema = arrow::schema({arrow::field("table_name", arrow::utf8())});
+
+   // Build string array with table names
+   arrow::StringBuilder builder;
+   for (const auto& [table_name, _] : tables) {
+      ARROW_RETURN_NOT_OK(builder.Append(table_name.getName()));
+   }
+
+   ARROW_ASSIGN_OR_RAISE(auto array, builder.Finish());
+
+   ARROW_ASSIGN_OR_RAISE(auto exec_batch, arrow::ExecBatch::Make({array}, array->length()));
+
+   std::ostringstream output_stream;
+   ARROW_ASSIGN_OR_RAISE(
+      auto output_sink, query_engine::exec_node::ArrowIpcSink::Make(&output_stream, arrow_schema)
+   );
+
+   ARROW_RETURN_NOT_OK(output_sink.writeBatch(exec_batch));
+   ARROW_RETURN_NOT_OK(output_sink.finish());
+   return output_stream.str();
 }
 
 }  // namespace silo

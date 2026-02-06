@@ -49,10 +49,11 @@ e2e: ${RUNNING_SILO_FLAG}
 test: ${SILO_EXECUTABLE}
 	build/Debug/silo_test --gtest_filter='*' --gtest_color=no
 
-python-tests:
-	pip install -q pytest
-	pip install -q .
-	pytest python/tests -v
+python-tests: ${DEPENDENCIES_FLAG}
+	uv venv --allow-existing .venv
+	uv pip install -q setuptools wheel 'Cython>=3.0.0'
+	uv pip install -q --no-build-isolation ".[test]"
+	.venv/bin/pytest python/tests -v
 
 all-tests: test e2e python-tests
 

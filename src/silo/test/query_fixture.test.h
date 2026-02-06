@@ -15,6 +15,7 @@
 #include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/initialize/initializer.h"
+#include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/query.h"
 #include "silo/query_engine/query_plan.h"
 #include "silo/storage/reference_genomes.h"
@@ -112,7 +113,8 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
             auto query = query_engine::Query::parseQuery(scenario.query.dump());
             std::stringstream buffer;
             auto query_plan = shared_database->createQueryPlan(*query, query_options, "some_id");
-            query_plan.executeAndWrite(&buffer, /*timeout_in_seconds=*/3);
+            query_engine::exec_node::NdjsonSink output_sink{&buffer, query_plan.results_schema};
+            query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/3);
             FAIL() << "Expected an error in test case, but nothing was thrown";
          } catch (const std::exception& e) {
             EXPECT_EQ(std::string(e.what()), scenario.expected_error_message);
@@ -121,7 +123,8 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          auto query = query_engine::Query::parseQuery(scenario.query.dump());
          std::stringstream buffer;
          auto query_plan = shared_database->createQueryPlan(*query, query_options, "some_id");
-         query_plan.executeAndWrite(&buffer, /*timeout_in_seconds=*/3);
+         query_engine::exec_node::NdjsonSink output_sink{&buffer, query_plan.results_schema};
+         query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/3);
          nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
          std::string line;
          while (std::getline(buffer, line)) {

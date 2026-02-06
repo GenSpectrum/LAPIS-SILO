@@ -125,6 +125,7 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
 using silo::Nucleotide;
 using silo::query_engine::Query;
 using silo::query_engine::actions::Aggregated;
+using silo::query_engine::exec_node::NdjsonSink;
 using silo::query_engine::filter::expressions::True;
 using silo::schema::ColumnIdentifier;
 using silo::schema::ColumnType;
@@ -162,7 +163,8 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
    auto query_plan_1 =
       database.createQueryPlan(aggregated_all_query, silo::config::QueryOptions{}, "test_query_1");
    std::stringstream result;
-   query_plan_1.executeAndWrite(&result, 100);
+   NdjsonSink output_sink_1{&result, query_plan_1.results_schema};
+   query_plan_1.executeAndWrite(output_sink_1, 100);
    ASSERT_EQ(result.str(), "{\"count\":20}\n");
 
    silo::schema::TableName second_table_name{"second"};
@@ -177,6 +179,7 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
    auto query_plan_2 =
       database.createQueryPlan(aggregated_all_query, silo::config::QueryOptions{}, "test_query_2");
    std::stringstream result_2;
-   query_plan_2.executeAndWrite(&result_2, 100);
+   NdjsonSink output_sink_2{&result_2, query_plan_2.results_schema};
+   query_plan_2.executeAndWrite(output_sink_2, 100);
    ASSERT_EQ(result_2.str(), "{\"count\":1}\n");
 }

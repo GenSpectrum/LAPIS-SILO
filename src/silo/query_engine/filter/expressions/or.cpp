@@ -112,6 +112,9 @@ ExpressionVector Or::rewriteSymbolInSetExpressions(ExpressionVector children) {
    return new_children;
 }
 
+template ExpressionVector Or::rewriteSymbolInSetExpressions<AminoAcid>(ExpressionVector children);
+template ExpressionVector Or::rewriteSymbolInSetExpressions<Nucleotide>(ExpressionVector children);
+
 ExpressionVector Or::mergeStringInSetExpressions(ExpressionVector children) {
    ExpressionVector new_children;
    using Column = std::string;

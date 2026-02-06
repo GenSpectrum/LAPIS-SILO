@@ -15,6 +15,7 @@
 #include "silo/api/active_database.h"
 #include "silo/api/bad_request.h"
 #include "silo/api/error_request_handler.h"
+#include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/query.h"
 
@@ -56,12 +57,13 @@ void QueryHandler::post(
 
       response.set("data-version", database->getDataVersionTimestamp().value);
       response.setContentType("application/x-ndjson");
-      std::ostream& out_stream = response.send();
+      std::ostream& output_stream = response.send();
+      query_engine::exec_node::NdjsonSink output_sink{&output_stream, query_plan.results_schema};
 
       // This function is not inside executeAndWrite, because we need the context from query->action
       EVOBENCH_SCOPE("QueryPlan", "executeAndWrite");
       EVOBENCH_KEY_VALUE("of query_type", query->action->getType());
-      query_plan.executeAndWrite(&out_stream, DEFAULT_TIMEOUT_TWO_MINUTES);
+      query_plan.executeAndWrite(output_sink, DEFAULT_TIMEOUT_TWO_MINUTES);
    } catch (const silo::query_engine::IllegalQueryException& ex) {
       throw BadRequest(ex.what());
    }

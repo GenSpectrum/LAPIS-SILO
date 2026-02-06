@@ -8,7 +8,10 @@
 #include "arrow/acero/options.h"
 #include "arrow/builder.h"
 
+#include "silo/query_engine/exec_node/ndjson_sink.h"
+
 using silo::query_engine::QueryPlan;
+using silo::query_engine::exec_node::NdjsonSink;
 
 namespace {
 
@@ -52,10 +55,11 @@ TEST(QueryPlan, timesOutWhenAnInvalidPlanDoesNotFinish) {
          auto under_test = QueryPlan::makeQueryPlan(arrow_plan, node, "some_id").ValueOrDie();
 
          std::stringstream dummy_output{};
+         NdjsonSink output_sink{&dummy_output, under_test.results_schema};
          // Set time-out to zero, so it immediately cancels execution (only works with pipeline
          // breakers like aggregate, because otherwise the StartProducing call might already do all
          // the work)
-         under_test.executeAndWrite(&dummy_output, 0);
+         under_test.executeAndWrite(output_sink, 0);
       }),
       ThrowsMessage<std::runtime_error>(::testing::HasSubstr(
          "Internal server error. Please notify developers. SILO likely constructed an invalid "

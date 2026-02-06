@@ -4,6 +4,7 @@ import json
 import tempfile
 import shutil
 import pyroaring
+import pyarrow as pa
 
 
 # Path to test data
@@ -58,11 +59,13 @@ class TestDatabaseCreation:
             'append_data_from_string',
             'create_gene_table',
             'create_nucleotide_sequence_table',
+            'execute_query',
             'get_filtered_bitmap',
             'get_nucleotide_reference_sequence',
             'get_amino_acid_reference_sequence',
             'get_prevalent_nucleotide_mutations',
             'get_prevalent_amino_acid_mutations',
+            'get_tables',
             'print_all_data',
             'save_checkpoint',
         ]
@@ -82,6 +85,27 @@ class TestDatabaseCreation:
 
 class TestCreateNucleotideSequenceTable:
     """Test creating nucleotide sequence tables."""
+
+    def test_create_table_with_simple_reference(self, empty_database):
+        """Test creating a table with a simple reference sequence."""
+        # Table names must be lowercase
+        empty_database.create_nucleotide_sequence_table(
+            table_name="testtable",
+            primary_key_name="id",
+            sequence_name="main",
+            reference_sequence="ACGTACGTACGT"
+        )
+        # If no exception, table was created
+
+    def test_create_table_with_real_reference(self, empty_database, main_reference_sequence):
+        """Test creating a table with the real SARS-CoV-2 reference sequence."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="gisaidepisl",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+        # If no exception, table was created
 
     def test_get_reference_sequence_after_create(self, empty_database, main_reference_sequence):
         """Test that we can retrieve the reference sequence after creating a table."""
@@ -521,6 +545,66 @@ class TestExtraColumns:
         )
         # If no exception, table was created with extra columns
 
+    def test_extra_columns_accept_data(self):
+        """Test that extra columns can store and retrieve data."""
+        from pysilo import Database
+
+        db = Database()
+        db.create_nucleotide_sequence_table(
+            table_name="test",
+            primary_key_name="id",
+            sequence_name="seq",
+            reference_sequence="ACGT",
+            extra_columns=["country", "lineage"]
+        )
+        db.append_data_from_string("test", '{"id": "s1", "seq": {"sequence": "AAAA", "insertions": []}, "country": "USA", "lineage": "BA.1"}')
+        db.append_data_from_string("test", '{"id": "s2", "seq": {"sequence": "CCCC", "insertions": []}, "country": "UK", "lineage": "BA.2"}')
+
+        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        result = db.execute_query("test", query)
+
+        assert "country" in result.column_names
+        assert "lineage" in result.column_names
+        data = result.to_pydict()
+        assert set(data["country"]) == {"USA", "UK"}
+        assert set(data["lineage"]) == {"BA.1", "BA.2"}
+
+    def test_extra_columns_default_empty(self):
+        """Test that extra_columns defaults to empty (backward compatible)."""
+        from pysilo import Database
+
+        db = Database()
+        # Call without extra_columns - should work as before
+        db.create_nucleotide_sequence_table(
+            table_name="test",
+            primary_key_name="id",
+            sequence_name="seq",
+            reference_sequence="ACGT"
+        )
+        db.append_data_from_string("test", '{"id": "s1", "seq": {"sequence": "AAAA", "insertions": []}}')
+
+        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        result = db.execute_query("test", query)
+        assert result.num_rows == 1
+
+    def test_extra_columns_with_none(self):
+        """Test that extra_columns=None works."""
+        from pysilo import Database
+
+        db = Database()
+        db.create_nucleotide_sequence_table(
+            table_name="test",
+            primary_key_name="id",
+            sequence_name="seq",
+            reference_sequence="ACGT",
+            extra_columns=None
+        )
+        db.append_data_from_string("test", '{"id": "s1", "seq": {"sequence": "AAAA", "insertions": []}}')
+
+        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        result = db.execute_query("test", query)
+        assert result.num_rows == 1
+
     def test_extra_columns_invalid_type_raises(self):
         """Test that non-string extra columns raise TypeError."""
         from pysilo import Database
@@ -549,3 +633,254 @@ class TestExtraColumns:
         )
         # If no exception, table was created
 
+
+class TestGetTables:
+    """Test the get_tables method."""
+
+    def test_get_tables_empty_database(self, empty_database):
+        """Test that get_tables returns empty table for empty database."""
+        result = empty_database.get_tables()
+        assert isinstance(result, pa.Table)
+        assert "table_name" in result.column_names
+        assert result.num_rows == 0
+
+    def test_get_tables_single_table(self, empty_database, main_reference_sequence):
+        """Test get_tables with one table."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+
+        result = empty_database.get_tables()
+        assert isinstance(result, pa.Table)
+        assert "table_name" in result.column_names
+        assert result.num_rows == 1
+        data = result.to_pydict()
+        assert "sequences" in data["table_name"]
+
+    def test_get_tables_multiple_tables(self, empty_database, main_reference_sequence):
+        """Test get_tables with multiple tables."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+        empty_database.create_gene_table(
+            table_name="genes",
+            primary_key_name="id",
+            gene_name="S",
+            reference_sequence="MFVFLVLLPLVSSQCVNLTTRTQLPPAYTNSFTRGVYYPDKVFRSSVLHSTQDLFLPFFSNVTWFHAI*"
+        )
+
+        result = empty_database.get_tables()
+        assert isinstance(result, pa.Table)
+        assert result.num_rows == 2
+        data = result.to_pydict()
+        table_names = set(data["table_name"])
+        assert "sequences" in table_names
+        assert "genes" in table_names
+
+
+class TestExecuteQuery:
+    """Test the execute_query method that returns PyArrow Tables."""
+
+    def test_execute_query_returns_pyarrow_table(self, empty_database, main_reference_sequence):
+        """Test that execute_query returns a PyArrow Table."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+        empty_database.append_data_from_file("sequences", INPUT_FILE)
+
+        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        result = empty_database.execute_query("sequences", query)
+
+        assert isinstance(result, pa.Table)
+
+    def test_execute_query_has_correct_schema(self, empty_database, main_reference_sequence):
+        """Test that the returned table has expected columns."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+        empty_database.append_data_from_file("sequences", INPUT_FILE)
+
+        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        result = empty_database.execute_query("sequences", query)
+
+        # Should have at least the primary key column
+        assert "primary_key" in result.column_names
+
+    def test_execute_query_returns_data(self, empty_database, main_reference_sequence):
+        """Test that execute_query returns rows."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+        empty_database.append_data_from_file("sequences", INPUT_FILE)
+
+        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        result = empty_database.execute_query("sequences", query)
+
+        assert result.num_rows > 0
+
+    def test_execute_query_with_filter(self, empty_database, main_reference_sequence):
+        """Test execute_query with a filter expression."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+        empty_database.append_data_from_file("sequences", INPUT_FILE)
+
+        # Get all rows first
+        all_query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        all_result = empty_database.execute_query("sequences", all_query)
+
+        # Get filtered rows (False filter should return 0 rows)
+        filtered_query = '{"filterExpression": {"type": "False"}, "action": {"type": "Details"}}'
+        filtered_result = empty_database.execute_query("sequences", filtered_query)
+
+        assert filtered_result.num_rows == 0
+        assert all_result.num_rows > filtered_result.num_rows
+
+    def test_execute_query_to_batches(self, empty_database, main_reference_sequence):
+        """Test that the result can be converted to RecordBatches."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+        empty_database.append_data_from_file("sequences", INPUT_FILE)
+
+        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        result = empty_database.execute_query("sequences", query)
+
+        batches = result.to_batches()
+        assert isinstance(batches, list)
+        for batch in batches:
+            assert isinstance(batch, pa.RecordBatch)
+
+    def test_execute_query_to_pydict(self, empty_database, main_reference_sequence):
+        """Test that the result can be converted to Python dict."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+        empty_database.append_data_from_file("sequences", INPUT_FILE)
+
+        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        result = empty_database.execute_query("sequences", query)
+
+        data = result.to_pydict()
+        assert isinstance(data, dict)
+        assert "primary_key" in data
+        assert isinstance(data["primary_key"], list)
+
+    def test_execute_query_empty_table_name_raises(self, empty_database):
+        """Test that empty table name raises ValueError."""
+        with pytest.raises(ValueError, match="table_name cannot be empty"):
+            empty_database.execute_query("", '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}')
+
+    def test_execute_query_empty_query_raises(self, empty_database, main_reference_sequence):
+        """Test that empty query raises ValueError."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+
+        with pytest.raises(ValueError, match="query_json cannot be empty"):
+            empty_database.execute_query("sequences", "")
+
+    def test_execute_query_invalid_json_raises(self, empty_database, main_reference_sequence):
+        """Test that invalid JSON raises an error."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+
+        with pytest.raises(ValueError, match="not a valid JSON"):
+            empty_database.execute_query("sequences", "not valid json")
+
+    def test_execute_query_missing_action_raises(self, empty_database, main_reference_sequence):
+        """Test that query without action raises an error."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+
+        with pytest.raises(ValueError, match="must contain filterExpression and action"):
+            empty_database.execute_query("sequences", '{"filterExpression": {"type": "True"}}')
+
+    def test_execute_query_simple_database(self):
+        """Test execute_query with a simple in-memory database."""
+        from pysilo import Database
+
+        db = Database()
+        db.create_nucleotide_sequence_table(
+            table_name="test",
+            primary_key_name="id",
+            sequence_name="seq",
+            reference_sequence="ACGT"
+        )
+        db.append_data_from_string("test", '{"id": "sample1", "seq": {"sequence": "AAAA", "insertions": []}}')
+        db.append_data_from_string("test", '{"id": "sample2", "seq": {"sequence": "CCCC", "insertions": []}}')
+
+        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        result = db.execute_query("test", query)
+
+        assert isinstance(result, pa.Table)
+        assert result.num_rows == 2
+        assert "id" in result.column_names
+
+        # Verify the data
+        data = result.to_pydict()
+        assert set(data["id"]) == {"sample1", "sample2"}
+
+    def test_execute_query_preserves_data_after_checkpoint(self, empty_database, main_reference_sequence, temp_dir):
+        """Test that execute_query works correctly after loading from checkpoint."""
+        from pysilo import Database
+
+        # Create and populate database
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+        empty_database.append_data_from_file("sequences", INPUT_FILE)
+
+        # Query before checkpoint
+        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        result_before = empty_database.execute_query("sequences", query)
+
+        # Save and reload
+        save_path = os.path.join(temp_dir, "checkpoint")
+        empty_database.save_checkpoint(save_path)
+        loaded_db = Database(save_path)
+
+        # Query after checkpoint
+        result_after = loaded_db.execute_query("sequences", query)
+
+        # Results should match
+        assert result_before.num_rows == result_after.num_rows
+        assert result_before.column_names == result_after.column_names
