@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.9](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.8...v0.9.9) (2026-02-11)
+
+
+### Features
+
+* **silo:** add a arrow query interface to the python bindings ([4b7df7e](https://github.com/GenSpectrum/LAPIS-SILO/commit/4b7df7e29dbad66c6b53b85429202f4dc5ad4ad9))
+* **silo:** add python bindings ([bb7ca5a](https://github.com/GenSpectrum/LAPIS-SILO/commit/bb7ca5a9610dd80676f3cc78ebe646a8765d4d2f))
+
 ## [0.9.8](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.7...v0.9.8) (2026-02-04)
 
 
