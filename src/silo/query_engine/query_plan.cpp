@@ -36,11 +36,6 @@ arrow::Status QueryPlan::executeAndWriteImpl(
    EVOBENCH_SCOPE("QueryPlan", "execute");
    SPDLOG_TRACE("{}", arrow_plan->ToString());
    SPDLOG_DEBUG("Request Id [{}] - QueryPlan - Starting the plan.", request_id);
-   arrow_plan->StartProducing();
-   SPDLOG_DEBUG(
-      "Request Id [{}] - QueryPlan - Plan started producing, will now read the resulting batches.",
-      request_id
-   );
 
    // Ensure plan is stopped on any exit path (timeout/error/exception).
    struct PlanStopGuard {
@@ -86,43 +81,68 @@ arrow::Status QueryPlan::executeAndWriteImpl(
       }
    } guard{.request_id = request_id, .plan = arrow_plan};
 
-   while (true) {
-      arrow::Future<std::optional<arrow::ExecBatch>> future_batch = results_generator();
-      SPDLOG_DEBUG("Request Id [{}] - QueryPlan - await the next batch", request_id);
-      bool finished_batch_in_time = future_batch.Wait(static_cast<double>(timeout_in_seconds));
-      if (!finished_batch_in_time) {
-         SPDLOG_WARN(
-            "Request Id [{}] - QueryPlan - Batch wait timed out after {} s — stopping plan.",
-            request_id,
-            timeout_in_seconds
-         );
-         return arrow::Status::ExecutionError(
-            fmt::format("Request timed out, no batch within {} seconds.", timeout_in_seconds)
-         );
-      }
-      ARROW_ASSIGN_OR_RAISE(std::optional<arrow::ExecBatch> optional_batch, future_batch.result());
-      SPDLOG_DEBUG("Request Id [{}] - QueryPlan - Batch received", request_id);
-      SPDLOG_DEBUG(
-         "Request Id [{}] - QueryPlan - Current backpressure size: {} bytes, operation is {}",
-         request_id,
-         backpressure_monitor->bytes_in_use(),
-         backpressure_monitor->is_paused() ? "paused" : "running"
-      );
+   auto plan_finished_future =
+      arrow::Loop([&]() -> arrow::Future<arrow::ControlFlow<arrow::Result<std::monostate>>> {
+         return results_generator().Then(
+            [&](std::optional<arrow::ExecBatch> optional_batch
+            ) -> arrow::ControlFlow<arrow::Result<std::monostate>> {
+               SPDLOG_DEBUG("Request Id [{}] - QueryPlan - Batch received", request_id);
+               SPDLOG_DEBUG(
+                  "Request Id [{}] - QueryPlan - Current backpressure size: {} bytes, operation is "
+                  "{}",
+                  request_id,
+                  backpressure_monitor->bytes_in_use(),
+                  backpressure_monitor->is_paused() ? "paused" : "running"
+               );
 
-      if (!optional_batch.has_value()) {
-         break;  // end of input
-      }
-      SPDLOG_DEBUG(
-         "Request Id [{}] - QueryPlan - Batch contains data with {} values.",
-         request_id,
-         optional_batch.value().length
-      );
+               if (optional_batch == std::nullopt) {
+                  SPDLOG_DEBUG(
+                     "Request Id [{}] - QueryPlan - Finished reading all batches.", request_id
+                  );
+                  return arrow::Break(arrow::Result{std::monostate{}});  // end of input
+               }
+               SPDLOG_DEBUG(
+                  "Request Id [{}] - QueryPlan - Batch contains data with {} values.",
+                  request_id,
+                  optional_batch.value().length
+               );
 
-      // TODO(#764) make output format configurable
-      ARROW_RETURN_NOT_OK(output_sink.writeBatch(optional_batch.value()));
-   };
+               // TODO(#764) make output format configurable
+               // The returned error-status is implicitly converted to an arrow::Break
+               ARROW_RETURN_NOT_OK(output_sink.writeBatch(optional_batch.value()));
+
+               SPDLOG_DEBUG("Request Id [{}] - QueryPlan - await the next batch", request_id);
+               return arrow::Continue();
+            }
+         );
+      });
+
+   arrow_plan->StartProducing();
+
+   SPDLOG_DEBUG(
+      "Request Id [{}] - QueryPlan - Plan started producing, will now read the resulting batches.",
+      request_id
+   );
+
+   bool finished_plan_in_time = plan_finished_future.Wait(static_cast<double>(timeout_in_seconds));
+   if (!finished_plan_in_time) {
+      // TODO.TAE check for progress
+      SPDLOG_WARN(
+         "Request Id [{}] - QueryPlan - Batch wait timed out after {} s — stopping plan.",
+         request_id,
+         timeout_in_seconds
+      );
+      return arrow::Status::ExecutionError(
+         fmt::format("Request timed out, no batch within {} seconds.", timeout_in_seconds)
+      );
+   }
+
+   // Be sure that the plan finished and had no errors.
+   ARROW_RETURN_NOT_OK(plan_finished_future.status());
+
+   SPDLOG_DEBUG("Request Id [{}] - QueryPlan - Plan finished producing", request_id);
    ARROW_RETURN_NOT_OK(output_sink.finish());
-   SPDLOG_DEBUG("Request Id [{}] - QueryPlan - Finished reading all batches.", request_id);
+
    return arrow::Status::OK();
 }
 
@@ -142,8 +162,7 @@ void QueryPlan::executeAndWrite(
          throw std::runtime_error(fmt::format(
             "Request Id [{}] - Internal server error. Please notify developers. SILO likely "
             "constructed an invalid arrow plan and more user-input validation needs to be "
-            "added: "
-            "{}",
+            "added: {}",
             request_id,
             status.message()
          ));
