@@ -5,9 +5,9 @@
 #include <filesystem>
 #include <fstream>
 #include <optional>
-#include <regex>
 #include <string>
 
+#include <re2/re2.h>
 #include <spdlog/spdlog.h>
 
 #include "silo/common/allocator.h"
@@ -15,20 +15,20 @@
 namespace {
 
 std::optional<uint32_t> parseVmRSSLine(const std::string& line) {
-   static const std::regex vm_rss_regex("VmRSS:\\s*(\\d+) kB");
-   std::smatch match;
+   static const re2::RE2 vm_rss_regex("VmRSS:\\s*(\\d+) kB");
+   std::string match;
 
-   if (std::regex_search(line, match, vm_rss_regex) && match.size() > 1) {
+   if (re2::RE2::PartialMatch(line, vm_rss_regex, &match)) {
       try {
-         return std::stol(match.str(1));
+         return std::stol(match);
       } catch (const std::out_of_range& oor) {
          SPDLOG_DEBUG(
-            "parseVmRSSLine: VmRSS value out of range for long: {} - {}", match.str(1), oor.what()
+            "parseVmRSSLine: VmRSS value out of range for long: {} - {}", match, oor.what()
          );
          return std::nullopt;
       } catch (const std::invalid_argument& ia) {
          SPDLOG_DEBUG(
-            "parseVmRSSLine: Invalid argument for stol: {} - {}", match.str(1), ia.what()
+            "parseVmRSSLine: Invalid argument for stol: {} - {}", match, ia.what()
          );
          return std::nullopt;
       }
