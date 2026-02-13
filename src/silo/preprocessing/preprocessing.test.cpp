@@ -107,10 +107,10 @@ const Scenario<Success> NDJSON_FILE_WITH_MISSING_SEGMENTS_AND_GENES = {
          result.push_back(nlohmann::json::parse(R"({
 "accessionVersion": "1.1",
 "country": "Switzerland",
-"main": {"sequence": "NNACTGNN", "insertions": ["123:ACTG"]},
+"main": {"sequence": "NNACTGNN", "insertions": ["3:ACTG"]},
 "secondSegment": null,
-"someLongGene": {"sequence": "ACDEFGHIKLMNPQRSTVWYBZX-*", "insertions": ["123:RNRNRN"]},
-"someShortGene": {"sequence": "MADS", "insertions": ["123:RN"]},
+"someLongGene": {"sequence": "ACDEFGHIKLMNPQRSTVWYBZX-*", "insertions": ["3:RNRNRN"]},
+"someShortGene": {"sequence": "MADS", "insertions": ["3:RN"]},
 "unaligned_main": "ATTAAAGGTTTATACCTTCCCAGGTAACAAACCAACCAACTTTCGATCT",
 "unaligned_secondSegment": null
 })"));
@@ -1060,10 +1060,10 @@ const Scenario<Error> NDJSON_FILE_WITH_SOME_MISSING_KEYS = {
          result.push_back(nlohmann::json::parse(R"({
 "accessionVersion": "1.1",
 "country": "Switzerland",
-"main": {"sequence": "ACCT", "insertions": ["123:RNRNRN"]},
-"secondSegment": {"sequence": "ACCT", "insertions": ["123:RNRNRN"]},
+"main": {"sequence": "ACCT", "insertions": ["3:RNRNRN"]},
+"secondSegment": {"sequence": "ACCT", "insertions": ["3:RNRNRN"]},
 "someLongGene": {"sequence": "ACDEFGHIKLMNPQRSTVWYBZX", "insertions": []},
-"someShortGene": {"sequence": "MADS", "insertions": ["123:RN"]},
+"someShortGene": {"sequence": "MADS", "insertions": ["3:RN"]},
 "unaligned_main": "ACGT",
 "unaligned_secondSegment": null
 })"));

@@ -52,11 +52,11 @@ nlohmann::json createData(
    ));
 }
 
-const nlohmann::json DATA_1 = createData({"123:ATGCN"}, {"123:AY"});
-const nlohmann::json DATA_2 = createData({"123:ATGCN"}, {"123:AY"});
-const nlohmann::json DATA_3 = createData({"123:NNNNNNNN"}, {"123:XXX"});
+const nlohmann::json DATA_1 = createData({"4:ATGCN"}, {"1:AY"});
+const nlohmann::json DATA_2 = createData({"4:ATGCN"}, {"1:AY"});
+const nlohmann::json DATA_3 = createData({"4:NNNNNNNN"}, {"1:XXX"});
 const nlohmann::json DATA_4 = createData({"1:CCC"}, {"1:A"});
-const nlohmann::json DATA_5 = createData({"123:ATGCN"}, {"123:AY"});
+const nlohmann::json DATA_5 = createData({"4:ATGCN"}, {"1:AY"});
 
 const auto DATABASE_CONFIG =
    R"(
@@ -103,9 +103,9 @@ const QueryTestScenario INSERTIONS = {
    ),
    .expected_query_result = nlohmann::json::parse(
       R"(
-[{"count":3,"insertedSymbols":"ATGCN","insertion":"ins_123:ATGCN","position":123,"sequenceName":"segment1"},
-{"count":1,"insertedSymbols":"NNNNNNNN","insertion":"ins_123:NNNNNNNN","position":123,"sequenceName":"segment1"},
-{"count":1,"insertedSymbols":"CCC","insertion":"ins_1:CCC","position":1,"sequenceName":"segment1"}])"
+[{"count":1,"insertedSymbols":"CCC","insertion":"ins_1:CCC","position":1,"sequenceName":"segment1"},
+{"count":3,"insertedSymbols":"ATGCN","insertion":"ins_4:ATGCN","position":4,"sequenceName":"segment1"},
+{"count":1,"insertedSymbols":"NNNNNNNN","insertion":"ins_4:NNNNNNNN","position":4,"sequenceName":"segment1"}])"
    )
 };
 
@@ -126,9 +126,9 @@ const QueryTestScenario INSERTIONS_NO_SEQUENCE_NAMES = {
    ),
    .expected_query_result = nlohmann::json::parse(
       R"(
-[{"count":3,"insertedSymbols":"ATGCN","insertion":"ins_123:ATGCN","position":123,"sequenceName":"segment1"},
-{"count":1,"insertedSymbols":"NNNNNNNN","insertion":"ins_123:NNNNNNNN","position":123,"sequenceName":"segment1"},
-{"count":1,"insertedSymbols":"CCC","insertion":"ins_1:CCC","position":1,"sequenceName":"segment1"}])"
+[{"count":1,"insertedSymbols":"CCC","insertion":"ins_1:CCC","position":1,"sequenceName":"segment1"},
+{"count":3,"insertedSymbols":"ATGCN","insertion":"ins_4:ATGCN","position":4,"sequenceName":"segment1"},
+{"count":1,"insertedSymbols":"NNNNNNNN","insertion":"ins_4:NNNNNNNN","position":4,"sequenceName":"segment1"}])"
    )
 };
 
@@ -170,9 +170,9 @@ const QueryTestScenario AA_INSERTIONS_ALL = {
    ),
    .expected_query_result = nlohmann::json::parse(
       R"(
-[{"count":3,"insertedSymbols":"AY","insertion":"ins_123:AY","position":123,"sequenceName":"gene1"},
-{"count":1,"insertedSymbols":"XXX","insertion":"ins_123:XXX","position":123,"sequenceName":"gene1"},
-{"count":1,"insertedSymbols":"A","insertion":"ins_1:A","position":1,"sequenceName":"gene1"}])"
+[{"count":1,"insertedSymbols":"A","insertion":"ins_1:A","position":1,"sequenceName":"gene1"},
+{"count":3,"insertedSymbols":"AY","insertion":"ins_1:AY","position":1,"sequenceName":"gene1"},
+{"count":1,"insertedSymbols":"XXX","insertion":"ins_1:XXX","position":1,"sequenceName":"gene1"}])"
    )
 };
 
@@ -195,8 +195,8 @@ const QueryTestScenario AA_INSERTIONS_SUBSET = {
    ),
    .expected_query_result = nlohmann::json::parse(
       R"(
-[{"count":3,"insertedSymbols":"AY","insertion":"ins_123:AY","position":123,"sequenceName":"gene1"},
-{"count":1,"insertedSymbols":"A","insertion":"ins_1:A","position":1,"sequenceName":"gene1"}])"
+[{"count":1,"insertedSymbols":"A","insertion":"ins_1:A","position":1,"sequenceName":"gene1"},
+{"count":3,"insertedSymbols":"AY","insertion":"ins_1:AY","position":1,"sequenceName":"gene1"}])"
    )
 };
 

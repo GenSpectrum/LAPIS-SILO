@@ -39,7 +39,13 @@ InsertionEntry<SymbolType> parseInsertion(const std::string& value) {
    );
    if (position_and_insertion.size() == 2 && !position_and_insertion.at(1).empty()) {
       try {
-         const auto position = boost::lexical_cast<uint32_t>(position_and_insertion[0]);
+         const auto position_signed = boost::lexical_cast<int64_t>(position_and_insertion[0]);
+         if (position_signed < 0) {
+            throw silo::storage::InsertionFormatException(
+               "Failed to parse insertion: position must not be negative, got: '{}'", value
+            );
+         }
+         const auto position = static_cast<uint32_t>(position_signed);
          const auto& insertion = position_and_insertion[1];
          if (insertion.empty()) {
             throw silo::storage::InsertionFormatException(
@@ -135,6 +141,13 @@ void SequenceColumnPartition<SymbolType>::append(
 
    for (const auto& insertion_and_position : insertions) {
       auto [position, insertion] = parseInsertion<SymbolType>(insertion_and_position);
+      if (position > genome_length) {
+         throw append::AppendException(
+            "the insertion position ({}) is larger than the length of the reference sequence ({})",
+            position,
+            genome_length
+         );
+      }
       insertion_index.addLazily(position, insertion, sequence_idx);
    }
 

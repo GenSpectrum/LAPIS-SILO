@@ -3,9 +3,11 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "silo/append/append_exception.h"
 #include "silo/storage/insertion_format_exception.h"
 
 using silo::Nucleotide;
+using silo::append::AppendException;
 using silo::storage::InsertionFormatException;
 using silo::storage::column::SequenceColumnMetadata;
 using silo::storage::column::SequenceColumnPartition;
@@ -88,6 +90,44 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartEmpty) {
                               "that is parsable as an integer, instead got: ':A'")
       )
    );
+}
+
+TEST(SequenceColumn, validErrorOnNegativeInsertionPosition) {
+   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
+   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+
+   EXPECT_THAT(
+      // NOLINTNEXTLINE(clang-diagnostic-error)
+      [&]() { under_test.append("A", 0, {"-5:G"}); },
+      ThrowsMessage<InsertionFormatException>(::testing::HasSubstr("position must not be negative"))
+   );
+}
+
+TEST(SequenceColumn, validErrorOnInsertionPositionOutOfRange) {
+   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
+   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+
+   EXPECT_THAT(
+      // NOLINTNEXTLINE(clang-diagnostic-error)
+      [&]() { under_test.append("A", 0, {"100:G"}); },
+      ThrowsMessage<AppendException>(::testing::HasSubstr(
+         "the insertion position (100) is larger than the length of the reference sequence (1)"
+      ))
+   );
+}
+
+TEST(SequenceColumn, validInsertionAtPositionZero) {
+   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
+   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+
+   EXPECT_NO_THROW(under_test.append("A", 0, {"0:G"}));
+}
+
+TEST(SequenceColumn, validInsertionAtPositionEqualToGenomeLength) {
+   SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
+   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+
+   EXPECT_NO_THROW(under_test.append("A", 0, {"1:G"}));
 }
 
 TEST(SequenceColumn, canFinalizeTwice) {
