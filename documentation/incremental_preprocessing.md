@@ -55,7 +55,7 @@ Metadata columns are represented as top-level key-value pairs in each JSON objec
 
 ### Sequence columns
 
-Sequence columns (nucleotide or amino acid) are represented as nested objects with a `sequence` field and an `insertions` array. The sequence string must conform to the expected alphabet and length. Insertions are encoded as `"position:sequence"` strings. A sequence column may also be `null`.
+Sequence columns (nucleotide or amino acid) are represented as nested objects with a `sequence` field and an `insertions` array. The sequence string must conform to the expected alphabet and length. Insertions are encoded as `"position:sequence"` strings, where position is 1-based and refers to insertion after that position. Position 0 is allowed and means insertion before the first symbol. Valid positions are in the range `[0, n]` where `n` is the length of the reference sequence. A sequence column may also be `null`.
 
 ```json
 {

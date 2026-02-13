@@ -62,10 +62,12 @@ bool YAML::convert<silo::config::DatabaseConfig>::decode(
 ) {
    config.schema = node["schema"].as<silo::config::DatabaseSchema>();
 
-   if (node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].IsDefined() && !node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].IsNull()) {
+   if (node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].IsDefined() &&
+       !node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].IsNull()) {
       config.default_nucleotide_sequence = node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].as<std::string>();
    }
-   if (node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].IsDefined() && !node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].IsNull()) {
+   if (node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].IsDefined() &&
+       !node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].IsNull()) {
       config.default_amino_acid_sequence = node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].as<std::string>();
    }
 
