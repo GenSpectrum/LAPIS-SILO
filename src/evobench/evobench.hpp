@@ -221,7 +221,7 @@ class ScopeEveryN {
 #define EVOBENCH_SCOPE(module, action) EVOBENCH_SCOPE_INTERNAL2(module, action, __LINE__)
 
 #define EVOBENCH_SCOPE_EVERY_INTERNAL(n, scope_name, line)                 \
-   thread_local uint32_t __evobench_scope_every_n_skip_##line = 0;         \
+   static thread_local uint32_t __evobench_scope_every_n_skip_##line = 0;  \
    const evobench::ScopeEveryN<scope_name> __evobench_scope_everyn_##line{ \
       n, &__evobench_scope_every_n_skip_##line                             \
    };

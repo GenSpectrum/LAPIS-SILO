@@ -47,7 +47,8 @@ class VerticalSequenceIndex {
          archive & typecode;
          // clang-format on
          if constexpr (Archive::is_saving::value) {
-            const size_t size_in_bytes = roaring::internal::container_size_in_bytes(container, typecode);
+            const size_t size_in_bytes =
+               roaring::internal::container_size_in_bytes(container, typecode);
             std::string buffer(size_in_bytes, '\0');
             roaring::internal::container_write(container, typecode, buffer.data());
             archive << buffer;

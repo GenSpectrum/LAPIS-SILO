@@ -2,8 +2,8 @@
 
 #define CONCAT(lhs, rhs) lhs##rhs
 
-#define RETURN_NOT_OK(expected)   \
-   do {                           \
+#define RETURN_NOT_OK(expected)     \
+   do {                             \
       if (!(expected).has_value())  \
          return (expected).error(); \
    } while (false)
@@ -13,8 +13,8 @@
 // NOLINTBEGIN(bugprone-macro-parentheses)
 #define ASSIGN_OR_RAISE_IMPL(expected_name, lhs, rexpr) \
    auto&& expected_name = (rexpr);                      \
-   if (!(expected_name).has_value())                      \
-      return std::unexpected{(expected_name).error()};    \
+   if (!(expected_name).has_value())                    \
+      return std::unexpected{(expected_name).error()};  \
    lhs = std::move(expected_name).value();
 // NOLINTEND(bugprone-macro-parentheses)
 
