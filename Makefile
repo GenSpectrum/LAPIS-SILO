@@ -1,7 +1,8 @@
 ## While this script is running, you will see a file `running_silo.flag` created in the current directory.
 ## It will contain the PID of the running silo API server.
 ## If something fails during execution, it might be necessary to kill the daemon using `make clean-api`.
-SILO_EXECUTABLE=./build/Debug/silo
+SILO_DEBUG_EXECUTABLE=./build/Debug/silo
+SILO_RELEASE_EXECUTABLE=./build/Release/silo
 RUNNING_SILO_FLAG=running_silo.flag
 DEPENDENCIES_FLAG=dependencies
 
@@ -19,21 +20,27 @@ ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 build/Debug/build.ninja: ${DEPENDENCIES_FLAG}
 	cmake -B build/Debug -D CMAKE_BUILD_TYPE=Debug
 
-${SILO_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
+build/Release/build.ninja: ${DEPENDENCIES_FLAG}
+	cmake -B build/Release -D CMAKE_BUILD_TYPE=Release
+
+${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
 	cmake --build build/Debug --parallel 16
 
-output: ${SILO_EXECUTABLE}
+${SILO_RELEASE_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
+	cmake --build build/Release --parallel 16
+
+output: ${SILO_DEBUG_EXECUTABLE}
 	export SPDLOG_LEVEL=debug; \
-	${SILO_EXECUTABLE} preprocessing --database-config database_config.yaml --preprocessing-config testBaseData/test_preprocessing_config.yaml
+	${SILO_DEBUG_EXECUTABLE} preprocessing --database-config database_config.yaml --preprocessing-config testBaseData/test_preprocessing_config.yaml
 
 
-${RUNNING_SILO_FLAG}: ${SILO_EXECUTABLE} output
+${RUNNING_SILO_FLAG}: ${SILO_DEBUG_EXECUTABLE} output
 	@{ \
 		if lsof -i :8093 > /dev/null 2>&1; then \
 			echo "Error: Port 8093 is already in use. Another SILO instance might already be running."; \
 			exit 1; \
 		fi; \
-		${SILO_EXECUTABLE} api --api-port 8093 & \
+		${SILO_DEBUG_EXECUTABLE} api --api-port 8093 & \
 		pid=$$!; \
 		echo "Waiting for silo (PID $$pid) to be ready..."; \
 		until curl -s -o /dev/null -w "%{http_code}" http://localhost:8093/info | grep -q "200"; do \
@@ -47,7 +54,7 @@ e2e: ${RUNNING_SILO_FLAG}
 	trap 'make clean-api' EXIT; \
 	(cd endToEndTests && SILO_URL=localhost:8093 npm run test)
 
-test: ${SILO_EXECUTABLE}
+test: ${SILO_DEBUG_EXECUTABLE}
 	build/Debug/silo_test --gtest_filter='*' --gtest_color=no
 
 python-tests: ${DEPENDENCIES_FLAG}
