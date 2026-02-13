@@ -88,19 +88,19 @@ class PhyloTree {
 
    // Functions for querying the phylogenetic tree
 
-   std::optional<TreeNodeId> getTreeNodeId(const std::string& node_label) const;
+   [[nodiscard]] std::optional<TreeNodeId> getTreeNodeId(const std::string& node_label) const;
 
    // returns a bitmap of all descendants node{node_id} that are also in the database
-   roaring::Roaring getDescendants(const TreeNodeId& node_id);
+   [[nodiscard]] roaring::Roaring getDescendants(const TreeNodeId& node_id) const;
 
-   MRCAResponse getMRCA(const std::unordered_set<std::string>& node_labels) const;
+   [[nodiscard]] MRCAResponse getMRCA(const std::unordered_set<std::string>& node_labels) const;
 
-   NewickResponse toNewickString(
+   [[nodiscard]] NewickResponse toNewickString(
       const std::unordered_set<std::string>& filter,
       bool contract_unary_nodes = true
    ) const;
 
-   NewickFragment partialNewickString(
+   [[nodiscard]] NewickFragment partialNewickString(
       const std::unordered_set<std::string>& filter,
       const TreeNodeId& ancestor,
       bool contract_unary_nodes = true

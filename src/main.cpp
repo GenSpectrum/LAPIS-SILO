@@ -30,7 +30,7 @@ int runInitializer(const silo::config::InitializeConfig& initialize_config) {
    try {
       auto database = std::make_shared<silo::Database>();
       // TODO(#1091) make this configurable
-      auto table_name = silo::schema::TableName::getDefault();
+      const auto& table_name = silo::schema::TableName::getDefault();
       silo::initialize::Initializer::createTableInDatabase(
          table_name, initialize_config.initialization_files, *database
       );

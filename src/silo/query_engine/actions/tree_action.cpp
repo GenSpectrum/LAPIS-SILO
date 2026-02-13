@@ -33,7 +33,7 @@ void TreeAction::validateOrderByFields(const schema::TableSchema& /*schema*/) co
    }
 
    for (const auto& field : order_by_fields) {
-      bool is_valid_field = std::ranges::any_of(allowed, [&](std::string_view allowed_name) {
+      const bool is_valid_field = std::ranges::any_of(allowed, [&](std::string_view allowed_name) {
          return allowed_name == field.name;
       });
       CHECK_SILO_QUERY(
@@ -62,12 +62,12 @@ NodeValuesResponse TreeAction::getNodeValues(
       auto table_partition = table.getPartition(i);
       const auto& string_column = table_partition->columns.string_columns.at(column_name);
 
-      CopyOnWriteBitmap& filter = bitmap_filter[i];
+      const CopyOnWriteBitmap& filter = bitmap_filter[i];
       const size_t cardinality = filter.getConstReference().cardinality();
       if (cardinality == 0) {
          continue;
       }
-      for (uint32_t row_in_table_partition : filter.getConstReference()) {
+      for (const uint32_t row_in_table_partition : filter.getConstReference()) {
          if (!string_column.isNull(row_in_table_partition)) {
             auto value = string_column.getValueString(row_in_table_partition);
             all_tree_node_ids.insert(value);
@@ -81,6 +81,7 @@ NodeValuesResponse TreeAction::getNodeValues(
    };
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
@@ -125,7 +126,7 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
        already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       EVOBENCH_SCOPE("TreeAction", "producer");
       if (already_produced) {
-         std::optional<arrow::ExecBatch> result = std::nullopt;
+         const std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
       already_produced = true;
@@ -153,14 +154,14 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
          }
       }
       ARROW_ASSIGN_OR_RAISE(
-         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
+         const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
       );
       return arrow::Future{result};
    };
 
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
-   arrow::acero::SourceNodeOptions options{
+   const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(getOutputSchema(table->schema)),
       std::move(producer),
       arrow::Ordering::Implicit()

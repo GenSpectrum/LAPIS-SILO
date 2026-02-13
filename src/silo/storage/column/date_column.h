@@ -24,7 +24,7 @@ class DateColumnPartition {
 
   private:
    std::vector<silo::common::Date> values;
-   bool is_sorted;
+   bool is_sorted = true;
 
   public:
    explicit DateColumnPartition(Metadata* metadata);

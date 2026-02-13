@@ -20,6 +20,7 @@ JsonValueTypeArrayBuilder::JsonValueTypeArrayBuilder(const std::shared_ptr<arrow
    }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status JsonValueTypeArrayBuilder::insert(
    const std::optional<std::variant<std::string, bool, int32_t, double>>& value
 ) {
@@ -33,6 +34,7 @@ arrow::Status JsonValueTypeArrayBuilder::insert(
       );
    }
 
+   // NOLINTBEGIN(readability-function-cognitive-complexity)
    return std::visit(
       [this](auto&& val) {
          using T = std::decay_t<decltype(val)>;
@@ -57,6 +59,7 @@ arrow::Status JsonValueTypeArrayBuilder::insert(
       },
       value.value()
    );
+   // NOLINTEND(readability-function-cognitive-complexity)
 }
 
 arrow::Result<arrow::Datum> JsonValueTypeArrayBuilder::toDatum() {

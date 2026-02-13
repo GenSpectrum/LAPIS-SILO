@@ -101,7 +101,7 @@ void Database::createNucleotideSequenceTable(
    const std::vector<std::string>& extra_string_columns
 ) {
    silo::schema::TableSchema table_schema;
-   schema::ColumnIdentifier primary_key = {
+   const schema::ColumnIdentifier primary_key = {
       .name = primary_key_name, .type = schema::ColumnType::STRING
    };
    table_schema.column_metadata.emplace(
@@ -134,7 +134,7 @@ void Database::createGeneTable(
    const std::vector<std::string>& extra_string_columns
 ) {
    silo::schema::TableSchema table_schema;
-   schema::ColumnIdentifier primary_key = {
+   const schema::ColumnIdentifier primary_key = {
       .name = primary_key_name, .type = schema::ColumnType::STRING
    };
    table_schema.column_metadata.emplace(
@@ -267,7 +267,7 @@ roaring::Roaring Database::getFilteredBitmap(
    const std::string& table_name,
    const std::string& filter
 ) {
-   nlohmann::json filter_json = nlohmann::json::parse(filter);
+   const nlohmann::json filter_json = nlohmann::json::parse(filter);
    std::unique_ptr<Expression> filter_expression = filter_json;
    auto maybe_table = tables.find(schema::TableName{table_name});
    if (maybe_table == tables.end()) {
@@ -302,7 +302,7 @@ std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentMutations(
 ) const {
    using SymbolMutations = silo::query_engine::actions::Mutations<SymbolType>;
 
-   nlohmann::json filter_json = nlohmann::json::parse(filter);
+   const nlohmann::json filter_json = nlohmann::json::parse(filter);
    std::unique_ptr<Expression> filter_expression = filter_json;
    std::unique_ptr<Action> action = std::make_unique<SymbolMutations>(
       std::vector<std::string>{sequence_name},
@@ -324,9 +324,10 @@ std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentMutations(
    while (result_stream >> json_line) {
       auto line = nlohmann::json::parse(json_line);
       SILO_ASSERT(line.contains(SymbolMutations::COUNT_FIELD_NAME));
-      uint64_t count = line[SymbolMutations::COUNT_FIELD_NAME].template get<uint64_t>();
+      const uint64_t count = line[SymbolMutations::COUNT_FIELD_NAME].template get<uint64_t>();
       SILO_ASSERT(line.contains(SymbolMutations::MUTATION_FIELD_NAME));
-      std::string mutation = line[SymbolMutations::MUTATION_FIELD_NAME].template get<std::string>();
+      const std::string mutation =
+         line[SymbolMutations::MUTATION_FIELD_NAME].template get<std::string>();
       result.emplace_back(count, mutation);
    }
    return result;
@@ -461,7 +462,7 @@ DataVersion loadDataVersion(const std::filesystem::path& filename) {
 std::optional<Database> Database::loadDatabaseStateFromPath(
    const std::filesystem::path& save_directory
 ) {
-   SiloDirectory silo_directory{save_directory};
+   const SiloDirectory silo_directory{save_directory};
    auto silo_data_source = silo_directory.getMostRecentDataDirectory();
    if (silo_data_source.has_value()) {
       return loadDatabaseState(silo_data_source.value());
@@ -557,7 +558,7 @@ std::string Database::executeQueryAsArrowIpc(
    constexpr uint64_t DEFAULT_TIMEOUT_SECONDS = 120;
    std::ostringstream output_stream;
    auto output_sink =
-      query_engine::exec_node::ArrowIpcSink::Make(&output_stream, query_plan.results_schema);
+      query_engine::exec_node::ArrowIpcSink::make(&output_stream, query_plan.results_schema);
    if (!output_sink.status().ok()) {
       throw std::runtime_error(
          fmt::format("Failed to create Arrow IPC writer: {}", output_sink.status().message())
@@ -578,6 +579,7 @@ std::string Database::getTablesAsArrowIpc() const {
    return result;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<std::string> Database::getTablesAsArrowIpcImpl() const {
    // Create schema with a single "table_name" column
    auto arrow_schema = arrow::schema({arrow::field("table_name", arrow::utf8())});
@@ -594,7 +596,7 @@ arrow::Result<std::string> Database::getTablesAsArrowIpcImpl() const {
 
    std::ostringstream output_stream;
    ARROW_ASSIGN_OR_RAISE(
-      auto output_sink, query_engine::exec_node::ArrowIpcSink::Make(&output_stream, arrow_schema)
+      auto output_sink, query_engine::exec_node::ArrowIpcSink::make(&output_stream, arrow_schema)
    );
 
    ARROW_RETURN_NOT_OK(output_sink.writeBatch(exec_batch));

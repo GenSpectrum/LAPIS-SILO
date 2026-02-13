@@ -58,7 +58,7 @@ struct [[maybe_unused]] fmt::formatter<silo::SiloDirectory> : fmt::formatter<std
    [[maybe_unused]] static auto format(const silo::SiloDirectory& val, format_context& ctx)
       -> decltype(ctx.out()) {
       auto out = ctx.out();
-      nlohmann::json json = val;
+      const nlohmann::json json = val;
       fmt::format_to(out, "{}", json.dump());
       return out;
    }

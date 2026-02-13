@@ -23,6 +23,7 @@
 #include "silo/zstd/zstd_dictionary.h"
 
 namespace {
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable(
    std::vector<std::optional<std::string>> values,
    std::string_view dictionary_string
@@ -85,6 +86,7 @@ std::shared_ptr<arrow::Table> runValuesThroughProjection(
    return result_table;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void assertDecompressedStringArray(
    const std::vector<std::optional<std::string>>& expected_values,
    const std::shared_ptr<arrow::Table>& result_table

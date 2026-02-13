@@ -20,8 +20,8 @@ namespace {
 void writeChunked(std::ostream& output, std::string_view content) {
    const size_t chunk_size = 8192;
    for (size_t pos = 0; pos < content.size(); pos += chunk_size) {
-      size_t remaining_size = content.size() - pos;
-      size_t write_size = std::min(chunk_size, remaining_size);
+      const size_t remaining_size = content.size() - pos;
+      const size_t write_size = std::min(chunk_size, remaining_size);
       output.write(content.data() + pos, static_cast<std::streamsize>(write_size));
       output.flush();  // Flush after each small chunk
    }
@@ -39,7 +39,7 @@ struct BatchedStringStream {
 
    void operator>>(std::ostream& output) {
       for (size_t i = 0; i < BatchSize; ++i) {
-         std::string content = std::move(streams[i]).str();
+         const std::string content = std::move(streams[i]).str();
          writeChunked(output, content);
       }
    }
@@ -82,7 +82,7 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
          if (array.IsNull(row_base + i)) {
             output_stream.streams.at(i) << "null";
          } else {
-            nlohmann::json json = array.GetView(row_base + i);
+            const nlohmann::json json = array.GetView(row_base + i);
             output_stream.streams.at(i) << json;
          }
       }
@@ -94,7 +94,7 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
          if (array.IsNull(row_base + i)) {
             output_stream.streams.at(i) << "null";
          } else {
-            nlohmann::json json = array.GetView(row_base + i);
+            const nlohmann::json json = array.GetView(row_base + i);
             output_stream.streams.at(i) << json;
          }
       }
@@ -106,8 +106,8 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
          if (array.IsNull(row_base + i)) {
             output_stream.streams.at(i) << "null";
          } else {
-            std::string_view value = array.GetView(row_base + i);
-            nlohmann::json json_string = value;
+            const std::string_view value = array.GetView(row_base + i);
+            const nlohmann::json json_string = value;
             output_stream.streams.at(i) << json_string.dump();
          }
       }
@@ -136,7 +136,7 @@ void sendJsonLinesInBatches(
 ) {
    BatchedStringStream<BatchSize> ndjson_line_streams;
    ArrayToJsonTypeVisitor<BatchSize> my_visitor(ndjson_line_streams, row_idx_base);
-   size_t column_count = column_arrays.size();
+   const size_t column_count = column_arrays.size();
    for (; row_idx_base + BatchSize <= row_count; row_idx_base += BatchSize) {
       ndjson_line_streams << "{";
       for (size_t column_idx = 0; column_idx < column_count; column_idx++) {
@@ -167,7 +167,7 @@ void sendJsonLinesInBatches(
 
 arrow::Status NdjsonSink::writeBatch(const arrow::compute::ExecBatch& batch) {
    EVOBENCH_SCOPE("QueryPlan", "writeBatchAsNdjson");
-   size_t row_count = batch.length;
+   const size_t row_count = batch.length;
    std::vector<std::shared_ptr<arrow::Array>> column_arrays;
    for (const auto& datum : batch.values) {
       SILO_ASSERT(datum.is_array());
@@ -176,7 +176,7 @@ arrow::Status NdjsonSink::writeBatch(const arrow::compute::ExecBatch& batch) {
    std::vector<std::string> prepared_column_strings_for_json_attributes;
    bool first_column = true;
    for (const auto& column_name : schema->fields()) {
-      nlohmann::json column_name_json = column_name->name();
+      const nlohmann::json column_name_json = column_name->name();
       std::string json_formatted_column_name;
       if (!first_column) {
          json_formatted_column_name += ",";

@@ -24,7 +24,7 @@ class SymbolOrDot {
 
    explicit SymbolOrDot(typename SymbolType::Symbol symbol);
 
-   typename SymbolType::Symbol getSymbolOrReplaceDotWith(
+   [[nodiscard]] typename SymbolType::Symbol getSymbolOrReplaceDotWith(
       typename SymbolType::Symbol replace_dot_with
    ) const;
 

@@ -166,6 +166,6 @@ std::vector<std::filesystem::path> InitializeConfig::getConfigFilePaths(
    const silo::config::InitializeConfig& initialize_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   nlohmann::json json = initialize_config;
+   const nlohmann::json json = initialize_config;
    return fmt::format_to(ctx.out(), "{}", json.dump());
 }

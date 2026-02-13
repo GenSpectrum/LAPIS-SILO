@@ -58,7 +58,7 @@ class GermanString {
    }
 
    explicit GermanString(std::string_view short_string) {
-      length_type short_string_length = short_string.size();
+      const length_type short_string_length = short_string.size();
       SILO_ASSERT(short_string_length <= SHORT_STRING_SIZE);
       *reinterpret_cast<length_type*>(data.data()) = short_string_length;
       std::memcpy(data.data() + PREFIX_START, short_string.data(), short_string.size());
@@ -80,7 +80,7 @@ class GermanString {
       };
    }
 
-   suffix_id_type suffixId() const {
+   [[nodiscard]] suffix_id_type suffixId() const {
       return *reinterpret_cast<const suffix_id_type*>(data.data() + SUFFIX_ID_START);
    }
 
@@ -94,7 +94,7 @@ class GermanString {
          );
       }
 
-      std::string_view other_prefix = other.substr(0, PREFIX_LENGTH);
+      const std::string_view other_prefix = other.substr(0, PREFIX_LENGTH);
 
       const int prefix_compare =
          std::memcmp(this->prefix().data(), other_prefix.data(), other_prefix.size());

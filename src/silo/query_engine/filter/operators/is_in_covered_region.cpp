@@ -39,7 +39,7 @@ bool IsInCoveredRegion::isCovered(uint32_t row_id) const {
 
    if (auto row_bitmap = horizontal_coverage_index->horizontal_bitmaps.find(row_id);
        row_bitmap != horizontal_coverage_index->horizontal_bitmaps.end()) {
-      bool is_covered = !row_bitmap->second.contains(position_idx);
+      const bool is_covered = !row_bitmap->second.contains(position_idx);
       return is_covered;
    }
    // If no bitmap is there, the entire range is covered
@@ -73,9 +73,9 @@ std::unique_ptr<Predicate> IsInCoveredRegion::copy() const {
 }
 
 std::unique_ptr<Predicate> IsInCoveredRegion::negate() const {
-   Comparator negated_comparator = comparator == Comparator::IS_COVERED
-                                      ? IsInCoveredRegion::Comparator::IS_NOT_COVERED
-                                      : IsInCoveredRegion::Comparator::IS_COVERED;
+   const Comparator negated_comparator = comparator == Comparator::IS_COVERED
+                                            ? IsInCoveredRegion::Comparator::IS_NOT_COVERED
+                                            : IsInCoveredRegion::Comparator::IS_COVERED;
    return std::make_unique<operators::IsInCoveredRegion>(
       horizontal_coverage_index, position_idx, negated_comparator
    );

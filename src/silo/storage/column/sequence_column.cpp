@@ -87,14 +87,14 @@ SequenceColumnPartition<SymbolType>::SequenceColumnPartition(
       local_reference_sequence_string(SymbolType::sequenceToString(metadata->reference_sequence)),
       horizontal_coverage_index() {
    mutation_buffer.resize(genome_length);
-   SILO_ASSERT_GT(genome_length, 0);
+   SILO_ASSERT_GT(genome_length, 0ULL);
 }
 
 template <typename SymbolType>
 void SequenceColumnPartition<SymbolType>::append(
    std::string_view sequence,
    uint32_t offset,
-   std::vector<std::string> insertions
+   const std::vector<std::string>& insertions
 ) {
    uint32_t sequence_idx = sequence_count;
    sequence_count++;
@@ -133,7 +133,7 @@ void SequenceColumnPartition<SymbolType>::append(
       }
    }
 
-   for (auto& insertion_and_position : insertions) {
+   for (const auto& insertion_and_position : insertions) {
       auto [position, insertion] = parseInsertion<SymbolType>(insertion_and_position);
       insertion_index.addLazily(position, insertion, sequence_idx);
    }
@@ -166,7 +166,7 @@ void SequenceColumnPartition<SymbolType>::finalize() {
       auto coverage_bitmaps =
          horizontal_coverage_index.getCoverageBitmapForPositions<BATCH_SIZE>(position_range_start);
 
-      size_t range_size = std::min(BATCH_SIZE, genome_length - position_range_start);
+      const size_t range_size = std::min(BATCH_SIZE, genome_length - position_range_start);
       for (size_t position_idx = position_range_start;
            position_idx < position_range_start + range_size;
            ++position_idx) {

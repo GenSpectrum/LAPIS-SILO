@@ -41,16 +41,16 @@ std::vector<const Expression*> Or::collectChildren(const ExpressionVector& child
    std::vector<const Expression*> result;
 
    std::vector<const Expression*> queue;
-   for (auto& direct_child : children) {
+   for (const auto& direct_child : children) {
       queue.push_back(direct_child.get());
    }
 
    while (!queue.empty()) {
-      auto current = queue.back();
+      const auto* current = queue.back();
       queue.pop_back();
       if (dynamic_cast<const Or*>(current) != nullptr) {
          const Or* or_child = dynamic_cast<const Or*>(current);
-         for (auto& child : or_child->children) {
+         for (const auto& child : or_child->children) {
             queue.push_back(child.get());
          }
       } else {
@@ -115,22 +115,35 @@ ExpressionVector Or::rewriteSymbolInSetExpressions(ExpressionVector children) {
 template ExpressionVector Or::rewriteSymbolInSetExpressions<AminoAcid>(ExpressionVector children);
 template ExpressionVector Or::rewriteSymbolInSetExpressions<Nucleotide>(ExpressionVector children);
 
+namespace {
+void appendStringSetToStringSet(
+   std::unordered_set<std::string> from,
+   std::unordered_set<std::string>& target
+) {
+   for (auto iter = from.begin(); iter != from.end();) {
+      auto current = iter++;
+      auto node = from.extract(current);
+      target.insert(std::move(node.value()));
+   }
+}
+}  // namespace
+
 ExpressionVector Or::mergeStringInSetExpressions(ExpressionVector children) {
    ExpressionVector new_children;
    using Column = std::string;
    using Strings = std::unordered_set<std::string>;
-   std::map<Column, Strings> string_in_set_children;
+   std::map<Column, Strings> new_string_in_set_children;
    for (auto& child : children) {
-      if (auto string_in_set_child = dynamic_cast<StringInSet*>(child.get());
+      if (auto* string_in_set_child = dynamic_cast<StringInSet*>(child.get());
           string_in_set_child != nullptr) {
-         if (auto it = string_in_set_children.find(string_in_set_child->column_name);
-             it != string_in_set_children.end()) {
-            Strings child_strings = std::move(string_in_set_child->values);
-            for (auto& value : child_strings) {
-               it->second.emplace(std::move(value));
-            }
+         if (auto iter = new_string_in_set_children.find(string_in_set_child->column_name);
+             iter != new_string_in_set_children.end()) {
+            auto& new_string_in_set_child_for_column = iter->second;
+            appendStringSetToStringSet(
+               std::move(string_in_set_child->values), new_string_in_set_child_for_column
+            );
          } else {
-            string_in_set_children.emplace(
+            new_string_in_set_children.emplace(
                std::move(string_in_set_child->column_name), std::move(string_in_set_child->values)
             );
          }
@@ -139,9 +152,12 @@ ExpressionVector Or::mergeStringInSetExpressions(ExpressionVector children) {
       }
    }
 
-   for (auto& [column_name, strings] : string_in_set_children) {
+   for (auto iter = new_string_in_set_children.begin(); iter != new_string_in_set_children.end();) {
+      auto current = iter++;
+      auto node = new_string_in_set_children.extract(current);
+
       new_children.emplace_back(
-         std::make_unique<StringInSet>(std::move(column_name), std::move(strings))
+         std::make_unique<StringInSet>(std::move(node.key()), std::move(node.mapped()))
       );
    }
 

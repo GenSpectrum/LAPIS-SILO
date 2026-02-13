@@ -215,15 +215,15 @@ class ScopeEveryN {
    ))
 
 #define EVOBENCH_SCOPE_INTERNAL(scope_name, line) \
-   evobench::Scope<scope_name> __evobench_scope##line{};
+   const evobench::Scope<scope_name> __evobench_scope##line{};
 #define EVOBENCH_SCOPE_INTERNAL2(module, action, line) \
    EVOBENCH_SCOPE_INTERNAL(CONCAT_WITH_PIPE(module, action), line)
 #define EVOBENCH_SCOPE(module, action) EVOBENCH_SCOPE_INTERNAL2(module, action, __LINE__)
 
-#define EVOBENCH_SCOPE_EVERY_INTERNAL(n, scope_name, line)                \
-   thread_local static uint32_t __evobench_scope_every_n_skip_##line = 0; \
-   evobench::ScopeEveryN<scope_name> __evobench_scope_everyn_##line{      \
-      n, &__evobench_scope_every_n_skip_##line                            \
+#define EVOBENCH_SCOPE_EVERY_INTERNAL(n, scope_name, line)                 \
+   thread_local uint32_t __evobench_scope_every_n_skip_##line = 0;         \
+   const evobench::ScopeEveryN<scope_name> __evobench_scope_everyn_##line{ \
+      n, &__evobench_scope_every_n_skip_##line                             \
    };
 #define EVOBENCH_SCOPE_EVERY_INTERNAL2(n, module, action, line) \
    EVOBENCH_SCOPE_EVERY_INTERNAL(n, CONCAT_WITH_PIPE(module, action), line)

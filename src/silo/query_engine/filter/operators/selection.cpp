@@ -91,6 +91,7 @@ bool Selection::matchesPredicates(const PredicateVector& predicates, uint32_t ro
    });
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 CopyOnWriteBitmap Selection::evaluate() const {
    EVOBENCH_SCOPE("Selection", "evaluate");
    if (child_operator.has_value()) {
@@ -170,7 +171,7 @@ bool CompareToValueSelection<StringColumnPartition>::match(uint32_t row_id) cons
       return with_nulls;
    }
 
-   SiloString row_value = column.getValue(row_id);
+   const SiloString row_value = column.getValue(row_id);
 
    auto fast_compare = row_value.fastCompare(value);
    if (fast_compare.has_value()) {
@@ -180,7 +181,7 @@ bool CompareToValueSelection<StringColumnPartition>::match(uint32_t row_id) cons
    auto row_value_string = column.lookupValue(row_value);
 
    // Slower fall-back if the prefix could not decide the match
-   std::strong_ordering strong_ordering = std::lexicographical_compare_three_way(
+   const std::strong_ordering strong_ordering = std::lexicographical_compare_three_way(
       row_value_string.begin(), row_value_string.end(), value.begin(), value.end()
    );
    return strongOrderingMatchesComparator(strong_ordering, comparator);

@@ -293,7 +293,7 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
 }  // namespace
 
 void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
-   std::map<std::string, ValueType> metadata_map = validateMetadataDefinitions(config);
+   const std::map<std::string, ValueType> metadata_map = validateMetadataDefinitions(config);
 
    if (config.schema.metadata.empty()) {
       throw ConfigException("Database config without fields not possible");
