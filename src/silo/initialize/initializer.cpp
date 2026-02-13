@@ -39,7 +39,7 @@ void Initializer::createTableInDatabase(
       initialization_files.getDatabaseConfigFilename()
    );
 
-   schema::TableSchema table_schema = createSchemaFromConfigFiles(
+   const schema::TableSchema table_schema = createSchemaFromConfigFiles(
       validated_config,
       ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilename()),
       lineage_trees,
@@ -248,14 +248,14 @@ silo::schema::TableSchema Initializer::createSchemaFromConfigFiles(
    assertPrimaryKeyInMetadata(database_config);
    assertPrimaryKeyOfTypeString(database_config);
 
-   schema::ColumnIdentifier primary_key{
+   const schema::ColumnIdentifier primary_key{
       .name = database_config.schema.primary_key, .type = schema::ColumnType::STRING
    };
 
    std::map<schema::ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>>
       column_metadata;
    for (const auto& config_metadata : database_config.schema.metadata) {
-      schema::ColumnIdentifier column_identifier{
+      const schema::ColumnIdentifier column_identifier{
          .name = config_metadata.name, .type = config_metadata.getColumnType()
       };
       std::shared_ptr<storage::column::ColumnMetadata> metadata;
@@ -275,7 +275,7 @@ silo::schema::TableSchema Initializer::createSchemaFromConfigFiles(
         ++sequence_idx) {
       const auto& sequence_name = reference_genomes.nucleotide_sequence_names.at(sequence_idx);
       const auto& reference_sequence = reference_genomes.raw_nucleotide_sequences.at(sequence_idx);
-      schema::ColumnIdentifier column_identifier{
+      const schema::ColumnIdentifier column_identifier{
          .name = sequence_name, .type = schema::ColumnType::NUCLEOTIDE_SEQUENCE
       };
       auto metadata = std::make_shared<storage::column::SequenceColumnMetadata<Nucleotide>>(
@@ -284,7 +284,7 @@ silo::schema::TableSchema Initializer::createSchemaFromConfigFiles(
       column_metadata.emplace(column_identifier, std::move(metadata));
 
       if (!without_unaligned_sequences) {
-         schema::ColumnIdentifier column_identifier_unaligned{
+         const schema::ColumnIdentifier column_identifier_unaligned{
             .name = UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + sequence_name,
             .type = schema::ColumnType::ZSTD_COMPRESSED_STRING
          };
@@ -300,7 +300,7 @@ silo::schema::TableSchema Initializer::createSchemaFromConfigFiles(
         ++sequence_idx) {
       const auto& sequence_name = reference_genomes.aa_sequence_names.at(sequence_idx);
       const auto& reference_sequence = reference_genomes.raw_aa_sequences.at(sequence_idx);
-      schema::ColumnIdentifier column_identifier{
+      const schema::ColumnIdentifier column_identifier{
          .name = sequence_name, .type = schema::ColumnType::AMINO_ACID_SEQUENCE
       };
       auto metadata = std::make_shared<storage::column::SequenceColumnMetadata<AminoAcid>>(

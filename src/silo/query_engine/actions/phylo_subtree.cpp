@@ -27,6 +27,7 @@ PhyloSubtree::PhyloSubtree(
     : TreeAction(std::move(column_name), print_nodes_not_in_tree),
       contract_unary_nodes(contract_unary_nodes) {}
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status PhyloSubtree::addResponseToBuilder(
    NodeValuesResponse& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
@@ -80,9 +81,9 @@ void from_json(const nlohmann::json& json, std::unique_ptr<PhyloSubtree>& action
          "error: 'contractUnaryNodes' field in PhyloSubtree action must be a boolean"
       );
    }
-   bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
-   bool contract_unary_nodes = json.value("contractUnaryNodes", true);
-   std::string column_name = json["columnName"].get<std::string>();
+   const bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
+   const bool contract_unary_nodes = json.value("contractUnaryNodes", true);
+   const std::string column_name = json["columnName"].get<std::string>();
 
    action =
       std::make_unique<PhyloSubtree>(column_name, print_nodes_not_in_tree, contract_unary_nodes);

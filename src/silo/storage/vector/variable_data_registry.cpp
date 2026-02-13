@@ -11,7 +11,7 @@ VariableDataRegistry::Identifier VariableDataRegistry::insert(std::string_view d
    }
 
    *reinterpret_cast<size_t*>(variable_data_pages.back().buffer + offset) = data.length();
-   size_t page_id = variable_data_pages.size() - 1;
+   const size_t page_id = variable_data_pages.size() - 1;
    if (page_id > UINT32_MAX) {
       SILO_PANIC("Maximum number of variable string data reached. Aborting.");
    }
@@ -27,7 +27,7 @@ VariableDataRegistry::Identifier VariableDataRegistry::insert(std::string_view d
 
    std::string_view remaining_data = data;
    while (true) {
-      size_t space_for_next_data_piece = buffer::PAGE_SIZE - offset;
+      const size_t space_for_next_data_piece = buffer::PAGE_SIZE - offset;
       SILO_ASSERT(space_for_next_data_piece > 0);
       if (space_for_next_data_piece >= remaining_data.length()) {
          std::memcpy(
@@ -56,9 +56,9 @@ VariableDataRegistry::DataList getDataFromPage(
    size_t offset,
    size_t length
 ) {
-   size_t length_on_page = std::min(length, buffer::PAGE_SIZE - offset);
-   char* start_pointer_on_page = reinterpret_cast<char*>(page.buffer + offset);
-   std::string_view data_on_page{start_pointer_on_page, length_on_page};
+   const size_t length_on_page = std::min(length, buffer::PAGE_SIZE - offset);
+   const char* start_pointer_on_page = reinterpret_cast<char*>(page.buffer + offset);
+   const std::string_view data_on_page{start_pointer_on_page, length_on_page};
    return VariableDataRegistry::DataList{.data = data_on_page, .continuation = nullptr};
 }
 

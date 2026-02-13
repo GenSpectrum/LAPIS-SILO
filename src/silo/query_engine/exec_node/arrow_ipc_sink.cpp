@@ -43,9 +43,9 @@ arrow::Status OstreamWrapper::Flush() {
    return arrow::Status::OK();
 }
 
-arrow::Result<ArrowIpcSink> ArrowIpcSink::Make(
+arrow::Result<ArrowIpcSink> ArrowIpcSink::make(
    std::ostream* output_stream,
-   std::shared_ptr<arrow::Schema> schema
+   const std::shared_ptr<arrow::Schema>& schema
 ) {
    auto output_wrapper = std::make_shared<OstreamWrapper>(output_stream);
    ARROW_ASSIGN_OR_RAISE(auto writer, arrow::ipc::MakeStreamWriter(output_wrapper, schema));

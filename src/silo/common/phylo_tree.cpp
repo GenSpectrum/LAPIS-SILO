@@ -140,7 +140,7 @@ TreeNodeInfo parseFullLabel(std::string_view& label) {
    if (!label.empty() && label.back() == ':') {
       label.remove_suffix(1);
       try {
-         std::string reversed = std::string(full_label.rbegin(), full_label.rend());
+         const std::string reversed = std::string(full_label.rbegin(), full_label.rend());
          float branch_length = std::stof(reversed);
          return TreeNodeInfo{.node_id = parseLabel(label), .branch_length = branch_length};
       } catch (const std::invalid_argument& e) {
@@ -187,7 +187,7 @@ TreeNodeId parseSubtree(
    node->parent = std::move(parent);
 
    skipWhitespace(label);
-   TreeNodeInfo tree_node_info = parseFullLabel(label);
+   const TreeNodeInfo tree_node_info = parseFullLabel(label);
    node->node_id = tree_node_info.node_id;
    node->branch_length = tree_node_info.branch_length;
    if (!label.empty() && label.back() == ')') {
@@ -224,7 +224,7 @@ TreeNodeId parseSubtree(
    return node->node_id;
 }
 
-std::string_view trim(std::string_view label) noexcept {
+std::string_view trim(std::string_view label) {
    constexpr auto WHITESPACE = " \t\n\r\f\v";
 
    const auto start = label.find_first_not_of(WHITESPACE);
@@ -370,7 +370,7 @@ std::optional<TreeNodeId> PhyloTree::getTreeNodeId(const std::string& node_label
    return node_id;
 }
 
-roaring::Roaring PhyloTree::getDescendants(const TreeNodeId& node_id) {
+roaring::Roaring PhyloTree::getDescendants(const TreeNodeId& node_id) const {
    auto child_it = nodes.find(node_id);
    roaring::Roaring result_bitmap;
    if (child_it == nodes.end() || !child_it->second) {
@@ -462,7 +462,7 @@ MRCAResponse PhyloTree::getMRCA(const std::unordered_set<std::string>& node_labe
 
    const TreeNodeId& mrca_node_id = *set_at_min_depth.begin();
    SILO_ASSERT(nodes.contains(mrca_node_id));
-   std::shared_ptr<TreeNode> mrca_node = nodes.find(mrca_node_id)->second;
+   const std::shared_ptr<TreeNode> mrca_node = nodes.find(mrca_node_id)->second;
 
    response.mrca_node_id = mrca_node->node_id;
    response.parent_id_of_mrca = mrca_node->parent;

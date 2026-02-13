@@ -7,7 +7,7 @@
 
 #define CHECK_SILO_QUERY(condition, ...)                               \
    do {                                                                \
-      bool condition_bool = condition;                                 \
+      const bool condition_bool = condition;                           \
       if (!(condition_bool)) {                                         \
          throw silo::query_engine::IllegalQueryException(__VA_ARGS__); \
       }                                                                \

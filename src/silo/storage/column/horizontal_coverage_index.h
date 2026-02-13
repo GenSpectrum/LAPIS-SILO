@@ -37,17 +37,17 @@ class HorizontalCoverageIndex {
    [[nodiscard]] std::array<roaring::Roaring, BatchSize> getCoverageBitmapForPositions(
       uint32_t position
    ) const {
-      size_t row_count = start_end.size();
+      const size_t row_count = start_end.size();
 
-      uint32_t range_start = position;
-      uint32_t range_end = position + BatchSize;
+      const uint32_t range_start = position;
+      const uint32_t range_end = position + BatchSize;
 
       using silo::roaring_util::BitmapBuilderByRange;
       std::array<BitmapBuilderByRange, BatchSize> result_builders;
 
       for (uint32_t row_id_upper_bits = 0; row_id_upper_bits << 16 < row_count;
            ++row_id_upper_bits) {
-         uint32_t base_row_id = row_id_upper_bits << 16;
+         const uint32_t base_row_id = row_id_upper_bits << 16;
          SILO_ASSERT(batch_start_ends.size() > row_id_upper_bits);
          auto [batch_start, batch_end] = batch_start_ends.at(row_id_upper_bits);
          if (batch_end <= range_start || batch_start >= range_end) {
@@ -56,7 +56,7 @@ class HorizontalCoverageIndex {
          for (uint32_t row_id_lower_bits = 0;
               row_id_lower_bits <= 0xFFFF && base_row_id + row_id_lower_bits < row_count;
               ++row_id_lower_bits) {
-            uint32_t row_id = base_row_id | row_id_lower_bits;
+            const uint32_t row_id = base_row_id | row_id_lower_bits;
             auto [coverage_start, coverage_end] = start_end.at(row_id);
             for (uint32_t pos = std::max(range_start, coverage_start);
                  pos < std::min(range_end, coverage_end);

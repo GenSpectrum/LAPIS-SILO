@@ -220,6 +220,6 @@ std::optional<std::filesystem::path> PreprocessingConfig::getInputFilePath() con
    const silo::config::PreprocessingConfig& preprocessing_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   nlohmann::json json = preprocessing_config;
+   const nlohmann::json json = preprocessing_config;
    return fmt::format_to(ctx.out(), "{}", json.dump());
 }

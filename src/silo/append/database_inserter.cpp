@@ -147,7 +147,7 @@ TablePartitionInserter::sniffFieldOrder(simdjson::ondemand::document_reference n
       });
    }
    for (const auto& column_metadata : columns_in_table) {
-      bool contained_in_sniffed_fields =
+      const bool contained_in_sniffed_fields =
          std::ranges::find_if(order_in_json_line, [&](const auto& sniffed_field) {
             return sniffed_field.column_identifier.name == column_metadata.name;
          }) != order_in_json_line.end();
@@ -196,9 +196,8 @@ TablePartitionInserter TableInserter::openNewPartition() const {
 TablePartitionInserter TableInserter::openLastPartition() const {
    if (table->getNumberOfPartitions() == 0) {
       return openNewPartition();
-   } else {
-      return TablePartitionInserter{table->getPartition(table->getNumberOfPartitions() - 1)};
    }
+   return TablePartitionInserter{table->getPartition(table->getNumberOfPartitions() - 1)};
 }
 
 TableInserter::Commit TableInserter::commit() const {
@@ -260,7 +259,7 @@ TableInserter::Commit appendDataToTable(
    std::shared_ptr<silo::storage::Table> table,
    NdjsonLineReader& input_data
 ) {
-   TableInserter table_inserter(std::move(table));
+   const TableInserter table_inserter(std::move(table));
 
    // TODO(#738) make partition configurable
    auto table_partition = table_inserter.openLastPartition();

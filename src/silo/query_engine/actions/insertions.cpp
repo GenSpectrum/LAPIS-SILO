@@ -138,6 +138,7 @@ struct std::hash<PositionAndInsertion> {
 namespace silo::query_engine::actions {
 
 template <typename SymbolType>
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status InsertionAggregation<SymbolType>::addAggregatedInsertionsToInsertionCounts(
    const std::string& sequence_name,
    bool show_sequence_in_response,
@@ -201,6 +202,7 @@ arrow::Status InsertionAggregation<SymbolType>::addAggregatedInsertionsToInserti
 }
 
 template <typename SymbolType>
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
@@ -214,6 +216,7 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    auto output_fields = getOutputSchema(table->schema);
 
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
+      // NOLINTNEXTLINE(readability-function-cognitive-complexity)
       [table,
        output_fields,
        partition_filters,
@@ -221,7 +224,7 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
        already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       EVOBENCH_SCOPE("InsertionAggregation", "producer");
       if (already_produced) {
-         std::optional<arrow::ExecBatch> result = std::nullopt;
+         const std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
       already_produced = true;
@@ -256,14 +259,14 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
          }
       }
       ARROW_ASSIGN_OR_RAISE(
-         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
+         const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
       );
       return arrow::Future{result};
    };
 
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
-   arrow::acero::SourceNodeOptions options{
+   const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(getOutputSchema(table->schema)),
       std::move(producer),
       arrow::Ordering::Implicit()

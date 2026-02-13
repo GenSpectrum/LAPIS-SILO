@@ -101,7 +101,7 @@ __attribute__((noinline)) void subtractHorizontalBitmapCounts(
 ) {
    EVOBENCH_SCOPE("Mutations", "subtractHorizontalBitmapCounts");
    for (const auto& [_, n_bitmap] : horizontal_bitmaps) {
-      for (uint32_t position_idx : n_bitmap) {
+      for (const uint32_t position_idx : n_bitmap) {
          count_per_local_reference_position[position_idx] -= 1;
       }
    }
@@ -168,7 +168,7 @@ __attribute__((noinline)) void subtractFilteredNCounts(
       auto iter = horizontal_bitmaps.find(idx);
       if (iter != horizontal_bitmaps.end()) {
          const roaring::Roaring& n_bitmap = iter->second;
-         for (size_t position_idx : n_bitmap) {
+         for (const size_t position_idx : n_bitmap) {
             count_per_local_reference_position[position_idx] -= 1;
          }
       }
@@ -225,7 +225,7 @@ void countActualFilteredMutations(
       auto iter = filter_containers.find(sequence_diff_key.v_index);
       if (iter != filter_containers.end()) {
          auto filter_container = iter->second;
-         uint8_t filter_container_typecode =
+         const uint8_t filter_container_typecode =
             filter_container_typecodes.at(sequence_diff_key.v_index);
 
          auto contained_count = roaring::internal::container_and_cardinality(
@@ -265,7 +265,7 @@ void Mutations<SymbolType>::addMutationCountsForMixedBitmaps(
 ) {
    for (const auto& [filter, sequence_column_partition] : bitmaps_to_evaluate.bitmaps) {
       auto local_reference = sequence_column_partition.getLocalReference();
-      size_t sequence_length = local_reference.size();
+      const size_t sequence_length = local_reference.size();
       std::vector<uint32_t> count_per_local_reference_position(sequence_length);
 
       initializeCountsWithSequenceCount(
@@ -302,7 +302,7 @@ void Mutations<SymbolType>::addMutationCountsForFullBitmaps(
    // cardinality
    for (const auto& [_, sequence_column_partition] : bitmaps_to_evaluate.full_bitmaps) {
       auto local_reference = sequence_column_partition.getLocalReference();
-      size_t sequence_length = local_reference.size();
+      const size_t sequence_length = local_reference.size();
       std::vector<uint32_t> count_per_local_reference_position(sequence_length);
 
       initializeCountsWithSequenceCount(
@@ -365,6 +365,7 @@ void Mutations<SymbolType>::validateOrderByFields(const schema::TableSchema& /*t
 }
 
 template <typename SymbolType>
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status Mutations<SymbolType>::addMutationsToOutput(
    const std::string& sequence_name,
    const storage::column::SequenceColumnMetadata<SymbolType>& column_metadata,
@@ -447,6 +448,7 @@ arrow::Status Mutations<SymbolType>::addMutationsToOutput(
 }
 
 template <typename SymbolType>
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
@@ -474,9 +476,10 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
 
    auto output_fields = getOutputSchema(table->schema);
 
-   double given_min_proportion = min_proportion;
+   const double given_min_proportion = min_proportion;
 
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
+      // NOLINTNEXTLINE(readability-function-cognitive-complexity)
       [table,
        given_min_proportion,
        output_fields,
@@ -486,7 +489,7 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
       EVOBENCH_SCOPE("Mutations", "producer");
 
       if (already_produced) {
-         std::optional<arrow::ExecBatch> result = std::nullopt;
+         const std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
       already_produced = true;
@@ -526,14 +529,14 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
          }
       }
       ARROW_ASSIGN_OR_RAISE(
-         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
+         const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
       );
       return arrow::Future{result};
    };
 
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
-   arrow::acero::SourceNodeOptions options{
+   const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(getOutputSchema(table->schema)),
       std::move(producer),
       arrow::Ordering::Implicit()
@@ -590,7 +593,7 @@ const std::string MIN_PROPORTION_FIELD_NAME = "minProportion";
 }  // namespace
 
 template <typename SymbolType>
-// NOLINTNEXTLINE(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
 void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>>& action) {
    std::vector<std::string> sequence_names;
    if (json.contains(SEQUENCE_NAMES_FIELD_NAME)) {

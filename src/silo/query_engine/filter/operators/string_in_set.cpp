@@ -51,9 +51,9 @@ std::unique_ptr<Predicate> StringInSet<ColumnType>::copy() const {
 
 template <Column ColumnType>
 std::unique_ptr<Predicate> StringInSet<ColumnType>::negate() const {
-   Comparator negated_comparator = comparator == Comparator::IN
-                                      ? StringInSet<ColumnType>::Comparator::NOT_IN
-                                      : StringInSet<ColumnType>::Comparator::IN;
+   const Comparator negated_comparator = comparator == Comparator::IN
+                                            ? StringInSet<ColumnType>::Comparator::NOT_IN
+                                            : StringInSet<ColumnType>::Comparator::IN;
    return std::make_unique<StringInSet<ColumnType>>(column, negated_comparator, values);
 }
 

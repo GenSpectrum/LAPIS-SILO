@@ -152,7 +152,7 @@ std::vector<std::string> Action::deduplicateOrderPreserving(const std::vector<st
    return unique_fields;
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
 void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
    CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any action");
    CHECK_SILO_QUERY(
@@ -301,6 +301,7 @@ arrow::Result<arrow::acero::ExecNode*> removeRandomizeColumn(
 
 }  // namespace
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<arrow::acero::ExecNode*> Action::addRandomizeColumn(
    arrow::acero::ExecPlan* arrow_plan,
    arrow::acero::ExecNode* node,
@@ -325,6 +326,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addRandomizeColumn(
    auto output_schema = arrow::schema(output_schema_fields);
    size_t start_of_batch = 0;
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> sequenced_batches_with_hash_id =
+      // NOLINTNEXTLINE(readability-function-cognitive-complexity)
       [sequenced_batches, start_of_batch, randomize_seed](
       ) mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       SPDLOG_TRACE("randomize column projection awaits the next batch");
@@ -346,7 +348,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addRandomizeColumn(
 
             arrow::UInt64Builder randomize_column_builder;
             for (int64_t i = 0; i < rows_in_batch; ++i) {
-               uint64_t hash = hash64(start_of_batch + i, randomize_seed);
+               const uint64_t hash = hash64(start_of_batch + i, randomize_seed);
                ARROW_RETURN_NOT_OK(randomize_column_builder.Append(hash));
             }
 
@@ -384,7 +386,9 @@ arrow::Result<arrow::acero::ExecNode*> Action::addLimitAndOffsetNode(
          "Implicit ordering such as in the case of Details/Fasta is also allowed, Aggregated "
          "however produces unordered results."
       );
-      arrow::acero::FetchNodeOptions fetch_options(offset.value_or(0), limit.value_or(UINT32_MAX));
+      const arrow::acero::FetchNodeOptions fetch_options(
+         offset.value_or(0), limit.value_or(UINT32_MAX)
+      );
       return arrow::acero::MakeExecNode(
          std::string{arrow::acero::FetchNodeOptions::kName}, arrow_plan, {node}, fetch_options
       );
@@ -463,9 +467,10 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
    const silo::schema::TableSchema& table_schema
 ) const {
    auto output_fields = getOutputSchema(table_schema);
-   bool needs_decompression = std::ranges::any_of(output_fields, [](const auto& column_identifier) {
-      return schema::isSequenceColumn(column_identifier.type);
-   });
+   const bool needs_decompression =
+      std::ranges::any_of(output_fields, [](const auto& column_identifier) {
+         return schema::isSequenceColumn(column_identifier.type);
+      });
    if (needs_decompression) {
       size_t sum_of_reference_genome_sizes = 0;
 
@@ -537,7 +542,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
          "additional source node to help backpressure application before zstd decompression"
       );
 
-      arrow::acero::ProjectNodeOptions project_options{column_expressions, column_names};
+      const arrow::acero::ProjectNodeOptions project_options{column_expressions, column_names};
       return arrow::acero::MakeExecNode(
          std::string{"project"}, arrow_plan, {node}, project_options
       );
@@ -545,6 +550,7 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
    return node;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<arrow::acero::ExecNode*> Action::addOrderingNodes(
    arrow::acero::ExecPlan* arrow_plan,
    arrow::acero::ExecNode* node,

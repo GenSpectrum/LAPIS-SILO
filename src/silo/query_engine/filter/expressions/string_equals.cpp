@@ -19,8 +19,6 @@
 
 namespace silo::query_engine::filter::expressions {
 
-using storage::column::StringColumnPartition;
-
 StringEquals::StringEquals(std::string column_name, std::optional<std::string> value)
     : column_name(std::move(column_name)),
       value(std::move(value)) {}

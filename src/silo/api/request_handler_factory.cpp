@@ -38,7 +38,7 @@ Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
 std::unique_ptr<Poco::Net::HTTPRequestHandler> SiloRequestHandlerFactory::routeRequest(
    const Poco::URI& uri
 ) {
-   std::string_view path = uri.getPath();
+   const std::string_view path = uri.getPath();
    std::vector<std::string> segments;
    uri.getPathSegments(segments);
 

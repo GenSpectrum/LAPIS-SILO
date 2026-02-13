@@ -25,15 +25,13 @@ class BidirectionalStringMap {
       value_to_id.clear();
       value_to_id.reserve(id_to_value.size());
       for (size_t id = 0; id < id_to_value.size(); ++id) {
-         std::string_view value_for_id = id_to_value.at(id);
+         const std::string_view value_for_id = id_to_value.at(id);
          value_to_id[value_for_id] = id;
       }
    };
 
   public:
-   BidirectionalStringMap()
-       : id_to_value(),
-         value_to_id() {}
+   BidirectionalStringMap() = default;
 
    // We can use the default because of https://en.cppreference.com/w/cpp/container/vector/vector:
    // > After container move construction, references, pointers, and iterators
@@ -49,16 +47,16 @@ class BidirectionalStringMap {
    BidirectionalStringMap(const BidirectionalStringMap& other) = delete;
    BidirectionalStringMap& operator=(const BidirectionalStringMap& other) = delete;
 
-   BidirectionalStringMap copy() const {
+   [[nodiscard]] BidirectionalStringMap copy() const {
       BidirectionalStringMap result;
       result.id_to_value = id_to_value;
       result.fillLookupFromVector();
       return result;
    }
 
-   std::string_view getValue(Idx idx) const { return id_to_value.at(idx); }
+   [[nodiscard]] std::string_view getValue(Idx idx) const { return id_to_value.at(idx); }
 
-   std::optional<Idx> getId(std::string_view value) const {
+   [[nodiscard]] std::optional<Idx> getId(std::string_view value) const {
       if (value_to_id.contains(value)) {
          return value_to_id.at(value);
       }
@@ -70,7 +68,7 @@ class BidirectionalStringMap {
          return value_to_id.at(value);
       }
       const Idx identifier = id_to_value.size();
-      bool will_reallocate = id_to_value.capacity() == id_to_value.size();
+      const bool will_reallocate = id_to_value.capacity() == id_to_value.size();
       id_to_value.emplace_back(value);
       if (will_reallocate) {
          fillLookupFromVector();

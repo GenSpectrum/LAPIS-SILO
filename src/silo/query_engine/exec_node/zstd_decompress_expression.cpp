@@ -27,6 +27,7 @@ namespace silo::query_engine::exec_node {
 
 namespace {
 struct BinaryDecompressKernel {
+   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
    static arrow::Status exec(
       arrow::compute::KernelContext* context,
       const arrow::compute::ExecSpan& input,
@@ -50,11 +51,11 @@ struct BinaryDecompressKernel {
       }
       // TODO(#791) this is a copy of the Array's data, whereas the view should suffice
       auto array = input_span.ToArray();
-      auto input_as_array = static_cast<const arrow::BinaryArray*>(array.get());
+      const auto* input_as_array = static_cast<const arrow::BinaryArray*>(array.get());
       if (!input.values[1].is_scalar()) {
          return arrow::Status::Invalid("Expected scalar input of type binary as second argument");
       }
-      auto input_dict = static_cast<const arrow::BinaryScalar*>(input.values[1].scalar);
+      const auto* input_dict = static_cast<const arrow::BinaryScalar*>(input.values[1].scalar);
       SILO_ASSERT(input_dict);
       auto dictionary = std::make_shared<silo::ZstdDDictionary>(input_dict->view());
       silo::ZstdDecompressor decompressor{dictionary};
@@ -92,11 +93,11 @@ arrow::Result<std::string> registerCustomFunctionImpl() {
    std::string function_name = "silo_zstd_decompressor";
    auto* registry = arrow::compute::GetFunctionRegistry();
 
-   std::string summary =
+   const std::string summary =
       "Decompresses each value of zstd_compressed_binary using the scalar dictionary";
-   std::string description =
+   const std::string description =
       "Decompresses each value of zstd_compressed_binary using the scalar dictionary";
-   std::vector<std::string> arg_names = {"zstd_compressed_binary", "dictionary"};
+   const std::vector<std::string> arg_names = {"zstd_compressed_binary", "dictionary"};
 
    // Create a new ScalarFunction
    auto custom_function = std::make_shared<arrow::compute::ScalarFunction>(
@@ -134,7 +135,7 @@ arrow::Expression ZstdDecompressExpression::make(
    arrow::Expression input_expression,
    std::string dictionary_string
 ) {
-   static std::string function_name = registerCustomFunction();
+   static const std::string function_name = registerCustomFunction();
 
    auto dict_scalar = std::make_shared<arrow::BinaryScalar>(std::move(dictionary_string));
 

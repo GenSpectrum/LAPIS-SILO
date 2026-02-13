@@ -83,10 +83,12 @@ class LineageTree {
       std::unordered_map<Idx, Idx>&& alias_mapping
    );
 
-   std::set<Idx> getAllParents(Idx value_id, RecombinantEdgeFollowingMode follow_recombinant_edges)
-      const;
+   [[nodiscard]] std::set<Idx> getAllParents(
+      Idx value_id,
+      RecombinantEdgeFollowingMode follow_recombinant_edges
+   ) const;
 
-   Idx resolveAlias(Idx value_id) const;
+   [[nodiscard]] Idx resolveAlias(Idx value_id) const;
 };
 
 class LineageTreeAndIdMap {

@@ -18,7 +18,7 @@ std::vector<schema::ColumnIdentifier> Fasta::getOutputSchema(
    auto columns_in_database =
       table_schema.getColumnByType<storage::column::ZstdCompressedStringColumnPartition>();
    for (const auto& sequence_name : sequence_names) {
-      schema::ColumnIdentifier column_identifier{
+      const schema::ColumnIdentifier column_identifier{
          .name = sequence_name, .type = schema::ColumnType::ZSTD_COMPRESSED_STRING
       };
       CHECK_SILO_QUERY(

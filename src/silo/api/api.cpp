@@ -17,7 +17,7 @@ namespace silo::api {
 int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
    SPDLOG_INFO("Starting SILO API");
 
-   Poco::Net::SocketAddress address(runtime_config.api_options.port);
+   const Poco::Net::SocketAddress address(runtime_config.api_options.port);
 
    Poco::Net::ServerSocket server_socket;
    try {

@@ -102,8 +102,9 @@ class StringColumnPartition {
       result += string.prefix();
 
       auto suffix_id = string.suffixId();
-      vector::VariableDataRegistry::DataList suffix_chunks = variable_string_data.get(suffix_id);
-      vector::VariableDataRegistry::DataList* current_chunk = &suffix_chunks;
+      const vector::VariableDataRegistry::DataList suffix_chunks =
+         variable_string_data.get(suffix_id);
+      const vector::VariableDataRegistry::DataList* current_chunk = &suffix_chunks;
       while (current_chunk) {
          result += current_chunk->data;
          current_chunk = current_chunk->continuation.get();

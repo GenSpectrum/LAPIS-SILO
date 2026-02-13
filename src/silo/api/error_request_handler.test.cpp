@@ -78,7 +78,7 @@ TEST(ErrorRequestHandler, handlesOtherErrors) {
 }
 
 TEST(ErrorRequestHandler, doesNothingIfNoExceptionIsThrown) {
-   std::string_view wrapped_request_handler_message =
+   const std::string_view wrapped_request_handler_message =
       "A message that the actual handler would write";
    auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
 
@@ -103,7 +103,7 @@ TEST(
    ErrorRequestHandler,
    givenDuringStartupTime_whenIQueryUninitializedDatabase_thenReturnsRetryAfter
 ) {
-   std::string_view wrapped_request_handler_message =
+   const std::string_view wrapped_request_handler_message =
       "A message that the actual handler would write";
    auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
 
@@ -133,11 +133,12 @@ TEST(
    EXPECT_THAT(response.out_stream.str(), testing::HasSubstr("Database not initialized yet"));
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(
    ErrorRequestHandler,
    givenStartupTimeIsOver_whenIQueryUninitializedDatabase_thenReturnsErrorWithoutRetryAfter
 ) {
-   std::string_view wrapped_request_handler_message =
+   const std::string_view wrapped_request_handler_message =
       "A message that the actual handler would write";
    auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
 

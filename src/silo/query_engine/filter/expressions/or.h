@@ -29,7 +29,9 @@ class Or : public Expression {
       const ExpressionVector& children
    );
 
-   [[nodiscard]] static ExpressionVector algebraicSimplification(ExpressionVector children);
+   [[nodiscard]] static ExpressionVector algebraicSimplification(
+      ExpressionVector unprocessed_child_expressions
+   );
 
    template <typename SymbolType>
    [[nodiscard]] static ExpressionVector rewriteSymbolInSetExpressions(ExpressionVector children);

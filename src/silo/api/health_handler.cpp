@@ -10,7 +10,7 @@
 namespace silo::api {
 
 void HealthHandler::get(
-   Poco::Net::HTTPServerRequest& request,
+   Poco::Net::HTTPServerRequest& /*request*/,
    Poco::Net::HTTPServerResponse& response
 ) {
    response.setContentType("application/json");

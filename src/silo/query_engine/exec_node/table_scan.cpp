@@ -22,9 +22,10 @@ arrow::Status appendSequences(
    const roaring::Roaring& row_ids,
    arrow::BinaryBuilder& output_array
 ) {
-   size_t cardinality = row_ids.cardinality();
+   const size_t cardinality = row_ids.cardinality();
 
-   std::string partition_reference = sequence_column_partition.local_reference_sequence_string;
+   const std::string partition_reference =
+      sequence_column_partition.local_reference_sequence_string;
 
    std::vector<std::string> reconstructed_sequences;
    reconstructed_sequences.resize(cardinality, partition_reference);
@@ -101,6 +102,7 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
 }
 
 template <>
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStringColumnPartition>(
    ExecBatchBuilder& table_scan_node,
    const std::string& column_name,
@@ -131,6 +133,7 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStr
 }
 
 template <storage::column::Column Column>
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status ColumnEntryAppender::operator()(
    ExecBatchBuilder& table_scan_node,
    const std::string& column_name,
@@ -234,10 +237,10 @@ arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 ) {
-   exec_node::TableScanGenerator generator(
+   const exec_node::TableScanGenerator generator(
       columns, std::move(partition_filters_), std::move(table), batch_size_cutoff
    );
-   arrow::acero::SourceNodeOptions source_node_options{
+   const arrow::acero::SourceNodeOptions source_node_options{
       exec_node::columnsToArrowSchema(columns), generator, arrow::Ordering::Implicit()
    };
    return arrow::acero::MakeExecNode("source", plan, {}, source_node_options);

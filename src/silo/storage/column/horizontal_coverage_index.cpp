@@ -18,12 +18,12 @@ void HorizontalCoverageIndex::insertCoverage(
    uint32_t end,
    const std::vector<uint32_t>& positions_with_symbol_missing
 ) {
-   uint32_t sequence_idx = start_end.size();
+   const uint32_t sequence_idx = start_end.size();
 
    start_end.emplace_back(start, end);
 
-   uint16_t sequence_idx_upper_bits = sequence_idx >> 16;
-   uint16_t sequence_idx_lower_bits = sequence_idx & 0xFFFF;
+   const uint16_t sequence_idx_upper_bits = sequence_idx >> 16;
+   const uint16_t sequence_idx_lower_bits = sequence_idx & 0xFFFF;
 
    if (sequence_idx_lower_bits == 0) {
       batch_start_ends.emplace_back(start, end);
@@ -32,7 +32,7 @@ void HorizontalCoverageIndex::insertCoverage(
       batch_start = std::min(batch_start, start);
       batch_end = std::max(batch_end, end);
    }
-   SILO_ASSERT_EQ(batch_start_ends.size(), sequence_idx_upper_bits + 1);
+   SILO_ASSERT_EQ(batch_start_ends.size(), static_cast<size_t>(sequence_idx_upper_bits) + 1);
 
    // We also have a row_wise bitmap, that covers all N symbols that are within the covered region
    roaring::Roaring horizontal_bitmap;
@@ -85,8 +85,8 @@ void HorizontalCoverageIndex::insertSequenceCoverage(std::string_view sequence, 
       return;
    }
 
-   uint32_t start_of_covered_region = first_non_n_seen.value();
-   uint32_t end_of_covered_region_exclusive = last_non_n_seen.value() + 1;
+   const uint32_t start_of_covered_region = first_non_n_seen.value();
+   const uint32_t end_of_covered_region_exclusive = last_non_n_seen.value() + 1;
 
    insertCoverage(
       start_of_covered_region, end_of_covered_region_exclusive, positions_with_symbol_missing
@@ -107,9 +107,9 @@ void HorizontalCoverageIndex::overwriteCoverageInSequence(
    const roaring::Roaring& row_ids
 ) const {
    uint32_t id_in_reconstructed_sequences = 0;
-   for (uint32_t row_id : row_ids) {
+   for (const uint32_t row_id : row_ids) {
       const auto [start, end] = start_end.at(row_id);
-      size_t sequence_size = sequences.at(id_in_reconstructed_sequences).size();
+      const size_t sequence_size = sequences.at(id_in_reconstructed_sequences).size();
 
       for (uint32_t position_idx = 0; position_idx < start; position_idx++) {
          sequences.at(id_in_reconstructed_sequences).at(position_idx) =

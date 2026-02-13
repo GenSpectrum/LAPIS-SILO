@@ -33,7 +33,7 @@ std::unique_ptr<operators::Operator> createMatchingBitmap(
       [&, row_count]() {
          roaring::Roaring result_bitmap;
          for (size_t row_idx = 0; row_idx < row_count; ++row_idx) {
-            std::string full_string = string_column.getValueString(row_idx);
+            const std::string full_string = string_column.getValueString(row_idx);
             if (re2::RE2::PartialMatch(full_string, search_expression)) {
                result_bitmap.add(row_idx);
             }

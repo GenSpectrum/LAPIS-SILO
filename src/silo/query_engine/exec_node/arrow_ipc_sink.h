@@ -29,7 +29,7 @@ class OstreamWrapper : public arrow::io::OutputStream {
 
 /// Writer for streaming Arrow IPC format to an ostream.
 /// Usage:
-///   auto writer = ArrowIpcSink::Make(output_stream, schema);
+///   auto writer = ArrowIpcSink::make(output_stream, schema);
 ///   for each batch:
 ///     writer.writeBatch(batch);
 ///   writer.finish();
@@ -43,14 +43,14 @@ class ArrowIpcSink : public ArrowBatchSink {
       std::shared_ptr<arrow::ipc::RecordBatchWriter> writer,
       std::shared_ptr<arrow::Schema> schema
    )
-       : output_wrapper(output_wrapper),
-         writer(writer),
-         schema(schema) {}
+       : output_wrapper(std::move(output_wrapper)),
+         writer(std::move(writer)),
+         schema(std::move(schema)) {}
 
   public:
-   static arrow::Result<ArrowIpcSink> Make(
+   static arrow::Result<ArrowIpcSink> make(
       std::ostream* output_stream,
-      std::shared_ptr<arrow::Schema> schema
+      const std::shared_ptr<arrow::Schema>& schema
    );
    arrow::Status writeBatch(const arrow::compute::ExecBatch& batch) override;
    arrow::Status finish() override;

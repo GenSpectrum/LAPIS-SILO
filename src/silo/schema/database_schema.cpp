@@ -114,13 +114,13 @@ void TableSchema::load(Archive& archive, const unsigned int /*version*/) {
    }
 }
 
-TableName::TableName(std::string_view name) {
-   for (char character : name) {
+TableName::TableName(std::string name) {
+   for (const char character : name) {
       if (character < 'a' || character > 'z') {
          throw std::runtime_error("Table names may only contain lower-case letters");
       }
    }
-   this->name = name;
+   this->name = std::move(name);
 }
 
 namespace {

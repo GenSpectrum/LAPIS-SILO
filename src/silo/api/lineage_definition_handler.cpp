@@ -29,7 +29,7 @@ void LineageDefinitionHandler::get(
 
    response.set("data-version", database->getDataVersionTimestamp().value);
 
-   schema::TableName table_name = schema::TableName::getDefault();
+   const schema::TableName& table_name = schema::TableName::getDefault();
 
    auto table = database->tables.find(table_name);
    if (table == database->tables.end()) {

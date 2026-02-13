@@ -16,16 +16,16 @@ class ConsList {
    explicit ConsList()
        : inner(std::nullopt) {}
    explicit ConsList(std::optional<std::pair<T, std::reference_wrapper<const ConsList<T>>>> inner_)
-       : inner(inner_) {}
+       : inner(std::move(inner_)) {}
 
-   ConsList<T> cons(T val) const {
-      std::pair<T, const ConsList<T>&> pair{val, *this};
+   [[nodiscard]] ConsList<T> cons(T val) const {
+      std::pair<T, const ConsList<T>&> pair{std::move(val), *this};
       return ConsList<T>(std::optional{pair});
    }
 
    [[nodiscard]] bool isEmpty() const { return !inner.has_value(); }
 
-   std::optional<std::reference_wrapper<const T>> first() const {
+   [[nodiscard]] std::optional<std::reference_wrapper<const T>> first() const {
       if (isEmpty()) {
          return std::nullopt;
       }
@@ -33,7 +33,7 @@ class ConsList {
       return std::optional<std::reference_wrapper<const T>>(std::get<0>(pair));
    }
 
-   std::optional<std::reference_wrapper<const ConsList<T>>> rest() const {
+   [[nodiscard]] std::optional<std::reference_wrapper<const ConsList<T>>> rest() const {
       if (isEmpty()) {
          return std::nullopt;
       }
@@ -44,7 +44,7 @@ class ConsList {
    /* ... */
 
    // template<typename T /* : Clone */>
-   std::vector<T> toVec() const {
+   [[nodiscard]] std::vector<T> toVec() const {
       std::vector<T> values{};
       std::reference_wrapper<const ConsList<T>> current = std::cref(*this);
 
@@ -56,7 +56,7 @@ class ConsList {
    }
 
    // template<typename T /* : Clone */>
-   std::vector<T> toVecReverse() const {
+   [[nodiscard]] std::vector<T> toVecReverse() const {
       // There's no faster way than reverse (except perhaps
       // recursion, but that is dicey, or getting the list first
       // then set Vec slots via index, but that needs Default and

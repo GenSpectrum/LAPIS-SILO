@@ -235,10 +235,10 @@ std::unique_ptr<operators::Operator> SymbolInSet<SymbolType>::compile(
    );
 
    auto local_reference_symbol = sequence_column_partition.getLocalReferencePosition(position_idx);
-   bool includes_reference =
+   const bool includes_reference =
       std::find(symbols.begin(), symbols.end(), local_reference_symbol) != symbols.end();
 
-   bool includes_missing_symbol =
+   const bool includes_missing_symbol =
       std::find(symbols.begin(), symbols.end(), SymbolType::SYMBOL_MISSING) != symbols.end();
 
    if (includes_reference && includes_missing_symbol) {

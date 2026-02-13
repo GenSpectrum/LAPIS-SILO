@@ -16,9 +16,6 @@
 
 namespace silo::query_engine::filter::expressions {
 
-using storage::column::DateColumnPartition;
-using storage::column::IndexedStringColumnPartition;
-
 IsNull::IsNull(std::string column_name)
     : column_name(std::move(column_name)) {}
 

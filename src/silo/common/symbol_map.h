@@ -31,7 +31,7 @@ class SymbolMap {
       return data.at(static_cast<uint8_t>(symbol));
    }
 
-   const T& at(typename SymbolType::Symbol symbol) const {
+   [[nodiscard]] const T& at(typename SymbolType::Symbol symbol) const {
       return data.at(static_cast<uint8_t>(symbol));
    }
 };

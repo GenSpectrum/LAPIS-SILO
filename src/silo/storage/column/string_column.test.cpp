@@ -163,6 +163,7 @@ TEST(StringColumn, manyLongValues) {
    }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumn, manyMixedValues) {
    std::vector<std::string> test_values;
    test_values.reserve(50001);

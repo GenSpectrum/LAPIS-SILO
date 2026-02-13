@@ -25,15 +25,16 @@ MostRecentCommonAncestor::MostRecentCommonAncestor(
 )
     : TreeAction(std::move(column_name), print_nodes_not_in_tree) {}
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status MostRecentCommonAncestor::addResponseToBuilder(
    NodeValuesResponse& all_node_ids,
    std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
    const PhyloTree& phylo_tree
 ) const {
    MRCAResponse response = phylo_tree.getMRCA(all_node_ids.node_values);
-   std::optional<std::string> mrca_node =
+   const std::optional<std::string> mrca_node =
       response.mrca_node_id.transform([](const auto& node_id) { return node_id.string; });
-   std::optional<std::string> mrca_parent =
+   const std::optional<std::string> mrca_parent =
       response.parent_id_of_mrca.transform([](const auto& node_id) { return node_id.string; });
 
    auto missing_node_count =
@@ -85,8 +86,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<MostRecentCommonAnces
          "error: 'printNodesNotInTree' field in MostRecentCommonAncestor action must be a boolean"
       );
    }
-   bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
-   std::string column_name = json["columnName"].get<std::string>();
+   const bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
+   const std::string column_name = json["columnName"].get<std::string>();
 
    action = std::make_unique<MostRecentCommonAncestor>(column_name, print_nodes_not_in_tree);
 }

@@ -1,6 +1,6 @@
 #include "silo/api/memory_monitor.h"
 
-#if defined(__linux__)
+#ifdef __linux__
 
 #include <filesystem>
 #include <fstream>
@@ -36,8 +36,8 @@ std::optional<uint32_t> parseVmRSSLine(const std::string& line) {
    return std::nullopt;
 }
 
-std::optional<uint32_t> getResidentSetSize() noexcept {
-   std::filesystem::path path = "/proc/self/status";
+std::optional<uint32_t> getResidentSetSize() {
+   const std::filesystem::path path = "/proc/self/status";
    std::ifstream file(path);
    if (!file.is_open()) {
       SPDLOG_DEBUG("getResidentSetSize: Could not open status file {}.", path.string());

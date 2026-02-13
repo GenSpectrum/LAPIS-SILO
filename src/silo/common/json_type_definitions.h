@@ -28,7 +28,7 @@ inline void from_json(
    if (!js_object) {
       opt_path = std::nullopt;
    } else {
-      std::filesystem::path path = js_object;
+      const std::filesystem::path path = js_object;
       opt_path = path;
    }
 }
@@ -47,7 +47,7 @@ inline void from_json(const nlohmann::json& js_object, std::optional<std::string
    if (!js_object) {
       opt_string = std::nullopt;
    } else {
-      std::string string = js_object;
+      const std::string string = js_object;
       opt_string = string;
    }
 }

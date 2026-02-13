@@ -91,6 +91,7 @@ arrow::Result<QueryPlan> Aggregated::toQueryPlanImpl(
    );
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
    std::shared_ptr<const storage::Table> table,
    std::vector<CopyOnWriteBitmap> partition_filters,
@@ -104,7 +105,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
        partition_filters = std::move(partition_filters),
        already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
-         std::optional<arrow::ExecBatch> result = std::nullopt;
+         const std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
       already_produced = true;
@@ -122,14 +123,14 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
       ARROW_ASSIGN_OR_RAISE(datum, result_builder.Finish());
 
       ARROW_ASSIGN_OR_RAISE(
-         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make({datum})
+         const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make({datum})
       );
       return arrow::Future{result};
    };
 
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
-   arrow::acero::SourceNodeOptions options{
+   const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(getOutputSchema(table_schema)),
       std::move(producer),
       arrow::Ordering::Implicit()
@@ -151,7 +152,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
 
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
-   std::vector<schema::ColumnIdentifier> group_by_fields_identifiers =
+   const std::vector<schema::ColumnIdentifier> group_by_fields_identifiers =
       bindGroupByFields(table->schema, group_by_fields);
 
    arrow::acero::ExecNode* node;
@@ -168,7 +169,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
 
    auto count_options =
       std::make_shared<arrow::compute::CountOptions>(arrow::compute::CountOptions::CountMode::ALL);
-   arrow::compute::Aggregate aggregate{
+   const arrow::compute::Aggregate aggregate{
       "hash_count_all", count_options, std::vector<arrow::FieldRef>{}, COUNT_FIELD
    };
 
@@ -177,7 +178,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
    for (const auto& group_by_field : group_by_fields_identifiers) {
       field_refs.emplace_back(group_by_field.name);
    }
-   arrow::acero::AggregateNodeOptions aggregate_node_options({aggregate}, field_refs);
+   const arrow::acero::AggregateNodeOptions aggregate_node_options({aggregate}, field_refs);
    ARROW_ASSIGN_OR_RAISE(
       node,
       arrow::acero::MakeExecNode("aggregate", arrow_plan.get(), {node}, aggregate_node_options)

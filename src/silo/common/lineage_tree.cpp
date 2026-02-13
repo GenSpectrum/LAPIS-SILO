@@ -147,7 +147,7 @@ std::set<Idx> LineageTree::getAllParents(
          if (current_parents.size() == 1) {
             queue.emplace_back(current_parents.at(0));
          } else if (follow_recombinant_edges == RecombinantEdgeFollowingMode::ALWAYS_FOLLOW) {
-            for (Idx parent : current_parents) {
+            for (const Idx parent : current_parents) {
                queue.emplace_back(parent);
             }
          } else if (follow_recombinant_edges == RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE) {
@@ -188,7 +188,7 @@ std::vector<size_t> computeTopologicalRanks(
    std::vector<size_t> topological_rank(child_to_parent_relation.size());
    size_t current_rank = 0;
    while (!queue.empty()) {
-      Idx current = queue.front();
+      const Idx current = queue.front();
       queue.pop_front();
       topological_rank.at(current) = current_rank++;
 
@@ -229,12 +229,12 @@ std::optional<Idx> getMostRecentCommonAncestor(
       priority_queue.emplace(topological_rank.at(parent), parent);
    }
    while (priority_queue.size() > 1) {
-      Idx current = priority_queue.top().second;
+      const Idx current = priority_queue.top().second;
       priority_queue.pop();
       if (child_to_parent_relation.at(current).empty()) {
          return std::nullopt;
       }
-      for (Idx parent : child_to_parent_relation.at(current)) {
+      for (const Idx parent : child_to_parent_relation.at(current)) {
          if (!seen.contains(parent)) {
             seen.emplace(parent);
             priority_queue.emplace(topological_rank.at(parent), parent);
@@ -251,7 +251,7 @@ std::unordered_map<Idx, std::optional<Idx>> LineageTree::computeRecombinantClade
    // We also need to map from parents to children, so we also compute the inverse relation
    std::vector<std::vector<Idx>> parent_to_child_relation(child_to_parent_relation.size());
    for (Idx child = 0; child < child_to_parent_relation.size(); ++child) {
-      for (Idx parent : child_to_parent_relation.at(child)) {
+      for (const Idx parent : child_to_parent_relation.at(child)) {
          parent_to_child_relation.at(parent).emplace_back(child);
       }
    }
@@ -259,7 +259,7 @@ std::unordered_map<Idx, std::optional<Idx>> LineageTree::computeRecombinantClade
    // We compute the topological rank to get a measure for the distance to the root
    // The topological rank of a child is guaranteed to be greater than the topological rank of all
    // its parents
-   std::vector<size_t> topological_rank =
+   const std::vector<size_t> topological_rank =
       computeTopologicalRanks(child_to_parent_relation, parent_to_child_relation);
 
    std::unordered_map<Idx, std::optional<Idx>> least_recombinant_clade_ancestors;

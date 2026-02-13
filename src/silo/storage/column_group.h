@@ -82,7 +82,7 @@ class ColumnPartitionGroup {
    std::map<std::string, ColumnType>& getColumns();
 
    template <column::Column ColumnType>
-   const std::map<std::string, ColumnType>& getColumns() const;
+   [[nodiscard]] const std::map<std::string, ColumnType>& getColumns() const;
 };
 
 }  // namespace silo::storage

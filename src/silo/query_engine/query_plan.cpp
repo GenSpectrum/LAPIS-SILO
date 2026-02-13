@@ -29,6 +29,7 @@ arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
    return query_plan;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status QueryPlan::executeAndWriteImpl(
    exec_node::ArrowBatchSink& output_sink,
    uint64_t timeout_in_seconds
@@ -43,7 +44,7 @@ arrow::Status QueryPlan::executeAndWriteImpl(
    );
 
    // Ensure plan is stopped on any exit path (timeout/error/exception).
-   struct PlanStopGuard {
+   const struct PlanStopGuard {
       std::string_view request_id;
       std::shared_ptr<arrow::acero::ExecPlan> plan;
 
@@ -87,9 +88,10 @@ arrow::Status QueryPlan::executeAndWriteImpl(
    } guard{.request_id = request_id, .plan = arrow_plan};
 
    while (true) {
-      arrow::Future<std::optional<arrow::ExecBatch>> future_batch = results_generator();
+      const arrow::Future<std::optional<arrow::ExecBatch>> future_batch = results_generator();
       SPDLOG_DEBUG("Request Id [{}] - QueryPlan - await the next batch", request_id);
-      bool finished_batch_in_time = future_batch.Wait(static_cast<double>(timeout_in_seconds));
+      const bool finished_batch_in_time =
+         future_batch.Wait(static_cast<double>(timeout_in_seconds));
       if (!finished_batch_in_time) {
          SPDLOG_WARN(
             "Request Id [{}] - QueryPlan - Batch wait timed out after {} s — stopping plan.",
@@ -157,7 +159,7 @@ arrow::Result<arrow::acero::BackpressureMonitor*> QueryPlan::createGenerator(
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>>* generator
 ) {
    arrow::acero::BackpressureMonitor* backpressure_monitor;
-   arrow::acero::SinkNodeOptions options{
+   const arrow::acero::SinkNodeOptions options{
       generator,
       arrow::acero::BackpressureOptions{
          /*.resume_if_below =*/common::S_16_KB,

@@ -43,13 +43,16 @@ class GermanStringPage {
 
    [[nodiscard]] size_t insert(const SiloString& silo_string) const {
       SILO_ASSERT(full() == false);
-      uint8_t* start_of_next_string_struct =
+      // We need to silence a false-positive warning, where the linter does not realise that
+      // the placement-new in the next expression needs a writeable pointer
+      // NOLINTNEXTLINE(misc-const-correctness)
+      uint8_t* const start_of_next_string_struct =
          page.buffer + sizeof(Header) + (n() * sizeof(SiloString));
       new (start_of_next_string_struct) SiloString(silo_string);
       return n()++;
    }
 
-   const SiloString& get(Idx& row_id) const {
+   [[nodiscard]] const SiloString& get(const Idx& row_id) const {
       SILO_ASSERT(row_id < n());
       uint8_t* start_of_string_struct =
          page.buffer + sizeof(Header) + (row_id * sizeof(SiloString));

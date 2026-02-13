@@ -20,7 +20,6 @@
 
 namespace silo::query_engine::filter::expressions {
 
-using storage::column::IndexedStringColumnPartition;
 using storage::column::StringColumnPartition;
 
 StringInSet::StringInSet(std::string column_name, std::unordered_set<std::string> values)
@@ -53,6 +52,7 @@ std::unique_ptr<Expression> StringInSet::rewrite(
 
    // We want to improve IndexedStringColumn by using our Indexes directly -> StringEquals
    std::vector<std::unique_ptr<Expression>> string_equal_expressions;
+   string_equal_expressions.reserve(values.size());
    for (const auto& value : values) {
       string_equal_expressions.emplace_back(std::make_unique<StringEquals>(column_name, value));
    }
