@@ -5,6 +5,7 @@ SILO_DEBUG_EXECUTABLE=./build/Debug/silo
 SILO_RELEASE_EXECUTABLE=./build/Release/silo
 RUNNING_SILO_FLAG=running_silo.flag
 DEPENDENCIES_FLAG=dependencies
+CLANG_FORMAT=$(shell command -v clang-format-19 2>/dev/null || command -v clang-format 2>/dev/null || echo clang-format)
 
 ci: format all-tests
 
@@ -88,7 +89,7 @@ endToEndTests/node_modules: endToEndTests/package-lock.json
 	cd endToEndTests && npm ci
 
 format-cpp:
-	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs clang-format -i
+	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) -i
 
 format-node: endToEndTests/node_modules
 	cd endToEndTests && npm run format
@@ -97,7 +98,7 @@ format-node: endToEndTests/node_modules
 format: format-cpp format-node
 
 check-format-cpp:
-	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs clang-format --dry-run --Werror
+	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) --dry-run --Werror
 
 check-format-node: endToEndTests/node_modules
 	cd endToEndTests && npm run check-format
