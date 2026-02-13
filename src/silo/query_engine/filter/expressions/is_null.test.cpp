@@ -317,8 +317,7 @@ const QueryTestScenario IS_NULL_NONEXISTENT_COLUMN = {
 })"
    ),
    .expected_query_result = {},
-   .expected_error_message =
-      "The database does not contain a column 'nonexistent' that supports null checks"
+   .expected_error_message = "The column 'nonexistent' is not contained in the database"
 };
 
 }  // namespace
