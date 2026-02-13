@@ -73,7 +73,7 @@ class NdjsonLineReader {
    };
 
    explicit NdjsonLineReader(std::istream& input_stream)
-       : input_stream(&input_stream){};
+       : input_stream(&input_stream) {};
 
    [[nodiscard]] Iterator begin() { return Iterator(this); }
    [[nodiscard]] static Iterator end() { return {}; }
