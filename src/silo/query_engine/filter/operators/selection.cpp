@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <fmt/format.h>
-#include <boost/algorithm/string/join.hpp>
+#include <fmt/ranges.h>
 #include <roaring/roaring.hh>
 
 #include "evobench/evobench.hpp"
@@ -77,8 +77,7 @@ std::string Selection::toString() const {
    if (child_operator.has_value()) {
       child_operator_string = child_operator.value()->toString();
    }
-   return "Select[" + boost::algorithm::join(predicate_strings, ",") + "](" +
-          child_operator_string + ")";
+   return fmt::format("Select[{}]({})", fmt::join(predicate_strings, ","), child_operator_string);
 }
 
 Type Selection::type() const {

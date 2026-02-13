@@ -2,7 +2,6 @@
 
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
-#include <boost/algorithm/string/join.hpp>
 
 #include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"

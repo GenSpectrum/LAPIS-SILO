@@ -2,9 +2,10 @@
 
 #include <cstddef>
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/split.hpp>
 
 constexpr std::string_view ENV_VAR_PREFIX = "SILO_";
@@ -57,7 +58,7 @@ EnvironmentVariables EnvironmentVariables::newWithAllowListAndEnv(
          result.push_back(current_string_all_uppercase);
       }
    }
-   return fmt::format("{}{}", ENV_VAR_PREFIX, boost::join(result, "_"));
+   return fmt::format("{}{}", ENV_VAR_PREFIX, fmt::join(result, "_"));
 }
 
 AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
@@ -125,7 +126,7 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
          "in {}: unknown {} {} for '{}'",
          debugContext(),
          keys_or_options,
-         boost::join(invalid_config_keys, ", "),
+         fmt::join(invalid_config_keys, ", "),
          config_specification.program_name
       ));
    }

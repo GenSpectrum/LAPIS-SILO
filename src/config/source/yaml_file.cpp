@@ -4,9 +4,9 @@
 #include <fstream>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/split.hpp>
 
 #include "config/config_exception.h"
@@ -115,7 +115,7 @@ void yamlToPaths(
          auto debug_string_parents = ({
             std::vector<std::string> result;
             std::ranges::transform(parents_vector, std::back_inserter(result), joinCamelCase);
-            boost::join(result, ".");
+            fmt::format("{}", fmt::join(result, "."));
          });
          throw silo::config::ConfigException(
             fmt::format("{}: found invalid key: {}", debug_context, debug_string_parents)
@@ -142,7 +142,7 @@ std::string YamlFile::configKeyPathToString(const ConfigKeyPath& config_key_path
    for (const auto& list : config_key_path.getPath()) {
       camel_case_strings.emplace_back(joinCamelCase(list));
    }
-   return boost::join(camel_case_strings, ".");
+   return fmt::format("{}", fmt::join(camel_case_strings, "."));
 }
 
 ConfigKeyPath YamlFile::stringToConfigKeyPath(const std::string& key_path_string) {
@@ -251,7 +251,7 @@ VerifiedConfigAttributes YamlFile::verify(const ConfigSpecification& config_spec
          "in {}: unknown {} {}",
          debugContext(),
          keys_or_options,
-         boost::join(invalid_config_keys, ", ")
+         fmt::join(invalid_config_keys, ", ")
       ));
    }
 
