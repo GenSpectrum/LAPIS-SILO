@@ -71,6 +71,29 @@ jobs:
             --tag ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-${{ matrix.arch }} \
             ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:filehash-${{ env.DIR_HASH }}-${{ matrix.arch }}
 
+  formatting:
+    name: Formatting Check
+    needs: dependencyImage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Determine HEAD_SHA
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+          else
+            echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
+          fi
+
+      - name: Check formatting
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64 \
+            bash --login -c "make check-format"
+
   dockerImage:
     name: Build docker images
     needs: dependencyImage
