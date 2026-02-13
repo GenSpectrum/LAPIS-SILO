@@ -135,6 +135,13 @@ void SequenceColumnPartition<SymbolType>::append(
 
    for (auto& insertion_and_position : insertions) {
       auto [position, insertion] = parseInsertion<SymbolType>(insertion_and_position);
+      if (position > genome_length) {
+         throw append::AppendException(
+            "the insertion position ({}) is larger than the length of the reference sequence ({})",
+            position,
+            genome_length
+         );
+      }
       insertion_index.addLazily(position, insertion, sequence_idx);
    }
 

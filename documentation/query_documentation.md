@@ -90,7 +90,8 @@ If `includeSublineages` is set, it will also be true, if it is equal to or an al
 #### `InsertionContains`: `{"sequenceName": string, "position": string, "value":string}`
 
 This filter is true if the sequence `sequenceName` has an insertion at `position` that has a full match with the regex `value`.
-The regex may only contain valid nucleotide symbols and `.*`. 
+The regex may only contain valid nucleotide symbols and `.*`.
+Position is 1-based and refers to insertion after that position. Position 0 is allowed and means insertion before the first symbol. Valid positions are in the range `[0, n]` where `n` is the length of the reference sequence.
 
 #### `AminoAcidInsertionContains`
 
