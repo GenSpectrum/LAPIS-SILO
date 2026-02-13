@@ -1,7 +1,8 @@
 #include "config/config_key_path.h"
 
+#include <algorithm>
+
 #include <fmt/format.h>
-#include <boost/algorithm/string/join.hpp>
 
 namespace {
 bool isLowerCaseOrNumeric(char character) {

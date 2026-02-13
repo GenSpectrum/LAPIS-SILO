@@ -4,7 +4,8 @@
 #include <string>
 #include <utility>
 
-#include <boost/algorithm/string/join.hpp>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter/expressions/expression.h"
@@ -34,7 +35,7 @@ std::string Or::toString() const {
       std::back_inserter(child_strings),
       [&](const std::unique_ptr<Expression>& child) { return child->toString(); }
    );
-   return "Or(" + boost::algorithm::join(child_strings, " | ") + ")";
+   return fmt::format("Or({})", fmt::join(child_strings, " | "));
 }
 
 std::vector<const Expression*> Or::collectChildren(const ExpressionVector& children) {

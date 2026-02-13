@@ -5,7 +5,8 @@
 #include <utility>
 #include <vector>
 
-#include <boost/algorithm/string/join.hpp>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include "evobench/evobench.hpp"
 #include "silo/query_engine/copy_on_write_bitmap.h"
@@ -33,7 +34,7 @@ std::string RangeSelection::toString() const {
          return std::to_string(range.start) + "-" + std::to_string(range.end);
       }
    );
-   return "RangeSelection(" + boost::algorithm::join(range_strings, ", ") + ")";
+   return fmt::format("RangeSelection({})", fmt::join(range_strings, ", "));
 }
 
 Type RangeSelection::type() const {

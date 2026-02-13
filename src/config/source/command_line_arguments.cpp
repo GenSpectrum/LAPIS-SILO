@@ -1,8 +1,8 @@
 #include "config/source/command_line_arguments.h"
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/split.hpp>
 
 #include "config/config_exception.h"
@@ -16,7 +16,7 @@ std::string CommandLineArguments::configKeyPathToString(const ConfigKeyPath& key
          result.push_back(current_string);
       }
    }
-   return "--" + boost::join(result, "-");
+   return fmt::format("--{}", fmt::join(result, "-"));
 }
 
 AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::string& option) {
@@ -140,7 +140,7 @@ VerifiedCommandLineArguments CommandLineArguments::verify(
          "in {}: unknown {} {}",
          debugContext(),
          keys_or_options,
-         boost::join(invalid_config_keys, ", ")
+         fmt::join(invalid_config_keys, ", ")
       ));
    }
 

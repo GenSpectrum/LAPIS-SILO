@@ -8,7 +8,6 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
-#include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter/expressions/expression.h"
@@ -37,7 +36,7 @@ std::string And::toString() const {
       std::back_inserter(child_strings),
       [&](const std::unique_ptr<Expression>& child) { return child->toString(); }
    );
-   return "And(" + boost::algorithm::join(child_strings, " & ") + ")";
+   return fmt::format("And({})", fmt::join(child_strings, " & "));
 }
 
 namespace {

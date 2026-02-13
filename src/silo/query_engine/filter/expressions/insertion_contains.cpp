@@ -3,7 +3,6 @@
 #include <utility>
 
 #include <spdlog/spdlog.h>
-#include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"

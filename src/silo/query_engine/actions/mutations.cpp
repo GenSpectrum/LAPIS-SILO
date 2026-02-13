@@ -13,7 +13,6 @@
 #include <arrow/util/future.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
 #include "evobench/evobench.hpp"
@@ -648,13 +647,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>
             iter != Mutations<SymbolType>::VALID_FIELDS.end(),
             "The attribute 'fields' contains an invalid field '{}'. Valid fields are {}.",
             field,
-            boost::join(
-               std::vector<std::string>{
-                  Mutations<SymbolType>::VALID_FIELDS.begin(),
-                  Mutations<SymbolType>::VALID_FIELDS.end()
-               },
-               ", "
-            )
+            fmt::join(Mutations<SymbolType>::VALID_FIELDS, ", ")
          );
          fields.push_back(*iter);
       }

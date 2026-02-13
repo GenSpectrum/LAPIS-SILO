@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 #include <fmt/format.h>
-#include <boost/algorithm/string/join.hpp>
+#include <fmt/ranges.h>
 #include "silo/common/panic.h"
 
 namespace silo {
@@ -81,7 +81,7 @@ std::string tieAsString(
    const std::vector<std::string>& elements2,
    std::string_view suffix
 ) {
-   return boost::join(tie(prefix, elements1, delimiter, elements2, suffix), "");
+   return fmt::format("{}", fmt::join(tie(prefix, elements1, delimiter, elements2, suffix), ""));
 }
 
 }  // namespace silo

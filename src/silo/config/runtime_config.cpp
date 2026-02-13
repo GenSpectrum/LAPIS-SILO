@@ -3,7 +3,6 @@
 #include <string>
 
 #include <spdlog/spdlog.h>
-#include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
 #include "config/config_interface.h"
