@@ -15,8 +15,9 @@ TEST(EnvironmentVariables, correctPrefixedUppercase) {
       "SILO_ABC"
    );
    ASSERT_EQ(
-      EnvironmentVariables::configKeyPathToString(ConfigKeyPath::tryFrom({{"some", "snake", "case"}}
-      ).value()),
+      EnvironmentVariables::configKeyPathToString(
+         ConfigKeyPath::tryFrom({{"some", "snake", "case"}}).value()
+      ),
       "SILO_SOME_SNAKE_CASE"
    );
    ASSERT_EQ(

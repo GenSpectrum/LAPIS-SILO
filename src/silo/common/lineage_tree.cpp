@@ -150,7 +150,8 @@ std::set<Idx> LineageTree::getAllParents(
             for (const Idx parent : current_parents) {
                queue.emplace_back(parent);
             }
-         } else if (follow_recombinant_edges == RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE) {
+         } else if (follow_recombinant_edges ==
+                    RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE) {
             if (auto ancestor = recombinant_clade_ancestors.at(current)) {
                queue.emplace_back(ancestor.value());
             }
