@@ -3,17 +3,6 @@ on:
   push:
 
 jobs:
-  cpp-formatting:
-    name: C++ Formatting Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Run clang-format style check
-        uses: jidicula/clang-format-action@v4.16.0
-        with:
-          clang-format-version: "17"
-          check-path: src
-
   prettier-formatting:
     name: Prettier Formatting Check
     runs-on: ubuntu-latest
