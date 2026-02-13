@@ -27,9 +27,7 @@ std::optional<uint32_t> parseVmRSSLine(const std::string& line) {
          );
          return std::nullopt;
       } catch (const std::invalid_argument& ia) {
-         SPDLOG_DEBUG(
-            "parseVmRSSLine: Invalid argument for stol: {} - {}", match, ia.what()
-         );
+         SPDLOG_DEBUG("parseVmRSSLine: Invalid argument for stol: {} - {}", match, ia.what());
          return std::nullopt;
       }
    }

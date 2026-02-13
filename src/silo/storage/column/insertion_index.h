@@ -8,8 +8,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include <boost/serialization/access.hpp>
 #include <re2/re2.h>
+#include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
 namespace silo::storage::insertion {
