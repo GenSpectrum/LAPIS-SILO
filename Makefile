@@ -1,9 +1,11 @@
 ## While this script is running, you will see a file `running_silo.flag` created in the current directory.
 ## It will contain the PID of the running silo API server.
 ## If something fails during execution, it might be necessary to kill the daemon using `make clean-api`.
-SILO_EXECUTABLE=./build/Debug/silo
+SILO_DEBUG_EXECUTABLE=./build/Debug/silo
+SILO_RELEASE_EXECUTABLE=./build/Release/silo
 RUNNING_SILO_FLAG=running_silo.flag
 DEPENDENCIES_FLAG=dependencies
+CLANG_FORMAT=$(shell command -v clang-format-19 2>/dev/null || command -v clang-format 2>/dev/null || echo clang-format)
 
 ci: format all-tests
 
@@ -19,21 +21,27 @@ ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 build/Debug/build.ninja: ${DEPENDENCIES_FLAG}
 	cmake -B build/Debug -D CMAKE_BUILD_TYPE=Debug
 
-${SILO_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
+build/Release/build.ninja: ${DEPENDENCIES_FLAG}
+	cmake -B build/Release -D CMAKE_BUILD_TYPE=Release
+
+${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
 	cmake --build build/Debug --parallel 16
 
-output: ${SILO_EXECUTABLE}
+${SILO_RELEASE_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
+	cmake --build build/Release --parallel 16
+
+output: ${SILO_DEBUG_EXECUTABLE}
 	export SPDLOG_LEVEL=debug; \
-	${SILO_EXECUTABLE} preprocessing --database-config database_config.yaml --preprocessing-config testBaseData/test_preprocessing_config.yaml
+	${SILO_DEBUG_EXECUTABLE} preprocessing --database-config database_config.yaml --preprocessing-config testBaseData/test_preprocessing_config.yaml
 
 
-${RUNNING_SILO_FLAG}: ${SILO_EXECUTABLE} output
+${RUNNING_SILO_FLAG}: ${SILO_DEBUG_EXECUTABLE} output
 	@{ \
 		if lsof -i :8093 > /dev/null 2>&1; then \
 			echo "Error: Port 8093 is already in use. Another SILO instance might already be running."; \
 			exit 1; \
 		fi; \
-		${SILO_EXECUTABLE} api --api-port 8093 & \
+		${SILO_DEBUG_EXECUTABLE} api --api-port 8093 & \
 		pid=$$!; \
 		echo "Waiting for silo (PID $$pid) to be ready..."; \
 		until curl -s -o /dev/null -w "%{http_code}" http://localhost:8093/info | grep -q "200"; do \
@@ -47,7 +55,7 @@ e2e: ${RUNNING_SILO_FLAG}
 	trap 'make clean-api' EXIT; \
 	(cd endToEndTests && SILO_URL=localhost:8093 npm run test)
 
-test: ${SILO_EXECUTABLE}
+test: ${SILO_DEBUG_EXECUTABLE}
 	build/Debug/silo_test --gtest_filter='*' --gtest_color=no
 
 python-tests: ${DEPENDENCIES_FLAG}
@@ -76,14 +84,23 @@ all-tests: test e2e python-tests
 endToEndTests/node_modules: endToEndTests/package-lock.json
 	cd endToEndTests && npm ci
 
-format: endToEndTests/node_modules
-	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs clang-format -i
+format-cpp:
+	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) -i
+
+format-node: endToEndTests/node_modules
 	cd endToEndTests && npm run format
 	cd endToEndTests && npx prettier --write "../.github/workflows/*.yml"
 
-check-format: endToEndTests/node_modules
+format: format-cpp format-node
+
+check-format-cpp:
+	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) --dry-run --Werror
+
+check-format-node: endToEndTests/node_modules
 	cd endToEndTests && npm run check-format
 	cd endToEndTests && npx prettier --check "../.github/workflows/*.yml"
+
+check-format: check-format-cpp check-format-node
 
 clean-api:
 	@if [ -f ${RUNNING_SILO_FLAG} ]; then \
@@ -98,4 +115,4 @@ full-clean: clean
 	rm -rf build
 
 .PHONY:
-	full-clean clean clean-api e2e format check-format all test all-tests ci python-tests build-wheel
+	full-clean clean clean-api e2e format format-cpp format-node check-format check-format-cpp check-format-node all test all-tests ci python-tests build-wheel

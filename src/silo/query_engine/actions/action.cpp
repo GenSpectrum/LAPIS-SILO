@@ -472,7 +472,9 @@ arrow::Result<arrow::acero::ExecNode*> Action::addZstdDecompressNode(
       std::vector<arrow::compute::Expression> column_expressions;
       std::vector<std::string> column_names;
       for (const auto& column : getOutputSchema(table_schema)) {
-         if (auto reference = storage::column::visit(column.type, ColumnToReferenceSequenceVisitor{}, table_schema, column)) {
+         if (auto reference = storage::column::visit(
+                column.type, ColumnToReferenceSequenceVisitor{}, table_schema, column
+             )) {
             column_expressions.push_back(exec_node::ZstdDecompressExpression::make(
                arrow::compute::field_ref(arrow::FieldRef{column.name}), reference.value()
             ));

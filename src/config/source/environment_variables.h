@@ -27,7 +27,7 @@ class EnvironmentVariables {
       std::vector<std::string> allow_list_
    )
        : key_value_pairs(std::move(key_value_pairs_)),
-         allow_list(std::move(allow_list_)){};
+         allow_list(std::move(allow_list_)) {};
 
    explicit EnvironmentVariables() = default;
 

@@ -116,7 +116,8 @@ VerifiedCommandLineArguments CommandLineArguments::verify(
          }
          const auto [option, opt_value_string] = splitOption(arg);
          const auto ambiguous_key = stringToConfigKeyPath(option);
-         if (auto opt = config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
+         if (auto opt =
+                config_specification.getAttributeSpecificationFromAmbiguousKey(ambiguous_key)) {
             const ConfigAttributeSpecification attribute_spec = std::move(opt.value());
             const auto [value, new_remaining_args] =
                parseValueFromArg(attribute_spec, arg, opt_value_string, remaining_args);

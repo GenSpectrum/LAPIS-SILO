@@ -36,17 +36,20 @@ silo::common::Date silo::common::stringToDate(std::string_view value) {
    const std::string_view month_string = value.substr(split_position + 1, split_position2);
    const std::string_view day_string = value.substr(split_position2 + 1);
    uint32_t year;
-   if (std::from_chars(year_string.data(), year_string.data() + year_string.size(), year).ec != std::errc{}) {
+   if (std::from_chars(year_string.data(), year_string.data() + year_string.size(), year).ec !=
+       std::errc{}) {
       SPDLOG_WARN("Parsing of year failed: {}. Ignoring date", year_string);
       return NULL_DATE;
    }
    uint32_t month;
-   if (std::from_chars(month_string.data(), month_string.data() + month_string.size(), month).ec != std::errc{}) {
+   if (std::from_chars(month_string.data(), month_string.data() + month_string.size(), month).ec !=
+       std::errc{}) {
       SPDLOG_WARN("Parsing of month failed: {}. Ignoring date", month_string);
       return NULL_DATE;
    }
    uint32_t day;
-   if (std::from_chars(day_string.data(), day_string.data() + day_string.size(), day).ec != std::errc{}) {
+   if (std::from_chars(day_string.data(), day_string.data() + day_string.size(), day).ec !=
+       std::errc{}) {
       SPDLOG_WARN("Parsing of day failed: {}. Ignoring date", day_string);
       return NULL_DATE;
    }
