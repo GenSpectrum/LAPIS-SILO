@@ -83,14 +83,23 @@ all-tests: test e2e python-tests
 endToEndTests/node_modules: endToEndTests/package-lock.json
 	cd endToEndTests && npm ci
 
-format: endToEndTests/node_modules
+format-cpp:
 	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs clang-format -i
+
+format-node: endToEndTests/node_modules
 	cd endToEndTests && npm run format
 	cd endToEndTests && npx prettier --write "../.github/workflows/*.yml"
 
-check-format: endToEndTests/node_modules
+format: format-cpp format-node
+
+check-format-cpp:
+	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs clang-format --dry-run --Werror
+
+check-format-node: endToEndTests/node_modules
 	cd endToEndTests && npm run check-format
 	cd endToEndTests && npx prettier --check "../.github/workflows/*.yml"
+
+check-format: check-format-cpp check-format-node
 
 clean-api:
 	@if [ -f ${RUNNING_SILO_FLAG} ]; then \
@@ -105,4 +114,4 @@ full-clean: clean
 	rm -rf build
 
 .PHONY:
-	full-clean clean clean-api e2e format check-format all test all-tests ci python-tests build-wheel
+	full-clean clean clean-api e2e format format-cpp format-node check-format check-format-cpp check-format-node all test all-tests ci python-tests build-wheel
