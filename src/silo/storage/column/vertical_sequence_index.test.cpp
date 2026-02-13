@@ -441,14 +441,14 @@ TEST_F(VerticalSequenceIndexTest, adaptsAndFlipsCorrectlyWithManySymbols) {
 using silo::storage::column::splitIdsIntoBatches;
 
 TEST(splitIdsIntoBatches, EmptyVector) {
-   std::vector<uint32_t> input = {};
+   const std::vector<uint32_t> input = {};
    auto result = splitIdsIntoBatches(input);
 
    EXPECT_TRUE(result.empty());
 }
 
 TEST(splitIdsIntoBatches, SingleElement) {
-   std::vector<uint32_t> input = {0x00010002};
+   const std::vector<uint32_t> input = {0x00010002};
    auto result = splitIdsIntoBatches(input);
 
    ASSERT_EQ(result.size(), 1);
@@ -459,7 +459,7 @@ TEST(splitIdsIntoBatches, SingleElement) {
 
 TEST(splitIdsIntoBatches, SingleBatch) {
    // All IDs have the same upper 16 bits (0x0001)
-   std::vector<uint32_t> input = {0x00010001, 0x00010002, 0x00010003, 0x00010004};
+   const std::vector<uint32_t> input = {0x00010001, 0x00010002, 0x00010003, 0x00010004};
    auto result = splitIdsIntoBatches(input);
 
    ASSERT_EQ(result.size(), 1);
@@ -472,7 +472,7 @@ TEST(splitIdsIntoBatches, SingleBatch) {
 }
 
 TEST(splitIdsIntoBatches, MultipleBatches) {
-   std::vector<uint32_t> input = {
+   const std::vector<uint32_t> input = {
       0x00010001,
       0x00010002,  // Batch 1: upper bits = 0x0001
       0x00020001,
@@ -504,7 +504,7 @@ TEST(splitIdsIntoBatches, MultipleBatches) {
 }
 
 TEST(splitIdsIntoBatches, BoundaryValues) {
-   std::vector<uint32_t> input = {
+   const std::vector<uint32_t> input = {
       0x00000000,  // Minimum value
       0x0000FFFF,  // Maximum lower bits with 0 upper bits
       0xFFFF0000,  // Maximum upper bits with 0 lower bits
@@ -529,7 +529,7 @@ TEST(splitIdsIntoBatches, BoundaryValues) {
 
 TEST(splitIdsIntoBatches, ConsecutiveBatches) {
    // Each batch has exactly one element
-   std::vector<uint32_t> input = {0x00010000, 0x00020000, 0x00030000, 0x00040000};
+   const std::vector<uint32_t> input = {0x00010000, 0x00020000, 0x00030000, 0x00040000};
    auto result = splitIdsIntoBatches(input);
 
    ASSERT_EQ(result.size(), 4);
@@ -541,7 +541,7 @@ TEST(splitIdsIntoBatches, ConsecutiveBatches) {
 }
 
 TEST(splitIdsIntoBatches, LargeGapInUpperBits) {
-   std::vector<uint32_t> input = {
+   const std::vector<uint32_t> input = {
       0x00010001,
       0x00010002,
       0x80000001,  // Large gap
@@ -558,7 +558,7 @@ TEST(splitIdsIntoBatches, LargeGapInUpperBits) {
 
 TEST(splitIdsIntoBatches, DuplicateLowerBits) {
    // Same lower bits within a batch is valid
-   std::vector<uint32_t> input = {0x00010001, 0x00010001, 0x00010002, 0x00020001, 0x00020001};
+   const std::vector<uint32_t> input = {0x00010001, 0x00010001, 0x00010002, 0x00020001, 0x00020001};
    auto result = splitIdsIntoBatches(input);
 
    ASSERT_EQ(result.size(), 2);
@@ -569,7 +569,7 @@ TEST(splitIdsIntoBatches, DuplicateLowerBits) {
 }
 
 TEST(splitIdsIntoBatches, ZeroUpperBits) {
-   std::vector<uint32_t> input = {0x00000001, 0x00000002, 0x00000003};
+   const std::vector<uint32_t> input = {0x00000001, 0x00000002, 0x00000003};
    auto result = splitIdsIntoBatches(input);
 
    ASSERT_EQ(result.size(), 1);
@@ -581,7 +581,7 @@ TEST(splitIdsIntoBatches, ZeroUpperBits) {
 }
 
 TEST(splitIdsIntoBatches, AllSameValue) {
-   std::vector<uint32_t> input = {0x12345678, 0x12345678, 0x12345678};
+   const std::vector<uint32_t> input = {0x12345678, 0x12345678, 0x12345678};
    auto result = splitIdsIntoBatches(input);
 
    ASSERT_EQ(result.size(), 1);
@@ -593,7 +593,7 @@ TEST(splitIdsIntoBatches, AllSameValue) {
 }
 
 TEST(splitIdsIntoBatches, MaximumUpperBits) {
-   std::vector<uint32_t> input = {0xFFFF0001, 0xFFFF0002, 0xFFFFFFFF};
+   const std::vector<uint32_t> input = {0xFFFF0001, 0xFFFF0002, 0xFFFFFFFF};
    auto result = splitIdsIntoBatches(input);
 
    ASSERT_EQ(result.size(), 1);
@@ -605,7 +605,7 @@ TEST(splitIdsIntoBatches, MaximumUpperBits) {
 }
 
 TEST(splitIdsIntoBatches, AlternatingBatches) {
-   std::vector<uint32_t> input = {0x00010001, 0x00020001, 0x00030001, 0x00040001};
+   const std::vector<uint32_t> input = {0x00010001, 0x00020001, 0x00030001, 0x00040001};
    auto result = splitIdsIntoBatches(input);
 
    ASSERT_EQ(result.size(), 4);

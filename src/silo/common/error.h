@@ -4,17 +4,19 @@
 
 #define RETURN_NOT_OK(expected)   \
    do {                           \
-      if (!expected.has_value())  \
-         return expected.error(); \
+      if (!(expected).has_value())  \
+         return (expected).error(); \
    } while (false)
 
 #define ASSIGN_OR_RAISE_NAME(x, y) CONCAT(x, y)
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
 #define ASSIGN_OR_RAISE_IMPL(expected_name, lhs, rexpr) \
    auto&& expected_name = (rexpr);                      \
-   if (!expected_name.has_value())                      \
-      return std::unexpected{expected_name.error()};    \
+   if (!(expected_name).has_value())                      \
+      return std::unexpected{(expected_name).error()};    \
    lhs = std::move(expected_name).value();
+// NOLINTEND(bugprone-macro-parentheses)
 
 #define ASSIGN_OR_RAISE(lhs, rexpr) \
    ASSIGN_OR_RAISE_IMPL(ASSIGN_OR_RAISE_NAME(_error_or_value, __COUNTER__), lhs, rexpr);

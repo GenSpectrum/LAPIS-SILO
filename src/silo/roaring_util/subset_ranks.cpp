@@ -24,7 +24,7 @@ std::vector<uint64_t> roaringSubsetRanks(
    auto* container_a_and_b =
       roaring::internal::container_and(container_a, type_a, container_b, type_b, &type_a_and_b);
 
-   size_t cardinality =
+   const size_t cardinality =
       roaring::internal::container_get_cardinality(container_a_and_b, type_a_and_b);
    std::vector<uint32_t> a_and_b_as_vector(cardinality);
 

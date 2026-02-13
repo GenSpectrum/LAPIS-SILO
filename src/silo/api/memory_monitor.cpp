@@ -1,6 +1,6 @@
 #include "silo/api/memory_monitor.h"
 
-#if defined(__linux__)
+#ifdef __linux__
 
 #include <filesystem>
 #include <fstream>

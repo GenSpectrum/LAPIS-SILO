@@ -283,6 +283,7 @@ TEST_F(ThrottledBatchReslicerTest, BackpressureMonitorLogging) {
    ASSERT_TRUE(result.ok());
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST_F(ThrottledBatchReslicerTest, DataIntegrity) {
    // Create a batch with known data
    auto builder = std::make_shared<arrow::Int32Builder>();

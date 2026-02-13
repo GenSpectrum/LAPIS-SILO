@@ -62,7 +62,7 @@ class InsertionPosition {
 
    ThreeMerType three_mer_index;
 
-   std::unique_ptr<roaring::Roaring> searchWithThreeMerIndex(
+   [[nodiscard]] std::unique_ptr<roaring::Roaring> searchWithThreeMerIndex(
       const std::vector<std::array<typename SymbolType::Symbol, 3>>& search_three_mers,
       const std::regex& search_pattern
    ) const;
@@ -98,9 +98,10 @@ class InsertionIndex {
 
    void buildIndex();
 
-   const std::unordered_map<uint32_t, InsertionPosition<SymbolType>>& getInsertionPositions() const;
+   [[nodiscard]] const std::unordered_map<uint32_t, InsertionPosition<SymbolType>>&
+   getInsertionPositions() const;
 
-   std::unique_ptr<roaring::Roaring> search(
+   [[nodiscard]] std::unique_ptr<roaring::Roaring> search(
       uint32_t position_idx,
       const std::string& search_pattern
    ) const;

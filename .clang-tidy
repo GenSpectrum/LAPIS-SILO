@@ -1,5 +1,9 @@
 ---
+HeaderFilterRegex: 'src/silo/.*'
 WarningsAsErrors: '*'
+ExtraArgsBefore:
+- '-include'
+- 'cstdlib'
 Checks: >-
   -*,
   abseil-*,
@@ -12,6 +16,8 @@ Checks: >-
   performance-*,
   readability-magic-numbers,
   -modernize-use-trailing-return-type,
+  -portability-avoid-pragma-once,
+  -portability-template-virtual-member-function,
   -misc-non-private-member-variables-in-classes,
   -misc-include-cleaner,
   -google-readability-avoid-underscore-in-googletest-name,

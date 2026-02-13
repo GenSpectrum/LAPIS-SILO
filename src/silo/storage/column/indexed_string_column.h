@@ -73,7 +73,9 @@ class IndexedStringColumnPartition {
 
    [[nodiscard]] std::optional<const roaring::Roaring*> filter(silo::Idx value_id) const;
 
-   std::optional<const roaring::Roaring*> filter(const std::optional<std::string>& value) const;
+   [[nodiscard]] std::optional<const roaring::Roaring*> filter(
+      const std::optional<std::string>& value
+   ) const;
 
    void insert(std::string_view value);
 
@@ -81,7 +83,7 @@ class IndexedStringColumnPartition {
 
    void reserve(size_t row_count);
 
-   size_t numValues() const { return value_ids.size(); }
+   [[nodiscard]] size_t numValues() const { return value_ids.size(); }
 
    [[nodiscard]] const silo::Idx& getValue(size_t row_id) const { return value_ids.at(row_id); }
 

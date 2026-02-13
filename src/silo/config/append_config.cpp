@@ -88,6 +88,6 @@ std::vector<std::filesystem::path> AppendConfig::getConfigFilePaths(
    const silo::config::AppendConfig& append_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   nlohmann::json json = append_config;
+   const nlohmann::json json = append_config;
    return fmt::format_to(ctx.out(), "{}", json.dump());
 }

@@ -47,7 +47,7 @@ class VerticalSequenceIndex {
          archive & typecode;
          // clang-format on
          if constexpr (Archive::is_saving::value) {
-            size_t size_in_bytes = roaring::internal::container_size_in_bytes(container, typecode);
+            const size_t size_in_bytes = roaring::internal::container_size_in_bytes(container, typecode);
             std::string buffer(size_in_bytes, '\0');
             roaring::internal::container_write(container, typecode, buffer.data());
             archive << buffer;
@@ -128,16 +128,17 @@ class VerticalSequenceIndex {
       const SymbolMap<SymbolType, std::vector<uint32_t>>& ids_per_symbol
    );
 
-   std::pair<const_iterator, const_iterator> getRangeForPosition(uint32_t position_idx) const;
+   [[nodiscard]] std::pair<const_iterator, const_iterator> getRangeForPosition(uint32_t position_idx
+   ) const;
 
-   SymbolMap<SymbolType, uint32_t> computeSymbolCountsForPosition(
+   [[nodiscard]] SymbolMap<SymbolType, uint32_t> computeSymbolCountsForPosition(
       std::map<SequenceDiffKey, SequenceDiff>::const_iterator start,
       std::map<SequenceDiffKey, SequenceDiff>::const_iterator end,
       SymbolType::Symbol current_local_reference_symbol,
       uint32_t coverage_cardinality
    ) const;
 
-   SymbolType::Symbol getSymbolWithHighestCount(
+   [[nodiscard]] SymbolType::Symbol getSymbolWithHighestCount(
       const SymbolMap<SymbolType, uint32_t>& symbol_counts,
       SymbolType::Symbol current_local_reference_symbol
    ) const;
@@ -150,7 +151,7 @@ class VerticalSequenceIndex {
 
    SequenceDiff& getContainerOrCreateWithCapacity(const SequenceDiffKey& key, int32_t capacity);
 
-   roaring::Roaring getMatchingContainersAsBitmap(
+   [[nodiscard]] roaring::Roaring getMatchingContainersAsBitmap(
       uint32_t position_idx,
       std::vector<typename SymbolType::Symbol> symbol
    ) const;

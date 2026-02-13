@@ -19,12 +19,14 @@ void VerticalSequenceIndex<SymbolType>::addSymbolsToPositions(
    const SymbolMap<SymbolType, std::vector<uint32_t>>& ids_per_symbol
 ) {
    for (const auto& symbol : SymbolType::SYMBOLS) {
-      std::vector<std::pair<uint16_t, std::vector<uint16_t>>> ids_in_batches =
+      const std::vector<std::pair<uint16_t, std::vector<uint16_t>>> ids_in_batches =
          splitIdsIntoBatches(ids_per_symbol.at(symbol));
       for (const auto& [upper_bits, lower_bits_vector] : ids_in_batches) {
-         SILO_ASSERT_GT(lower_bits_vector.size(), 0);
+         SILO_ASSERT_GT(lower_bits_vector.size(), 0ULL);
 
-         SequenceDiffKey key{.position = position_idx, .v_index = upper_bits, .symbol = symbol};
+         const SequenceDiffKey key{
+            .position = position_idx, .v_index = upper_bits, .symbol = symbol
+         };
          SequenceDiff& sequence_diff =
             getContainerOrCreateWithCapacity(key, lower_bits_vector.size());
 
@@ -110,11 +112,11 @@ std::optional<typename SymbolType::Symbol> VerticalSequenceIndex<SymbolType>::ad
 ) {
    auto [start, end] = getRangeForPosition(position_idx);
 
-   SymbolMap<SymbolType, uint32_t> symbol_counts = computeSymbolCountsForPosition(
+   const SymbolMap<SymbolType, uint32_t> symbol_counts = computeSymbolCountsForPosition(
       start, end, current_local_reference_symbol, coverage_bitmap.cardinality()
    );
    // Find the symbol with the highest count
-   typename SymbolType::Symbol best_symbol =
+   const typename SymbolType::Symbol best_symbol =
       getSymbolWithHighestCount(symbol_counts, current_local_reference_symbol);
    if (best_symbol == current_local_reference_symbol) {
       return std::nullopt;
@@ -130,11 +132,12 @@ std::optional<typename SymbolType::Symbol> VerticalSequenceIndex<SymbolType>::ad
    SILO_ASSERT_LT(roaring_array.size, UINT16_MAX);
    auto num_containers = static_cast<uint16_t>(roaring_array.size);
    for (uint16_t container_idx = 0; container_idx < num_containers; ++container_idx) {
-      uint8_t typecode = roaring_array.typecodes[container_idx];
+      const uint8_t typecode = roaring_array.typecodes[container_idx];
       auto* container =
          roaring::internal::container_clone(roaring_array.containers[container_idx], typecode);
-      uint32_t cardinality = roaring::internal::container_get_cardinality(container, typecode);
-      uint16_t v_index = roaring_array.keys[container_idx];
+      const uint32_t cardinality =
+         roaring::internal::container_get_cardinality(container, typecode);
+      const uint16_t v_index = roaring_array.keys[container_idx];
 
       auto key = SequenceDiffKey{position_idx, v_index, current_local_reference_symbol};
       vertical_bitmaps.insert({key, SequenceDiff(container, cardinality, typecode)});
@@ -215,7 +218,7 @@ void VerticalSequenceIndex<SymbolType>::overwriteSymbolsInSequences(
    if (row_ids.roaring.high_low_container.size == 0) {
       return;
    }
-   size_t max_v_index =
+   const size_t max_v_index =
       row_ids.roaring.high_low_container.keys[row_ids.roaring.high_low_container.size - 1];
 
    // Construct the slicesarrays that correspond to individual roaring containers = v_index
@@ -224,7 +227,9 @@ void VerticalSequenceIndex<SymbolType>::overwriteSymbolsInSequences(
    std::vector<roaring::internal::container_t*> roaring_containers_by_v_index(max_v_index + 1);
    std::vector<uint8_t> roaring_typecodes_by_v_index(max_v_index + 1);
    std::string* current_sequences_pointer = sequences.data();
-   for (size_t idx = 0; idx < row_ids.roaring.high_low_container.size; ++idx) {
+
+   const size_t num_containers = row_ids.roaring.high_low_container.size;
+   for (size_t idx = 0; idx < num_containers; ++idx) {
       auto cardinality = roaring::internal::container_get_cardinality(
          row_ids.roaring.high_low_container.containers[idx],
          row_ids.roaring.high_low_container.typecodes[idx]
@@ -263,7 +268,7 @@ void VerticalSequenceIndex<SymbolType>::overwriteSymbolsInSequences(
       auto& current_v_index_sequences = sequences_by_v_index.at(v_index);
       for (auto rank_in_reconstructed_sequences : ranks_in_reconstructed_sequences) {
          // Ranks are 1-indexed
-         uint32_t id_in_reconstructed_sequences = rank_in_reconstructed_sequences - 1;
+         const uint32_t id_in_reconstructed_sequences = rank_in_reconstructed_sequences - 1;
          current_v_index_sequences[id_in_reconstructed_sequences].at(sequence_diff_key.position) =
             SymbolType::symbolToChar(sequence_diff_key.symbol);
       }
@@ -285,9 +290,9 @@ std::vector<std::pair<uint16_t, std::vector<uint16_t>>> splitIdsIntoBatches(
    uint16_t current_upper_bits = sorted_ids.front() >> 16;
    ids_in_batches.emplace_back(current_upper_bits, std::vector<uint16_t>{});
 
-   for (uint32_t sorted_id : sorted_ids) {
-      uint16_t upper_bits = sorted_id >> 16;
-      uint16_t lower_bits = sorted_id & 0xFFFF;
+   for (const uint32_t sorted_id : sorted_ids) {
+      const uint16_t upper_bits = sorted_id >> 16;
+      const uint16_t lower_bits = sorted_id & 0xFFFF;
 
       // If the upper bits changed, start a new batch
       if (upper_bits != current_upper_bits) {

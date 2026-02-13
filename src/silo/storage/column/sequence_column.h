@@ -85,22 +85,26 @@ class SequenceColumnPartition {
 
    [[nodiscard]] size_t numValues() const { return sequence_count; }
 
-   std::vector<typename SymbolType::Symbol> getLocalReference() const {
+   [[nodiscard]] std::vector<typename SymbolType::Symbol> getLocalReference() const {
       std::vector<typename SymbolType::Symbol> local_reference;
-      for (char chr : local_reference_sequence_string) {
-         local_reference.push_back(SymbolType::charToSymbol(chr).value());
+      for (const char character : local_reference_sequence_string) {
+         local_reference.push_back(SymbolType::charToSymbol(character).value());
       };
       return local_reference;
    }
 
-   SymbolType::Symbol getLocalReferencePosition(size_t position) const {
+   [[nodiscard]] SymbolType::Symbol getLocalReferencePosition(size_t position) const {
       SILO_ASSERT(position < metadata->reference_sequence.size());
       return SymbolType::charToSymbol(local_reference_sequence_string.at(position)).value();
    }
 
    [[nodiscard]] SequenceColumnInfo getInfo() const;
 
-   void append(std::string_view sequence, uint32_t offset, std::vector<std::string> insertions);
+   void append(
+      std::string_view sequence,
+      uint32_t offset,
+      const std::vector<std::string>& insertions
+   );
 
    void appendNull();
 

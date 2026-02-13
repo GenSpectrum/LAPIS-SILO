@@ -12,13 +12,13 @@ std::optional<roaring::Roaring> BatchedBitmapReader::nextBatch() {
    uint32_t start_of_next_batch;
    uint32_t end_of_next_batch;
 
-   bool start_in_bitmap = bitmap.select(num_rows_produced, &start_of_next_batch);
+   const bool start_in_bitmap = bitmap.select(num_rows_produced, &start_of_next_batch);
    // Because `num_rows_produced < cardinality` an element with rank `num_rows_produced` must be in
    // the bitmap
    SILO_ASSERT(start_in_bitmap);
 
-   size_t proposed_end_rank = num_rows_produced + batch_size_minus_one;
-   bool end_selected = bitmap.select(proposed_end_rank, &end_of_next_batch);
+   const size_t proposed_end_rank = num_rows_produced + batch_size_minus_one;
+   const bool end_selected = bitmap.select(proposed_end_rank, &end_of_next_batch);
 
    if (!end_selected) {
       // Fill batch with remainders. This is not empty because `num_rows_produced < cardinality`

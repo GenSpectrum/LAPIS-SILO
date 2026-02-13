@@ -34,12 +34,13 @@ class LineageIndex {
 
    void insert(size_t row_id, Idx value_id);
 
-   std::optional<const roaring::Roaring*> filterIncludingSublineages(
+   [[nodiscard]] std::optional<const roaring::Roaring*> filterIncludingSublineages(
       Idx value_id,
       silo::common::RecombinantEdgeFollowingMode recombinant_edge_following_mode
    ) const;
 
-   std::optional<const roaring::Roaring*> filterExcludingSublineages(Idx value_id) const;
+   [[nodiscard]] std::optional<const roaring::Roaring*> filterExcludingSublineages(Idx value_id
+   ) const;
 };
 
 }  // namespace silo::storage

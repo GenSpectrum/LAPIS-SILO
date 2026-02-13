@@ -54,7 +54,7 @@ void addThousandShortReads(std::stringstream& buffer, size_t offset){
 }
 
 std::shared_ptr<Database> setupTestDatabase(){
-   std::string pattern = "ACGT";
+   const std::string pattern = "ACGT";
    std::string reference;
    reference.reserve(4000);
    for (int i = 0; i < 1000; ++i) {
@@ -109,7 +109,7 @@ void printClipped(const std::string& output){
    }
 }
 
-void executeMutationsAllQuery(std::shared_ptr<Database> database){
+void executeMutationsAllQuery(const std::shared_ptr<Database>& database){
    std::vector<std::string_view> all_fields{Mutations<Nucleotide>::VALID_FIELDS.begin(), Mutations<Nucleotide>::VALID_FIELDS.end()};
 
    Query query{std::make_unique<True>(), std::make_unique<Mutations<Nucleotide>>(std::vector<std::string>{"main"}, 0.05, std::move(all_fields))};
@@ -121,10 +121,10 @@ void executeMutationsAllQuery(std::shared_ptr<Database> database){
    printClipped(result.str());
 }
 
-void executeMutationsAlmostAllQuery(std::shared_ptr<Database> database){
+void executeMutationsAlmostAllQuery(const std::shared_ptr<Database>& database){
    std::vector<std::string_view> all_fields{Mutations<Nucleotide>::VALID_FIELDS.begin(), Mutations<Nucleotide>::VALID_FIELDS.end()};
 
-   Query query{std::make_unique<Negation>(std::make_unique<StringEquals>("key", "3")), std::make_unique<Mutations<Nucleotide>>(std::vector<std::string>{"main"}, 0.05, std::move(all_fields))};
+   const Query query{std::make_unique<Negation>(std::make_unique<StringEquals>("key", "3")), std::make_unique<Mutations<Nucleotide>>(std::vector<std::string>{"main"}, 0.05, std::move(all_fields))};
 
    auto query_plan = database->createQueryPlan(query, {}, "test_query");
    std::stringstream result;

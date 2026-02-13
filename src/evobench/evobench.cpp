@@ -1,3 +1,4 @@
+// NOLINTBEGIN
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -489,3 +490,4 @@ void _log_any(const char* probe_name, PointKind kind, uint32_t num_calls) {
 }
 
 }  // namespace evobench
+// NOLINTEND

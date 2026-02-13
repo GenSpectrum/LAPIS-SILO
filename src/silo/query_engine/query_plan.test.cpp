@@ -41,7 +41,7 @@ TEST(QueryPlan, timesOutWhenAnInvalidPlanDoesNotFinish) {
          auto count_options = std::make_shared<arrow::compute::CountOptions>(
             arrow::compute::CountOptions::CountMode::ALL
          );
-         arrow::compute::Aggregate aggregate{
+         const arrow::compute::Aggregate aggregate{
             "hash_count_all", count_options, std::vector<arrow::FieldRef>{}, "count"
          };
          arrow::acero::AggregateNodeOptions aggregate_node_options(

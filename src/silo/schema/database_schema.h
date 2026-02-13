@@ -113,7 +113,9 @@ class TableSchema {
    }
 
    template <storage::column::Column ColumnType>
-   std::optional<typename ColumnType::Metadata*> getColumnMetadata(std::string_view name) const {
+   [[nodiscard]] std::optional<typename ColumnType::Metadata*> getColumnMetadata(
+      std::string_view name
+   ) const {
       auto iter = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
          return metadata_pair.first.name == name;
       });
@@ -146,11 +148,12 @@ class TableSchema {
    }
 };
 
+// NOLINTNEXTLINE(bugprone-exception-escape): false positive in libc++ pair with llvm
 class TableName {
    std::string name;
 
   public:
-   explicit TableName(std::string_view name);
+   explicit TableName(std::string name);
 
    [[nodiscard]] const std::string& getName() const { return name; }
 

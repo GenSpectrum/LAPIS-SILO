@@ -252,7 +252,7 @@ std::unique_ptr<Expression> NOf::rewrite(
    AmbiguityMode mode
 ) const {
    // We cannot easily map ambiguity modes through an exact NOf expression -> rewrite without exact
-   if (mode != NONE && match_exactly && number_of_matchers < static_cast<int>(children.size())) {
+   if (mode != NONE && match_exactly && std::cmp_less(number_of_matchers, children.size())) {
       return rewriteToNonExact(table, table_partition, mode);
    }
 

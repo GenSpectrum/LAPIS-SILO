@@ -50,6 +50,7 @@ TEST(YamlFile, validRoundTrip) {
    }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(YamlFile, containsCorrectFieldsFromFlatYAML) {
    const auto under_test = YamlFile::fromYAML(
                               "inline",
@@ -86,6 +87,7 @@ referenceGenomeFilename: "reference_genomes.json"
    }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(YamlFile, containsCorrectFieldsFromNestedYAML) {
    const auto under_test = YamlFile::fromYAML("inline", R"(
 dataDirectory: "test/directory"
