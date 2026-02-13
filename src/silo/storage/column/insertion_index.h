@@ -4,12 +4,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <regex>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
+#include <re2/re2.h>
 #include <roaring/roaring.hh>
 
 namespace silo::storage::insertion {
@@ -64,11 +64,11 @@ class InsertionPosition {
 
    [[nodiscard]] std::unique_ptr<roaring::Roaring> searchWithThreeMerIndex(
       const std::vector<std::array<typename SymbolType::Symbol, 3>>& search_three_mers,
-      const std::regex& search_pattern
+      const re2::RE2& search_pattern
    ) const;
 
    [[nodiscard]] std::unique_ptr<roaring::Roaring> searchWithRegex(
-      const std::regex& regex_search_pattern
+      const re2::RE2& regex_search_pattern
    ) const;
 
    void buildThreeMerIndex();
