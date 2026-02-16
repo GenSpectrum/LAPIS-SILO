@@ -62,10 +62,16 @@ This filter is true, if the symbol of nucleotide sequence `sequenceName` at posi
 
 #### `DateBetween`: `{"column": string, "from": string | null, "to": string | null}`
 
-This filter is true if the date in column `column` is between `from` and `to`. 
+This filter is true if the date in column `column` is between `from` and `to`.
 If from or to is `null` it will not constrain the dates in that regard. `null` dates will always be excluded.
 
 The `from` and `to` bounds are inclusive.
+
+#### `DateEquals`: `{"column": string, "value": string | null}`
+
+This filter is true if the date in column `column` is equal to `value`.
+If `value` is `null`, this filter matches rows where the date column is `NULL`.
+Date strings must be in `YYYY-MM-DD` format.
 
 #### `HasNucleotideMutation`: `{"position": number, "sequenceName": string}`
 
