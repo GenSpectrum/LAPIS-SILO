@@ -464,7 +464,7 @@ jobs:
             "
 
       - name: Upload wheel as workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wheel-linux-${{ matrix.arch }}
           path: wheelhouse/*.whl
@@ -515,7 +515,7 @@ jobs:
         run: make build-wheel
 
       - name: Upload wheel as workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wheel-macos-arm64
           path: wheelhouse/*.whl
