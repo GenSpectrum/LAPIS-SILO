@@ -19,16 +19,16 @@ SiloDataSource SiloDataSource::checkValidDataSource(
          "Skipping {}. Its name is not a valid data version.", candidate_data_source_path.string()
       );
    }
-   auto data_version_filename = candidate_data_source_path / "data_version.silo";
-   if (!std::filesystem::is_regular_file(data_version_filename)) {
+   auto data_version_filepath = candidate_data_source_path / "data_version.silo";
+   if (!std::filesystem::is_regular_file(data_version_filepath)) {
       throw InvalidSiloDataSourceException(
          "Skipping {}. it does not contain the data version file {}, which "
          "confirms a finished and valid data source",
          candidate_data_source_path.string(),
-         data_version_filename.string()
+         data_version_filepath.string()
       );
    }
-   auto maybe_data_version_in_file = silo::DataVersion::fromFile(data_version_filename);
+   auto maybe_data_version_in_file = silo::DataVersion::fromFile(data_version_filepath);
    if (maybe_data_version_in_file == std::nullopt) {
       throw InvalidSiloDataSourceException(
          "Skipping {}. The data version in data_version.silo could not be parsed",

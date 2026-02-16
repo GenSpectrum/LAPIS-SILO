@@ -32,17 +32,17 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
    );
 
    const auto reference_genomes =
-      silo::ReferenceGenomes::readFromFile(config.initialization_files.getReferenceGenomeFilename()
+      silo::ReferenceGenomes::readFromFile(config.initialization_files.getReferenceGenomeFilepath()
       );
 
    std::map<std::filesystem::path, silo::common::LineageTreeAndIdMap> lineage_trees;
-   for (const auto& filename : config.initialization_files.getLineageDefinitionFilenames()) {
-      lineage_trees[filename] =
-         silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(filename);
+   for (const auto& file_path : config.initialization_files.getLineageDefinitionFilepaths()) {
+      lineage_trees[file_path] =
+         silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(file_path);
    }
 
    silo::common::PhyloTree phylo_tree_file;
-   auto opt_path = config.initialization_files.getPhyloTreeFilename();
+   auto opt_path = config.initialization_files.getPhyloTreeFilepath();
    if (opt_path.has_value()) {
       phylo_tree_file = silo::common::PhyloTree::fromFile(opt_path.value());
    }

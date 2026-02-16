@@ -103,8 +103,8 @@ DataVersion::Timestamp DataVersion::getTimestamp() const {
    return timestamp;
 }
 
-std::optional<DataVersion> DataVersion::fromFile(const std::filesystem::path& filename) {
-   YAML::Node node = YAML::LoadFile(filename);
+std::optional<DataVersion> DataVersion::fromFile(const std::filesystem::path& file_path) {
+   YAML::Node node = YAML::LoadFile(file_path);
    if (!node.IsDefined() || node.IsNull()) {
       return std::nullopt;
    }
@@ -124,7 +124,7 @@ std::optional<DataVersion> DataVersion::fromFile(const std::filesystem::path& fi
       SPDLOG_WARN(
          "The serialization version {} in {} is not a valid 32-bit unsigned integer.",
          node[SERIALIZATION_VERSION_FIELD].as<std::string>(),
-         filename.string()
+         file_path.string()
       );
       return std::nullopt;
    }

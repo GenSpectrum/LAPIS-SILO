@@ -19,11 +19,11 @@ TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
    ASSERT_TRUE(config.input_file.has_value());
    ASSERT_EQ(config.getInputFilePath(), input_directory / "input_file.ndjson");
    ASSERT_EQ(
-      config.initialization_files.getLineageDefinitionFilenames(),
+      config.initialization_files.getLineageDefinitionFilepaths(),
       (std::vector<std::filesystem::path>{input_directory / "lineage_definition.yaml"})
    );
    ASSERT_EQ(
-      config.initialization_files.getPhyloTreeFilename(), input_directory / "phylogenetic_tree.nwk"
+      config.initialization_files.getPhyloTreeFilepath(), input_directory / "phylogenetic_tree.nwk"
    );
 }
 
@@ -47,11 +47,11 @@ duckdbMemoryLimitInG: 8)")
    ASSERT_TRUE(config.input_file.has_value());
    ASSERT_EQ(config.getInputFilePath(), input_directory / "input_file.ndjson");
    ASSERT_EQ(
-      config.initialization_files.getLineageDefinitionFilenames(),
+      config.initialization_files.getLineageDefinitionFilepaths(),
       std::vector<std::filesystem::path>{input_directory / "lineage_definition.yaml"}
    );
    ASSERT_EQ(
-      config.initialization_files.getPhyloTreeFilename(), input_directory / "phylogenetic_tree.yaml"
+      config.initialization_files.getPhyloTreeFilepath(), input_directory / "phylogenetic_tree.yaml"
    );
 
    ASSERT_EQ(config.output_directory, "./output/custom/");

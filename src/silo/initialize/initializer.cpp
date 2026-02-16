@@ -24,24 +24,24 @@ void Initializer::createTableInDatabase(
 ) {
    EVOBENCH_SCOPE("Initializer", "initializeDatabase");
    std::map<std::filesystem::path, common::LineageTreeAndIdMap> lineage_trees;
-   for (const auto& filename : initialization_files.getLineageDefinitionFilenames()) {
-      lineage_trees[filename] =
-         common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(filename);
+   for (const auto& file_path : initialization_files.getLineageDefinitionFilepaths()) {
+      lineage_trees[file_path] =
+         common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(file_path);
    }
 
    common::PhyloTree phylo_tree_file;
-   auto opt_path = initialization_files.getPhyloTreeFilename();
+   auto opt_path = initialization_files.getPhyloTreeFilepath();
    if (opt_path.has_value()) {
       phylo_tree_file = common::PhyloTree::fromFile(opt_path.value());
    }
 
    auto validated_config = config::DatabaseConfig::getValidatedConfigFromFile(
-      initialization_files.getDatabaseConfigFilename()
+      initialization_files.getDatabaseConfigFilepath()
    );
 
    const schema::TableSchema table_schema = createSchemaFromConfigFiles(
       validated_config,
-      ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilename()),
+      ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilepath()),
       lineage_trees,
       phylo_tree_file,
       initialization_files.without_unaligned_sequences

@@ -24,13 +24,13 @@ class InitializationFiles {
 
    std::filesystem::path directory;
 
-   [[nodiscard]] std::filesystem::path getDatabaseConfigFilename() const;
+   [[nodiscard]] std::filesystem::path getDatabaseConfigFilepath() const;
 
-   [[nodiscard]] std::vector<std::filesystem::path> getLineageDefinitionFilenames() const;
+   [[nodiscard]] std::vector<std::filesystem::path> getLineageDefinitionFilepaths() const;
 
-   [[nodiscard]] std::optional<std::filesystem::path> getPhyloTreeFilename() const;
+   [[nodiscard]] std::optional<std::filesystem::path> getPhyloTreeFilepath() const;
 
-   [[nodiscard]] std::filesystem::path getReferenceGenomeFilename() const;
+   [[nodiscard]] std::filesystem::path getReferenceGenomeFilepath() const;
 
    NLOHMANN_DEFINE_TYPE_INTRUSIVE(
       InitializationFiles,

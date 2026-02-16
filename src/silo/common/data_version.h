@@ -52,7 +52,7 @@ class DataVersion {
 
    static DataVersion mineDataVersion();
 
-   static std::optional<DataVersion> fromFile(const std::filesystem::path& filename);
+   static std::optional<DataVersion> fromFile(const std::filesystem::path& file_path);
 
    void saveToFile(const std::filesystem::path& save_file) const;
 
