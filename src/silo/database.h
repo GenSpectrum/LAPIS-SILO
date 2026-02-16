@@ -50,7 +50,7 @@ class Database {
       const std::vector<std::string>& extra_string_columns = {}
    );
 
-   void appendDataFromFile(const std::string& table_name, const std::string& file_name);
+   void appendDataFromFile(const std::string& table_name, const std::string& file_path);
 
    void appendDataFromString(const std::string& table_name, std::string json_string);
 

@@ -159,8 +159,8 @@ void Database::createGeneTable(
    createTable(schema::TableName(table_name), std::move(table_schema));
 }
 
-void Database::appendDataFromFile(const std::string& table_name, const std::string& file_name) {
-   std::ifstream input_stream(file_name);
+void Database::appendDataFromFile(const std::string& table_name, const std::string& file_path) {
+   std::ifstream input_stream(file_path);
    silo::append::NdjsonLineReader input_data{input_stream};
    silo::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
    SPDLOG_INFO("Database info: {}", getDatabaseInfo());
@@ -442,15 +442,15 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
 }
 
 namespace {
-DataVersion loadDataVersion(const std::filesystem::path& filename) {
-   if (!std::filesystem::is_regular_file(filename)) {
-      auto error = fmt::format("Input file {} could not be opened.", filename.string());
+DataVersion loadDataVersion(const std::filesystem::path& file_path) {
+   if (!std::filesystem::is_regular_file(file_path)) {
+      auto error = fmt::format("Input file {} could not be opened.", file_path.string());
       throw persistence::LoadDatabaseException(error);
    }
-   auto data_version = DataVersion::fromFile(filename);
+   auto data_version = DataVersion::fromFile(file_path);
    if (data_version == std::nullopt) {
       auto error_message = fmt::format(
-         "Data version file {} did not contain a valid data version", filename.string()
+         "Data version file {} did not contain a valid data version", file_path.string()
       );
       SPDLOG_ERROR(error_message);
       throw persistence::LoadDatabaseException(error_message);

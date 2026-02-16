@@ -101,11 +101,11 @@ InitializeConfig InitializeConfig::withDefaults() {
 
 void InitializeConfig::validate() const {}
 
-std::filesystem::path InitializationFiles::getDatabaseConfigFilename() const {
+std::filesystem::path InitializationFiles::getDatabaseConfigFilepath() const {
    return directory / database_config_file;
 }
 
-std::vector<std::filesystem::path> InitializationFiles::getLineageDefinitionFilenames() const {
+std::vector<std::filesystem::path> InitializationFiles::getLineageDefinitionFilepaths() const {
    std::vector<std::filesystem::path> paths;
    paths.reserve(lineage_definition_files.size());
    for (const auto& file_name : lineage_definition_files) {
@@ -114,13 +114,13 @@ std::vector<std::filesystem::path> InitializationFiles::getLineageDefinitionFile
    return paths;
 }
 
-std::optional<std::filesystem::path> InitializationFiles::getPhyloTreeFilename() const {
+std::optional<std::filesystem::path> InitializationFiles::getPhyloTreeFilepath() const {
    return phylogenetic_tree_file.has_value()
              ? std::optional(directory / phylogenetic_tree_file.value())
              : std::nullopt;
 }
 
-std::filesystem::path InitializationFiles::getReferenceGenomeFilename() const {
+std::filesystem::path InitializationFiles::getReferenceGenomeFilepath() const {
    return directory / reference_genome_file;
 }
 

@@ -14,7 +14,7 @@ class InputStreamWrapper {
    std::unique_ptr<std::istream> input_stream;
 
   public:
-   explicit InputStreamWrapper(const std::filesystem::path& filename);
+   explicit InputStreamWrapper(const std::filesystem::path& file_path);
    explicit InputStreamWrapper(const std::string& content);
    explicit InputStreamWrapper(std::unique_ptr<std::istream> existing_stream)
        : input_stream(std::move(existing_stream)) {}
@@ -22,7 +22,7 @@ class InputStreamWrapper {
    [[nodiscard]] std::istream& getInputStream() const;
 
    static InputStreamWrapper openFileOrStdIn(
-      const std::optional<std::filesystem::path>& maybe_filename
+      const std::optional<std::filesystem::path>& maybe_file_path
    );
 };
 }  // namespace silo
