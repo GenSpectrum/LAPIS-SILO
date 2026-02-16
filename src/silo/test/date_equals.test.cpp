@@ -90,61 +90,55 @@ nlohmann::json createDateEqualsQuery(const std::string& column, const nlohmann::
 }
 
 // Matches row1 and row3 (both have sorted_date = 2020-12-24)
-const QueryTestScenario SORTED_DATE_MULTIPLE_MATCHES = {
-   .name = "sortedDateMultipleMatches",
-   .query = createDateEqualsQuery("sorted_date", DATE_2020),
-   .expected_query_result = {
-      {{"primaryKey", "row1"}, {"sorted_date", DATE_2020}, {"unsorted_date", DATE_2023}},
-      {{"primaryKey", "row3"}, {"sorted_date", DATE_2020}, {"unsorted_date", DATE_2021}},
-   }
-};
+const QueryTestScenario SORTED_DATE_MULTIPLE_MATCHES =
+   {.name = "sortedDateMultipleMatches",
+    .query = createDateEqualsQuery("sorted_date", DATE_2020),
+    .expected_query_result = {
+       {{"primaryKey", "row1"}, {"sorted_date", DATE_2020}, {"unsorted_date", DATE_2023}},
+       {{"primaryKey", "row3"}, {"sorted_date", DATE_2020}, {"unsorted_date", DATE_2021}},
+    }};
 
 // Matches only row2 (sorted_date = 2021-06-15)
-const QueryTestScenario SORTED_DATE_SINGLE_MATCH = {
-   .name = "sortedDateSingleMatch",
-   .query = createDateEqualsQuery("sorted_date", DATE_2021),
-   .expected_query_result = {
-      {{"primaryKey", "row2"}, {"sorted_date", DATE_2021}, {"unsorted_date", DATE_2020}},
-   }
-};
+const QueryTestScenario SORTED_DATE_SINGLE_MATCH =
+   {.name = "sortedDateSingleMatch",
+    .query = createDateEqualsQuery("sorted_date", DATE_2021),
+    .expected_query_result = {
+       {{"primaryKey", "row2"}, {"sorted_date", DATE_2021}, {"unsorted_date", DATE_2020}},
+    }};
 
 // Matches row1 and null2 (both have unsorted_date = 2023-01-20)
-const QueryTestScenario UNSORTED_DATE_MULTIPLE_MATCHES = {
-   .name = "unsortedDateMultipleMatches",
-   .query = createDateEqualsQuery("unsorted_date", DATE_2023),
-   .expected_query_result = {
-      {{"primaryKey", "row1"}, {"sorted_date", DATE_2020}, {"unsorted_date", DATE_2023}},
-      {{"primaryKey", "null2"}, {"sorted_date", nullptr}, {"unsorted_date", DATE_2023}},
-   }
-};
+const QueryTestScenario UNSORTED_DATE_MULTIPLE_MATCHES =
+   {.name = "unsortedDateMultipleMatches",
+    .query = createDateEqualsQuery("unsorted_date", DATE_2023),
+    .expected_query_result = {
+       {{"primaryKey", "row1"}, {"sorted_date", DATE_2020}, {"unsorted_date", DATE_2023}},
+       {{"primaryKey", "null2"}, {"sorted_date", nullptr}, {"unsorted_date", DATE_2023}},
+    }};
 
 // Matches only row2 (unsorted_date = 2020-12-24)
-const QueryTestScenario UNSORTED_DATE_SINGLE_MATCH = {
-   .name = "unsortedDateSingleMatch",
-   .query = createDateEqualsQuery("unsorted_date", DATE_2020),
-   .expected_query_result = {
-      {{"primaryKey", "row2"}, {"sorted_date", DATE_2021}, {"unsorted_date", DATE_2020}},
-   }
-};
+const QueryTestScenario UNSORTED_DATE_SINGLE_MATCH =
+   {.name = "unsortedDateSingleMatch",
+    .query = createDateEqualsQuery("unsorted_date", DATE_2020),
+    .expected_query_result = {
+       {{"primaryKey", "row2"}, {"sorted_date", DATE_2021}, {"unsorted_date", DATE_2020}},
+    }};
 
 // Matches null1 and null2 (both have sorted_date = null)
-const QueryTestScenario SORTED_DATE_NULL = {
-   .name = "sortedDateNull",
-   .query = createDateEqualsQuery("sorted_date", nullptr),
-   .expected_query_result = {
-      {{"primaryKey", "null1"}, {"sorted_date", nullptr}, {"unsorted_date", nullptr}},
-      {{"primaryKey", "null2"}, {"sorted_date", nullptr}, {"unsorted_date", DATE_2023}},
-   }
-};
+const QueryTestScenario SORTED_DATE_NULL =
+   {.name = "sortedDateNull",
+    .query = createDateEqualsQuery("sorted_date", nullptr),
+    .expected_query_result = {
+       {{"primaryKey", "null1"}, {"sorted_date", nullptr}, {"unsorted_date", nullptr}},
+       {{"primaryKey", "null2"}, {"sorted_date", nullptr}, {"unsorted_date", DATE_2023}},
+    }};
 
 // Matches only null1 (unsorted_date = null)
-const QueryTestScenario UNSORTED_DATE_NULL = {
-   .name = "unsortedDateNull",
-   .query = createDateEqualsQuery("unsorted_date", nullptr),
-   .expected_query_result = {
-      {{"primaryKey", "null1"}, {"sorted_date", nullptr}, {"unsorted_date", nullptr}},
-   }
-};
+const QueryTestScenario UNSORTED_DATE_NULL =
+   {.name = "unsortedDateNull",
+    .query = createDateEqualsQuery("unsorted_date", nullptr),
+    .expected_query_result = {
+       {{"primaryKey", "null1"}, {"sorted_date", nullptr}, {"unsorted_date", nullptr}},
+    }};
 
 const QueryTestScenario DATE_EQUALS_NO_MATCH = {
    .name = "dateEqualsNoMatch",
