@@ -15,6 +15,7 @@
 #include "silo/api/active_database.h"
 #include "silo/api/bad_request.h"
 #include "silo/api/error_request_handler.h"
+#include "silo/query_engine/exec_node/arrow_ipc_sink.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/query.h"
@@ -56,14 +57,33 @@ void QueryHandler::post(
       auto query_plan = database->createQueryPlan(*query, query_options, request_id);
 
       response.set("data-version", database->getDataVersionTimestamp().value);
-      response.setContentType("application/x-ndjson");
-      std::ostream& output_stream = response.send();
-      query_engine::exec_node::NdjsonSink output_sink{&output_stream, query_plan.results_schema};
 
-      // This function is not inside executeAndWrite, because we need the context from query->action
-      EVOBENCH_SCOPE("QueryPlan", "executeAndWrite");
-      EVOBENCH_KEY_VALUE("of query_type", query->action->getType());
-      query_plan.executeAndWrite(output_sink, DEFAULT_TIMEOUT_TWO_MINUTES);
+      const std::string accept_header = request.has("Accept") ? request.get("Accept") : "";
+      const bool use_arrow_ipc =
+         accept_header.find("application/vnd.apache.arrow.stream") != std::string::npos;
+
+      if (use_arrow_ipc) {
+         response.setContentType("application/vnd.apache.arrow.stream");
+         std::ostream& output_stream = response.send();
+         auto result =
+            query_engine::exec_node::ArrowIpcSink::make(&output_stream, query_plan.results_schema);
+         if (!result.ok()) {
+            throw std::runtime_error(result.status().ToString());
+         }
+         auto output_sink = std::move(result).ValueUnsafe();
+
+         EVOBENCH_SCOPE("QueryPlan", "executeAndWrite");
+         EVOBENCH_KEY_VALUE("of query_type", query->action->getType());
+         query_plan.executeAndWrite(output_sink, DEFAULT_TIMEOUT_TWO_MINUTES);
+      } else {
+         response.setContentType("application/x-ndjson");
+         std::ostream& output_stream = response.send();
+         query_engine::exec_node::NdjsonSink output_sink{&output_stream, query_plan.results_schema};
+
+         EVOBENCH_SCOPE("QueryPlan", "executeAndWrite");
+         EVOBENCH_KEY_VALUE("of query_type", query->action->getType());
+         query_plan.executeAndWrite(output_sink, DEFAULT_TIMEOUT_TWO_MINUTES);
+      }
    } catch (const silo::query_engine::IllegalQueryException& ex) {
       throw BadRequest(ex.what());
    }
