@@ -13,16 +13,11 @@ RUN python3 -m pipx ensurepath
 # This line tells it to execute all subsequent commands with a prior login
 SHELL ["/bin/bash", "--login", "-c"]
 
-RUN python3 -m pipx install conan==2.16.1
 RUN python3 -m pipx install uv==0.10.2
 
 WORKDIR /src
-COPY conanfile.py conanprofile.docker conanprofile.docker_arm ./
-RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
-        mv conanprofile.docker_arm conanprofile; \
-    else \
-        mv conanprofile.docker conanprofile; \
-    fi
+COPY conanfile.py ./
+COPY buildScripts/ ./buildScripts/
 
-RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --output-folder=build/Release/generators
-RUN conan install . --build=missing --profile ./conanprofile --profile:build ./conanprofile --settings "&:build_type=Debug" --output-folder=build/Debug/generators
+RUN bash buildScripts/create-conanprofile
+RUN bash buildScripts/install-dependencies
