@@ -35,7 +35,6 @@ docker run --rm \
       echo "Checking file: $file"
       if [[ $file == src/*.cpp ]]; then
         echo "Now linting the file: $file"
-        target=$(basename "${file%.cpp}.o")
-        cmake --build build/Debug --target ${file%.cpp}.o
+        cmake --build build/Debug --target CMakeFiles/silolib.dir/${file}.o
       fi
     done'
