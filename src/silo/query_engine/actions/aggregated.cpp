@@ -110,13 +110,13 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
       }
       already_produced = true;
 
-      int32_t result_count = 0;
+      int64_t result_count = 0;
 
       for (const auto& partition_filter : partition_filters) {
-         result_count += static_cast<int32_t>(partition_filter.getConstReference().cardinality());
+         result_count += static_cast<int64_t>(partition_filter.getConstReference().cardinality());
       }
 
-      arrow::Int32Builder result_builder{};
+      arrow::Int64Builder result_builder{};
       ARROW_RETURN_NOT_OK(result_builder.Append(result_count));
 
       arrow::Datum datum;
