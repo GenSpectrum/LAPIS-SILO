@@ -69,7 +69,7 @@ The build process:
 ### Usage
 
 ```python
-from pysilo import Database
+from silodb import Database
 
 # Create a new database
 db = Database()

@@ -71,7 +71,7 @@ class build_ext(_build_ext):
 
         # Install directly to setuptools' build_lib directory
         # This way setuptools finds the files without manual copying
-        install_prefix = pjoin(build_lib, "pysilo")
+        install_prefix = pjoin(build_lib, "silodb")
 
         # Configuration name (e.g., Debug, Release)
         config_name = self.build_type.capitalize()
@@ -146,7 +146,7 @@ class build_ext(_build_ext):
     def _get_build_dir(self):
         """Get the package directory from build_py command"""
         build_py = self.get_finalized_command('build_py')
-        return build_py.get_package_dir('pysilo')
+        return build_py.get_package_dir('silodb')
 
     def get_outputs(self):
         """Returns the list of built extension files (.so/.pyd)"""
@@ -162,13 +162,13 @@ class BinaryDistribution(Distribution):
         return True
 
 setup(
-    name="pysilo",
+    name="silodb",
     version="0.1.0",
-    packages=["pysilo"],
-    package_dir={"pysilo": "python/pysilo"},
+    packages=["silodb"],
+    package_dir={"silodb": "python/silodb"},
     
     package_data={
-        "pysilo": [
+        "silodb": [
             "*.so", "*.pyd", # Compiled extensions
             "*.pxd", "*.pyx", # Cython source headers
             "libsilolib.so" # Core C++ library

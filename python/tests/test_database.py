@@ -30,16 +30,16 @@ def main_reference_sequence(reference_genomes):
 
 
 class TestDatabaseImport:
-    """Test that the pysilo module can be imported correctly."""
+    """Test that the silodb module can be imported correctly."""
 
     def test_import_database(self):
-        """Test that Database can be imported from pysilo."""
-        from pysilo import Database
+        """Test that Database can be imported from silodb."""
+        from silodb import Database
         assert Database is not None
 
     def test_import_pydatabase(self):
-        """Test that PyDatabase can be imported from pysilo.database."""
-        from pysilo.database import PyDatabase
+        """Test that PyDatabase can be imported from silodb.database."""
+        from silodb.database import PyDatabase
         assert PyDatabase is not None
 
 
@@ -48,7 +48,7 @@ class TestDatabaseCreation:
 
     def test_create_empty_database(self):
         """Test creating an empty database."""
-        from pysilo import Database
+        from silodb import Database
         db = Database()
         assert db is not None
 
@@ -78,7 +78,7 @@ class TestDatabaseCreation:
 
     def test_database_context_manager(self):
         """Test that database can be used as a context manager."""
-        from pysilo import Database
+        from silodb import Database
         with Database() as db:
             assert db is not None
 
@@ -334,7 +334,7 @@ class TestSaveAndLoadCheckpoint:
 
     def test_load_from_checkpoint(self, empty_database, main_reference_sequence, temp_dir):
         """Test loading a database from a checkpoint."""
-        from pysilo import Database
+        from silodb import Database
 
         # Create and save
         empty_database.create_nucleotide_sequence_table(
@@ -358,7 +358,7 @@ class TestSaveAndLoadCheckpoint:
 
     def test_checkpoint_preserves_data(self, empty_database, main_reference_sequence, temp_dir):
         """Test that checkpoint preserves all data correctly."""
-        from pysilo import Database
+        from silodb import Database
 
         # Create, add data, and save
         empty_database.create_nucleotide_sequence_table(
@@ -500,7 +500,7 @@ class TestDatabaseLoad:
 
     def test_load_nonexistent_path(self):
         """Test that loading from nonexistent path raises FileNotFoundError."""
-        from pysilo import Database
+        from silodb import Database
         with pytest.raises(FileNotFoundError):
             Database("/nonexistent/path/to/database")
 
@@ -533,7 +533,7 @@ class TestExtraColumns:
 
     def test_create_table_with_extra_columns(self):
         """Test creating a table with extra string columns."""
-        from pysilo import Database
+        from silodb import Database
 
         db = Database()
         db.create_nucleotide_sequence_table(
@@ -547,7 +547,7 @@ class TestExtraColumns:
 
     def test_extra_columns_accept_data(self):
         """Test that extra columns can store and retrieve data."""
-        from pysilo import Database
+        from silodb import Database
 
         db = Database()
         db.create_nucleotide_sequence_table(
@@ -571,7 +571,7 @@ class TestExtraColumns:
 
     def test_extra_columns_default_empty(self):
         """Test that extra_columns defaults to empty (backward compatible)."""
-        from pysilo import Database
+        from silodb import Database
 
         db = Database()
         # Call without extra_columns - should work as before
@@ -589,7 +589,7 @@ class TestExtraColumns:
 
     def test_extra_columns_with_none(self):
         """Test that extra_columns=None works."""
-        from pysilo import Database
+        from silodb import Database
 
         db = Database()
         db.create_nucleotide_sequence_table(
@@ -607,7 +607,7 @@ class TestExtraColumns:
 
     def test_extra_columns_invalid_type_raises(self):
         """Test that non-string extra columns raise TypeError."""
-        from pysilo import Database
+        from silodb import Database
 
         db = Database()
         with pytest.raises(TypeError, match="extra_columns must contain strings"):
@@ -621,7 +621,7 @@ class TestExtraColumns:
 
     def test_gene_table_with_extra_columns(self):
         """Test creating a gene table with extra columns."""
-        from pysilo import Database
+        from silodb import Database
 
         db = Database()
         db.create_gene_table(
@@ -833,7 +833,7 @@ class TestExecuteQuery:
 
     def test_execute_query_simple_database(self):
         """Test execute_query with a simple in-memory database."""
-        from pysilo import Database
+        from silodb import Database
 
         db = Database()
         db.create_nucleotide_sequence_table(
@@ -858,7 +858,7 @@ class TestExecuteQuery:
 
     def test_execute_query_preserves_data_after_checkpoint(self, empty_database, main_reference_sequence, temp_dir):
         """Test that execute_query works correctly after loading from checkpoint."""
-        from pysilo import Database
+        from silodb import Database
 
         # Create and populate database
         empty_database.create_nucleotide_sequence_table(

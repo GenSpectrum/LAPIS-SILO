@@ -5,7 +5,7 @@
 
 ### Features
 
-* **pysilo:** release python bindings as release artifacts ([1117dde](https://github.com/GenSpectrum/LAPIS-SILO/commit/1117ddeaa6b6a1afc11c3cf61b67bc5a21da4c13))
+* **silodb:** release python bindings as release artifacts ([1117dde](https://github.com/GenSpectrum/LAPIS-SILO/commit/1117ddeaa6b6a1afc11c3cf61b67bc5a21da4c13))
 
 ## [0.9.9](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.8...v0.9.9) (2026-02-11)
 

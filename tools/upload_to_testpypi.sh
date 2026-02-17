@@ -29,7 +29,7 @@ else
     echo "Version check: $VERSION (tag: $GIT_TAG) ✓"
 fi
 
-echo "=== Building and uploading pysilo to PyPI ==="
+echo "=== Building and uploading silodb to PyPI ==="
 
 # Check if wheelhouse already contains wheels
 if [ -d "wheelhouse" ] && ls wheelhouse/*.whl &>/dev/null; then
@@ -60,8 +60,8 @@ fi
 echo "Step 3: Repairing wheel with auditwheel..."
 mkdir -p wheelhouse
 
-# Find the most recent pysilo wheel in dist/
-WHEEL=$(ls -t dist/pysilo-*.whl 2>/dev/null | head -n 1)
+# Find the most recent silodb wheel in dist/
+WHEEL=$(ls -t dist/silodb-*.whl 2>/dev/null | head -n 1)
 
 if [ -z "$WHEEL" ]; then
     echo "ERROR: No wheel file found in dist/"
@@ -87,4 +87,4 @@ twine upload --repository testpypi wheelhouse/*
 echo ""
 echo "✓ Uploaded to TestPyPI!"
 echo "Test install with:"
-echo "  pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pysilo"
+echo "  pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ silodb"
