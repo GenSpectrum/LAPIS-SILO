@@ -23,10 +23,10 @@ ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 	touch ${DEPENDENCIES_FLAG}
 
 build/Debug/build.ninja: ${DEPENDENCIES_FLAG}
-	cmake -B build/Debug -D CMAKE_BUILD_TYPE=Debug
+	cmake -G Ninja -B build/Debug -D CMAKE_BUILD_TYPE=Debug
 
 build/Release/build.ninja: ${DEPENDENCIES_FLAG}
-	cmake -B build/Release -D CMAKE_BUILD_TYPE=Release
+	cmake -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
 
 ${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
 	cmake --build build/Debug --parallel 16

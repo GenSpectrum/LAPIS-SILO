@@ -7,5 +7,5 @@ WORKDIR /src
 
 COPY . ./
 
-RUN cmake -D BUILD_WITH_CLANG_TIDY=ON -D CMAKE_BUILD_TYPE=Debug -B build/Debug
+RUN cmake -G Ninja -D BUILD_WITH_CLANG_TIDY=ON -D CMAKE_BUILD_TYPE=Debug -B build/Debug
 RUN cmake --build build/Debug --target silo --parallel $THREADS
