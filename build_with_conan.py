@@ -51,7 +51,7 @@ def main(args):
             "conan install . --update --build=missing --profile ./conanprofile --profile:build ./conanprofile " + " ".join(
                 conan_options))
 
-    run_cmd("CMake", "cmake " + " ".join(cmake_options) + f" -B {build_folder}")
+    run_cmd("CMake", "cmake -G Ninja " + " ".join(cmake_options) + f" -B {build_folder}")
 
     run_cmd("CMake build", f"cmake --build {build_folder} --parallel {args.parallel}")
 

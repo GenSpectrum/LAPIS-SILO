@@ -30,7 +30,7 @@ docker run --rm \
   -e files="$files" \
   "$DOCKER_IMAGE" \
   /bin/bash -c '
-    cmake -D BUILD_WITH_CLANG_TIDY=ON -D CMAKE_BUILD_TYPE=Debug -B build/Debug
+    cmake -G Ninja -D BUILD_WITH_CLANG_TIDY=ON -D CMAKE_BUILD_TYPE=Debug -B build/Debug
     for file in $files; do
       echo "Checking file: $file"
       if [[ $file == src/*.cpp ]]; then
