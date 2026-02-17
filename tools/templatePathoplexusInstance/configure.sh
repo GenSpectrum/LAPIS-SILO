@@ -3,7 +3,7 @@ set -euo pipefail
 
 ORGANISM="$1"
 
-OUTDIR="../../testBaseData/ppxData/${ORGANISM}"
+OUTDIR="../../localTestData/ppxData/${ORGANISM}"
 mkdir -p "$OUTDIR"
 
 # Get data from Loculus backend
