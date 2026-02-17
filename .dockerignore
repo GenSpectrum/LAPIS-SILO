@@ -3,8 +3,8 @@
 !docker_runtime_config.yaml
 !CMakeLists.txt
 !build_with_conan.py
-!conanprofile.docker
-!conanprofile.docker_arm
+!buildScripts/
+!Makefile
 !conanfile.py
 !.clang-tidy
 !src/

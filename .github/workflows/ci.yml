@@ -44,7 +44,7 @@ jobs:
 
       - name: Generate dependency files hash
         run: |
-          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'conanprofile.docker', './Dockerfile_dependencies') }})
+          DIR_HASH=$(echo -n ${{ hashFiles('conanfile.py', 'buildScripts/install-dependencies', 'buildScripts/create-conanprofile', './Dockerfile_dependencies') }})
           echo "DIR_HASH=$DIR_HASH" >> $GITHUB_ENV
 
       - name: Check if dependency image exists
@@ -452,7 +452,8 @@ jobs:
               mv /src/conanprofile .
 
               # Build the C++ project
-              python3 ./build_with_conan.py --release --parallel 4
+              export CMAKE_BUILD_PARALLEL_LEVEL=4
+              make build/Release/silo
 
               # Build the wheel
               rm -rf dist
