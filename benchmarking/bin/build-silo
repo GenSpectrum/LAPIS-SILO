@@ -6,16 +6,12 @@ cd ..
 
 set -x
 
-if ! [ -e conanprofile ]; then
-    cp conanprofile.example conanprofile
-fi
-
 case "$BUILD" in
     Release)
-        python3 build_with_conan.py --release
+        make build/Release/silo
         ;;
     Debug)
-        python3 build_with_conan.py --debug
+        make build/Debug/silo
         ;;
     *)
         echo "invalid BUILD value '$BUILD'"

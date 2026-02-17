@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+./buildScripts/ensure-uv
+
+uv run --project buildScripts conan profile detect || true
+uv run --project buildScripts conan profile show --context build > conanprofile

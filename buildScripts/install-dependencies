@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+./buildScripts/ensure-uv
+
+# TODO(#986) remove setting 'arrow/*:compiler.cppstd=20' when arrow compilation for C++23 is fixed
+uv run --project buildScripts conan install . --update \
+  --build=missing \
+  --profile ./conanprofile --profile:build ./conanprofile \
+  --settings '&:build_type=Debug' --settings 'arrow/*:compiler.cppstd=20' \
+  --output-folder=build/Debug/generators
+# TODO(#986) remove setting 'arrow/*:compiler.cppstd=20' when arrow compilation for C++23 is fixed
+uv run --project buildScripts conan install . --update \
+  --build=missing \
+  --profile ./conanprofile --profile:build ./conanprofile \
+  --settings 'arrow/*:compiler.cppstd=20' \
+  --output-folder=build/Release/generators
