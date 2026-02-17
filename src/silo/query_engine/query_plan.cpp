@@ -120,7 +120,6 @@ arrow::Status QueryPlan::executeAndWriteImpl(
          optional_batch.value().length
       );
 
-      // TODO(#764) make output format configurable
       ARROW_RETURN_NOT_OK(output_sink.writeBatch(optional_batch.value()));
    };
    ARROW_RETURN_NOT_OK(output_sink.finish());
