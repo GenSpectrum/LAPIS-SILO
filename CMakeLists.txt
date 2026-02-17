@@ -205,8 +205,8 @@ if(BUILD_PYTHON_BINDINGS)
 
     # Build each Cython module
     foreach(module ${CYTHON_MODULES})
-        set(pyx_file "${CMAKE_SOURCE_DIR}/python/pysilo/${module}.pyx")
-        set(cpp_file "${CMAKE_BINARY_DIR}/python/pysilo/${module}.cpp")
+        set(pyx_file "${CMAKE_SOURCE_DIR}/python/silodb/${module}.pyx")
+        set(cpp_file "${CMAKE_BINARY_DIR}/python/silodb/${module}.cpp")
 
         # Run Cython to generate C++ file
         add_custom_command(
@@ -214,7 +214,7 @@ if(BUILD_PYTHON_BINDINGS)
             COMMAND ${Python3_EXECUTABLE} -m cython
                 --cplus
                 -3
-                -I "${CMAKE_SOURCE_DIR}/python/pysilo"
+                -I "${CMAKE_SOURCE_DIR}/python/silodb"
                 -o ${cpp_file}
                 ${pyx_file}
             DEPENDS ${pyx_file}
@@ -227,7 +227,7 @@ if(BUILD_PYTHON_BINDINGS)
         # Set include directories
         target_include_directories(${module} PRIVATE
             ${CMAKE_SOURCE_DIR}/src
-            ${CMAKE_SOURCE_DIR}/python/pysilo
+            ${CMAKE_SOURCE_DIR}/python/silodb
         )
 
         # Link against silolib
@@ -237,18 +237,18 @@ if(BUILD_PYTHON_BINDINGS)
         set_target_properties(${module} PROPERTIES
             PREFIX ""
             OUTPUT_NAME "${module}"
-            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/pysilo"
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/silodb"
         )
 
         # Install to Python package directory
-        # Note: CMAKE_INSTALL_PREFIX is set by setup.py to point to the pysilo directory
+        # Note: CMAKE_INSTALL_PREFIX is set by setup.py to point to the silodb directory
         install(TARGETS ${module}
             LIBRARY DESTINATION .
         )
     endforeach()
 
     # Install Python package files
-    install(FILES "${CMAKE_SOURCE_DIR}/python/pysilo/__init__.py"
+    install(FILES "${CMAKE_SOURCE_DIR}/python/silodb/__init__.py"
         DESTINATION .
     )
 endif()

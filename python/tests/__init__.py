@@ -1,1 +1,1 @@
-# Python tests for pysilo
+# Python tests for silodb

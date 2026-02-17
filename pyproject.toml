@@ -7,7 +7,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pysilo"
+name = "silodb"
 dynamic = ["version"]
 description = "Python bindings for SILO - high-performance sequence database"
 readme = "README.md"

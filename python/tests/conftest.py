@@ -15,5 +15,5 @@ def temp_dir():
 @pytest.fixture
 def empty_database():
     """Create an empty database instance."""
-    from pysilo import Database
+    from silodb import Database
     return Database()
