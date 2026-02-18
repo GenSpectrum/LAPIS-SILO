@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.11](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.10...v0.9.11) (2026-02-18)
+
+
+### Bug Fixes
+
+* **silo:** error if a user tries to insert invalid insertion positions ([ad7ef81](https://github.com/GenSpectrum/LAPIS-SILO/commit/ad7ef815948584c3dde980f58b81506a08bf2627))
+
 ## [0.9.10](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.9...v0.9.10) (2026-02-12)
 
 
