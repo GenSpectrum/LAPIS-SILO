@@ -53,6 +53,7 @@ class SequenceColumnPartition {
    using Metadata = SequenceColumnMetadata<SymbolType>;
 
    static constexpr schema::ColumnType TYPE = SymbolType::COLUMN_TYPE;
+   using value_type = void;
 
   private:
    friend class boost::serialization::access;

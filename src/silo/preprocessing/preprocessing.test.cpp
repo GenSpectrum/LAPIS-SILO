@@ -1012,7 +1012,7 @@ schema:
 )",
    .assertion{
       .error_message =
-         R"(preprocessing - exception when appending data: When trying to get string value of column 'accessionVersion' got error: INCORRECT_TYPE: The JSON element does not have the requested type. - current line: {"accessionVersion":0})"
+         R"(preprocessing - exception when appending data: error inserting into column 'accessionVersion': error getting value as string: 0. INCORRECT_TYPE: The JSON element does not have the requested type. - current line: {"accessionVersion":0})"
    }
 };
 

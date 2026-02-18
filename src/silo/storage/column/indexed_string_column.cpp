@@ -5,7 +5,6 @@
 #include <fmt/format.h>
 
 #include "silo/common/bidirectional_string_map.h"
-#include "silo/preprocessing/preprocessing_exception.h"
 
 namespace silo::storage::column {
 
@@ -50,13 +49,13 @@ std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(
    return filter(value_id.value());
 }
 
-void IndexedStringColumnPartition::insert(std::string_view value) {
+std::expected<void, std::string> IndexedStringColumnPartition::insert(std::string_view value) {
    const size_t row_id = value_ids.size();
 
    if (lineage_index.has_value()) {
       const auto value_id = metadata->dictionary.getId(value);
       if (!value_id.has_value()) {
-         throw silo::preprocessing::PreprocessingException(fmt::format(
+         return std::unexpected(fmt::format(
             "The value '{}' is not a valid lineage value for column '{}'. "
             "Is your lineage definition file outdated?",
             value,
@@ -70,6 +69,7 @@ void IndexedStringColumnPartition::insert(std::string_view value) {
 
    indexed_values[value_id].add(row_id);
    value_ids.push_back(value_id);
+   return {};
 }
 
 void IndexedStringColumnPartition::insertNull() {

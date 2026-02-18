@@ -19,6 +19,8 @@ concept Column = requires(T column) {
 
    requires std::is_constructible_v<T, typename T::Metadata*>;
 
+   typename T::value_type;
+
    { column.numValues() } -> std::convertible_to<std::size_t>;
 
    { T::TYPE } -> std::convertible_to<schema::ColumnType>;

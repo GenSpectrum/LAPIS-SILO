@@ -152,42 +152,44 @@ std::expected<void, std::string> insertToSequenceColumn(
       columns.getColumns<column::SequenceColumnPartition<SymbolType>>().at(column.name);
    bool is_null;
    auto error = value.is_null().get(is_null);
-   RAISE_STRING_ERROR_WITH_CONTEXT(
-      error, value, "When checking column field '{}' for null got error: {}", column.name
-   );
+   RAISE_STRING_ERROR_WITH_CONTEXT(error, value, "error checking value for null: {}");
    if (is_null) {
       sequence_column.appendNull();
       return {};
    }
    std::string_view sequence;
    error = value["sequence"].get(sequence);
-   RAISE_STRING_ERROR_WITH_CONTEXT(
-      error, value, "When getting field 'sequence' in column field '{}' got error: {}", column.name
-   );
+   RAISE_STRING_ERROR_WITH_CONTEXT(error, value, "error getting field 'sequence' in object: {}");
    uint32_t offset = 0;
    auto offset_in_file = value["offset"];
    if (!offset_in_file.error()) {
       error = offset_in_file.get<uint32_t>().get(offset);
-      RAISE_STRING_ERROR_WITH_CONTEXT(
-         error,
-         value,
-         "When getting field 'offset' as uint32_t in column field '{}' got error: {}",
-         column.name
-      );
+      RAISE_STRING_ERROR_WITH_CONTEXT(error, value, "error getting field 'offset' in object: {}");
    }
    std::vector<std::string> insertions;
    error = value["insertions"].get(insertions);
-   RAISE_STRING_ERROR_WITH_CONTEXT(
-      error,
-      value,
-      "When getting field 'insertions' in column field '{}' got error: {}",
-      column.name
-   );
+   RAISE_STRING_ERROR_WITH_CONTEXT(error, value, "error getting field 'insertions' in object: {}");
    sequence_column.append(std::move(sequence), offset, std::move(insertions));
    return {};
 }
 
 class ColumnValueInserter {
+  private:
+   template <typename T>
+   static constexpr std::string_view valueTypeName() {
+      if constexpr (std::is_same_v<T, bool>) {
+         return "boolean";
+      } else if constexpr (std::is_same_v<T, int32_t>) {
+         return "int32";
+      } else if constexpr (std::is_same_v<T, double>) {
+         return "double";
+      } else if constexpr (std::is_same_v<T, std::string_view>) {
+         return "string";
+      } else {
+         static_assert(!std::is_same_v<T, T>, "Unhandled value_type in valueTypeName");
+      }
+   }
+
   public:
    template <column::Column ColumnType>
    std::expected<void, std::string> operator()(
@@ -197,94 +199,43 @@ class ColumnValueInserter {
    ) {
       bool is_null;
       auto error = value.is_null().get(is_null);
-      RAISE_STRING_ERROR_WITH_CONTEXT(
-         error, value, "When checking column field '{}' for null got error: {}", column.name
-      );
+      RAISE_STRING_ERROR_WITH_CONTEXT(error, value, "error checking value for null: {}");
       if (is_null) {
          columns.getColumns<ColumnType>().at(column.name).insertNull();
       } else {
-         std::string_view column_value;
+         typename ColumnType::value_type column_value;
          error = value.get(column_value);
          RAISE_STRING_ERROR_WITH_CONTEXT(
             error,
             value,
-            "When trying to get string value of column '{}' got error: {}",
-            column.name
+            "error getting value as {}: {}. {}",
+            valueTypeName<typename ColumnType::value_type>(),
+            value.raw_json_token()
          );
-         columns.getColumns<ColumnType>().at(column.name).insert(column_value);
+         return columns.getColumns<ColumnType>().at(column.name).insert(column_value);
       }
       return {};
    }
 };
 
 template <>
-std::expected<void, std::string> ColumnValueInserter::operator()<column::BoolColumnPartition>(
+std::expected<void, std::string> ColumnValueInserter::operator()<column::DateColumnPartition>(
    ColumnPartitionGroup& columns,
    const schema::ColumnIdentifier& column,
    simdjson::ondemand::value& value
 ) {
    bool is_null;
    auto error = value.is_null().get(is_null);
-   RAISE_STRING_ERROR_WITH_CONTEXT(
-      error, value, "When checking column field '{}' for null got error: {}", column.name
-   );
+   RAISE_STRING_ERROR_WITH_CONTEXT(error, value, "error checking value for null: {}");
    if (is_null) {
-      columns.getColumns<column::BoolColumnPartition>().at(column.name).insertNull();
+      columns.getColumns<column::DateColumnPartition>().at(column.name).insertNull();
    } else {
-      bool column_value;
+      std::string_view column_value;
       error = value.get(column_value);
       RAISE_STRING_ERROR_WITH_CONTEXT(
-         error, value, "When trying to get bool value of column '{}' got error: {}", column.name
+         error, value, "error getting value as string: {}. {}", value.raw_json_token()
       );
-      columns.getColumns<column::BoolColumnPartition>().at(column.name).insert(column_value);
-   }
-   return {};
-}
-
-template <>
-std::expected<void, std::string> ColumnValueInserter::operator()<column::IntColumnPartition>(
-   ColumnPartitionGroup& columns,
-   const schema::ColumnIdentifier& column,
-   simdjson::ondemand::value& value
-) {
-   bool is_null;
-   auto error = value.is_null().get(is_null);
-   RAISE_STRING_ERROR_WITH_CONTEXT(
-      error, value, "When checking column field '{}' for null got error: {}", column.name
-   );
-   if (is_null) {
-      columns.getColumns<column::IntColumnPartition>().at(column.name).insertNull();
-   } else {
-      int32_t column_value;
-      error = value.get(column_value);
-      RAISE_STRING_ERROR_WITH_CONTEXT(
-         error, value, "When trying to get int32_t value of column '{}' got error: {}", column.name
-      );
-      columns.getColumns<column::IntColumnPartition>().at(column.name).insert(column_value);
-   }
-   return {};
-}
-
-template <>
-std::expected<void, std::string> ColumnValueInserter::operator()<column::FloatColumnPartition>(
-   ColumnPartitionGroup& columns,
-   const schema::ColumnIdentifier& column,
-   simdjson::ondemand::value& value
-) {
-   bool is_null;
-   auto error = value.is_null().get(is_null);
-   RAISE_STRING_ERROR_WITH_CONTEXT(
-      error, value, "When checking column field '{}' for null got error: {}", column.name
-   );
-   if (is_null) {
-      columns.getColumns<column::FloatColumnPartition>().at(column.name).insertNull();
-   } else {
-      double column_value;
-      error = value.get(column_value);
-      RAISE_STRING_ERROR_WITH_CONTEXT(
-         error, value, "When trying to get double value of column '{}' got error: {}", column.name
-      );
-      columns.getColumns<column::FloatColumnPartition>().at(column.name).insert(column_value);
+      return columns.getColumns<column::DateColumnPartition>().at(column.name).insert(column_value);
    }
    return {};
 }
@@ -316,7 +267,13 @@ std::expected<void, std::string> ColumnPartitionGroup::addJsonValueToColumn(
    simdjson::ondemand::value& value
 ) {
    EVOBENCH_SCOPE_EVERY(1000, "ColumnPartitionGroup", "addJsonValueToColumn");
-   return column::visit(column.type, ColumnValueInserter{}, *this, column, value);
+   auto success = column::visit(column.type, ColumnValueInserter{}, *this, column, value);
+   if (!success.has_value()) {
+      return std::unexpected(
+         fmt::format("error inserting into column '{}': {}", column.name, success.error())
+      );
+   }
+   return success;
 }
 
 }  // namespace silo::storage

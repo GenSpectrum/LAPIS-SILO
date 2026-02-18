@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <deque>
+#include <expected>
 #include <memory>
 #include <optional>
 #include <string>
@@ -60,6 +61,7 @@ class IndexedStringColumnPartition {
    using Metadata = IndexedStringColumnMetadata;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::INDEXED_STRING;
+   using value_type = std::string_view;
 
    Metadata* metadata;
 
@@ -77,7 +79,7 @@ class IndexedStringColumnPartition {
       const std::optional<std::string>& value
    ) const;
 
-   void insert(std::string_view value);
+   [[nodiscard]] std::expected<void, std::string> insert(std::string_view value);
 
    void insertNull();
 

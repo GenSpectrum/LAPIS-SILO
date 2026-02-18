@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
+#include <string_view>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
@@ -31,7 +33,7 @@ class DateColumnPartition {
 
    [[nodiscard]] bool isSorted() const;
 
-   void insert(std::string_view value);
+   [[nodiscard]] std::expected<void, std::string> insert(std::string_view value);
 
    void insertNull();
 
