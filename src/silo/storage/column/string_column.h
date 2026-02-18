@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <optional>
 #include <string>
@@ -75,7 +76,7 @@ class StringColumnPartition {
   public:
    explicit StringColumnPartition(Metadata* metadata);
 
-   void insert(std::string_view value);
+   [[nodiscard]] std::expected<void, std::string> insert(std::string_view value);
 
    void insertNull();
 

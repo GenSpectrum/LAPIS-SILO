@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <string>
 
 #include <boost/serialization/access.hpp>
@@ -33,6 +34,7 @@ class ZstdCompressedStringColumnPartition {
    using Metadata = ZstdCompressedStringColumnMetadata;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::ZSTD_COMPRESSED_STRING;
+   using value_type = std::string_view;
 
   private:
    std::vector<std::string> values;
@@ -44,7 +46,7 @@ class ZstdCompressedStringColumnPartition {
 
    void reserve(size_t row_count);
    void insertNull();
-   void insert(std::string_view value);
+   [[nodiscard]] std::expected<void, std::string> insert(std::string_view value);
 
    [[nodiscard]] size_t numValues() const { return values.size(); }
 

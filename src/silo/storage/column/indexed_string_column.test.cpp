@@ -3,8 +3,6 @@
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
-#include "silo/preprocessing/preprocessing_exception.h"
-
 using silo::common::LineageTreeAndIdMap;
 using silo::common::RecombinantEdgeFollowingMode;
 using silo::preprocessing::LineageDefinitionFile;
@@ -17,11 +15,11 @@ TEST(IndexedStringColumnPartition, shouldReturnTheCorrectFilteredValues) {
    IndexedStringColumnMetadata column_metadata("some_column");
    IndexedStringColumnPartition under_test{&column_metadata};
 
-   under_test.insert("value 1");
-   under_test.insert("value 2");
-   under_test.insert("value 2");
-   under_test.insert("value 3");
-   under_test.insert("value 1");
+   ASSERT_TRUE(under_test.insert({"value 1"}));
+   ASSERT_TRUE(under_test.insert({"value 2"}));
+   ASSERT_TRUE(under_test.insert({"value 2"}));
+   ASSERT_TRUE(under_test.insert({"value 3"}));
+   ASSERT_TRUE(under_test.insert({"value 1"}));
 
    const auto result1 = under_test.filter("value 1");
    ASSERT_EQ(*result1.value(), roaring::Roaring({0, 4}));
@@ -37,11 +35,11 @@ TEST(IndexedStringColumnPartition, insertValuesToPartition) {
    IndexedStringColumnMetadata column_metadata("some_column");
    IndexedStringColumnPartition under_test{&column_metadata};
 
-   under_test.insert("value 1");
-   under_test.insert("value 2");
-   under_test.insert("value 2");
-   under_test.insert("value 3");
-   under_test.insert("value 1");
+   ASSERT_TRUE(under_test.insert({"value 1"}));
+   ASSERT_TRUE(under_test.insert({"value 2"}));
+   ASSERT_TRUE(under_test.insert({"value 2"}));
+   ASSERT_TRUE(under_test.insert({"value 3"}));
+   ASSERT_TRUE(under_test.insert({"value 1"}));
 
    EXPECT_EQ(under_test.getValue(0), 0U);
    EXPECT_EQ(under_test.getValue(1), 1U);
@@ -61,11 +59,11 @@ TEST(IndexedStringColumnPartition, addingLineageAndThenSublineageFiltersCorrectl
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
    IndexedStringColumnPartition under_test{&column_metadata};
 
-   under_test.insert({"BA.1.1"});
-   under_test.insert({"BA.1.1"});
-   under_test.insert({"BA.1.1.1"});
-   under_test.insert({"BA.1.1.1.1"});
-   under_test.insert({"BA.1.1"});
+   ASSERT_TRUE(under_test.insert({"BA.1.1"}));
+   ASSERT_TRUE(under_test.insert({"BA.1.1"}));
+   ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
+   ASSERT_TRUE(under_test.insert({"BA.1.1.1.1"}));
+   ASSERT_TRUE(under_test.insert({"BA.1.1"}));
 
    EXPECT_EQ(*under_test.filter({"BA.1.1"}).value(), roaring::Roaring({0, 1, 4}));
    EXPECT_EQ(
@@ -95,11 +93,11 @@ TEST(IndexedStringColumnPartition, addingSublineageAndThenLineageFiltersCorrectl
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
    IndexedStringColumnPartition under_test{&column_metadata};
 
-   under_test.insert({"BA.1.1.1"});
-   under_test.insert({"BA.1.1.1"});
-   under_test.insert({"BA.1"});
-   under_test.insert({"BA.1.1"});
-   under_test.insert({"BA.1.1.1"});
+   ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
+   ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
+   ASSERT_TRUE(under_test.insert({"BA.1"}));
+   ASSERT_TRUE(under_test.insert({"BA.1.1"}));
+   ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
 
    EXPECT_EQ(*under_test.filter({"BA.1.1"}).value(), roaring::Roaring({3}));
    EXPECT_EQ(under_test.filter({"B.1.1.529.1.1"}), std::nullopt);
@@ -143,10 +141,10 @@ TEST(IndexedStringColumnPartition, queryParentLineageThatWasNeverInserted) {
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
    IndexedStringColumnPartition under_test{&column_metadata};
 
-   under_test.insert({"BA.1.1.1"});
-   under_test.insert({"BA.1.1.1"});
-   under_test.insert({"BA.2"});
-   under_test.insert({"BA.1.1"});
+   ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
+   ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
+   ASSERT_TRUE(under_test.insert({"BA.2"}));
+   ASSERT_TRUE(under_test.insert({"BA.1.1"}));
 
    EXPECT_EQ(
       under_test.getLineageIndex()->filterExcludingSublineages(under_test.getValueId("BA.1").value()
@@ -172,13 +170,13 @@ A.1:
 )"));
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
    IndexedStringColumnPartition under_test{&column_metadata};
-   under_test.insert({"A"});
-   EXPECT_THAT(
-      [&]() { under_test.insert({"A.2"}); },
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(
-         ::testing::HasSubstr("The value 'A.2' is not a valid lineage value for column "
-                              "'some_column'. Is your lineage definition file outdated?")
-      )
+   ASSERT_TRUE(under_test.insert({"A"}));
+   auto success = under_test.insert({"A.2"});
+   ASSERT_FALSE(success);
+   ASSERT_EQ(
+      success.error(),
+      "The value 'A.2' is not a valid lineage value for column 'some_column'. "
+      "Is your lineage definition file outdated?"
    );
 }
 

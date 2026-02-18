@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <expected>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
@@ -35,7 +36,7 @@ class FloatColumnPartition {
 
    [[nodiscard]] double getValue(size_t row_id) const { return values.at(row_id); }
 
-   void insert(double value);
+   [[nodiscard]] std::expected<void, std::string> insert(double value);
 
    void insertNull();
 

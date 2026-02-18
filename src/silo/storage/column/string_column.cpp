@@ -14,7 +14,7 @@ namespace silo::storage::column {
 StringColumnPartition::StringColumnPartition(StringColumnMetadata* metadata)
     : metadata(metadata) {}
 
-void StringColumnPartition::insert(std::string_view value) {
+std::expected<void, std::string> StringColumnPartition::insert(std::string_view value) {
    size_t row_id;
    if (value.size() <= SiloString::SHORT_STRING_SIZE) {
       row_id = fixed_string_data.insert(SiloString{value});
@@ -30,15 +30,16 @@ void StringColumnPartition::insert(std::string_view value) {
    if (metadata->phylo_tree.has_value()) {
       auto child_it = (metadata->phylo_tree->nodes).find(TreeNodeId{std::string{value}});
       if (child_it == metadata->phylo_tree->nodes.end()) {
-         return;
+         return {};
       }
       if (child_it->second->rowIndexExists()) {
-         throw silo::initialize::InitializeException(
-            "Node '{}' already exists in the phylogenetic tree.", value
+         return std::unexpected(
+            fmt::format("Node '{}' already exists in the phylogenetic tree.", value)
          );
       }
       child_it->second->row_index = row_id;
    }
+   return {};
 }
 
 void StringColumnPartition::insertNull() {

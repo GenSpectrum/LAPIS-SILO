@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdbool>
+#include <expected>
 
 #include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
@@ -37,7 +38,7 @@ class BoolColumnPartition {
 
    [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
 
-   void insert(bool value);
+   [[nodiscard]] std::expected<void, std::string> insert(bool value);
 
    void insertNull();
 

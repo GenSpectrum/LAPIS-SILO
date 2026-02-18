@@ -1,5 +1,7 @@
 #include "silo/storage/column/date_column.h"
 
+#include <expected>
+
 #include "silo/common/date.h"
 
 namespace silo::storage::column {
@@ -11,12 +13,13 @@ bool DateColumnPartition::isSorted() const {
    return is_sorted;
 }
 
-void DateColumnPartition::insert(std::string_view value) {
+std::expected<void, std::string> DateColumnPartition::insert(std::string_view value) {
    const auto date_value = silo::common::stringToDate(value);
    if (!values.empty() && date_value < values.back()) {
       is_sorted = false;
    }
    values.push_back(date_value);
+   return {};
 }
 
 void DateColumnPartition::insertNull() {

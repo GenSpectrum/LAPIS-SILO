@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
@@ -37,7 +38,7 @@ class IntColumnPartition {
 
    [[nodiscard]] size_t numValues() const { return values.size(); }
 
-   void insert(int32_t value);
+   [[nodiscard]] std::expected<void, std::string> insert(int32_t value);
 
    void insertNull();
 
