@@ -792,6 +792,43 @@ schema:
    }
 };
 
+const Scenario<Success> DATE_COLUMN_VALID_DATES = {
+   .test_name = "DATE_COLUMN_VALID_DATES",
+   .input_data =
+      []() {
+         return std::vector<nlohmann::json>{
+            nlohmann::json::parse(R"({"accessionVersion": "1", "theDate": "1969-12-31"})"),
+            nlohmann::json::parse(R"({"accessionVersion": "2", "theDate": "2021-03-15"})"),
+            nlohmann::json::parse(R"({"accessionVersion": "3", "theDate": null})"),
+         };
+      },
+   .database_config =
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+    - name: "theDate"
+      type: "date"
+  primaryKey: "accessionVersion"
+)",
+   .reference_genomes = R"({"nucleotideSequences": [], "genes": []})",
+   .assertion{
+      .expected_sequence_count = 3,
+      .query = R"(
+      {
+         "action": {"type": "Details", "orderByFields": ["accessionVersion"]},
+         "filterExpression": {"type": "True"}
+      })",
+      .expected_query_result = nlohmann::json::parse(R"([
+         {"accessionVersion": "1", "theDate": "1969-12-31"},
+         {"accessionVersion": "2", "theDate": "2021-03-15"},
+         {"accessionVersion": "3", "theDate": null}
+      ])")
+   }
+};
+
 const Scenario<Success> TWO_LINEAGE_SYSTEMS = {
    .test_name = "TWO_LINEAGE_SYSTEMS",
    .input_data =
@@ -878,7 +915,8 @@ const auto TEST_CASES = ::testing::Values(
    NO_SEQUENCES,
    DIVERSE_SEQUENCE_NAMES_NDJSON,
    PREVENT_LATE_AUTO_CASTING,
-   TWO_LINEAGE_SYSTEMS
+   TWO_LINEAGE_SYSTEMS,
+   DATE_COLUMN_VALID_DATES
 );
 
 INSTANTIATE_TEST_SUITE_P(PreprocessorTest, PreprocessorTestFixture, TEST_CASES, printTestName<Success>);
@@ -1112,6 +1150,58 @@ schema:
    }
 };
 
+const Scenario<Error> DATE_WRONG_FORMAT = {
+   .test_name = "DATE_WRONG_FORMAT",
+   .input_data =
+      []() {
+         return std::vector<nlohmann::json>{
+            nlohmann::json::parse(R"({"accessionVersion": "1", "theDate": "2020/01/01"})")
+         };
+      },
+   .database_config =
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+    - name: "theDate"
+      type: "date"
+  primaryKey: "accessionVersion"
+)",
+   .reference_genomes = R"({"nucleotideSequences": [], "genes": []})",
+   .assertion{
+      .error_message =
+         R"(error inserting into column 'theDate': Invalid date format '2020/01/01': expected exactly YYYY-MM-DD)"
+   }
+};
+
+const Scenario<Error> DATE_INVALID_CALENDAR_DATE = {
+   .test_name = "DATE_INVALID_CALENDAR_DATE",
+   .input_data =
+      []() {
+         return std::vector<nlohmann::json>{
+            nlohmann::json::parse(R"({"accessionVersion": "1", "theDate": "2023-02-30"})")
+         };
+      },
+   .database_config =
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+    - name: "theDate"
+      type: "date"
+  primaryKey: "accessionVersion"
+)",
+   .reference_genomes = R"({"nucleotideSequences": [], "genes": []})",
+   .assertion{
+      .error_message =
+         R"(error inserting into column 'theDate': Invalid calendar date '2023-02-30')"
+   }
+};
+
 const Scenario<Error> SEQUENCE_LONGER_THAN_REFERENCE = {
    .test_name = "SEQUENCE_LONGER_THAN_REFERENCE",
    .input_data =
@@ -1149,7 +1239,7 @@ schema:
    }
 };
 
-INSTANTIATE_TEST_SUITE_P(PreprocessorTest, InvalidPreprocessorTestFixture, ::testing::Values(DUPLICATE_PRIMARY_KEY, MISSING_NUCLEOTIDE_SEQUENCE_INPUT, TYPE_ERROR, SEQUENCE_ILLEGAL_SYMBOL, NDJSON_FILE_WITH_SOME_MISSING_KEYS, SEQUENCE_LONGER_THAN_REFERENCE), printTestName<Error>);
+INSTANTIATE_TEST_SUITE_P(PreprocessorTest, InvalidPreprocessorTestFixture, ::testing::Values(DUPLICATE_PRIMARY_KEY, MISSING_NUCLEOTIDE_SEQUENCE_INPUT, TYPE_ERROR, SEQUENCE_ILLEGAL_SYMBOL, NDJSON_FILE_WITH_SOME_MISSING_KEYS, SEQUENCE_LONGER_THAN_REFERENCE, DATE_WRONG_FORMAT, DATE_INVALID_CALENDAR_DATE), printTestName<Error>);
 
 TEST_P(InvalidPreprocessorTestFixture, shouldNotProcessData) {
    const auto& scenario = GetParam();

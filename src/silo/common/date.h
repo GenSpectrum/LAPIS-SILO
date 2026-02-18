@@ -1,17 +1,16 @@
 #pragma once
 
 #include <cstdint>
-#include <optional>
+#include <expected>
 #include <string>
+#include <string_view>
 
 namespace silo::common {
 
-using Date = uint32_t;
+using Date = int32_t;
 
-const Date NULL_DATE = 0;
+std::expected<Date, std::string> stringToDate(std::string_view value);
 
-silo::common::Date stringToDate(std::string_view value);
-
-std::optional<std::string> dateToString(silo::common::Date date);
+std::string dateToString(Date date);
 
 }  // namespace silo::common

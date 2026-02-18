@@ -175,7 +175,7 @@ arrow::Status ColumnEntryAppender::operator()(
             auto value = column.getValueString(row_id);
             ARROW_RETURN_NOT_OK(array->Append(value));
          } else if constexpr (std::is_same_v<Column, storage::column::DateColumnPartition>) {
-            auto value = common::dateToString(column.getValue(row_id)).value();
+            auto value = common::dateToString(column.getValue(row_id));
             ARROW_RETURN_NOT_OK(array->Append(value));
          } else {
             auto value = column.getValue(row_id);

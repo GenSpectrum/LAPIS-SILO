@@ -1,80 +1,63 @@
-#include <charconv>
-#include <iomanip>
-#include <optional>
-#include <sstream>
-#include <string>
-
-#include <spdlog/spdlog.h>
-#include <boost/numeric/conversion/cast.hpp>
-
 #include "silo/common/date.h"
 
-namespace {
+#include <charconv>
+#include <chrono>
+#include <expected>
+#include <string>
 
-constexpr uint32_t NUMBER_OF_MONTHS = 12;
-constexpr uint32_t NUMBER_OF_DAYS = 31;
-constexpr uint32_t BYTES_FOR_MONTHS = 4;
-constexpr uint32_t BYTES_FOR_DAYS = 12;
+#include <fmt/format.h>
 
-}  // namespace
+namespace silo::common {
 
-silo::common::Date silo::common::stringToDate(std::string_view value) {
-   if (value.empty()) {
-      return NULL_DATE;
+std::expected<Date, std::string> stringToDate(std::string_view value) {
+   if (value.size() != 10 || value[4] != '-' || value[7] != '-') {
+      return std::unexpected{
+         fmt::format("Invalid date format '{}': expected exactly YYYY-MM-DD", value)
+      };
    }
-   auto split_position = value.find('-', 0);
-   if (split_position == std::string::npos) {
-      SPDLOG_WARN("Expect dates to be delimited by '-': {}\nIgnoring date", value);
-      return NULL_DATE;
+   const std::string_view year_sv = value.substr(0, 4);
+   const std::string_view month_sv = value.substr(5, 2);
+   const std::string_view day_sv = value.substr(8, 2);
+
+   int year;
+   auto [ptr_y, ec_y] = std::from_chars(year_sv.data(), year_sv.data() + year_sv.size(), year);
+   if (ec_y != std::errc{} || ptr_y != year_sv.data() + year_sv.size()) {
+      return std::unexpected{fmt::format("Failed to parse year in date '{}'", value)};
    }
-   auto split_position2 = value.find('-', split_position + 1);
-   if (split_position2 == std::string::npos) {
-      SPDLOG_WARN("Expect dates to be delimited twice by '-': {}\nIgnoring date", value);
-      return NULL_DATE;
+
+   int month;
+   auto [ptr_m, ec_m] = std::from_chars(month_sv.data(), month_sv.data() + month_sv.size(), month);
+   if (ec_m != std::errc{} || ptr_m != month_sv.data() + month_sv.size()) {
+      return std::unexpected{fmt::format("Failed to parse month in date '{}'", value)};
    }
-   const std::string_view year_string = value.substr(0, split_position);
-   const std::string_view month_string = value.substr(split_position + 1, split_position2);
-   const std::string_view day_string = value.substr(split_position2 + 1);
-   uint32_t year;
-   if (std::from_chars(year_string.data(), year_string.data() + year_string.size(), year).ec !=
-       std::errc{}) {
-      SPDLOG_WARN("Parsing of year failed: {}. Ignoring date", year_string);
-      return NULL_DATE;
+
+   int day;
+   auto [ptr_d, ec_d] = std::from_chars(day_sv.data(), day_sv.data() + day_sv.size(), day);
+   if (ec_d != std::errc{} || ptr_d != day_sv.data() + day_sv.size()) {
+      return std::unexpected{fmt::format("Failed to parse day in date '{}'", value)};
    }
-   uint32_t month;
-   if (std::from_chars(month_string.data(), month_string.data() + month_string.size(), month).ec !=
-       std::errc{}) {
-      SPDLOG_WARN("Parsing of month failed: {}. Ignoring date", month_string);
-      return NULL_DATE;
+
+   const std::chrono::year_month_day ymd{
+      std::chrono::year{year},
+      std::chrono::month{static_cast<unsigned>(month)},
+      std::chrono::day{static_cast<unsigned>(day)}
+   };
+   if (!ymd.ok()) {
+      return std::unexpected{fmt::format("Invalid calendar date '{}'", value)};
    }
-   uint32_t day;
-   if (std::from_chars(day_string.data(), day_string.data() + day_string.size(), day).ec !=
-       std::errc{}) {
-      SPDLOG_WARN("Parsing of day failed: {}. Ignoring date", day_string);
-      return NULL_DATE;
-   }
-   if (month > NUMBER_OF_MONTHS || month == 0) {
-      SPDLOG_WARN("Month is not in [1,{}]: {} \nIgnoring date", NUMBER_OF_MONTHS, value);
-      return NULL_DATE;
-   }
-   if (day > NUMBER_OF_DAYS || day == 0) {
-      SPDLOG_WARN("Month is not in [1,{}]: {} \nIgnoring date", NUMBER_OF_DAYS, value);
-      return NULL_DATE;
-   }
-   // Date is stored with the year in the upper 16 bits, month in bits [12,16), and day [0,12)
-   const uint32_t date_value =
-      (year << (BYTES_FOR_MONTHS + BYTES_FOR_DAYS)) + (month << BYTES_FOR_DAYS) + day;
-   return Date{date_value};
+
+   const auto days_since_epoch = std::chrono::sys_days{ymd}.time_since_epoch();
+   return static_cast<Date>(days_since_epoch.count());
 }
 
-std::optional<std::string> silo::common::dateToString(silo::common::Date date) {
-   if (date == 0) {
-      return std::nullopt;
-   }
-   // Date is stored with the year in the upper 16 bits, month in bits [12,16), and day [0,12)
-   const uint32_t year = date >> (BYTES_FOR_MONTHS + BYTES_FOR_DAYS);
-   const uint32_t month = (date >> BYTES_FOR_DAYS) & 0xF;
-   const uint32_t day = date & 0xFFF;
-
-   return fmt::format("{:04}-{:02}-{:02}", year, month, day);
+std::string dateToString(Date date) {
+   const std::chrono::year_month_day ymd{std::chrono::sys_days{std::chrono::days{date}}};
+   return fmt::format(
+      "{:04}-{:02}-{:02}",
+      static_cast<int>(ymd.year()),
+      static_cast<unsigned>(ymd.month()),
+      static_cast<unsigned>(ymd.day())
+   );
 }
+
+}  // namespace silo::common
