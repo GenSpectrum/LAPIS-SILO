@@ -150,24 +150,19 @@ String values for textual data which is stored compressed by a common dictionary
 
 ### DATE
 
-Date values in ISO 8601 format.
+Date values strictly in ISO-8601 format.
 
 | Property | Value |
 |----------|-------|
 | JSON Type | String |
 | Format | `YYYY-MM-DD` |
-| Null | `null` or `""` (empty string) |
+| Null | `null` |
 
 ```json
 {"date": "2021-03-18"}
 {"date": null}
-{"date": ""}
-```
-
-**Validation**:
-- Month must be in range [1, 12]
-- Day must be in range [1, 31]
-- Invalid dates are logged as warnings and treated as null
+{"date": "2021-02-28"}
+``` 
 
 ### BOOLEAN
 
@@ -302,7 +297,7 @@ defaultNucleotideSequence: main
 |-------|-------|----------|
 | Missing required field | Field in schema not present in JSON | Error with field name |
 | Type mismatch | JSON value type doesn't match schema | Error with details |
-| Invalid date format | Date string not in YYYY-MM-DD format | Warning, treated as null |
+| Invalid date format | Date string not in YYYY-MM-DD format | Error with details |
 | Invalid sequence character | Unknown nucleotide/amino acid | Error with position |
 | Invalid insertion format | Malformed insertion string | Error with details |
 | Duplicate primary key | Same primary key appears twice | Error at validation |

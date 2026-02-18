@@ -14,7 +14,11 @@ bool DateColumnPartition::isSorted() const {
 }
 
 std::expected<void, std::string> DateColumnPartition::insert(std::string_view value) {
-   const auto date_value = silo::common::stringToDate(value);
+   auto date_result = silo::common::stringToDate(value);
+   if (!date_result.has_value()) {
+      return std::unexpected{date_result.error()};
+   }
+   const auto date_value = date_result.value();
    if (!values.empty() && date_value < values.back()) {
       is_sorted = false;
    }
@@ -25,7 +29,9 @@ std::expected<void, std::string> DateColumnPartition::insert(std::string_view va
 void DateColumnPartition::insertNull() {
    const size_t row_id = values.size();
    null_bitmap.add(row_id);
-   values.push_back(common::NULL_DATE);
+   // We need to insert _some_ value to keep vector size correct. However, it will never be read
+   values.push_back(0);
+   is_sorted = false;
 }
 
 void DateColumnPartition::reserve(size_t row_count) {

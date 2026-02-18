@@ -1,6 +1,7 @@
 #include "silo/query_engine/filter/expressions/date_between.h"
 
 #include <cstdint>
+#include <limits>
 #include <map>
 #include <utility>
 
@@ -30,13 +31,9 @@ DateBetween::DateBetween(
 
 std::string DateBetween::toString() const {
    std::string res = "[Date-between ";
-   res +=
-      (date_from.has_value() ? silo::common::dateToString(date_from.value()).value_or("")
-                             : "unbounded");
+   res += (date_from.has_value() ? silo::common::dateToString(date_from.value()) : "unbounded");
    res += " and ";
-   res +=
-      (date_to.has_value() ? silo::common::dateToString(date_to.value()).value_or("") : "unbounded"
-      );
+   res += (date_to.has_value() ? silo::common::dateToString(date_to.value()) : "unbounded");
    res += "]";
    return res;
 }
@@ -77,14 +74,14 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
       std::make_unique<operators::CompareToValueSelection<DateColumnPartition>>(
          date_column,
          operators::Comparator::HIGHER_OR_EQUALS,
-         date_from.value_or(silo::common::Date{1})
+         date_from.value_or(std::numeric_limits<silo::common::Date>::min())
       )
    );
    predicates.emplace_back(
       std::make_unique<operators::CompareToValueSelection<DateColumnPartition>>(
          date_column,
          operators::Comparator::LESS_OR_EQUALS,
-         date_to.value_or(silo::common::Date{UINT32_MAX})
+         date_to.value_or(std::numeric_limits<silo::common::Date>::max())
       )
    );
    return std::make_unique<operators::Selection>(
@@ -105,18 +102,19 @@ std::vector<silo::query_engine::filter::operators::RangeSelection::Range> DateBe
    for (const auto& sorted_chunk_size : chunk_sizes) {
       const auto* begin = &date_column.getValues()[offset];
       const auto* end = &date_column.getValues()[offset + sorted_chunk_size];
-      // If lower bound is empty we use 1 as the lower-bound, as 0 represents NULL values
-      const auto* lower = std::lower_bound(begin, end, date_from.value_or(1));
-      const uint32_t lower_index = lower - base;
+      const auto* lower = std::lower_bound(
+         begin, end, date_from.value_or(std::numeric_limits<silo::common::Date>::min())
+      );
+      const auto lower_index = static_cast<uint32_t>(lower - base);
       const auto* upper = date_to.has_value() ? std::upper_bound(begin, end, date_to.value()) : end;
-      const uint32_t upper_index = upper - base;
+      const auto upper_index = static_cast<uint32_t>(upper - base);
       ranges.emplace_back(lower_index, upper_index);
       offset += sorted_chunk_size;
    }
    return ranges;
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
 void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter) {
    CHECK_SILO_QUERY(
       json.contains("column"), "The field 'column' is required in a DateBetween expression"
@@ -140,11 +138,19 @@ void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter)
    const std::string& column_name = json["column"];
    std::optional<silo::common::Date> date_from;
    if (json["from"].is_string()) {
-      date_from = common::stringToDate(json["from"].get<std::string>());
+      const auto from_string = json["from"].get<std::string>();
+      auto from_result = common::stringToDate(from_string);
+      CHECK_SILO_QUERY(
+         from_result.has_value(), "Invalid date in 'from' field: {}", from_result.error()
+      );
+      date_from = from_result.value();
    }
    std::optional<silo::common::Date> date_to;
    if (json["to"].is_string()) {
-      date_to = common::stringToDate(json["to"].get<std::string>());
+      const auto to_string = json["to"].get<std::string>();
+      auto to_result = common::stringToDate(to_string);
+      CHECK_SILO_QUERY(to_result.has_value(), "Invalid date in 'to' field: {}", to_result.error());
+      date_to = to_result.value();
    }
    filter = std::make_unique<DateBetween>(column_name, date_from, date_to);
 }
