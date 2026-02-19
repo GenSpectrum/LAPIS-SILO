@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.12](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.11...v0.9.12) (2026-02-19)
+
+
+### Features
+
+* **silo:** return query result as arrow IPC if the http header is set ([6044c73](https://github.com/GenSpectrum/LAPIS-SILO/commit/6044c7368d116a19283efa34c72b5593b7f82419))
+
 ## [0.9.11](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.10...v0.9.11) (2026-02-18)
 
 
