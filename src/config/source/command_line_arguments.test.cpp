@@ -158,3 +158,34 @@ TEST(CommandLineArguments, testPositionalArgumentsStartingWithMinus) {
       ASSERT_EQ(verified.positional_arguments.at(0), "-positional_argument_with_minus");
    }
 }
+
+TEST(CommandLineArguments, verboseFlagShortForm) {
+   std::vector<std::string> arguments{"-v"};
+   const auto verified = CommandLineArguments{{arguments.begin(), arguments.end()}}.verify({});
+   ASSERT_EQ(verified.verbose_count, 1U);
+   ASSERT_TRUE(verified.positional_arguments.empty());
+}
+
+TEST(CommandLineArguments, verboseFlagLongForm) {
+   std::vector<std::string> arguments{"--verbose"};
+   const auto verified = CommandLineArguments{{arguments.begin(), arguments.end()}}.verify({});
+   ASSERT_EQ(verified.verbose_count, 1U);
+}
+
+TEST(CommandLineArguments, verboseFlagRepeated) {
+   std::vector<std::string> arguments{"-v", "--verbose", "-v"};
+   const auto verified = CommandLineArguments{{arguments.begin(), arguments.end()}}.verify({});
+   ASSERT_EQ(verified.verbose_count, 3U);
+}
+
+TEST(CommandLineArguments, verboseFlagCluster) {
+   std::vector<std::string> arguments{"-vvv"};
+   const auto verified = CommandLineArguments{{arguments.begin(), arguments.end()}}.verify({});
+   ASSERT_EQ(verified.verbose_count, 3U);
+}
+
+TEST(CommandLineArguments, verboseFlagDoesNotCountAsUnknownOption) {
+   std::vector<std::string> arguments{"-v"};
+   // Even with an empty specification (no known options), -v should not throw.
+   ASSERT_NO_THROW(((void)CommandLineArguments{{arguments.begin(), arguments.end()}}.verify({})));
+}

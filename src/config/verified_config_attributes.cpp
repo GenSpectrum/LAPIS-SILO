@@ -97,17 +97,20 @@ std::optional<std::vector<std::string>> VerifiedConfigAttributes::getList(
 VerifiedCommandLineArguments VerifiedCommandLineArguments::askingForHelp() {
    VerifiedCommandLineArguments result;
    result.asks_for_help = true;
+   result.verbose_count = 0;
    return result;
 }
 
 VerifiedCommandLineArguments VerifiedCommandLineArguments::fromConfigValuesAndPositionalArguments(
    std::unordered_map<ConfigKeyPath, ConfigValue> config_values,
-   std::vector<std::string> positional_arguments
+   std::vector<std::string> positional_arguments,
+   uint32_t verbose_count
 ) {
    VerifiedCommandLineArguments result;
    result.config_values = std::move(config_values);
    result.positional_arguments = std::move(positional_arguments);
    result.asks_for_help = false;
+   result.verbose_count = verbose_count;
    return result;
 }
 

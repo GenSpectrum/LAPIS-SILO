@@ -12,9 +12,7 @@ namespace silo::config {
 std::string CommandLineArguments::configKeyPathToString(const ConfigKeyPath& key_path) {
    std::vector<std::string> result;
    for (const auto& sublevel : key_path.getPath()) {
-      for (const std::string& current_string : sublevel) {
-         result.push_back(current_string);
-      }
+      std::ranges::copy(sublevel, std::back_inserter(result));
    }
    return "--" + boost::join(result, "-");
 }
@@ -89,20 +87,53 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
    return {attribute_spec.parseValueFromString(value_string), remaining_args};
 }
 
+std::vector<std::string> expandArguments(const std::vector<std::string>& args) {
+   std::vector<std::string> expanded_args;
+   for (auto iter = args.begin(); iter != args.end(); ++iter) {
+      const auto& arg = *iter;
+      if (arg == "--") {
+         // Everything after "--" is a positional argument; stop expanding.
+         std::ranges::copy(iter, args.end(), std::back_inserter(expanded_args));
+         break;
+      }
+      // Expand arguments that start with a single '-' specially
+      if (arg.starts_with('-') && !arg.starts_with("--") && arg != "-") {
+         for (char shorthand : arg.substr(1)) {
+            if (shorthand == 'v') {
+               expanded_args.emplace_back("--verbose");
+            } else if (shorthand == 'h') {
+               expanded_args.emplace_back("--help");
+            } else {
+               // Unknown short option — pass through to trigger a helpful error below.
+               expanded_args.push_back(fmt::format("-{}", shorthand));
+            }
+         }
+      } else {
+         expanded_args.push_back(arg);
+      }
+   }
+   return expanded_args;
+}
+
 }  // namespace
 
 VerifiedCommandLineArguments CommandLineArguments::verify(
    const ConfigSpecification& config_specification
 ) const {
-   // Now, given config_specification (and thus which options are
-   // boolean and which take arguments), we can parse the command
-   // line.
+   // First pass: expand short-option clusters into long-form equivalents so the
+   // second pass can treat everything uniformly.
+   // E.g. -vvh → --verbose --verbose --help
+   std::vector<std::string> expanded_args = expandArguments(args);
 
+   // Second pass: process the fully-expanded argument list.
    // E.g. "--api-foo" => "1234" or "--api-foo=1234"
    std::unordered_map<ConfigKeyPath, ConfigValue> config_value_by_option;
-   std::vector<std::string> positional_args;
    std::vector<std::string> invalid_config_keys;
-   std::span<const std::string> remaining_args{args.data(), args.size()};
+   std::vector<std::string> positional_args;
+
+   uint32_t verbose_count = 0;
+
+   std::span<const std::string> remaining_args{expanded_args.data(), expanded_args.size()};
    while (!remaining_args.empty()) {
       const std::string& arg = remaining_args[0];
       remaining_args = remaining_args.subspan(1);
@@ -111,8 +142,12 @@ VerifiedCommandLineArguments CommandLineArguments::verify(
             std::ranges::copy(remaining_args, std::back_inserter(positional_args));
             break;
          }
-         if (arg == "-h" || arg == "--help") {
+         if (arg == "--help") {
             return VerifiedCommandLineArguments::askingForHelp();
+         }
+         if (arg == "--verbose") {
+            ++verbose_count;
+            continue;
          }
          const auto [option, opt_value_string] = splitOption(arg);
          const auto ambiguous_key = stringToConfigKeyPath(option);
@@ -122,9 +157,7 @@ VerifiedCommandLineArguments CommandLineArguments::verify(
             const auto [value, new_remaining_args] =
                parseValueFromArg(attribute_spec, arg, opt_value_string, remaining_args);
             remaining_args = new_remaining_args;
-            // Overwrite value with the last occurrence
-            // (i.e. `silo --foo 4 --foo 5` will leave "--foo"
-            // => "5" in the map).
+            // Keep the first occurrence; duplicate flags are silently ignored.
             config_value_by_option.emplace(attribute_spec.key, value);
          } else {
             invalid_config_keys.push_back(option);
@@ -135,17 +168,17 @@ VerifiedCommandLineArguments CommandLineArguments::verify(
    }
 
    if (!invalid_config_keys.empty()) {
-      const char* keys_or_options = (invalid_config_keys.size() >= 2) ? "options" : "option";
+      const char* option_or_options = (invalid_config_keys.size() == 1) ? "option" : "options";
       throw silo::config::ConfigException(fmt::format(
          "in {}: unknown {} {}",
          debugContext(),
-         keys_or_options,
+         option_or_options,
          boost::join(invalid_config_keys, ", ")
       ));
    }
 
    return VerifiedCommandLineArguments::fromConfigValuesAndPositionalArguments(
-      std::move(config_value_by_option), std::move(positional_args)
+      std::move(config_value_by_option), std::move(positional_args), verbose_count
    );
 }
 
