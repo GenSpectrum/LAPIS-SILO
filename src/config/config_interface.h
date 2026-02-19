@@ -74,6 +74,11 @@ std::variant<C, int32_t> getConfig(
    try {
       VerifiedCommandLineArguments cmd_source =
          CommandLineArguments{cmd}.verify(config_specification);
+      if (cmd_source.verbose_count == 1) {
+         spdlog::set_level(spdlog::level::debug);
+      } else if (cmd_source.verbose_count >= 2) {
+         spdlog::set_level(spdlog::level::trace);
+      }
       if (cmd_source.asks_for_help) {
          std::cout << config_specification.helpText() << "\n" << std::flush;
          return 0;
