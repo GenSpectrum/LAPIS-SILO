@@ -31,10 +31,16 @@ docker run --rm \
   "$DOCKER_IMAGE" \
   /bin/bash -c '
     cmake -G Ninja -D BUILD_WITH_CLANG_TIDY=ON -D CMAKE_BUILD_TYPE=Debug -B build/Debug
+    targets=()
     for file in $files; do
-      echo "Checking file: $file"
-      if [[ $file == src/*.cpp ]]; then
-        echo "Now linting the file: $file"
-        cmake --build build/Debug --target CMakeFiles/silolib.dir/${file}.o
+      echo "Considering to lint: $file"
+      if [[ $file == src/*.test.cpp ]]; then
+        targets+=(--target "CMakeFiles/silo_test.dir/${file}.o")
+      elif [[ $file == src/*.cpp ]]; then
+        targets+=(--target "CMakeFiles/silolib.dir/${file}.o")
       fi
-    done'
+    done
+    echo "Collected targets: ${targets[@]}"
+    if [[ ${#targets[@]} -gt 0 ]]; then
+      cmake --build build/Debug "${targets[@]}" --parallel 16
+    fi'
