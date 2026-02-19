@@ -66,7 +66,11 @@ std::string ConfigSpecification::helpText() const {
              << "\n"
              << "  -h | --help\n"
              << "\n"
-             << "    Show help.\n";
+             << "    Show help.\n"
+             << "\n"
+             << "  -v | --verbose\n"
+             << "\n"
+             << "    Increase log verbosity. Pass once for debug level, twice for trace level.\n";
    auto addln = [&help_text](const std::string& line) { help_text << line << "\n"; };
 
    for (const auto& field_spec : attribute_specifications) {
