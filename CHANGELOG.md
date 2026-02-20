@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.13](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.12...v0.9.13) (2026-02-20)
+
+
+### Features
+
+* **benchmarking:** remove keep-silo feature ([e1486ae](https://github.com/GenSpectrum/LAPIS-SILO/commit/e1486ae70a01450267f1b787c99ae2ac4f7dc5cb))
+
 ## [0.9.12](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.11...v0.9.12) (2026-02-19)
 
 
