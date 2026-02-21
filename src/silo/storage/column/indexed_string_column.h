@@ -64,6 +64,7 @@ class IndexedStringColumnPartition {
    using value_type = std::string_view;
 
    Metadata* metadata;
+   roaring::Roaring null_bitmap;
 
   private:
    std::vector<Idx> value_ids;
@@ -89,9 +90,8 @@ class IndexedStringColumnPartition {
 
    [[nodiscard]] const silo::Idx& getValue(size_t row_id) const { return value_ids.at(row_id); }
 
-   [[nodiscard]] bool isNull(size_t row_id) const {
-      return lookupValue(value_ids.at(row_id)).empty();
-   }
+   [[nodiscard]] bool isNull(size_t row_id) const;
+
    [[nodiscard]] std::string getValueString(size_t row_id) const {
       return std::string{lookupValue(getValue(row_id))};
    }
@@ -111,6 +111,7 @@ class IndexedStringColumnPartition {
       // clang-format off
       archive & value_ids;
       archive & indexed_values;
+      archive & null_bitmap;
       if(lineage_index.has_value()){
          archive & lineage_index.value();
       }

@@ -36,37 +36,7 @@ The input must be in Newline-Delimited JSON (NDJSON) format: one JSON object per
 
 The field order is determined from the first line and reused for all subsequent lines. For best performance, all lines should use the same field ordering. If a line deviates, SILO falls back to an unordered lookup and logs a warning.
 
-### Metadata columns
-
-Metadata columns are represented as top-level key-value pairs in each JSON object. The value types must match the database schema. Null values are supported for columns that allow them.
-
-```json
-{
-  ...
-  "primaryKey": "seq_001",
-  "date": "2021-03-18",
-  "country": "Switzerland",
-  "age": 42,
-  "qc_value": 0.98,
-  "test_boolean_column": true
-  ...
-}
-```
-
-### Sequence columns
-
-Sequence columns (nucleotide or amino acid) are represented as nested objects with a `sequence` field and an `insertions` array. The sequence string must conform to the expected alphabet and length. Insertions are encoded as `"position:sequence"` strings, where position is 1-based and refers to insertion after that position. Position 0 is allowed and means insertion before the first symbol. Valid positions are in the range `[0, n]` where `n` is the length of the reference sequence. A sequence column may also be `null`.
-
-```json
-{
-  ...
-  "main": {
-    "sequence": "ACGTACGT",
-    "insertions": ["214:EPE"]
-  }
-  ...
-}
-```
+See `input_format.md` for further details.
 
 ## How It Works
 
@@ -85,12 +55,6 @@ When `silo append` is invoked, the following steps are performed:
 6. After all records have been inserted, the database is finalized and validated. This includes checking for duplicate primary keys across both old and new data.
 
 7. A new data version is assigned, and the updated database state is saved as a new timestamped subdirectory within the silo-directory.
-
-## Validation
-
-SILO validates the input at multiple levels during append. Each NDJSON line must parse as a valid JSON object. The first line must contain all columns defined in the database schema. Column values must match their expected types (string, integer, float, boolean, date, or sequence). Primary keys must be unique across the entire database; duplicates cause the operation to fail. Sequence data is validated for correct alphabet symbols and expected lengths.
-
-When validation fails, the error message includes the offending input line for diagnosis.
 
 ## Examples
 

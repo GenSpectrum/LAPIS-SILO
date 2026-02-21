@@ -30,6 +30,7 @@ docker run --rm \
   -e files="$files" \
   "$DOCKER_IMAGE" \
   /bin/bash -c '
+    set -euo pipefail
     cmake -G Ninja -D BUILD_WITH_CLANG_TIDY=ON -D CMAKE_BUILD_TYPE=Debug -B build/Debug
     targets=()
     for file in $files; do
