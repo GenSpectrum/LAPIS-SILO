@@ -1,0 +1,8 @@
+[project]
+name = "silo-build-tools"
+version = "0.0.0"
+description = "Build tool dependencies for SILO"
+requires-python = ">=3.8"
+dependencies = [
+    "conan>=2,<3",
+]

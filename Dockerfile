@@ -5,7 +5,9 @@ FROM $DEPENDENCY_IMAGE AS builder
 COPY . ./
 
 RUN  \
-    python3 ./build_with_conan.py --release --parallel 4\
+    export CMAKE_BUILD_PARALLEL_LEVEL=4; \
+    make build/Release/silo_test \
+    && make build/Release/silo \
     && cp build/Release/silo_test . \
     && cp build/Release/silo .
 

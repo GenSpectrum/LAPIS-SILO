@@ -2,24 +2,21 @@
 ## It will contain the PID of the running silo API server.
 ## If something fails during execution, it might be necessary to kill the daemon using `make clean-api`.
 SILO_DEBUG_EXECUTABLE=./build/Debug/silo
+SILO_DEBUG_TEST_EXECUTABLE=./build/Debug/silo_test
 SILO_RELEASE_EXECUTABLE=./build/Release/silo
+SILO_RELEASE_TEST_EXECUTABLE=./build/Release/silo_test
 RUNNING_SILO_FLAG=running_silo.flag
 DEPENDENCIES_FLAG=dependencies
 CLANG_FORMAT=$(shell command -v clang-format-19 2>/dev/null || command -v clang-format 2>/dev/null || echo clang-format)
+CMAKE_BUILD_PARALLEL_LEVEL ?= 16
 
 ci: format all-tests
 
 conanprofile:
-	conan profile detect || true
-	conan profile show --context build > conanprofile
+	buildScripts/create-conanprofile
 
 ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
-	conan install . --update --build=missing --profile ./conanprofile --profile:build ./conanprofile \
-	  --settings '&:build_type=Debug' --settings 'arrow/*:compiler.cppstd=20' \
-	  --output-folder=build/Debug/generators && \
-	conan install . --update --build=missing --profile ./conanprofile --profile:build ./conanprofile \
-	  --settings 'arrow/*:compiler.cppstd=20' \
-	  --output-folder=build/Release/generators && \
+	buildScripts/install-dependencies
 	touch ${DEPENDENCIES_FLAG}
 
 build/Debug/build.ninja: ${DEPENDENCIES_FLAG}
@@ -29,10 +26,16 @@ build/Release/build.ninja: ${DEPENDENCIES_FLAG}
 	cmake -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
 
 ${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
-	cmake --build build/Debug --parallel 16
+	cmake --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo
+
+${SILO_DEBUG_TEST_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
+	cmake --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test
 
 ${SILO_RELEASE_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
-	cmake --build build/Release --parallel 16
+	cmake --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo
+
+${SILO_RELEASE_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
+	cmake --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test
 
 output: ${SILO_DEBUG_EXECUTABLE}
 	export SPDLOG_LEVEL=debug; \
@@ -59,8 +62,8 @@ e2e: ${RUNNING_SILO_FLAG}
 	trap 'make clean-api' EXIT; \
 	(cd endToEndTests && SILO_URL=localhost:8093 npm run test)
 
-test: ${SILO_DEBUG_EXECUTABLE}
-	build/Debug/silo_test --gtest_filter='*' --gtest_color=no
+test: ${SILO_DEBUG_TEST_EXECUTABLE}
+	${SILO_DEBUG_TEST_EXECUTABLE} --gtest_filter='*' --gtest_color=no
 
 python-tests: ${DEPENDENCIES_FLAG}
 	uv venv --allow-existing .venv
