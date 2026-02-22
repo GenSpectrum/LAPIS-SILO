@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.12...v0.10.0) (2026-02-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **silo:** SILO will return `null` instead of `NN...NN`/`XX...XX` for sequences that were `null` in the input. "" in the input is no longer considered `null` for columns with `type: string` and `generateIndex: true`
+
+### Features
+
+* **benchmarking:** remove keep-silo feature ([e1486ae](https://github.com/GenSpectrum/LAPIS-SILO/commit/e1486ae70a01450267f1b787c99ae2ac4f7dc5cb))
+* **silo:** add null_bitmap for all columns to explicitly model NULL ([baef7d3](https://github.com/GenSpectrum/LAPIS-SILO/commit/baef7d3ade93b5889d13aa83a813287519d521d0))
+* **silo:** improve IsNull expression to support `IndexedStringColumn`, `ZstdCompressedStringColumn` and `SequenceColumn` ([6e48abf](https://github.com/GenSpectrum/LAPIS-SILO/commit/6e48abfabae742a0df154b6484356fd9fccd10a0))
+
 ## [0.9.12](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.11...v0.9.12) (2026-02-19)
 
 
