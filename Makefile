@@ -80,8 +80,7 @@ python-tests: ${DEPENDENCIES_FLAG}
 
 PYTHON_VERSIONS ?= 3.11 3.12 3.13 3.14
 
-build-wheels: conanprofile
-	python3 ./build_with_conan.py --release
+build-wheels: ${SILO_RELEASE_EXECUTABLE}
 	mkdir -p wheelhouse
 	@for pyversion in $(PYTHON_VERSIONS); do \
   		echo; \
