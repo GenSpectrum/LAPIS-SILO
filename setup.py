@@ -60,14 +60,10 @@ class build_ext(_build_ext):
         # The directory containing this setup.py
         source = os.path.dirname(os.path.abspath(__file__))
 
-        # Get setuptools build directories (following Arrow's pattern)
+        # Get setuptools build directories
         build_cmd = self.get_finalized_command('build')
         saved_cwd = os.getcwd()
-        build_temp = pjoin(saved_cwd, build_cmd.build_temp)
         build_lib = pjoin(saved_cwd, build_cmd.build_lib)
-
-        if not os.path.isdir(build_temp):
-            self.mkpath(build_temp)
 
         # Install directly to setuptools' build_lib directory
         # This way setuptools finds the files without manual copying
@@ -76,8 +72,15 @@ class build_ext(_build_ext):
         # Configuration name (e.g., Debug, Release)
         config_name = self.build_type.capitalize()
 
-        # Change to the build_temp directory
-        with changed_dir(build_temp):
+        # Reuse the existing cmake build directory (populated by `make dependencies`)
+        # so that silolib is not recompiled for each Python version
+        build_dir = pjoin(source, "build", config_name)
+
+        if not os.path.isdir(build_dir):
+            self.mkpath(build_dir)
+
+        # Change to the build_dir directory
+        with changed_dir(build_dir):
             # Find existing conan generators directory
             # Try build/{config_name}/generators first, then build/{other_config}/generators
             conan_generators_dir = None
@@ -90,10 +93,7 @@ class build_ext(_build_ext):
             if not conan_generators_dir:
                 raise RuntimeError(
                     "Conan dependencies not found. Please run the following first:\n"
-                    f"  mkdir -p build/{config_name} && cd build/{config_name}\n"
-                    "  conan install ../..\n"
-                    "  cmake ../.. -DBUILD_PYTHON_BINDINGS=OFF\n"
-                    "  cmake --build .\n"
+                    f"  make dependencies"
                     "Then retry: pip install ."
                 )
 
@@ -111,7 +111,7 @@ class build_ext(_build_ext):
                 '-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
             ]
 
-            print(f"-- Running cmake to configure project in {build_temp}")
+            print(f"-- Running cmake to configure project in {build_dir}")
             print(f"-- Will install to: {install_prefix}")
             self.spawn(['cmake'] + cmake_options + [source])
 
