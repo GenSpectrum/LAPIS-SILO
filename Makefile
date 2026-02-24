@@ -23,7 +23,7 @@ SRC_FILE_LIST=.src_file_list
 $(SRC_FILE_LIST): FORCE
 	@find src -type f | sort > $@.tmp
 	@cmp -s $@ $@.tmp && rm $@.tmp || mv $@.tmp $@
-FORCE:
+.PHONY: FORCE
 
 build/Debug/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
 	cmake -G Ninja -B build/Debug -D CMAKE_BUILD_TYPE=Debug
@@ -80,8 +80,7 @@ python-tests: ${DEPENDENCIES_FLAG}
 
 PYTHON_VERSIONS ?= 3.11 3.12 3.13 3.14
 
-build-wheels: conanprofile
-	python3 ./build_with_conan.py --release
+build-wheels: ${SILO_RELEASE_EXECUTABLE}
 	mkdir -p wheelhouse
 	@for pyversion in $(PYTHON_VERSIONS); do \
   		echo; \
