@@ -85,10 +85,11 @@ class build_ext(_build_ext):
             cmake_options = [
                 f'-DCMAKE_INSTALL_PREFIX={install_prefix}',
                 f'-DPython3_EXECUTABLE={sys.executable}',
+                # Explicitly provide include dir so CMake finds headers for
+                # python-build-standalone installs (used by uv) on Linux
+                f'-DPython3_INCLUDE_DIR={sysconfig.get_path("include")}',
                 f'-DCMAKE_BUILD_TYPE={config_name}',
                 '-DBUILD_PYTHON_BINDINGS=ON',
-                # var ignored on other OSs
-                '-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
             ]
 
             print(f"-- Running cmake to configure project in {build_dir}")

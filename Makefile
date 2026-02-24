@@ -71,20 +71,25 @@ python-tests: ${DEPENDENCIES_FLAG}
 	uv pip install -q --no-build-isolation ".[test]"
 	.venv/bin/pytest python/tests -v
 
-build-wheel: conanprofile
+
+PYTHON_VERSIONS ?= 3.11 3.12 3.13 3.14
+
+build-wheels: conanprofile
 	python3 ./build_with_conan.py --release
-	rm -rf dist
-	@if [ "$$(uname)" = "Darwin" ]; then \
-		_PYTHON_HOST_PLATFORM="macosx-15.0-$$(uname -m)" uv build --wheel; \
-	else \
-		uv build --wheel; \
-	fi
 	mkdir -p wheelhouse
-	@if [ "$$(uname)" = "Darwin" ]; then \
-		uv tool run --from delocate delocate-wheel -w wheelhouse/ dist/*.whl; \
-	else \
-		uv tool run auditwheel repair dist/*.whl -w wheelhouse/; \
-	fi
+	@for pyversion in $(PYTHON_VERSIONS); do \
+  		echo; \
+		echo "--- Building wheel for Python $$pyversion ---"; \
+		uv python install $$pyversion; \
+		rm -rf dist; \
+		if [ "$$(uname)" = "Darwin" ]; then \
+			_PYTHON_HOST_PLATFORM="macosx-15.0-$$(uname -m)" uv build --wheel --python $$pyversion; \
+			uv tool run --from delocate delocate-wheel -w wheelhouse/ dist/*.whl; \
+		else \
+			uv build --wheel --python $$pyversion; \
+			uv tool run auditwheel repair dist/*.whl -w wheelhouse/; \
+		fi; \
+	done
 
 all-tests: test e2e python-tests
 
@@ -122,4 +127,4 @@ full-clean: clean
 	rm -rf build
 
 .PHONY:
-	full-clean clean clean-api e2e format format-cpp format-node check-format check-format-cpp check-format-node all test all-tests ci python-tests build-wheel
+	full-clean clean clean-api e2e format format-cpp format-node check-format check-format-cpp check-format-node all test all-tests ci python-tests build-wheels

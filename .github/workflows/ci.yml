@@ -441,7 +441,7 @@ jobs:
             echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
           fi
 
-      - name: Build wheel in Docker
+      - name: Build wheels in Docker
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
@@ -451,17 +451,18 @@ jobs:
               set -euo pipefail
               mv /src/conanprofile .
 
-              # Build the C++ project
+              # Build the C++ project once
               export CMAKE_BUILD_PARALLEL_LEVEL=4
               make build/Release/silo
 
-              # Build the wheel
-              rm -rf dist
-              uv build --wheel
-
-              # Repair wheel for manylinux compatibility
+              # Build wheels for all supported Python versions
               mkdir -p wheelhouse
-              uv tool run auditwheel repair dist/*.whl -w wheelhouse/
+              for pyversion in 3.11 3.12 3.13 3.14; do
+                uv python install \$pyversion
+                rm -rf dist
+                uv build --wheel --python \$pyversion
+                uv tool run auditwheel repair dist/*.whl -w wheelhouse/
+              done
             "
 
       - name: Upload wheel as workflow artifact
@@ -488,16 +489,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   buildWheelsMacos:
-    name: Build wheel (macos-arm64)
-    runs-on: macos-15
+    name: Build wheel (macos-${{ matrix.arch }})
+    strategy:
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v6
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
 
       - uses: astral-sh/setup-uv@v7
 
@@ -508,17 +512,17 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.conan2
-          key: conan-macos-arm64-${{ hashFiles('conanfile.py', 'Dockerfile_dependencies') }}
+          key: conan-macos-${{ matrix.arch }}-${{ hashFiles('conanfile.py', 'Dockerfile_dependencies') }}
           restore-keys: |
-            conan-macos-arm64-
+            conan-macos-${{ matrix.arch }}-
 
-      - name: Build wheel
-        run: make build-wheel
+      - name: Build wheels for all supported Python versions
+        run: make build-wheels
 
       - name: Upload wheel as workflow artifact
         uses: actions/upload-artifact@v6
         with:
-          name: wheel-macos-arm64
+          name: wheel-macos-${{ matrix.arch }}
           path: wheelhouse/*.whl
 
       - name: Determine release version
