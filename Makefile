@@ -19,10 +19,16 @@ ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 	buildScripts/install-dependencies
 	touch ${DEPENDENCIES_FLAG}
 
-build/Debug/build.ninja: ${DEPENDENCIES_FLAG}
+SRC_FILE_LIST=.src_file_list
+$(SRC_FILE_LIST): FORCE
+	@find src -type f | sort > $@.tmp
+	@cmp -s $@ $@.tmp && rm $@.tmp || mv $@.tmp $@
+FORCE:
+
+build/Debug/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
 	cmake -G Ninja -B build/Debug -D CMAKE_BUILD_TYPE=Debug
 
-build/Release/build.ninja: ${DEPENDENCIES_FLAG}
+build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
 	cmake -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
 
 ${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
@@ -121,7 +127,7 @@ clean-api:
 	fi
 
 clean: clean-api
-	rm -rf output logs ${DEPENDENCIES_FLAG}
+	rm -rf output logs ${DEPENDENCIES_FLAG} ${SRC_FILE_LIST}
 
 full-clean: clean
 	rm -rf build
