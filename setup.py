@@ -81,31 +81,11 @@ class build_ext(_build_ext):
 
         # Change to the build_dir directory
         with changed_dir(build_dir):
-            # Find existing conan generators directory
-            # Try build/{config_name}/generators first, then build/{other_config}/generators
-            conan_generators_dir = None
-            for config in [config_name, 'Release', 'Debug']:
-                candidate = pjoin(source, "build", config, "generators")
-                if os.path.exists(candidate):
-                    conan_generators_dir = candidate
-                    break
-
-            if not conan_generators_dir:
-                raise RuntimeError(
-                    "Conan dependencies not found. Please run the following first:\n"
-                    f"  make dependencies"
-                    "Then retry: pip install ."
-                )
-
-            print(f"-- Using conan dependencies from {conan_generators_dir}")
-
             # --- CONFIGURE ---
             cmake_options = [
                 f'-DCMAKE_INSTALL_PREFIX={install_prefix}',
                 f'-DPython3_EXECUTABLE={sys.executable}',
                 f'-DCMAKE_BUILD_TYPE={config_name}',
-                f'-DCMAKE_PREFIX_PATH={conan_generators_dir}',
-                f'-DCMAKE_MODULE_PATH={conan_generators_dir}',
                 '-DBUILD_PYTHON_BINDINGS=ON',
                 # var ignored on other OSs
                 '-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0',
