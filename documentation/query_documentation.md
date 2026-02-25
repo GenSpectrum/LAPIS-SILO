@@ -79,6 +79,52 @@ See `NucleotideEquals`.
 
 See `HasNucleotideMutation`.
 
+#### `NucleotideMutationProfile`
+
+```
+{
+  "distance": number,
+  "sequenceName": string,          // optional; uses the default sequence if omitted
+  // Exactly one of:
+  "querySequence": string,
+  "sequenceId": string,
+  "mutations": [{"position": number, "symbol": string}]
+}
+```
+
+This filter is true if a sequence has at most `distance` **differences** from a profile sequence.
+
+A difference at a position is considered when the database sequence's symbol is **not** ambiguity-compatible with the profile's symbol at that position. Ambiguity-compatible means the database symbol appears in the set of symbols compatible with the profile symbol (e.g. `R` is compatible with `A` because `R` represents A or G; `N` is compatible with any definitive base). Positions where the profile symbol is `N` (missing) are always skipped and never counted as differences.
+
+**Profile input — exactly one of:**
+
+- `querySequence`: a full sequence string of the same length as the reference. Each character must be a valid symbol for the sequence type.
+- `sequenceId`: the primary key of a sequence already in the database. That sequence is used as the profile.
+- `mutations`: an array of mutations relative to the reference. Positions are 1-based. Positions not listed retain the reference symbol. An empty array means the profile equals the reference.
+  - Each entry: `{"position": number, "symbol": string}` where `symbol` is a single valid character.
+
+**Example** — find all sequences within 5 mutations of the reference:
+```json
+{
+  "type": "NucleotideMutationProfile",
+  "distance": 5,
+  "mutations": []
+}
+```
+
+**Example** — find sequences within 2 mutations of a specific stored sequence:
+```json
+{
+  "type": "NucleotideMutationProfile",
+  "distance": 2,
+  "sequenceId": "EPI_ISL_123456"
+}
+```
+
+#### `AminoAcidMutationProfile`
+
+See `NucleotideMutationProfile`. Applies to amino acid sequences; `symbol` values must be valid amino acid symbols.
+
 #### `Lineage`: `{"column": string, "value": string, "includeSublineages": boolean}`
 
 This filter is true if the lineage in column `column` is equal to or an alias of `value`. 

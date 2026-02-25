@@ -157,6 +157,28 @@ class VerticalSequenceIndex {
       std::vector<typename SymbolType::Symbol> symbol
    ) const;
 
+   // Describes one position condition for buildNOfDpTable.
+   struct PositionQuery {
+      uint32_t position;
+      // Symbols to look up in the vertical index.
+      std::vector<typename SymbolType::Symbol> index_symbols;
+   };
+
+   // Iterates all query positions in a single forward scan and applies the Threshold DP inline,
+   // returning the intermediate DP table where dp[j] is the bitmap of sequences that matched
+   // at least (j+1) of the given positions.
+   // sorted_position_queries must be sorted by position.
+   // Positions with the missing symbol must not appear here (caller must fall back to general
+   // path). k_total: total number of conditions including any applied by the caller externally;
+   //          used for DP lower-bound optimization.
+   // Coverage handling for reference positions is the caller's responsibility.
+   [[nodiscard]] std::vector<roaring::Roaring> buildNOfDpTable(
+      const std::vector<PositionQuery>& sorted_position_queries,
+      uint32_t number_of_matchers,
+      bool match_exactly,
+      int k_total
+   ) const;
+
    void overwriteSymbolsInSequences(
       std::vector<std::string>& sequences,
       const roaring::Roaring& row_ids

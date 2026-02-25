@@ -32,6 +32,12 @@ class SymbolInSet : public Expression {
 
    [[nodiscard]] std::string toString() const override;
 
+   [[nodiscard]] const std::optional<std::string>& getSequenceName() const { return sequence_name; }
+   [[nodiscard]] uint32_t getPositionIdx() const { return position_idx; }
+   [[nodiscard]] const std::vector<typename SymbolType::Symbol>& getSymbols() const {
+      return symbols;
+   }
+
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
       const storage::TablePartition& table_partition,
