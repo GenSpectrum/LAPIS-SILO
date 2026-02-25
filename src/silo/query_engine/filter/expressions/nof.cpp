@@ -239,7 +239,6 @@ std::unique_ptr<Expression> NOf::rewriteToNonExact(
       this->number_of_matchers + 1,
       /*match_exactly=*/false
    );
-   ;
    ExpressionVector and_children;
    and_children.push_back(std::move(at_least_k));
    and_children.push_back(std::make_unique<Negation>(std::move(at_least_k_plus_one)));
