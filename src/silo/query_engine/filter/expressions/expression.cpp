@@ -21,6 +21,7 @@
 #include "silo/query_engine/filter/expressions/is_null.h"
 #include "silo/query_engine/filter/expressions/lineage_filter.h"
 #include "silo/query_engine/filter/expressions/maybe.h"
+#include "silo/query_engine/filter/expressions/mutation_profile.h"
 #include "silo/query_engine/filter/expressions/negation.h"
 #include "silo/query_engine/filter/expressions/nof.h"
 #include "silo/query_engine/filter/expressions/or.h"
@@ -111,6 +112,10 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<IsNull>>();
    } else if (expression_type == "IsNotNull") {
       filter = std::make_unique<Negation>(json.get<std::unique_ptr<IsNull>>());
+   } else if (expression_type == "NucleotideMutationProfile") {
+      filter = json.get<std::unique_ptr<MutationProfile<Nucleotide>>>();
+   } else if (expression_type == "AminoAcidMutationProfile") {
+      filter = json.get<std::unique_ptr<MutationProfile<AminoAcid>>>();
    } else {
       throw query_engine::IllegalQueryException(
          "Unknown object filter type '" + expression_type + "'"

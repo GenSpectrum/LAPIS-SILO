@@ -1,8 +1,10 @@
 function(add_benchmark BENCH_NAME)
     add_executable(${BENCH_NAME} ${BENCH_NAME}.cpp)
     target_link_libraries(${BENCH_NAME} silolib)
+    target_include_directories(${BENCH_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/performance)
 endfunction(add_benchmark)
 
 add_benchmark(mutation_benchmark)
 add_benchmark(many_string_equals)
 add_benchmark(many_short_read_filters)
+add_benchmark(nof_sequence_filter)
