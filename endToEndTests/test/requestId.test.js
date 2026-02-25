@@ -11,7 +11,8 @@ describe('The request id', () => {
     await server
       .post('/query')
       .set(X_REQUEST_ID, requestID)
-      .send({ action: { type: 'Aggregated' }, filterExpression: { type: 'True' } })
+      .set('Content-Type', 'text/plain')
+      .send('default.groupBy({count:=count()})')
       .expect(200)
       .expect(X_REQUEST_ID, requestID);
   });
@@ -19,7 +20,8 @@ describe('The request id', () => {
   it('should be generated when none is specified', async () => {
     await server
       .post('/query')
-      .send({ action: { type: 'Aggregated' }, filterExpression: { type: 'True' } })
+      .set('Content-Type', 'text/plain')
+      .send('default.groupBy({count:=count()})')
       .expect(200)
       .expect(response => {
         const headers = response.headers;

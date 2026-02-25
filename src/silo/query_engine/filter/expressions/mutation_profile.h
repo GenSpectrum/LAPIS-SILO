@@ -74,8 +74,4 @@ class MutationProfile : public Expression {
    ) const override;
 };
 
-template <typename SymbolType>
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<MutationProfile<SymbolType>>& filter);
-
 }  // namespace silo::query_engine::filter::expressions

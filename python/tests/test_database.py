@@ -63,8 +63,6 @@ class TestDatabaseCreation:
             'get_filtered_bitmap',
             'get_nucleotide_reference_sequence',
             'get_amino_acid_reference_sequence',
-            'get_prevalent_nucleotide_mutations',
-            'get_prevalent_amino_acid_mutations',
             'get_tables',
             'print_all_data',
             'save_checkpoint',
@@ -179,7 +177,7 @@ class TestGetFilteredBitmap:
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
         # True filter should return all rows
-        bitmap = empty_database.get_filtered_bitmap("sequences", '{"type":"True"}')
+        bitmap = empty_database.get_filtered_bitmap("sequences", 'true')
         assert isinstance(bitmap, pyroaring.BitMap)
         assert len(bitmap) > 0  # Should have at least one row from test data
 
@@ -193,7 +191,7 @@ class TestGetFilteredBitmap:
         )
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
-        bitmap = empty_database.get_filtered_bitmap("sequences", '{"type":"True"}')
+        bitmap = empty_database.get_filtered_bitmap("sequences", 'true')
         assert isinstance(bitmap, pyroaring.BitMap)
         # Can iterate over bitmap to get indices
         indices = list(bitmap)
@@ -237,7 +235,7 @@ class TestGetFilteredBitmap:
         )
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
-        bitmap = empty_database.get_filtered_bitmap("sequences", '{"type":"True"}')
+        bitmap = empty_database.get_filtered_bitmap("sequences", 'true')
 
         # Test union, intersection operations
         other_bitmap = pyroaring.BitMap([0, 1, 2])
@@ -246,72 +244,6 @@ class TestGetFilteredBitmap:
 
         assert isinstance(union, pyroaring.BitMap)
         assert isinstance(intersection, pyroaring.BitMap)
-
-
-class TestGetPrevalentMutations:
-    """Test getting prevalent mutations."""
-
-    def test_get_prevalent_mutations_basic(self, empty_database, main_reference_sequence):
-        """Test getting prevalent mutations."""
-        empty_database.create_nucleotide_sequence_table(
-            table_name="sequences",
-            primary_key_name="primary_key",
-            sequence_name="main",
-            reference_sequence=main_reference_sequence
-        )
-        empty_database.append_data_from_file("sequences", INPUT_FILE)
-
-        mutations = empty_database.get_prevalent_nucleotide_mutations(
-            table_name="sequences",
-            sequence_name="main",
-            prevalence_threshold=0.5,
-            filter_expression='{"type":"True"}'
-        )
-        assert isinstance(mutations, list)
-
-    def test_get_prevalent_mutations_returns_tuples(self, empty_database, main_reference_sequence):
-        """Test that mutations are returned as (position, mutation) tuples."""
-        empty_database.create_nucleotide_sequence_table(
-            table_name="sequences",
-            primary_key_name="primary_key",
-            sequence_name="main",
-            reference_sequence=main_reference_sequence
-        )
-        empty_database.append_data_from_file("sequences", INPUT_FILE)
-
-        mutations = empty_database.get_prevalent_nucleotide_mutations(
-            table_name="sequences",
-            sequence_name="main",
-            prevalence_threshold=0.0,  # Get all mutations
-            filter_expression='{"type":"True"}'
-        )
-
-        for mutation in mutations:
-            assert isinstance(mutation, tuple)
-            assert len(mutation) == 2
-            assert isinstance(mutation[0], int)  # position
-            assert isinstance(mutation[1], str)  # mutation string
-
-    def test_get_prevalent_mutations_threshold_filtering(self, empty_database, main_reference_sequence):
-        """Test that higher thresholds return fewer mutations."""
-        empty_database.create_nucleotide_sequence_table(
-            table_name="sequences",
-            primary_key_name="primary_key",
-            sequence_name="main",
-            reference_sequence=main_reference_sequence
-        )
-        empty_database.append_data_from_file("sequences", INPUT_FILE)
-
-        low_threshold = empty_database.get_prevalent_nucleotide_mutations(
-            "sequences", "main", 0.1, '{"type":"True"}'
-        )
-        high_threshold = empty_database.get_prevalent_nucleotide_mutations(
-            "sequences", "main", 0.9, '{"type":"True"}'
-        )
-
-        # Higher threshold should return same or fewer mutations
-        assert len(high_threshold) <= len(low_threshold)
-
 
 class TestSaveAndLoadCheckpoint:
     """Test saving and loading database checkpoints."""
@@ -370,10 +302,7 @@ class TestSaveAndLoadCheckpoint:
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
         # Get data before save
-        bitmap_before = empty_database.get_filtered_bitmap("sequences", '{"type":"True"}')
-        mutations_before = empty_database.get_prevalent_nucleotide_mutations(
-            "sequences", "main", 0.5, '{"type":"True"}'
-        )
+        bitmap_before = empty_database.get_filtered_bitmap("sequences", 'true')
 
         # Save and reload
         save_path = os.path.join(temp_dir, "checkpoint")
@@ -382,13 +311,9 @@ class TestSaveAndLoadCheckpoint:
         loaded_db = Database(save_path)
 
         # Compare with loaded data
-        bitmap_after = loaded_db.get_filtered_bitmap("sequences", '{"type":"True"}')
-        mutations_after = loaded_db.get_prevalent_nucleotide_mutations(
-            "sequences", "main", 0.5, '{"type":"True"}'
-        )
+        bitmap_after = loaded_db.get_filtered_bitmap("sequences", 'true')
 
         assert bitmap_before == bitmap_after
-        assert mutations_before == mutations_after
 
 
 class TestDatabaseValidation:
@@ -469,26 +394,6 @@ class TestDatabaseValidation:
         with pytest.raises(ValueError, match="table_name cannot be empty"):
             empty_database.get_filtered_bitmap("", "filter")
 
-    def test_get_prevalent_mutations_empty_table_name(self, empty_database):
-        """Test that empty table name raises ValueError."""
-        with pytest.raises(ValueError, match="table_name cannot be empty"):
-            empty_database.get_prevalent_nucleotide_mutations("", "main", 0.5)
-
-    def test_get_prevalent_mutations_empty_sequence_name(self, empty_database):
-        """Test that empty sequence name raises ValueError."""
-        with pytest.raises(ValueError, match="sequence_name cannot be empty"):
-            empty_database.get_prevalent_nucleotide_mutations("test", "", 0.5)
-
-    def test_get_prevalent_mutations_invalid_threshold_low(self, empty_database):
-        """Test that threshold below 0 raises ValueError."""
-        with pytest.raises(ValueError, match="prevalence_threshold must be between"):
-            empty_database.get_prevalent_nucleotide_mutations("test", "main", -0.1)
-
-    def test_get_prevalent_mutations_invalid_threshold_high(self, empty_database):
-        """Test that threshold above 1 raises ValueError."""
-        with pytest.raises(ValueError, match="prevalence_threshold must be between"):
-            empty_database.get_prevalent_nucleotide_mutations("test", "main", 1.5)
-
     def test_save_checkpoint_empty_directory(self, empty_database):
         """Test that empty directory raises ValueError."""
         with pytest.raises(ValueError, match="save_directory cannot be empty"):
@@ -560,8 +465,8 @@ class TestExtraColumns:
         db.append_data_from_string("test", '{"id": "s1", "seq": {"sequence": "AAAA", "insertions": []}, "country": "USA", "lineage": "BA.1"}')
         db.append_data_from_string("test", '{"id": "s2", "seq": {"sequence": "CCCC", "insertions": []}, "country": "UK", "lineage": "BA.2"}')
 
-        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
-        result = db.execute_query("test", query)
+        query = 'test'
+        result = db.execute_query(query)
 
         assert "country" in result.column_names
         assert "lineage" in result.column_names
@@ -583,8 +488,8 @@ class TestExtraColumns:
         )
         db.append_data_from_string("test", '{"id": "s1", "seq": {"sequence": "AAAA", "insertions": []}}')
 
-        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
-        result = db.execute_query("test", query)
+        query = 'test'
+        result = db.execute_query(query)
         assert result.num_rows == 1
 
     def test_extra_columns_with_none(self):
@@ -601,8 +506,8 @@ class TestExtraColumns:
         )
         db.append_data_from_string("test", '{"id": "s1", "seq": {"sequence": "AAAA", "insertions": []}}')
 
-        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
-        result = db.execute_query("test", query)
+        query = 'test'
+        result = db.execute_query(query)
         assert result.num_rows == 1
 
     def test_extra_columns_invalid_type_raises(self):
@@ -697,8 +602,8 @@ class TestExecuteQuery:
         )
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
-        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
-        result = empty_database.execute_query("sequences", query)
+        query = 'sequences'
+        result = empty_database.execute_query(query)
 
         assert isinstance(result, pa.Table)
 
@@ -712,8 +617,8 @@ class TestExecuteQuery:
         )
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
-        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
-        result = empty_database.execute_query("sequences", query)
+        query = 'sequences'
+        result = empty_database.execute_query(query)
 
         # Should have at least the primary key column
         assert "primary_key" in result.column_names
@@ -728,8 +633,8 @@ class TestExecuteQuery:
         )
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
-        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
-        result = empty_database.execute_query("sequences", query)
+        query = 'sequences'
+        result = empty_database.execute_query(query)
 
         assert result.num_rows > 0
 
@@ -744,12 +649,12 @@ class TestExecuteQuery:
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
         # Get all rows first
-        all_query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
-        all_result = empty_database.execute_query("sequences", all_query)
+        all_query = 'sequences'
+        all_result = empty_database.execute_query(all_query)
 
         # Get filtered rows (False filter should return 0 rows)
-        filtered_query = '{"filterExpression": {"type": "False"}, "action": {"type": "Details"}}'
-        filtered_result = empty_database.execute_query("sequences", filtered_query)
+        filtered_query = 'sequences.filter(false)'
+        filtered_result = empty_database.execute_query(filtered_query)
 
         assert filtered_result.num_rows == 0
         assert all_result.num_rows > filtered_result.num_rows
@@ -764,8 +669,8 @@ class TestExecuteQuery:
         )
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
-        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
-        result = empty_database.execute_query("sequences", query)
+        query = 'sequences'
+        result = empty_database.execute_query(query)
 
         batches = result.to_batches()
         assert isinstance(batches, list)
@@ -782,18 +687,13 @@ class TestExecuteQuery:
         )
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
-        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
-        result = empty_database.execute_query("sequences", query)
+        query = 'sequences'
+        result = empty_database.execute_query(query)
 
         data = result.to_pydict()
         assert isinstance(data, dict)
         assert "primary_key" in data
         assert isinstance(data["primary_key"], list)
-
-    def test_execute_query_empty_table_name_raises(self, empty_database):
-        """Test that empty table name raises ValueError."""
-        with pytest.raises(ValueError, match="table_name cannot be empty"):
-            empty_database.execute_query("", '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}')
 
     def test_execute_query_empty_query_raises(self, empty_database, main_reference_sequence):
         """Test that empty query raises ValueError."""
@@ -804,11 +704,11 @@ class TestExecuteQuery:
             reference_sequence=main_reference_sequence
         )
 
-        with pytest.raises(ValueError, match="query_json cannot be empty"):
-            empty_database.execute_query("sequences", "")
+        with pytest.raises(ValueError, match="query_string cannot be empty"):
+            empty_database.execute_query("")
 
-    def test_execute_query_invalid_json_raises(self, empty_database, main_reference_sequence):
-        """Test that invalid JSON raises an error."""
+    def test_execute_query_invalid_query_raises(self, empty_database, main_reference_sequence):
+        """Test that invalid SaneQL raises an error."""
         empty_database.create_nucleotide_sequence_table(
             table_name="sequences",
             primary_key_name="primary_key",
@@ -816,20 +716,8 @@ class TestExecuteQuery:
             reference_sequence=main_reference_sequence
         )
 
-        with pytest.raises(ValueError, match="not a valid JSON"):
-            empty_database.execute_query("sequences", "not valid json")
-
-    def test_execute_query_missing_action_raises(self, empty_database, main_reference_sequence):
-        """Test that query without action raises an error."""
-        empty_database.create_nucleotide_sequence_table(
-            table_name="sequences",
-            primary_key_name="primary_key",
-            sequence_name="main",
-            reference_sequence=main_reference_sequence
-        )
-
-        with pytest.raises(ValueError, match="must contain filterExpression and action"):
-            empty_database.execute_query("sequences", '{"filterExpression": {"type": "True"}}')
+        with pytest.raises(RuntimeError):
+            empty_database.execute_query("not valid saneql !")
 
     def test_execute_query_simple_database(self):
         """Test execute_query with a simple in-memory database."""
@@ -845,8 +733,8 @@ class TestExecuteQuery:
         db.append_data_from_string("test", '{"id": "sample1", "seq": {"sequence": "AAAA", "insertions": []}}')
         db.append_data_from_string("test", '{"id": "sample2", "seq": {"sequence": "CCCC", "insertions": []}}')
 
-        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
-        result = db.execute_query("test", query)
+        query = 'test'
+        result = db.execute_query(query)
 
         assert isinstance(result, pa.Table)
         assert result.num_rows == 2
@@ -870,8 +758,8 @@ class TestExecuteQuery:
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
         # Query before checkpoint
-        query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
-        result_before = empty_database.execute_query("sequences", query)
+        query = 'sequences'
+        result_before = empty_database.execute_query(query)
 
         # Save and reload
         save_path = os.path.join(temp_dir, "checkpoint")
@@ -879,7 +767,7 @@ class TestExecuteQuery:
         loaded_db = Database(save_path)
 
         # Query after checkpoint
-        result_after = loaded_db.execute_query("sequences", query)
+        result_after = loaded_db.execute_query(query)
 
         # Results should match
         assert result_before.num_rows == result_after.num_rows

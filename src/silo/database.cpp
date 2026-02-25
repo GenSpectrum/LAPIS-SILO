@@ -25,17 +25,6 @@
 #include "silo/common/version.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
-#include "silo/query_engine/action_query.h"
-#include "silo/query_engine/actions/action.h"
-#include "silo/query_engine/actions/aggregated.h"
-#include "silo/query_engine/actions/details.h"
-#include "silo/query_engine/actions/fasta.h"
-#include "silo/query_engine/actions/fasta_aligned.h"
-#include "silo/query_engine/actions/insertions.h"
-#include "silo/query_engine/actions/most_recent_common_ancestor.h"
-#include "silo/query_engine/actions/mutations.h"
-#include "silo/query_engine/actions/phylo_subtree.h"
-#include "silo/query_engine/binder.h"
 #include "silo/query_engine/exec_node/arrow_ipc_sink.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/filter/expressions/true.h"
@@ -43,6 +32,8 @@
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/planner.h"
+#include "silo/query_engine/saneql/ast_to_query.h"
+#include "silo/query_engine/saneql/parser.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/sequence_column.h"
 
@@ -185,8 +176,6 @@ void Database::appendDataFromString(const std::string& table_name, std::string j
    silo::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
 }
 
-using silo::query_engine::ActionQuery;
-using silo::query_engine::actions::Action;
 using silo::query_engine::filter::expressions::Expression;
 using silo::query_engine::filter::expressions::True;
 
@@ -266,83 +255,22 @@ roaring::Roaring Database::getFilteredBitmap(
    const std::string& table_name,
    const std::string& filter
 ) {
-   const nlohmann::json filter_json = nlohmann::json::parse(filter);
-   std::unique_ptr<Expression> filter_expression = filter_json;
    auto maybe_table = tables.find(schema::TableName{table_name});
    if (maybe_table == tables.end()) {
       SPDLOG_ERROR("The database does not contain the table {}", table_name);
       return {};
    }
    auto table = maybe_table->second;
+
+   query_engine::saneql::Parser parser(filter);
+   auto ast = parser.parse();
+   auto filter_expression = query_engine::saneql::convertToFilter(*ast);
+
    auto rewritten_filter_expression =
       filter_expression->rewrite(*table, Expression::AmbiguityMode::NONE);
    auto filter_operator = rewritten_filter_expression->compile(*table);
    roaring::Roaring bitmap = filter_operator->evaluate().getConstReference();
    return bitmap;
-}
-
-template <typename SymbolType>
-std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentMutations(
-   const std::string& table_name,
-   const std::string& sequence_name,
-   double prevalence_threshold,
-   const std::string& filter
-) const {
-   using SymbolMutations = silo::query_engine::actions::Mutations<SymbolType>;
-
-   const nlohmann::json filter_json = nlohmann::json::parse(filter);
-   std::unique_ptr<Expression> filter_expression = filter_json;
-
-   std::unique_ptr<Action> action = std::make_unique<SymbolMutations>(
-      std::vector<std::string>{sequence_name},
-      prevalence_threshold,
-      std::vector<std::string_view>{
-         SymbolMutations::COUNT_FIELD_NAME, SymbolMutations::MUTATION_FIELD_NAME
-      }
-   );
-
-   auto action_query = ActionQuery(std::move(filter_expression), std::move(action));
-   action_query.table_name = schema::TableName{table_name};
-   auto query_node = query_engine::Binder::bindQuery(std::move(action_query), tables);
-   auto query_plan = query_engine::Planner::planQuery(
-      std::move(query_node), tables, config::QueryOptions{}, "getPrevalentMutations"
-   );
-   std::stringstream result_stream;
-   query_engine::exec_node::NdjsonSink output_sink{&result_stream, query_plan.results_schema};
-   query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/100);
-
-   std::vector<std::pair<uint64_t, std::string>> result;
-   std::string json_line;
-   while (result_stream >> json_line) {
-      auto line = nlohmann::json::parse(json_line);
-      SILO_ASSERT(line.contains(SymbolMutations::COUNT_FIELD_NAME));
-      const uint64_t count = line[SymbolMutations::COUNT_FIELD_NAME].template get<uint64_t>();
-      SILO_ASSERT(line.contains(SymbolMutations::MUTATION_FIELD_NAME));
-      const std::string mutation =
-         line[SymbolMutations::MUTATION_FIELD_NAME].template get<std::string>();
-      result.emplace_back(count, mutation);
-   }
-   return result;
-}
-
-std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentNucMutations(
-   const std::string& table_name,
-   const std::string& sequence_name,
-   double prevalence_threshold,
-   const std::string& filter
-) const {
-   return getPrevalentMutations<Nucleotide>(
-      table_name, sequence_name, prevalence_threshold, filter
-   );
-}
-
-std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentAminoAcidMutations(
-   const std::string& table_name,
-   const std::string& sequence_name,
-   double prevalence_threshold,
-   const std::string& filter
-) const {
-   return getPrevalentMutations<AminoAcid>(table_name, sequence_name, prevalence_threshold, filter);
 }
 
 namespace {
@@ -491,15 +419,9 @@ void Database::updateDataVersion() {
    SPDLOG_DEBUG("Data version was set to {}", data_version_.toString());
 }
 
-std::string Database::executeQueryAsArrowIpc(
-   const std::string& table_name,
-   const std::string& query_json
-) const {
-   auto action_query = ActionQuery::parseQuery(query_json);
-   action_query.table_name = schema::TableName{table_name};
-   auto query_node = query_engine::Binder::bindQuery(std::move(action_query), tables);
-   auto query_plan = query_engine::Planner::planQuery(
-      std::move(query_node), tables, config::QueryOptions{}, "executeQueryAsArrowIpc"
+std::string Database::executeQueryAsArrowIpc(const std::string& query_string) const {
+   auto query_plan = query_engine::Planner::planSaneqlQuery(
+      query_string, tables, config::QueryOptions{}, "executeQueryAsArrowIpc"
    );
 
    constexpr uint64_t DEFAULT_TIMEOUT_SECONDS = 120;

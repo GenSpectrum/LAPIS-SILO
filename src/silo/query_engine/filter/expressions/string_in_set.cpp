@@ -4,7 +4,6 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/common/panic.h"
 #include "silo/query_engine/filter/expressions/expression.h"
@@ -66,33 +65,6 @@ std::unique_ptr<operators::Operator> StringInSet::compile(const storage::Table& 
       ),
       table.sequence_count
    );
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<StringInSet>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("column"), "The field 'column' is required in a StringInSet expression"
-   );
-   CHECK_SILO_QUERY(
-      json["column"].is_string(),
-      "The field 'column' in an StringInSet expression needs to be a string"
-   );
-   CHECK_SILO_QUERY(
-      json.contains("values"), "The field 'values' is required in a StringInSet expression"
-   );
-   CHECK_SILO_QUERY(
-      json["values"].is_array(),
-      "The field 'values' in an StringInSet expression needs to be an array"
-   );
-   const std::string& column_name = json["column"];
-   std::unordered_set<std::string> values;
-   for (const auto& value : json["values"]) {
-      CHECK_SILO_QUERY(
-         value.is_string(), "The field 'values' in a StringInSet may only contain strings"
-      );
-      values.insert(value.get<std::string>());
-   }
-   filter = std::make_unique<StringInSet>(column_name, values);
 }
 
 }  // namespace silo::query_engine::filter::expressions

@@ -5,7 +5,6 @@
 #include <utility>
 
 #include <fmt/format.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -31,13 +30,6 @@ std::unique_ptr<Expression> Exact::rewrite(
 std::unique_ptr<operators::Operator> Exact::compile(const storage::Table& /*table*/
 ) const {
    throw QueryCompilationException{"Exact expression must be elimitated in query rewrite phase"};
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<Exact>& filter) {
-   CHECK_SILO_QUERY(json.contains("child"), "The field 'child' is required in a Exact expression");
-   auto child = json["child"].get<std::unique_ptr<Expression>>();
-   filter = std::make_unique<Exact>(std::move(child));
 }
 
 }  // namespace silo::query_engine::filter::expressions

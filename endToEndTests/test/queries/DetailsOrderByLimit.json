@@ -1,29 +1,6 @@
 {
   "testCaseName": "Details action with order by, limit and offset",
-  "query": {
-    "action": {
-      "type": "Details",
-      "orderByFields": ["primary_key"],
-      "offset": 9,
-      "limit": 2
-    },
-    "filterExpression": {
-      "type": "And",
-      "children": [
-        {
-          "type": "StringEquals",
-          "column": "country",
-          "value": "Switzerland"
-        },
-        {
-          "type": "Lineage",
-          "column": "pango_lineage",
-          "value": "B.1.1.7",
-          "includeSublineages": true
-        }
-      ]
-    }
-  },
+  "query": "default.filter((country = 'Switzerland') && (pango_lineage.lineage('B.1.1.7', includeSublineages:=true))).orderBy({primary_key}).offset(9).limit(2).project({age, country, date, division, primary_key, pango_lineage, qc_value, region, test_boolean_column, unsorted_date, usherTree})",
   "expectedQueryResult": [
     {
       "age": 4,

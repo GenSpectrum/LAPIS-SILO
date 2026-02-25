@@ -31,6 +31,7 @@ const std::vector<nlohmann::json> DATA = {
    createDataWithNucleotideInsertions("id_1", {"12:A"}, {}),
    createDataWithNucleotideInsertions("id_2", {"23:TT"}, {}),
    createDataWithNucleotideInsertions("id_3", {"12:CCC"}, {}),
+   createDataWithNucleotideInsertions("id_4", {"0:A"}, {}),
 };
 
 const auto DATABASE_CONFIG =
@@ -56,58 +57,41 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-nlohmann::json createInsertionContainsQuery(
-   const nlohmann::json& sequenceName,
-   int position,
-   const std::string& insertedSymbols
-) {
-   return {
-      {"action", {{"type", "Details"}}},
-      {"filterExpression",
-       {{"type", "InsertionContains"},
-        {"position", position},
-        {"value", insertedSymbols},
-        {"sequenceName", sequenceName}}}
-   };
-}
-
-nlohmann::json createInsertionContainsQueryWithEmptySequenceName(
-   int position,
-   const std::string& insertedSymbols
-) {
-   return {
-      {"action", {{"type", "Details"}}},
-      {"filterExpression",
-       {
-          {"type", "InsertionContains"},
-          {"position", position},
-          {"value", insertedSymbols},
-       }}
-   };
-}
-
 const QueryTestScenario INSERTION_CONTAINS_SCENARIO = {
    .name = "INSERTION_CONTAINS_SCENARIO",
-   .query = createInsertionContainsQuery("segment1", 12, "A"),
+   .query =
+      "default.filter(insertionContains(position:=12, value:='A', "
+      "sequenceName:='segment1')).project(primaryKey)",
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
+};
+
+const QueryTestScenario INSERTION_CONTAINS_SCENARIO_POSITION_0_EQUALS_BEFORE_FIRST = {
+   .name = "INSERTION_CONTAINS_SCENARIO_POSITION_0_EQUALS_BEFORE_FIRST",
+   .query =
+      "default.filter(insertionContains(position:=0, value:='A', "
+      "sequenceName:='segment1')).project(primaryKey)",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_4"}}})
 };
 
 const QueryTestScenario INSERTION_CONTAINS_WITH_EMPTY_SEGMENT_SCENARIO = {
    .name = "INSERTION_CONTAINS_WITH_EMPTY_SEGMENT_SCENARIO",
-   .query = createInsertionContainsQueryWithEmptySequenceName(12, "A"),
+   .query = "default.filter(insertionContains(position:=12, value:='A')).project(primaryKey)",
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
 const QueryTestScenario INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO = {
    .name = "INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO",
-   .query = createInsertionContainsQuery("unknownSegmentName", 12, "A"),
+   .query =
+      "default.filter(insertionContains(position:=12, value:='A', "
+      "sequenceName:='unknownSegmentName'))",
    .expected_error_message =
       "Database does not contain the Nucleotide Sequence with name: 'unknownSegmentName'"
 };
 
 const QueryTestScenario INSERTION_CONTAINS_POSITION_OUT_OF_RANGE = {
    .name = "INSERTION_CONTAINS_POSITION_OUT_OF_RANGE",
-   .query = createInsertionContainsQuery("segment2", 100, "A"),
+   .query =
+      "default.filter(insertionContains(position:=100, value:='A', sequenceName:='segment2'))",
    .expected_error_message =
       "the requested insertion position (100) is larger than the length of the reference sequence "
       "(32) for sequence 'segment2'"
@@ -115,7 +99,7 @@ const QueryTestScenario INSERTION_CONTAINS_POSITION_OUT_OF_RANGE = {
 
 const QueryTestScenario INSERTION_CONTAINS_POSITION_OUT_OF_RANGE_DEFAULT_SEQUENCE = {
    .name = "INSERTION_CONTAINS_POSITION_OUT_OF_RANGE_DEFAULT_SEQUENCE",
-   .query = createInsertionContainsQueryWithEmptySequenceName(100, "A"),
+   .query = "default.filter(insertionContains(position:=100, value:='A'))",
    .expected_error_message =
       "the requested insertion position (100) is larger than the length of the reference sequence "
       "(32) for sequence 'segment1'"
@@ -127,6 +111,7 @@ QUERY_TEST(
    TEST_DATA,
    ::testing::Values(
       INSERTION_CONTAINS_SCENARIO,
+      INSERTION_CONTAINS_SCENARIO_POSITION_0_EQUALS_BEFORE_FIRST,
       INSERTION_CONTAINS_WITH_EMPTY_SEGMENT_SCENARIO,
       INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO,
       INSERTION_CONTAINS_POSITION_OUT_OF_RANGE,

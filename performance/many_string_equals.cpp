@@ -10,30 +10,30 @@
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
-#include "silo/query_engine/action_query.h"
-#include "silo/query_engine/actions/aggregated.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/planner.h"
-#include "silo/query_engine/binder.h"
 #include "silo/query_engine/filter/expressions/or.h"
 #include "silo/query_engine/filter/expressions/string_equals.h"
 #include "silo/query_engine/filter/expressions/string_in_set.h"
-#include "silo/query_engine/filter/expressions/true.h"
+#include "silo/query_engine/operators/aggregate_node.h"
+#include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/query_node.h"
+#include "silo/query_engine/operators/scan_node.h"
+#include "silo/query_engine/planner.h"
 
 namespace {
 
 using silo::Database;
-using silo::query_engine::actions::Aggregated;
-using silo::query_engine::ActionQuery;
 using silo::query_engine::Planner;
-using silo::query_engine::Binder;
 using silo::query_engine::filter::expressions::Expression;
 using silo::query_engine::filter::expressions::ExpressionVector;
 using silo::query_engine::filter::expressions::Or;
 using silo::query_engine::filter::expressions::StringEquals;
 using silo::query_engine::filter::expressions::StringInSet;
-using silo::query_engine::filter::expressions::True;
+using silo::query_engine::operators::AggregateDefinition;
+using silo::query_engine::operators::AggregateFunction;
+using silo::query_engine::operators::AggregateNode;
+using silo::query_engine::operators::FilterNode;
+using silo::query_engine::operators::ScanNode;
 
 std::shared_ptr<Database> initializeDatabase() {
    auto database_config = silo::config::DatabaseConfig::getValidatedConfig(R"(
@@ -128,9 +128,22 @@ std::unique_ptr<Expression> buildStringInSet(
    return std::make_unique<StringInSet>(column, std::move(value_set));
 }
 
-void executeAggregatedQuery(const std::shared_ptr<Database>& database, ActionQuery& query) {
-   auto query_tree = Binder::bindQuery(std::move(query), database->tables);
-   auto query_plan = Planner::planQuery(std::move(query_tree), database->tables, {}, "benchmark_query");
+void executeCountWithFilter(
+   const std::shared_ptr<Database>& database,
+   std::unique_ptr<Expression> filter
+) {
+   const auto& table_name = silo::schema::TableName::getDefault();
+   auto table = database->tables.at(table_name);
+   auto scan = std::make_unique<ScanNode>(table_name, table->schema->getColumnIdentifiers());
+   auto filter_node = std::make_unique<FilterNode>(std::move(scan), std::move(filter));
+   std::vector<AggregateDefinition> aggregates{
+      {.output_name = "count", .function = AggregateFunction::COUNT, .source_column = std::nullopt}
+   };
+   auto root = std::make_unique<AggregateNode>(
+      std::move(filter_node), std::vector<silo::schema::ColumnIdentifier>{}, std::move(aggregates)
+   );
+   auto query_plan =
+      Planner::planQuery(std::move(root), database->tables, {}, "benchmark_query");
    std::stringstream result;
    silo::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
    query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/60);
@@ -154,11 +167,9 @@ BenchmarkResult runBenchmark(
    for (int i = 0; i < iterations; ++i) {
       // Build a fresh filter for each iteration
       auto filter = build_filter();
-      auto action = std::make_unique<Aggregated>(std::vector<std::string>{});
-      ActionQuery query{std::move(filter), std::move(action)};
 
       auto start = std::chrono::high_resolution_clock::now();
-      executeAggregatedQuery(database, query);
+      executeCountWithFilter(database, std::move(filter));
       auto end = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
       durations.push_back(duration);

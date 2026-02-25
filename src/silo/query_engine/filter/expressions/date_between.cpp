@@ -6,7 +6,6 @@
 #include <utility>
 
 #include <fmt/format.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/common/date32.h"
 #include "silo/query_engine/filter/operators/range_selection.h"
@@ -100,47 +99,6 @@ std::vector<silo::query_engine::filter::operators::RangeSelection::Range> DateBe
       offset += sorted_chunk_size;
    }
    return ranges;
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
-void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("column"), "The field 'column' is required in a DateBetween expression"
-   );
-   CHECK_SILO_QUERY(
-      json["column"].is_string(),
-      "The field 'column' in a DateBetween expression needs to be a string"
-   );
-   CHECK_SILO_QUERY(
-      json.contains("from"), "The field 'from' is required in DateBetween expression"
-   );
-   CHECK_SILO_QUERY(
-      json["from"].is_null() || (json["from"].is_string() && !json["from"].empty()),
-      "The field 'from' in a DateBetween expression needs to be a string or null"
-   );
-   CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a DateBetween expression");
-   CHECK_SILO_QUERY(
-      json["to"].is_null() || (json["to"].is_string() && !json["to"].empty()),
-      "The field 'to' in a DateBetween expression needs to be a non-empty string or null"
-   );
-   const std::string& column_name = json["column"];
-   std::optional<silo::common::Date32> date_from;
-   if (json["from"].is_string()) {
-      const auto from_string = json["from"].get<std::string>();
-      auto from_result = common::stringToDate32(from_string);
-      CHECK_SILO_QUERY(
-         from_result.has_value(), "Invalid date in 'from' field: {}", from_result.error()
-      );
-      date_from = from_result.value();
-   }
-   std::optional<silo::common::Date32> date_to;
-   if (json["to"].is_string()) {
-      const auto to_string = json["to"].get<std::string>();
-      auto to_result = common::stringToDate32(to_string);
-      CHECK_SILO_QUERY(to_result.has_value(), "Invalid date in 'to' field: {}", to_result.error());
-      date_to = to_result.value();
-   }
-   filter = std::make_unique<DateBetween>(column_name, date_from, date_to);
 }
 
 }  // namespace silo::query_engine::filter::expressions

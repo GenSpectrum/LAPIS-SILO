@@ -62,13 +62,19 @@ function parseNdjsonResponse(response) {
 const formats = [
   {
     name: 'NDJSON',
-    request: query => server.post('/query').send(query),
+    request: query => server.post('/query').set('Content-Type', 'text/plain').send(query),
     expectedContentType: 'application/x-ndjson',
     parseResponse: response => parseNdjsonResponse(response),
   },
   {
     name: 'Arrow IPC',
-    request: query => server.post('/query').set('Accept', ARROW_MIME).send(query).responseType('blob'),
+    request: query =>
+      server
+        .post('/query')
+        .set('Content-Type', 'text/plain')
+        .set('Accept', ARROW_MIME)
+        .send(query)
+        .responseType('blob'),
     expectedContentType: ARROW_MIME,
     parseResponse: response => arrowTableToObjects(tableFromIPC(response.body)),
   },
@@ -118,7 +124,7 @@ describe('The /query endpoint', () => {
   );
   invalidQueryTestCases.forEach(testCase =>
     it('should return the expected error for the test case ' + testCase.testCaseName, async () => {
-      const response = await server.post('/query').send(testCase.query);
+      const response = await server.post('/query').set('Content-Type', 'text/plain').send(testCase.query);
 
       const errorMessage = 'Actual result is:\n' + response.text + '\n';
       expect(response.status, errorMessage).to.equal(400);
@@ -143,49 +149,21 @@ describe('The /query endpoint', () => {
     });
   });
 
-  it('should return a bad request response when POSTing an invalid JSON', async () => {
+  it('should return a bad request response when POSTing invalid SaneQL', async () => {
     await server
       .post('/query')
-      .send('{ not a valid json')
+      .set('Content-Type', 'text/plain')
+      .send('this is not valid saneql !!!')
       .expect(400)
-      .expect('Content-Type', 'application/json')
-      .expect({
-        error: 'Bad request',
-        message:
-          'The query was not a valid JSON: [json.exception.parse_error.101] ' +
-          'parse error at line 1, column 4: syntax error while parsing object key - invalid literal; ' +
-          "last read: '{ no'; expected string literal",
-      });
+      .expect('Content-Type', 'application/json');
   });
 
-  it('should return a bad request response when POSTing a JSON without filter and action', async () => {
+  it('should return a bad request response when POSTing an empty query', async () => {
     await server
       .post('/query')
-      .send({ someJson: 'but missing expected properties' })
+      .set('Content-Type', 'text/plain')
+      .send('')
       .expect(400)
-      .expect('Content-Type', 'application/json')
-      .expect({
-        error: 'Bad request',
-        message: 'Query json must contain filterExpression and action.',
-      });
-  });
-
-  it('should return a bad request response when POSTing an invalid filter type', async () => {
-    await server
-      .post('/query')
-      .send({
-        action: {
-          type: 'invalid action',
-        },
-        filterExpression: {
-          type: 'invalid filter type',
-        },
-      })
-      .expect(400)
-      .expect('Content-Type', 'application/json')
-      .expect({
-        error: 'Bad request',
-        message: "Unknown object filter type 'invalid filter type'",
-      });
+      .expect('Content-Type', 'application/json');
   });
 });

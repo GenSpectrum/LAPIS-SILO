@@ -3,7 +3,6 @@
 #include <utility>
 
 #include <fmt/format.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/common/date32.h"
 #include "silo/query_engine/filter/expressions/expression.h"
@@ -61,35 +60,6 @@ std::unique_ptr<operators::Operator> DateEquals::compile(const storage::Table& t
    return std::make_unique<operators::IndexScan>(
       CopyOnWriteBitmap{&date_column.null_bitmap}, table.sequence_count
    );
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<DateEquals>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("column"), "The field 'column' is required in a DateEquals expression"
-   );
-   CHECK_SILO_QUERY(
-      json["column"].is_string(), "The field 'column' in a DateEquals expression must be a string"
-   );
-   CHECK_SILO_QUERY(
-      json.contains("value"), "The field 'value' is required in a DateEquals expression"
-   );
-   CHECK_SILO_QUERY(
-      json["value"].is_null() || (json["value"].is_string() && !json["value"].empty()),
-      "The field 'value' in a DateEquals expression must be a non-empty date string or null"
-   );
-   const std::string& column_name = json["column"];
-   if (json["value"].is_string()) {
-      auto value = common::stringToDate32(json["value"].get<std::string>());
-      CHECK_SILO_QUERY(
-         value.has_value(),
-         "The value for the DateEquals expression is not a valid date: {}",
-         value.error()
-      );
-      filter = std::make_unique<DateEquals>(column_name, value.value());
-   } else {
-      filter = std::make_unique<DateEquals>(column_name, std::nullopt);
-   }
 }
 
 }  // namespace silo::query_engine::filter::expressions

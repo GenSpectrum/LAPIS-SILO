@@ -4,8 +4,6 @@
 #include <string>
 #include <unordered_set>
 
-#include <nlohmann/json_fwd.hpp>
-
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
@@ -33,8 +31,5 @@ class StringInSet : public Expression {
    [[nodiscard]] std::unique_ptr<operators::Operator> compile(const storage::Table& table
    ) const override;
 };
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<StringInSet>& filter);
 
 }  // namespace silo::query_engine::filter::expressions

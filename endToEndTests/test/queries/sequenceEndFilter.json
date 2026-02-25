@@ -1,15 +1,6 @@
 {
   "testCaseName": "Filtering for the last genome position",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "position": 29903,
-      "symbol": "-",
-      "type": "NucleotideEquals"
-    }
-  },
+  "query": "default.filter(nucleotideEquals(position:=29903, symbol:='-')).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 45

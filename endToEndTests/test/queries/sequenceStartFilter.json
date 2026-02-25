@@ -1,15 +1,6 @@
 {
   "testCaseName": "Filtering for the first genome position",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "position": 1,
-      "symbol": "-",
-      "type": "NucleotideEquals"
-    }
-  },
+  "query": "default.filter(nucleotideEquals(position:=1, symbol:='-')).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 45

@@ -15,7 +15,7 @@ using silo::storage::column::IntColumn;
 
 namespace silo::query_engine::filter::expressions {
 
-IntEquals::IntEquals(std::string column_name, std::optional<uint32_t> value)
+IntEquals::IntEquals(std::string column_name, std::optional<int32_t> value)
     : column_name(std::move(column_name)),
       value(value) {}
 
@@ -35,8 +35,13 @@ std::unique_ptr<Expression> IntEquals::rewrite(
 
 std::unique_ptr<operators::Operator> IntEquals::compile(const storage::Table& table) const {
    CHECK_SILO_QUERY(
-      table.columns.int_columns.contains(column_name),
+      table.schema->getColumn(column_name).has_value(),
       "The database does not contain the column '{}'",
+      column_name
+   );
+   CHECK_SILO_QUERY(
+      table.columns.int_columns.contains(column_name),
+      "The column '{}' is not of type int",
       column_name
    );
 
@@ -53,30 +58,6 @@ std::unique_ptr<operators::Operator> IntEquals::compile(const storage::Table& ta
    return std::make_unique<operators::IndexScan>(
       CopyOnWriteBitmap{&int_column.null_bitmap}, table.sequence_count
    );
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<IntEquals>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("column"), "The field 'column' is required in an IntEquals expression"
-   );
-   CHECK_SILO_QUERY(
-      json["column"].is_string(), "The field 'column' in an IntEquals expression must be a string"
-   );
-   CHECK_SILO_QUERY(
-      json.contains("value"), "The field 'value' is required in an IntEquals expression"
-   );
-   CHECK_SILO_QUERY(
-      json["value"].is_number_integer() || json["value"].is_null(),
-      "The field 'value' in an IntEquals expression must be an integer in [-2147483648; "
-      "2147483647] or null"
-   );
-   const std::string& column = json["column"];
-   std::optional<int32_t> value;
-   if (!json["value"].is_null()) {
-      value = json["value"].get<int32_t>();
-   }
-   filter = std::make_unique<IntEquals>(column, value);
 }
 
 }  // namespace silo::query_engine::filter::expressions

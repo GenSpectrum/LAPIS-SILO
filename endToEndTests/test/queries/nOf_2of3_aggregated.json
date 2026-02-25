@@ -1,32 +1,6 @@
 {
   "testCaseName": "N-Of query requesting 2 of 3 mutations with aggregated action",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "N-Of",
-      "numberOfMatchers": 2,
-      "matchExactly": false,
-      "children": [
-        {
-          "type": "NucleotideEquals",
-          "position": 241,
-          "symbol": "T"
-        },
-        {
-          "type": "NucleotideEquals",
-          "position": 29734,
-          "symbol": "T"
-        },
-        {
-          "type": "NucleotideEquals",
-          "position": 28330,
-          "symbol": "G"
-        }
-      ]
-    }
-  },
+  "query": "default.filter(nOf(2, {nucleotideEquals(position:=241, symbol:='T'), nucleotideEquals(position:=29734, symbol:='T'), nucleotideEquals(position:=28330, symbol:='G')})).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 0

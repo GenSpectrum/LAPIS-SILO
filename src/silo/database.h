@@ -6,7 +6,6 @@
 #include "silo/common/silo_directory.h"
 #include "silo/config/runtime_config.h"
 #include "silo/database_info.h"
-#include "silo/query_engine/action_query.h"
 #include "silo/query_engine/query_plan.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
@@ -71,28 +70,6 @@ class Database {
 
    roaring::Roaring getFilteredBitmap(const std::string& table_name, const std::string& filter);
 
-   template <typename SymbolType>
-   [[nodiscard]] std::vector<std::pair<uint64_t, std::string>> getPrevalentMutations(
-      const std::string& table_name,
-      const std::string& sequence_name,
-      double prevalence_threshold,
-      const std::string& filter
-   ) const;
-
-   [[nodiscard]] std::vector<std::pair<uint64_t, std::string>> getPrevalentNucMutations(
-      const std::string& table_name,
-      const std::string& sequence_name,
-      double prevalence_threshold,
-      const std::string& filter
-   ) const;
-
-   [[nodiscard]] std::vector<std::pair<uint64_t, std::string>> getPrevalentAminoAcidMutations(
-      const std::string& table_name,
-      const std::string& sequence_name,
-      double prevalence_threshold,
-      const std::string& filter
-   ) const;
-
    void saveDatabaseState(const std::filesystem::path& save_directory);
 
    static std::optional<Database> loadDatabaseStateFromPath(
@@ -105,10 +82,7 @@ class Database {
 
    [[nodiscard]] virtual DataVersion::Timestamp getDataVersionTimestamp() const;
 
-   [[nodiscard]] std::string executeQueryAsArrowIpc(
-      const std::string& table_name,
-      const std::string& query_json
-   ) const;
+   [[nodiscard]] std::string executeQueryAsArrowIpc(const std::string& query_string) const;
 
    [[nodiscard]] std::string getTablesAsArrowIpc() const;
 
