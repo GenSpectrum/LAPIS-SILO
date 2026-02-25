@@ -1,22 +1,6 @@
 {
   "testCaseName": "PhyloDescendantOf should return only descendent nodes of a given node",
-  "query": {
-    "action": {
-      "type": "Aggregated",
-      "groupByFields": ["usherTree"],
-      "orderByFields": [
-        {
-          "field": "usherTree",
-          "order": "ascending"
-        }
-      ]
-    },
-    "filterExpression": {
-      "type": "PhyloDescendantOf",
-      "column": "usherTree",
-      "internalNode": "NODE_0000072"
-    }
-  },
+  "query": "default.filter(usherTree.phyloDescendantOf('NODE_0000072')).groupBy({count:=count()},{usherTree}).orderBy({usherTree})",
   "expectedQueryResult": [
     {
       "count": 1,

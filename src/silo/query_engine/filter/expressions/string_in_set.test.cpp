@@ -22,7 +22,7 @@ nlohmann::json createData(const std::string& primary_key, const std::string& cou
 )",
       primary_key,
       country,
-      country == "Switzerland" ? "Europe" : (country == "USA" ? "Americas" : "Europe")
+      country == "USA" ? "Americas" : "Europe"
    ));
 }
 
@@ -62,20 +62,7 @@ const QueryTestData TEST_DATA{
 
 const QueryTestScenario STRING_IN_SET_SINGLE_VALUE = {
    .name = "STRING_IN_SET_SINGLE_VALUE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "country"]
-  },
-  "filterExpression": {
-    "type": "StringInSet",
-    "column": "country",
-    "values": ["Switzerland"]
-  }
-})"
-   ),
+   .query = "default.filter(country.in({'Switzerland'})).project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([{"country":"Switzerland","primaryKey":"id_0"},{"country":"Switzerland","primaryKey":"id_3"}])"
    )
@@ -83,20 +70,7 @@ const QueryTestScenario STRING_IN_SET_SINGLE_VALUE = {
 
 const QueryTestScenario STRING_IN_SET_MULTIPLE_VALUES = {
    .name = "STRING_IN_SET_MULTIPLE_VALUES",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "country"]
-  },
-  "filterExpression": {
-    "type": "StringInSet",
-    "column": "country",
-    "values": ["Switzerland", "Germany"]
-  }
-})"
-   ),
+   .query = "default.filter(country.in({'Switzerland', 'Germany'})).project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([{"country":"Switzerland","primaryKey":"id_0"},{"country":"Germany","primaryKey":"id_1"},{"country":"Switzerland","primaryKey":"id_3"},{"country":"Germany","primaryKey":"id_5"}])"
    )
@@ -104,58 +78,19 @@ const QueryTestScenario STRING_IN_SET_MULTIPLE_VALUES = {
 
 const QueryTestScenario STRING_IN_SET_NO_MATCH = {
    .name = "STRING_IN_SET_NO_MATCH",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "country"]
-  },
-  "filterExpression": {
-    "type": "StringInSet",
-    "column": "country",
-    "values": ["Japan", "China"]
-  }
-})"
-   ),
+   .query = "default.filter(country.in({'Japan', 'China'})).project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(R"([])")
 };
 
 const QueryTestScenario STRING_IN_SET_EMPTY_VALUES = {
    .name = "STRING_IN_SET_EMPTY_VALUES",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "country"]
-  },
-  "filterExpression": {
-    "type": "StringInSet",
-    "column": "country",
-    "values": []
-  }
-})"
-   ),
+   .query = "default.filter(country.in({})).project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(R"([])")
 };
 
 const QueryTestScenario STRING_IN_SET_INDEXED_COLUMN = {
    .name = "STRING_IN_SET_INDEXED_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "region"]
-  },
-  "filterExpression": {
-    "type": "StringInSet",
-    "column": "region",
-    "values": ["Europe"]
-  }
-})"
-   ),
+   .query = "default.filter(region.in({'Europe'})).project({primaryKey, region})",
    .expected_query_result = nlohmann::json::parse(
       R"([{"primaryKey":"id_0","region":"Europe"},{"primaryKey":"id_1","region":"Europe"},{"primaryKey":"id_3","region":"Europe"},{"primaryKey":"id_4","region":"Europe"},{"primaryKey":"id_5","region":"Europe"}])"
    )
@@ -163,30 +98,9 @@ const QueryTestScenario STRING_IN_SET_INDEXED_COLUMN = {
 
 const QueryTestScenario STRING_IN_SET_WITH_AND = {
    .name = "STRING_IN_SET_WITH_AND",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "country", "region"]
-  },
-  "filterExpression": {
-    "type": "And",
-    "children": [
-      {
-        "type": "StringInSet",
-        "column": "country",
-        "values": ["Switzerland", "Germany", "France"]
-      },
-      {
-        "type": "StringEquals",
-        "column": "region",
-        "value": "Europe"
-      }
-    ]
-  }
-})"
-   ),
+   .query =
+      "default.filter(country.in({'Switzerland', 'Germany', 'France'}) && region = "
+      "'Europe').project({primaryKey, country, region})",
    .expected_query_result = nlohmann::json::parse(
       R"([{"country":"Switzerland","primaryKey":"id_0","region":"Europe"},{"country":"Germany","primaryKey":"id_1","region":"Europe"},{"country":"Switzerland","primaryKey":"id_3","region":"Europe"},{"country":"France","primaryKey":"id_4","region":"Europe"},{"country":"Germany","primaryKey":"id_5","region":"Europe"}])"
    )
@@ -194,119 +108,11 @@ const QueryTestScenario STRING_IN_SET_WITH_AND = {
 
 const QueryTestScenario STRING_IN_SET_NEGATED = {
    .name = "STRING_IN_SET_NEGATED",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "country"]
-  },
-  "filterExpression": {
-    "type": "Not",
-    "child": {
-      "type": "StringInSet",
-      "column": "country",
-      "values": ["Switzerland", "Germany"]
-    }
-  }
-})"
-   ),
+   .query =
+      "default.filter(!(country.in({'Switzerland', 'Germany'}))).project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([{"country":"USA","primaryKey":"id_2"},{"country":"France","primaryKey":"id_4"}])"
    )
-};
-
-const QueryTestScenario STRING_IN_SET_MISSING_COLUMN = {
-   .name = "STRING_IN_SET_MISSING_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details"
-  },
-  "filterExpression": {
-    "type": "StringInSet",
-    "values": ["Switzerland"]
-  }
-})"
-   ),
-   .expected_query_result = {},
-   .expected_error_message = "The field 'column' is required in a StringInSet expression"
-};
-
-const QueryTestScenario STRING_IN_SET_MISSING_VALUES = {
-   .name = "STRING_IN_SET_MISSING_VALUES",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details"
-  },
-  "filterExpression": {
-    "type": "StringInSet",
-    "column": "country"
-  }
-})"
-   ),
-   .expected_query_result = {},
-   .expected_error_message = "The field 'values' is required in a StringInSet expression"
-};
-
-const QueryTestScenario STRING_IN_SET_INVALID_COLUMN_TYPE = {
-   .name = "STRING_IN_SET_INVALID_COLUMN_TYPE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details"
-  },
-  "filterExpression": {
-    "type": "StringInSet",
-    "column": 123,
-    "values": ["Switzerland"]
-  }
-})"
-   ),
-   .expected_query_result = {},
-   .expected_error_message = "The field 'column' in an StringInSet expression needs to be a string"
-};
-
-const QueryTestScenario STRING_IN_SET_INVALID_VALUES_TYPE = {
-   .name = "STRING_IN_SET_INVALID_VALUES_TYPE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details"
-  },
-  "filterExpression": {
-    "type": "StringInSet",
-    "column": "country",
-    "values": "Switzerland"
-  }
-})"
-   ),
-   .expected_query_result = {},
-   .expected_error_message = "The field 'values' in an StringInSet expression needs to be an array"
-};
-
-const QueryTestScenario STRING_IN_SET_NONEXISTENT_COLUMN = {
-   .name = "STRING_IN_SET_NONEXISTENT_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details"
-  },
-  "filterExpression": {
-    "type": "StringInSet",
-    "column": "nonexistent",
-    "values": ["Switzerland"]
-  }
-})"
-   ),
-   .expected_query_result = {},
-   .expected_error_message = "The database does not contain the string column 'nonexistent'"
 };
 
 }  // namespace
@@ -321,11 +127,6 @@ QUERY_TEST(
       STRING_IN_SET_EMPTY_VALUES,
       STRING_IN_SET_INDEXED_COLUMN,
       STRING_IN_SET_WITH_AND,
-      STRING_IN_SET_NEGATED,
-      STRING_IN_SET_MISSING_COLUMN,
-      STRING_IN_SET_MISSING_VALUES,
-      STRING_IN_SET_INVALID_COLUMN_TYPE,
-      STRING_IN_SET_INVALID_VALUES_TYPE,
-      STRING_IN_SET_NONEXISTENT_COLUMN
+      STRING_IN_SET_NEGATED
    )
 );

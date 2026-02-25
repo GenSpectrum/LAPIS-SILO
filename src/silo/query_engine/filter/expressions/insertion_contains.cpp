@@ -4,7 +4,6 @@
 
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
-#include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -89,49 +88,6 @@ std::unique_ptr<operators::Operator> InsertionContains<SymbolType>::compile(
       table.sequence_count
    );
 }
-
-template <typename SymbolType>
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<InsertionContains<SymbolType>>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("position"),
-      "The field 'position' is required in an InsertionContains expression"
-   );
-   CHECK_SILO_QUERY(
-      json["position"].is_number_unsigned(),
-      "The field 'position' in an InsertionContains expression needs to be an unsigned integer"
-   );
-   CHECK_SILO_QUERY(
-      json.contains("value"), "The field 'value' is required in an InsertionContains expression"
-   );
-   CHECK_SILO_QUERY(
-      json["value"].is_string() && !json["value"].is_null(),
-      "The field 'value' in an InsertionContains expression needs to be a string"
-   );
-   std::optional<std::string> sequence_name = std::nullopt;
-   if (json.contains("sequenceName")) {
-      sequence_name = json["sequenceName"].get<std::string>();
-   }
-   const uint32_t position_idx = json["position"].get<uint32_t>();
-   const std::string& value = json["value"].get<std::string>();
-   CHECK_SILO_QUERY(
-      !value.empty(),
-      "The field 'value' in an InsertionContains expression must not be an empty string"
-   );
-   filter = std::make_unique<InsertionContains<SymbolType>>(sequence_name, position_idx, value);
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-template void from_json<Nucleotide>(
-   const nlohmann::json& json,
-   std::unique_ptr<InsertionContains<Nucleotide>>& filter
-);
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-template void from_json<AminoAcid>(
-   const nlohmann::json& json,
-   std::unique_ptr<InsertionContains<AminoAcid>>& filter
-);
 
 template class InsertionContains<Nucleotide>;
 template class InsertionContains<AminoAcid>;

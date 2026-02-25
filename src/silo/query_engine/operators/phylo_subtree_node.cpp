@@ -72,6 +72,19 @@ PhyloSubtreeNode::PhyloSubtreeNode(
       print_nodes_not_in_tree(print_nodes_not_in_tree),
       contract_unary_nodes(contract_unary_nodes) {}
 
+PhyloSubtreeNode::PhyloSubtreeNode(
+   schema::TableName table_name,
+   std::unique_ptr<filter::expressions::Expression> filter,
+   std::string column_name,
+   bool print_nodes_not_in_tree,
+   bool contract_unary_nodes
+)
+    : filter(std::move(filter)),
+      column_name(std::move(column_name)),
+      print_nodes_not_in_tree(print_nodes_not_in_tree),
+      contract_unary_nodes(contract_unary_nodes),
+      table_name(std::move(table_name)) {}
+
 std::vector<schema::ColumnIdentifier> PhyloSubtreeNode::getOutputSchema() const {
    std::vector<schema::ColumnIdentifier> output_fields;
    output_fields.emplace_back("missingNodeCount", schema::ColumnType::INT32);
@@ -84,23 +97,29 @@ std::vector<schema::ColumnIdentifier> PhyloSubtreeNode::getOutputSchema() const 
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<PartialArrowPlan> PhyloSubtreeNode::toQueryPlan(
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
+   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto bitmap_filter = computeFilter(filter, *table);
+   auto resolved_table = table;
+   if (!resolved_table && table_name.has_value()) {
+      auto it = tables.find(table_name.value());
+      CHECK_SILO_QUERY(it != tables.end(), "table '{}' not found", table_name.value().getName());
+      resolved_table = it->second;
+   }
+   auto bitmap_filter = computeFilter(filter, *resolved_table);
 
    CHECK_SILO_QUERY(
-      table->schema->getColumn(column_name).has_value(),
+      resolved_table->schema->getColumn(column_name).has_value(),
       "Column '{}' not found in table schema",
       column_name
    );
    CHECK_SILO_QUERY(
-      table->schema->getColumn(column_name).value().type == schema::ColumnType::STRING,
+      resolved_table->schema->getColumn(column_name).value().type == schema::ColumnType::STRING,
       "PhyloSubtree action cannot be called on column '{}' as it is not a column of type STRING",
       column_name
    );
    const auto& optional_table_metadata =
-      table->schema->getColumnMetadata<storage::column::StringColumn>(column_name);
+      resolved_table->schema->getColumnMetadata<storage::column::StringColumn>(column_name);
    CHECK_SILO_QUERY(
       optional_table_metadata.has_value() &&
          optional_table_metadata.value()->phylo_tree.has_value(),
@@ -112,7 +131,7 @@ arrow::Result<PartialArrowPlan> PhyloSubtreeNode::toQueryPlan(
 
    const std::vector<schema::ColumnIdentifier> output_fields = getOutputSchema();
 
-   auto table_handle = table;
+   auto table_handle = resolved_table;
    const auto column_name_copy = column_name;
    const bool contract = contract_unary_nodes;
 

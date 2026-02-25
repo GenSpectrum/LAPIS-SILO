@@ -85,136 +85,49 @@ const QueryTestData TEST_DATA{
 
 const QueryTestScenario IS_NULL_STRING_COLUMN = {
    .name = "IS_NULL_STRING_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "IsNull",
-    "column": "stringField"
-  }
-})"
-   ),
+   .query = "default.filter(stringField.isNull()).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_1"},{"primaryKey":"id_7"}])")
 };
 
 const QueryTestScenario IS_NULL_INDEXED_STRING_COLUMN = {
    .name = "IS_NULL_INDEXED_STRING_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "IsNull",
-    "column": "indexedStringField"
-  }
-})"
-   ),
+   .query = "default.filter(indexedStringField.isNull()).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_2"},{"primaryKey":"id_7"}])")
 };
 
 const QueryTestScenario IS_NULL_INT_COLUMN = {
    .name = "IS_NULL_INT_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "IsNull",
-    "column": "intField"
-  }
-})"
-   ),
+   .query = "default.filter(intField.isNull()).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_3"},{"primaryKey":"id_7"}])")
 };
 
 const QueryTestScenario IS_NULL_FLOAT_COLUMN = {
    .name = "IS_NULL_FLOAT_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "IsNull",
-    "column": "floatField"
-  }
-})"
-   ),
+   .query = "default.filter(floatField.isNull()).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_4"},{"primaryKey":"id_7"}])")
 };
 
 const QueryTestScenario IS_NULL_BOOL_COLUMN = {
    .name = "IS_NULL_BOOL_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "IsNull",
-    "column": "boolField"
-  }
-})"
-   ),
+   .query = "default.filter(boolField.isNull()).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_5"},{"primaryKey":"id_7"}])")
 };
 
 const QueryTestScenario IS_NULL_DATE_COLUMN = {
    .name = "IS_NULL_DATE_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "IsNull",
-    "column": "dateField"
-  }
-})"
-   ),
+   .query = "default.filter(dateField.isNull()).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_6"},{"primaryKey":"id_7"}])")
 };
 
 const QueryTestScenario IS_NULL_NEGATED = {
    .name = "IS_NULL_NEGATED",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "Not",
-    "child": {
-      "type": "IsNull",
-      "column": "stringField"
-    }
-  }
-})"
-   ),
+   .query = "default.filter(!(stringField.isNull())).project(primaryKey)",
    .expected_query_result = nlohmann::json::parse(
       R"([{"primaryKey":"id_0"},{"primaryKey":"id_2"},{"primaryKey":"id_3"},{"primaryKey":"id_4"},{"primaryKey":"id_5"},{"primaryKey":"id_6"}])"
    )
@@ -222,19 +135,7 @@ const QueryTestScenario IS_NULL_NEGATED = {
 
 const QueryTestScenario IS_NOT_NULL = {
    .name = "IS_NOT_NULL",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "IsNotNull",
-    "column": "stringField"
-  }
-})"
-   ),
+   .query = "default.filter(stringField.isNotNull()).project(primaryKey)",
    .expected_query_result = nlohmann::json::parse(
       R"([{"primaryKey":"id_0"},{"primaryKey":"id_2"},{"primaryKey":"id_3"},{"primaryKey":"id_4"},{"primaryKey":"id_5"},{"primaryKey":"id_6"}])"
    )
@@ -242,82 +143,8 @@ const QueryTestScenario IS_NOT_NULL = {
 
 const QueryTestScenario IS_NULL_WITH_AND = {
    .name = "IS_NULL_WITH_AND",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "And",
-    "children": [
-      {
-        "type": "IsNull",
-        "column": "stringField"
-      },
-      {
-        "type": "IsNull",
-        "column": "intField"
-      }
-    ]
-  }
-})"
-   ),
+   .query = "default.filter(stringField.isNull() && intField.isNull()).project(primaryKey)",
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_7"}])")
-};
-
-const QueryTestScenario IS_NULL_MISSING_COLUMN = {
-   .name = "IS_NULL_MISSING_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details"
-  },
-  "filterExpression": {
-    "type": "IsNull"
-  }
-})"
-   ),
-   .expected_query_result = {},
-   .expected_error_message = "The field 'column' is required in an IsNull expression"
-};
-
-const QueryTestScenario IS_NULL_INVALID_COLUMN_TYPE = {
-   .name = "IS_NULL_INVALID_COLUMN_TYPE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details"
-  },
-  "filterExpression": {
-    "type": "IsNull",
-    "column": 123
-  }
-})"
-   ),
-   .expected_query_result = {},
-   .expected_error_message = "The field 'column' in an IsNull expression must be a string"
-};
-
-const QueryTestScenario IS_NULL_NONEXISTENT_COLUMN = {
-   .name = "IS_NULL_NONEXISTENT_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details"
-  },
-  "filterExpression": {
-    "type": "IsNull",
-    "column": "nonexistent"
-  }
-})"
-   ),
-   .expected_query_result = {},
-   .expected_error_message = "The column 'nonexistent' is not contained in the database"
 };
 
 }  // namespace
@@ -334,9 +161,6 @@ QUERY_TEST(
       IS_NULL_DATE_COLUMN,
       IS_NULL_NEGATED,
       IS_NOT_NULL,
-      IS_NULL_WITH_AND,
-      IS_NULL_MISSING_COLUMN,
-      IS_NULL_INVALID_COLUMN_TYPE,
-      IS_NULL_NONEXISTENT_COLUMN
+      IS_NULL_WITH_AND
    )
 );

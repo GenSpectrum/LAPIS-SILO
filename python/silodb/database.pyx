@@ -346,7 +346,7 @@ cdef class PyDatabase:
             raise ValueError("prevalence_threshold must be between 0.0 and 1.0")
         # Default to True filter (returns all rows) if no filter specified
         if filter_expression is None or filter_expression == "":
-            filter_expression = '{"type":"True"}'
+            filter_expression = 'true'
 
         cpp_table_name = table_name.encode('utf-8')
         cpp_sequence_name = sequence_name.encode('utf-8')
@@ -404,7 +404,7 @@ cdef class PyDatabase:
             raise ValueError("prevalence_threshold must be between 0.0 and 1.0")
         # Default to True filter (returns all rows) if no filter specified
         if filter_expression is None or filter_expression == "":
-            filter_expression = '{"type":"True"}'
+            filter_expression = 'true'
 
         cpp_table_name = table_name.encode('utf-8')
         cpp_sequence_name = sequence_name.encode('utf-8')
@@ -437,7 +437,7 @@ cdef class PyDatabase:
         table_name : str
             Name of the table
         filter_expression : str, optional
-            Filter expression in JSON format (default: '{"type":"True"}' which matches all rows)
+            SaneQL filter expression (default: 'true' which matches all rows)
 
         Returns
         -------
@@ -455,7 +455,7 @@ cdef class PyDatabase:
 
         # Default to True filter (returns all rows) if no filter specified
         if filter_expression is None or filter_expression == "":
-            filter_expression = '{"type":"True"}'
+            filter_expression = 'true'
 
         cpp_table_name = table_name.encode('utf-8')
         cpp_filter = filter_expression.encode('utf-8')
@@ -483,17 +483,15 @@ cdef class PyDatabase:
         except Exception as e:
             raise RuntimeError(f"Failed to get filtered bitmap: {e}")
 
-    def execute_query(self, str table_name, str query_json):
+    def execute_query(self, str query_string):
         """
         Execute a query and return results as a PyArrow Table
 
         Parameters
         ----------
-        table_name : str
-            Name of the table to query
-        query_json : str
-            Query in JSON format. Must contain 'filterExpression' and 'action' fields.
-            Example: '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
+        query_string : str
+            SaneQL query string. The leading identifier is the table name.
+            Example: 'sequences.filter(true)' or 'sequences.mutations(minProportion:=0.05)'
 
         Returns
         -------
@@ -503,25 +501,20 @@ cdef class PyDatabase:
         Example
         -------
         >>> db = PyDatabase("path/to/database")
-        >>> query = '{"filterExpression": {"type": "True"}, "action": {"type": "Details"}}'
-        >>> table = db.execute_query("my_table", query)
+        >>> table = db.execute_query("my_table.filter(true)")
         >>> print(table.schema)
         >>> df = table.to_pandas()  # Convert to pandas DataFrame
         """
-        cdef string cpp_table_name
-        cdef string cpp_query_json
+        cdef string cpp_query_string
         cdef string ipc_buffer
 
-        if not table_name or not table_name.strip():
-            raise ValueError("table_name cannot be empty")
-        if not query_json or not query_json.strip():
-            raise ValueError("query_json cannot be empty")
+        if not query_string or not query_string.strip():
+            raise ValueError("query_string cannot be empty")
 
-        cpp_table_name = table_name.encode('utf-8')
-        cpp_query_json = query_json.encode('utf-8')
+        cpp_query_string = query_string.encode('utf-8')
 
         try:
-            ipc_buffer = self.c_database.executeQueryAsArrowIpc(cpp_table_name, cpp_query_json)
+            ipc_buffer = self.c_database.executeQueryAsArrowIpc(cpp_query_string)
 
             # Convert IPC buffer to PyArrow Table
             buffer_reader = pa.BufferReader(ipc_buffer)

@@ -53,61 +53,58 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-nlohmann::json createHasNucleotideMutationQuery(int position) {
-   return {
-      {"action", {{"type", "Aggregated"}}},
-      {"filterExpression",
-       {{"type", "HasNucleotideMutation"}, {"position", position}, {"sequenceNames", {"segment1"}}}}
-   };
-}
-
-nlohmann::json createHasAminoAcidMutationQuery(int position) {
-   return {
-      {"action", {{"type", "Aggregated"}}},
-      {"filterExpression",
-       {{"type", "HasAminoAcidMutation"}, {"position", position}, {"sequenceNames", {"gene1"}}}}
-   };
-}
-
 const QueryTestScenario HAS_NUCLEOTIDE_MUTATION = {
    .name = "HAS_NUCLEOTIDE_MUTATION",
-   .query = createHasNucleotideMutationQuery(1),
+   .query =
+      "default.filter(hasMutation(position:=1, "
+      "sequenceName:='segment1')).groupBy({count:=count()})",
    .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
 };
 
 const QueryTestScenario HAS_AMINO_ACID_MUTATION = {
    .name = "HAS_AMINO_ACID_MUTATION",
-   .query = createHasAminoAcidMutationQuery(1),
+   .query =
+      "default.filter(hasAAMutation(position:=1, sequenceName:='gene1')).groupBy({count:=count()})",
    .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
 };
 
 const QueryTestScenario HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE = {
    .name = "HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE",
-   .query = createHasNucleotideMutationQuery(2000),
+   .query =
+      "default.filter(hasMutation(position:=2000, "
+      "sequenceName:='segment1')).groupBy({count:=count()})",
    .expected_error_message = "HasNucleotideMutation position is out of bounds 2000 > 5"
 };
 
 const QueryTestScenario HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE_EDGE_LOW = {
    .name = "HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE_EDGE_HIGH",
-   .query = createHasNucleotideMutationQuery(0),
+   .query =
+      "default.filter(hasMutation(position:=0, "
+      "sequenceName:='segment1')).groupBy({count:=count()})",
    .expected_error_message = "The field 'position' is 1-indexed. Value of 0 not allowed."
 };
 
 const QueryTestScenario HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE_EDGE_HIGH = {
    .name = "HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE_EDGE_LOW",
-   .query = createHasNucleotideMutationQuery(6),
+   .query =
+      "default.filter(hasMutation(position:=6, "
+      "sequenceName:='segment1')).groupBy({count:=count()})",
    .expected_error_message = "HasNucleotideMutation position is out of bounds 6 > 5"
 };
 
 const QueryTestScenario HAS_NUCLEOTIDE_MUTATION_IN_RANGE_EDGE = {
    .name = "HAS_NUCLEOTIDE_MUTATION_IN_RANGE_EDGE",
-   .query = createHasNucleotideMutationQuery(5),
+   .query =
+      "default.filter(hasMutation(position:=5, "
+      "sequenceName:='segment1')).groupBy({count:=count()})",
    .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
 };
 
 const QueryTestScenario HAS_AMINO_ACID_MUTATION_OUT_OF_RANGE = {
    .name = "HAS_AMINO_ACID_MUTATION_OUT_OF_RANGE",
-   .query = createHasAminoAcidMutationQuery(1000),
+   .query =
+      "default.filter(hasAAMutation(position:=1000, "
+      "sequenceName:='gene1')).groupBy({count:=count()})",
    .expected_error_message = "HasAminoAcidMutation position is out of bounds 1000 > 2"
 };
 

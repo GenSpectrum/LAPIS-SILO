@@ -1,21 +1,6 @@
 {
   "testCaseName": "Details action ordered by division descending with limit 10",
-  "query": {
-    "action": {
-      "type": "Details",
-      "fields": ["division"],
-      "orderByFields": [
-        {
-          "field": "division",
-          "order": "descending"
-        }
-      ],
-      "limit": 10
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "default.project(division).orderBy({division.desc()}).limit(10)",
   "expectedQueryResult": [
     {
       "division": "Zürich"

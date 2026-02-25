@@ -1,5 +1,3 @@
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/test/query_fixture.test.h"
@@ -8,8 +6,6 @@ namespace {
 using silo::ReferenceGenomes;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
-
-using boost::uuids::random_generator;
 
 nlohmann::json createData(const std::string& country, const std::string& date) {
    static std::atomic_int row_id = 0;
@@ -83,41 +79,9 @@ const QueryTestData TEST_DATA{
 
 const QueryTestScenario NESTED_AND = {
    .name = "NESTED_AND",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details"
-  },
-  "filterExpression": {
-      "children": [
-        {
-          "column": "date",
-          "from": "2009-01-01",
-          "to": null,
-          "type": "DateBetween"
-        },
-        {
-          "children": [
-            {
-              "column": "date",
-              "from": "2000-01-01",
-              "to": null,
-              "type": "DateBetween"
-            },
-            {
-              "column": "country",
-              "value": "Germany",
-              "type": "StringEquals"
-            }
-          ],
-          "type": "And"
-        }
-      ],
-      "type": "And"
-  }
-})"
-   ),
+   .query =
+      "default.filter(date >= '2009-01-01'::date && date >= '2000-01-01'::date && country = "
+      "'Germany').project({age,country,coverage,date,primaryKey})",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":13,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"}])"

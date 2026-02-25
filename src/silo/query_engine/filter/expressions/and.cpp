@@ -9,7 +9,6 @@
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 #include <boost/algorithm/string/join.hpp>
-#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
@@ -198,18 +197,6 @@ std::unique_ptr<Operator> And::compile(const storage::Table& table) const {
    SPDLOG_TRACE("Compiled And filter expression to {}", result->toString());
 
    return result;
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<And>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("children"), "The field 'children' is required in an And expression"
-   );
-   CHECK_SILO_QUERY(
-      json["children"].is_array(), "The field 'children' in an And expression needs to be an array"
-   );
-   auto children = json.at("children").get<ExpressionVector>();
-   filter = std::make_unique<And>(std::move(children));
 }
 
 }  // namespace silo::query_engine::filter::expressions

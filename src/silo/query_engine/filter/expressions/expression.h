@@ -3,8 +3,6 @@
 #include <memory>
 #include <string>
 
-#include <nlohmann/json_fwd.hpp>
-
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/table.h"
 
@@ -33,9 +31,6 @@ class Expression {
    [[nodiscard]] virtual std::unique_ptr<operators::Operator> compile(const storage::Table& table
    ) const = 0;
 };
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter);
 
 Expression::AmbiguityMode invertMode(Expression::AmbiguityMode mode);
 

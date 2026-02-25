@@ -1,18 +1,6 @@
 {
   "testCaseName": "Not Query",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "Not",
-      "child": {
-        "type": "StringEquals",
-        "column": "country",
-        "value": "Switzerland"
-      }
-    }
-  },
+  "query": "default.filter(!(country = 'Switzerland')).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 0

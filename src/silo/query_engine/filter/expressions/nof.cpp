@@ -4,8 +4,6 @@
 #include <string>
 #include <utility>
 
-#include <nlohmann/json.hpp>
-
 #include "silo/query_engine/filter/expressions/and.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/expressions/negation.h"
@@ -260,36 +258,6 @@ std::unique_ptr<operators::Operator> NOf::compile(const storage::Table& table) c
       match_exactly,
       table.sequence_count
    );
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<NOf>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("children"), "The field 'children' is required in an N-Of expression"
-   );
-   CHECK_SILO_QUERY(
-      json["children"].is_array(), "The field 'children' in an N-Of expression needs to be an array"
-   );
-   CHECK_SILO_QUERY(
-      json.contains("numberOfMatchers"),
-      "The field 'numberOfMatchers' is required in an N-Of expression"
-   );
-   CHECK_SILO_QUERY(
-      json["numberOfMatchers"].is_number_unsigned(),
-      "The field 'numberOfMatchers' in an N-Of expression needs to be an unsigned integer"
-   );
-   CHECK_SILO_QUERY(
-      json.contains("matchExactly"), "The field 'matchExactly' is required in an N-Of expression"
-   );
-   CHECK_SILO_QUERY(
-      json["matchExactly"].is_boolean(),
-      "The field 'matchExactly' in an N-Of expression needs to be a boolean"
-   );
-
-   const uint32_t number_of_matchers = json["numberOfMatchers"];
-   const bool match_exactly = json["matchExactly"];
-   auto children = json["children"].get<ExpressionVector>();
-   filter = std::make_unique<NOf>(std::move(children), number_of_matchers, match_exactly);
 }
 
 }  // namespace silo::query_engine::filter::expressions

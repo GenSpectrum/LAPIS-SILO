@@ -3,8 +3,6 @@
 #include <memory>
 #include <string>
 
-#include <nlohmann/json_fwd.hpp>
-
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
@@ -24,8 +22,5 @@ class False : public Expression {
    [[nodiscard]] std::unique_ptr<operators::Operator> compile(const storage::Table& table
    ) const override;
 };
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<False>& filter);
 
 }  // namespace silo::query_engine::filter::expressions

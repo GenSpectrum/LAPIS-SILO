@@ -86,20 +86,9 @@ const QueryTestData TEST_DATA{
    .lineage_trees = {{"test_lineage_index", LINEAGE_TREE}}
 };
 
-nlohmann::json createLineageQuery(const nlohmann::json value, bool include_sublineages) {
-   return {
-      {"action", {{"type", "Details"}}},
-      {"filterExpression",
-       {{"type", "Lineage"},
-        {"column", "pango_lineage"},
-        {"value", value},
-        {"includeSublineages", include_sublineages}}}
-   };
-}
-
 const QueryTestScenario LINEAGE_FILTER_SCENARIO = {
    .name = "lineageFilter",
-   .query = createLineageQuery(SOME_BASE_LINEAGE, false),
+   .query = "default.filter(pango_lineage.lineage('BASE.1')).project({pango_lineage, primaryKey})",
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "id_0"}, {"pango_lineage", SOME_BASE_LINEAGE}},
        {{"primaryKey", "id_1"}, {"pango_lineage", SOME_BASE_LINEAGE}}}
@@ -108,7 +97,9 @@ const QueryTestScenario LINEAGE_FILTER_SCENARIO = {
 
 const QueryTestScenario LINEAGE_FILTER_INCLUDING_SUBLINEAGES_SCENARIO = {
    .name = "lineageFilterIncludingSublineages",
-   .query = createLineageQuery(SOME_BASE_LINEAGE, true),
+   .query =
+      "default.filter(pango_lineage.lineage('BASE.1', "
+      "includeSublineages:=true)).project({pango_lineage, primaryKey})",
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "id_0"}, {"pango_lineage", SOME_BASE_LINEAGE}},
        {{"primaryKey", "id_1"}, {"pango_lineage", SOME_BASE_LINEAGE}},
@@ -118,29 +109,23 @@ const QueryTestScenario LINEAGE_FILTER_INCLUDING_SUBLINEAGES_SCENARIO = {
 
 const QueryTestScenario LINEAGE_FILTER_NULL_SCENARIO = {
    .name = "lineageFilterNull",
-   .query = createLineageQuery(nullptr, false),
+   .query = "default.filter(pango_lineage.lineage(null)).project({pango_lineage, primaryKey})",
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_3"}, {"pango_lineage", nullptr}}})
 };
 
 const QueryTestScenario LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO = {
    .name = "lineageFilterNullIncludingSublineages",
-   .query = createLineageQuery(nullptr, true),
+   .query =
+      "default.filter(pango_lineage.lineage(null, "
+      "includeSublineages:=true)).project({pango_lineage, primaryKey})",
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_3"}, {"pango_lineage", nullptr}}})
 };
 
 const QueryTestScenario FILTER_INCLUDING_RECOMBINANTS = {
    .name = "FILTER_INCLUDING_RECOMBINANTS",
-   .query = nlohmann::json::parse(R"(
-{
-  "action": {"type": "Details"},
-  "filterExpression": {
-    "type": "Lineage",
-    "column": "pango_lineage",
-    "value": "CHILD",
-    "includeSublineages": true,
-    "recombinantFollowingMode": "alwaysFollow"
-  }
-})"),
+   .query =
+      "default.filter(pango_lineage.lineage('CHILD', includeSublineages:=true, "
+      "recombinantFollowingMode:='alwaysFollow')).project({pango_lineage, primaryKey})",
    .expected_query_result = nlohmann::json::parse(R"(
 [{"pango_lineage":"CHILD","primaryKey":"id_2"},
 {"pango_lineage":"RECOMBINANT","primaryKey":"id_4"}]
@@ -149,17 +134,10 @@ const QueryTestScenario FILTER_INCLUDING_RECOMBINANTS = {
 
 const QueryTestScenario FILTER_INCLUDING_CONTAINED_RECOMBINANTS = {
    .name = "FILTER_INCLUDING_CONTAINED_RECOMBINANTS",
-   .query = nlohmann::json::parse(R"(
-{
-  "action": {"type": "Details"},
-  "filterExpression": {
-    "type": "Lineage",
-    "column": "pango_lineage",
-    "value": "BASE.1",
-    "includeSublineages": true,
-    "recombinantFollowingMode": "followIfFullyContainedInClade"
-  }
-})"),
+   .query =
+      "default.filter(pango_lineage.lineage('BASE.1', includeSublineages:=true, "
+      "recombinantFollowingMode:='followIfFullyContainedInClade')).project({pango_lineage, "
+      "primaryKey})",
    .expected_query_result = nlohmann::json::parse(R"(
 [{"pango_lineage":"BASE.1","primaryKey":"id_0"},
 {"pango_lineage":"BASE.1","primaryKey":"id_1"},
@@ -170,17 +148,10 @@ const QueryTestScenario FILTER_INCLUDING_CONTAINED_RECOMBINANTS = {
 
 const QueryTestScenario DOES_NOT_FILTER_NON_INCLUDED_RECOMBINANTS = {
    .name = "DOES_NOT_FILTER_NON_INCLUDED_RECOMBINANTS",
-   .query = nlohmann::json::parse(R"(
-{
-  "action": {"type": "Details"},
-  "filterExpression": {
-    "type": "Lineage",
-    "column": "pango_lineage",
-    "value": "CHILD",
-    "includeSublineages": true,
-    "recombinantFollowingMode": "followIfFullyContainedInClade"
-  }
-})"),
+   .query =
+      "default.filter(pango_lineage.lineage('CHILD', includeSublineages:=true, "
+      "recombinantFollowingMode:='followIfFullyContainedInClade')).project({pango_lineage, "
+      "primaryKey})",
    .expected_query_result = nlohmann::json::parse(R"(
 [{"pango_lineage":"CHILD","primaryKey":"id_2"}]
 )")
@@ -188,17 +159,9 @@ const QueryTestScenario DOES_NOT_FILTER_NON_INCLUDED_RECOMBINANTS = {
 
 const QueryTestScenario EXPLICIT_DO_NOT_FOLLOW = {
    .name = "EXPLICIT_DO_NOT_FOLLOW",
-   .query = nlohmann::json::parse(R"(
-{
-  "action": {"type": "Details"},
-  "filterExpression": {
-    "type": "Lineage",
-    "column": "pango_lineage",
-    "value": "BASE.1",
-    "includeSublineages": true,
-    "recombinantFollowingMode": "doNotFollow"
-  }
-})"),
+   .query =
+      "default.filter(pango_lineage.lineage('BASE.1', includeSublineages:=true, "
+      "recombinantFollowingMode:='doNotFollow')).project({pango_lineage, primaryKey})",
    .expected_query_result = nlohmann::json::parse(R"(
 [{"pango_lineage":"BASE.1","primaryKey":"id_0"},
 {"pango_lineage":"BASE.1","primaryKey":"id_1"},

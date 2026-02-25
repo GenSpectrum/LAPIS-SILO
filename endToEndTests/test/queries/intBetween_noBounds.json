@@ -1,16 +1,6 @@
 {
   "testCaseName": "IntBetween Query without bounds",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "IntBetween",
-      "column": "age",
-      "from": null,
-      "to": null
-    }
-  },
+  "query": "default.filter(age.isNotNull()).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 98

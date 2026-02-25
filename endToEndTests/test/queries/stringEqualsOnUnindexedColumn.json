@@ -1,15 +1,6 @@
 {
   "testCaseName": "StringEquals for unindexed column primary_key",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "StringEquals",
-      "column": "primary_key",
-      "value": "key_41"
-    }
-  },
+  "query": "default.filter(primary_key = 'key_41').groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 1

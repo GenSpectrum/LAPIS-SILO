@@ -1,5 +1,6 @@
 #include "silo/query_engine/operators/order_by_node.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -15,10 +16,13 @@
 #include <arrow/compute/api.h>
 #include <arrow/compute/ordering.h>
 #include <arrow/util/async_generator_fwd.h>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 #include "silo/common/panic.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
@@ -162,10 +166,28 @@ std::vector<schema::ColumnIdentifier> OrderByNode::getOutputSchema() const {
    return child->getOutputSchema();
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<PartialArrowPlan> OrderByNode::toQueryPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
    const config::QueryOptions& query_options
 ) const {
+   // Validate order-by fields exist in child output schema
+   auto child_schema = child->getOutputSchema();
+   std::vector<std::string> field_names;
+   field_names.reserve(child_schema.size());
+   for (const auto& identifier : child_schema) {
+      field_names.push_back(identifier.name);
+   }
+   for (const auto& order_by_field : fields) {
+      CHECK_SILO_QUERY(
+         std::ranges::find(field_names, order_by_field.name) != field_names.end(),
+         "OrderByField {} is not contained in the result of this operation. "
+         "Allowed values are {}.",
+         order_by_field.name,
+         fmt::join(field_names, ", ")
+      );
+   }
+
    ARROW_ASSIGN_OR_RAISE(auto plan, child->toQueryPlan(tables, query_options));
 
    using arrow::compute::NullPlacement;

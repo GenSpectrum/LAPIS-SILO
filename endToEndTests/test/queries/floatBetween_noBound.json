@@ -1,16 +1,6 @@
 {
   "testCaseName": "FloatBetween for column without bounds returns all non null values",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "FloatBetween",
-      "column": "qc_value",
-      "from": null,
-      "to": null
-    }
-  },
+  "query": "default.filter(qc_value.isNotNull()).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 98

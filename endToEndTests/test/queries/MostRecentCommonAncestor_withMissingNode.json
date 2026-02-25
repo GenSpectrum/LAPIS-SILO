@@ -1,43 +1,6 @@
 {
   "testCaseName": "MRCA query returns correct node with missingNode",
-  "query": {
-    "action": {
-      "type": "MostRecentCommonAncestor",
-      "columnName": "usherTree",
-      "orderByFields": ["mrcaNode"],
-      "printNodesNotInTree": true
-    },
-    "filterExpression": {
-      "type": "Or",
-      "children": [
-        {
-          "type": "StringEquals",
-          "column": "primary_key",
-          "value": "key_1"
-        },
-        {
-          "type": "StringEquals",
-          "column": "primary_key",
-          "value": "key_12"
-        },
-        {
-          "type": "StringEquals",
-          "column": "primary_key",
-          "value": "key_7"
-        },
-        {
-          "type": "StringEquals",
-          "column": "primary_key",
-          "value": "key_35"
-        },
-        {
-          "type": "StringEquals",
-          "column": "primary_key",
-          "value": "key_29"
-        }
-      ]
-    }
-  },
+  "query": "default.filter((primary_key = 'key_1') || (primary_key = 'key_12') || (primary_key = 'key_7') || (primary_key = 'key_35') || (primary_key = 'key_29')).mostRecentCommonAncestor('usherTree', printNodesNotInTree:=true).orderBy({mrcaNode})",
   "expectedQueryResult": [
     {
       "mrcaNode": "NODE_0000096",

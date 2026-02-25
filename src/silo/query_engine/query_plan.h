@@ -20,8 +20,6 @@ class QueryPlan {
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> results_generator;
    arrow::acero::BackpressureMonitor* backpressure_monitor;
    std::string_view request_id;
-   // Pinned resource kept alive for the lifetime of the query plan (e.g. Action used by lambdas)
-   std::shared_ptr<void> pinned_resource;
 
    static arrow::Result<QueryPlan> makeQueryPlan(
       std::shared_ptr<arrow::acero::ExecPlan> arrow_plan,

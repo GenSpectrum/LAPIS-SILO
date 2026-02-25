@@ -13,15 +13,11 @@ const std::string UNSORTED_DATE_VALUE = "2023-01-20";
 const nlohmann::json DATA = {
    {"primaryKey", "id"},
    {"sorted_date", SORTED_DATE_VALUE},
-   {"unsorted_date", UNSORTED_DATE_VALUE},
-   {"segment1", nullptr},
-   {"unaligned_segment1", nullptr},
-   {"gene1", nullptr}
+   {"unsorted_date", UNSORTED_DATE_VALUE}
 };
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:
@@ -35,8 +31,8 @@ schema:
 )";
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
-   {{"segment1", "A"}},
-   {{"gene1", "*"}},
+   {},
+   {},
 };
 
 const QueryTestData TEST_DATA{
@@ -45,18 +41,6 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-nlohmann::json createDateBetweenQuery(
-   const std::string& column,
-   const nlohmann::json from_date,
-   const nlohmann::json to_date
-) {
-   return {
-      {"action", {{"type", "Details"}}},
-      {"filterExpression",
-       {{"type", "DateBetween"}, {"column", column}, {"from", from_date}, {"to", to_date}}}
-   };
-}
-
 const nlohmann::json EXPECTED_RESULT = {
    {{"primaryKey", "id"}, {"sorted_date", SORTED_DATE_VALUE}, {"unsorted_date", UNSORTED_DATE_VALUE}
    }
@@ -64,77 +48,49 @@ const nlohmann::json EXPECTED_RESULT = {
 
 const QueryTestScenario SORTED_DATE_WITH_TO_AND_FROM_SCENARIO = {
    .name = "sortedDateWithToEqualsFrom",
-   .query = createDateBetweenQuery("sorted_date", SORTED_DATE_VALUE, SORTED_DATE_VALUE),
+   .query = "default.filter(sorted_date.between('2020-12-24'::date, '2020-12-24'::date))",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario SORTED_DATE_WITH_TO_ONLY_SCENARIO = {
    .name = "sortedDateWithToOnly",
-   .query = createDateBetweenQuery("sorted_date", nullptr, SORTED_DATE_VALUE),
+   .query = "default.filter(sorted_date <= '2020-12-24'::date)",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario SORTED_DATE_WITH_FROM_ONLY_SCENARIO = {
    .name = "sortedDateWithFromOnly",
-   .query = createDateBetweenQuery("sorted_date", SORTED_DATE_VALUE, nullptr),
+   .query = "default.filter(sorted_date >= '2020-12-24'::date)",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario UNSORTED_DATE_WITH_TO_AND_FROM_SCENARIO = {
    .name = "unsortedDateWithToEqualsFrom",
-   .query = createDateBetweenQuery("unsorted_date", UNSORTED_DATE_VALUE, UNSORTED_DATE_VALUE),
+   .query = "default.filter(unsorted_date.between('2023-01-20'::date, '2023-01-20'::date))",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario UNSORTED_DATE_WITH_TO_ONLY_SCENARIO = {
    .name = "unsortedDateWithToOnly",
-   .query = createDateBetweenQuery("unsorted_date", nullptr, UNSORTED_DATE_VALUE),
+   .query = "default.filter(unsorted_date <= '2023-01-20'::date)",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario UNSORTED_DATE_WITH_FROM_ONLY_SCENARIO = {
    .name = "unsortedDateWithFromOnly",
-   .query = createDateBetweenQuery("unsorted_date", UNSORTED_DATE_VALUE, nullptr),
+   .query = "default.filter(unsorted_date >= '2023-01-20'::date)",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario UNSORTED_DATE_WITH_COLUMN_NOT_IN_DB = {
    .name = "UNSORTED_DATE_WITH_COLUMN_NOT_IN_DB",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details"
-  },
-  "filterExpression": {
-    "type": "DateBetween",
-    "column": "something_not_in_database",
-    "from": null,
-    "to": null
-  }
-}
-)"
-   ),
+   .query = "default.filter(something_not_in_database >= '2000-01-01'::date)",
    .expected_error_message = "The database does not contain the column 'something_not_in_database'"
 };
 
 const QueryTestScenario UNSORTED_DATE_WITH_NON_DATE_COLUMN = {
    .name = "UNSORTED_DATE_WITH_NON_DATE_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details"
-  },
-  "filterExpression": {
-    "type": "DateBetween",
-    "column": "primaryKey",
-    "from": null,
-    "to": null
-  }
-}
-)"
-   ),
+   .query = "default.filter(primaryKey >= '2020-01-01'::date)",
    .expected_error_message = "The column 'primaryKey' is not of type date"
 };
 
