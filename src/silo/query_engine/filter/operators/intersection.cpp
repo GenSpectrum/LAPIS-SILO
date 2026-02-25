@@ -7,6 +7,7 @@
 #include <spdlog/spdlog.h>
 
 #include "evobench/evobench.hpp"
+#include "silo/common/string_utils.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -44,12 +45,11 @@ Intersection::~Intersection() noexcept = default;
 std::string Intersection::toString() const {
    std::string res = "(" + children[0]->toString();
 
-   for (uint32_t i = 1; i < children.size(); i++) {
-      res += " & " + children[i]->toString();
+   res += joinWithLimit(children, " & ");
+   if (!negated_children.empty()) {
+      res += " &! " + joinWithLimit(negated_children, " &! ");
    }
-   for (const auto& child : negated_children) {
-      res += " &! " + child->toString();
-   }
+
    res += ")";
    return res;
 }

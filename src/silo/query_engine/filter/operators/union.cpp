@@ -7,6 +7,7 @@
 #include <roaring/roaring.hh>
 
 #include "evobench/evobench.hpp"
+#include "silo/common/string_utils.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -20,11 +21,8 @@ Union::Union(OperatorVector&& children, uint32_t row_count)
 Union::~Union() noexcept = default;
 
 std::string Union::toString() const {
-   std::string res = "(" + children[0]->toString();
-   for (size_t i = 1; i < children.size(); ++i) {
-      const auto& child = children[i];
-      res += " | " + child->toString();
-   }
+   std::string res = "(";
+   res += joinWithLimit(children, " | ");
    res += ")";
    return res;
 }
