@@ -1,16 +1,6 @@
 {
   "testCaseName": "The insertions action and insertions contains filter",
-  "query": {
-    "action": {
-      "type": "Insertions",
-      "sequenceNames": ["main"]
-    },
-    "filterExpression": {
-      "type": "InsertionContains",
-      "position": 22339,
-      "value": ".*C.*G.*"
-    }
-  },
+  "query": "default.filter(insertionContains(position:=22339, value:='.*C.*G.*')).insertions(sequenceNames:={main})",
   "expectedQueryResult": [
     {
       "count": 1,

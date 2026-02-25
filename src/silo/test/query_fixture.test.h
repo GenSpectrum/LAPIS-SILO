@@ -1,12 +1,9 @@
 #pragma once
 
 #include <filesystem>
-#include <iostream>
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <simdjson.h>
-#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/append/database_inserter.h"
@@ -15,8 +12,6 @@
 #include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/initialize/initializer.h"
-#include "silo/query_engine/action_query.h"
-#include "silo/query_engine/binder.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/planner.h"
 #include "silo/query_engine/query_plan.h"
@@ -66,13 +61,18 @@ struct QueryTestData {
 
 struct QueryTestScenario {
    std::string name;
-   nlohmann::json query;
+   std::string query;
    nlohmann::json expected_query_result;
    std::string expected_error_message;
    std::optional<silo::config::QueryOptions> query_options;
 };
 
 std::string printScenarioName(const ::testing::TestParamInfo<QueryTestScenario>& scenario);
+
+nlohmann::json executeQueryToJsonArray(
+   query_engine::QueryPlan& query_plan,
+   uint64_t timeout_in_seconds = 3
+);
 
 template <typename DataContainer>
 class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
@@ -112,41 +112,22 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          scenario.query_options.value_or(config::RuntimeConfig::withDefaults().query_options);
       if (!scenario.expected_error_message.empty()) {
          try {
-            auto query = query_engine::ActionQuery::parseQuery(scenario.query.dump());
-            auto bound_query =
-               query_engine::Binder::bindQuery(std::move(query), shared_database->tables);
-            auto query_plan = query_engine::Planner::planQuery(
-               std::move(bound_query), shared_database->tables, query_options, "some_id"
+            auto query_plan = query_engine::Planner::planSaneqlQuery(
+               scenario.query, shared_database->tables, query_options, "some_id"
             );
-            std::stringstream buffer;
-            query_engine::exec_node::NdjsonSink output_sink{&buffer, query_plan.results_schema};
-            query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/3);
+            executeQueryToJsonArray(query_plan);
             FAIL() << "Expected an error in test case, but nothing was thrown";
          } catch (const std::exception& e) {
             EXPECT_EQ(std::string(e.what()), scenario.expected_error_message);
          }
       } else {
-         auto query = query_engine::ActionQuery::parseQuery(scenario.query.dump());
-         auto bound_query =
-            query_engine::Binder::bindQuery(std::move(query), shared_database->tables);
-         auto query_plan = query_engine::Planner::planQuery(
-            std::move(bound_query), shared_database->tables, query_options, "some_id"
+         auto query_plan = query_engine::Planner::planSaneqlQuery(
+            scenario.query, shared_database->tables, query_options, "some_id"
          );
-         std::stringstream buffer;
-         query_engine::exec_node::NdjsonSink output_sink{&buffer, query_plan.results_schema};
-         query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/3);
-         nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
-         std::string line;
-         while (std::getline(buffer, line)) {
-            auto line_object = nlohmann::json::parse(line);
-            std::cout << line_object.dump() << '\n';
-            actual_ndjson_result_as_array.push_back(line_object);
-         }
+         auto actual_ndjson_result_as_array = executeQueryToJsonArray(query_plan);
          ASSERT_EQ(actual_ndjson_result_as_array, scenario.expected_query_result);
       }
    }
 };
-
-nlohmann::json negateFilter(const nlohmann::json& query);
 
 }  // namespace silo::test

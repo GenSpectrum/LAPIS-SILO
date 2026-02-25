@@ -14,10 +14,10 @@ namespace silo::query_engine::filter::expressions {
 class IntEquals : public Expression {
   private:
    std::string column_name;
-   std::optional<uint32_t> value;
+   std::optional<int32_t> value;
 
   public:
-   explicit IntEquals(std::string column_name, std::optional<uint32_t> value);
+   explicit IntEquals(std::string column_name, std::optional<int32_t> value);
 
    [[nodiscard]] std::string toString() const override;
 
@@ -29,8 +29,5 @@ class IntEquals : public Expression {
    [[nodiscard]] std::unique_ptr<operators::Operator> compile(const storage::Table& table
    ) const override;
 };
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<IntEquals>& filter);
 
 }  // namespace silo::query_engine::filter::expressions

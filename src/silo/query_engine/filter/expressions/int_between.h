@@ -15,14 +15,14 @@ namespace silo::query_engine::filter::expressions {
 class IntBetween : public Expression {
   private:
    std::string column_name;
-   std::optional<uint32_t> from;
-   std::optional<uint32_t> to;
+   std::optional<int32_t> from;
+   std::optional<int32_t> to;
 
   public:
    explicit IntBetween(
       std::string column_name,
-      std::optional<uint32_t> from,
-      std::optional<uint32_t> to
+      std::optional<int32_t> from,
+      std::optional<int32_t> to
    );
 
    [[nodiscard]] std::string toString() const override;
@@ -35,8 +35,5 @@ class IntBetween : public Expression {
    [[nodiscard]] std::unique_ptr<operators::Operator> compile(const storage::Table& table
    ) const override;
 };
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter);
 
 }  // namespace silo::query_engine::filter::expressions

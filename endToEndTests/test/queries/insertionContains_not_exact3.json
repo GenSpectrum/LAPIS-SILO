@@ -1,15 +1,6 @@
 {
   "testCaseName": "Insertion Contains with non-exact match TCAG.*AA",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "InsertionContains",
-      "position": 25701,
-      "value": "TCAG.*AA"
-    }
-  },
+  "query": "default.filter(insertionContains(position:=25701, value:='TCAG.*AA')).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 0

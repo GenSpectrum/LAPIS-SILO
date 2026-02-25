@@ -26,6 +26,16 @@ class MutationsNode final : public QueryNode {
    constexpr static std::string_view PROPORTION_FIELD_NAME = "proportion";
    constexpr static std::string_view COVERAGE_FIELD_NAME = "coverage";
    constexpr static std::string_view COUNT_FIELD_NAME = "count";
+   static constexpr std::array<std::string_view, 8> VALID_FIELDS{
+      MUTATION_FIELD_NAME,
+      MUTATION_FROM_FIELD_NAME,
+      MUTATION_TO_FIELD_NAME,
+      POSITION_FIELD_NAME,
+      SEQUENCE_FIELD_NAME,
+      PROPORTION_FIELD_NAME,
+      COVERAGE_FIELD_NAME,
+      COUNT_FIELD_NAME
+   };
 
    std::shared_ptr<storage::Table> table;
    std::unique_ptr<filter::expressions::Expression> filter;

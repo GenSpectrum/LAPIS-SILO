@@ -60,6 +60,7 @@ add_compile_definitions(SIMDJSON_EXCEPTIONS=0)
 
 find_package(Arrow REQUIRED COMPONENTS Acero XYZ)
 find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
+find_package(FastFloat REQUIRED)
 find_package(LibLZMA REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(Poco REQUIRED COMPONENTS Net Util JSON)
@@ -137,6 +138,7 @@ target_link_libraries(
         Arrow::arrow_static
         ArrowAcero::arrow_acero_static
         ${Boost_LIBRARIES}
+        ${FastFloat_LIBRARIES}
         ${duckdb_LIBRARIES}
         nlohmann_json::nlohmann_json
         ${roaring_LIBRARIES}

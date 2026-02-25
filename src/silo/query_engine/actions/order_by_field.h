@@ -11,7 +11,4 @@ struct OrderByField {
    bool ascending;
 };
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, OrderByField& field);
-
 }  // namespace silo::query_engine

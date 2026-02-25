@@ -12,11 +12,9 @@
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_exception.h"
-#include "silo/query_engine/action_query.h"
-#include "silo/query_engine/binder.h"
-#include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/planner.h"
 #include "silo/query_engine/query_plan.h"
+#include "silo/test/query_fixture.test.h"
 
 namespace {
 using silo::config::PreprocessingConfig;
@@ -164,19 +162,8 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 2,
-      .query = R"(
-         {
-            "action": {
-              "type": "FastaAligned",
-              "sequenceNames": ["someShortGene", "secondSegment"],
-              "orderByFields": ["accessionVersion"],
-              "additionalFields": ["country"]
-            },
-            "filterExpression": {
-               "type": "True"
-            }
-         }
-      )",
+      .query = "default.project({accessionVersion, someShortGene, secondSegment, "
+               "country}).orderBy({accessionVersion})",
       .expected_query_result = nlohmann::json::parse(R"(
    [{
       "accessionVersion": "1.1",
@@ -241,18 +228,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 2,
-      .query = R"(
-{
-   "action": {
-      "type": "Aggregated",
-      "groupByFields": ["group"],
-      "orderByFields": ["group"]
-   },
-   "filterExpression": {
-      "type": "True"
-   }
-}
-)",
+      .query = "default.groupBy({count:=count()},{group}).orderBy({group})",
       .expected_query_result = nlohmann::json::parse(
          R"([
          {"count": 1, "group": null},
@@ -325,18 +301,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 2,
-      .query = R"(
-      {
-         "action": {
-            "type": "Aggregated",
-            "groupByFields": ["2"],
-            "orderByFields": ["2"]
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = R"(default.groupBy({count:=count()},{"2"}).orderBy({"2"}))",
       .expected_query_result = nlohmann::json::parse(
          R"([
          {"count": 1, "2": null},
@@ -388,16 +353,7 @@ schema:
    .lineage_trees = {{"test_lineage_definition.yaml", "main: ~\n"}},
    .assertion{
       .expected_sequence_count = 0,
-      .query = R"(
-      {
-         "action": {
-           "type": "Details"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "default",
       .expected_query_result = nlohmann::json::parse(R"(
 [])")
    }
@@ -442,16 +398,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 0,
-      .query = R"(
-      {
-         "action": {
-           "type": "Details"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "default",
       .expected_query_result = nlohmann::json::parse(R"(
 [])")
    }
@@ -496,16 +443,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 100,
-      .query = R"(
-      {
-         "action": {
-           "type": "Aggregated"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "default.groupBy({count:=count()})",
       .expected_query_result = nlohmann::json::parse(R"(
 [{"count":100}])")
    }
@@ -549,16 +487,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 100,
-      .query = R"(
-      {
-         "action": {
-           "type": "Aggregated"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "default.groupBy({count:=count()})",
       .expected_query_result = nlohmann::json::parse(R"(
 [{"count":100}])")
    }
@@ -597,16 +526,7 @@ schema:
 )",
    .assertion{
       .expected_sequence_count = 100,
-      .query = R"(
-      {
-         "action": {
-           "type": "Aggregated"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "default.groupBy({count:=count()})",
       .expected_query_result = nlohmann::json::parse(R"(
 [{"count":100}])")
    }
@@ -731,16 +651,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 2,
-      .query = R"(
-      {
-         "action": {
-           "type": "Aggregated"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "default.groupBy({count:=count()})",
       .expected_query_result = nlohmann::json::parse(R"(
 [{"count":2}])")
    }
@@ -778,17 +689,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 3,
-      .query = R"(
-      {
-         "action": {
-           "type": "Details",
-            "orderByFields": ["accessionVersion"]
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "default.orderBy({accessionVersion})",
       .expected_query_result = nlohmann::json::parse(R"(
 [{"accessionVersion":"0"},{"accessionVersion":"0.12"},{"accessionVersion":"text_without_quotes"}])")
    }
@@ -818,11 +719,7 @@ schema:
    .reference_genomes = R"({"nucleotideSequences": [], "genes": []})",
    .assertion{
       .expected_sequence_count = 3,
-      .query = R"(
-      {
-         "action": {"type": "Details", "orderByFields": ["accessionVersion"]},
-         "filterExpression": {"type": "True"}
-      })",
+      .query = "default.orderBy({accessionVersion})",
       .expected_query_result = nlohmann::json::parse(R"([
          {"accessionVersion": "1", "theDate": "1969-12-31"},
          {"accessionVersion": "2", "theDate": "2021-03-15"},
@@ -883,20 +780,8 @@ child_2:
     - root_2)"}},
    .assertion{
       .expected_sequence_count = 3,
-      .query = R"(
-      {
-         "action": {
-           "type": "Details",
-           "orderByFields": ["accessionVersion"]
-         },
-         "filterExpression": {
-            "type": "Lineage",
-            "column": "lineage_1",
-            "value": "root_1",
-            "includeSublineages": true
-         }
-      }
-   )",
+      .query = "default.filter(lineage_1.lineage('root_1', includeSublineages:=true))"
+               ".orderBy({accessionVersion})",
       .expected_query_result = nlohmann::json::parse(R"([
 {"accessionVersion":"0","lineage_1":"root_1","lineage_2":"root_2"},
 {"accessionVersion":"1","lineage_1":"child_1","lineage_2":null}
@@ -923,8 +808,6 @@ const auto TEST_CASES = ::testing::Values(
 
 INSTANTIATE_TEST_SUITE_P(PreprocessorTest, PreprocessorTestFixture, TEST_CASES, printTestName<Success>);
 
-using silo::query_engine::exec_node::NdjsonSink;
-
 TEST_P(PreprocessorTestFixture, shouldProcessData) {
    const auto& scenario = GetParam();
 
@@ -937,25 +820,13 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
 
    EXPECT_EQ(database_info.sequence_count, scenario.assertion.expected_sequence_count);
 
-   auto query = silo::query_engine::ActionQuery::parseQuery(scenario.assertion.query);
-
-   auto bound_query = silo::query_engine::Binder::bindQuery(std::move(query), database->tables);
-   auto query_plan = silo::query_engine::Planner::planQuery(
-      std::move(bound_query),
+   auto query_plan = silo::query_engine::Planner::planSaneqlQuery(
+      scenario.assertion.query,
       database->tables,
       silo::config::RuntimeConfig::withDefaults().query_options,
       "some_id"
    );
-   std::stringstream actual_result_stream;
-   NdjsonSink output_sink{&actual_result_stream, query_plan.results_schema};
-   query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/3);
-   nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
-   std::string line;
-   while (std::getline(actual_result_stream, line)) {
-      auto line_object = nlohmann::json::parse(line);
-      std::cout << line_object.dump() << '\n';
-      actual_ndjson_result_as_array.push_back(line_object);
-   }
+   auto actual_ndjson_result_as_array = silo::test::executeQueryToJsonArray(query_plan);
 
    ASSERT_EQ(actual_ndjson_result_as_array, scenario.assertion.expected_query_result);
 

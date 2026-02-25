@@ -4,8 +4,6 @@
 #include <memory>
 #include <utility>
 
-#include <nlohmann/json.hpp>
-
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
@@ -72,38 +70,6 @@ std::unique_ptr<operators::Operator> FloatBetween::compile(const storage::Table&
    }
 
    return std::make_unique<operators::Selection>(std::move(predicates), table.sequence_count);
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<FloatBetween>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("column"), "The field 'column' is required in a FloatBetween expression"
-   );
-   CHECK_SILO_QUERY(
-      json["column"].is_string(), "The field 'column' in a FloatBetween expression must be a string"
-   );
-   CHECK_SILO_QUERY(
-      json.contains("from"), "The field 'from' is required in FloatBetween expression"
-   );
-   CHECK_SILO_QUERY(
-      json["from"].is_null() || json["from"].is_number_float(),
-      "The field 'from' in a FloatBetween expression must be a float or null"
-   );
-   CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a FloatBetween expression");
-   CHECK_SILO_QUERY(
-      json["to"].is_null() || json["to"].is_number_float(),
-      "The field 'to' in a FloatBetween expression must be a float or null"
-   );
-   const std::string& column_name = json["column"];
-   std::optional<double> value_from;
-   if (json["from"].is_number_float()) {
-      value_from = json["from"].get<double>();
-   }
-   std::optional<double> value_to;
-   if (json["to"].is_number_float()) {
-      value_to = json["to"].get<double>();
-   }
-   filter = std::make_unique<FloatBetween>(column_name, value_from, value_to);
 }
 
 }  // namespace silo::query_engine::filter::expressions

@@ -38,14 +38,6 @@ ref = db.get_nucleotide_reference_sequence("sequences", "main")
 # Get filtered bitmap (list of matching row indices)
 indices = db.get_filtered_bitmap("sequences", "some_filter")
 
-# Get prevalent mutations
-mutations = db.get_prevalent_mutations(
-    table_name="sequences",
-    sequence_name="main",
-    prevalence_threshold=0.05,
-    filter_expression=""
-)
-
 # Save database state
 db.save_checkpoint("/path/to/save/directory")
 

@@ -1,16 +1,6 @@
 {
   "testCaseName": "FloatBetween for column",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "FloatBetween",
-      "column": "qc_value",
-      "from": 0.905,
-      "to": 0.935
-    }
-  },
+  "query": "default.filter(qc_value.between(0.905, 0.935)).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 30

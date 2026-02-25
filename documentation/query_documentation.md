@@ -1,316 +1,486 @@
-# Silo Query Documentation
+# SILO Query Documentation
 
-WARNING: This document is work-in-progress and offers some preliminary documentation
+All queries are sent to the `/query` endpoint as a plain-text request body containing a [SaneQL](https://www.cidrdb.org/cidr2024/papers/p48-neumann.pdf) expression.
 
-All queries are accepted by the same `/query` endpoint.
+The response is NDJSON by default (`application/x-ndjson`), or Apache Arrow IPC if the client sends `Accept: application/vnd.apache.arrow.stream`.
 
-Each query consists of a `filter` and an `action`, described separately below.
+## Query Structure
 
-Example files can be seen in the [repository](https://github.com/GenSpectrum/LAPIS-SILO/tree/main/endToEndTests/test/queries).
-
-## Filter
-
-This is similar to the SQL `WHERE` clause. We directly get an abstract syntax tree of a boolean expression in JSON format.
-
-Any `Filter` is a json object that contains a `type` and a number of additional attribute, depending on the type as listed below. The types can be grouped as follows:
-
-### n-ary 
-
-always have attribute `children: Filter[]`
-
-####  `And`
-
-  This filter is true iff all its children are true.
- 
-#### `Or`
-
-This filter is true iff at least one of its children is true.
-
-#### `N-Of`: `{"numberOfMatchers": number, "matchExactly": boolean}`
-
-This filter is true iff (at least) `numberOfMatchers` of its children are true.
-
-### 1-ary 
-always have the attribute `child: Filter`
-
-#### `Not`
-
-This filter is true iff its child is false.
-
-#### `Maybe`
-
-See [`maybe_documentation.md`](maybe_documentation.md).
-
-#### `Exact`
-
-See [`maybe_documentation.md`](maybe_documentation.md).
-
-### Leaf Nodes
-
-#### `True`
-
-This filter is always true.
-
-#### `False`
-
-This filter is always false.
-
-#### `NucleotideEquals`: `{"position": number, "symbol": string, "sequenceName": string}` 
-
-This filter is true, if the symbol of nucleotide sequence `sequenceName` at position `position` is equal to `symbol`. (If this is in a subtree of an `Exact` or `Maybe` expression, it will instead consider all sets of possible non-ambiguous symbols at this position).
-`sequenceName` must refer to a valid nucleotide sequence. `symbol` should contain a single valid sequence symbol, `position` a number between 1 and the sequence's length. 
-
-#### `DateBetween`: `{"column": string, "from": string | null, "to": string | null}`
-
-This filter is true if the date in column `column` is between `from` and `to`.
-If from or to is `null` it will not constrain the dates in that regard. `null` dates will always be excluded.
-
-The `from` and `to` bounds are inclusive.
-
-#### `DateEquals`: `{"column": string, "value": string | null}`
-
-This filter is true if the date in column `column` is equal to `value`.
-If `value` is `null`, this filter matches rows where the date column is `NULL`.
-Date strings must be in `YYYY-MM-DD` format.
-
-#### `HasNucleotideMutation`: `{"position": number, "sequenceName": string}`
-
-This filter is true if the sequence `sequenceName` has a symbol at position `position` that is not equal to the reference and not `N`. 
-
-#### `AminoAcidEquals`
-
-See `NucleotideEquals`.
-
-#### `HasAminoAcidMutation`
-
-See `HasNucleotideMutation`.
-
-#### `NucleotideMutationProfile`
+A query is a **pipeline** of operations chained with `.method()` syntax, starting from a table name:
 
 ```
-{
-  "distance": number,
-  "sequenceName": string,          // optional; uses the default sequence if omitted
-  // exactly one of these
-  "querySequence": string
-  "sequenceId": string
-  "mutations": {"position": number, "symbol": string}[]
-}
+tableName
+  .operation1(...)
+  .operation2(...)
 ```
 
-This filter is true if a sequence has at most `distance` **differences** from a profile sequence.
+The table name is `default` for now.
 
-A difference at a position is considered when the database sequence's symbol is **not** ambiguity-compatible with the profile's symbol at that position. Ambiguity-compatible means the database symbol appears in the set of symbols compatible with the profile symbol (e.g. `R` is compatible with `A` because `R` represents A or G; `N` is compatible with any definitive base). Positions where the profile symbol is `N` (missing) are always skipped and never counted as differences.
-
-**Profile input — exactly one of:**
-
-- `querySequence`: a full sequence string of the same length as the reference. Each character must be a valid symbol for the sequence type.
-- `sequenceId`: the primary key of a sequence already in the database. That sequence is used as the profile.
-- `mutations`: an array of mutations relative to the reference. Positions are 1-based. Positions not listed retain the reference symbol. An empty array means the profile equals the reference.
-  - Each entry: `{"position": number, "symbol": string}` where `symbol` is a single valid character.
-
-**Example** — find all sequences within 5 mutations of the reference:
-```json
-{
-  "type": "NucleotideMutationProfile",
-  "distance": 5,
-  "mutations": []
-}
-```
-
-**Example** — find sequences within 2 mutations of a specific stored sequence:
-```json
-{
-  "type": "NucleotideMutationProfile",
-  "distance": 2,
-  "sequenceId": "EPI_ISL_123456"
-}
-```
-
-#### `AminoAcidMutationProfile`
-
-See `NucleotideMutationProfile`. Applies to amino acid sequences; `symbol` values must be valid amino acid symbols.
-
-#### `Lineage`: `{"column": string, "value": string | null, "includeSublineages": boolean, ["recombinantFollowingMode": string]}`
-
-This filter is true if the lineage in column `column` is equal to or an alias of `value`.
-If `includeSublineages` is set, it will also be true, if it is equal to or an alias of a sublineage of `value`.
-`value` must be a valid lineage (that is contained in the lineage definitions of this column).
-
-`column` must be a string field with `generateLineageIndex: true`.
-
-`recombinantFollowingMode` is an optional field that is only relevant when `includeSublineages` is `true`. It controls whether recombinant lineages (lineages with multiple parents in the lineage tree) are included when searching for sublineages. The possible values are:
-
-- `"doNotFollow"` (default) - Do not follow recombinant edges. Only sublineages reachable through non-recombinant parent-child relationships are included.
-- `"alwaysFollow"` - Always follow recombinant edges. Any recombinant lineage that has at least one parent in the searched clade is included.
-- `"followIfFullyContainedInClade"` - Follow recombinant edges only if all parents of the recombinant lineage are contained in the searched clade.
-
-For example, given a lineage tree where `XBB` is a recombinant of `A.1` and `A.2` (both children of `A`):
-- Searching for sublineages of `A.1` with `doNotFollow` returns `A.1`.
-- Searching for sublineages of `A.1` with `alwaysFollow` returns `A.1, XBB`.
-- Searching for sublineages of `A.1` with `followIfFullyContainedInClade` returns `A.1`.
-- Searching for sublineages of `A` with `doNotFollow` returns `A, A.1, A.2`.
-- Searching for sublineages of `A` with `alwaysFollow` returns `A, A.1, A.2, XBB`.
-- Searching for sublineages of `A` with `followIfFullyContainedInClade` returns `A, A.1, A.2, XBB` (because both parents of `XBB` are within the `A` clade).
-
-#### `InsertionContains`: `{"sequenceName": string, "position": string, "value":string}`
-
-This filter is true if the sequence `sequenceName` has an insertion at `position` that has a full match with the regex `value`.
-The regex may only contain valid nucleotide symbols and `.*`.
-Position is 1-based and refers to insertion after that position. Position 0 is allowed and means insertion before the first symbol. Valid positions are in the range `[0, n]` where `n` is the length of the reference sequence.
-
-#### `AminoAcidInsertionContains`
-
-See `InsertionContains`. Note that the stop-codon symbol `*` must be escaped with a `\\`. 
-
-#### `StringSearch`: `{"column": string, "searchExpression": string}`
-
-This filter is true if the string in column `column` matches the regular expression `searchExpression`.
-
-See [google/re2](https://github.com/google/re2/wiki/Syntax) for regular expression syntax.
-
-#### `StringEquals`: `{"column": string, "value":string}`
-
-This filter is true if the string in column `column` is equal to `value`. 
-
-#### `BooleanEquals`: `{"column": string, "value":string}`
-
-This filter is true if the boolean in column `column` is equal to `value`.
-
-#### `IntEquals`: `{"column": string, "value":string}`
-
-This filter is true if the integer in column `column` is equal to `value`.
-
-#### `IntBetween`: `{"column": string, "from": number | null, "to": number | null}`
-
-This filter is true if the integer in column `column` is between `from` and `to`.
-If from or to is `null` it will not constrain the value in that regard. `null` will always be excluded.
-
-The `from` and `to` bounds are inclusive.
-
-#### `FloatEquals`: `{"column": string, "value":string}`
-
-This filter is true if the float in column `column` is equal to `value`.
-
-#### `FloatBetween`: `{"column": string, "from": number | null, "to": number | null}`
-
-This filter is true if the float in column `column` is between `from` and `to`.
-If from or to is `null` it will not constrain the value in that regard. `null` will always be excluded.
-
-The `from` bound is inclusive, the `to` bound exclusive.
-
-#### `StringInSet`: `{"column": string, "values": [string]}`
-
-This filter is true for all rows, where the column `column` contains a string value that is in `[string]`.
-
-Returns an error for non-string columns.
-
-#### `IsNull`: `{"column": string}`
-
-This filter is true if the value in `column` is `NULL`.
-
-#### `IsNotNull`: `{"column": string}`
-
-This filter is true if the value in `column` is not `NULL`.
-
-## Action
-
-This largely corresponds to the [LAPIS endpoint](https://lapis.cov-spectrum.org/open/v2/swagger-ui/index.html) that was being used. Always returns data as ndjson (every line is a separate json element and does not contain line-breaks)
-
-Action body can always contain 
-```
-"orderByFields": 
-    (string | 
-    {"field": string, "order": "ascending" | "descending"})[]
-"limit": number,
-"offset": number,
-"randomize": boolean | {"seed": number}
-```
-
-### `Aggregated`
-
-`{"groupByFields": string[]}`
-
-Aggregate (with count) the results by `groupByFields`. 
-
-### `Details`
-
-`{"fields": string[]}`
-
-Return the fields `fields` of all filtered rows.
-
-### `Mutations`
-
-`{"fields": string[], , "minProportion": number, "sequenceNames": string | string[]}`
- 
-Finds all mutations in the sequences `sequenceNames` of all filtered rows (all symbols different to the reference, except N)
-
-Then divide this count by the coverage for each position (count of non-N reads that cover this position).
-
-For all mutation where this proportion is greater or equals to `minProportion`, return: 
+Simple example — count all sequences from Switzerland:
 
 ```
-{
-    /** The formatted mutation. E.g. A2C */
-    mutation: string;
-    /** The symbol that was mutated from. E.g. A */
-    mutationFrom: string;
-    /** The symbol that was mutated to. E.g. C */
-    mutationTo: string;
-    /** The position of the mutation. E.g. 2 */
-    position: number;
-    /** The name of the sequence this mutation occurred in */
-    sequenceName: string;
-    /** The coverage at that position */
-    coverage: number;
-    /** The proportion calculated as count / coverage */
-    proportion: number;
-}
+default
+  .filter(country = 'Switzerland')
+  .groupBy({count:=count()})
 ```
 
-### `AminoAcidMutations`
+## Language Basics
 
-See `Mutations`.
+### Literals
 
-### `Fasta`
+| Type    | Syntax                                      | Example                        |
+|---------|---------------------------------------------|--------------------------------|
+| String  | single-quoted                               | `'Switzerland'`                |
+| Integer | bare number                                 | `42`                           |
+| Float   | decimal                                     | `3.14`                         |
+| Boolean | `true` / `false`                            | `true`                         |
+| Null    | `null`                                      | `null`                         |
+| Date    | `'YYYY-MM-DD'::date`                        | `'2021-03-15'::date`           |
+| Set     | `{elem1, elem2, ...}`                       | `{'A', 'B', 'C'}`              |
+| Record  | `{field1 := value1, field2 := value2, ...}` | `{x := 'A', y := 'B', z := 3}` |
 
-`{"sequenceNames": string[], "additionalFields": string[]}`
+### Boolean Operators
 
-Returns the unalignedNucleotideSequences of `sequenceNames` (might be more than 1) and `additionalFields`.
+| Operator | Meaning |
+|----------|---------|
+| `&&` | logical AND |
+| `\|\|` | logical OR |
+| `!expr` | logical NOT |
+| `(expr)` | grouping |
 
-### `FastaAligned`
+### Comparison Operators
 
-`{"sequenceNames": string[], "additionalFields": string[]}`
+WARNING: Not all operators have been implemented for all types. TODO()
 
-Returns the alignedNucleotideSequences or alignedAminoAcidSequences of `sequenceNames` (might be more than 1) and `additionalFields`.
+`=`, `<>`, `<`, `<=`, `>`, `>=`
 
-### `Insertions`
-
-Gather all insertions that are contained in the data and aggregate them by the insertion value.
-
-As an example, if these insertions are in the filtered data:
+The left-hand side must be a column identifier. Examples:
 ```
-key, insertions
-1,[1:ACG, 123:CCCA]
-2,[1:ACAG]
-3,[1:ACG, 123:CCCA]
-4,[]
-5,[1:ACG, 123:CCCAG]
-6,[]
-8,[]
-9,[]
-11,[]
-14,[]
-```
-this action will return the following counts:
-```
-insertions,count
-1:ACG,3
-123:CCCA,2
-1:ACAG,1
-123:CCCAG,1
+country = 'Germany'
+age > 30
+date <= '2021-12-31'::date
+qc_value <> null
 ```
 
-### AminoAcidInsertions
+### Method Call Syntax
 
-See `Insertions`.
+Any function `f(table, arg1, arg2)` can be written as `table.f(arg1, arg2)`. Named arguments use `:=`:
+
+```
+pango_lineage.lineage('B.1.1.7', includeSublineages:=true)
+```
+
+After the first named argument is given, no more positional arguments are accepted.
+
+---
+
+## Pipeline Operations
+
+### `filter(predicate)`
+
+Keeps only rows where the boolean predicate is true.
+
+```
+default.filter(country = 'USA' && age > 30)
+```
+
+### `groupBy(aggregates [, columns])`
+
+Aggregates rows, producing counts or other aggregate values. `aggregates` is a record literal; `columns` is an optional set of column names to group by.
+
+Currently supported aggregate function: `count()`.
+
+```
+default.groupBy({count:=count()})
+default.groupBy({count:=count()}, {pango_lineage})
+default.groupBy({count:=count()}, {country, pango_lineage})
+```
+
+### `project(fields)`
+
+Returns only the specified columns. `fields` is a set of column names (or a single name without braces).
+
+```
+default.project({primary_key, country, date})
+default.project(division)
+```
+
+Sequence data columns use the naming convention `<sequenceName>` for aligned sequences and `unaligned_<sequenceName>` for unaligned sequences.
+
+### `orderBy(fields)`
+
+Sorts results. Each field is either a bare name (ascending) or a `asc(name)` / `desc(name)` call.
+
+```
+default.orderBy({primary_key})
+default.orderBy({count.desc(), pango_lineage})
+default.orderBy({asc(date), desc(age)})
+```
+
+### `limit(count)`
+
+Returns at most `count` rows. Must be a positive integer.
+
+```
+default.limit(100)
+```
+
+### `offset(count)`
+
+Skips the first `count` rows.
+
+```
+default.orderBy({primary_key}).offset(10).limit(10)
+```
+
+### `randomize([seed:=n])`
+
+Returns rows in random order. An optional integer seed makes the result reproducible.
+
+```
+default.randomize()
+default.randomize(seed:=42)
+```
+
+### `mutations(minProportion:=p [, sequenceNames:={...}] [, fields:={...}])`
+
+Returns nucleotide mutation statistics for the filtered rows. `minProportion` (0.0–1.0) is the minimum frequency threshold.
+
+Output columns: `mutation`, `mutationFrom`, `mutationTo`, `position`, `sequenceName`, `coverage`, `proportion`, `count`.
+
+```
+default.filter(pango_lineage = 'B.1.1.7').mutations(minProportion:=0.05)
+default.mutations(minProportion:=0.9, sequenceNames:={main, S})
+```
+
+This is only a valid operation on a table or direct filters of a table.
+
+### `aminoAcidMutations(minProportion:=p [, sequenceNames:={...}] [, fields:={...}])`
+
+Same as `mutations` but for amino acid sequences.
+
+This is only a valid operation on a table or direct filters of a table.
+
+```
+default.aminoAcidMutations(minProportion:=0.3, sequenceNames:={S})
+```
+
+### `insertions([sequenceNames:={...}])`
+
+Returns nucleotide insertions aggregated by insertion value. Output columns: `insertion`, `insertedSymbols`, `position`, `sequenceName`, `count`.
+
+```
+default.insertions()
+default.insertions(sequenceNames:={main})
+```
+
+This is only a valid operation on a table or direct filters of a table.
+
+### `aminoAcidInsertions([sequenceNames:={...}])`
+
+Same as `insertions` but for amino acid sequences.
+
+```
+default.aminoAcidInsertions()
+```
+
+This is only a valid operation on a table or direct filters of a table.
+
+### `mostRecentCommonAncestor(column [, printNodesNotInTree:=bool])`
+
+Finds the most recent common ancestor in a phylogenetic tree column for the filtered sequences.
+
+```
+default.filter(country = 'Germany').mostRecentCommonAncestor('usherTree')
+```
+
+This is only a valid operation on a table or direct filters of a table.
+
+### `phyloSubtree(column [, printNodesNotInTree:=bool] [, contractUnaryNodes:=bool])`
+
+Returns the phylogenetic subtree for the filtered sequences.
+
+```
+default.filter(pango_lineage = 'B.1.1.7').phyloSubtree('usherTree')
+```
+
+This is only a valid operation on a table or direct filters of a table.
+
+---
+
+## Scalar Functions
+
+These are used inside `.filter(...)` predicates. For now, only boolean scalar functions exist.
+
+### `between(column, from, to)`
+
+True if `column` is between `from` and `to` (inclusive). Use `null` for an open bound. Works for dates, integers, and floats.
+
+WARNING: Currently float is non-inclusive for `to`.
+
+```
+date.between('2021-01-01'::date, '2021-12-31'::date)
+age.between(18, 65)
+qc_value.between(0.9, null)
+```
+
+Alternatively, use comparison operators:
+```
+date >= '2021-01-01'::date && date <= '2021-12-31'::date
+```
+
+### `in(column, {values})`
+
+True if the column value is one of the given strings.
+
+```
+country.in({'Germany', 'France', 'Italy'})
+```
+
+### `isNull(column)`
+
+True if the column value is NULL.
+
+```
+isNull(date)
+```
+
+### `isNotNull(column)`
+
+True if the column value is not NULL.
+
+```
+isNotNull(pango_lineage)
+```
+
+### `like(column, pattern)`
+
+True if the column value matches the regular expression `pattern`. Uses [RE2 syntax](https://github.com/google/re2/wiki/Syntax).
+
+```
+division.like('Basel.*')
+primary_key.like('key_[0-9]+')
+```
+
+### `lineage(column, value [, includeSublineages:=bool] [, recombinantFollowingMode:=string])`
+
+True if the lineage column matches `value`. Column must have `generateLineageIndex: true` in the schema.
+
+`includeSublineages` (default `false`) also matches sublineages of `value`. `value` may be `null` to match NULL rows.
+
+`recombinantFollowingMode` controls handling of recombinant lineages when `includeSublineages` is `true`:
+- `"doNotFollow"` (default) — only non-recombinant parent-child relationships
+- `"alwaysFollow"` — include recombinants with at least one parent in the searched clade
+- `"followIfFullyContainedInClade"` — include recombinants only if all parents are in the clade
+
+```
+pango_lineage.lineage('B.1.1.7')
+pango_lineage.lineage('B.1.1.7', includeSublineages:=true)
+pango_lineage.lineage('XBB', includeSublineages:=true, recombinantFollowingMode:='alwaysFollow')
+```
+
+### `phyloDescendantOf(column, node)`
+
+True if the phylogenetic tree column value is a descendant of `node`.
+
+```
+usherTree.phyloDescendantOf('NODE_0000072')
+```
+
+### `nucleotideEquals(position:=n, symbol:=s [, sequenceName:=name])`
+
+True if the nucleotide sequence has symbol `s` at 1-based position `n`. Use `.` as a wildcard symbol (matches the reference). `sequenceName` is required if there is more than one nucleotide sequence.
+
+```
+nucleotideEquals(position:=300, symbol:='G')
+nucleotideEquals(position:=100, symbol:='A', sequenceName:='main')
+```
+
+### `aminoAcidEquals(position:=n, symbol:=s [, sequenceName:=name])`
+
+Same as `nucleotideEquals` but for amino acid sequences.
+
+```
+aminoAcidEquals(position:=501, symbol:='Y', sequenceName:='S')
+```
+
+### `hasMutation(position:=n [, sequenceName:=name])`
+
+True if the nucleotide sequence has a symbol at position `n` that differs from the reference and is not `N`.
+
+```
+hasMutation(position:=23403)
+hasMutation(position:=100, sequenceName:='main')
+```
+
+### `hasAAMutation(position:=n [, sequenceName:=name])`
+
+Same as `hasMutation` but for amino acid sequences.
+
+```
+hasAAMutation(position:=501, sequenceName:='S')
+```
+
+### `insertionContains(position:=n, value:=regex [, sequenceName:=name])`
+
+True if the nucleotide sequence has an insertion after 1-based position `n` that matches regex `value`. Position 0 means before the first symbol. The regex may contain valid nucleotide symbols and `.*`.
+
+```
+insertionContains(position:=22204, value:='AGT')
+insertionContains(position:=100, value:='A.*G', sequenceName:='main')
+```
+
+### `aminoAcidInsertionContains(position:=n, value:=regex [, sequenceName:=name])`
+
+Same as `insertionContains` for amino acid sequences. The stop-codon symbol `*` must be escaped as `\\*` in the regex.
+
+```
+aminoAcidInsertionContains(position:=214, value:='.*EPE', sequenceName:='S')
+```
+
+### `maybe(child)`
+
+Relaxes the child expression: true if the child is possibly true (allowing ambiguous symbols). See [maybe_documentation.md](maybe_documentation.md).
+
+```
+maybe(nucleotideEquals(position:=122, symbol:='A'))
+```
+
+### `exact(child)`
+
+Tightens the child expression: requires an exact (non-ambiguous) match. See [maybe_documentation.md](maybe_documentation.md).
+
+```
+exact(nucleotideEquals(position:=300, symbol:='G'))
+```
+
+### `nOf(count, {children} [, matchExactly:=bool])`
+
+True if at least `count` of the child expressions are true. If `matchExactly` is `true`, returns true if exactly `count` child expressions are true.
+
+```
+nOf(2, {
+  nucleotideEquals(position:=241, symbol:='T'),
+  nucleotideEquals(position:=3037, symbol:='T'),
+  nucleotideEquals(position:=23403, symbol:='G')
+})
+```
+
+### `nucleotideMutationProfile(distance:=n, ..., [sequenceName:=name])`
+
+True if a sequence has at most `distance` **conservative differences** from a profile sequence.
+
+A position counts as a difference when the database sequence's symbol is **not** ambiguity-compatible with the profile symbol at that position (e.g. `R` is compatible with `A` because `R` represents A or G; `N` is compatible with any definitive base). Positions where the profile symbol is `N` (missing) are skipped and never counted as differences.
+
+`sequenceName` is optional; when omitted the database's default nucleotide sequence is used.
+
+**Profile input — exactly one of the following named arguments:**
+
+- `querySequence:='<seq>'` — a full sequence string of the same length as the reference. Each character must be a valid nucleotide symbol.
+- `sequenceId:='<id>'` — the primary key of a sequence already in the database, used as the profile.
+- `mutations:={{position:=n, symbol:='X'}, ...}` — a set of mutations relative to the reference. Positions are 1-based. Positions not listed retain the reference symbol. An empty set `{}` means the profile equals the reference.
+
+```
+-- Within 5 mutations of the reference (empty mutation list = reference)
+nucleotideMutationProfile(distance:=5, mutations:={})
+
+-- Within 2 mutations of a specific stored sequence
+nucleotideMutationProfile(distance:=2, sequenceId:='key_123')
+
+-- Within 3 mutations of a profile defined by two substitutions
+nucleotideMutationProfile(distance:=3, mutations:={
+  {position:=241, symbol:='T'},
+  {position:=23403, symbol:='G'}
+})
+
+-- Same but targeting a named sequence in a multi-segment database
+nucleotideMutationProfile(distance:=3, sequenceName:='S', mutations:={
+  {position:=501, symbol:='Y'}
+})
+```
+
+### `aminoAcidMutationProfile(distance:=n, ..., [sequenceName:=name])`
+
+Same as `nucleotideMutationProfile` but for amino acid sequences. `symbol` values must be valid amino acid characters.
+
+```
+aminoAcidMutationProfile(distance:=2, sequenceName:='S', mutations:={
+  {position:=501, symbol:='Y'},
+  {position:=452, symbol:='R'}
+})
+```
+
+---
+
+## Complete Examples
+
+### Count sequences by country, ordered by count
+
+```
+default
+  .groupBy({count:=count()}, {country})
+  .orderBy({count.desc()})
+```
+
+### Sequences with a specific mutation, showing details
+
+```
+default
+  .filter(hasMutation(position:=23403))
+  .project({primary_key, country, date, pango_lineage})
+  .orderBy({date})
+  .limit(100)
+```
+
+### Mutations above 5% prevalence in a lineage
+
+```
+default
+  .filter(pango_lineage.lineage('B.1.1.7', includeSublineages:=true))
+  .mutations(minProportion:=0.05, sequenceNames:={main})
+```
+
+### Date range filter with null exclusion
+
+```
+default
+  .filter(date.between('2021-01-01'::date, '2021-06-30'::date))
+  .groupBy({count:=count()}, {pango_lineage})
+  .orderBy({pango_lineage})
+```
+
+### Complex filter combining multiple conditions
+
+```
+default
+  .filter(
+    country = 'Germany'
+    && age > 18
+    && pango_lineage.lineage('B.1.1.7', includeSublineages:=true)
+    && nOf(2, {
+         nucleotideEquals(position:=241, symbol:='T'),
+         nucleotideEquals(position:=3037, symbol:='T'),
+         nucleotideEquals(position:=23403, symbol:='G')
+       })
+  )
+  .groupBy({count:=count()})
+```
+
+### Paginated results
+
+```
+default
+  .orderBy({primary_key})
+  .offset(50)
+  .limit(25)
+  .project({primary_key, country, date})
+```
+
+### Amino acid insertions with a filter
+
+```
+default
+  .filter(aminoAcidInsertionContains(position:=214, value:='.*PE', sequenceName:='S'))
+  .aminoAcidInsertions()
+  .orderBy({insertedSymbols, position})
+```

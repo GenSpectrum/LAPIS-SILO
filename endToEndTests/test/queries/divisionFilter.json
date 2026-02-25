@@ -1,21 +1,6 @@
 {
   "testCaseName": "Filter by division then aggregate",
-  "query": {
-    "action": {
-      "limit": 100,
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "children": [
-        {
-          "column": "division",
-          "value": "Aargau",
-          "type": "StringEquals"
-        }
-      ],
-      "type": "And"
-    }
-  },
+  "query": "default.filter((division = 'Aargau')).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 6

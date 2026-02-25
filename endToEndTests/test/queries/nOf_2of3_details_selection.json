@@ -1,34 +1,6 @@
 {
   "testCaseName": "N-Of query requesting 2 of 3 mutations with details action where 2 fields are selected",
-  "query": {
-    "action": {
-      "type": "Details",
-      "fields": ["age", "pango_lineage"],
-      "orderByFields": ["age", "pango_lineage"]
-    },
-    "filterExpression": {
-      "type": "N-Of",
-      "numberOfMatchers": 2,
-      "matchExactly": false,
-      "children": [
-        {
-          "type": "NucleotideEquals",
-          "position": 1,
-          "symbol": "-"
-        },
-        {
-          "type": "NucleotideEquals",
-          "position": 2,
-          "symbol": "T"
-        },
-        {
-          "type": "NucleotideEquals",
-          "position": 27542,
-          "symbol": "N"
-        }
-      ]
-    }
-  },
+  "query": "default.filter(nOf(2, {nucleotideEquals(position:=1, symbol:='-'), nucleotideEquals(position:=2, symbol:='T'), nucleotideEquals(position:=27542, symbol:='N')})).project({age, pango_lineage}).orderBy({age, pango_lineage})",
   "expectedQueryResult": [
     {
       "age": 50,

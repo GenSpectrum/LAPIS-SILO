@@ -1,20 +1,6 @@
 {
   "testCaseName": "Pango lineage should return only aliased",
-  "query": {
-    "action": {
-      "type": "Aggregated",
-      "groupByFields": ["pango_lineage"],
-      "orderByFields": [
-        {
-          "field": "pango_lineage",
-          "order": "ascending"
-        }
-      ]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "default.groupBy({count:=count()},{pango_lineage}).orderBy({pango_lineage})",
   "expectedQueryResult": [
     {
       "count": 1,

@@ -1,14 +1,6 @@
 {
   "testCaseName": "The insertions action with an invalid sequence",
-  "query": {
-    "action": {
-      "type": "Insertions",
-      "sequenceNames": ["notAValidSequence"]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "default.insertions(sequenceNames:={notAValidSequence})",
   "expectedError": {
     "error": "Bad request",
     "message": "The database does not contain the Nucleotide sequence 'notAValidSequence'"

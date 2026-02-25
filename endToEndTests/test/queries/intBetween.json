@@ -1,16 +1,6 @@
 {
   "testCaseName": "IntBetween Query with 'from' and 'to' value",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "IntBetween",
-      "column": "age",
-      "from": 52,
-      "to": 55
-    }
-  },
+  "query": "default.filter(age.between(52, 55)).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 33

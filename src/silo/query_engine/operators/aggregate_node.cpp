@@ -1,32 +1,66 @@
 #include "silo/query_engine/operators/aggregate_node.h"
 
-#include <map>
 #include <memory>
-#include <string>
-#include <vector>
 
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
 #include <arrow/compute/api.h>
 
 #include "silo/common/panic.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
 namespace {
 
-arrow::acero::AggregateNodeOptions getAggregateOptionsForGroupByFields(
+using silo::query_engine::operators::AggregateDefinition;
+using silo::query_engine::operators::AggregateFunction;
+
+std::string arrowFunctionName(AggregateFunction func, bool has_groups) {
+   switch (func) {
+      case AggregateFunction::COUNT:
+         return has_groups ? "hash_count_all" : "count_all";
+   }
+   SILO_UNREACHABLE();
+}
+
+arrow::acero::AggregateNodeOptions buildAggregateOptions(
    const std::vector<silo::schema::ColumnIdentifier>& group_by_fields,
+   const std::vector<AggregateDefinition>& aggregates,
    const arrow::Schema& input_schema
 ) {
-   if (group_by_fields.empty()) {
-      auto count_options =
-         std::make_shared<arrow::compute::CountOptions>(arrow::compute::CountOptions::CountMode::ALL
-         );
-      const arrow::compute::Aggregate aggregate{
-         "count_all", count_options, std::vector<arrow::FieldRef>{}, std::string("count")
-      };
-      return arrow::acero::AggregateNodeOptions({aggregate});
+   const bool has_groups = !group_by_fields.empty();
+
+   std::vector<arrow::compute::Aggregate> arrow_aggregates;
+   arrow_aggregates.reserve(aggregates.size());
+
+   for (const auto& agg : aggregates) {
+      std::vector<arrow::FieldRef> source_refs;
+      std::shared_ptr<arrow::compute::FunctionOptions> options;
+
+      switch (agg.function) {
+         case AggregateFunction::COUNT: {
+            // TODO(#1231) implement path including source column
+            CHECK_SILO_QUERY(
+               !agg.source_column.has_value(), "count(<column_ref>) not yet implemented"
+            );
+            options = std::make_shared<arrow::compute::CountOptions>(
+               arrow::compute::CountOptions::CountMode::ALL
+            );
+            break;
+         }
+      }
+
+      arrow_aggregates.emplace_back(
+         arrowFunctionName(agg.function, has_groups),
+         options,
+         std::move(source_refs),
+         agg.output_name
+      );
+   }
+
+   if (!has_groups) {
+      return arrow::acero::AggregateNodeOptions(std::move(arrow_aggregates));
    }
 
    std::vector<arrow::FieldRef> field_refs;
@@ -36,12 +70,16 @@ arrow::acero::AggregateNodeOptions getAggregateOptionsForGroupByFields(
       field_refs.emplace_back(field.name);
    }
 
-   auto count_options =
-      std::make_shared<arrow::compute::CountOptions>(arrow::compute::CountOptions::CountMode::ALL);
-   const arrow::compute::Aggregate aggregate{
-      "hash_count_all", count_options, std::vector<arrow::FieldRef>{}, std::string("count")
-   };
-   return arrow::acero::AggregateNodeOptions({aggregate}, field_refs);
+   return arrow::acero::AggregateNodeOptions(std::move(arrow_aggregates), std::move(field_refs));
+}
+
+using silo::schema::ColumnType;
+ColumnType getType(const AggregateDefinition& aggregate_definition) {
+   switch (aggregate_definition.function) {
+      case AggregateFunction::COUNT:
+         return ColumnType::INT64;
+   }
+   SILO_UNREACHABLE();
 }
 
 }  // namespace
@@ -50,14 +88,18 @@ namespace silo::query_engine::operators {
 
 AggregateNode::AggregateNode(
    QueryNodePtr child,
-   std::vector<schema::ColumnIdentifier> group_by_fields
+   std::vector<schema::ColumnIdentifier> group_by_fields,
+   std::vector<AggregateDefinition> aggregates
 )
     : child(std::move(child)),
-      group_by_fields(std::move(group_by_fields)) {}
+      group_by_fields(std::move(group_by_fields)),
+      aggregates(std::move(aggregates)) {}
 
 std::vector<schema::ColumnIdentifier> AggregateNode::getOutputSchema() const {
    auto output_fields = group_by_fields;
-   output_fields.emplace_back("count", schema::ColumnType::INT64);
+   for (const auto& agg : aggregates) {
+      output_fields.emplace_back(agg.output_name, getType(agg));
+   }
    return output_fields;
 }
 
@@ -70,7 +112,7 @@ arrow::Result<PartialArrowPlan> AggregateNode::toQueryPlan(
    auto input_schema = plan.top_node->output_schema();
 
    const arrow::acero::AggregateNodeOptions aggregate_node_options =
-      getAggregateOptionsForGroupByFields(group_by_fields, *input_schema);
+      buildAggregateOptions(group_by_fields, aggregates, *input_schema);
 
    ARROW_ASSIGN_OR_RAISE(
       plan.top_node,

@@ -58,31 +58,17 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-nlohmann::json createFastaAlignedQuery(const std::string& primaryKey) {
-   return nlohmann::json::parse(fmt::format(
-      R"(
-{{
-  "action": {{
-    "type": "Fasta",
-    "sequenceNames": [
-      "unaligned_segment1",
-      "unaligned_segment2"
-    ]
-  }},
-  "filterExpression": {{
-    "type": "StringEquals",
-    "column": "primaryKey",
-    "value": "{}"
-  }}
-}}
-)",
+std::string createFastaQuery(const std::string& primaryKey) {
+   return fmt::format(
+      "default.filter(primaryKey = '{}').project({{primaryKey, unaligned_segment1, "
+      "unaligned_segment2}})",
       primaryKey
-   ));
+   );
 }
 
 const QueryTestScenario SEQUENCE_WITH_BOTH_SEGMENTS_SCENARIO = {
    .name = "sequenceWithBothSegments",
-   .query = createFastaAlignedQuery("bothSegments"),
+   .query = createFastaQuery("bothSegments"),
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "bothSegments"}, {"unaligned_segment1", "A"}, {"unaligned_segment2", "G"}}}
    )
@@ -90,7 +76,7 @@ const QueryTestScenario SEQUENCE_WITH_BOTH_SEGMENTS_SCENARIO = {
 
 const QueryTestScenario SEQUENCE_WITH_ONLY_FIRST_SEGMENT_SCENARIO = {
    .name = "sequenceWithOnlyFirstSegment",
-   .query = createFastaAlignedQuery("onlySegment1"),
+   .query = createFastaQuery("onlySegment1"),
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "onlySegment1"}, {"unaligned_segment1", "T"}, {"unaligned_segment2", nullptr}
       }}
@@ -99,7 +85,7 @@ const QueryTestScenario SEQUENCE_WITH_ONLY_FIRST_SEGMENT_SCENARIO = {
 
 const QueryTestScenario SEQUENCE_WITH_ONLY_SECOND_SEGMENT_SCENARIO = {
    .name = "sequenceWithOnlySecondSegment",
-   .query = createFastaAlignedQuery("onlySegment2"),
+   .query = createFastaQuery("onlySegment2"),
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "onlySegment2"}, {"unaligned_segment1", nullptr}, {"unaligned_segment2", "T"}
       }}
@@ -108,7 +94,7 @@ const QueryTestScenario SEQUENCE_WITH_ONLY_SECOND_SEGMENT_SCENARIO = {
 
 const QueryTestScenario SEQUENCE_WITH_NO_SEGMENT_SCENARIO = {
    .name = "sequenceWithNoSegment",
-   .query = createFastaAlignedQuery("noSegment"),
+   .query = createFastaQuery("noSegment"),
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "noSegment"},
         {"unaligned_segment1", nullptr},
@@ -118,23 +104,8 @@ const QueryTestScenario SEQUENCE_WITH_NO_SEGMENT_SCENARIO = {
 
 const QueryTestScenario DOWNLOAD_ALL_SEQUENCES_SCENARIO = {
    .name = "downloadAllSequences",
-   .query = nlohmann::json::parse(R"(
-{
-  "action": {
-    "type": "Fasta",
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "sequenceNames": [
-      "unaligned_segment1",
-      "unaligned_segment2"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"),
+   .query =
+      "default.project({primaryKey, unaligned_segment1, unaligned_segment2}).orderBy({primaryKey})",
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "1"}, {"unaligned_segment1", nullptr}, {"unaligned_segment2", "A"}},
        {{"primaryKey", "2"}, {"unaligned_segment1", nullptr}, {"unaligned_segment2", nullptr}},
@@ -153,26 +124,9 @@ const QueryTestScenario DOWNLOAD_ALL_SEQUENCES_SCENARIO = {
 
 const QueryTestScenario DOWNLOAD_ALL_DATA = {
    .name = "DOWNLOAD_ALL_DATA",
-   .query = nlohmann::json::parse(R"(
-{
-  "action": {
-    "type": "Fasta",
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "sequenceNames": [
-      "unaligned_segment1",
-      "unaligned_segment2"
-    ],
-    "additionalFields": [
-      "date"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"),
+   .query =
+      "default.project({primaryKey, unaligned_segment1, unaligned_segment2, date})"
+      ".orderBy({primaryKey})",
    .expected_query_result = nlohmann::json::parse(R"(
 [{"date":"2024-08-05","primaryKey":"1","unaligned_segment1":null,"unaligned_segment2":"A"},
 {"date":"2024-08-03","primaryKey":"2","unaligned_segment1":null,"unaligned_segment2":null},
@@ -186,28 +140,9 @@ const QueryTestScenario DOWNLOAD_ALL_DATA = {
 
 const QueryTestScenario DUPLICATE_FIELDS = {
    .name = "DUPLICATE_FIELDS",
-   .query = nlohmann::json::parse(R"(
-{
-  "action": {
-    "type": "Fasta",
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "sequenceNames": [
-      "unaligned_segment1",
-      "unaligned_segment2",
-      "unaligned_segment1"
-    ],
-    "additionalFields": [
-      "date",
-      "date"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"),
+   .query =
+      "default.project({primaryKey, unaligned_segment1, unaligned_segment2, unaligned_segment1, "
+      "date, date}).orderBy({primaryKey})",
    .expected_query_result = nlohmann::json::parse(R"(
 [{"date":"2024-08-05","primaryKey":"1","unaligned_segment1":null,"unaligned_segment2":"A"},
 {"date":"2024-08-03","primaryKey":"2","unaligned_segment1":null,"unaligned_segment2":null},
@@ -221,26 +156,7 @@ const QueryTestScenario DUPLICATE_FIELDS = {
 
 const QueryTestScenario ORDER_BY_NOT_IN_OUTPUT = {
    .name = "ORDER_BY_NOT_IN_OUTPUT",
-   .query = nlohmann::json::parse(R"(
-{
-  "action": {
-    "sequenceNames": [
-      "unaligned_segment1"
-    ],
-    "limit": 1,
-    "orderByFields": [
-      {
-        "field": "date",
-        "order": "descending"
-      }
-    ],
-    "type": "Fasta"
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"),
+   .query = "default.project({primaryKey, unaligned_segment1}).orderBy({date.desc()})",
    .expected_error_message =
       "OrderByField date is not contained in the result of this operation. "
       "Allowed values are primaryKey, unaligned_segment1."
@@ -248,29 +164,9 @@ const QueryTestScenario ORDER_BY_NOT_IN_OUTPUT = {
 
 const QueryTestScenario ORDER_BY_ADDITIONAL_FIELD = {
    .name = "ORDER_BY_ADDITIONAL_FIELD",
-   .query = nlohmann::json::parse(R"(
-{
-  "action": {
-    "sequenceNames": [
-      "unaligned_segment1",
-      "unaligned_segment2"
-    ],
-    "additionalFields": [
-      "date"
-    ],
-    "orderByFields": [
-      {
-        "field": "date",
-        "order": "ascending"
-      }
-    ],
-    "type": "Fasta"
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"),
+   .query =
+      "default.project({primaryKey, unaligned_segment1, unaligned_segment2, date})"
+      ".orderBy({date.asc()})",
    .expected_query_result = nlohmann::json::parse(R"(
 [{"date":"2024-08-01","primaryKey":"bothSegments","unaligned_segment1":"A","unaligned_segment2":"G"},
 {"date":"2024-08-02","primaryKey":"onlySegment2","unaligned_segment1":null,"unaligned_segment2":"T"},

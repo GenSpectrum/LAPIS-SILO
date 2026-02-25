@@ -12,14 +12,11 @@
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
+#include "silo/config/runtime_config.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/action_query.h"
 #include "silo/query_engine/planner.h"
-#include "silo/query_engine/binder.h"
 
-using silo::query_engine::ActionQuery;
 using silo::query_engine::Planner;
-using silo::query_engine::Binder;
 using silo::Database;
 
 namespace {
@@ -40,14 +37,13 @@ BenchmarkResult runBenchmark(
    std::vector<int64_t> durations;
    durations.reserve(iterations);
 
+   const auto query_options = silo::config::RuntimeConfig::withDefaults().query_options;
    for (int i = 0; i < iterations; ++i) {
-      auto query = ActionQuery::parseQuery(query_str);
-
       // rewrite() and compile() — including the full NOf DP pass — happen inside
-      // createQueryPlan, so the timer must start before it.
+      // planSaneqlQuery, so the timer must start before it.
       const auto start = std::chrono::high_resolution_clock::now();
-      auto query_tree = Binder::bindQuery(std::move(query), database->tables);
-      auto query_plan = Planner::planQuery(std::move(query_tree), database->tables, {}, "benchmark_query");
+      auto query_plan =
+         Planner::planSaneqlQuery(query_str, database->tables, query_options, "benchmark_query");
       std::ofstream null_output("/dev/null");
       silo::query_engine::exec_node::NdjsonSink sink{&null_output, query_plan.results_schema};
       query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/60);
@@ -58,8 +54,8 @@ BenchmarkResult runBenchmark(
    }
 
    const int64_t sum = std::accumulate(durations.begin(), durations.end(), int64_t{0});
-   const int64_t min_val = *std::min_element(durations.begin(), durations.end());
-   const int64_t max_val = *std::max_element(durations.begin(), durations.end());
+   const int64_t min_val = std::ranges::min(durations);
+   const int64_t max_val = std::ranges::max(durations);
 
    return BenchmarkResult{
       .avg_ms = static_cast<double>(sum) / static_cast<double>(iterations) / 1000.0,
@@ -76,7 +72,8 @@ BenchmarkResult runBenchmark(
 // sequence).  This exercises the single-pass NOf optimisation at large scale.
 std::string buildMutationProfileQuery(const std::string& query_sequence, uint32_t distance) {
    return fmt::format(
-      R"({{"action":{{"type":"Aggregated"}},"filterExpression":{{"type":"NucleotideMutationProfile","distance":{},"querySequence":"{}"}}}})",
+      "default.filter(nucleotideMutationProfile(distance:={}, querySequence:='{}'))"
+      ".groupBy({{count:=count()}})",
       distance,
       query_sequence
    );
