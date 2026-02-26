@@ -136,6 +136,111 @@ ExprPtr convertEqualsExpr(const ast::BinaryExpr& bin) {
    );
 }
 
+ExprPtr convertNotEqualsExpr(const ast::BinaryExpr& bin) {
+   // col <> value  →  Not(col = value)
+   ast::BinaryExpr equals_bin{ast::BinaryOp::Equals, nullptr, nullptr};
+   // We reuse convertEqualsExpr by constructing a temporary — but since we can't copy
+   // unique_ptrs, we just negate the equivalent equals expression inline
+   if (std::holds_alternative<ast::NullLiteral>(bin.right->value)) {
+      // col <> null → Not(IsNull(col))
+      std::string col = getIdentifierName(*bin.left);
+      return std::make_unique<filter::expressions::Negation>(
+         std::make_unique<filter::expressions::IsNull>(std::move(col))
+      );
+   }
+   if (auto* str = std::get_if<ast::StringLiteral>(&bin.right->value)) {
+      std::string col = getIdentifierName(*bin.left);
+      return std::make_unique<filter::expressions::Negation>(
+         std::make_unique<filter::expressions::StringEquals>(std::move(col), str->value)
+      );
+   }
+   if (auto* intlit = std::get_if<ast::IntLiteral>(&bin.right->value)) {
+      std::string col = getIdentifierName(*bin.left);
+      return std::make_unique<filter::expressions::Negation>(
+         std::make_unique<filter::expressions::IntEquals>(
+            std::move(col), static_cast<uint32_t>(intlit->value)
+         )
+      );
+   }
+   if (auto* fltlit = std::get_if<ast::FloatLiteral>(&bin.right->value)) {
+      std::string col = getIdentifierName(*bin.left);
+      return std::make_unique<filter::expressions::Negation>(
+         std::make_unique<filter::expressions::FloatEquals>(std::move(col), fltlit->value)
+      );
+   }
+   if (auto* boollit = std::get_if<ast::BoolLiteral>(&bin.right->value)) {
+      std::string col = getIdentifierName(*bin.left);
+      return std::make_unique<filter::expressions::BoolEquals>(std::move(col), !boollit->value);
+   }
+   throw ParseException(
+      bin.left->location,
+      "Unsupported not-equals comparison: {} <> {}",
+      bin.left->toString(),
+      bin.right->toString()
+   );
+}
+
+ExprPtr convertComparisonExpr(const ast::BinaryExpr& bin) {
+   std::string col = getIdentifierName(*bin.left);
+
+   // Determine bounds based on operator direction
+   // <  → between(nullopt, value-1) or just use the comparison semantics
+   // We map comparisons to Between expressions with open/closed bounds:
+   //   col < val  → IntBetween(col, nullopt, val-1) for int
+   //   col <= val → IntBetween(col, nullopt, val)
+   //   col > val  → IntBetween(col, val+1, nullopt)
+   //   col >= val → IntBetween(col, val, nullopt)
+   // For dates and floats, similar logic applies
+
+   bool is_less = (bin.op == ast::BinaryOp::LessThan || bin.op == ast::BinaryOp::LessEqual);
+   bool is_strict = (bin.op == ast::BinaryOp::LessThan || bin.op == ast::BinaryOp::GreaterThan);
+
+   if (auto* intlit = std::get_if<ast::IntLiteral>(&bin.right->value)) {
+      auto val = static_cast<uint32_t>(intlit->value);
+      std::optional<uint32_t> from;
+      std::optional<uint32_t> to;
+      if (is_less) {
+         to = is_strict ? val - 1 : val;
+      } else {
+         from = is_strict ? val + 1 : val;
+      }
+      return std::make_unique<filter::expressions::IntBetween>(std::move(col), from, to);
+   }
+
+   if (auto* fltlit = std::get_if<ast::FloatLiteral>(&bin.right->value)) {
+      std::optional<double> from;
+      std::optional<double> to;
+      if (is_less) {
+         to = fltlit->value;
+      } else {
+         from = fltlit->value;
+      }
+      return std::make_unique<filter::expressions::FloatBetween>(std::move(col), from, to);
+   }
+
+   // Date comparison: col < '2020-01-01'::date
+   if (isTypeCastDate(*bin.right)) {
+      std::string date_str = getStringFromExpr(*bin.right);
+      auto date_val = common::stringToDate(date_str);
+      std::optional<common::Date> from;
+      std::optional<common::Date> to;
+      if (is_less) {
+         to = is_strict ? date_val - 1 : date_val;
+      } else {
+         from = is_strict ? date_val + 1 : date_val;
+      }
+      return std::make_unique<filter::expressions::DateBetween>(std::move(col), from, to);
+   }
+
+   throw ParseException(
+      bin.left->location,
+      "Unsupported comparison: {} {} {}",
+      bin.left->toString(),
+      ast::binaryOpToString(bin.op),
+      bin.right->toString()
+   );
+}
+
 ExprPtr convertMethodCallToFilter(const ast::MethodCall& call) {
    std::string receiver_name = getIdentifierName(*call.receiver);
 
@@ -217,6 +322,29 @@ ExprPtr convertMethodCallToFilter(const ast::MethodCall& call) {
 
    if (call.method_name == "isNull") {
       return std::make_unique<filter::expressions::IsNull>(std::move(receiver_name));
+   }
+
+   if (call.method_name == "isNotNull") {
+      return std::make_unique<filter::expressions::Negation>(
+         std::make_unique<filter::expressions::IsNull>(std::move(receiver_name))
+      );
+   }
+
+   if (call.method_name == "lineage") {
+      if (call.arguments.size() < 1) {
+         throw ParseException(
+            call.receiver->location, "lineage() requires at least 1 argument"
+         );
+      }
+      std::string lineage_value = getStringFromExpr(*call.arguments[0].value);
+      auto include_sublineages = findNamedStringArg(call.arguments, "includeSublineages");
+      std::optional<common::RecombinantEdgeFollowingMode> sublineage_mode;
+      if (include_sublineages.has_value() && include_sublineages.value() == "true") {
+         sublineage_mode = common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE;
+      }
+      return std::make_unique<filter::expressions::LineageFilter>(
+         std::move(receiver_name), std::move(lineage_value), sublineage_mode
+      );
    }
 
    throw ParseException(
@@ -310,6 +438,13 @@ ExprPtr convertToFilter(const ast::Expression& ast_expr) {
             if (node.op == ast::BinaryOp::Equals) {
                return convertEqualsExpr(node);
             }
+            if (node.op == ast::BinaryOp::NotEquals) {
+               return convertNotEqualsExpr(node);
+            }
+            if (node.op == ast::BinaryOp::LessThan || node.op == ast::BinaryOp::LessEqual ||
+                node.op == ast::BinaryOp::GreaterThan || node.op == ast::BinaryOp::GreaterEqual) {
+               return convertComparisonExpr(node);
+            }
             throw ParseException(
                ast_expr.location,
                "Unsupported binary operator in filter: {}",
@@ -327,9 +462,7 @@ ExprPtr convertToFilter(const ast::Expression& ast_expr) {
             if (node.value) {
                return std::make_unique<filter::expressions::True>();
             }
-            return std::make_unique<filter::expressions::Negation>(
-               std::make_unique<filter::expressions::True>()
-            );
+            return std::make_unique<filter::expressions::False>();
          } else if constexpr (std::is_same_v<T, ast::Identifier>) {
             // A bare identifier used as a filter expression — treat as boolean column check
             return std::make_unique<filter::expressions::BoolEquals>(node.name, true);
