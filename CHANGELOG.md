@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.10.0...v0.10.1) (2026-02-27)
+
+
+### Features
+
+* **performance:** add performance benchmark for the many short-read filters ([f8ef7ab](https://github.com/GenSpectrum/LAPIS-SILO/commit/f8ef7ab0a0c2777f5dc27a5a32ae664bbe4903b5))
+* **silo:** add verbosity argument to CLI interface ([0bc682d](https://github.com/GenSpectrum/LAPIS-SILO/commit/0bc682d10fb6a4f8e8602498c923b2fac383e1b7))
+
 ## [0.10.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.9.12...v0.10.0) (2026-02-22)
 
 
