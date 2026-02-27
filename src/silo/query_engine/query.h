@@ -29,6 +29,8 @@ struct Query {
        : Query(schema::TableName::getDefault(), std::move(filter), std::move(action)) {}
 
    static std::shared_ptr<Query> parseQuery(const std::string& query_string);
+
+   static std::shared_ptr<Query> parseSaneQuery(const std::string& saneql_string);
 };
 
 }  // namespace silo::query_engine

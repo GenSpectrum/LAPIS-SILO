@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include "silo/query_engine/illegal_query_exception.h"
+#include "silo/query_engine/query.h"
 #include "silo/query_engine/saneql/parse_exception.h"
 #include "silo/query_engine/saneql/parser.h"
 
@@ -370,4 +372,27 @@ TEST(SaneQLAstToQuery, throwsOnNOfWithTooFewArgs) {
 
 TEST(SaneQLAstToQuery, throwsOnBareStringLiteral) {
    EXPECT_THROW(parseAndConvert("metadata.filter('USA').aggregated()"), ParseException);
+}
+
+// --- Integration tests via Query::parseSaneQuery ---
+
+using silo::query_engine::IllegalQueryException;
+using silo::query_engine::Query;
+
+TEST(SaneQLParseSaneQuery, parsesValidQuery) {
+   auto query = Query::parseSaneQuery("metadata.filter(country = 'USA').aggregated()");
+   ASSERT_NE(query, nullptr);
+   EXPECT_NE(query->filter, nullptr);
+   EXPECT_NE(query->action, nullptr);
+}
+
+TEST(SaneQLParseSaneQuery, wrapsParseErrorAsIllegalQueryException) {
+   EXPECT_THROW(Query::parseSaneQuery("not valid saneql ???"), IllegalQueryException);
+}
+
+TEST(SaneQLParseSaneQuery, wrapsSemanticErrorAsIllegalQueryException) {
+   EXPECT_THROW(
+      Query::parseSaneQuery("metadata.filter(country = 'USA').unknownAction()"),
+      IllegalQueryException
+   );
 }

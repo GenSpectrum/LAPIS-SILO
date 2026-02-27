@@ -8,6 +8,9 @@
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/illegal_query_exception.h"
+#include "silo/query_engine/saneql/ast_to_query.h"
+#include "silo/query_engine/saneql/parse_exception.h"
+#include "silo/query_engine/saneql/parser.h"
 
 using silo::query_engine::actions::Action;
 using silo::query_engine::filter::expressions::Expression;
@@ -28,6 +31,16 @@ std::shared_ptr<Query> Query::parseQuery(const std::string& query_string) {
       throw IllegalQueryException("The query was not a valid JSON: " + std::string(ex.what()));
    } catch (const nlohmann::json::exception& ex) {
       throw IllegalQueryException("The query was not a valid JSON: " + std::string(ex.what()));
+   }
+}
+
+std::shared_ptr<Query> Query::parseSaneQuery(const std::string& saneql_string) {
+   try {
+      saneql::Parser parser(saneql_string);
+      auto ast = parser.parse();
+      return saneql::convertToQuery(*ast);
+   } catch (const saneql::ParseException& ex) {
+      throw IllegalQueryException(ex.what());
    }
 }
 
