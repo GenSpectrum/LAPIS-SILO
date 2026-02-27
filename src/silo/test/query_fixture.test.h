@@ -64,7 +64,7 @@ struct QueryTestData {
 
 struct QueryTestScenario {
    std::string name;
-   nlohmann::json query;
+   std::string query;
    nlohmann::json expected_query_result;
    std::string expected_error_message;
    std::optional<silo::config::QueryOptions> query_options;
@@ -110,7 +110,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          scenario.query_options.value_or(config::RuntimeConfig::withDefaults().query_options);
       if (!scenario.expected_error_message.empty()) {
          try {
-            auto query = query_engine::Query::parseQuery(scenario.query.dump());
+            auto query = query_engine::Query::parseQuery(scenario.query);
             std::stringstream buffer;
             auto query_plan = shared_database->createQueryPlan(*query, query_options, "some_id");
             query_engine::exec_node::NdjsonSink output_sink{&buffer, query_plan.results_schema};
@@ -120,7 +120,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
             EXPECT_EQ(std::string(e.what()), scenario.expected_error_message);
          }
       } else {
-         auto query = query_engine::Query::parseQuery(scenario.query.dump());
+         auto query = query_engine::Query::parseQuery(scenario.query);
          std::stringstream buffer;
          auto query_plan = shared_database->createQueryPlan(*query, query_options, "some_id");
          query_engine::exec_node::NdjsonSink output_sink{&buffer, query_plan.results_schema};
@@ -136,7 +136,5 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       }
    }
 };
-
-nlohmann::json negateFilter(const nlohmann::json& query);
 
 }  // namespace silo::test

@@ -54,112 +54,83 @@ const QueryTestData TEST_DATA{
    .lineage_trees = {{"test", silo::common::LineageTreeAndIdMap()}}
 };
 
-nlohmann::json createQueryWithFilter(const nlohmann::json filter) {
-   return {{"action", {{"type", "Details"}}}, {"filterExpression", filter}};
-}
-
 const nlohmann::json EXPECTED_RESULT = {{{"primaryKey", "id"}}};
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_NO_SEQUENCE_NAME = {
    .name = "nucleotideEqualsWithoutSegmentTakesDefaultSequence",
-   .query = createQueryWithFilter(
-      {{"type", "NucleotideEquals"}, {"position", 1}, {"symbol", VALUE_SEGMENT_1}}
-   ),
+   .query = "metadata.filter(nucleotideEquals(position:=1, symbol:='A')).details()",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_NO_SEQUENCE_NAME_FILTER_BY_WRONG_VALUE = {
    .name = "nucleotideEqualsWithoutSegmentFilterByWrongValue",
-   .query = createQueryWithFilter(
-      {{"type", "NucleotideEquals"}, {"position", 1}, {"symbol", VALUE_SEGMENT_2}}
-   ),
+   .query = "metadata.filter(nucleotideEquals(position:=1, symbol:='C')).details()",
    .expected_query_result = nlohmann::json::array()
 };
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_SEGMENT_1 = {
    .name = "nucleotideEqualsSegment1",
-   .query = createQueryWithFilter(
-      {{"type", "NucleotideEquals"},
-       {"sequenceName", "segment1"},
-       {"position", 1},
-       {"symbol", VALUE_SEGMENT_1}}
-   ),
+   .query =
+      "metadata.filter(nucleotideEquals(position:=1, symbol:='A', "
+      "sequenceName:='segment1')).details()",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_SEGMENT_2 = {
    .name = "nucleotideEqualsSegment2",
-   .query = createQueryWithFilter(
-      {{"type", "NucleotideEquals"},
-       {"sequenceName", "segment2"},
-       {"position", 1},
-       {"symbol", VALUE_SEGMENT_2}}
-   ),
+   .query =
+      "metadata.filter(nucleotideEquals(position:=1, symbol:='C', "
+      "sequenceName:='segment2')).details()",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario AMINO_ACID_EQUALS_NO_SEQUENCE_NAME = {
    .name = "aminoAcidEqualsWithoutSequenceNameTakesDefaultSequence",
-   .query = createQueryWithFilter(
-      {{"type", "AminoAcidEquals"}, {"position", 1}, {"symbol", VALUE_SEGMENT_1}}
-   ),
+   .query = "metadata.filter(aminoAcidEquals(position:=1, symbol:='A')).details()",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario AMINO_ACID_EQUALS_NO_SEQUENCE_NAME_FILTER_BY_WRONG_VALUE = {
    .name = "aminoAcidEqualsWithoutSequenceNameFilterByWrongValue",
-   .query = createQueryWithFilter(
-      {{"type", "AminoAcidEquals"}, {"position", 1}, {"symbol", VALUE_SEGMENT_2}}
-   ),
+   .query = "metadata.filter(aminoAcidEquals(position:=1, symbol:='C')).details()",
    .expected_query_result = nlohmann::json::array()
 };
 
 const QueryTestScenario AMINO_ACID_EQUALS_GENE_1 = {
    .name = "aminoAcidEqualsGene1",
-   .query = createQueryWithFilter(
-      {{"type", "AminoAcidEquals"},
-       {"sequenceName", "gene1"},
-       {"position", 1},
-       {"symbol", VALUE_SEGMENT_1}}
-   ),
+   .query =
+      "metadata.filter(aminoAcidEquals(position:=1, symbol:='A', sequenceName:='gene1')).details()",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario AMINO_ACID_EQUALS_GENE_2 = {
    .name = "aminoAcidEqualsGene2",
-   .query = createQueryWithFilter(
-      {{"type", "AminoAcidEquals"},
-       {"sequenceName", "gene2"},
-       {"position", 1},
-       {"symbol", VALUE_SEGMENT_2}}
-   ),
+   .query =
+      "metadata.filter(aminoAcidEquals(position:=1, symbol:='C', sequenceName:='gene2')).details()",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario HAS_NUCLEOTIDE_MUTATION_WITHOUT_SEQUENCE_NAME = {
    .name = "hasNucleotideMutationWithoutSequenceName",
-   .query = createQueryWithFilter({{"type", "HasNucleotideMutation"}, {"position", 1}}),
+   .query = "metadata.filter(hasMutation(position:=1)).details()",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario HAS_AMINO_ACID_MUTATION_WITHOUT_SEQUENCE_NAME = {
    .name = "hasAminoAcidMutationWithoutSequenceName",
-   .query = createQueryWithFilter({{"type", "HasAminoAcidMutation"}, {"position", 1}}),
+   .query = "metadata.filter(hasAAMutation(position:=1)).details()",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario NUCLEOTIDE_INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME = {
    .name = "nucleotideInsertionContainsWithoutSequenceName",
-   .query =
-      createQueryWithFilter({{"type", "InsertionContains"}, {"value", "AAA"}, {"position", 1}}),
+   .query = "metadata.filter(insertionContains(position:=1, value:='AAA')).details()",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario AMINO_ACID_INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME = {
    .name = "aminoAcidInsertionContainsWithoutSequenceName",
-   .query = createQueryWithFilter(
-      {{"type", "AminoAcidInsertionContains"}, {"value", "AAA"}, {"position", 1}}
-   ),
+   .query = "metadata.filter(aminoAcidInsertionContains(position:=1, value:='AAA')).details()",
    .expected_query_result = EXPECTED_RESULT
 };
 

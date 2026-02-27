@@ -119,7 +119,8 @@ TEST(SaneQLAstToQuery, convertsFloatGreaterEqual) {
 }
 
 TEST(SaneQLAstToQuery, convertsDateLessThan) {
-   auto query = parseAndConvert("metadata.filter(date_submitted < '2023-01-01'::date).aggregated()");
+   auto query =
+      parseAndConvert("metadata.filter(date_submitted < '2023-01-01'::date).aggregated()");
    ASSERT_NE(query, nullptr);
 }
 
@@ -266,8 +267,7 @@ TEST(SaneQLAstToQuery, convertsDetailsAction) {
 }
 
 TEST(SaneQLAstToQuery, convertsDetailsWithOffset) {
-   auto query =
-      parseAndConvert("metadata.filter(country = 'USA').details(limit:=50, offset:=100)");
+   auto query = parseAndConvert("metadata.filter(country = 'USA').details(limit:=50, offset:=100)");
    ASSERT_NE(query, nullptr);
 }
 
@@ -374,25 +374,122 @@ TEST(SaneQLAstToQuery, throwsOnBareStringLiteral) {
    EXPECT_THROW(parseAndConvert("metadata.filter('USA').aggregated()"), ParseException);
 }
 
-// --- Integration tests via Query::parseSaneQuery ---
+// --- New filter functions ---
+
+TEST(SaneQLAstToQuery, convertsNucleotideEquals) {
+   auto query = parseAndConvert(
+      "metadata.filter(nucleotideEquals(position:=100, symbol:='A', sequenceName:='main'))"
+      ".aggregated()"
+   );
+   ASSERT_NE(query, nullptr);
+}
+
+TEST(SaneQLAstToQuery, convertsNucleotideEqualsWithDot) {
+   auto query =
+      parseAndConvert("metadata.filter(nucleotideEquals(position:=100, symbol:='.')).aggregated()");
+   ASSERT_NE(query, nullptr);
+}
+
+TEST(SaneQLAstToQuery, convertsAminoAcidEquals) {
+   auto query = parseAndConvert(
+      "metadata.filter(aminoAcidEquals(position:=501, symbol:='D', sequenceName:='S')).aggregated()"
+   );
+   ASSERT_NE(query, nullptr);
+}
+
+TEST(SaneQLAstToQuery, convertsInsertionContains) {
+   auto query = parseAndConvert(
+      "metadata.filter(insertionContains(position:=12, value:='ACG', sequenceName:='main'))"
+      ".aggregated()"
+   );
+   ASSERT_NE(query, nullptr);
+}
+
+TEST(SaneQLAstToQuery, convertsAminoAcidInsertionContains) {
+   auto query = parseAndConvert(
+      "metadata.filter(aminoAcidInsertionContains(position:=5, value:='RN', sequenceName:='S'))"
+      ".aggregated()"
+   );
+   ASSERT_NE(query, nullptr);
+}
+
+// --- New action types ---
+
+TEST(SaneQLAstToQuery, convertsFastaAlignedAction) {
+   auto query = parseAndConvert("metadata.fastaAligned('main', 'secondary')");
+   ASSERT_NE(query, nullptr);
+}
+
+TEST(SaneQLAstToQuery, convertsFastaAlignedWithAdditionalFields) {
+   auto query =
+      parseAndConvert("metadata.fastaAligned('main', additionalFields:={'country', 'date'})");
+   ASSERT_NE(query, nullptr);
+}
+
+TEST(SaneQLAstToQuery, convertsInsertionsAction) {
+   auto query = parseAndConvert("metadata.insertions('main')");
+   ASSERT_NE(query, nullptr);
+}
+
+TEST(SaneQLAstToQuery, convertsAminoAcidInsertionsAction) {
+   auto query = parseAndConvert("metadata.aminoAcidInsertions('S')");
+   ASSERT_NE(query, nullptr);
+}
+
+TEST(SaneQLAstToQuery, convertsAminoAcidMutationsAction) {
+   auto query = parseAndConvert("metadata.aminoAcidMutations('S', minProportion:='0.05')");
+   ASSERT_NE(query, nullptr);
+}
+
+// --- Ordering, limit, offset, randomize ---
+
+TEST(SaneQLAstToQuery, convertsOrderBy) {
+   auto query = parseAndConvert("metadata.aggregated(country).orderBy('count desc', 'country')");
+   ASSERT_NE(query, nullptr);
+}
+
+TEST(SaneQLAstToQuery, convertsDetailsWithLimitOffsetRandomize) {
+   auto query = parseAndConvert("metadata.details(limit:=10, offset:=5, randomize:=42)");
+   ASSERT_NE(query, nullptr);
+}
+
+TEST(SaneQLAstToQuery, convertsRandomizeTrue) {
+   auto query = parseAndConvert("metadata.details(randomize:=true)");
+   ASSERT_NE(query, nullptr);
+}
+
+// --- Extended lineage ---
+
+TEST(SaneQLAstToQuery, convertsLineageWithIncludeSublineages) {
+   auto query = parseAndConvert(
+      "metadata.filter(pango.lineage('B.1.1.7', includeSublineages:=true)).aggregated()"
+   );
+   ASSERT_NE(query, nullptr);
+}
+
+TEST(SaneQLAstToQuery, convertsLineageWithNullValue) {
+   auto query = parseAndConvert("metadata.filter(pango.lineage(null)).aggregated()");
+   ASSERT_NE(query, nullptr);
+}
+
+// --- Integration tests via Query::parseQuery ---
 
 using silo::query_engine::IllegalQueryException;
 using silo::query_engine::Query;
 
-TEST(SaneQLParseSaneQuery, parsesValidQuery) {
-   auto query = Query::parseSaneQuery("metadata.filter(country = 'USA').aggregated()");
+TEST(SaneQLParseQueryIntegration, parsesValidQuery) {
+   auto query = Query::parseQuery("metadata.filter(country = 'USA').aggregated()");
    ASSERT_NE(query, nullptr);
    EXPECT_NE(query->filter, nullptr);
    EXPECT_NE(query->action, nullptr);
 }
 
-TEST(SaneQLParseSaneQuery, wrapsParseErrorAsIllegalQueryException) {
-   EXPECT_THROW(Query::parseSaneQuery("not valid saneql ???"), IllegalQueryException);
+TEST(SaneQLParseQueryIntegration, wrapsParseErrorAsIllegalQueryException) {
+   EXPECT_THROW(Query::parseQuery("not valid saneql ???"), IllegalQueryException);
 }
 
-TEST(SaneQLParseSaneQuery, wrapsSemanticErrorAsIllegalQueryException) {
+TEST(SaneQLParseQueryIntegration, wrapsSemanticErrorAsIllegalQueryException) {
    EXPECT_THROW(
-      Query::parseSaneQuery("metadata.filter(country = 'USA').unknownAction()"),
-      IllegalQueryException
+      Query::parseQuery("metadata.filter(country = 'USA').unknownAction()"), IllegalQueryException
    );
 }

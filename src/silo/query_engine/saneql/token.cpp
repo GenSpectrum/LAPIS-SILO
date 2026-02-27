@@ -73,7 +73,9 @@ std::string Token::toString() const {
       return fmt::format("Token({}, {})", tokenTypeToString(type), getFloatValue());
    }
    if (type == TokenType::BoolLiteral) {
-      return fmt::format("Token({}, {})", tokenTypeToString(type), getBoolValue() ? "true" : "false");
+      return fmt::format(
+         "Token({}, {})", tokenTypeToString(type), getBoolValue() ? "true" : "false"
+      );
    }
    if (type == TokenType::Identifier) {
       return fmt::format("Token({}, {})", tokenTypeToString(type), getStringValue());

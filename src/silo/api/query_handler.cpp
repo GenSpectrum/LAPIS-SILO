@@ -53,7 +53,7 @@ void QueryHandler::post(
    SPDLOG_INFO("Request Id [{}] - received query: {}", request_id, query_string);
 
    try {
-      auto query = query_engine::Query::parseSaneQuery(query_string);
+      auto query = query_engine::Query::parseQuery(query_string);
       auto query_plan = database->createQueryPlan(*query, query_options, request_id);
 
       response.set("data-version", database->getDataVersionTimestamp().value);

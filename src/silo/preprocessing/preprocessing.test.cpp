@@ -162,19 +162,8 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 2,
-      .query = R"(
-         {
-            "action": {
-              "type": "FastaAligned",
-              "sequenceNames": ["someShortGene", "secondSegment"],
-              "orderByFields": ["accessionVersion"],
-              "additionalFields": ["country"]
-            },
-            "filterExpression": {
-               "type": "True"
-            }
-         }
-      )",
+      .query = "metadata.fastaAligned('someShortGene', 'secondSegment', "
+               "additionalFields:={'country'}).orderBy('accessionVersion')",
       .expected_query_result = nlohmann::json::parse(R"(
    [{
       "accessionVersion": "1.1",
@@ -239,18 +228,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 2,
-      .query = R"(
-{
-   "action": {
-      "type": "Aggregated",
-      "groupByFields": ["group"],
-      "orderByFields": ["group"]
-   },
-   "filterExpression": {
-      "type": "True"
-   }
-}
-)",
+      .query = "metadata.aggregated('group').orderBy('group')",
       .expected_query_result = nlohmann::json::parse(
          R"([
          {"count": 1, "group": null},
@@ -323,18 +301,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 2,
-      .query = R"(
-      {
-         "action": {
-            "type": "Aggregated",
-            "groupByFields": ["2"],
-            "orderByFields": ["2"]
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "metadata.aggregated('2').orderBy('2')",
       .expected_query_result = nlohmann::json::parse(
          R"([
          {"count": 1, "2": null},
@@ -386,16 +353,7 @@ schema:
    .lineage_trees = {{"test_lineage_definition.yaml", "main: ~\n"}},
    .assertion{
       .expected_sequence_count = 0,
-      .query = R"(
-      {
-         "action": {
-           "type": "Details"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "metadata.details()",
       .expected_query_result = nlohmann::json::parse(R"(
 [])")
    }
@@ -440,16 +398,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 0,
-      .query = R"(
-      {
-         "action": {
-           "type": "Details"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "metadata.details()",
       .expected_query_result = nlohmann::json::parse(R"(
 [])")
    }
@@ -494,16 +443,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 100,
-      .query = R"(
-      {
-         "action": {
-           "type": "Aggregated"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "metadata.aggregated()",
       .expected_query_result = nlohmann::json::parse(R"(
 [{"count":100}])")
    }
@@ -547,16 +487,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 100,
-      .query = R"(
-      {
-         "action": {
-           "type": "Aggregated"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "metadata.aggregated()",
       .expected_query_result = nlohmann::json::parse(R"(
 [{"count":100}])")
    }
@@ -595,16 +526,7 @@ schema:
 )",
    .assertion{
       .expected_sequence_count = 100,
-      .query = R"(
-      {
-         "action": {
-           "type": "Aggregated"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "metadata.aggregated()",
       .expected_query_result = nlohmann::json::parse(R"(
 [{"count":100}])")
    }
@@ -729,16 +651,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 2,
-      .query = R"(
-      {
-         "action": {
-           "type": "Aggregated"
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "metadata.aggregated()",
       .expected_query_result = nlohmann::json::parse(R"(
 [{"count":2}])")
    }
@@ -776,17 +689,7 @@ schema:
 })",
    .assertion{
       .expected_sequence_count = 3,
-      .query = R"(
-      {
-         "action": {
-           "type": "Details",
-            "orderByFields": ["accessionVersion"]
-         },
-         "filterExpression": {
-            "type": "True"
-         }
-      }
-   )",
+      .query = "metadata.details().orderBy('accessionVersion')",
       .expected_query_result = nlohmann::json::parse(R"(
 [{"accessionVersion":"0"},{"accessionVersion":"0.12"},{"accessionVersion":"text_without_quotes"}])")
    }
@@ -844,20 +747,8 @@ child_2:
     - root_2)"}},
    .assertion{
       .expected_sequence_count = 3,
-      .query = R"(
-      {
-         "action": {
-           "type": "Details",
-           "orderByFields": ["accessionVersion"]
-         },
-         "filterExpression": {
-            "type": "Lineage",
-            "column": "lineage_1",
-            "value": "root_1",
-            "includeSublineages": true
-         }
-      }
-   )",
+      .query = "metadata.filter(lineage_1.lineage('root_1', includeSublineages:=true))"
+               ".details().orderBy('accessionVersion')",
       .expected_query_result = nlohmann::json::parse(R"([
 {"accessionVersion":"0","lineage_1":"root_1","lineage_2":"root_2"},
 {"accessionVersion":"1","lineage_1":"child_1","lineage_2":null}

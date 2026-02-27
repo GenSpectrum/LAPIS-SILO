@@ -52,6 +52,8 @@ class Action {
       std::optional<uint32_t> randomize_seed
    );
 
+   void setOrderByFields(const std::vector<OrderByField>& order_by_fields);
+
    [[nodiscard]] std::optional<arrow::Ordering> getOrdering() const;
 
    [[nodiscard]] virtual std::vector<schema::ColumnIdentifier> getOutputSchema(

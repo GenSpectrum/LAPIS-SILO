@@ -267,10 +267,7 @@ Token Lexer::nextToken() {
          throw ParseException("Expected '::' or ':='", start);
       default:
          advance();
-         throw ParseException(
-            fmt::format("Unexpected character '{}'", current),
-            start
-         );
+         throw ParseException(fmt::format("Unexpected character '{}'", current), start);
    }
 }
 

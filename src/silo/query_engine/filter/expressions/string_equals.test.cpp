@@ -55,63 +55,21 @@ const QueryTestData TEST_DATA{
 // Tests for StringEquals with value: null (should rewrite to IsNull)
 const QueryTestScenario STRING_EQUALS_NULL_STRING_COLUMN = {
    .name = "STRING_EQUALS_NULL_STRING_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "StringEquals",
-    "column": "stringField",
-    "value": null
-  }
-})"
-   ),
+   .query = "metadata.filter(stringField = null).details(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_1"},{"primaryKey":"id_4"}])")
 };
 
 const QueryTestScenario STRING_EQUALS_NULL_INDEXED_STRING_COLUMN = {
    .name = "STRING_EQUALS_NULL_INDEXED_STRING_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "StringEquals",
-    "column": "indexedStringField",
-    "value": null
-  }
-})"
-   ),
+   .query = "metadata.filter(indexedStringField = null).details(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_2"},{"primaryKey":"id_4"}])")
 };
 
 const QueryTestScenario STRING_EQUALS_NULL_NEGATED = {
    .name = "STRING_EQUALS_NULL_NEGATED",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "Not",
-    "child": {
-      "type": "StringEquals",
-      "column": "stringField",
-      "value": null
-    }
-  }
-})"
-   ),
+   .query = "metadata.filter(!(stringField = null)).details(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_0"},{"primaryKey":"id_2"},{"primaryKey":"id_3"}])"
       )
@@ -119,58 +77,19 @@ const QueryTestScenario STRING_EQUALS_NULL_NEGATED = {
 
 const QueryTestScenario STRING_EQUALS_VALUE = {
    .name = "STRING_EQUALS_VALUE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "StringEquals",
-    "column": "stringField",
-    "value": "value1"
-  }
-})"
-   ),
+   .query = "metadata.filter(stringField = 'value1').details(primaryKey)",
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_0"}])")
 };
 
 const QueryTestScenario STRING_EQUALS_INDEXED_VALUE = {
    .name = "STRING_EQUALS_INDEXED_VALUE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "StringEquals",
-    "column": "indexedStringField",
-    "value": "indexed1"
-  }
-})"
-   ),
+   .query = "metadata.filter(indexedStringField = 'indexed1').details(primaryKey)",
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_0"}])")
 };
 
 const QueryTestScenario STRING_EQUALS_NO_MATCH = {
    .name = "STRING_EQUALS_NO_MATCH",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "StringEquals",
-    "column": "stringField",
-    "value": "nonexistent"
-  }
-})"
-   ),
+   .query = "metadata.filter(stringField = 'nonexistent').details(primaryKey)",
    .expected_query_result = nlohmann::json::parse(R"([])")
 };
 

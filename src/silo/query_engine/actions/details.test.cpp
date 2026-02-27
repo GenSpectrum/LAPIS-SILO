@@ -82,20 +82,7 @@ const silo::test::QueryTestData TEST_DATA{
 
 const QueryTestScenario ALL_DATA = {
    .name = "ALL_DATA",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "orderByFields": [
-      "primaryKey"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details().orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":7,"country":"Switzerland","coverage":0.9,"date":"2020-01-01","primaryKey":"id_0"},
@@ -109,22 +96,7 @@ const QueryTestScenario ALL_DATA = {
 
 const QueryTestScenario LIMIT_OFFSET = {
    .name = "LIMIT_OFFSET",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "limit": 3,
-    "offset": 1
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details(limit:=3, offset:=1).orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":null,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
@@ -135,23 +107,7 @@ const QueryTestScenario LIMIT_OFFSET = {
 
 const QueryTestScenario ALL_DATES = {
    .name = "ALL_DATES",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": [
-      "date", "primaryKey"
-    ],
-    "orderByFields": [
-      "primaryKey"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details(date, primaryKey).orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"date":"2020-01-01","primaryKey":"id_0"},
@@ -165,23 +121,7 @@ const QueryTestScenario ALL_DATES = {
 
 const QueryTestScenario ALL_DATES_AND_COUNTRIES = {
    .name = "ALL_DATES_AND_COUNTRIES",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": [
-      "date", "primaryKey", "country"
-    ],
-    "orderByFields": [
-      {"field": "country", "order": "descending"}, "date"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details(date, primaryKey, country).orderBy('country desc', 'date')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"country":"Switzerland","date":"2001-12-07","primaryKey":"id_5"},
@@ -195,23 +135,7 @@ const QueryTestScenario ALL_DATES_AND_COUNTRIES = {
 
 const QueryTestScenario DUPLICATE_COUNTRY = {
    .name = "DUPLICATE_COUNTRY",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": [
-      "country", "country"
-    ],
-    "orderByFields": [
-      {"field": "country", "order": "descending"}
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details(country, country).orderBy('country desc')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"country":"Switzerland"},
@@ -225,21 +149,7 @@ const QueryTestScenario DUPLICATE_COUNTRY = {
 
 const QueryTestScenario LIMIT = {
    .name = "LIMIT",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "limit": 3
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details(limit:=3).orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":7,"country":"Switzerland","coverage":0.9,"date":"2020-01-01","primaryKey":"id_0"},
@@ -250,41 +160,13 @@ const QueryTestScenario LIMIT = {
 
 const QueryTestScenario LIMIT_0 = {
    .name = "LIMIT_0",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "limit": 0
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details(limit:=0).orderBy('primaryKey')",
    .expected_error_message = "If the action contains a limit, it must be a positive number"
 };
 
 const QueryTestScenario LIMIT_LARGE = {
    .name = "LIMIT_LARGE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "orderByFields": [
-      "age", "primaryKey"
-    ],
-    "limit": 1000
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details(limit:=1000).orderBy('age', 'primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":null,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
@@ -298,20 +180,7 @@ const QueryTestScenario LIMIT_LARGE = {
 
 const QueryTestScenario SINGLE_FIELD_DESCENDING = {
    .name = "SINGLE_FIELD_DESCENDING",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "orderByFields": [
-      {"field": "age", "order": "descending"}
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details().orderBy('age desc')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":19,"country":"Switzerland","coverage":0.9,"date":"2002-01-04","primaryKey":"id_4"},
@@ -325,21 +194,7 @@ const QueryTestScenario SINGLE_FIELD_DESCENDING = {
 
 const QueryTestScenario MULTI_FIELD_SORT = {
    .name = "MULTI_FIELD_SORT",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "orderByFields": [
-      {"field": "country", "order": "descending"}, "age"
-    ],
-    "limit": 1000
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details(limit:=1000).orderBy('country desc', 'age')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":7,"country":"Switzerland","coverage":0.9,"date":"2020-01-01","primaryKey":"id_0"},
@@ -353,21 +208,7 @@ const QueryTestScenario MULTI_FIELD_SORT = {
 
 const QueryTestScenario OFFSET = {
    .name = "OFFSET",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "offset": 3
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details(offset:=3).orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":null,"country":"Switzerland","coverage":0.9,"date":"2003-07-02","primaryKey":"id_3"},
@@ -378,21 +219,7 @@ const QueryTestScenario OFFSET = {
 
 const QueryTestScenario OFFSET_0 = {
    .name = "OFFSET_0",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "offset": 0
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details(offset:=0).orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":7,"country":"Switzerland","coverage":0.9,"date":"2020-01-01","primaryKey":"id_0"},
@@ -406,21 +233,7 @@ const QueryTestScenario OFFSET_0 = {
 
 const QueryTestScenario OFFSET_LARGE = {
    .name = "OFFSET_LARGE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "offset": 123123
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.details(offset:=123123).orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [])"

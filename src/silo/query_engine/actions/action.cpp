@@ -46,6 +46,10 @@ void Action::setOrdering(
    randomize_seed = randomize_seed_;
 }
 
+void Action::setOrderByFields(const std::vector<OrderByField>& order_by_fields_) {
+   order_by_fields = order_by_fields_;
+}
+
 using arrow::compute::NullPlacement;
 
 const std::string RANDOMIZE_HASH_FIELD_NAME{"__SILO_RANDOMIZE_HASH"};

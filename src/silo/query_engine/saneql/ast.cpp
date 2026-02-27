@@ -33,9 +33,7 @@ struct ExprToString {
 
    std::string operator()(const FloatLiteral& lit) const { return fmt::format("{}", lit.value); }
 
-   std::string operator()(const StringLiteral& lit) const {
-      return fmt::format("'{}'", lit.value);
-   }
+   std::string operator()(const StringLiteral& lit) const { return fmt::format("'{}'", lit.value); }
 
    std::string operator()(const BoolLiteral& lit) const { return lit.value ? "true" : "false"; }
 

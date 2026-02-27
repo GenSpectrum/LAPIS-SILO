@@ -73,9 +73,8 @@ ast::ExpressionPtr Parser::parseAndExpr() {
       SourceLocation loc = current().location;
       advance();
       auto right = parseNotExpr();
-      left = ast::makeExpr(
-         ast::BinaryExpr{ast::BinaryOp::And, std::move(left), std::move(right)}, loc
-      );
+      left =
+         ast::makeExpr(ast::BinaryExpr{ast::BinaryOp::And, std::move(left), std::move(right)}, loc);
    }
 
    return left;
@@ -144,9 +143,7 @@ ast::ExpressionPtr Parser::parsePostfixExpr() {
             }
             expect(TokenType::RightParen);
             expr = ast::makeExpr(
-               ast::MethodCall{
-                  std::move(expr), method_name.getStringValue(), std::move(args)
-               },
+               ast::MethodCall{std::move(expr), method_name.getStringValue(), std::move(args)},
                method_name.location
             );
          } else {
@@ -160,9 +157,7 @@ ast::ExpressionPtr Parser::parsePostfixExpr() {
          SourceLocation loc = current().location;
          advance();
          Token type_name = expect(TokenType::Identifier);
-         expr = ast::makeExpr(
-            ast::TypeCast{std::move(expr), type_name.getStringValue()}, loc
-         );
+         expr = ast::makeExpr(ast::TypeCast{std::move(expr), type_name.getStringValue()}, loc);
       } else {
          break;
       }
@@ -240,11 +235,7 @@ ast::ExpressionPtr Parser::parsePrimaryExpr() {
       return ast::makeExpr(ast::NullLiteral{}, loc);
    }
 
-   throw ParseException(
-      loc,
-      "Unexpected token {}",
-      tokenTypeToString(current().type)
-   );
+   throw ParseException(loc, "Unexpected token {}", tokenTypeToString(current().type));
 }
 
 std::vector<ast::Argument> Parser::parseArgList() {
@@ -319,9 +310,8 @@ ast::Argument Parser::parseArgument() {
             SourceLocation cast_loc = current().location;
             advance();
             Token type_name = expect(TokenType::Identifier);
-            expr = ast::makeExpr(
-               ast::TypeCast{std::move(expr), type_name.getStringValue()}, cast_loc
-            );
+            expr =
+               ast::makeExpr(ast::TypeCast{std::move(expr), type_name.getStringValue()}, cast_loc);
          } else {
             break;
          }

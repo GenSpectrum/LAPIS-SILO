@@ -66,23 +66,7 @@ const QueryTestData TEST_DATA{
 
 const QueryTestScenario FASTA_ALIGNED = {
    .name = "FASTA_ALIGNED",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "FastaAligned",
-    "sequenceNames": [
-      "segment1"
-    ],
-    "orderByFields": [
-      "primaryKey"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.fastaAligned('segment1').orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"primaryKey":"id_0","segment1":"ATGCN"},
@@ -94,27 +78,8 @@ const QueryTestScenario FASTA_ALIGNED = {
 
 const QueryTestScenario FASTA_ALIGNED_ADDITIONAL_HEADER = {
    .name = "FASTA_ALIGNED_ADDITIONAL_HEADER",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "FastaAligned",
-    "sequenceNames": [
-      "segment1"
-    ],
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "additionalFields": [
-      "country"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query =
+      "metadata.fastaAligned('segment1', additionalFields:={'country'}).orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"country":"Switzerland","primaryKey":"id_0","segment1":"ATGCN"},
@@ -126,29 +91,9 @@ const QueryTestScenario FASTA_ALIGNED_ADDITIONAL_HEADER = {
 
 const QueryTestScenario DUPLICATE_FIELDS = {
    .name = "DUPLICATE_FIELDS",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "FastaAligned",
-    "sequenceNames": [
-      "segment1",
-      "segment1"
-    ],
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "additionalFields": [
-      "country",
-      "country"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query =
+      "metadata.fastaAligned('segment1', 'segment1', additionalFields:={'country', 'country'})"
+      ".orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"country":"Switzerland","primaryKey":"id_0","segment1":"ATGCN"},
@@ -160,24 +105,7 @@ const QueryTestScenario DUPLICATE_FIELDS = {
 
 const QueryTestScenario FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY = {
    .name = "FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "FastaAligned",
-    "sequenceNames": [
-      "segment1"
-    ],
-    "additionalFields": [
-      "primaryKey"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.fastaAligned('segment1', additionalFields:={'primaryKey'})",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"primaryKey":"id_0","segment1":"ATGCN"},
@@ -189,26 +117,8 @@ const QueryTestScenario FASTA_ALIGNED_EXPLICIT_PRIMARY_KEY = {
 
 const QueryTestScenario FASTA_ALIGNED_DUPLICATE_HEADER = {
    .name = "FASTA_ALIGNED_DUPLICATE_HEADER",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "FastaAligned",
-    "sequenceNames": [
-      "segment1"
-    ],
-    "additionalFields": [
-      "country",
-      "primaryKey",
-      "country"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query =
+      "metadata.fastaAligned('segment1', additionalFields:={'country', 'primaryKey', 'country'})",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"country":"Switzerland","primaryKey":"id_0","segment1":"ATGCN"},
@@ -220,30 +130,9 @@ const QueryTestScenario FASTA_ALIGNED_DUPLICATE_HEADER = {
 
 const QueryTestScenario FASTA_ALIGNED_DESCENDING = {
    .name = "FASTA_ALIGNED_DESCENDING",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "FastaAligned",
-    "sequenceNames": [
-      "segment1"
-    ],
-    "orderByFields": [
-      {
-        "field": "primaryKey",
-        "order": "descending"
-      }
-    ],
-    "additionalFields": [
-      "country"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query =
+      "metadata.fastaAligned('segment1', additionalFields:={'country'})"
+      ".orderBy('primaryKey desc')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"country":"Switzerland","primaryKey":"id_3","segment1":"CATTT"},
@@ -255,38 +144,9 @@ const QueryTestScenario FASTA_ALIGNED_DESCENDING = {
 
 const QueryTestScenario FASTA_ALIGNED_SUBSET = {
    .name = "FASTA_ALIGNED_SUBSET",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "FastaAligned",
-    "sequenceNames": [
-      "segment1"
-    ]
-  },
-  "filterExpression": {
-    "type": "Or",
-    "children": [
-      {
-        "type": "StringEquals",
-        "column": "primaryKey",
-        "value": "id_0"
-      },
-      {
-        "type": "StringEquals",
-        "column": "primaryKey",
-        "value": "id_2"
-      },
-      {
-        "type": "StringEquals",
-        "column": "primaryKey",
-        "value": "id_3"
-      }
-    ]
-  }
-}
-)"
-   ),
+   .query =
+      "metadata.filter(primaryKey = 'id_0' || primaryKey = 'id_2' || primaryKey = 'id_3')"
+      ".fastaAligned('segment1')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"primaryKey":"id_0","segment1":"ATGCN"},
@@ -297,27 +157,9 @@ const QueryTestScenario FASTA_ALIGNED_SUBSET = {
 
 const QueryTestScenario FASTA_ALIGNED_SMALL_BATCHES = {
    .name = "FASTA_ALIGNED_SMALL_BATCHES",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "FastaAligned",
-    "sequenceNames": [
-      "segment1"
-    ],
-    "additionalFields": [
-      "country"
-    ],
-    "orderByFields": [
-      "country","primaryKey"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query =
+      "metadata.fastaAligned('segment1', additionalFields:={'country'})"
+      ".orderBy('country', 'primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"country":"Switzerland","primaryKey":"id_0","segment1":"ATGCN"},
@@ -330,25 +172,7 @@ const QueryTestScenario FASTA_ALIGNED_SMALL_BATCHES = {
 
 const QueryTestScenario FASTA_ALIGNED_WITH_OFFSET = {
    .name = "FASTA_ALIGNED_WITH_OFFSET",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "FastaAligned",
-    "sequenceNames": [
-      "segment1"
-    ],
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "offset": 2
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.fastaAligned('segment1', offset:=2).orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"primaryKey":"id_2","segment1":"NNNNN"},
@@ -359,28 +183,7 @@ const QueryTestScenario FASTA_ALIGNED_WITH_OFFSET = {
 
 const QueryTestScenario FASTA_ALIGNED_WITH_LIMIT = {
    .name = "FASTA_ALIGNED_WITH_LIMIT",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "FastaAligned",
-    "sequenceNames": [
-      "segment1"
-    ],
-    "orderByFields": [
-      {
-        "field": "primaryKey",
-        "order": "descending"
-      }
-    ],
-    "limit": 3
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.fastaAligned('segment1', limit:=3).orderBy('primaryKey desc')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"primaryKey":"id_3","segment1":"CATTT"},
@@ -392,22 +195,7 @@ const QueryTestScenario FASTA_ALIGNED_WITH_LIMIT = {
 
 const QueryTestScenario FASTA_ALIGNED_WITH_LIMIT_UNSORTED = {
    .name = "FASTA_ALIGNED_WITH_LIMIT_UNSORTED",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "FastaAligned",
-    "sequenceNames": [
-      "segment1"
-    ],
-    "limit": 3
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.fastaAligned('segment1', limit:=3)",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"primaryKey":"id_0","segment1":"ATGCN"},
@@ -419,26 +207,7 @@ const QueryTestScenario FASTA_ALIGNED_WITH_LIMIT_UNSORTED = {
 
 const QueryTestScenario FASTA_ALIGNED_WITH_OFFSET_AND_LIMIT = {
    .name = "FASTA_ALIGNED_WITH_OFFSET_AND_LIMIT",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "FastaAligned",
-    "sequenceNames": [
-      "segment1"
-    ],
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "offset": 2,
-    "limit": 1
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.fastaAligned('segment1', offset:=2, limit:=1).orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"primaryKey":"id_2","segment1":"NNNNN"}])"

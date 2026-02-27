@@ -148,9 +148,7 @@ TEST(SaneQLParser, parsesComplexFilterQuery) {
 }
 
 TEST(SaneQLParser, parsesDateBetweenWithTypeCast) {
-   Parser parser(
-      "date_submitted.between('2020-01-01'::date, '2023-12-31'::date)"
-   );
+   Parser parser("date_submitted.between('2020-01-01'::date, '2023-12-31'::date)");
    auto expr = parser.parse();
    ASSERT_TRUE(std::holds_alternative<ast::MethodCall>(expr->value));
    auto& call = std::get<ast::MethodCall>(expr->value);

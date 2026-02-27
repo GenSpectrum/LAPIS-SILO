@@ -83,17 +83,7 @@ const QueryTestData TEST_DATA{
 
 const QueryTestScenario COUNT_ALL = {
    .name = "COUNT_ALL",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Aggregated"
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.aggregated()",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"count": 6}])"
@@ -102,23 +92,7 @@ const QueryTestScenario COUNT_ALL = {
 
 const QueryTestScenario AGGREGATE_ALL = {
    .name = "AGGREGATE_ALL",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Aggregated",
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "groupByFields": [
-      "age","country","coverage","date","primaryKey"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.aggregated(age, country, coverage, date, primaryKey).orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":7,"count":1,"country":"Switzerland","coverage":0.9,"date":"2020-01-01","primaryKey":"id_0"},
@@ -132,23 +106,7 @@ const QueryTestScenario AGGREGATE_ALL = {
 
 const QueryTestScenario AGGREGATE_ALMOST_ALL = {
    .name = "AGGREGATE_ALMOST_ALL",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Aggregated",
-    "orderByFields": [
-      "age","date"
-    ],
-    "groupByFields": [
-      "age","country","coverage","date"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.aggregated(age, country, coverage, date).orderBy('age', 'date')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [
@@ -164,23 +122,7 @@ const QueryTestScenario AGGREGATE_ALMOST_ALL = {
 
 const QueryTestScenario AGGREGATE_SOME = {
    .name = "AGGREGATE_SOME",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Aggregated",
-    "orderByFields": [
-      "age", {"field": "count", "order": "descending"}
-    ],
-    "groupByFields": [
-      "age","country","coverage"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.aggregated(age, country, coverage).orderBy('age', 'count desc')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":null,"count":2,"country":"Switzerland","coverage":0.9},
@@ -193,29 +135,9 @@ const QueryTestScenario AGGREGATE_SOME = {
 
 const QueryTestScenario AGGREGATED_LIMIT_OFFSET = {
    .name = "LIMIT_OFFSET",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Aggregated",
-    "groupByFields": [
-      "age",
-      "country",
-      "coverage",
-      "date",
-      "primaryKey"
-    ],
-    "orderByFields": [
-      "primaryKey"
-    ],
-    "limit": 3,
-    "offset": 1
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query =
+      "metadata.aggregated(age, country, coverage, date, primaryKey, limit:=3, offset:=1)"
+      ".orderBy('primaryKey')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":null,"count":1,"country":"Germany","coverage":0.9,"date":"2000-03-07","primaryKey":"id_1"},
@@ -226,19 +148,7 @@ const QueryTestScenario AGGREGATED_LIMIT_OFFSET = {
 
 const QueryTestScenario AGGREGATED_LIMIT_WITHOUT_ORDER = {
    .name = "AGGREGATED_LIMIT_WITHOUT_ORDER",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Aggregated",
-    "groupByFields": ["primaryKey"],
-    "limit": 1
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.aggregated(primaryKey, limit:=1)",
    .expected_error_message =
       "Offset and limit can only be applied if the output of the operation has some ordering. "
       "Implicit ordering such as in the case of Details/Fasta is also allowed, Aggregated "
@@ -247,23 +157,7 @@ const QueryTestScenario AGGREGATED_LIMIT_WITHOUT_ORDER = {
 
 const QueryTestScenario AGGREGATE_UNIQUE = {
    .name = "AGGREGATE_UNIQUE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Aggregated",
-    "groupByFields": [
-      "date"
-    ],
-    "orderByFields": [
-      "date"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.aggregated(date).orderBy('date')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"date":"2000-03-07","count":1},
@@ -277,23 +171,7 @@ const QueryTestScenario AGGREGATE_UNIQUE = {
 
 const QueryTestScenario AGGREGATE_ONE = {
    .name = "AGGREGATE_ONE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Aggregated",
-    "groupByFields": [
-      "country"
-    ],
-    "orderByFields": [
-      {"field": "count", "order": "descending"}, "country"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.aggregated(country).orderBy('count desc', 'country')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"count":4,"country":"Switzerland"},
@@ -303,23 +181,7 @@ const QueryTestScenario AGGREGATE_ONE = {
 
 const QueryTestScenario AGGREGATE_NULLABLE = {
    .name = "AGGREGATE_NULLABLE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Aggregated",
-    "groupByFields": [
-      "age"
-    ],
-    "orderByFields": [
-      "count", {"field": "age", "order": "descending"}
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.aggregated(age).orderBy('count', 'age desc')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":19,"count":1},
@@ -331,23 +193,7 @@ const QueryTestScenario AGGREGATE_NULLABLE = {
 
 const QueryTestScenario DUPLICATE_AGGREGATE = {
    .name = "DUPLICATE_AGGREGATE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Aggregated",
-    "groupByFields": [
-      "age", "age"
-    ],
-    "orderByFields": [
-      "count", {"field": "age", "order": "descending"}
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.aggregated(age, age).orderBy('count', 'age desc')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":19,"count":1},
@@ -355,83 +201,6 @@ const QueryTestScenario DUPLICATE_AGGREGATE = {
 {"age":7,"count":1},
 {"age":null,"count":3}])"
    )
-};
-
-const QueryTestScenario INVALID_GROUP_BY_FIELD_OBJECT = {
-   .name = "INVALID_GROUP_BY_FIELD_OBJECT",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "groupByFields": [
-      {
-        "field": "test_boolean_column",
-        "order": "ascending"
-      }
-    ],
-    "type": "Aggregated"
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
-   .expected_error_message =
-      "{\"field\":\"test_boolean_column\",\"order\":\"ascending\"} is not a valid entry in "
-      "groupByFields. Expected type string, got object"
-};
-
-const QueryTestScenario INVALID_GROUP_BY_FIELDS = {
-   .name = "INVALID_GROUP_BY_FIELDS",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "groupByFields": "test_boolean_column",
-    "type": "Aggregated"
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
-   .expected_error_message = "groupByFields must be an array"
-};
-
-const QueryTestScenario INVALID_ORDER_BY_FIELD_OBJECT = {
-   .name = "INVALID_ORDER_BY_FIELD_OBJECT",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "orderByFields": [1],
-    "type": "Aggregated"
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
-   .expected_error_message =
-      "The orderByField '1' must be either a string or an object containing the fields "
-      "'field':string and 'order':string, where the value of order is 'ascending' or 'descending'"
-};
-
-const QueryTestScenario INVALID_ORDER_BY_FIELDS = {
-   .name = "INVALID_ORDER_BY_FIELDS",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "orderByFields": "test_boolean_column",
-    "type": "Aggregated"
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
-   .expected_error_message = "orderByFields must be an array"
 };
 
 }  // namespace
@@ -449,10 +218,6 @@ QUERY_TEST(
       AGGREGATE_UNIQUE,
       AGGREGATE_ONE,
       AGGREGATE_NULLABLE,
-      DUPLICATE_AGGREGATE,
-      INVALID_GROUP_BY_FIELD_OBJECT,
-      INVALID_GROUP_BY_FIELDS,
-      INVALID_ORDER_BY_FIELD_OBJECT,
-      INVALID_ORDER_BY_FIELDS
+      DUPLICATE_AGGREGATE
    )
 );

@@ -84,23 +84,7 @@ const QueryTestData TEST_DATA{
 
 const QueryTestScenario INSERTIONS = {
    .name = "INSERTIONS",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Insertions",
-    "sequenceNames": [
-      "segment1"
-    ],
-    "orderByFields": [
-      "insertion"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-})"
-   ),
+   .query = "metadata.insertions('segment1').orderBy('insertion')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"count":1,"insertedSymbols":"CCC","insertion":"ins_1:CCC","position":1,"sequenceName":"segment1"},
@@ -111,19 +95,7 @@ const QueryTestScenario INSERTIONS = {
 
 const QueryTestScenario INSERTIONS_NO_SEQUENCE_NAMES = {
    .name = "INSERTIONS_NO_SEQUENCE_NAMES",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Insertions",
-    "orderByFields": ["insertion"]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.insertions().orderBy('insertion')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"count":1,"insertedSymbols":"CCC","insertion":"ins_1:CCC","position":1,"sequenceName":"segment1"},
@@ -134,40 +106,14 @@ const QueryTestScenario INSERTIONS_NO_SEQUENCE_NAMES = {
 
 const QueryTestScenario INSERTIONS_SEQUENCE_NAME_NOT_IN_DATABASE = {
    .name = "INSERTIONS_SEQUENCE_NAME_NOT_IN_DATABASE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Insertions",
-    "sequenceNames": [
-      "not_in_database"
-    ]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.insertions('not_in_database')",
    .expected_error_message =
       "The database does not contain the Nucleotide sequence 'not_in_database'"
 };
 
 const QueryTestScenario AA_INSERTIONS_ALL = {
    .name = "AA_INSERTIONS_ALL",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "AminoAcidInsertions",
-    "orderByFields": ["insertion"]
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.aminoAcidInsertions().orderBy('insertion')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"count":1,"insertedSymbols":"A","insertion":"ins_1:A","position":1,"sequenceName":"gene1"},
@@ -178,21 +124,7 @@ const QueryTestScenario AA_INSERTIONS_ALL = {
 
 const QueryTestScenario AA_INSERTIONS_SUBSET = {
    .name = "AA_INSERTIONS_SUBSET",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "AminoAcidInsertions",
-    "orderByFields": ["insertion"]
-  },
-  "filterExpression": {
-    "type": "StringEquals",
-    "column": "country",
-    "value": "Switzerland"
-  }
-}
-)"
-   ),
+   .query = "metadata.filter(country = 'Switzerland').aminoAcidInsertions().orderBy('insertion')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"count":1,"insertedSymbols":"A","insertion":"ins_1:A","position":1,"sequenceName":"gene1"},

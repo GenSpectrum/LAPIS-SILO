@@ -52,24 +52,13 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-nlohmann::json createNucleotideSymbolEqualsQuery(const std::string& symbol, int position) {
-   return nlohmann::json::parse(fmt::format(
-      R"(
-{{
-  "action": {{
-    "type": "Aggregated"
-  }},
-  "filterExpression": {{
-    "type": "NucleotideEquals",
-    "position": {},
-    "symbol": "{}",
-    "sequenceName": "segment1"
-  }}
-}}
-)",
+std::string createNucleotideSymbolEqualsQuery(const std::string& symbol, int position) {
+   return fmt::format(
+      "metadata.filter(nucleotideEquals(position:={}, symbol:='{}', "
+      "sequenceName:='segment1')).aggregated()",
       position,
       symbol
-   ));
+   );
 }
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL = {

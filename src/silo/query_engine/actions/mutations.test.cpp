@@ -53,19 +53,7 @@ const QueryTestData TEST_DATA{
 
 const QueryTestScenario MUTATIONS = {
    .name = "MUTATIONS",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Mutations",
-    "minProportion": 0.05
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.mutations(minProportion:='0.05')",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"count":1,"coverage":3,"mutation":"A1C","mutationFrom":"A","mutationTo":"C","position":1,"proportion":0.3333333333333333,"sequenceName":"segment1"},
@@ -78,20 +66,7 @@ const QueryTestScenario MUTATIONS = {
 
 const QueryTestScenario MUTATIONS_SUBFIELDS = {
    .name = "MUTATIONS_SUBFIELDS",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Mutations",
-    "fields": ["count","coverage","mutation"],
-    "minProportion": 0.05
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.mutations(minProportion:='0.05', fields:={'count', 'coverage', 'mutation'})",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"count":1,"coverage":3,"mutation":"A1C"},
@@ -104,20 +79,7 @@ const QueryTestScenario MUTATIONS_SUBFIELDS = {
 
 const QueryTestScenario MUTATIONS_SUBFIELDS_HIGH_MIN = {
    .name = "MUTATIONS_SUBFIELDS_HIGH_MIN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Mutations",
-    "fields": ["count","coverage","mutation"],
-    "minProportion": 0.5
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.mutations(minProportion:='0.5', fields:={'count', 'coverage', 'mutation'})",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"count":1,"coverage":1,"mutation":"N5T"}])"
@@ -126,42 +88,10 @@ const QueryTestScenario MUTATIONS_SUBFIELDS_HIGH_MIN = {
 
 const QueryTestScenario MUTATIONS_INVALID_FIELDS = {
    .name = "MUTATIONS_INVALID_FIELDS",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Mutations",
-    "fields": ["count","foo"],
-    "minProportion": 0.5
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.mutations(minProportion:='0.5', fields:={'count', 'foo'})",
    .expected_error_message =
       "The attribute 'fields' contains an invalid field 'foo'. Valid fields are mutation, "
       "mutationFrom, mutationTo, position, sequenceName, proportion, coverage, count."
-};
-
-const QueryTestScenario MUTATIONS_INVALID_FIELD_TYPE = {
-   .name = "MUTATIONS_INVALID_FIELD_TYPE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Mutations",
-    "minProportion": 0.5,
-    "fields": "count"
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
-   .expected_error_message = "The field 'fields' for a Mutations action must be an array of strings"
 };
 
 }  // namespace
@@ -173,8 +103,7 @@ QUERY_TEST(
       MUTATIONS,
       MUTATIONS_SUBFIELDS,
       MUTATIONS_SUBFIELDS_HIGH_MIN,
-      MUTATIONS_INVALID_FIELDS,
-      MUTATIONS_INVALID_FIELD_TYPE
+      MUTATIONS_INVALID_FIELDS
    )
 );
 
@@ -208,19 +137,7 @@ const QueryTestData TEST_DATA2{
 
 const QueryTestScenario MUTATIONS_BIG = {
    .name = "MUTATIONS_BIG",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Mutations",
-    "minProportion": 0.05
-  },
-  "filterExpression": {
-    "type": "True"
-  }
-}
-)"
-   ),
+   .query = "metadata.mutations(minProportion:='0.05')",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"count":40000,"coverage":80000,"mutation":"A1C","mutationFrom":"A","mutationTo":"C","position":1,"proportion":0.5,"sequenceName":"segment1"},
@@ -234,22 +151,9 @@ const QueryTestScenario MUTATIONS_BIG = {
 
 const QueryTestScenario MUTATIONS_BIG_SELECTIVE = {
    .name = "MUTATIONS_BIG_SELECTIVE",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Mutations",
-    "minProportion": 0.05
-  },
-  "filterExpression": {
-    "type": "NucleotideEquals",
-    "position": 3,
-    "symbol": "C",
-    "sequenceName": "segment1"
-  }
-}
-)"
-   ),
+   .query =
+      "metadata.filter(nucleotideEquals(position:=3, symbol:='C', sequenceName:='segment1'))"
+      ".mutations(minProportion:='0.05')",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"count":40000,"coverage":40000,"mutation":"G3C","mutationFrom":"G","mutationTo":"C","position":3,"proportion":1.0,"sequenceName":"segment1"}
@@ -259,22 +163,9 @@ const QueryTestScenario MUTATIONS_BIG_SELECTIVE = {
 
 const QueryTestScenario MUTATIONS_BIG_SELECTIVE2 = {
    .name = "MUTATIONS_BIG_SELECTIVE2",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Mutations",
-    "minProportion": 0.05
-  },
-  "filterExpression": {
-    "type": "NucleotideEquals",
-    "position": 1,
-    "symbol": "C",
-    "sequenceName": "segment1"
-  }
-}
-)"
-   ),
+   .query =
+      "metadata.filter(nucleotideEquals(position:=1, symbol:='C', sequenceName:='segment1'))"
+      ".mutations(minProportion:='0.05')",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"count":40000,"coverage":40000,"mutation":"A1C","mutationFrom":"A","mutationTo":"C","position":1,"proportion":1.0,"sequenceName":"segment1"},
@@ -288,33 +179,10 @@ const QueryTestScenario MUTATIONS_BIG_SELECTIVE2 = {
 
 const QueryTestScenario MUTATIONS_BIG_SELECTIVE_END = {
    .name = "MUTATIONS_BIG_SELECTIVE_END",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Mutations",
-    "minProportion": 0.05
-  },
-  "filterExpression": {
-    "type": "And",
-    "children": [
-      {
-        "type": "NucleotideEquals",
-        "position": 1,
-        "symbol": "A",
-        "sequenceName": "segment1"
-      },
-      {
-        "type": "NucleotideEquals",
-        "position": 3,
-        "symbol": "C",
-        "sequenceName": "segment1"
-      }
-    ]
-  }
-}
-)"
-   ),
+   .query =
+      "metadata.filter(nucleotideEquals(position:=1, symbol:='A', sequenceName:='segment1') "
+      "&& nucleotideEquals(position:=3, symbol:='C', sequenceName:='segment1'))"
+      ".mutations(minProportion:='0.05')",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"count":20000,"coverage":20000,"mutation":"G3C","mutationFrom":"G","mutationTo":"C","position":3,"proportion":1.0,"sequenceName":"segment1"}

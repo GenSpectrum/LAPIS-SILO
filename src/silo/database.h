@@ -110,7 +110,7 @@ class Database {
 
    [[nodiscard]] std::string executeQueryAsArrowIpc(
       const std::string& table_name,
-      const std::string& query_json
+      const std::string& query_string
    ) const;
 
    [[nodiscard]] std::string getTablesAsArrowIpc() const;

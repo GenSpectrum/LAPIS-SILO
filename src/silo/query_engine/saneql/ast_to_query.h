@@ -14,8 +14,6 @@ std::shared_ptr<query_engine::Query> convertToQuery(const ast::Expression& ast);
 
 std::unique_ptr<filter::expressions::Expression> convertToFilter(const ast::Expression& ast);
 
-std::unique_ptr<actions::Action> convertToAction(
-   const ast::MethodCall& method_call
-);
+std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_call);
 
 }  // namespace silo::query_engine::saneql

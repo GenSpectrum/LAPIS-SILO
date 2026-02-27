@@ -550,9 +550,9 @@ using query_engine::QueryPlan;
 
 std::string Database::executeQueryAsArrowIpc(
    const std::string& table_name,
-   const std::string& query_json
+   const std::string& query_string
 ) const {
-   auto query = Query::parseQuery(query_json);
+   auto query = Query::parseQuery(query_string);
    query->table_name = schema::TableName{table_name};
    auto query_plan = createQueryPlan(*query, config::QueryOptions{}, "executeQueryAsArrowIpc");
    constexpr uint64_t DEFAULT_TIMEOUT_SECONDS = 120;

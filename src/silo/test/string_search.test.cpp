@@ -66,14 +66,6 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-nlohmann::json createStringSearchQuery(const std::string& column, const nlohmann::json value) {
-   return {
-      {"action", {{"type", "Details"}, {"fields", {"primaryKey"}}}},
-      {"filterExpression",
-       {{"type", "StringSearch"}, {"column", column}, {"searchExpression", value}}}
-   };
-}
-
 nlohmann::json createExpectedResult(const std::vector<std::string>& primary_keys) {
    nlohmann::json result = nlohmann::json::array();
    for (const auto& primary_key : primary_keys) {
@@ -84,58 +76,53 @@ nlohmann::json createExpectedResult(const std::vector<std::string>& primary_keys
 
 const QueryTestScenario FILTER_FOR_AA = {
    .name = "filterForAA",
-   .query = createStringSearchQuery(TEST_COLUMN, "AA"),
+   .query = "metadata.filter(test_column.like('AA')).details(primaryKey)",
    .expected_query_result = createExpectedResult({"id1", "id2", "id3", "id5"})
 };
 
 const QueryTestScenario FILTER_FOR_AA_AT_THE_BEGINNING = {
    .name = "filterForAAatTheBeginning",
-   .query = createStringSearchQuery(TEST_COLUMN, "^AA"),
+   .query = "metadata.filter(test_column.like('^AA')).details(primaryKey)",
    .expected_query_result = createExpectedResult({"id1", "id3", "id5"})
 };
 
 const QueryTestScenario FILTER_FOR_SOMETHING_THAT_DOES_NOT_OCCUR = {
    .name = "filterForSomethingThatDoesNotOccur",
-   .query = createStringSearchQuery(TEST_COLUMN, "should not match on anything"),
+   .query = "metadata.filter(test_column.like('should not match on anything')).details(primaryKey)",
    .expected_query_result = createExpectedResult({})
 };
 
 const QueryTestScenario FILTER_FOR_AA_ON_INDEXED_COLUMN = {
    .name = "filterForAAOnIndexedColumn",
-   .query = createStringSearchQuery(INDEXED_TEST_COLUMN, "AA"),
+   .query = "metadata.filter(indexed_test_column.like('AA')).details(primaryKey)",
    .expected_query_result = createExpectedResult({"id1", "id2", "id3", "id5"})
 };
 
 const QueryTestScenario FILTER_FOR_AA_AT_THE_BEGINNING_ON_INDEXED_COLUMN = {
    .name = "filterForAAatTheBeginningOnIndexedColumn",
-   .query = createStringSearchQuery(INDEXED_TEST_COLUMN, "^AA"),
+   .query = "metadata.filter(indexed_test_column.like('^AA')).details(primaryKey)",
    .expected_query_result = createExpectedResult({"id1", "id3", "id5"})
 };
 
 const QueryTestScenario FILTER_FOR_SOMETHING_THAT_DOES_NOT_OCCUR_ON_INDEXED_COLUMN = {
    .name = "filterForSomethingThatDoesNotOccurOnIndexedColumn",
-   .query = createStringSearchQuery(INDEXED_TEST_COLUMN, "should not match on anything"),
+   .query =
+      "metadata.filter(indexed_test_column.like('should not match on anything'))"
+      ".details(primaryKey)",
    .expected_query_result = createExpectedResult({})
 };
 
 const QueryTestScenario INVALID_REGULAR_EXPRESSION = {
    .name = "invalidRegularExpressionShouldReturnProperError",
-   .query = createStringSearchQuery(TEST_COLUMN, "^("),
+   .query = "metadata.filter(test_column.like('^(')).details(primaryKey)",
    .expected_error_message =
       "Invalid Regular Expression. The parsing of the regular expression failed with the error "
       "'missing ): ^('. See https://github.com/google/re2/wiki/Syntax for a Syntax specification."
 };
 
-const QueryTestScenario FILTER_FOR_NULL_IS_NOT_POSSIBLE = {
-   .name = "filterForNullIsNotPossible",
-   .query = createStringSearchQuery(TEST_COLUMN, nullptr),
-   .expected_error_message =
-      "The field 'searchExpression' in an StringSearch expression needs to be a string"
-};
-
 const QueryTestScenario FILTER_FOR_COLUMN_THAT_DOES_NOT_EXIST = {
    .name = "filterForColumnThatDoesNotExist",
-   .query = createStringSearchQuery("column_that_does_not_exist", "some value"),
+   .query = "metadata.filter(column_that_does_not_exist.like('some value')).details(primaryKey)",
    .expected_error_message =
       "The database does not contain the string column 'column_that_does_not_exist'"
 };
@@ -153,7 +140,6 @@ QUERY_TEST(
       FILTER_FOR_AA_AT_THE_BEGINNING_ON_INDEXED_COLUMN,
       FILTER_FOR_SOMETHING_THAT_DOES_NOT_OCCUR_ON_INDEXED_COLUMN,
       INVALID_REGULAR_EXPRESSION,
-      FILTER_FOR_NULL_IS_NOT_POSSIBLE,
       FILTER_FOR_COLUMN_THAT_DOES_NOT_EXIST
    )
 );

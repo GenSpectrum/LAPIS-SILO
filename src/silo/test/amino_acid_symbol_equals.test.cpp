@@ -47,30 +47,19 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-nlohmann::json createAminoAcidSymbolEqualsQuery(
-   const std::string& symbol,
-   int position,
-   const std::string& gene
-) {
-   return {
-      {"action", {{"type", "Aggregated"}}},
-      {"filterExpression",
-       {{"type", "AminoAcidEquals"},
-        {"position", position},
-        {"symbol", symbol},
-        {"sequenceName", gene}}}
-   };
-}
-
 const QueryTestScenario AMINO_ACID_EQUALS_D = {
    .name = "AMINO_ACID_EQUALS_D",
-   .query = createAminoAcidSymbolEqualsQuery("D", 1, GENE),
+   .query =
+      "metadata.filter(aminoAcidEquals(position:=1, symbol:='D', sequenceName:='gene1'))"
+      ".aggregated()",
    .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
 };
 
 const QueryTestScenario AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE = {
    .name = "AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE",
-   .query = createAminoAcidSymbolEqualsQuery(".", 1, GENE),
+   .query =
+      "metadata.filter(aminoAcidEquals(position:=1, symbol:='.', sequenceName:='gene1'))"
+      ".aggregated()",
    .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
 };
 

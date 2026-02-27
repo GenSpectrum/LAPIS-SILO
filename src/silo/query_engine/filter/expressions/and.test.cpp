@@ -83,41 +83,9 @@ const QueryTestData TEST_DATA{
 
 const QueryTestScenario NESTED_AND = {
    .name = "NESTED_AND",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details"
-  },
-  "filterExpression": {
-      "children": [
-        {
-          "column": "date",
-          "from": "2009-01-01",
-          "to": null,
-          "type": "DateBetween"
-        },
-        {
-          "children": [
-            {
-              "column": "date",
-              "from": "2000-01-01",
-              "to": null,
-              "type": "DateBetween"
-            },
-            {
-              "column": "country",
-              "value": "Germany",
-              "type": "StringEquals"
-            }
-          ],
-          "type": "And"
-        }
-      ],
-      "type": "And"
-  }
-})"
-   ),
+   .query =
+      "metadata.filter(date >= '2009-01-01'::date && date >= '2000-01-01'::date && country = "
+      "'Germany').details()",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":13,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"}])"

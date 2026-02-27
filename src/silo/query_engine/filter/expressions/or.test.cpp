@@ -440,28 +440,9 @@ const QueryTestData TEST_DATA{
 // Test nested Or expressions - inner Or should be flattened during compilation
 const QueryTestScenario NESTED_OR_SAME_COLUMN = {
    .name = "NESTED_OR_SAME_COLUMN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "country"]
-  },
-  "filterExpression": {
-    "type": "Or",
-    "children": [
-      {
-        "type": "Or",
-        "children": [
-          {"type": "StringEquals", "column": "country", "value": "Switzerland"},
-          {"type": "StringEquals", "column": "country", "value": "Germany"}
-        ]
-      },
-      {"type": "StringEquals", "column": "country", "value": "France"}
-    ]
-  }
-})"
-   ),
+   .query =
+      "metadata.filter((country = 'Switzerland' || country = 'Germany') || country = "
+      "'France').details(primaryKey, country)",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Switzerland","primaryKey":"id_0"},
@@ -476,32 +457,9 @@ const QueryTestScenario NESTED_OR_SAME_COLUMN = {
 // Test deeply nested Or expressions
 const QueryTestScenario DEEPLY_NESTED_OR = {
    .name = "DEEPLY_NESTED_OR",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "country"]
-  },
-  "filterExpression": {
-    "type": "Or",
-    "children": [
-      {
-        "type": "Or",
-        "children": [
-          {
-            "type": "Or",
-            "children": [
-              {"type": "StringEquals", "column": "country", "value": "Switzerland"}
-            ]
-          },
-          {"type": "StringEquals", "column": "country", "value": "Germany"}
-        ]
-      }
-    ]
-  }
-})"
-   ),
+   .query =
+      "metadata.filter(country = 'Switzerland' || country = 'Germany').details(primaryKey, "
+      "country)",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Switzerland","primaryKey":"id_0"},
@@ -515,21 +473,7 @@ const QueryTestScenario DEEPLY_NESTED_OR = {
 // Test Or with single child gets unwrapped during rewrite
 const QueryTestScenario OR_SINGLE_CHILD_UNWRAPPED = {
    .name = "OR_SINGLE_CHILD_UNWRAPPED",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "country"]
-  },
-  "filterExpression": {
-    "type": "Or",
-    "children": [
-      {"type": "StringEquals", "column": "country", "value": "Switzerland"}
-    ]
-  }
-})"
-   ),
+   .query = "metadata.filter(country = 'Switzerland').details(primaryKey, country)",
    .expected_query_result = nlohmann::json::parse(
       R"([{"country":"Switzerland","primaryKey":"id_0"},{"country":"Switzerland","primaryKey":"id_3"}])"
    )
@@ -538,23 +482,9 @@ const QueryTestScenario OR_SINGLE_CHILD_UNWRAPPED = {
 // Test Or with multiple StringEquals on same indexed column get merged
 const QueryTestScenario OR_STRING_EQUALS_MERGED = {
    .name = "OR_STRING_EQUALS_MERGED",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "country"]
-  },
-  "filterExpression": {
-    "type": "Or",
-    "children": [
-      {"type": "StringEquals", "column": "country", "value": "Switzerland"},
-      {"type": "StringEquals", "column": "country", "value": "Germany"},
-      {"type": "StringEquals", "column": "country", "value": "France"}
-    ]
-  }
-})"
-   ),
+   .query =
+      "metadata.filter(country = 'Switzerland' || country = 'Germany' || country = "
+      "'France').details(primaryKey, country)",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Switzerland","primaryKey":"id_0"},
@@ -569,22 +499,9 @@ const QueryTestScenario OR_STRING_EQUALS_MERGED = {
 // Test Or with mixed columns - should not merge different columns
 const QueryTestScenario OR_MIXED_COLUMNS = {
    .name = "OR_MIXED_COLUMNS",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "country", "region"]
-  },
-  "filterExpression": {
-    "type": "Or",
-    "children": [
-      {"type": "StringEquals", "column": "country", "value": "USA"},
-      {"type": "StringEquals", "column": "region", "value": "Europe"}
-    ]
-  }
-})"
-   ),
+   .query =
+      "metadata.filter(country = 'USA' || region = 'Europe').details(primaryKey, country, "
+      "region)",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Switzerland","primaryKey":"id_0","region":"Europe"},
@@ -600,28 +517,9 @@ const QueryTestScenario OR_MIXED_COLUMNS = {
 // Test nested Or with And - should not flatten Or across And
 const QueryTestScenario OR_WITH_AND = {
    .name = "OR_WITH_AND",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey", "country", "region"]
-  },
-  "filterExpression": {
-    "type": "Or",
-    "children": [
-      {
-        "type": "And",
-        "children": [
-          {"type": "StringEquals", "column": "country", "value": "Switzerland"},
-          {"type": "StringEquals", "column": "region", "value": "Europe"}
-        ]
-      },
-      {"type": "StringEquals", "column": "country", "value": "USA"}
-    ]
-  }
-})"
-   ),
+   .query =
+      "metadata.filter((country = 'Switzerland' && region = 'Europe') || country = "
+      "'USA').details(primaryKey, country, region)",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Switzerland","primaryKey":"id_0","region":"Europe"},
@@ -634,19 +532,7 @@ const QueryTestScenario OR_WITH_AND = {
 // Test empty Or returns empty result
 const QueryTestScenario OR_EMPTY_CHILDREN = {
    .name = "OR_EMPTY_CHILDREN",
-   .query = nlohmann::json::parse(
-      R"(
-{
-  "action": {
-    "type": "Details",
-    "fields": ["primaryKey"]
-  },
-  "filterExpression": {
-    "type": "Or",
-    "children": []
-  }
-})"
-   ),
+   .query = "metadata.filter(false).details(primaryKey)",
    .expected_query_result = nlohmann::json::parse(R"([])")
 };
 

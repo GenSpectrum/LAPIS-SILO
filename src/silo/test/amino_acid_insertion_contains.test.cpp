@@ -53,45 +53,17 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-nlohmann::json createAminoAcidInsertionContainsQuery(
-   const nlohmann::json& sequenceName,
-   int position,
-   const std::string& insertedSymbols
-) {
-   return {
-      {"action", {{"type", "Details"}}},
-      {"filterExpression",
-       {{"type", "AminoAcidInsertionContains"},
-        {"position", position},
-        {"value", insertedSymbols},
-        {"sequenceName", sequenceName}}}
-   };
-}
-
-nlohmann::json createAminoAcidInsertionContainsQueryWithEmptySequenceName(
-   int position,
-   const std::string& insertedSymbols
-) {
-   return {
-      {"action", {{"type", "Details"}}},
-      {"filterExpression",
-       {
-          {"type", "AminoAcidInsertionContains"},
-          {"position", position},
-          {"value", insertedSymbols},
-       }}
-   };
-}
-
 const QueryTestScenario AMINO_ACID_INSERTION_CONTAINS_SCENARIO = {
    .name = "aminoAcidInsertionContains",
-   .query = createAminoAcidInsertionContainsQuery("gene1", 12, "A"),
+   .query =
+      "metadata.filter(aminoAcidInsertionContains(position:=12, value:='A', sequenceName:='gene1'))"
+      ".details()",
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
 const QueryTestScenario AMINO_ACID_INSERTION_CONTAINS_WITH_NULL_SEGMENT_SCENARIO = {
    .name = "aminoAcidInsertionWithNullSegment",
-   .query = createAminoAcidInsertionContainsQueryWithEmptySequenceName(12, "A"),
+   .query = "metadata.filter(aminoAcidInsertionContains(position:=12, value:='A')).details()",
    .expected_error_message = "The database has no default amino acid sequence name",
 };
 
