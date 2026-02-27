@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.11.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.10.1...v0.11.0) (2026-02-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* **silo:** "" is no longer considered `null` for date columns
+
+### Bug Fixes
+
+* **silo:** actually validate dates on insertion ([9e24c7b](https://github.com/GenSpectrum/LAPIS-SILO/commit/9e24c7b5367bf2e334bcc67abaf7d7600d33d367))
+
 ## [0.10.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.10.0...v0.10.1) (2026-02-27)
 
 
