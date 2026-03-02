@@ -15,6 +15,7 @@ class SiloRecipe(ConanFile):
         "re2/20240702",
         "roaring/4.2.1",
         "simdjson/3.12.3",
+        "simdutf/8.0.0",
         "spdlog/1.15.1",
         "yaml-cpp/0.8.0",
         "zstd/1.5.7",
@@ -96,6 +97,8 @@ class SiloRecipe(ConanFile):
 
         "simdjson/*:shared": False,
 
+        "simdutf/*:shared": False,
+
         "spdlog/*:shared": False,
 
         "yaml-cpp/*:shared": False,
@@ -117,6 +120,7 @@ class SiloRecipe(ConanFile):
         deps.set_property("roaring", "cmake_find_mode", "both")
         deps.set_property("spdlog", "cmake_find_mode", "both")
         deps.set_property("simdjson", "cmake_find_mode", "both")
+        deps.set_property("simdutf", "cmake_find_mode", "both")
         deps.set_property("yaml-cpp", "cmake_find_mode", "both")
         deps.set_property("zstd", "cmake_find_mode", "both")
         deps.generate()
