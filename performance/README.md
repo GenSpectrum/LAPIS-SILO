@@ -2,7 +2,7 @@ This folder contains self-contained tests (all with their own respective main() 
 
 All .cpp-files in this folder are targets of the cmake project and can be configured, made, and executed from the home repo after building SILO, e.g.:
 ```shell
-./build_with_conan.py --release
+make build/Release/silo
 
 cmake --build build/Release --target performance/mutation_benchmark
 
