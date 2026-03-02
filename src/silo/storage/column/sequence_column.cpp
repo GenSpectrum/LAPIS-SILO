@@ -91,7 +91,10 @@ SequenceColumnPartition<SymbolType>::SequenceColumnPartition(
     : metadata(metadata),
       genome_length(metadata->reference_sequence.size()),
       local_reference_sequence_string(SymbolType::sequenceToString(metadata->reference_sequence)),
-      horizontal_coverage_index() {
+      horizontal_coverage_index(),
+      compressed_input_decompressor(
+         std::make_shared<ZstdDDictionary>(local_reference_sequence_string)
+      ) {
    mutation_buffer.resize(genome_length);
    SILO_ASSERT_GT(genome_length, 0ULL);
 }
