@@ -3,7 +3,6 @@
 #include <utility>
 
 #include <fmt/format.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/empty.h"
@@ -50,18 +49,6 @@ std::unique_ptr<operators::Operator> IsNull::compile(
          CopyOnWriteBitmap{&column.null_bitmap}, table_partition.sequence_count
       );
    });
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<IsNull>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("column"), "The field 'column' is required in an IsNull expression"
-   );
-   CHECK_SILO_QUERY(
-      json["column"].is_string(), "The field 'column' in an IsNull expression must be a string"
-   );
-   const std::string& column_name = json["column"];
-   filter = std::make_unique<IsNull>(column_name);
 }
 
 }  // namespace silo::query_engine::filter::expressions

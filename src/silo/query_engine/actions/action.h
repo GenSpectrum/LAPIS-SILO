@@ -7,7 +7,6 @@
 #include <vector>
 
 #include <arrow/acero/exec_plan.h>
-#include <nlohmann/json_fwd.hpp>
 
 #include "silo/config/runtime_config.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
@@ -103,19 +102,5 @@ class Action {
       size_t randomize_seed
    );
 };
-
-std::optional<uint32_t> parseLimit(const nlohmann::json& json);
-
-std::optional<uint32_t> parseOffset(const nlohmann::json& json);
-
-std::optional<uint32_t> parseRandomizeSeed(const nlohmann::json& json);
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action);
-
-std::vector<silo::schema::ColumnIdentifier> columnNamesToFields(
-   const std::vector<std::string>& column_names,
-   const silo::schema::TableSchema& table_schema
-);
 
 }  // namespace silo::query_engine::actions

@@ -3,7 +3,6 @@
 #include <utility>
 
 #include <fmt/format.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/common/panic.h"
 #include "silo/query_engine/filter/expressions/expression.h"
@@ -76,35 +75,6 @@ std::unique_ptr<operators::Operator> StringSearch::compile(
    SILO_ASSERT(table_partition.columns.string_columns.contains(column_name));
    const auto& string_column = table_partition.columns.string_columns.at(column_name);
    return createMatchingBitmap(string_column, *search_expression, table_partition.sequence_count);
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<StringSearch>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("column"), "The field 'column' is required in an StringSearch expression"
-   )
-   CHECK_SILO_QUERY(
-      json["column"].is_string(),
-      "The field 'column' in an StringSearch expression needs to be a string"
-   )
-   CHECK_SILO_QUERY(
-      json.contains("searchExpression"),
-      "The field 'searchExpression' is required in an StringSearch expression"
-   )
-   CHECK_SILO_QUERY(
-      json["searchExpression"].is_string(),
-      "The field 'searchExpression' in an StringSearch expression needs to be a string"
-   )
-   const std::string& column = json["column"];
-   const std::string& search_expression_string = json["searchExpression"].get<std::string>();
-   auto search_expression = std::make_unique<re2::RE2>(search_expression_string);
-   CHECK_SILO_QUERY(
-      search_expression->ok(),
-      "Invalid Regular Expression. The parsing of the regular expression failed with the error "
-      "'{}'. See https://github.com/google/re2/wiki/Syntax for a Syntax specification.",
-      search_expression->error()
-   )
-   filter = std::make_unique<StringSearch>(column, std::move(search_expression));
 }
 
 }  // namespace silo::query_engine::filter::expressions

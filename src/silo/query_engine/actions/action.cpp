@@ -7,22 +7,12 @@
 #include <utility>
 
 #include <arrow/acero/exec_plan.h>
+#include <arrow/builder.h>
 #include <arrow/compute/ordering.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
-#include <nlohmann/json.hpp>
 
-#include "silo/common/aa_symbols.h"
-#include "silo/common/nucleotide_symbols.h"
 #include "silo/common/size_constants.h"
-#include "silo/query_engine/actions/aggregated.h"
-#include "silo/query_engine/actions/details.h"
-#include "silo/query_engine/actions/fasta.h"
-#include "silo/query_engine/actions/fasta_aligned.h"
-#include "silo/query_engine/actions/insertions.h"
-#include "silo/query_engine/actions/most_recent_common_ancestor.h"
-#include "silo/query_engine/actions/mutations.h"
-#include "silo/query_engine/actions/phylo_subtree.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/throttled_batch_reslicer.h"
@@ -79,70 +69,6 @@ std::optional<arrow::Ordering> Action::getOrdering() const {
    return arrow::Ordering{sort_keys, null_placement};
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming,misc-use-internal-linkage)
-void from_json(const nlohmann::json& json, OrderByField& field) {
-   if (json.is_string()) {
-      field = {.name = json.get<std::string>(), .ascending = true};
-      return;
-   }
-   CHECK_SILO_QUERY(
-      json.is_object() && json.contains("field") && json.contains("order") &&
-         json["field"].is_string() && json["order"].is_string(),
-      "The orderByField '{}' must be either a string or an object containing the fields "
-      "'field':string and 'order':string, where the value of order is 'ascending' or 'descending'",
-      json.dump()
-   );
-   const std::string field_name = json["field"].get<std::string>();
-   const std::string order_string = json["order"].get<std::string>();
-   CHECK_SILO_QUERY(
-      order_string == "ascending" || order_string == "descending",
-      "The orderByField '{}' must be either a string or an object containing the fields "
-      "'field':string and 'order':string, where the value of order is 'ascending' or 'descending'",
-      json.dump()
-   );
-   field = {.name = field_name, .ascending = order_string == "ascending"};
-}
-
-std::optional<uint32_t> parseLimit(const nlohmann::json& json) {
-   CHECK_SILO_QUERY(
-      !json.contains("limit") ||
-         (json["limit"].is_number_unsigned() && json["limit"].get<uint32_t>() > 0),
-      "If the action contains a limit, it must be a positive number"
-   );
-   return json.contains("limit") ? std::optional<uint32_t>(json["limit"].get<uint32_t>())
-                                 : std::nullopt;
-}
-
-std::optional<uint32_t> parseOffset(const nlohmann::json& json) {
-   CHECK_SILO_QUERY(
-      !json.contains("offset") || json["offset"].is_number_unsigned(),
-      "If the action contains an offset, it must be a non-negative number"
-   );
-   return json.contains("offset") ? std::optional<uint32_t>(json["offset"].get<uint32_t>())
-                                  : std::nullopt;
-}
-
-std::optional<uint32_t> parseRandomizeSeed(const nlohmann::json& json) {
-   if (!json.contains("randomize")) {
-      return std::nullopt;
-   }
-   if (json["randomize"].is_boolean()) {
-      if (json["randomize"].get<bool>()) {
-         const uint32_t time_based_seed =
-            std::chrono::system_clock::now().time_since_epoch().count();
-         return time_based_seed;
-      }
-      return std::nullopt;
-   }
-   CHECK_SILO_QUERY(
-      json["randomize"].is_object() && json["randomize"].contains("seed") &&
-         json["randomize"]["seed"].is_number_unsigned(),
-      "If the action contains 'randomize', it must be either a boolean or an object "
-      "containing an unsigned 'seed'"
-   );
-   return json["randomize"]["seed"].get<uint32_t>();
-}
-
 std::vector<std::string> Action::deduplicateOrderPreserving(const std::vector<std::string>& fields
 ) {
    std::vector<std::string> unique_fields;
@@ -154,68 +80,6 @@ std::vector<std::string> Action::deduplicateOrderPreserving(const std::vector<st
       }
    }
    return unique_fields;
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
-void from_json(const nlohmann::json& json, std::unique_ptr<Action>& action) {
-   CHECK_SILO_QUERY(json.contains("type"), "The field 'type' is required in any action");
-   CHECK_SILO_QUERY(
-      json["type"].is_string(),
-      "The field 'type' in all actions needs to be a string, but is: {}",
-      json["type"].dump()
-   );
-   const std::string expression_type = json["type"];
-   if (expression_type == "Aggregated") {
-      action = json.get<std::unique_ptr<Aggregated>>();
-   } else if (expression_type == "MostRecentCommonAncestor") {
-      action = json.get<std::unique_ptr<MostRecentCommonAncestor>>();
-   } else if (expression_type == "PhyloSubtree") {
-      action = json.get<std::unique_ptr<PhyloSubtree>>();
-   } else if (expression_type == "Mutations") {
-      action = json.get<std::unique_ptr<Mutations<Nucleotide>>>();
-   } else if (expression_type == "Details") {
-      action = json.get<std::unique_ptr<Details>>();
-   } else if (expression_type == "AminoAcidMutations") {
-      action = json.get<std::unique_ptr<Mutations<AminoAcid>>>();
-   } else if (expression_type == "Fasta") {
-      action = json.get<std::unique_ptr<Fasta>>();
-   } else if (expression_type == "FastaAligned") {
-      action = json.get<std::unique_ptr<FastaAligned>>();
-   } else if (expression_type == "Insertions") {
-      action = json.get<std::unique_ptr<InsertionAggregation<Nucleotide>>>();
-   } else if (expression_type == "AminoAcidInsertions") {
-      action = json.get<std::unique_ptr<InsertionAggregation<AminoAcid>>>();
-   } else {
-      throw query_engine::IllegalQueryException("{} is not a valid action", expression_type);
-   }
-
-   std::vector<OrderByField> order_by_fields;
-   if (json.contains("orderByFields")) {
-      CHECK_SILO_QUERY(json["orderByFields"].is_array(), "orderByFields must be an array");
-      order_by_fields = json["orderByFields"].get<std::vector<OrderByField>>();
-   }
-
-   CHECK_SILO_QUERY(
-      !json.contains("offset") || json["offset"].is_number_unsigned(),
-      "If the action contains an offset, it must be a non-negative number"
-   );
-   auto limit = parseLimit(json);
-   auto offset = parseOffset(json);
-   auto randomize_seed = parseRandomizeSeed(json);
-   action->setOrdering(order_by_fields, limit, offset, randomize_seed);
-}
-
-std::vector<schema::ColumnIdentifier> columnNamesToFields(
-   const std::vector<std::string>& column_names,
-   const silo::schema::TableSchema& table_schema
-) {
-   std::vector<schema::ColumnIdentifier> fields;
-   for (const auto& column_name : column_names) {
-      auto column = table_schema.getColumn(column_name);
-      CHECK_SILO_QUERY(column.has_value(), "The table does not contain the field {}", column_name);
-      fields.emplace_back(column_name, column.value().type);
-   }
-   return fields;
 }
 
 QueryPlan Action::toQueryPlan(

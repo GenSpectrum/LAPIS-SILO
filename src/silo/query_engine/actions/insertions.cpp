@@ -11,7 +11,6 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <boost/container_hash/hash.hpp>
-#include <nlohmann/json.hpp>
 
 #include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
@@ -294,53 +293,6 @@ std::vector<schema::ColumnIdentifier> InsertionAggregation<SymbolType>::getOutpu
    fields.emplace_back(std::string(COUNT_FIELD_NAME), schema::ColumnType::INT32);
    return fields;
 }
-
-namespace {
-
-const std::string SEQUENCE_NAMES_FIELD_NAME = "sequenceNames";
-
-}  // namespace
-
-template <typename SymbolType>
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(
-   const nlohmann::json& json,
-   std::unique_ptr<InsertionAggregation<SymbolType>>& action
-) {
-   std::vector<std::string> sequence_names;
-   if (json.contains(SEQUENCE_NAMES_FIELD_NAME)) {
-      CHECK_SILO_QUERY(
-         json[SEQUENCE_NAMES_FIELD_NAME].is_array(),
-         "The field '{}' of the insertions action must be of type string or array, was {}",
-         SEQUENCE_NAMES_FIELD_NAME,
-         std::string(json[SEQUENCE_NAMES_FIELD_NAME].type_name())
-      );
-      for (const auto& child : json[SEQUENCE_NAMES_FIELD_NAME]) {
-         CHECK_SILO_QUERY(
-            child.is_string(),
-            "The field {} of the Insertions action must have type string or an "
-            "array, if present. Found: {}",
-            SEQUENCE_NAMES_FIELD_NAME,
-            child.dump()
-         );
-         sequence_names.emplace_back(child.get<std::string>());
-      }
-   }
-
-   action = std::make_unique<InsertionAggregation<SymbolType>>(std::move(sequence_names));
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-template void from_json<AminoAcid>(
-   const nlohmann::json& json,
-   std::unique_ptr<InsertionAggregation<AminoAcid>>& action
-);
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-template void from_json<Nucleotide>(
-   const nlohmann::json& json,
-   std::unique_ptr<InsertionAggregation<Nucleotide>>& action
-);
 
 template class InsertionAggregation<Nucleotide>;
 template class InsertionAggregation<AminoAcid>;

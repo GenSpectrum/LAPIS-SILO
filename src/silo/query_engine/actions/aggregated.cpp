@@ -7,7 +7,6 @@
 #include <arrow/acero/options.h>
 #include <arrow/compute/api.h>
 #include <arrow/compute/expression.h>
-#include <nlohmann/json.hpp>
 
 #include "evobench/evobench.hpp"
 #include "silo/query_engine/actions/action.h"
@@ -199,29 +198,6 @@ std::vector<schema::ColumnIdentifier> Aggregated::getOutputSchema(
    std::vector<schema::ColumnIdentifier> fields = bindGroupByFields(table_schema, group_by_fields);
    fields.emplace_back(COUNT_FIELD, schema::ColumnType::INT64);
    return fields;
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<Aggregated>& action) {
-   std::vector<std::string> group_by_fields;
-   if (json.contains(GROUP_BY_FIELDS_FIELD_NAME)) {
-      CHECK_SILO_QUERY(
-         json[GROUP_BY_FIELDS_FIELD_NAME].is_array(),
-         "{} must be an array",
-         GROUP_BY_FIELDS_FIELD_NAME
-      );
-      for (const auto& element : json[GROUP_BY_FIELDS_FIELD_NAME]) {
-         CHECK_SILO_QUERY(
-            element.is_string(),
-            "{} is not a valid entry in {}. Expected type string, got {}",
-            element.dump(),
-            GROUP_BY_FIELDS_FIELD_NAME,
-            element.type_name()
-         );
-         group_by_fields.emplace_back(element.get<std::string>());
-      }
-   }
-   action = std::make_unique<Aggregated>(Action::deduplicateOrderPreserving(group_by_fields));
 }
 
 }  // namespace silo::query_engine::actions

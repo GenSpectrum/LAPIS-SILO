@@ -4,8 +4,6 @@
 #include <utility>
 #include <vector>
 
-#include <nlohmann/json.hpp>
-
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/expressions/symbol_in_set.h"
@@ -89,41 +87,6 @@ std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
       "Has{}Mutation expression must be eliminated in query rewrite phase", SymbolType::SYMBOL_NAME
    };
 }
-
-template <typename SymbolType>
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation<SymbolType>>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("position"),
-      "The field 'position' is required in a Has{}Mutation expression",
-      SymbolType::SYMBOL_NAME
-   );
-   CHECK_SILO_QUERY(
-      json["position"].is_number_unsigned(),
-      "The field 'position' in a Has{}Mutation expression needs to be an unsigned integer",
-      SymbolType::SYMBOL_NAME
-   );
-   std::optional<std::string> nuc_sequence_name;
-   if (json.contains("sequenceName")) {
-      nuc_sequence_name = json["sequenceName"].get<std::string>();
-   }
-   const uint32_t position_idx_1_indexed = json["position"].get<uint32_t>();
-   CHECK_SILO_QUERY(
-      position_idx_1_indexed > 0, "The field 'position' is 1-indexed. Value of 0 not allowed."
-   );
-   const uint32_t position_idx = position_idx_1_indexed - 1;
-   filter = std::make_unique<HasMutation<SymbolType>>(nuc_sequence_name, position_idx);
-}
-
-template void from_json<Nucleotide>(
-   const nlohmann::json& json,
-   std::unique_ptr<HasMutation<Nucleotide>>& filter
-);
-
-template void from_json<AminoAcid>(
-   const nlohmann::json& json,
-   std::unique_ptr<HasMutation<AminoAcid>>& filter
-);
 
 template class HasMutation<AminoAcid>;
 template class HasMutation<Nucleotide>;

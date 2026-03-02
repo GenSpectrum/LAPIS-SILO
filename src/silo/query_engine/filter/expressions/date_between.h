@@ -5,8 +5,6 @@
 #include <string>
 #include <vector>
 
-#include <nlohmann/json_fwd.hpp>
-
 #include "silo/common/date.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -48,8 +46,5 @@ class DateBetween : public Expression {
       const storage::TablePartition& table_partition
    ) const override;
 };
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<DateBetween>& filter);
 
 }  // namespace silo::query_engine::filter::expressions

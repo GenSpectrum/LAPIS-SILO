@@ -9,7 +9,6 @@
 
 #include <arrow/result.h>
 #include <arrow/status.h>
-#include <nlohmann/json_fwd.hpp>
 
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
@@ -69,12 +68,5 @@ class InsertionAggregation : public Action {
 
    [[nodiscard]] std::string_view getType() const override { return "InsertionAggregation"; }
 };
-
-template <typename SymbolType>
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(
-   const nlohmann::json& json,
-   std::unique_ptr<InsertionAggregation<SymbolType>>& action
-);
 
 }  // namespace silo::query_engine::actions

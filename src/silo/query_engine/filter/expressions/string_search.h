@@ -4,7 +4,6 @@
 #include <string>
 
 #include <re2/re2.h>
-#include <nlohmann/json_fwd.hpp>
 
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
@@ -33,8 +32,5 @@ class StringSearch : public Expression {
       const storage::TablePartition& table_partition
    ) const override;
 };
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<StringSearch>& filter);
 
 }  // namespace silo::query_engine::filter::expressions

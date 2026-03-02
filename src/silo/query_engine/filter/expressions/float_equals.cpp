@@ -5,7 +5,6 @@
 #include <utility>
 
 #include <fmt/format.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/index_scan.h"
@@ -60,29 +59,6 @@ std::unique_ptr<operators::Operator> FloatEquals::compile(
    return std::make_unique<operators::IndexScan>(
       CopyOnWriteBitmap{&float_column.null_bitmap}, table_partition.sequence_count
    );
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<FloatEquals>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("column"), "The field 'column' is required in a FloatEquals expression"
-   );
-   CHECK_SILO_QUERY(
-      json["column"].is_string(), "The field 'column' in a FloatEquals expression must be a string"
-   );
-   CHECK_SILO_QUERY(
-      json.contains("value"), "The field 'value' is required in a FloatEquals expression"
-   );
-   CHECK_SILO_QUERY(
-      json["value"].is_number_float() || json["value"].is_null(),
-      "The field 'value' in a FloatEquals expression must be a float or null"
-   );
-   const std::string& column_name = json["column"];
-   std::optional<double> value;
-   if (!json["value"].is_null()) {
-      value = json["value"].get<double>();
-   }
-   filter = std::make_unique<FloatEquals>(column_name, value);
 }
 
 }  // namespace silo::query_engine::filter::expressions

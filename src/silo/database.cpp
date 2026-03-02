@@ -33,6 +33,8 @@
 #include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/query.h"
+#include "silo/query_engine/saneql/ast_to_query.h"
+#include "silo/query_engine/saneql/parser.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/sequence_column.h"
 
@@ -267,8 +269,9 @@ roaring::Roaring Database::getFilteredBitmap(
    const std::string& table_name,
    const std::string& filter
 ) {
-   const nlohmann::json filter_json = nlohmann::json::parse(filter);
-   std::unique_ptr<Expression> filter_expression = filter_json;
+   query_engine::saneql::Parser parser(filter);
+   auto ast = parser.parse();
+   auto filter_expression = query_engine::saneql::convertToFilter(*ast);
    auto maybe_table = tables.find(schema::TableName{table_name});
    if (maybe_table == tables.end()) {
       SPDLOG_ERROR("The database does not contain the table {}", table_name);
@@ -302,8 +305,9 @@ std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentMutations(
 ) const {
    using SymbolMutations = silo::query_engine::actions::Mutations<SymbolType>;
 
-   const nlohmann::json filter_json = nlohmann::json::parse(filter);
-   std::unique_ptr<Expression> filter_expression = filter_json;
+   query_engine::saneql::Parser filter_parser(filter);
+   auto filter_ast = filter_parser.parse();
+   auto filter_expression = query_engine::saneql::convertToFilter(*filter_ast);
    std::unique_ptr<Action> action = std::make_unique<SymbolMutations>(
       std::vector<std::string>{sequence_name},
       prevalence_threshold,

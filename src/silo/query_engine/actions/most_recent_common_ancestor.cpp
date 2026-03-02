@@ -8,7 +8,6 @@
 #include <arrow/acero/options.h>
 #include <arrow/compute/exec.h>
 #include <fmt/ranges.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/common/phylo_tree.h"
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
@@ -68,28 +67,6 @@ std::vector<schema::ColumnIdentifier> MostRecentCommonAncestor::getOutputSchema(
    base.emplace_back("mrcaParent", schema::ColumnType::STRING);
    base.emplace_back("mrcaDepth", schema::ColumnType::INT32);
    return base;
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<MostRecentCommonAncestor>& action) {
-   CHECK_SILO_QUERY(
-      json.contains("columnName"),
-      "error: 'columnName' field is required in MostRecentCommonAncestor action"
-   );
-   CHECK_SILO_QUERY(
-      json["columnName"].is_string(),
-      "error: 'columnName' field in MostRecentCommonAncestor action must be a string"
-   );
-   if (json.contains("printNodesNotInTree")) {
-      CHECK_SILO_QUERY(
-         json["printNodesNotInTree"].is_boolean(),
-         "error: 'printNodesNotInTree' field in MostRecentCommonAncestor action must be a boolean"
-      );
-   }
-   const bool print_nodes_not_in_tree = json.value("printNodesNotInTree", false);
-   const std::string column_name = json["columnName"].get<std::string>();
-
-   action = std::make_unique<MostRecentCommonAncestor>(column_name, print_nodes_not_in_tree);
 }
 
 }  // namespace silo::query_engine::actions

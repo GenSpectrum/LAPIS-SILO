@@ -4,7 +4,6 @@
 #include <vector>
 
 #include <spdlog/spdlog.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -110,67 +109,6 @@ std::unique_ptr<operators::Operator> SymbolEquals<SymbolType>::compile(
 ) const {
    throw QueryCompilationException("SymbolEquals should have been rewritten before compilation");
 }
-
-template <typename SymbolType>
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<SymbolEquals<SymbolType>>& filter) {
-   CHECK_SILO_QUERY(
-      json.is_object() && json.contains("position"),
-      "The field 'position' is required in a SymbolEquals expression"
-   );
-   CHECK_SILO_QUERY(
-      json["position"].is_number_unsigned(),
-      "The field 'position' in a SymbolEquals expression needs to be an unsigned integer"
-   );
-   CHECK_SILO_QUERY(
-      json.contains("symbol"), "The field 'symbol' is required in a SymbolEquals expression"
-   );
-   CHECK_SILO_QUERY(
-      json["symbol"].is_string(),
-      "The field 'symbol' in a SymbolEquals expression needs to be a string"
-   );
-   std::optional<std::string> sequence_name;
-   if (json.contains("sequenceName")) {
-      sequence_name = json["sequenceName"].get<std::string>();
-   }
-   const uint32_t position_idx_1_indexed = json["position"].get<uint32_t>();
-   CHECK_SILO_QUERY(
-      position_idx_1_indexed > 0, "The field 'position' is 1-indexed. Value of 0 not allowed."
-   );
-   const uint32_t position_idx = position_idx_1_indexed - 1;
-   const std::string& symbol = json["symbol"];
-
-   CHECK_SILO_QUERY(
-      symbol.size() == 1, "The string field 'symbol' must be exactly one character long"
-   );
-
-   if (symbol.at(0) == '.') {
-      filter = std::make_unique<SymbolEquals<SymbolType>>(
-         sequence_name, position_idx, SymbolOrDot<SymbolType>::dot()
-      );
-      return;
-   }
-   const std::optional<typename SymbolType::Symbol> symbol_char =
-      SymbolType::charToSymbol(symbol.at(0));
-   CHECK_SILO_QUERY(
-      symbol_char.has_value(),
-      "The string field 'symbol' must be either a valid {} symbol or the '.' symbol.",
-      SymbolType::SYMBOL_NAME
-   );
-   filter = std::make_unique<SymbolEquals<SymbolType>>(
-      sequence_name, position_idx, SymbolOrDot<SymbolType>{symbol_char.value()}
-   );
-}
-
-template void from_json<Nucleotide>(
-   const nlohmann::json& json,
-   std::unique_ptr<SymbolEquals<Nucleotide>>& filter
-);
-
-template void from_json<AminoAcid>(
-   const nlohmann::json& json,
-   std::unique_ptr<SymbolEquals<AminoAcid>>& filter
-);
 
 template class SymbolEquals<AminoAcid>;
 template class SymbolEquals<Nucleotide>;

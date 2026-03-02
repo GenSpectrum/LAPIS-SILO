@@ -3,8 +3,6 @@
 #include <memory>
 #include <string>
 
-#include <nlohmann/json_fwd.hpp>
-
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/table_partition.h"
@@ -36,8 +34,5 @@ class PhyloChildFilter : public Expression {
       const silo::storage::column::StringColumnPartition& phylo_tree_index_column
    ) const;
 };
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<PhyloChildFilter>& filter);
 
 }  // namespace silo::query_engine::filter::expressions

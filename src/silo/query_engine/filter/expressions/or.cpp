@@ -5,7 +5,6 @@
 #include <utility>
 
 #include <boost/algorithm/string/join.hpp>
-#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/expressions/false.h"
@@ -234,18 +233,6 @@ std::unique_ptr<operators::Operator> Or::compile(
    return std::make_unique<operators::Union>(
       std::move(filtered_child_operators), table_partition.sequence_count
    );
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<Or>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("children"), "The field 'children' is required in an Or expression"
-   );
-   CHECK_SILO_QUERY(
-      json["children"].is_array(), "The field 'children' in an Or expression needs to be an array"
-   );
-   auto children = json["children"].get<ExpressionVector>();
-   filter = std::make_unique<Or>(std::move(children));
 }
 
 }  // namespace silo::query_engine::filter::expressions

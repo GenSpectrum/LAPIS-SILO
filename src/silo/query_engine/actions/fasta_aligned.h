@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 
-#include <nlohmann/json_fwd.hpp>
-
 #include "silo/query_engine/actions/simple_select_action.h"
 
 namespace silo::query_engine::actions {
@@ -24,8 +22,5 @@ class FastaAligned : public SimpleSelectAction {
       const silo::schema::TableSchema& table_schema
    ) const override;
 };
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<FastaAligned>& action);
 
 }  // namespace silo::query_engine::actions

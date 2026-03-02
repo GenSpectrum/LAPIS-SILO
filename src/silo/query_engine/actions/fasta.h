@@ -3,8 +3,6 @@
 #include <memory>
 #include <vector>
 
-#include <nlohmann/json_fwd.hpp>
-
 #include "silo/query_engine/actions/simple_select_action.h"
 #include "silo/schema/database_schema.h"
 
@@ -26,8 +24,5 @@ class Fasta : public SimpleSelectAction {
       const silo::schema::TableSchema& table_schema
    ) const override;
 };
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<Fasta>& action);
 
 }  // namespace silo::query_engine::actions

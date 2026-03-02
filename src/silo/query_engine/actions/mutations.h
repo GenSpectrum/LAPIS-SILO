@@ -11,7 +11,6 @@
 #include <arrow/array/builder_base.h>
 #include <arrow/array/builder_binary.h>
 #include <arrow/array/builder_primitive.h>
-#include <nlohmann/json_fwd.hpp>
 
 #include "silo/common/symbol_map.h"
 #include "silo/query_engine/actions/action.h"
@@ -108,9 +107,5 @@ class Mutations : public Action {
 
    [[nodiscard]] std::string_view getType() const override { return "Mutations"; }
 };
-
-template <typename SymbolType>
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<Mutations<SymbolType>>& action);
 
 }  // namespace silo::query_engine::actions

@@ -4,8 +4,6 @@
 #include <string>
 #include <utility>
 
-#include <nlohmann/json.hpp>
-
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/illegal_query_exception.h"
@@ -33,13 +31,6 @@ std::unique_ptr<operators::Operator> Negation::compile(
    const storage::TablePartition& table_partition
 ) const {
    return operators::Operator::negate(child->compile(table, table_partition));
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<Negation>& filter) {
-   CHECK_SILO_QUERY(json.contains("child"), "The field 'child' is required in a Not expression");
-   auto child = json["child"].get<std::unique_ptr<Expression>>();
-   filter = std::make_unique<Negation>(std::move(child));
 }
 
 }  // namespace silo::query_engine::filter::expressions

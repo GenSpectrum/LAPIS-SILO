@@ -4,8 +4,6 @@
 #include <string>
 #include <utility>
 
-#include <nlohmann/json.hpp>
-
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/illegal_query_exception.h"
@@ -34,13 +32,6 @@ std::unique_ptr<operators::Operator> Maybe::compile(
    const storage::TablePartition& /*table_partition*/
 ) const {
    throw QueryCompilationException{"Maybe expression must be elimitated in query rewrite phase"};
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<Maybe>& filter) {
-   CHECK_SILO_QUERY(json.contains("child"), "The field 'child' is required in a Maybe expression");
-   auto child = json["child"].get<std::unique_ptr<Expression>>();
-   filter = std::make_unique<Maybe>(std::move(child));
 }
 
 }  // namespace silo::query_engine::filter::expressions

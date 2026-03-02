@@ -346,7 +346,7 @@ cdef class PyDatabase:
             raise ValueError("prevalence_threshold must be between 0.0 and 1.0")
         # Default to True filter (returns all rows) if no filter specified
         if filter_expression is None or filter_expression == "":
-            filter_expression = '{"type":"True"}'
+            filter_expression = 'true'
 
         cpp_table_name = table_name.encode('utf-8')
         cpp_sequence_name = sequence_name.encode('utf-8')
@@ -404,7 +404,7 @@ cdef class PyDatabase:
             raise ValueError("prevalence_threshold must be between 0.0 and 1.0")
         # Default to True filter (returns all rows) if no filter specified
         if filter_expression is None or filter_expression == "":
-            filter_expression = '{"type":"True"}'
+            filter_expression = 'true'
 
         cpp_table_name = table_name.encode('utf-8')
         cpp_sequence_name = sequence_name.encode('utf-8')
@@ -455,7 +455,7 @@ cdef class PyDatabase:
 
         # Default to True filter (returns all rows) if no filter specified
         if filter_expression is None or filter_expression == "":
-            filter_expression = '{"type":"True"}'
+            filter_expression = 'true'
 
         cpp_table_name = table_name.encode('utf-8')
         cpp_filter = filter_expression.encode('utf-8')

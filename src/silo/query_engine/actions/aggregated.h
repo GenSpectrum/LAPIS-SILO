@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 
-#include <nlohmann/json_fwd.hpp>
-
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/storage/table.h"
@@ -52,8 +50,5 @@ class Aggregated : public Action {
       std::string_view request_id
    ) const;
 };
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<Aggregated>& action);
 
 }  // namespace silo::query_engine::actions

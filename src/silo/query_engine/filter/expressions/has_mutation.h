@@ -5,8 +5,6 @@
 #include <optional>
 #include <string>
 
-#include <nlohmann/json_fwd.hpp>
-
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/table_partition.h"
@@ -35,9 +33,5 @@ class HasMutation : public Expression {
       const storage::TablePartition& table_partition
    ) const override;
 };
-
-template <typename SymbolType>
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<HasMutation<SymbolType>>& filter);
 
 }  // namespace silo::query_engine::filter::expressions

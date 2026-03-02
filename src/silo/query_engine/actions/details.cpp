@@ -34,10 +34,4 @@ std::vector<schema::ColumnIdentifier> Details::getOutputSchema(
    return field_metadata;
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<Details>& action) {
-   const std::vector<std::string> fields = json.value("fields", std::vector<std::string>());
-   action = std::make_unique<Details>(Action::deduplicateOrderPreserving(fields));
-}
-
 }  // namespace silo::query_engine::actions
