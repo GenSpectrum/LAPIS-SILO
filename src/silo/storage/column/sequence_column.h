@@ -72,6 +72,11 @@ class SequenceColumnPartition {
       archive & sequence_count;
       archive & null_bitmap;
       // clang-format on
+      if constexpr (Archive::is_loading::value) {
+         compressed_input_decompressor = ZstdDecompressor{std::make_shared<ZstdDDictionary>(
+            SymbolType::sequenceToString(metadata->reference_sequence)
+         )};
+      }
    }
 
   public:
@@ -88,9 +93,7 @@ class SequenceColumnPartition {
    roaring::Roaring null_bitmap;
    uint32_t sequence_count = 0;
 
-   // Lazily initialized when 'sequenceCompressed' input is first encountered.
-   // Not serialized — only needed during ingestion.
-   std::optional<ZstdDecompressor> compressed_input_decompressor;
+   ZstdDecompressor compressed_input_decompressor;
 
    explicit SequenceColumnPartition(Metadata* metadata);
 

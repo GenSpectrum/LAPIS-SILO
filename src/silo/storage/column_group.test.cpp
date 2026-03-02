@@ -82,7 +82,7 @@ std::expected<void, std::string> setupNucleotideColumnAndInsertJson(
    simdjson::ondemand::value val = doc[column_name].value_unsafe();
 
    return partition_group.addJsonValueToColumn(
-      ColumnIdentifier{column_name, SequenceColumnPartition<Nucleotide>::TYPE}, val
+      ColumnIdentifier{.name = column_name, .type = SequenceColumnPartition<Nucleotide>::TYPE}, val
    );
 }
 
@@ -226,14 +226,13 @@ TEST(ColumnPartitionGroup, givenSequenceCompressedWithMutation_succeeds) {
 }
 
 TEST(ColumnPartitionGroup, givenSequenceCompressedMultipleRows_lazyDecompressorInitializedOnce) {
-   const std::vector<Nucleotide::Symbol> reference = {
+   std::vector<Nucleotide::Symbol> reference = {
       Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
    };
    const std::string reference_str = "ACGT";
 
-   auto meta = std::make_unique<SequenceColumnMetadata<Nucleotide>>(
-      "nuc_col", std::vector<Nucleotide::Symbol>{reference}
-   );
+   auto meta =
+      std::make_unique<SequenceColumnMetadata<Nucleotide>>("nuc_col", std::move(reference));
    ColumnPartitionGroup partition_group;
    partition_group.getColumns<SequenceColumnPartition<Nucleotide>>().emplace(
       "nuc_col", SequenceColumnPartition<Nucleotide>{meta.get()}
@@ -250,7 +249,7 @@ TEST(ColumnPartitionGroup, givenSequenceCompressedMultipleRows_lazyDecompressorI
       simdjson::ondemand::value val = doc["nuc_col"].value_unsafe();
 
       const auto result = partition_group.addJsonValueToColumn(
-         ColumnIdentifier{"nuc_col", SequenceColumnPartition<Nucleotide>::TYPE}, val
+         ColumnIdentifier{.name = "nuc_col", .type = SequenceColumnPartition<Nucleotide>::TYPE}, val
       );
       ASSERT_TRUE(result.has_value());
    }
