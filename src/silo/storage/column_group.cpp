@@ -13,8 +13,10 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
+#include "silo/common/base64.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/storage/column/column_type_visitor.h"
+#include "silo/zstd/zstd_dictionary.h"
 
 namespace silo::storage {
 
@@ -157,9 +159,40 @@ std::expected<void, std::string> insertToSequenceColumn(
       sequence_column.appendNull();
       return {};
    }
+   // Determine sequence: try 'sequenceCompressed' (base64-encoded zstd-compressed) first,
+   // then fall back to plain 'sequence'.
+   std::string decompressed_buffer;
    std::string_view sequence;
-   error = value["sequence"].get(sequence);
-   RAISE_STRING_ERROR_WITH_CONTEXT(error, value, "error getting field 'sequence' in object: {}");
+   auto compressed_field = value["sequenceCompressed"];
+   if (!compressed_field.error()) {
+      std::string_view compressed_base64;
+      error = compressed_field.get(compressed_base64);
+      RAISE_STRING_ERROR_WITH_CONTEXT(
+         error, value, "error getting field 'sequenceCompressed' in object: {}"
+      );
+      auto decoded = decodeBase64(compressed_base64);
+      if (!decoded.has_value()) {
+         return std::unexpected{
+            fmt::format("invalid base64 in 'sequenceCompressed': {}", decoded.error())
+         };
+      }
+      if (!sequence_column.compressed_input_decompressor.has_value()) {
+         sequence_column.compressed_input_decompressor.emplace(
+            std::make_shared<ZstdDDictionary>(sequence_column.local_reference_sequence_string)
+         );
+      }
+      try {
+         sequence_column.compressed_input_decompressor->decompress(*decoded, decompressed_buffer);
+      } catch (const std::runtime_error& ex) {
+         return std::unexpected{
+            fmt::format("failed to decompress 'sequenceCompressed': {}", ex.what())
+         };
+      }
+      sequence = decompressed_buffer;
+   } else {
+      error = value["sequence"].get(sequence);
+      RAISE_STRING_ERROR_WITH_CONTEXT(error, value, "error getting field 'sequence' in object: {}");
+   }
    uint32_t offset = 0;
    auto offset_in_file = value["offset"];
    if (!offset_in_file.error()) {
@@ -169,7 +202,7 @@ std::expected<void, std::string> insertToSequenceColumn(
    std::vector<std::string> insertions;
    error = value["insertions"].get(insertions);
    RAISE_STRING_ERROR_WITH_CONTEXT(error, value, "error getting field 'insertions' in object: {}");
-   sequence_column.append(std::move(sequence), offset, std::move(insertions));
+   sequence_column.append(sequence, offset, insertions);
    return {};
 }
 

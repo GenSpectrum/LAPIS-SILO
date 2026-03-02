@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -17,6 +19,8 @@
 #include "silo/storage/column/horizontal_coverage_index.h"
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/column/vertical_sequence_index.h"
+#include "silo/zstd/zstd_decompressor.h"
+#include "silo/zstd/zstd_dictionary.h"
 
 namespace silo::storage::column {
 
@@ -83,6 +87,10 @@ class SequenceColumnPartition {
    SequenceColumnInfo sequence_column_info;
    roaring::Roaring null_bitmap;
    uint32_t sequence_count = 0;
+
+   // Lazily initialized when 'sequenceCompressed' input is first encountered.
+   // Not serialized — only needed during ingestion.
+   std::optional<ZstdDecompressor> compressed_input_decompressor;
 
    explicit SequenceColumnPartition(Metadata* metadata);
 

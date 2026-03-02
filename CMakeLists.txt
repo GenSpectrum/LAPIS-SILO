@@ -67,6 +67,7 @@ find_package(re2 REQUIRED)
 find_package(roaring REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(simdjson REQUIRED)
+find_package(simdutf REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
 
@@ -141,6 +142,7 @@ target_link_libraries(
         ${roaring_LIBRARIES}
         ${spdlog_LIBRARIES}
         ${simdjson_LIBRARIES}
+        ${simdutf_LIBRARIES}
         ${yaml-cpp_LIBRARIES}
         zstd::libzstd_static
         Poco::Net

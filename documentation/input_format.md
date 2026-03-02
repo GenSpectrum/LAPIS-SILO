@@ -18,6 +18,7 @@ SILO expects input data in **NDJSON format** (Newline Delimited JSON), where eac
 ```json
 {"primaryKey":"seq_001","date":"2021-03-18","country":"Switzerland","age":54,"main":{"sequence":"ACGT","insertions":[]}}
 {"primaryKey":"seq_002","date":"2021-04-13","country":"Germany","age":null,"main":{"sequence":"AAGN","insertions":["2:AC"]}}
+{"primaryKey":"seq_003","date":"2021-05-01","country":"France","age":30,"main":{"sequenceCompressed":"<base64-zstd>","insertions":[]}}
 ```
 
 ## Configuration Files
@@ -201,6 +202,7 @@ DNA/RNA sequence data with optional insertions.
 
 **Fields**:
 - `sequence`: The nucleotide sequence string
+- `sequenceCompressed` (alternative to `sequence`): A base64-encoded, ZSTD-compressed nucleotide sequence. The ZSTD compression must use the column's reference genome string as a dictionary. When present, `sequenceCompressed` takes precedence over `sequence`. See [Compressed Sequence Input](#compressed-sequence-input) for details.
 - `insertions`: Array of insertions in format `position:sequence`. `sequence` is inserted _after_ `position`. `position` 0 inserts _before the first symbol_. Valid positions are therefore in the range `[0, n]` where `n` is the length of the reference sequence.
 - `offset` (optional): Integer offset into reference genome (default: 0)
 
@@ -249,6 +251,12 @@ Protein sequence data with optional insertions.
   }
 }
 ```
+
+**Fields**:
+- `sequence`: The amino acid sequence string
+- `sequenceCompressed` (alternative to `sequence`): A base64-encoded, ZSTD-compressed amino acid sequence. The ZSTD compression must use the column's reference sequence string as a dictionary. When present, `sequenceCompressed` takes precedence over `sequence`. See [Compressed Sequence Input](#compressed-sequence-input) for details.
+- `insertions`: Array of insertions in format `position:sequence`
+- `offset` (optional): Integer offset into reference sequence (default: 0)
 
 **Valid Amino Acid Characters**:
 
@@ -300,5 +308,7 @@ defaultNucleotideSequence: main
 | Invalid date format | Date string not in YYYY-MM-DD format | Error with details |
 | Invalid sequence character | Unknown nucleotide/amino acid | Error with position |
 | Invalid insertion format | Malformed insertion string | Error with details |
+| Invalid base64 in `sequenceCompressed` | Illegal characters or wrong padding | Error with details |
+| Invalid ZSTD data in `sequenceCompressed` | Wrong dictionary or corrupt bytes | Error with details |
 | Duplicate primary key | Same primary key appears twice | Error at validation |
 | Unknown field | Field in JSON not in schema | Warning, ignored |

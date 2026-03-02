@@ -1,8 +1,14 @@
 #include "silo/storage/column_group.h"
 
+#include <memory>
+#include <string>
+#include <vector>
+
+#include <fmt/format.h>
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 #include <simdjson.h>
+#include <simdutf.h>
 
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/schema/database_schema.h"
@@ -12,6 +18,8 @@
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/string_column.h"
+#include "silo/zstd/zstd_compressor.h"
+#include "silo/zstd/zstd_dictionary.h"
 
 using silo::Nucleotide;
 using silo::schema::ColumnIdentifier;
@@ -53,6 +61,40 @@ std::expected<void, std::string> setupColumnAndInsertJson(
    return partition_group.addJsonValueToColumn(
       ColumnIdentifier{column_name, ColumnType::TYPE}, val
    );
+}
+
+std::expected<void, std::string> setupNucleotideColumnAndInsertJson(
+   const std::string& column_name,
+   const std::vector<Nucleotide::Symbol>& reference,
+   const std::string& json_string
+) {
+   auto meta = std::make_unique<SequenceColumnMetadata<Nucleotide>>(
+      column_name, std::vector<Nucleotide::Symbol>{reference}
+   );
+   ColumnPartitionGroup partition_group;
+   partition_group.getColumns<SequenceColumnPartition<Nucleotide>>().emplace(
+      column_name, SequenceColumnPartition<Nucleotide>{meta.get()}
+   );
+
+   simdjson::ondemand::parser parser;
+   const simdjson::padded_string json(json_string);
+   auto doc = parser.iterate(json).value_unsafe();
+   simdjson::ondemand::value val = doc[column_name].value_unsafe();
+
+   return partition_group.addJsonValueToColumn(
+      ColumnIdentifier{column_name, SequenceColumnPartition<Nucleotide>::TYPE}, val
+   );
+}
+
+std::string compressAndBase64Encode(std::string_view sequence, const std::string& reference) {
+   auto cdict = std::make_shared<silo::ZstdCDictionary>(reference, 3);
+   silo::ZstdCompressor compressor(cdict);
+   const auto compressed = compressor.compress(sequence.data(), sequence.size());
+
+   const size_t base64_len = simdutf::base64_length_from_binary(compressed.size());
+   std::string encoded(base64_len, '\0');
+   simdutf::binary_to_base64(compressed.data(), compressed.size(), encoded.data());
+   return encoded;
 }
 
 }  // namespace
@@ -148,4 +190,101 @@ TEST(ColumnPartitionGroup, givenObjectMissingInsertionsField_returnsColumnInsert
          "error inserting into column 'nuc_col': error getting field 'insertions' in object:"
       )
    );
+}
+
+TEST(ColumnPartitionGroup, givenValidSequenceCompressed_succeeds) {
+   const std::vector<Nucleotide::Symbol> reference = {
+      Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
+   };
+   const std::string reference_str = "ACGT";
+   const std::string encoded = compressAndBase64Encode("ACGT", reference_str);
+
+   const auto result = setupNucleotideColumnAndInsertJson(
+      "nuc_col",
+      reference,
+      fmt::format(R"({{"nuc_col": {{"sequenceCompressed": "{}", "insertions": []}}}})", encoded)
+   );
+
+   ASSERT_TRUE(result.has_value());
+}
+
+TEST(ColumnPartitionGroup, givenSequenceCompressedWithMutation_succeeds) {
+   const std::vector<Nucleotide::Symbol> reference = {
+      Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
+   };
+   const std::string reference_str = "ACGT";
+   // Sequence differs from reference at position 1 (C → T)
+   const std::string encoded = compressAndBase64Encode("ATGT", reference_str);
+
+   const auto result = setupNucleotideColumnAndInsertJson(
+      "nuc_col",
+      reference,
+      fmt::format(R"({{"nuc_col": {{"sequenceCompressed": "{}", "insertions": []}}}})", encoded)
+   );
+
+   ASSERT_TRUE(result.has_value());
+}
+
+TEST(ColumnPartitionGroup, givenSequenceCompressedMultipleRows_lazyDecompressorInitializedOnce) {
+   const std::vector<Nucleotide::Symbol> reference = {
+      Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
+   };
+   const std::string reference_str = "ACGT";
+
+   auto meta = std::make_unique<SequenceColumnMetadata<Nucleotide>>(
+      "nuc_col", std::vector<Nucleotide::Symbol>{reference}
+   );
+   ColumnPartitionGroup partition_group;
+   partition_group.getColumns<SequenceColumnPartition<Nucleotide>>().emplace(
+      "nuc_col", SequenceColumnPartition<Nucleotide>{meta.get()}
+   );
+
+   for (const std::string_view sequence : {"ACGT", "ATGT", "ACGT"}) {
+      const std::string encoded = compressAndBase64Encode(sequence, reference_str);
+      const std::string json =
+         fmt::format(R"({{"nuc_col": {{"sequenceCompressed": "{}", "insertions": []}}}})", encoded);
+
+      simdjson::ondemand::parser parser;
+      const simdjson::padded_string padded(json);
+      auto doc = parser.iterate(padded).value_unsafe();
+      simdjson::ondemand::value val = doc["nuc_col"].value_unsafe();
+
+      const auto result = partition_group.addJsonValueToColumn(
+         ColumnIdentifier{"nuc_col", SequenceColumnPartition<Nucleotide>::TYPE}, val
+      );
+      ASSERT_TRUE(result.has_value());
+   }
+}
+
+TEST(ColumnPartitionGroup, givenSequenceCompressedWithInvalidBase64_returnsError) {
+   const std::vector<Nucleotide::Symbol> reference = {Nucleotide::Symbol::A};
+
+   const auto result = setupNucleotideColumnAndInsertJson(
+      "nuc_col",
+      reference,
+      R"({"nuc_col": {"sequenceCompressed": "not!valid@base64#", "insertions": []}})"
+   );
+
+   ASSERT_FALSE(result.has_value());
+   EXPECT_THAT(result.error(), testing::HasSubstr("invalid base64"));
+}
+
+TEST(ColumnPartitionGroup, givenSequenceCompressedWithInvalidZstdData_returnsError) {
+   const std::vector<Nucleotide::Symbol> reference = {
+      Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
+   };
+   // Valid base64 but the decoded bytes are not valid zstd-compressed data
+   const std::string random_bytes = "\x01\x02\x03\x04\x05\x06\x07\x08";
+   const size_t base64_len = simdutf::base64_length_from_binary(random_bytes.size());
+   std::string encoded(base64_len, '\0');
+   simdutf::binary_to_base64(random_bytes.data(), random_bytes.size(), encoded.data());
+
+   const auto result = setupNucleotideColumnAndInsertJson(
+      "nuc_col",
+      reference,
+      fmt::format(R"({{"nuc_col": {{"sequenceCompressed": "{}", "insertions": []}}}})", encoded)
+   );
+
+   ASSERT_FALSE(result.has_value());
+   EXPECT_THAT(result.error(), testing::HasSubstr("failed to decompress"));
 }
