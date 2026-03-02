@@ -9,6 +9,7 @@
 #include "silo/query_engine/filter/expressions/and.h"
 #include "silo/query_engine/filter/expressions/bool_equals.h"
 #include "silo/query_engine/filter/expressions/date_between.h"
+#include "silo/query_engine/filter/expressions/date_equals.h"
 #include "silo/query_engine/filter/expressions/exact.h"
 #include "silo/query_engine/filter/expressions/false.h"
 #include "silo/query_engine/filter/expressions/float_between.h"
@@ -68,6 +69,8 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Expression>& filter) 
       filter = json.get<std::unique_ptr<Negation>>();
    } else if (expression_type == "DateBetween") {
       filter = json.get<std::unique_ptr<DateBetween>>();
+   } else if (expression_type == "DateEquals") {
+      filter = json.get<std::unique_ptr<DateEquals>>();
    } else if (expression_type == "NucleotideEquals") {
       filter = json.get<std::unique_ptr<SymbolEquals<Nucleotide>>>();
    } else if (expression_type == "HasNucleotideMutation") {
