@@ -10,8 +10,10 @@ DEPENDENCIES_FLAG=dependencies
 CLANG_FORMAT=$(shell command -v clang-format-19 2>/dev/null || command -v clang-format 2>/dev/null || echo clang-format)
 CMAKE_BUILD_PARALLEL_LEVEL ?= 16
 
+.PHONY: ci
 ci: format all-tests
 
+.PHONY: conanprofile
 conanprofile:
 	buildScripts/create-conanprofile
 
@@ -43,10 +45,10 @@ ${SILO_RELEASE_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
 ${SILO_RELEASE_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
 	cmake --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test
 
+.PHONY: output
 output: ${SILO_DEBUG_EXECUTABLE}
 	export SPDLOG_LEVEL=debug; \
 	${SILO_DEBUG_EXECUTABLE} preprocessing --database-config database_config.yaml --preprocessing-config testBaseData/test_preprocessing_config.yaml
-
 
 ${RUNNING_SILO_FLAG}: ${SILO_DEBUG_EXECUTABLE} output
 	@{ \
@@ -64,13 +66,16 @@ ${RUNNING_SILO_FLAG}: ${SILO_DEBUG_EXECUTABLE} output
 		echo "Silo is running with PID $$pid"; \
 	}
 
+.PHONY: e2e
 e2e: ${RUNNING_SILO_FLAG}
 	trap 'make clean-api' EXIT; \
 	(cd endToEndTests && SILO_URL=localhost:8093 npm run test)
 
+.PHONY: test
 test: ${SILO_DEBUG_TEST_EXECUTABLE}
 	${SILO_DEBUG_TEST_EXECUTABLE} --gtest_filter='*' --gtest_color=no
 
+.PHONY: python-tests
 python-tests: ${DEPENDENCIES_FLAG}
 	uv venv --allow-existing .venv
 	uv pip install -q setuptools wheel 'Cython>=3.0.0'
@@ -80,6 +85,7 @@ python-tests: ${DEPENDENCIES_FLAG}
 
 PYTHON_VERSIONS ?= 3.11 3.12 3.13 3.14
 
+.PHONY: build-wheels
 build-wheels: ${SILO_RELEASE_EXECUTABLE}
 	mkdir -p wheelhouse
 	@for pyversion in $(PYTHON_VERSIONS); do \
@@ -96,40 +102,47 @@ build-wheels: ${SILO_RELEASE_EXECUTABLE}
 		fi; \
 	done
 
+.PHONY: all-tests
 all-tests: test e2e python-tests
 
 endToEndTests/node_modules: endToEndTests/package-lock.json
 	cd endToEndTests && npm ci
 
+.PHONY: format-cpp
 format-cpp:
 	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) -i
 
+.PHONY: format-node
 format-node: endToEndTests/node_modules
 	cd endToEndTests && npm run format
 	cd endToEndTests && npx prettier --write "../.github/workflows/*.yml"
 
+.PHONY: format
 format: format-cpp format-node
 
+.PHONY: check-format-cpp
 check-format-cpp:
 	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) --dry-run --Werror
 
+.PHONY: check-format-node
 check-format-node: endToEndTests/node_modules
 	cd endToEndTests && npm run check-format
 	cd endToEndTests && npx prettier --check "../.github/workflows/*.yml"
 
+.PHONY: check-format
 check-format: check-format-cpp check-format-node
 
+.PHONY: clean-api
 clean-api:
 	@if [ -f ${RUNNING_SILO_FLAG} ]; then \
 		kill $$(cat ${RUNNING_SILO_FLAG}) || true; \
 		rm -f ${RUNNING_SILO_FLAG}; \
 	fi
 
+.PHONY: clean
 clean: clean-api
 	rm -rf output logs ${DEPENDENCIES_FLAG} ${SRC_FILE_LIST}
 
+.PHONY: full-clean
 full-clean: clean
 	rm -rf build
-
-.PHONY:
-	full-clean clean clean-api e2e format format-cpp format-node check-format check-format-cpp check-format-node all test all-tests ci python-tests build-wheels
