@@ -148,7 +148,7 @@ namespace {
 struct InputSequence {
    std::variant<std::string_view, std::string> sequence;
 
-   std::string_view getView() const {
+   [[nodiscard]] std::string_view getView() const {
       if (std::holds_alternative<std::string_view>(sequence)) {
          return std::get<std::string_view>(sequence);
       }
