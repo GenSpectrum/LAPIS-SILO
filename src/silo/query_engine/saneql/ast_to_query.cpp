@@ -105,9 +105,7 @@ std::optional<bool> findNamedBoolArg(
          if (auto* val = std::get_if<ast::BoolLiteral>(&arg.value->value)) {
             return val->value;
          }
-         throw IllegalQueryException(
-            "error: '{}' field in action must be a boolean", name
-         );
+         throw IllegalQueryException("error: '{}' field in action must be a boolean", name);
       }
    }
    return std::nullopt;
@@ -196,9 +194,7 @@ void applyOrderingParams(actions::Action& action, const std::vector<ast::Argumen
                static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count());
          }
       } else {
-         throw IllegalQueryException(
-            "error: 'randomize' field must be a boolean or an integer"
-         );
+         throw IllegalQueryException("error: 'randomize' field must be a boolean or an integer");
       }
    }
 
