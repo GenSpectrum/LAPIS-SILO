@@ -85,13 +85,27 @@ See `NucleotideEquals`.
 
 See `HasNucleotideMutation`.
 
-#### `Lineage`: `{"column": string, "value": string, "includeSublineages": boolean}`
+#### `Lineage`: `{"column": string, "value": string, "includeSublineages": boolean, "recombinantFollowingMode": string}`
 
-This filter is true if the lineage in column `column` is equal to or an alias of `value`. 
+This filter is true if the lineage in column `column` is equal to or an alias of `value`.
 If `includeSublineages` is set, it will also be true, if it is equal to or an alias of a sublineage of `value`.
 `value` must be a valid lineage (that is contained in the lineage definitions of this column).
 
 `column` must be a string field with `generateLineageIndex: true`.
+
+`recombinantFollowingMode` is an optional field that is only relevant when `includeSublineages` is `true`. It controls whether recombinant lineages (lineages with multiple parents in the lineage tree) are included when searching for sublineages. The possible values are:
+
+- `"doNotFollow"` (default) - Do not follow recombinant edges. Only sublineages reachable through non-recombinant parent-child relationships are included.
+- `"alwaysFollow"` - Always follow recombinant edges. Any recombinant lineage that has at least one parent in the searched clade is included.
+- `"followIfFullyContainedInClade"` - Follow recombinant edges only if all parents of the recombinant lineage are contained in the searched clade.
+
+For example, given a lineage tree where `XBB` is a recombinant of `A.1` and `A.2` (both children of `A`):
+- Searching for sublineages of `A.1` with `doNotFollow` returns `A.1`.
+- Searching for sublineages of `A.1` with `alwaysFollow` returns `A.1, XBB`.
+- Searching for sublineages of `A.1` with `followIfFullyContainedInClade` returns `A.1`.
+- Searching for sublineages of `A` with `doNotFollow` returns `A, A.1, A.2`.
+- Searching for sublineages of `A` with `alwaysFollow` returns `A, A.1, A.2, XBB`.
+- Searching for sublineages of `A` with `followIfFullyContainedInClade` returns `A, A.1, A.2, XBB` (because both parents of `XBB` are within the `A` clade).
 
 #### `InsertionContains`: `{"sequenceName": string, "position": string, "value":string}`
 
