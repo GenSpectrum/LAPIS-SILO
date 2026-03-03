@@ -1,18 +1,8 @@
 {
   "testCaseName": "query with invalid action",
-  "query": {
-    "action": {
-      "type": "invalid action"
-    },
-    "filterExpression": {
-      "type": "N-Of",
-      "numberOfMatchers": 2,
-      "matchExactly": false,
-      "children": []
-    }
-  },
+  "query": "res.filter(true).invalidAction()",
   "expectedError": {
     "error": "Bad request",
-    "message": "invalid action is not a valid action"
+    "message": "Parse error at 1:18: Query must end with an action (e.g., .aggregated(), .details())"
   }
 }

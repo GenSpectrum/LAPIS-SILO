@@ -1,16 +1,6 @@
 {
   "testCaseName": "Offset overlaps with results to show",
-  "query": {
-    "action": {
-      "type": "Details",
-      "orderByFields": ["primary_key"],
-      "offset": 90,
-      "limit": 90
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.details(limit:=90, offset:=90).orderBy('primary_key')",
   "expectedQueryResult": [
     {
       "age": 50,

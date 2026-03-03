@@ -1,16 +1,6 @@
 {
   "testCaseName": "Explicit default sequence",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "NucleotideEquals",
-      "position": 13,
-      "symbol": "T",
-      "sequenceName": "main"
-    }
-  },
+  "query": "res.filter(nucleotideEquals(position:=13, symbol:='T', sequenceName:='main')).aggregated()",
   "expectedQueryResult": [
     {
       "count": 12

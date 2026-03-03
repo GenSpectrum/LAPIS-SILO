@@ -1,21 +1,6 @@
 {
   "testCaseName": "Group all sequences by lineage and order by count descending, with limit 4",
-  "query": {
-    "action": {
-      "type": "Aggregated",
-      "groupByFields": ["pango_lineage"],
-      "orderByFields": [
-        {
-          "field": "count",
-          "order": "descending"
-        }
-      ],
-      "limit": 4
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.aggregated('pango_lineage', limit:=4).orderBy('count descending')",
   "expectedQueryResult": [
     {
       "count": 48,

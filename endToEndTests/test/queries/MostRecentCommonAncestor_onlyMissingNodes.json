@@ -1,28 +1,6 @@
 {
   "testCaseName": "MostRecentCommonAncestor query returns correct node with only missing nodes",
-  "query": {
-    "action": {
-      "type": "MostRecentCommonAncestor",
-      "columnName": "usherTree",
-      "orderByFields": ["mrcaNode"],
-      "printNodesNotInTree": true
-    },
-    "filterExpression": {
-      "type": "Or",
-      "children": [
-        {
-          "type": "StringEquals",
-          "column": "primary_key",
-          "value": "key_1"
-        },
-        {
-          "type": "StringEquals",
-          "column": "primary_key",
-          "value": "key_35"
-        }
-      ]
-    }
-  },
+  "query": "res.filter((primary_key = 'key_1') || (primary_key = 'key_35')).mostRecentCommonAncestor('usherTree', printNodesNotInTree:=true).orderBy('mrcaNode')",
   "expectedQueryResult": [
     {
       "mrcaNode": null,

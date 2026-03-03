@@ -1,19 +1,6 @@
 {
   "testCaseName": "Test sequence has exactly symbol Y at position 2",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "Exact",
-      "child": {
-        "type": "NucleotideEquals",
-        "position": 2,
-        "symbol": "Y",
-        "sequenceName": "testSecondSequence"
-      }
-    }
-  },
+  "query": "res.filter(exact(nucleotideEquals(position:=2, symbol:='Y', sequenceName:='testSecondSequence'))).aggregated()",
   "expectedQueryResult": [
     {
       "count": 1

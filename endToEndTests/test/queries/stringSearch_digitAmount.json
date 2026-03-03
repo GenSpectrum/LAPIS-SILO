@@ -1,15 +1,6 @@
 {
   "testCaseName": "StringSearch that matches the primary key to end with exactly six digits",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "StringSearch",
-      "column": "primary_key",
-      "searchExpression": "^\\D*\\d{1}$"
-    }
-  },
+  "query": "res.filter(primary_key.like('^\\\\D*\\\\d{1}$')).aggregated()",
   "expectedQueryResult": [
     {
       "count": 9

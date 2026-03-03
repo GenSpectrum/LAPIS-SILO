@@ -1,18 +1,6 @@
 {
   "testCaseName": "amino acid insertions contains filter",
-  "query": {
-    "action": {
-      "type": "Details",
-      "fields": ["primary_key"],
-      "orderByFields": ["primary_key"]
-    },
-    "filterExpression": {
-      "type": "AminoAcidInsertionContains",
-      "sequenceName": "S",
-      "value": "E.*E",
-      "position": 214
-    }
-  },
+  "query": "res.filter(aminoAcidInsertionContains(position:=214, value:='E.*E', sequenceName:='S')).details('primary_key').orderBy('primary_key')",
   "expectedQueryResult": [
     {
       "primary_key": "key_29"

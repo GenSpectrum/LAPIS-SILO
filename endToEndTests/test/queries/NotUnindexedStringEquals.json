@@ -1,18 +1,6 @@
 {
   "testCaseName": "Not Query on unindexed string column",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "Not",
-      "child": {
-        "type": "StringEquals",
-        "column": "primary_key",
-        "value": "key_41"
-      }
-    }
-  },
+  "query": "res.filter(!(primary_key = 'key_41')).aggregated()",
   "expectedQueryResult": [
     {
       "count": 99

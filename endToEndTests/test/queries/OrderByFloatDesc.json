@@ -1,20 +1,6 @@
 {
   "testCaseName": "Order By QC float column descending",
-  "query": {
-    "action": {
-      "type": "Aggregated",
-      "groupByFields": ["qc_value"],
-      "orderByFields": [
-        {
-          "field": "qc_value",
-          "order": "descending"
-        }
-      ]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.aggregated('qc_value').orderBy('qc_value descending')",
   "expectedQueryResult": [
     {
       "count": 10,

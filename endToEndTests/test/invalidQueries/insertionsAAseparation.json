@@ -1,14 +1,6 @@
 {
   "testCaseName": "The insertions action with an amino acid sequence name",
-  "query": {
-    "action": {
-      "type": "Insertions",
-      "sequenceNames": ["S"]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.insertions('S')",
   "expectedError": {
     "error": "Bad request",
     "message": "The database does not contain the Nucleotide sequence 'S'"

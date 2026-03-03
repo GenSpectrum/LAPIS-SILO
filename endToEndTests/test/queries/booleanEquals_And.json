@@ -1,26 +1,6 @@
 {
   "testCaseName": "BooleanEquals with And",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "And",
-      "children": [
-        {
-          "type": "BooleanEquals",
-          "column": "test_boolean_column",
-          "value": false
-        },
-        {
-          "type": "Lineage",
-          "column": "pango_lineage",
-          "value": "B.1",
-          "includeSublineages": true
-        }
-      ]
-    }
-  },
+  "query": "res.filter((test_boolean_column = false) && (pango_lineage.lineage('B.1', includeSublineages:=true))).aggregated()",
   "expectedQueryResult": [
     {
       "count": 37

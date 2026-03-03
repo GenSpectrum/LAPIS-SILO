@@ -1,15 +1,6 @@
 {
   "testCaseName": "StringSearch that matches exactly a string",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "StringSearch",
-      "column": "division",
-      "searchExpression": "^Aargau$"
-    }
-  },
+  "query": "res.filter(division.like('^Aargau$')).aggregated()",
   "expectedQueryResult": [
     {
       "count": 6

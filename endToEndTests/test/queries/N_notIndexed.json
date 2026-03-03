@@ -1,15 +1,6 @@
 {
   "testCaseName": "Nucleotide equals query for symbol N",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "NucleotideEquals",
-      "position": 122,
-      "symbol": "N"
-    }
-  },
+  "query": "res.filter(nucleotideEquals(position:=122, symbol:='N')).aggregated()",
   "expectedQueryResult": [
     {
       "count": 3

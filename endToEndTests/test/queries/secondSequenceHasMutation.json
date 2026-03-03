@@ -1,15 +1,6 @@
 {
   "testCaseName": "Access on second sequence - HasNucleotideMutation",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "HasNucleotideMutation",
-      "position": 2,
-      "sequenceName": "testSecondSequence"
-    }
-  },
+  "query": "res.filter(hasMutation(position:=2, sequenceName:='testSecondSequence')).aggregated()",
   "expectedQueryResult": [
     {
       "count": 6

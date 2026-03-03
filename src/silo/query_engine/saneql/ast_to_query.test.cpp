@@ -272,7 +272,8 @@ TEST(SaneQLAstToQuery, convertsDetailsWithOffset) {
 }
 
 TEST(SaneQLAstToQuery, convertsMutationsAction) {
-   auto query = parseAndConvert("metadata.filter(country = 'USA').mutations()");
+   auto query =
+      parseAndConvert("metadata.filter(country = 'USA').mutations(minProportion:='0.05')");
    ASSERT_NE(query, nullptr);
 }
 

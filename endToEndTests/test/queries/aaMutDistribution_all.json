@@ -1,15 +1,6 @@
 {
   "testCaseName": "The distribution of Amino Acid Mutations action for all sequences",
-  "query": {
-    "action": {
-      "type": "AminoAcidMutations",
-      "minProportion": 0.4,
-      "orderByFields": ["position", "mutationFrom"]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.aminoAcidMutations(minProportion:='0.4').orderBy('position', 'mutationFrom')",
   "expectedQueryResult": [
     {
       "count": 37,

@@ -15,10 +15,13 @@
 #include "silo/query_engine/actions/fasta.h"
 #include "silo/query_engine/actions/fasta_aligned.h"
 #include "silo/query_engine/actions/insertions.h"
+#include "silo/query_engine/actions/most_recent_common_ancestor.h"
 #include "silo/query_engine/actions/mutations.h"
+#include "silo/query_engine/actions/phylo_subtree.h"
 #include "silo/query_engine/filter/expressions/and.h"
 #include "silo/query_engine/filter/expressions/bool_equals.h"
 #include "silo/query_engine/filter/expressions/date_between.h"
+#include "silo/query_engine/filter/expressions/exact.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/expressions/false.h"
 #include "silo/query_engine/filter/expressions/float_between.h"
@@ -29,9 +32,11 @@
 #include "silo/query_engine/filter/expressions/int_equals.h"
 #include "silo/query_engine/filter/expressions/is_null.h"
 #include "silo/query_engine/filter/expressions/lineage_filter.h"
+#include "silo/query_engine/filter/expressions/maybe.h"
 #include "silo/query_engine/filter/expressions/negation.h"
 #include "silo/query_engine/filter/expressions/nof.h"
 #include "silo/query_engine/filter/expressions/or.h"
+#include "silo/query_engine/filter/expressions/phylo_child_filter.h"
 #include "silo/query_engine/filter/expressions/string_equals.h"
 #include "silo/query_engine/filter/expressions/string_in_set.h"
 #include "silo/query_engine/filter/expressions/string_search.h"
@@ -56,6 +61,7 @@ std::optional<std::string> findNamedStringArg(
          if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
             return str->value;
          }
+         throw IllegalQueryException("error: '{}' field must be a string", name);
       }
    }
    return std::nullopt;
@@ -70,9 +76,24 @@ std::optional<int64_t> findNamedIntArg(
          if (auto* val = std::get_if<ast::IntLiteral>(&arg.value->value)) {
             return val->value;
          }
+         throw IllegalQueryException("error: '{}' field must be an integer", name);
       }
    }
    return std::nullopt;
+}
+
+/// Check if a named argument exists with a given name, returning the AST expression if found.
+/// Does NOT throw on type mismatch — use for polymorphic args that accept multiple types.
+const ast::Expression* findNamedArg(
+   const std::vector<ast::Argument>& args,
+   const std::string& name
+) {
+   for (const auto& arg : args) {
+      if (arg.name.has_value() && arg.name.value() == name) {
+         return arg.value.get();
+      }
+   }
+   return nullptr;
 }
 
 std::optional<bool> findNamedBoolArg(
@@ -84,6 +105,9 @@ std::optional<bool> findNamedBoolArg(
          if (auto* val = std::get_if<ast::BoolLiteral>(&arg.value->value)) {
             return val->value;
          }
+         throw IllegalQueryException(
+            "error: '{}' field in action must be a boolean", name
+         );
       }
    }
    return std::nullopt;
@@ -137,7 +161,8 @@ std::string getStringFromExpr(const ast::Expression& expr) {
 bool isActionMethod(const std::string& name) {
    return name == "aggregated" || name == "details" || name == "mutations" || name == "fasta" ||
           name == "fastaAligned" || name == "insertions" || name == "aminoAcidInsertions" ||
-          name == "aminoAcidMutations";
+          name == "aminoAcidMutations" || name == "phyloSubtree" ||
+          name == "mostRecentCommonAncestor";
 }
 
 template <typename SymbolType>
@@ -161,19 +186,30 @@ filter::expressions::SymbolOrDot<SymbolType> parseSymbolOrDot(const std::string&
 void applyOrderingParams(actions::Action& action, const std::vector<ast::Argument>& arguments) {
    auto limit = findNamedIntArg(arguments, "limit");
    auto offset = findNamedIntArg(arguments, "offset");
-   auto randomize_int = findNamedIntArg(arguments, "randomize");
-   auto randomize_bool = findNamedBoolArg(arguments, "randomize");
-
    std::optional<uint32_t> randomize_seed;
-   if (randomize_int.has_value()) {
-      randomize_seed = static_cast<uint32_t>(randomize_int.value());
-   } else if (randomize_bool.has_value() && randomize_bool.value()) {
-      randomize_seed =
-         static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count());
+   if (const auto* randomize_expr = findNamedArg(arguments, "randomize")) {
+      if (auto* int_val = std::get_if<ast::IntLiteral>(&randomize_expr->value)) {
+         randomize_seed = static_cast<uint32_t>(int_val->value);
+      } else if (auto* bool_val = std::get_if<ast::BoolLiteral>(&randomize_expr->value)) {
+         if (bool_val->value) {
+            randomize_seed =
+               static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count());
+         }
+      } else {
+         throw IllegalQueryException(
+            "error: 'randomize' field must be a boolean or an integer"
+         );
+      }
    }
 
    if (limit.has_value() && limit.value() <= 0) {
       throw IllegalQueryException("If the action contains a limit, it must be a positive number");
+   }
+
+   if (offset.has_value() && offset.value() < 0) {
+      throw IllegalQueryException(
+         "If the action contains an offset, it must be a non-negative number"
+      );
    }
 
    if (limit.has_value() || offset.has_value() || randomize_seed.has_value()) {
@@ -451,14 +487,17 @@ ExprPtr convertMethodCallToFilter(const ast::MethodCall& call) {
       }
 
       // Check for includeSublineages as bool or string
-      auto include_sublineages_str = findNamedStringArg(call.arguments, "includeSublineages");
-      auto include_sublineages_bool = findNamedBoolArg(call.arguments, "includeSublineages");
-
       bool include_sublineages = false;
-      if (include_sublineages_bool.has_value()) {
-         include_sublineages = include_sublineages_bool.value();
-      } else if (include_sublineages_str.has_value() && include_sublineages_str.value() == "true") {
-         include_sublineages = true;
+      if (const auto* incl_expr = findNamedArg(call.arguments, "includeSublineages")) {
+         if (auto* bool_val = std::get_if<ast::BoolLiteral>(&incl_expr->value)) {
+            include_sublineages = bool_val->value;
+         } else if (auto* str_val = std::get_if<ast::StringLiteral>(&incl_expr->value)) {
+            include_sublineages = str_val->value == "true";
+         } else {
+            throw IllegalQueryException(
+               "error: 'includeSublineages' field must be a boolean or a string"
+            );
+         }
       }
 
       std::optional<common::RecombinantEdgeFollowingMode> sublineage_mode;
@@ -488,6 +527,18 @@ ExprPtr convertMethodCallToFilter(const ast::MethodCall& call) {
 
       return std::make_unique<filter::expressions::LineageFilter>(
          std::move(receiver_name), std::move(lineage_value), sublineage_mode
+      );
+   }
+
+   if (call.method_name == "phyloDescendantOf") {
+      if (call.arguments.empty()) {
+         throw ParseException(
+            call.receiver->location, "phyloDescendantOf() requires at least 1 argument"
+         );
+      }
+      std::string internal_node = getStringFromExpr(*call.arguments[0].value);
+      return std::make_unique<filter::expressions::PhyloChildFilter>(
+         std::move(receiver_name), std::move(internal_node)
       );
    }
 
@@ -591,6 +642,12 @@ ExprPtr convertFunctionCallToFilter(const ast::FunctionCall& call) {
          );
       }
 
+      if (value.value().empty()) {
+         throw IllegalQueryException(
+            "The field 'value' in an InsertionContains expression must not be an empty string"
+         );
+      }
+
       if (call.function_name == "insertionContains") {
          return std::make_unique<filter::expressions::InsertionContains<Nucleotide>>(
             sequence_name, static_cast<uint32_t>(position.value()), value.value()
@@ -599,6 +656,22 @@ ExprPtr convertFunctionCallToFilter(const ast::FunctionCall& call) {
       return std::make_unique<filter::expressions::InsertionContains<AminoAcid>>(
          sequence_name, static_cast<uint32_t>(position.value()), value.value()
       );
+   }
+
+   if (call.function_name == "maybe") {
+      if (call.arguments.size() != 1) {
+         throw ParseException(SourceLocation{}, "maybe() requires exactly 1 argument");
+      }
+      auto child = convertToFilter(*call.arguments[0].value);
+      return std::make_unique<filter::expressions::Maybe>(std::move(child));
+   }
+
+   if (call.function_name == "exact") {
+      if (call.arguments.size() != 1) {
+         throw ParseException(SourceLocation{}, "exact() requires exactly 1 argument");
+      }
+      auto child = convertToFilter(*call.arguments[0].value);
+      return std::make_unique<filter::expressions::Exact>(std::move(child));
    }
 
    if (call.function_name == "nOf") {
@@ -759,11 +832,20 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
 
    if (method_call.method_name == "mutations") {
       std::vector<std::string> sequence_names;
-      double min_proportion = 0.05;
 
       auto min_prop = findNamedStringArg(method_call.arguments, "minProportion");
-      if (min_prop.has_value()) {
-         min_proportion = std::stod(min_prop.value());
+      if (!min_prop.has_value()) {
+         throw IllegalQueryException(
+            "Mutations action must contain the field minProportion of type number with limits "
+            "[0.0, 1.0]. Only mutations are returned if the proportion of sequences having this "
+            "mutation, is at least minProportion"
+         );
+      }
+      double min_proportion = std::stod(min_prop.value());
+      if (min_proportion < 0.0 || min_proportion > 1.0) {
+         throw IllegalQueryException(
+            "Invalid proportion: minProportion must be in interval [0.0, 1.0]"
+         );
       }
 
       std::vector<std::string> skip_names = ordering_params;
@@ -801,11 +883,20 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
 
    if (method_call.method_name == "aminoAcidMutations") {
       std::vector<std::string> sequence_names;
-      double min_proportion = 0.05;
 
       auto min_prop = findNamedStringArg(method_call.arguments, "minProportion");
-      if (min_prop.has_value()) {
-         min_proportion = std::stod(min_prop.value());
+      if (!min_prop.has_value()) {
+         throw IllegalQueryException(
+            "Mutations action must contain the field minProportion of type number with limits "
+            "[0.0, 1.0]. Only mutations are returned if the proportion of sequences having this "
+            "mutation, is at least minProportion"
+         );
+      }
+      double min_proportion = std::stod(min_prop.value());
+      if (min_proportion < 0.0 || min_proportion > 1.0) {
+         throw IllegalQueryException(
+            "Invalid proportion: minProportion must be in interval [0.0, 1.0]"
+         );
       }
 
       std::vector<std::string> skip_names = ordering_params;
@@ -918,6 +1009,49 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
       }
       auto action =
          std::make_unique<actions::InsertionAggregation<AminoAcid>>(std::move(sequence_names));
+      applyOrderingParams(*action, method_call.arguments);
+      return action;
+   }
+
+   if (method_call.method_name == "phyloSubtree") {
+      std::string column_name;
+      for (const auto& arg : method_call.arguments) {
+         if (!arg.name.has_value()) {
+            if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
+               column_name = str->value;
+               break;
+            }
+         }
+      }
+      if (column_name.empty()) {
+         throw IllegalQueryException("phyloSubtree() requires a column name argument");
+      }
+      bool print_nodes =
+         findNamedBoolArg(method_call.arguments, "printNodesNotInTree").value_or(false);
+      bool contract = findNamedBoolArg(method_call.arguments, "contractUnaryNodes").value_or(false);
+      auto action =
+         std::make_unique<actions::PhyloSubtree>(std::move(column_name), print_nodes, contract);
+      applyOrderingParams(*action, method_call.arguments);
+      return action;
+   }
+
+   if (method_call.method_name == "mostRecentCommonAncestor") {
+      std::string column_name;
+      for (const auto& arg : method_call.arguments) {
+         if (!arg.name.has_value()) {
+            if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
+               column_name = str->value;
+               break;
+            }
+         }
+      }
+      if (column_name.empty()) {
+         throw IllegalQueryException("mostRecentCommonAncestor() requires a column name argument");
+      }
+      bool print_nodes =
+         findNamedBoolArg(method_call.arguments, "printNodesNotInTree").value_or(false);
+      auto action =
+         std::make_unique<actions::MostRecentCommonAncestor>(std::move(column_name), print_nodes);
       applyOrderingParams(*action, method_call.arguments);
       return action;
    }

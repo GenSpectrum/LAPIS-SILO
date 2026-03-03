@@ -1,15 +1,6 @@
 {
   "testCaseName": "Group all sequences by division",
-  "query": {
-    "action": {
-      "type": "Aggregated",
-      "groupByFields": ["division"],
-      "orderByFields": ["division", "count"]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.aggregated('division').orderBy('division', 'count')",
   "expectedQueryResult": [
     {
       "count": 2,

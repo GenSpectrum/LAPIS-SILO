@@ -1,26 +1,6 @@
 {
   "testCaseName": "And Query with two children",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "And",
-      "children": [
-        {
-          "type": "StringEquals",
-          "column": "country",
-          "value": "Switzerland"
-        },
-        {
-          "type": "Lineage",
-          "column": "pango_lineage",
-          "value": "B.1.1.7",
-          "includeSublineages": true
-        }
-      ]
-    }
-  },
+  "query": "res.filter((country = 'Switzerland') && (pango_lineage.lineage('B.1.1.7', includeSublineages:=true))).aggregated()",
   "expectedQueryResult": [
     {
       "count": 51

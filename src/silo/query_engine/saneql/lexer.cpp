@@ -193,6 +193,11 @@ Token Lexer::nextToken() {
       return readNumber();
    }
 
+   if (current == '-' && position + 1 < input.size() &&
+       std::isdigit(static_cast<unsigned char>(input[position + 1]))) {
+      return readNumber();
+   }
+
    if (std::isalpha(static_cast<unsigned char>(current)) || current == '_') {
       return readIdentifierOrKeyword();
    }

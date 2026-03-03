@@ -1,28 +1,6 @@
 {
   "testCaseName": "PhyloSubtree query returns correct nwk without unary nodes",
-  "query": {
-    "action": {
-      "type": "PhyloSubtree",
-      "columnName": "usherTree",
-      "orderByFields": ["subtreeNewick"],
-      "contractUnaryNodes": true
-    },
-    "filterExpression": {
-      "type": "Or",
-      "children": [
-        {
-          "type": "StringEquals",
-          "column": "primary_key",
-          "value": "key_83"
-        },
-        {
-          "type": "StringEquals",
-          "column": "primary_key",
-          "value": "key_87"
-        }
-      ]
-    }
-  },
+  "query": "res.filter((primary_key = 'key_83') || (primary_key = 'key_87')).phyloSubtree('usherTree', contractUnaryNodes:=true).orderBy('subtreeNewick')",
   "expectedQueryResult": [
     {
       "subtreeNewick": "(key_83:0.00030342,key_87:0.00023744)NODE_0000076;",

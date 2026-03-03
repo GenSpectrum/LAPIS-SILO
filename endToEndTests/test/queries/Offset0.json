@@ -1,28 +1,6 @@
 {
   "testCaseName": "Offset by 0",
-  "query": {
-    "action": {
-      "type": "Details",
-      "orderByFields": ["primary_key"],
-      "offset": 0
-    },
-    "filterExpression": {
-      "type": "And",
-      "children": [
-        {
-          "type": "StringEquals",
-          "column": "country",
-          "value": "Switzerland"
-        },
-        {
-          "type": "Lineage",
-          "column": "pango_lineage",
-          "value": "B.1.1.7",
-          "includeSublineages": true
-        }
-      ]
-    }
-  },
+  "query": "res.filter((country = 'Switzerland') && (pango_lineage.lineage('B.1.1.7', includeSublineages:=true))).details(offset:=0).orderBy('primary_key')",
   "expectedQueryResult": [
     {
       "age": 57,

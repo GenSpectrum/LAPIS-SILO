@@ -1,33 +1,6 @@
 {
   "testCaseName": "N-Of query requesting 2 of 3 mutations with mutations action",
-  "query": {
-    "action": {
-      "type": "Mutations",
-      "minProportion": 0.7
-    },
-    "filterExpression": {
-      "type": "N-Of",
-      "numberOfMatchers": 2,
-      "matchExactly": false,
-      "children": [
-        {
-          "type": "NucleotideEquals",
-          "position": 2,
-          "symbol": "N"
-        },
-        {
-          "type": "NucleotideEquals",
-          "position": 86,
-          "symbol": "G"
-        },
-        {
-          "type": "NucleotideEquals",
-          "position": 27342,
-          "symbol": "N"
-        }
-      ]
-    }
-  },
+  "query": "res.filter(nOf(2, nucleotideEquals(position:=2, symbol:='N'), nucleotideEquals(position:=86, symbol:='G'), nucleotideEquals(position:=27342, symbol:='N'))).mutations(minProportion:='0.7')",
   "expectedQueryResult": [
     {
       "count": 1,

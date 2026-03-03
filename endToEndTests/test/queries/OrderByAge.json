@@ -1,20 +1,6 @@
 {
   "testCaseName": "Order By age column ascending",
-  "query": {
-    "action": {
-      "type": "Aggregated",
-      "groupByFields": ["age"],
-      "orderByFields": [
-        {
-          "field": "age",
-          "order": "ascending"
-        }
-      ]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.aggregated('age').orderBy('age')",
   "expectedQueryResult": [
     {
       "age": null,

@@ -1,15 +1,6 @@
 {
   "testCaseName": "BooleanEquals for test_boolean_column",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "BooleanEquals",
-      "column": "test_boolean_column",
-      "value": true
-    }
-  },
+  "query": "res.filter(test_boolean_column = true).aggregated()",
   "expectedQueryResult": [
     {
       "count": 41

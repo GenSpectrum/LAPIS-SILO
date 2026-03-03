@@ -1,15 +1,6 @@
 {
   "testCaseName": "Insertion Contains empty",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "InsertionContains",
-      "position": 25701,
-      "value": ""
-    }
-  },
+  "query": "res.filter(insertionContains(position:=25701, value:='')).aggregated()",
   "expectedError": {
     "error": "Bad request",
     "message": "The field 'value' in an InsertionContains expression must not be an empty string"

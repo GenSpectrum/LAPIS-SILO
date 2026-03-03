@@ -1,15 +1,6 @@
 {
   "testCaseName": "Amino acid mutation gene S",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "HasAminoAcidMutation",
-      "position": 28,
-      "sequenceName": "S"
-    }
-  },
+  "query": "res.filter(hasAAMutation(position:=28, sequenceName:='S')).aggregated()",
   "expectedQueryResult": [
     {
       "count": 1

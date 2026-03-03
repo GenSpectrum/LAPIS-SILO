@@ -1,27 +1,6 @@
 {
   "testCaseName": "MostRecentCommonAncestor query returns correct node",
-  "query": {
-    "action": {
-      "type": "MostRecentCommonAncestor",
-      "columnName": "usherTree",
-      "orderByFields": ["mrcaNode"]
-    },
-    "filterExpression": {
-      "type": "Or",
-      "children": [
-        {
-          "type": "StringEquals",
-          "column": "primary_key",
-          "value": "key_11"
-        },
-        {
-          "type": "StringEquals",
-          "column": "primary_key",
-          "value": "key_22"
-        }
-      ]
-    }
-  },
+  "query": "res.filter((primary_key = 'key_11') || (primary_key = 'key_22')).mostRecentCommonAncestor('usherTree').orderBy('mrcaNode')",
   "expectedQueryResult": [
     {
       "mrcaNode": "NODE_0000072",

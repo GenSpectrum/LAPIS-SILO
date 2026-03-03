@@ -1,18 +1,6 @@
 {
   "testCaseName": "StringSearch with a basic regex",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "Not",
-      "child": {
-        "type": "StringSearch",
-        "column": "primary_key",
-        "searchExpression": "key"
-      }
-    }
-  },
+  "query": "res.filter(!(primary_key.like('key'))).aggregated()",
   "expectedQueryResult": [
     {
       "count": 0

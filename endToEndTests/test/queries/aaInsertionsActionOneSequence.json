@@ -1,15 +1,6 @@
 {
   "testCaseName": "amino acid insertions action only one sequence",
-  "query": {
-    "action": {
-      "type": "AminoAcidInsertions",
-      "orderByFields": ["insertedSymbols", "position"],
-      "sequenceNames": ["S"]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.aminoAcidInsertions('S').orderBy('insertedSymbols', 'position')",
   "expectedQueryResult": [
     {
       "count": 1,

@@ -1,16 +1,6 @@
 {
   "testCaseName": "pango lineage B.1.1.7 including sublineages",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "Lineage",
-      "column": "pango_lineage",
-      "value": "B.1.1.7",
-      "includeSublineages": true
-    }
-  },
+  "query": "res.filter(pango_lineage.lineage('B.1.1.7', includeSublineages:=true)).aggregated()",
   "expectedQueryResult": [
     {
       "count": 51

@@ -1,16 +1,6 @@
 {
   "testCaseName": "DateBetween Query with open 'from' range 2",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "DateBetween",
-      "column": "date",
-      "from": null,
-      "to": "2021-03-18"
-    }
-  },
+  "query": "res.filter(date <= '2021-03-18'::date).aggregated()",
   "expectedQueryResult": [
     {
       "count": 52

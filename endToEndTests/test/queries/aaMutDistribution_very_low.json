@@ -1,16 +1,6 @@
 {
   "testCaseName": "The distribution of Amino Acid Mutations action with minProportion 0.0001",
-  "query": {
-    "action": {
-      "type": "AminoAcidMutations",
-      "sequenceNames": ["E"],
-      "minProportion": 0.0001,
-      "orderByFields": ["mutation"]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.aminoAcidMutations('E', minProportion:='0.0001').orderBy('mutation')",
   "expectedQueryResult": [
     {
       "count": 1,

@@ -1,13 +1,6 @@
 {
   "testCaseName": "MatchAll query requesting all entries",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.aggregated()",
   "expectedQueryResult": [
     {
       "count": 100

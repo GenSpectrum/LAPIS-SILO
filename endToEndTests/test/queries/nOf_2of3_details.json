@@ -1,35 +1,6 @@
 {
   "testCaseName": "N-Of query requesting 2 of 3 mutations with details action",
-  "query": {
-    "action": {
-      "type": "Details",
-      "randomize": {
-        "seed": 321
-      }
-    },
-    "filterExpression": {
-      "type": "N-Of",
-      "numberOfMatchers": 2,
-      "matchExactly": false,
-      "children": [
-        {
-          "type": "NucleotideEquals",
-          "position": 1,
-          "symbol": "-"
-        },
-        {
-          "type": "NucleotideEquals",
-          "position": 2,
-          "symbol": "T"
-        },
-        {
-          "type": "NucleotideEquals",
-          "position": 27542,
-          "symbol": "N"
-        }
-      ]
-    }
-  },
+  "query": "res.filter(nOf(2, nucleotideEquals(position:=1, symbol:='-'), nucleotideEquals(position:=2, symbol:='T'), nucleotideEquals(position:=27542, symbol:='N'))).details(randomize:=321)",
   "expectedQueryResult": [
     {
       "age": 58,

@@ -1,16 +1,6 @@
 {
   "testCaseName": "Recombinant lineage XBB including sublineages",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "Lineage",
-      "column": "pango_lineage",
-      "value": "XBB",
-      "includeSublineages": true
-    }
-  },
+  "query": "res.filter(pango_lineage.lineage('XBB', includeSublineages:=true)).aggregated()",
   "expectedQueryResult": [
     {
       "count": 1

@@ -1,15 +1,5 @@
 {
   "testCaseName": "Offset by exactly table size",
-  "query": {
-    "action": {
-      "type": "Details",
-      "orderByFields": ["primary_key"],
-      "offset": 100,
-      "limit": 90
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.details(limit:=90, offset:=100).orderBy('primary_key')",
   "expectedQueryResult": []
 }

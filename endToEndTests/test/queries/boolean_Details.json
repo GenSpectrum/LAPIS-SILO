@@ -1,26 +1,46 @@
 {
   "testCaseName": "boolean Details",
-  "query": {
-    "action": {
-      "type": "Details",
-      "fields": ["test_boolean_column", "primary_key"],
-      "orderByFields": ["primary_key"],
-      "limit": 10
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.details('test_boolean_column', 'primary_key', limit:=10).orderBy('primary_key')",
   "expectedQueryResult": [
-    { "test_boolean_column": true, "primary_key": "key_1" },
-    { "test_boolean_column": null, "primary_key": "key_10" },
-    { "test_boolean_column": true, "primary_key": "key_100" },
-    { "test_boolean_column": false, "primary_key": "key_11" },
-    { "test_boolean_column": false, "primary_key": "key_12" },
-    { "test_boolean_column": null, "primary_key": "key_13" },
-    { "test_boolean_column": true, "primary_key": "key_14" },
-    { "test_boolean_column": false, "primary_key": "key_15" },
-    { "test_boolean_column": true, "primary_key": "key_16" },
-    { "test_boolean_column": false, "primary_key": "key_17" }
+    {
+      "test_boolean_column": true,
+      "primary_key": "key_1"
+    },
+    {
+      "test_boolean_column": null,
+      "primary_key": "key_10"
+    },
+    {
+      "test_boolean_column": true,
+      "primary_key": "key_100"
+    },
+    {
+      "test_boolean_column": false,
+      "primary_key": "key_11"
+    },
+    {
+      "test_boolean_column": false,
+      "primary_key": "key_12"
+    },
+    {
+      "test_boolean_column": null,
+      "primary_key": "key_13"
+    },
+    {
+      "test_boolean_column": true,
+      "primary_key": "key_14"
+    },
+    {
+      "test_boolean_column": false,
+      "primary_key": "key_15"
+    },
+    {
+      "test_boolean_column": true,
+      "primary_key": "key_16"
+    },
+    {
+      "test_boolean_column": false,
+      "primary_key": "key_17"
+    }
   ]
 }

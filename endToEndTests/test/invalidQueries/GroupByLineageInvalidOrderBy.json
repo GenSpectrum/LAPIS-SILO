@@ -1,15 +1,6 @@
 {
   "testCaseName": "An invalid orderByField for the Aggregated Action",
-  "query": {
-    "action": {
-      "type": "Aggregated",
-      "groupByFields": ["pango_lineage"],
-      "orderByFields": ["age"]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.aggregated('pango_lineage').orderBy('age')",
   "expectedError": {
     "error": "Bad request",
     "message": "The orderByField 'age' cannot be ordered by, as it does not appear in the groupByFields."

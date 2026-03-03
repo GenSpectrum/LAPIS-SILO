@@ -1,115 +1,406 @@
 {
   "testCaseName": "FastaAligned action with one sequence",
-  "query": {
-    "action": {
-      "type": "FastaAligned",
-      "sequenceNames": ["testSecondSequence"],
-      "orderByFields": ["primary_key"]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.fastaAligned('testSecondSequence').orderBy('primary_key')",
   "expectedQueryResult": [
-    { "primary_key": "key_1", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_10", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_100", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_11", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_12", "testSecondSequence": "ARGT" },
-    { "primary_key": "key_13", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_14", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_15", "testSecondSequence": "ATGT" },
-    { "primary_key": "key_16", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_17", "testSecondSequence": "ACGN" },
-    { "primary_key": "key_18", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_19", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_2", "testSecondSequence": "ARGT" },
-    { "primary_key": "key_20", "testSecondSequence": "AYGT" },
-    { "primary_key": "key_21", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_22", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_23", "testSecondSequence": "ANGT" },
-    { "primary_key": "key_24", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_25", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_26", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_27", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_28", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_29", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_3", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_30", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_31", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_32", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_33", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_34", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_35", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_36", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_37", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_38", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_39", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_4", "testSecondSequence": "ACGN" },
-    { "primary_key": "key_40", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_41", "testSecondSequence": "AAGN" },
-    { "primary_key": "key_42", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_43", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_44", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_45", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_46", "testSecondSequence": "ACGN" },
-    { "primary_key": "key_47", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_48", "testSecondSequence": "ANGT" },
-    { "primary_key": "key_49", "testSecondSequence": "A-GT" },
-    { "primary_key": "key_5", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_50", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_51", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_52", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_53", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_54", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_55", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_56", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_57", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_58", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_59", "testSecondSequence": null },
-    { "primary_key": "key_6", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_60", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_61", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_62", "testSecondSequence": null },
-    { "primary_key": "key_63", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_64", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_65", "testSecondSequence": "NCGT" },
-    { "primary_key": "key_66", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_67", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_68", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_69", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_7", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_70", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_71", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_72", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_73", "testSecondSequence": "AAGT" },
-    { "primary_key": "key_74", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_75", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_76", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_77", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_78", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_79", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_8", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_80", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_81", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_82", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_83", "testSecondSequence": null },
-    { "primary_key": "key_84", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_85", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_86", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_87", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_88", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_89", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_9", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_90", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_91", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_92", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_93", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_94", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_95", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_96", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_97", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_98", "testSecondSequence": "ACGT" },
-    { "primary_key": "key_99", "testSecondSequence": "ACGT" }
+    {
+      "primary_key": "key_1",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_10",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_100",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_11",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_12",
+      "testSecondSequence": "ARGT"
+    },
+    {
+      "primary_key": "key_13",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_14",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_15",
+      "testSecondSequence": "ATGT"
+    },
+    {
+      "primary_key": "key_16",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_17",
+      "testSecondSequence": "ACGN"
+    },
+    {
+      "primary_key": "key_18",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_19",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_2",
+      "testSecondSequence": "ARGT"
+    },
+    {
+      "primary_key": "key_20",
+      "testSecondSequence": "AYGT"
+    },
+    {
+      "primary_key": "key_21",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_22",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_23",
+      "testSecondSequence": "ANGT"
+    },
+    {
+      "primary_key": "key_24",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_25",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_26",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_27",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_28",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_29",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_3",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_30",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_31",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_32",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_33",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_34",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_35",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_36",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_37",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_38",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_39",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_4",
+      "testSecondSequence": "ACGN"
+    },
+    {
+      "primary_key": "key_40",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_41",
+      "testSecondSequence": "AAGN"
+    },
+    {
+      "primary_key": "key_42",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_43",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_44",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_45",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_46",
+      "testSecondSequence": "ACGN"
+    },
+    {
+      "primary_key": "key_47",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_48",
+      "testSecondSequence": "ANGT"
+    },
+    {
+      "primary_key": "key_49",
+      "testSecondSequence": "A-GT"
+    },
+    {
+      "primary_key": "key_5",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_50",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_51",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_52",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_53",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_54",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_55",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_56",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_57",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_58",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_59",
+      "testSecondSequence": null
+    },
+    {
+      "primary_key": "key_6",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_60",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_61",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_62",
+      "testSecondSequence": null
+    },
+    {
+      "primary_key": "key_63",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_64",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_65",
+      "testSecondSequence": "NCGT"
+    },
+    {
+      "primary_key": "key_66",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_67",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_68",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_69",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_7",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_70",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_71",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_72",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_73",
+      "testSecondSequence": "AAGT"
+    },
+    {
+      "primary_key": "key_74",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_75",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_76",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_77",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_78",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_79",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_8",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_80",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_81",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_82",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_83",
+      "testSecondSequence": null
+    },
+    {
+      "primary_key": "key_84",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_85",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_86",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_87",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_88",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_89",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_9",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_90",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_91",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_92",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_93",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_94",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_95",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_96",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_97",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_98",
+      "testSecondSequence": "ACGT"
+    },
+    {
+      "primary_key": "key_99",
+      "testSecondSequence": "ACGT"
+    }
   ]
 }

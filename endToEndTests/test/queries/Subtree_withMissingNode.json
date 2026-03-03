@@ -1,38 +1,6 @@
 {
   "testCaseName": "PhyloSubtree query returns correct nwk with missingNode",
-  "query": {
-    "action": {
-      "type": "PhyloSubtree",
-      "columnName": "usherTree",
-      "orderByFields": ["subtreeNewick"],
-      "printNodesNotInTree": true
-    },
-    "filterExpression": {
-      "type": "Or",
-      "children": [
-        {
-          "type": "StringEquals",
-          "column": "usherTree",
-          "value": "key_1"
-        },
-        {
-          "type": "StringEquals",
-          "column": "usherTree",
-          "value": "key_12"
-        },
-        {
-          "type": "StringEquals",
-          "column": "usherTree",
-          "value": "key_7"
-        },
-        {
-          "type": "StringEquals",
-          "column": "usherTree",
-          "value": "key_35"
-        }
-      ]
-    }
-  },
+  "query": "res.filter((usherTree = 'key_1') || (usherTree = 'key_12') || (usherTree = 'key_7') || (usherTree = 'key_35')).phyloSubtree('usherTree', printNodesNotInTree:=true).orderBy('subtreeNewick')",
   "expectedQueryResult": [
     {
       "subtreeNewick": "(key_7:0.00010761,key_12:0.00013378)NODE_0000096;",

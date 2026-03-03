@@ -1,15 +1,6 @@
 {
   "testCaseName": "Insertion Contains with non-exact match CAG.*AA",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "InsertionContains",
-      "position": 22204,
-      "value": "CAG.*AA"
-    }
-  },
+  "query": "res.filter(insertionContains(position:=22204, value:='CAG.*AA')).aggregated()",
   "expectedQueryResult": [
     {
       "count": 1

@@ -1,14 +1,6 @@
 {
   "testCaseName": "amino acid insertions action",
-  "query": {
-    "action": {
-      "type": "AminoAcidInsertions",
-      "orderByFields": ["insertion", "position"]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "res.aminoAcidInsertions().orderBy('insertion', 'position')",
   "expectedQueryResult": [
     {
       "count": 1,

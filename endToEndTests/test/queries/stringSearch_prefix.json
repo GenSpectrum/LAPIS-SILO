@@ -1,15 +1,6 @@
 {
   "testCaseName": "StringSearch with a regex matching the prefix",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "StringSearch",
-      "column": "primary_key",
-      "searchExpression": "^key_"
-    }
-  },
+  "query": "res.filter(primary_key.like('^key_')).aggregated()",
   "expectedQueryResult": [
     {
       "count": 100

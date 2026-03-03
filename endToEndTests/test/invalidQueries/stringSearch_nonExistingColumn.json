@@ -1,15 +1,6 @@
 {
   "testCaseName": "StringSearch that wants to match a non-existing column",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "StringSearch",
-      "column": "this_column_does_not_exist",
-      "searchExpression": "test"
-    }
-  },
+  "query": "res.filter(this_column_does_not_exist.like('test')).aggregated()",
   "expectedError": {
     "error": "Bad request",
     "message": "The database does not contain the string column 'this_column_does_not_exist'"

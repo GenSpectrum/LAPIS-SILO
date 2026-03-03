@@ -1,20 +1,8 @@
 {
   "testCaseName": "MostRecentCommonAncestor action with invalid printNodesNotInTree value ",
-  "query": {
-    "action": {
-      "type": "MostRecentCommonAncestor",
-      "columnName": "primary_key",
-      "orderByFields": ["mrcaNode"],
-      "printNodesNotInTree": "T"
-    },
-    "filterExpression": {
-      "type": "StringEquals",
-      "column": "country",
-      "value": "Switzerland"
-    }
-  },
+  "query": "res.filter(country = 'Switzerland').mostRecentCommonAncestor('primary_key', printNodesNotInTree:='T').orderBy('mrcaNode')",
   "expectedError": {
     "error": "Bad request",
-    "message": "error: 'printNodesNotInTree' field in MostRecentCommonAncestor action must be a boolean"
+    "message": "error: 'printNodesNotInTree' field in action must be a boolean"
   }
 }

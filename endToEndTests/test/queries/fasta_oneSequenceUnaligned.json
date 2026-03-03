@@ -1,16 +1,6 @@
 {
   "testCaseName": "Get the unaligned fasta for one sequence",
-  "query": {
-    "action": {
-      "type": "Fasta",
-      "sequenceNames": ["unaligned_main"]
-    },
-    "filterExpression": {
-      "type": "StringEquals",
-      "column": "primary_key",
-      "value": "key_41"
-    }
-  },
+  "query": "res.filter(primary_key = 'key_41').fasta('unaligned_main')",
   "expectedQueryResult": [
     {
       "primary_key": "key_41",

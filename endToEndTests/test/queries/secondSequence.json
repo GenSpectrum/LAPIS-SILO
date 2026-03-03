@@ -1,16 +1,6 @@
 {
   "testCaseName": "Access on second sequence - NucleotideEquals",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "NucleotideEquals",
-      "position": 1,
-      "symbol": "A",
-      "sequenceName": "testSecondSequence"
-    }
-  },
+  "query": "res.filter(nucleotideEquals(position:=1, symbol:='A', sequenceName:='testSecondSequence')).aggregated()",
   "expectedQueryResult": [
     {
       "count": 96

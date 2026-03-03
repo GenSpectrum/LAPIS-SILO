@@ -1,18 +1,6 @@
 {
   "testCaseName": "Exact Query",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "Exact",
-      "child": {
-        "type": "NucleotideEquals",
-        "position": 122,
-        "symbol": "A"
-      }
-    }
-  },
+  "query": "res.filter(exact(nucleotideEquals(position:=122, symbol:='A'))).aggregated()",
   "expectedQueryResult": [
     {
       "count": 93
