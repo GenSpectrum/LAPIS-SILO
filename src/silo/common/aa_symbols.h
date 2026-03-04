@@ -104,6 +104,14 @@ class AminoAcid {
 
    static_assert(INVALID_MUTATION_SYMBOLS.size() + VALID_MUTATION_SYMBOLS.size() == SYMBOLS.size());
 
+   /// Maps each symbol to the set of symbols it can represent or match.
+   /// For example, B represents at least {D, N}, and X typically represents all symbols
+   /// (including ambiguity symbols and the symbol itself, as applicable).
+   static const silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> CODES_FOR;
+
+   /// Maps each symbol to all symbols whose CODES_FOR set is a superset.
+   /// I.e. AMBIGUITY_SYMBOLS[S] = {Y : CODES_FOR[S] ⊆ CODES_FOR[Y]}.
+   /// Derived from CODES_FOR.
    static const silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AMBIGUITY_SYMBOLS;
 
    static constexpr Symbol SYMBOL_MISSING = Symbol::X;
