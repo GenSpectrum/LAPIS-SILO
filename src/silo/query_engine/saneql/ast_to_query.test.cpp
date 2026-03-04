@@ -473,6 +473,35 @@ TEST(SaneQLAstToQuery, convertsLineageWithNullValue) {
    ASSERT_NE(query, nullptr);
 }
 
+// --- Unknown named argument rejection ---
+
+TEST(SaneQLAstToQuery, throwsOnUnknownNamedArgInAction) {
+   EXPECT_THROW(
+      parseAndConvert("metadata.aggregated(unknown:=123)"),
+      silo::query_engine::IllegalQueryException
+   );
+}
+
+TEST(SaneQLAstToQuery, throwsOnUnknownNamedArgInFilter) {
+   EXPECT_THROW(
+      parseAndConvert("metadata.filter(hasMutation(position:=1, unknown:='foo')).aggregated()"),
+      silo::query_engine::IllegalQueryException
+   );
+}
+
+TEST(SaneQLAstToQuery, throwsOnUnknownNamedArgInDetailsAction) {
+   EXPECT_THROW(
+      parseAndConvert("metadata.details(limt:=10)"), silo::query_engine::IllegalQueryException
+   );
+}
+
+TEST(SaneQLAstToQuery, throwsOnUnknownNamedArgInLineageFilter) {
+   EXPECT_THROW(
+      parseAndConvert("metadata.filter(pango.lineage('B.1.1.7', unknown:=true)).aggregated()"),
+      silo::query_engine::IllegalQueryException
+   );
+}
+
 // --- Integration tests via Query::parseQuery ---
 
 using silo::query_engine::IllegalQueryException;

@@ -232,6 +232,28 @@ bool isSkippableNamedArg(const ast::Argument& arg, const std::vector<std::string
    return false;
 }
 
+void validateNoUnknownNamedArgs(
+   const std::vector<ast::Argument>& args,
+   const std::vector<std::string>& valid_names,
+   const std::string& context
+) {
+   for (const auto& arg : args) {
+      if (!arg.name.has_value()) {
+         continue;
+      }
+      bool found = false;
+      for (const auto& name : valid_names) {
+         if (arg.name.value() == name) {
+            found = true;
+            break;
+         }
+      }
+      if (!found) {
+         throw IllegalQueryException("Unknown argument '{}' in {}()", arg.name.value(), context);
+      }
+   }
+}
+
 ExprPtr convertEqualsExpr(const ast::BinaryExpr& bin) {
    // Check for column = null → IsNull
    if (std::holds_alternative<ast::NullLiteral>(bin.right->value)) {
@@ -472,6 +494,9 @@ ExprPtr convertMethodCallToFilter(const ast::MethodCall& call) {
    }
 
    if (call.method_name == "lineage") {
+      validateNoUnknownNamedArgs(
+         call.arguments, {"includeSublineages", "recombinantFollowingMode"}, "lineage"
+      );
       if (call.arguments.empty()) {
          throw ParseException(call.receiver->location, "lineage() requires at least 1 argument");
       }
@@ -543,6 +568,7 @@ ExprPtr convertMethodCallToFilter(const ast::MethodCall& call) {
 
 ExprPtr convertFunctionCallToFilter(const ast::FunctionCall& call) {
    if (call.function_name == "hasMutation" || call.function_name == "hasAAMutation") {
+      validateNoUnknownNamedArgs(call.arguments, {"position", "sequenceName"}, call.function_name);
       auto position = findNamedIntArg(call.arguments, "position");
       auto sequence_name = findNamedStringArg(call.arguments, "sequenceName");
 
@@ -580,6 +606,9 @@ ExprPtr convertFunctionCallToFilter(const ast::FunctionCall& call) {
    }
 
    if (call.function_name == "nucleotideEquals" || call.function_name == "aminoAcidEquals") {
+      validateNoUnknownNamedArgs(
+         call.arguments, {"position", "symbol", "sequenceName"}, call.function_name
+      );
       auto position = findNamedIntArg(call.arguments, "position");
       auto symbol = findNamedStringArg(call.arguments, "symbol");
       auto sequence_name = findNamedStringArg(call.arguments, "sequenceName");
@@ -628,6 +657,9 @@ ExprPtr convertFunctionCallToFilter(const ast::FunctionCall& call) {
 
    if (call.function_name == "insertionContains" ||
        call.function_name == "aminoAcidInsertionContains") {
+      validateNoUnknownNamedArgs(
+         call.arguments, {"position", "value", "sequenceName"}, call.function_name
+      );
       auto position = findNamedIntArg(call.arguments, "position");
       auto value = findNamedStringArg(call.arguments, "value");
       auto sequence_name = findNamedStringArg(call.arguments, "sequenceName");
@@ -778,6 +810,7 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
    const std::vector<std::string> ordering_params = {"limit", "offset", "randomize"};
 
    if (method_call.method_name == "aggregated") {
+      validateNoUnknownNamedArgs(method_call.arguments, ordering_params, "aggregated");
       std::vector<std::string> group_by;
       std::unordered_set<std::string> seen;
       for (const auto& arg : method_call.arguments) {
@@ -802,6 +835,7 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
    }
 
    if (method_call.method_name == "details") {
+      validateNoUnknownNamedArgs(method_call.arguments, ordering_params, "details");
       std::vector<std::string> fields;
       std::unordered_set<std::string> seen;
 
@@ -827,6 +861,10 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
    }
 
    if (method_call.method_name == "mutations") {
+      std::vector<std::string> valid_names = ordering_params;
+      valid_names.emplace_back("minProportion");
+      valid_names.emplace_back("fields");
+      validateNoUnknownNamedArgs(method_call.arguments, valid_names, "mutations");
       std::vector<std::string> sequence_names;
 
       auto min_prop = findNamedStringArg(method_call.arguments, "minProportion");
@@ -878,6 +916,10 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
    }
 
    if (method_call.method_name == "aminoAcidMutations") {
+      std::vector<std::string> valid_names = ordering_params;
+      valid_names.emplace_back("minProportion");
+      valid_names.emplace_back("fields");
+      validateNoUnknownNamedArgs(method_call.arguments, valid_names, "aminoAcidMutations");
       std::vector<std::string> sequence_names;
 
       auto min_prop = findNamedStringArg(method_call.arguments, "minProportion");
@@ -929,6 +971,9 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
    }
 
    if (method_call.method_name == "fasta") {
+      std::vector<std::string> valid_names = ordering_params;
+      valid_names.emplace_back("additionalFields");
+      validateNoUnknownNamedArgs(method_call.arguments, valid_names, "fasta");
       std::vector<std::string> sequence_names;
       auto additional_fields = findNamedStringSetArg(method_call.arguments, "additionalFields");
 
@@ -950,6 +995,9 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
    }
 
    if (method_call.method_name == "fastaAligned") {
+      std::vector<std::string> valid_names = ordering_params;
+      valid_names.emplace_back("additionalFields");
+      validateNoUnknownNamedArgs(method_call.arguments, valid_names, "fastaAligned");
       std::vector<std::string> sequence_names;
       auto additional_fields = findNamedStringSetArg(method_call.arguments, "additionalFields");
 
@@ -972,6 +1020,7 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
    }
 
    if (method_call.method_name == "insertions") {
+      validateNoUnknownNamedArgs(method_call.arguments, ordering_params, "insertions");
       std::vector<std::string> sequence_names;
 
       std::vector<std::string> skip_names = ordering_params;
@@ -991,6 +1040,7 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
    }
 
    if (method_call.method_name == "aminoAcidInsertions") {
+      validateNoUnknownNamedArgs(method_call.arguments, ordering_params, "aminoAcidInsertions");
       std::vector<std::string> sequence_names;
 
       std::vector<std::string> skip_names = ordering_params;
@@ -1010,6 +1060,10 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
    }
 
    if (method_call.method_name == "phyloSubtree") {
+      std::vector<std::string> valid_names = ordering_params;
+      valid_names.emplace_back("printNodesNotInTree");
+      valid_names.emplace_back("contractUnaryNodes");
+      validateNoUnknownNamedArgs(method_call.arguments, valid_names, "phyloSubtree");
       std::string column_name;
       for (const auto& arg : method_call.arguments) {
          if (!arg.name.has_value()) {
@@ -1032,6 +1086,9 @@ std::unique_ptr<actions::Action> convertToAction(const ast::MethodCall& method_c
    }
 
    if (method_call.method_name == "mostRecentCommonAncestor") {
+      std::vector<std::string> valid_names = ordering_params;
+      valid_names.emplace_back("printNodesNotInTree");
+      validateNoUnknownNamedArgs(method_call.arguments, valid_names, "mostRecentCommonAncestor");
       std::string column_name;
       for (const auto& arg : method_call.arguments) {
          if (!arg.name.has_value()) {
