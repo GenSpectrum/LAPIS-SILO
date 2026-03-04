@@ -51,9 +51,9 @@ std::map<std::string, column::FloatColumnPartition>& ColumnPartitionGroup::getCo
 }
 
 template <>
-std::map<std::string, column::DateColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::DateColumnPartition>() {
-   return date_columns;
+std::map<std::string, column::Date32ColumnPartition>& ColumnPartitionGroup::getColumns<
+   column::Date32ColumnPartition>() {
+   return date32_columns;
 }
 
 template <>
@@ -105,9 +105,9 @@ const std::map<std::string, column::FloatColumnPartition>& ColumnPartitionGroup:
 }
 
 template <>
-const std::map<std::string, column::DateColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::DateColumnPartition>() const {
-   return date_columns;
+const std::map<std::string, column::Date32ColumnPartition>& ColumnPartitionGroup::getColumns<
+   column::Date32ColumnPartition>() const {
+   return date32_columns;
 }
 
 template <>
@@ -278,7 +278,7 @@ class ColumnValueInserter {
 };
 
 template <>
-std::expected<void, std::string> ColumnValueInserter::operator()<column::DateColumnPartition>(
+std::expected<void, std::string> ColumnValueInserter::operator()<column::Date32ColumnPartition>(
    ColumnPartitionGroup& columns,
    const schema::ColumnIdentifier& column,
    simdjson::ondemand::value& value
@@ -287,14 +287,16 @@ std::expected<void, std::string> ColumnValueInserter::operator()<column::DateCol
    auto error = value.is_null().get(is_null);
    RAISE_STRING_ERROR_WITH_CONTEXT(error, value, "error checking value for null: {}");
    if (is_null) {
-      columns.getColumns<column::DateColumnPartition>().at(column.name).insertNull();
+      columns.getColumns<column::Date32ColumnPartition>().at(column.name).insertNull();
    } else {
       std::string_view column_value;
       error = value.get(column_value);
       RAISE_STRING_ERROR_WITH_CONTEXT(
          error, value, "error getting value as string: {}. {}", value.raw_json_token()
       );
-      return columns.getColumns<column::DateColumnPartition>().at(column.name).insert(column_value);
+      return columns.getColumns<column::Date32ColumnPartition>()
+         .at(column.name)
+         .insert(column_value);
    }
    return {};
 }

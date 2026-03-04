@@ -13,7 +13,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/bool_column.h"
-#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/date32_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
@@ -44,7 +44,7 @@ class ColumnPartitionGroup {
       for(auto& [name, store] : float_columns){
          archive & store;
       }
-      for(auto& [name, store] : date_columns){
+      for(auto& [name, store] : date32_columns){
          archive & store;
       }
       for(auto& [name, store] : nuc_columns){
@@ -67,7 +67,7 @@ class ColumnPartitionGroup {
    std::map<std::string, column::BoolColumnPartition> bool_columns;
    std::map<std::string, column::IntColumnPartition> int_columns;
    std::map<std::string, column::FloatColumnPartition> float_columns;
-   std::map<std::string, column::DateColumnPartition> date_columns;
+   std::map<std::string, column::Date32ColumnPartition> date32_columns;
    std::map<std::string, column::SequenceColumnPartition<Nucleotide>> nuc_columns;
    std::map<std::string, column::SequenceColumnPartition<AminoAcid>> aa_columns;
    std::map<std::string, column::ZstdCompressedStringColumnPartition>

@@ -4,7 +4,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/bool_column.h"
 #include "silo/storage/column/column.h"
-#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/date32_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
@@ -21,8 +21,8 @@ static decltype(auto) visit(schema::ColumnType type, VisitorFunction&& func, Arg
          return func.template operator()<StringColumnPartition>(std::forward<Args>(args)...);
       case schema::ColumnType::INDEXED_STRING:
          return func.template operator()<IndexedStringColumnPartition>(std::forward<Args>(args)...);
-      case schema::ColumnType::DATE:
-         return func.template operator()<DateColumnPartition>(std::forward<Args>(args)...);
+      case schema::ColumnType::DATE32:
+         return func.template operator()<Date32ColumnPartition>(std::forward<Args>(args)...);
       case schema::ColumnType::BOOL:
          return func.template operator()<BoolColumnPartition>(std::forward<Args>(args)...);
       case schema::ColumnType::INT32:

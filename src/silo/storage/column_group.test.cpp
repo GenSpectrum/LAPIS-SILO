@@ -13,7 +13,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/bool_column.h"
-#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/date32_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/sequence_column.h"
@@ -27,7 +27,7 @@ using silo::storage::ColumnPartitionGroup;
 using silo::storage::column::BoolColumnPartition;
 using silo::storage::column::Column;
 using silo::storage::column::ColumnMetadata;
-using silo::storage::column::DateColumnPartition;
+using silo::storage::column::Date32ColumnPartition;
 using silo::storage::column::FloatColumnPartition;
 using silo::storage::column::IntColumnPartition;
 using silo::storage::column::SequenceColumnMetadata;
@@ -153,7 +153,7 @@ TEST(ColumnPartitionGroup, givenIntegerValueForStringColumn_returnsColumnInsertE
 
 TEST(ColumnPartitionGroup, givenIntegerValueForDateColumn_returnsColumnInsertError) {
    const auto result =
-      setupColumnAndInsertJson<DateColumnPartition>("date_col", R"({"date_col": 42})");
+      setupColumnAndInsertJson<Date32ColumnPartition>("date_col", R"({"date_col": 42})");
 
    ASSERT_FALSE(result.has_value());
    EXPECT_THAT(

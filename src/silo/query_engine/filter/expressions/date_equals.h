@@ -6,7 +6,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/common/date.h"
+#include "silo/common/date32.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/table_partition.h"
@@ -16,10 +16,10 @@ namespace silo::query_engine::filter::expressions {
 class DateEquals : public Expression {
   private:
    std::string column_name;
-   std::optional<silo::common::Date> value;
+   std::optional<silo::common::Date32> value;
 
   public:
-   explicit DateEquals(std::string column_name, std::optional<silo::common::Date> value);
+   explicit DateEquals(std::string column_name, std::optional<silo::common::Date32> value);
 
    [[nodiscard]] std::string toString() const override;
 

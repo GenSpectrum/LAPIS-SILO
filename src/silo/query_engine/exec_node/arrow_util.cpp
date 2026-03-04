@@ -6,7 +6,7 @@ std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column
    switch (column_type) {
       case schema::ColumnType::STRING:
       case schema::ColumnType::INDEXED_STRING:
-      case schema::ColumnType::DATE:
+      case schema::ColumnType::DATE32:
          return arrow::utf8();
       case schema::ColumnType::BOOL:
          return arrow::boolean();
