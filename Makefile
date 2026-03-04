@@ -75,7 +75,7 @@ python-tests: ${DEPENDENCIES_FLAG}
 	uv venv --allow-existing .venv
 	uv pip install -q setuptools wheel 'Cython>=3.0.0'
 	uv pip install -q --no-build-isolation ".[test]"
-	.venv/bin/pytest python/tests -v
+	uv run pytest python/tests -v
 
 
 PYTHON_VERSIONS ?= 3.11 3.12 3.13 3.14

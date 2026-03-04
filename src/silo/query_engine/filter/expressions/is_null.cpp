@@ -11,8 +11,6 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/column/column_type_visitor.h"
-#include "silo/storage/column/date_column.h"
-#include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {

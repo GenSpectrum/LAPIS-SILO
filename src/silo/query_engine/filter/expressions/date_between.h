@@ -7,11 +7,11 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/common/date.h"
+#include "silo/common/date32.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/range_selection.h"
-#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/date32_column.h"
 #include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
@@ -19,20 +19,20 @@ namespace silo::query_engine::filter::expressions {
 class DateBetween : public Expression {
   private:
    std::string column_name;
-   std::optional<silo::common::Date> date_from;
-   std::optional<silo::common::Date> date_to;
+   std::optional<silo::common::Date32> date_from;
+   std::optional<silo::common::Date32> date_to;
 
    [[nodiscard]] std::vector<silo::query_engine::filter::operators::RangeSelection::Range>
    computeRangesOfSortedColumn(
-      const silo::storage::column::DateColumnPartition& date_column,
+      const silo::storage::column::Date32ColumnPartition& date_column,
       const std::vector<size_t>& chunk_sizes
    ) const;
 
   public:
    explicit DateBetween(
       std::string column_name,
-      std::optional<silo::common::Date> date_from,
-      std::optional<silo::common::Date> date_to
+      std::optional<silo::common::Date32> date_from,
+      std::optional<silo::common::Date32> date_to
    );
 
    [[nodiscard]] std::string toString() const override;

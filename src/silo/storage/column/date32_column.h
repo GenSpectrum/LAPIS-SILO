@@ -8,28 +8,28 @@
 #include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/common/date.h"
+#include "silo/common/date32.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_metadata.h"
 
 namespace silo::storage::column {
 
-class DateColumnPartition {
+class Date32ColumnPartition {
   public:
    using Metadata = ColumnMetadata;
 
-   static constexpr schema::ColumnType TYPE = schema::ColumnType::DATE;
-   using value_type = common::Date;
+   static constexpr schema::ColumnType TYPE = schema::ColumnType::DATE32;
+   using value_type = common::Date32;
 
    [[maybe_unused]] Metadata* metadata;
    roaring::Roaring null_bitmap;
 
   private:
-   std::vector<silo::common::Date> values;
+   std::vector<silo::common::Date32> values;
    bool is_sorted = true;
 
   public:
-   explicit DateColumnPartition(Metadata* metadata);
+   explicit Date32ColumnPartition(Metadata* metadata);
 
    [[nodiscard]] bool isSorted() const;
 
@@ -39,12 +39,12 @@ class DateColumnPartition {
 
    void reserve(size_t row_count);
 
-   [[nodiscard]] const std::vector<silo::common::Date>& getValues() const;
+   [[nodiscard]] const std::vector<silo::common::Date32>& getValues() const;
 
    [[nodiscard]] size_t numValues() const { return values.size(); }
 
    [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
-   [[nodiscard]] silo::common::Date getValue(size_t row_id) const { return values.at(row_id); }
+   [[nodiscard]] silo::common::Date32 getValue(size_t row_id) const { return values.at(row_id); }
 
   private:
    friend class boost::serialization::access;

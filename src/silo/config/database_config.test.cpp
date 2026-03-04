@@ -82,7 +82,7 @@ INSTANTIATE_TEST_SUITE_P(
       TestParameter{
          .value_type = ValueType::DATE,
          .generate_index = false,
-         .expected_column_type = ColumnType::DATE
+         .expected_column_type = ColumnType::DATE32
       },
       TestParameter{
          .value_type = ValueType::STRING,

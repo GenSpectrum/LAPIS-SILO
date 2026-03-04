@@ -7,10 +7,10 @@
 
 namespace silo::common {
 
-using Date = int32_t;
+using Date32 = int32_t;
 
-std::expected<Date, std::string> stringToDate(std::string_view value);
+std::expected<Date32, std::string> stringToDate32(std::string_view value);
 
-std::string dateToString(Date date);
+std::string date32ToString(Date32 date);
 
 }  // namespace silo::common

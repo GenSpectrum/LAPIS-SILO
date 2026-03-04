@@ -8,7 +8,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/bool_column.h"
-#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/date32_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
@@ -76,7 +76,7 @@ struct ArrowBuilderSelector<storage::column::IntColumnPartition> {
 };
 
 template <>
-struct ArrowBuilderSelector<storage::column::DateColumnPartition> {
+struct ArrowBuilderSelector<storage::column::Date32ColumnPartition> {
    using builder_type = arrow::StringBuilder;
    using value_type = std::string;
 };

@@ -1,20 +1,20 @@
-#include "silo/storage/column/date_column.h"
+#include "silo/storage/column/date32_column.h"
 
 #include <expected>
 
-#include "silo/common/date.h"
+#include "silo/common/date32.h"
 
 namespace silo::storage::column {
 
-DateColumnPartition::DateColumnPartition(ColumnMetadata* metadata)
+Date32ColumnPartition::Date32ColumnPartition(ColumnMetadata* metadata)
     : metadata(metadata) {}
 
-bool DateColumnPartition::isSorted() const {
+bool Date32ColumnPartition::isSorted() const {
    return is_sorted;
 }
 
-std::expected<void, std::string> DateColumnPartition::insert(std::string_view value) {
-   auto date_result = silo::common::stringToDate(value);
+std::expected<void, std::string> Date32ColumnPartition::insert(std::string_view value) {
+   auto date_result = silo::common::stringToDate32(value);
    if (!date_result.has_value()) {
       return std::unexpected{date_result.error()};
    }
@@ -26,7 +26,7 @@ std::expected<void, std::string> DateColumnPartition::insert(std::string_view va
    return {};
 }
 
-void DateColumnPartition::insertNull() {
+void Date32ColumnPartition::insertNull() {
    const size_t row_id = values.size();
    null_bitmap.add(row_id);
    // We need to insert _some_ value to keep vector size correct. However, it will never be read
@@ -34,11 +34,11 @@ void DateColumnPartition::insertNull() {
    is_sorted = false;
 }
 
-void DateColumnPartition::reserve(size_t row_count) {
+void Date32ColumnPartition::reserve(size_t row_count) {
    values.reserve(values.size() + row_count);
 }
 
-const std::vector<silo::common::Date>& DateColumnPartition::getValues() const {
+const std::vector<silo::common::Date32>& Date32ColumnPartition::getValues() const {
    return values;
 }
 

@@ -11,15 +11,15 @@ using silo::common::PhyloTree;
 using silo::initialize::Initializer;
 
 TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
-   silo::config::DatabaseConfig database_config =
+   const silo::config::DatabaseConfig database_config =
       silo::config::DatabaseConfig::getValidatedConfigFromFile(
          "testBaseData/unitTestDummyDataset/database_config.yaml"
       );
-   ReferenceGenomes reference_genomes =
+   const ReferenceGenomes reference_genomes =
       ReferenceGenomes::readFromFile("testBaseData/unitTestDummyDataset/reference_genomes.json");
-   PhyloTree phylo_tree_file =
+   const PhyloTree phylo_tree_file =
       PhyloTree::fromNewickFile("testBaseData/unitTestDummyDataset/phylogenetic_tree.nwk");
-   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees{
+   const std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees{
       {"test_lineage_definition.yaml",
        LineageTreeAndIdMap::fromLineageDefinitionFile(
           silo::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
@@ -78,7 +78,7 @@ A.11:
                   .has_value());
 
    ASSERT_TRUE(table_schema.getColumn("date").has_value());
-   ASSERT_EQ(table_schema.getColumn("date").value().type, ColumnType::DATE);
+   ASSERT_EQ(table_schema.getColumn("date").value().type, ColumnType::DATE32);
 
    ASSERT_TRUE(table_schema.getColumn("division").has_value());
    ASSERT_EQ(table_schema.getColumn("division").value().type, ColumnType::INDEXED_STRING);
@@ -201,7 +201,7 @@ A.11:
    );
 
    ASSERT_TRUE(table_schema.getColumn("unsorted_date").has_value());
-   ASSERT_EQ(table_schema.getColumn("unsorted_date").value().type, ColumnType::DATE);
+   ASSERT_EQ(table_schema.getColumn("unsorted_date").value().type, ColumnType::DATE32);
 
    ASSERT_EQ(table_schema.primary_key.name, "primaryKey");
    ASSERT_EQ(table_schema.primary_key.type, ColumnType::STRING);
@@ -268,7 +268,7 @@ TEST_F(FindLineageTreeForName, FindLineageTree_NotFound) {
 
 // Test empty map
 TEST_F(FindLineageTreeForName, FindLineageTree_EmptyMap) {
-   std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
+   const std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees;
 
    auto result = Initializer::findLineageTreeForName(lineage_trees, "test");
    EXPECT_FALSE(result.has_value());
