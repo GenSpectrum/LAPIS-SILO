@@ -91,6 +91,15 @@ class Nucleotide {
 
    static_assert(INVALID_MUTATION_SYMBOLS.size() + VALID_MUTATION_SYMBOLS.size() == SYMBOLS.size());
 
+   /// Maps each symbol to the set of symbols it codes for.
+   /// The mapped set may include both concrete bases (GAP, A, C, G, T) and
+   /// ambiguity symbols (R, Y, ..., N), and can include the symbol itself.
+   /// For example, N codes for all nucleotide symbols.
+   static const silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> CODES_FOR;
+
+   /// Maps each symbol to all symbols whose CODES_FOR set is a superset.
+   /// I.e. AMBIGUITY_SYMBOLS[S] = {Y : CODES_FOR[S] ⊆ CODES_FOR[Y]}.
+   /// Derived from CODES_FOR.
    static const silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> AMBIGUITY_SYMBOLS;
 
    static constexpr Symbol SYMBOL_MISSING = Symbol::N;
