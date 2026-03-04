@@ -177,7 +177,7 @@ schema::ColumnType DatabaseMetadata::getColumnType() const {
       return schema::ColumnType::STRING;
    }
    if (type == ValueType::DATE) {
-      return schema::ColumnType::DATE;
+      return schema::ColumnType::DATE32;
    }
    if (type == ValueType::BOOL) {
       return schema::ColumnType::BOOL;

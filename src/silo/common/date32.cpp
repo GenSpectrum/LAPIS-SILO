@@ -1,4 +1,4 @@
-#include "silo/common/date.h"
+#include "silo/common/date32.h"
 
 #include <charconv>
 #include <chrono>
@@ -9,7 +9,7 @@
 
 namespace silo::common {
 
-std::expected<Date, std::string> stringToDate(std::string_view value) {
+std::expected<Date32, std::string> stringToDate32(std::string_view value) {
    if (value.size() != 10 || value[4] != '-' || value[7] != '-') {
       return std::unexpected{
          fmt::format("Invalid date format '{}': expected exactly YYYY-MM-DD", value)
@@ -47,10 +47,10 @@ std::expected<Date, std::string> stringToDate(std::string_view value) {
    }
 
    const auto days_since_epoch = std::chrono::sys_days{ymd}.time_since_epoch();
-   return static_cast<Date>(days_since_epoch.count());
+   return static_cast<Date32>(days_since_epoch.count());
 }
 
-std::string dateToString(Date date) {
+std::string date32ToString(Date32 date) {
    const std::chrono::year_month_day ymd{std::chrono::sys_days{std::chrono::days{date}}};
    return fmt::format(
       "{:04}-{:02}-{:02}",
