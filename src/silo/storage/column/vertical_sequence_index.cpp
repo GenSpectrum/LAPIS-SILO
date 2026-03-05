@@ -207,6 +207,84 @@ roaring::Roaring VerticalSequenceIndex<SymbolType>::getMatchingContainersAsBitma
    return std::move(builder).getBitmap();
 }
 
+namespace {
+
+template <typename SymbolType>
+roaring::Roaring getBitmapForPositionSymbolsContainers(
+   std::pair<const_iterator<SymbolType>, const_iterator<SymbolType>> range,
+   size_t position,
+   std::vector<typename SymbolType::Symbol> symbols
+) {
+   // Collect containers for index_symbols at this position.
+   BitmapBuilderByContainer builder;
+   for (auto pos_it = range.first; pos_it != range.second && pos_it->first.position == position;
+        ++pos_it) {
+      const auto& [key, diff] = *pos_it;
+      SILO_ASSERT(diff.cardinality > 0);
+      if (std::find(symbols.begin(), symbols.end(), key.symbol) != symbols.end()) {
+         builder.addContainer(key.v_index, diff.container, diff.typecode);
+      }
+   }
+   return std::move(builder).getBitmap();
+}
+
+}  // namespace
+
+template <typename SymbolType>
+std::vector<roaring::Roaring> VerticalSequenceIndex<SymbolType>::buildNOfDpTable(
+   const std::vector<PositionQuery>& sorted_position_queries,
+   uint32_t number_of_matchers,
+   bool match_exactly,
+   int k_total
+) const {
+   // NOLINTBEGIN(readability-identifier-length)
+   const int k = static_cast<int>(sorted_position_queries.size());
+   const int n = static_cast<int>(number_of_matchers);
+
+   // dp[j] = sequences that matched at least (j+1) of the query positions seen so far.
+   // Size n+1 when match_exactly so we can detect sequences exceeding the threshold.
+   const uint32_t dp_size = match_exactly ? number_of_matchers + 1 : number_of_matchers;
+   std::vector<roaring::Roaring> dp_table(dp_size);
+
+   // Single binary search to reach the first query position, then forward-scan the rest.
+   auto iter = vertical_bitmaps.lower_bound(SequenceDiffKey{
+      sorted_position_queries.front().position, 0, static_cast<typename SymbolType::Symbol>(0)
+   });
+
+   for (int query_idx = 0; query_idx < k; ++query_idx) {
+      const auto& query = sorted_position_queries[query_idx];
+
+      // Advance iterator to the current query position (forward scan, no binary search).
+      while (iter != vertical_bitmaps.end() && iter->first.position < query.position) {
+         ++iter;
+      }
+
+      roaring::Roaring match_bitmap = getBitmapForPositionSymbolsContainers<SymbolType>(
+         {iter, vertical_bitmaps.end()}, query.position, query.index_symbols
+      );
+
+      // Apply Threshold DP update.
+      // Use k_total (not k) for the lower bound so that any conditions applied externally
+      // by the caller are accounted for when pruning.
+      const int max_table_index = static_cast<int>(dp_size) - 1;
+      if (query_idx == 0) {
+         dp_table[0] = std::move(match_bitmap);
+      } else {
+         for (int j = std::min(max_table_index, query_idx);
+              j > std::max(0, n - k_total + query_idx - 1);
+              --j) {
+            dp_table[j] |= dp_table[j - 1] & match_bitmap;
+         }
+         if (k_total - query_idx > n - 1) {
+            dp_table[0] |= match_bitmap;
+         }
+      }
+   }
+   // NOLINTEND(readability-identifier-length)
+
+   return dp_table;
+}
+
 using silo::roaring_util::roaringSubsetRanks;
 
 template <typename SymbolType>
