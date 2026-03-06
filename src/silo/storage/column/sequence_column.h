@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -17,6 +19,8 @@
 #include "silo/storage/column/horizontal_coverage_index.h"
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/column/vertical_sequence_index.h"
+#include "silo/zstd/zstd_decompressor.h"
+#include "silo/zstd/zstd_dictionary.h"
 
 namespace silo::storage::column {
 
@@ -68,6 +72,11 @@ class SequenceColumnPartition {
       archive & sequence_count;
       archive & null_bitmap;
       // clang-format on
+      if constexpr (Archive::is_loading::value) {
+         compressed_input_decompressor = ZstdDecompressor{std::make_shared<ZstdDDictionary>(
+            SymbolType::sequenceToString(metadata->reference_sequence)
+         )};
+      }
    }
 
   public:
@@ -83,6 +92,8 @@ class SequenceColumnPartition {
    SequenceColumnInfo sequence_column_info;
    roaring::Roaring null_bitmap;
    uint32_t sequence_count = 0;
+
+   ZstdDecompressor compressed_input_decompressor;
 
    explicit SequenceColumnPartition(Metadata* metadata);
 

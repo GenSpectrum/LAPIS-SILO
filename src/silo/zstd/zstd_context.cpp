@@ -26,7 +26,7 @@ ZstdDContext::ZstdDContext() {
 }
 
 ZstdDContext::ZstdDContext(silo::ZstdDContext&& other) noexcept {
-   std::swap(value, other.value);
+   value = std::exchange(other.value, nullptr);
 }
 
 ZstdDContext& ZstdDContext::operator=(silo::ZstdDContext&& other) noexcept {
