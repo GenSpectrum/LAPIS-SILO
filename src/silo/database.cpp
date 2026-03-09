@@ -25,14 +25,24 @@
 #include "silo/common/version.h"
 #include "silo/database_info.h"
 #include "silo/persistence/exception.h"
+#include "silo/query_engine/action_query.h"
 #include "silo/query_engine/actions/action.h"
+#include "silo/query_engine/actions/aggregated.h"
+#include "silo/query_engine/actions/details.h"
+#include "silo/query_engine/actions/fasta.h"
 #include "silo/query_engine/actions/fasta_aligned.h"
+#include "silo/query_engine/actions/insertions.h"
+#include "silo/query_engine/actions/most_recent_common_ancestor.h"
 #include "silo/query_engine/actions/mutations.h"
+#include "silo/query_engine/actions/phylo_subtree.h"
+#include "silo/query_engine/binder.h"
 #include "silo/query_engine/exec_node/arrow_ipc_sink.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/query_engine/query.h"
+#include "silo/query_engine/operators/query_node.h"
+#include "silo/query_engine/operators/table_scan_node.h"
+#include "silo/query_engine/planner.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/sequence_column.h"
 
@@ -175,37 +185,27 @@ void Database::appendDataFromString(const std::string& table_name, std::string j
    silo::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
 }
 
-using silo::query_engine::Query;
+using silo::query_engine::ActionQuery;
 using silo::query_engine::actions::Action;
-using silo::query_engine::actions::FastaAligned;
 using silo::query_engine::filter::expressions::Expression;
 using silo::query_engine::filter::expressions::True;
 
 void Database::printAllData(const std::string& table_name) const {
-   if (!schema.tables.contains(schema::TableName{table_name})) {
+   auto table_iter = tables.find(schema::TableName{table_name});
+   if (table_iter == tables.end()) {
       throw std::runtime_error{fmt::format("The database does not contain table {}", table_name)};
    }
+   auto table = table_iter->second;
 
-   std::vector<std::string> sequence_column_identifiers;
-   std::vector<std::string> non_sequence_column_identifiers;
-   for (const auto& [column_identifier, _] :
-        schema.tables.at(schema::TableName{table_name})->column_metadata) {
-      if (isSequenceColumn(column_identifier.type)) {
-         if (column_identifier.type != schema::ColumnType::ZSTD_COMPRESSED_STRING) {
-            sequence_column_identifiers.push_back(column_identifier.name);
-         }
-      } else {
-         non_sequence_column_identifiers.push_back(column_identifier.name);
-      }
-   }
+   std::vector<schema::ColumnIdentifier> all_columns = table->schema->getColumnIdentifiers();
 
-   std::unique_ptr<Expression> filter = std::make_unique<True>();
-   std::unique_ptr<Action> action = std::make_unique<FastaAligned>(
-      std::move(sequence_column_identifiers), std::move(non_sequence_column_identifiers)
+   auto query_node = std::make_unique<query_engine::operators::TableScanNode>(
+      table, std::make_unique<True>(), std::move(all_columns)
    );
 
-   auto query = Query(schema::TableName{table_name}, std::move(filter), std::move(action));
-   auto query_plan = createQueryPlan(query, config::QueryOptions{}, "printAllData");
+   auto query_plan = query_engine::Planner::planQuery(
+      std::move(query_node), tables, config::QueryOptions{}, "printAllData"
+   );
    query_engine::exec_node::NdjsonSink output_sink{&std::cout, query_plan.results_schema};
    query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/100);
 }
@@ -307,6 +307,7 @@ std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentMutations(
 
    const nlohmann::json filter_json = nlohmann::json::parse(filter);
    std::unique_ptr<Expression> filter_expression = filter_json;
+
    std::unique_ptr<Action> action = std::make_unique<SymbolMutations>(
       std::vector<std::string>{sequence_name},
       prevalence_threshold,
@@ -315,9 +316,12 @@ std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentMutations(
       }
    );
 
-   auto query =
-      Query(schema::TableName{table_name}, std::move(filter_expression), std::move(action));
-   auto query_plan = createQueryPlan(query, config::QueryOptions{}, "getPrevalentMutations");
+   auto action_query = ActionQuery(std::move(filter_expression), std::move(action));
+   action_query.table_name = schema::TableName{table_name};
+   auto query_node = query_engine::Binder::bindQuery(std::move(action_query), tables);
+   auto query_plan = query_engine::Planner::planQuery(
+      std::move(query_node), tables, config::QueryOptions{}, "getPrevalentMutations"
+   );
    std::stringstream result_stream;
    query_engine::exec_node::NdjsonSink output_sink{&result_stream, query_plan.results_schema};
    query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/100);
@@ -506,58 +510,17 @@ void Database::updateDataVersion() {
    SPDLOG_DEBUG("Data version was set to {}", data_version_.toString());
 }
 
-using query_engine::CopyOnWriteBitmap;
-using query_engine::Expression;
-using query_engine::Query;
-using query_engine::QueryPlan;
-
-[[nodiscard]] QueryPlan Database::createQueryPlan(
-   const Query& query,
-   const config::QueryOptions& query_options,
-   std::string_view request_id
-) const {
-   SPDLOG_DEBUG("Request Id [{}] - Parsed filter: {}", request_id, query.filter->toString());
-
-   auto maybe_table = tables.find(query.table_name);
-   CHECK_SILO_QUERY(
-      maybe_table != tables.end(), "The table with name {} is not contained in the database."
-   );
-   const auto& table = maybe_table->second;
-
-   std::vector<CopyOnWriteBitmap> partition_filters;
-   partition_filters.reserve(table->getNumberOfPartitions());
-   for (size_t partition_index = 0; partition_index < table->getNumberOfPartitions();
-        partition_index++) {
-      auto filter_after_rewrite = query.filter->rewrite(
-         *table, *table->getPartition(partition_index), Expression::AmbiguityMode::NONE
-      );
-      SPDLOG_DEBUG(
-         "Request Id [{}] - Filter after rewrite for partition {}: {}",
-         request_id,
-         partition_index,
-         filter_after_rewrite->toString()
-      );
-      auto filter_operator =
-         filter_after_rewrite->compile(*table, *table->getPartition(partition_index));
-      SPDLOG_DEBUG(
-         "Request Id [{}] - Filter operator tree for partition {}: {}",
-         request_id,
-         partition_index,
-         filter_operator->toString()
-      );
-      partition_filters.emplace_back(filter_operator->evaluate());
-   };
-
-   return query.action->toQueryPlan(table, partition_filters, query_options, request_id);
-}
-
 std::string Database::executeQueryAsArrowIpc(
    const std::string& table_name,
    const std::string& query_json
 ) const {
-   auto query = Query::parseQuery(query_json);
-   query->table_name = schema::TableName{table_name};
-   auto query_plan = createQueryPlan(*query, config::QueryOptions{}, "executeQueryAsArrowIpc");
+   auto action_query = ActionQuery::parseQuery(query_json);
+   action_query.table_name = schema::TableName{table_name};
+   auto query_node = query_engine::Binder::bindQuery(std::move(action_query), tables);
+   auto query_plan = query_engine::Planner::planQuery(
+      std::move(query_node), tables, config::QueryOptions{}, "executeQueryAsArrowIpc"
+   );
+
    constexpr uint64_t DEFAULT_TIMEOUT_SECONDS = 120;
    std::ostringstream output_stream;
    auto output_sink =

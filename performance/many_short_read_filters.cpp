@@ -12,11 +12,15 @@
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
+#include "silo/query_engine/action_query.h"
+#include "silo/query_engine/planner.h"
+#include "silo/query_engine/binder.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/query.h"
 #include "silo/storage/reference_genomes.h"
 
-using silo::query_engine::Query;
+using silo::query_engine::ActionQuery;
+using silo::query_engine::Planner;
+using silo::query_engine::Binder;
 using silo::Database;
 
 namespace {
@@ -336,8 +340,11 @@ void executeAllQueries(
          SPDLOG_INFO("Executing query number {}", query_num);
       }
       std::string query_string = query_gen.generateQuery();
-      auto query = Query::parseQuery(query_string);
-      auto query_plan = database->createQueryPlan(*query, {}, "test_query");
+      auto query = ActionQuery::parseQuery(query_string);
+
+      auto bound_query = Binder::bindQuery(std::move(query), database->tables);
+      auto query_plan = Planner::planQuery(std::move(bound_query), database->tables, {}, "test_query");   std::stringstream result;
+
       std::ofstream null_output("/dev/null");
       silo::query_engine::exec_node::NdjsonSink sink{&null_output, query_plan.results_schema};
       query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/20);

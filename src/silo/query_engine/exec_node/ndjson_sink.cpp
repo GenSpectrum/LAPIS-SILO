@@ -170,8 +170,13 @@ arrow::Status NdjsonSink::writeBatch(const arrow::compute::ExecBatch& batch) {
    const size_t row_count = batch.length;
    std::vector<std::shared_ptr<arrow::Array>> column_arrays;
    for (const auto& datum : batch.values) {
-      SILO_ASSERT(datum.is_array());
-      column_arrays.emplace_back(datum.make_array());
+      SILO_ASSERT(datum.is_array() || datum.is_scalar());
+      if (datum.is_array()) {
+         column_arrays.emplace_back(datum.make_array());
+      } else {
+         ARROW_ASSIGN_OR_RAISE(auto array, arrow::MakeArrayFromScalar(*datum.scalar(), row_count));
+         column_arrays.emplace_back(array);
+      }
    }
    std::vector<std::string> prepared_column_strings_for_json_attributes;
    bool first_column = true;

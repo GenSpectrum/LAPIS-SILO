@@ -8,6 +8,7 @@
 
 #include <spdlog/spdlog.h>
 #include <boost/serialization/access.hpp>
+#include <boost/serialization/split_free.hpp>
 #include <boost/serialization/split_member.hpp>
 
 #include "silo/common/panic.h"
@@ -181,3 +182,28 @@ class DatabaseSchema {
 };
 
 }  // namespace silo::schema
+
+namespace boost::serialization {
+
+template <class Archive>
+void save(
+   Archive& archive,
+   const std::shared_ptr<silo::schema::TableSchema>& ptr,
+   const unsigned int /*version*/
+) {
+   archive << *ptr;
+}
+
+template <class Archive>
+void load(
+   Archive& archive,
+   std::shared_ptr<silo::schema::TableSchema>& ptr,
+   const unsigned int /*version*/
+) {
+   ptr = std::make_shared<silo::schema::TableSchema>();
+   archive >> *ptr;
+}
+
+}  // namespace boost::serialization
+
+BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<silo::schema::TableSchema>)

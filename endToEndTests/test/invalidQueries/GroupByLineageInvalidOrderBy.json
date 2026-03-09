@@ -12,6 +12,6 @@
   },
   "expectedError": {
     "error": "Bad request",
-    "message": "The orderByField 'age' cannot be ordered by, as it does not appear in the groupByFields."
+    "message": "OrderByField age is not contained in the result of this operation. Allowed values are pango_lineage, count."
   }
 }

@@ -5,7 +5,6 @@
 #include <vector>
 
 #include <arrow/acero/options.h>
-#include <arrow/builder.h>
 #include <arrow/compute/api.h>
 #include <arrow/compute/expression.h>
 #include <nlohmann/json.hpp>
@@ -15,35 +14,12 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/table_scan.h"
 #include "silo/query_engine/illegal_query_exception.h"
+#include "silo/query_engine/operators/query_node.h"
 #include "silo/storage/table.h"
 
-using silo::query_engine::CopyOnWriteBitmap;
-
 namespace {
-using silo::query_engine::actions::GroupByField;
 
 const std::string GROUP_BY_FIELDS_FIELD_NAME = "groupByFields";
-
-std::vector<silo::schema::ColumnIdentifier> bindGroupByFields(
-   const silo::schema::TableSchema& schema,
-   const std::vector<GroupByField>& group_by_fields
-) {
-   std::vector<silo::schema::ColumnIdentifier> group_by_metadata;
-   for (const GroupByField& group_by_field : group_by_fields) {
-      auto column = schema.getColumn(group_by_field.name);
-      CHECK_SILO_QUERY(
-         column.has_value(), "Metadata field '{}' to group by not found", group_by_field.name
-      );
-      CHECK_SILO_QUERY(
-         !isSequenceColumn(column.value().type),
-         "The Aggregated action does not support sequence-type columns for now."
-      );
-      group_by_metadata.push_back(column.value());
-   }
-   return group_by_metadata;
-}
-
-const std::string COUNT_FIELD = "count";
 
 }  // namespace
 
@@ -54,152 +30,6 @@ Aggregated::Aggregated(std::vector<std::string> group_by_fields_) {
    for (auto& field : group_by_fields_) {
       group_by_fields.emplace_back(std::move(field));
    }
-}
-
-void Aggregated::validateOrderByFields(const schema::TableSchema& schema) const {
-   const std::vector<silo::schema::ColumnIdentifier> field_identifiers =
-      bindGroupByFields(schema, group_by_fields);
-
-   for (const OrderByField& field : order_by_fields) {
-      CHECK_SILO_QUERY(
-         field.name == COUNT_FIELD || std::ranges::any_of(
-                                         field_identifiers,
-                                         [&](const silo::schema::ColumnIdentifier& metadata) {
-                                            return metadata.name == field.name;
-                                         }
-                                      ),
-         "The orderByField '{}' cannot be ordered by, as it does not appear in the {}.",
-         field.name,
-         GROUP_BY_FIELDS_FIELD_NAME
-      );
-   }
-}
-
-arrow::Result<QueryPlan> Aggregated::toQueryPlanImpl(
-   std::shared_ptr<const storage::Table> table,
-   std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& query_options,
-   std::string_view request_id
-) const {
-   EVOBENCH_SCOPE("Aggregated", "toQueryPlanImpl");
-   if (group_by_fields.empty()) {
-      return makeAggregateWithoutGrouping(
-         std::move(table), std::move(partition_filters), query_options, request_id
-      );
-   }
-   return makeAggregateWithGrouping(
-      std::move(table), std::move(partition_filters), query_options, request_id
-   );
-}
-
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
-arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
-   std::shared_ptr<const storage::Table> table,
-   std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& /*query_options*/,
-   std::string_view request_id
-) const {
-   const auto& table_schema = table->schema;
-
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [table = std::move(table),
-       partition_filters = std::move(partition_filters),
-       already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
-      if (already_produced) {
-         const std::optional<arrow::ExecBatch> result = std::nullopt;
-         return arrow::Future{result};
-      }
-      already_produced = true;
-
-      int64_t result_count = 0;
-
-      for (const auto& partition_filter : partition_filters) {
-         result_count += static_cast<int64_t>(partition_filter.getConstReference().cardinality());
-      }
-
-      arrow::Int64Builder result_builder{};
-      ARROW_RETURN_NOT_OK(result_builder.Append(result_count));
-
-      arrow::Datum datum;
-      ARROW_ASSIGN_OR_RAISE(datum, result_builder.Finish());
-
-      ARROW_ASSIGN_OR_RAISE(
-         const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make({datum})
-      );
-      return arrow::Future{result};
-   };
-
-   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
-
-   const arrow::acero::SourceNodeOptions options{
-      exec_node::columnsToArrowSchema(getOutputSchema(*table_schema)),
-      std::move(producer),
-      arrow::Ordering::Implicit()
-   };
-   ARROW_ASSIGN_OR_RAISE(
-      auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
-   );
-
-   return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
-}
-
-arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
-   std::shared_ptr<const storage::Table> table,
-   std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& query_options,
-   std::string_view request_id
-) const {
-   const auto& table_schema = table->schema;
-
-   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
-
-   const std::vector<schema::ColumnIdentifier> group_by_fields_identifiers =
-      bindGroupByFields(*table->schema, group_by_fields);
-
-   arrow::acero::ExecNode* node;
-   ARROW_ASSIGN_OR_RAISE(
-      node,
-      exec_node::makeTableScan(
-         arrow_plan.get(),
-         group_by_fields_identifiers,
-         std::move(partition_filters),
-         std::move(table),
-         query_options.materialization_cutoff
-      )
-   );
-
-   auto count_options =
-      std::make_shared<arrow::compute::CountOptions>(arrow::compute::CountOptions::CountMode::ALL);
-   const arrow::compute::Aggregate aggregate{
-      "hash_count_all", count_options, std::vector<arrow::FieldRef>{}, COUNT_FIELD
-   };
-
-   std::vector<arrow::FieldRef> field_refs;
-   field_refs.reserve(group_by_fields_identifiers.size());
-   for (const auto& group_by_field : group_by_fields_identifiers) {
-      field_refs.emplace_back(group_by_field.name);
-   }
-   const arrow::acero::AggregateNodeOptions aggregate_node_options({aggregate}, field_refs);
-   ARROW_ASSIGN_OR_RAISE(
-      node,
-      arrow::acero::MakeExecNode("aggregate", arrow_plan.get(), {node}, aggregate_node_options)
-   );
-
-   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, *table_schema));
-
-   ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
-
-   ARROW_ASSIGN_OR_RAISE(node, addZstdDecompressNode(arrow_plan.get(), node, *table_schema));
-
-   return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
-}
-
-std::vector<schema::ColumnIdentifier> Aggregated::getOutputSchema(
-   const schema::TableSchema& table_schema
-) const {
-   std::vector<schema::ColumnIdentifier> fields = bindGroupByFields(table_schema, group_by_fields);
-   fields.emplace_back(COUNT_FIELD, schema::ColumnType::INT64);
-   return fields;
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)
@@ -222,7 +52,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<Aggregated>& action) 
          group_by_fields.emplace_back(element.get<std::string>());
       }
    }
-   action = std::make_unique<Aggregated>(Action::deduplicateOrderPreserving(group_by_fields));
+   action = std::make_unique<Aggregated>(std::move(group_by_fields));
 }
 
 }  // namespace silo::query_engine::actions

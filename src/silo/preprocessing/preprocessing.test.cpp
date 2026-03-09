@@ -12,8 +12,10 @@
 #include "silo/database.h"
 #include "silo/database_info.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/query_engine/action_query.h"
+#include "silo/query_engine/binder.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/query.h"
+#include "silo/query_engine/planner.h"
 #include "silo/query_engine/query_plan.h"
 
 namespace {
@@ -935,9 +937,14 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
 
    EXPECT_EQ(database_info.sequence_count, scenario.assertion.expected_sequence_count);
 
-   auto query = silo::query_engine::Query::parseQuery(scenario.assertion.query);
-   auto query_plan = database->createQueryPlan(
-      *query, silo::config::RuntimeConfig::withDefaults().query_options, "some_id"
+   auto query = silo::query_engine::ActionQuery::parseQuery(scenario.assertion.query);
+
+   auto bound_query = silo::query_engine::Binder::bindQuery(std::move(query), database->tables);
+   auto query_plan = silo::query_engine::Planner::planQuery(
+      std::move(bound_query),
+      database->tables,
+      silo::config::RuntimeConfig::withDefaults().query_options,
+      "some_id"
    );
    std::stringstream actual_result_stream;
    NdjsonSink output_sink{&actual_result_stream, query_plan.results_schema};
