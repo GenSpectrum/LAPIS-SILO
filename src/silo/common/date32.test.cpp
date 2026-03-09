@@ -2,21 +2,21 @@
 
 #include <gtest/gtest.h>
 
-TEST(Date, correctlyParsesDate) {
+TEST(Date32, correctlyParsesDate) {
    EXPECT_EQ(silo::common::stringToDate32("2020-01-01").value(), 18262);
    EXPECT_EQ(silo::common::stringToDate32("1970-01-01").value(), 0);
    EXPECT_EQ(silo::common::stringToDate32("2010-12-03").value(), 14946);
    EXPECT_EQ(silo::common::stringToDate32("1969-12-31").value(), -1);
 }
 
-TEST(Date, parsesPreEpochDates) {
+TEST(Date32, parsesPreEpochDates) {
    EXPECT_TRUE(silo::common::stringToDate32("1900-01-01").has_value());
    EXPECT_LT(silo::common::stringToDate32("1900-01-01").value(), 0);
    EXPECT_EQ(silo::common::stringToDate32("1969-12-31").value(), -1);
    EXPECT_EQ(silo::common::stringToDate32("1969-12-30").value(), -2);
 }
 
-TEST(Date, parsesLeapYearDates) {
+TEST(Date32, parsesLeapYearDates) {
    EXPECT_TRUE(silo::common::stringToDate32("2024-02-29").has_value());
    EXPECT_TRUE(silo::common::stringToDate32("2000-02-29").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("2023-02-29").has_value());
@@ -24,7 +24,7 @@ TEST(Date, parsesLeapYearDates) {
    EXPECT_FALSE(silo::common::stringToDate32("2100-02-29").has_value());
 }
 
-TEST(Date, parsesBoundaryDaysPerMonth) {
+TEST(Date32, parsesBoundaryDaysPerMonth) {
    EXPECT_TRUE(silo::common::stringToDate32("2023-01-31").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("2023-01-32").has_value());
    EXPECT_TRUE(silo::common::stringToDate32("2023-03-31").has_value());
@@ -35,7 +35,7 @@ TEST(Date, parsesBoundaryDaysPerMonth) {
    EXPECT_FALSE(silo::common::stringToDate32("2023-02-29").has_value());
 }
 
-TEST(Date, rejectsWrongFormat) {
+TEST(Date32, rejectsWrongFormat) {
    EXPECT_FALSE(silo::common::stringToDate32("").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("?").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("----").has_value());
@@ -44,39 +44,39 @@ TEST(Date, rejectsWrongFormat) {
    EXPECT_FALSE(silo::common::stringToDate32("-1-").has_value());
 }
 
-TEST(Date, rejectsWrongSeparators) {
+TEST(Date32, rejectsWrongSeparators) {
    EXPECT_FALSE(silo::common::stringToDate32("2023/01/15").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("2023.01.15").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("2023 01 15").has_value());
 }
 
-TEST(Date, rejectsWrongFieldWidths) {
+TEST(Date32, rejectsWrongFieldWidths) {
    EXPECT_FALSE(silo::common::stringToDate32("23-01-15").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("2023-1-15").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("2023-01-1").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("20230-01-15").has_value());
 }
 
-TEST(Date, rejectsNonNumericFields) {
+TEST(Date32, rejectsNonNumericFields) {
    EXPECT_FALSE(silo::common::stringToDate32("abcd-01-15").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("2023-ab-15").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("2023-01-ab").has_value());
 }
 
-TEST(Date, rejectsTrailingAndLeadingContent) {
+TEST(Date32, rejectsTrailingAndLeadingContent) {
    EXPECT_FALSE(silo::common::stringToDate32("2023-01-15 ").has_value());
    EXPECT_FALSE(silo::common::stringToDate32(" 2023-01-15").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("2023-01-15T00:00:00").has_value());
 }
 
-TEST(Date, rejectsInvalidCalendarDates) {
+TEST(Date32, rejectsInvalidCalendarDates) {
    EXPECT_FALSE(silo::common::stringToDate32("2023-02-30").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("2023-13-01").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("2023-00-01").has_value());
    EXPECT_FALSE(silo::common::stringToDate32("2023-01-00").has_value());
 }
 
-TEST(Date, errorMessagesAreDescriptive) {
+TEST(Date32, errorMessagesAreDescriptive) {
    auto format_error = silo::common::stringToDate32("not-a-date");
    ASSERT_FALSE(format_error.has_value());
    EXPECT_NE(format_error.error().find("not-a-date"), std::string::npos);
@@ -86,7 +86,7 @@ TEST(Date, errorMessagesAreDescriptive) {
    EXPECT_NE(calendar_error.error().find("2023-02-30"), std::string::npos);
 }
 
-TEST(Date, correctlyRoundTrips) {
+TEST(Date32, correctlyRoundTrips) {
    const std::vector<std::string> dates = {
       "2020-01-01",
       "2010-12-03",
@@ -104,16 +104,16 @@ TEST(Date, correctlyRoundTrips) {
    }
 }
 
-TEST(Date, dateToStringFormatsWithLeadingZeros) {
+TEST(Date32, dateToStringFormatsWithLeadingZeros) {
    EXPECT_EQ(silo::common::date32ToString(0), "1970-01-01");
    EXPECT_EQ(silo::common::date32ToString(-1), "1969-12-31");
 }
 
-TEST(Date, epochIsZero) {
+TEST(Date32, epochIsZero) {
    EXPECT_EQ(silo::common::stringToDate32("1970-01-01").value(), 0);
 }
 
-TEST(Date, daysAreMonotonicallyIncreasing) {
+TEST(Date32, daysAreMonotonicallyIncreasing) {
    auto jan1 = silo::common::stringToDate32("2023-01-01").value();
    auto jan2 = silo::common::stringToDate32("2023-01-02").value();
    auto feb1 = silo::common::stringToDate32("2023-02-01").value();
@@ -123,7 +123,7 @@ TEST(Date, daysAreMonotonicallyIncreasing) {
    EXPECT_LT(feb1, dec31);
 }
 
-TEST(Date, yearBoundaryIsOneDay) {
+TEST(Date32, yearBoundaryIsOneDay) {
    auto dec31 = silo::common::stringToDate32("2022-12-31").value();
    auto jan1 = silo::common::stringToDate32("2023-01-01").value();
    EXPECT_EQ(jan1 - dec31, 1);
