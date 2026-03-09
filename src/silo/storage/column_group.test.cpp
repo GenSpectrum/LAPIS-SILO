@@ -151,7 +151,7 @@ TEST(ColumnPartitionGroup, givenIntegerValueForStringColumn_returnsColumnInsertE
    );
 }
 
-TEST(ColumnPartitionGroup, givenIntegerValueForDateColumn_returnsColumnInsertError) {
+TEST(ColumnPartitionGroup, givenIntegerValueForDate32Column_returnsColumnInsertError) {
    const auto result =
       setupColumnAndInsertJson<Date32ColumnPartition>("date_col", R"({"date_col": 42})");
 
