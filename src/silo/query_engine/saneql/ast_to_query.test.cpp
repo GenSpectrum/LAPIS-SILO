@@ -4,11 +4,21 @@
 
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/query.h"
+#include "silo/query_engine/query_tree.h"
 #include "silo/query_engine/saneql/parse_exception.h"
 #include "silo/query_engine/saneql/parser.h"
 
+using silo::query_engine::QueryNode;
+using silo::query_engine::QueryNodePtr;
+using silo::query_engine::query_tree::Aggregated;
+using silo::query_engine::query_tree::Details;
+using silo::query_engine::query_tree::Filter;
+using silo::query_engine::query_tree::Limit;
+using silo::query_engine::query_tree::OrderBy;
+using silo::query_engine::query_tree::TableScan;
 using silo::query_engine::saneql::convertToFilter;
 using silo::query_engine::saneql::convertToQuery;
+using silo::query_engine::saneql::convertToQueryTree;
 using silo::query_engine::saneql::ParseException;
 using silo::query_engine::saneql::Parser;
 
@@ -24,6 +34,12 @@ auto parseFilter(const std::string& input) {
    Parser parser(input);
    auto ast = parser.parse();
    return convertToFilter(*ast);
+}
+
+auto parseToTree(const std::string& input) {
+   Parser parser(input);
+   auto ast = parser.parse();
+   return convertToQueryTree(*ast);
 }
 
 }  // namespace
@@ -522,4 +538,81 @@ TEST(SaneQLParseQueryIntegration, wrapsSemanticErrorAsIllegalQueryException) {
    EXPECT_THROW(
       Query::parseQuery("metadata.filter(country = 'USA').unknownAction()"), IllegalQueryException
    );
+}
+
+// --- Query tree structure tests ---
+
+TEST(SaneQLQueryTree, simpleAggregatedProducesCorrectTree) {
+   auto tree = parseToTree("metadata.aggregated()");
+   ASSERT_NE(tree, nullptr);
+   auto* agg = std::get_if<Aggregated>(&tree->value);
+   ASSERT_NE(agg, nullptr);
+   EXPECT_TRUE(agg->group_by_fields.empty());
+   auto* scan = std::get_if<TableScan>(&agg->source->value);
+   ASSERT_NE(scan, nullptr);
+}
+
+TEST(SaneQLQueryTree, filterAggregatedProducesFilterNode) {
+   auto tree = parseToTree("metadata.filter(country = 'USA').aggregated()");
+   ASSERT_NE(tree, nullptr);
+   auto* agg = std::get_if<Aggregated>(&tree->value);
+   ASSERT_NE(agg, nullptr);
+   auto* filter = std::get_if<Filter>(&agg->source->value);
+   ASSERT_NE(filter, nullptr);
+   EXPECT_NE(filter->predicate, nullptr);
+   auto* scan = std::get_if<TableScan>(&filter->source->value);
+   ASSERT_NE(scan, nullptr);
+}
+
+TEST(SaneQLQueryTree, aggregatedWithGroupByFields) {
+   auto tree = parseToTree("metadata.aggregated(country, region)");
+   ASSERT_NE(tree, nullptr);
+   auto* agg = std::get_if<Aggregated>(&tree->value);
+   ASSERT_NE(agg, nullptr);
+   ASSERT_EQ(agg->group_by_fields.size(), 2);
+   EXPECT_EQ(agg->group_by_fields[0], "country");
+   EXPECT_EQ(agg->group_by_fields[1], "region");
+}
+
+TEST(SaneQLQueryTree, detailsWithLimitCreatesLimitNode) {
+   auto tree = parseToTree("metadata.details(limit:=10)");
+   ASSERT_NE(tree, nullptr);
+   auto* limit = std::get_if<Limit>(&tree->value);
+   ASSERT_NE(limit, nullptr);
+   EXPECT_EQ(limit->limit, 10u);
+   EXPECT_FALSE(limit->offset.has_value());
+   auto* details = std::get_if<Details>(&limit->source->value);
+   ASSERT_NE(details, nullptr);
+}
+
+TEST(SaneQLQueryTree, detailsWithLimitOffsetRandomize) {
+   auto tree = parseToTree("metadata.details(limit:=10, offset:=5, randomize:=42)");
+   ASSERT_NE(tree, nullptr);
+   auto* limit = std::get_if<Limit>(&tree->value);
+   ASSERT_NE(limit, nullptr);
+   EXPECT_EQ(limit->limit, 10u);
+   EXPECT_EQ(limit->offset, 5u);
+   EXPECT_EQ(limit->randomize_seed, 42u);
+}
+
+TEST(SaneQLQueryTree, orderByCreatesOrderByNode) {
+   auto tree = parseToTree("metadata.aggregated(country).orderBy('count desc', 'country')");
+   ASSERT_NE(tree, nullptr);
+   auto* order = std::get_if<OrderBy>(&tree->value);
+   ASSERT_NE(order, nullptr);
+   ASSERT_EQ(order->fields.size(), 2);
+   EXPECT_EQ(order->fields[0].name, "count");
+   EXPECT_FALSE(order->fields[0].ascending);
+   EXPECT_EQ(order->fields[1].name, "country");
+   EXPECT_TRUE(order->fields[1].ascending);
+   auto* agg = std::get_if<Aggregated>(&order->source->value);
+   ASSERT_NE(agg, nullptr);
+}
+
+TEST(SaneQLQueryTree, treeRoundTripsToQuery) {
+   auto tree = parseToTree("metadata.filter(country = 'USA').aggregated()");
+   auto query = silo::query_engine::lowerToQuery(std::move(tree));
+   ASSERT_NE(query, nullptr);
+   EXPECT_NE(query->filter, nullptr);
+   EXPECT_NE(query->action, nullptr);
 }

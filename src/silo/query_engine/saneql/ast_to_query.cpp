@@ -43,6 +43,7 @@
 #include "silo/query_engine/filter/expressions/symbol_equals.h"
 #include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/illegal_query_exception.h"
+#include "silo/query_engine/query_tree.h"
 #include "silo/query_engine/saneql/parse_exception.h"
 
 namespace silo::query_engine::saneql {
@@ -1139,31 +1140,374 @@ std::vector<actions::OrderByField> parseOrderByArgs(const ast::MethodCall& order
    return order_by_fields;
 }
 
+struct OrderingParams {
+   std::optional<uint32_t> limit;
+   std::optional<uint32_t> offset;
+   std::optional<uint32_t> randomize_seed;
+};
+
+OrderingParams extractOrderingParams(const std::vector<ast::Argument>& arguments) {
+   OrderingParams params;
+   auto limit = findNamedIntArg(arguments, "limit");
+   auto offset = findNamedIntArg(arguments, "offset");
+
+   if (limit.has_value() && limit.value() <= 0) {
+      throw IllegalQueryException("If the action contains a limit, it must be a positive number");
+   }
+   if (offset.has_value() && offset.value() < 0) {
+      throw IllegalQueryException(
+         "If the action contains an offset, it must be a non-negative number"
+      );
+   }
+
+   if (limit.has_value()) {
+      params.limit = static_cast<uint32_t>(limit.value());
+   }
+   if (offset.has_value()) {
+      params.offset = static_cast<uint32_t>(offset.value());
+   }
+
+   if (const auto* randomize_expr = findNamedArg(arguments, "randomize")) {
+      if (auto* int_val = std::get_if<ast::IntLiteral>(&randomize_expr->value)) {
+         params.randomize_seed = static_cast<uint32_t>(int_val->value);
+      } else if (auto* bool_val = std::get_if<ast::BoolLiteral>(&randomize_expr->value)) {
+         if (bool_val->value) {
+            params.randomize_seed =
+               static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count());
+         }
+      } else {
+         throw IllegalQueryException("error: 'randomize' field must be a boolean or an integer");
+      }
+   }
+
+   return params;
+}
+
+/// Wraps an action node with Limit if ordering params are present.
+QueryNodePtr wrapWithLimit(QueryNodePtr source, const OrderingParams& params) {
+   if (params.limit.has_value() || params.offset.has_value() || params.randomize_seed.has_value()) {
+      return makeNode(
+         query_tree::Limit{params.limit, params.offset, params.randomize_seed, std::move(source)}
+      );
+   }
+   return source;
+}
+
+/// Converts an action method call AST node into a QueryNodePtr (action node with source).
+QueryNodePtr convertToActionNode(const ast::MethodCall& method_call, QueryNodePtr source) {
+   const std::vector<std::string> ordering_params = {"limit", "offset", "randomize"};
+
+   if (method_call.method_name == "aggregated") {
+      validateNoUnknownNamedArgs(method_call.arguments, ordering_params, "aggregated");
+      std::vector<std::string> group_by;
+      std::unordered_set<std::string> seen;
+      for (const auto& arg : method_call.arguments) {
+         if (isSkippableNamedArg(arg, ordering_params)) {
+            continue;
+         }
+         std::string name;
+         if (auto* id = std::get_if<ast::Identifier>(&arg.value->value)) {
+            name = id->name;
+         } else if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
+            name = str->value;
+         } else {
+            continue;
+         }
+         if (seen.insert(name).second) {
+            group_by.push_back(std::move(name));
+         }
+      }
+      auto params = extractOrderingParams(method_call.arguments);
+      auto action_node = makeNode(query_tree::Aggregated{std::move(group_by), std::move(source)});
+      return wrapWithLimit(std::move(action_node), params);
+   }
+
+   if (method_call.method_name == "details") {
+      validateNoUnknownNamedArgs(method_call.arguments, ordering_params, "details");
+      std::vector<std::string> fields;
+      std::unordered_set<std::string> seen;
+      for (const auto& arg : method_call.arguments) {
+         if (isSkippableNamedArg(arg, ordering_params)) {
+            continue;
+         }
+         std::string name;
+         if (auto* id = std::get_if<ast::Identifier>(&arg.value->value)) {
+            name = id->name;
+         } else if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
+            name = str->value;
+         } else {
+            continue;
+         }
+         if (seen.insert(name).second) {
+            fields.push_back(std::move(name));
+         }
+      }
+      auto params = extractOrderingParams(method_call.arguments);
+      auto action_node = makeNode(query_tree::Details{std::move(fields), std::move(source)});
+      return wrapWithLimit(std::move(action_node), params);
+   }
+
+   if (method_call.method_name == "mutations") {
+      std::vector<std::string> valid_names = ordering_params;
+      valid_names.emplace_back("minProportion");
+      valid_names.emplace_back("fields");
+      validateNoUnknownNamedArgs(method_call.arguments, valid_names, "mutations");
+
+      auto min_prop = findNamedStringArg(method_call.arguments, "minProportion");
+      if (!min_prop.has_value()) {
+         throw IllegalQueryException(
+            "Mutations action must contain the field minProportion of type number with limits "
+            "[0.0, 1.0]. Only mutations are returned if the proportion of sequences having this "
+            "mutation, is at least minProportion"
+         );
+      }
+      double min_proportion = std::stod(min_prop.value());
+      if (min_proportion < 0.0 || min_proportion > 1.0) {
+         throw IllegalQueryException(
+            "Invalid proportion: minProportion must be in interval [0.0, 1.0]"
+         );
+      }
+
+      std::vector<std::string> skip_names = ordering_params;
+      skip_names.emplace_back("minProportion");
+      skip_names.emplace_back("fields");
+
+      auto field_names = findNamedStringSetArg(method_call.arguments, "fields");
+      // Validate field names eagerly
+      for (const auto& f : field_names) {
+         auto resolved = resolveMutationFieldName(f);
+         if (resolved.empty()) {
+            throw IllegalQueryException(
+               "The attribute 'fields' contains an invalid field '{}'. Valid fields are mutation, "
+               "mutationFrom, mutationTo, position, sequenceName, proportion, coverage, count.",
+               f
+            );
+         }
+      }
+
+      std::vector<std::string> sequence_names;
+      for (const auto& arg : method_call.arguments) {
+         if (isSkippableNamedArg(arg, skip_names)) {
+            continue;
+         }
+         if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
+            sequence_names.push_back(str->value);
+         }
+      }
+      auto params = extractOrderingParams(method_call.arguments);
+      auto action_node = makeNode(query_tree::NucMutations{
+         std::move(sequence_names), min_proportion, std::move(field_names), std::move(source)
+      });
+      return wrapWithLimit(std::move(action_node), params);
+   }
+
+   if (method_call.method_name == "aminoAcidMutations") {
+      std::vector<std::string> valid_names = ordering_params;
+      valid_names.emplace_back("minProportion");
+      valid_names.emplace_back("fields");
+      validateNoUnknownNamedArgs(method_call.arguments, valid_names, "aminoAcidMutations");
+
+      auto min_prop = findNamedStringArg(method_call.arguments, "minProportion");
+      if (!min_prop.has_value()) {
+         throw IllegalQueryException(
+            "Mutations action must contain the field minProportion of type number with limits "
+            "[0.0, 1.0]. Only mutations are returned if the proportion of sequences having this "
+            "mutation, is at least minProportion"
+         );
+      }
+      double min_proportion = std::stod(min_prop.value());
+      if (min_proportion < 0.0 || min_proportion > 1.0) {
+         throw IllegalQueryException(
+            "Invalid proportion: minProportion must be in interval [0.0, 1.0]"
+         );
+      }
+
+      std::vector<std::string> skip_names = ordering_params;
+      skip_names.emplace_back("minProportion");
+      skip_names.emplace_back("fields");
+
+      auto field_names = findNamedStringSetArg(method_call.arguments, "fields");
+      for (const auto& f : field_names) {
+         auto resolved = resolveMutationFieldName(f);
+         if (resolved.empty()) {
+            throw IllegalQueryException(
+               "The attribute 'fields' contains an invalid field '{}'. Valid fields are mutation, "
+               "mutationFrom, mutationTo, position, sequenceName, proportion, coverage, count.",
+               f
+            );
+         }
+      }
+
+      std::vector<std::string> sequence_names;
+      for (const auto& arg : method_call.arguments) {
+         if (isSkippableNamedArg(arg, skip_names)) {
+            continue;
+         }
+         if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
+            sequence_names.push_back(str->value);
+         }
+      }
+      auto params = extractOrderingParams(method_call.arguments);
+      auto action_node = makeNode(query_tree::AAMutations{
+         std::move(sequence_names), min_proportion, std::move(field_names), std::move(source)
+      });
+      return wrapWithLimit(std::move(action_node), params);
+   }
+
+   if (method_call.method_name == "fasta") {
+      std::vector<std::string> valid_names = ordering_params;
+      valid_names.emplace_back("additionalFields");
+      validateNoUnknownNamedArgs(method_call.arguments, valid_names, "fasta");
+
+      std::vector<std::string> skip_names = ordering_params;
+      skip_names.emplace_back("additionalFields");
+
+      auto additional_fields = findNamedStringSetArg(method_call.arguments, "additionalFields");
+      std::vector<std::string> sequence_names;
+      for (const auto& arg : method_call.arguments) {
+         if (isSkippableNamedArg(arg, skip_names)) {
+            continue;
+         }
+         if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
+            sequence_names.push_back(str->value);
+         }
+      }
+      auto params = extractOrderingParams(method_call.arguments);
+      auto action_node = makeNode(query_tree::NucFasta{
+         std::move(sequence_names), std::move(additional_fields), std::move(source)
+      });
+      return wrapWithLimit(std::move(action_node), params);
+   }
+
+   if (method_call.method_name == "fastaAligned") {
+      std::vector<std::string> valid_names = ordering_params;
+      valid_names.emplace_back("additionalFields");
+      validateNoUnknownNamedArgs(method_call.arguments, valid_names, "fastaAligned");
+
+      std::vector<std::string> skip_names = ordering_params;
+      skip_names.emplace_back("additionalFields");
+
+      auto additional_fields = findNamedStringSetArg(method_call.arguments, "additionalFields");
+      std::vector<std::string> sequence_names;
+      for (const auto& arg : method_call.arguments) {
+         if (isSkippableNamedArg(arg, skip_names)) {
+            continue;
+         }
+         if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
+            sequence_names.push_back(str->value);
+         }
+      }
+      auto params = extractOrderingParams(method_call.arguments);
+      auto action_node = makeNode(query_tree::AlignedFasta{
+         std::move(sequence_names), std::move(additional_fields), std::move(source)
+      });
+      return wrapWithLimit(std::move(action_node), params);
+   }
+
+   if (method_call.method_name == "insertions") {
+      validateNoUnknownNamedArgs(method_call.arguments, ordering_params, "insertions");
+      std::vector<std::string> sequence_names;
+      for (const auto& arg : method_call.arguments) {
+         if (isSkippableNamedArg(arg, ordering_params)) {
+            continue;
+         }
+         if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
+            sequence_names.push_back(str->value);
+         }
+      }
+      auto params = extractOrderingParams(method_call.arguments);
+      auto action_node =
+         makeNode(query_tree::NucInsertions{std::move(sequence_names), std::move(source)});
+      return wrapWithLimit(std::move(action_node), params);
+   }
+
+   if (method_call.method_name == "aminoAcidInsertions") {
+      validateNoUnknownNamedArgs(method_call.arguments, ordering_params, "aminoAcidInsertions");
+      std::vector<std::string> sequence_names;
+      for (const auto& arg : method_call.arguments) {
+         if (isSkippableNamedArg(arg, ordering_params)) {
+            continue;
+         }
+         if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
+            sequence_names.push_back(str->value);
+         }
+      }
+      auto params = extractOrderingParams(method_call.arguments);
+      auto action_node =
+         makeNode(query_tree::AAInsertions{std::move(sequence_names), std::move(source)});
+      return wrapWithLimit(std::move(action_node), params);
+   }
+
+   if (method_call.method_name == "phyloSubtree") {
+      std::vector<std::string> valid_names = ordering_params;
+      valid_names.emplace_back("printNodesNotInTree");
+      valid_names.emplace_back("contractUnaryNodes");
+      validateNoUnknownNamedArgs(method_call.arguments, valid_names, "phyloSubtree");
+      std::string column_name;
+      for (const auto& arg : method_call.arguments) {
+         if (!arg.name.has_value()) {
+            if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
+               column_name = str->value;
+               break;
+            }
+         }
+      }
+      if (column_name.empty()) {
+         throw IllegalQueryException("phyloSubtree() requires a column name argument");
+      }
+      bool print_nodes =
+         findNamedBoolArg(method_call.arguments, "printNodesNotInTree").value_or(false);
+      bool contract = findNamedBoolArg(method_call.arguments, "contractUnaryNodes").value_or(false);
+      auto params = extractOrderingParams(method_call.arguments);
+      auto action_node = makeNode(
+         query_tree::PhyloSubtree{std::move(column_name), print_nodes, contract, std::move(source)}
+      );
+      return wrapWithLimit(std::move(action_node), params);
+   }
+
+   if (method_call.method_name == "mostRecentCommonAncestor") {
+      std::vector<std::string> valid_names = ordering_params;
+      valid_names.emplace_back("printNodesNotInTree");
+      validateNoUnknownNamedArgs(method_call.arguments, valid_names, "mostRecentCommonAncestor");
+      std::string column_name;
+      for (const auto& arg : method_call.arguments) {
+         if (!arg.name.has_value()) {
+            if (auto* str = std::get_if<ast::StringLiteral>(&arg.value->value)) {
+               column_name = str->value;
+               break;
+            }
+         }
+      }
+      if (column_name.empty()) {
+         throw IllegalQueryException("mostRecentCommonAncestor() requires a column name argument");
+      }
+      bool print_nodes =
+         findNamedBoolArg(method_call.arguments, "printNodesNotInTree").value_or(false);
+      auto params = extractOrderingParams(method_call.arguments);
+      auto action_node = makeNode(query_tree::MostRecentCommonAncestor{
+         std::move(column_name), print_nodes, std::move(source)
+      });
+      return wrapWithLimit(std::move(action_node), params);
+   }
+
+   throw IllegalQueryException("Unknown action: {}", method_call.method_name);
+}
+
 }  // namespace
 
-std::shared_ptr<query_engine::Query> convertToQuery(const ast::Expression& ast_expr) {
-   // Expected shape: table.filter(...).action(...).orderBy(...)
-   // or: table.action(...).orderBy(...)
-   // or: table.filter(...).action(...)
-   // or: table.action(...)
+QueryNodePtr convertToQueryTree(const ast::Expression& ast_expr) {
    if (auto* outer_call = std::get_if<ast::MethodCall>(&ast_expr.value)) {
       // Check if outermost call is orderBy — peel it off
       if (outer_call->method_name == "orderBy") {
          auto order_by_fields = parseOrderByArgs(*outer_call);
-
-         // The receiver should be the action call
-         auto query = convertToQuery(*outer_call->receiver);
-
-         // Apply ordering to the action (preserves limit/offset/randomize already set)
-         query->action->setOrderByFields(order_by_fields);
-         return query;
+         auto inner = convertToQueryTree(*outer_call->receiver);
+         return makeNode(query_tree::OrderBy{std::move(order_by_fields), std::move(inner)});
       }
 
       // Check if this is an action method
       if (isActionMethod(outer_call->method_name)) {
-         auto action = convertToAction(*outer_call);
-
-         // Check if receiver is filter call
+         // Build the source node (Filter + TableScan, or just TableScan)
+         QueryNodePtr source;
          if (auto* filter_call = std::get_if<ast::MethodCall>(&outer_call->receiver->value)) {
             if (filter_call->method_name == "filter") {
                if (filter_call->arguments.size() != 1) {
@@ -1171,20 +1515,27 @@ std::shared_ptr<query_engine::Query> convertToQuery(const ast::Expression& ast_e
                      filter_call->receiver->location, "filter() requires exactly 1 argument"
                   );
                }
-               auto filter = convertToFilter(*filter_call->arguments[0].value);
-               return std::make_shared<query_engine::Query>(std::move(filter), std::move(action));
+               auto predicate = convertToFilter(*filter_call->arguments[0].value);
+               auto table_scan = makeNode(query_tree::TableScan{schema::TableName::getDefault()});
+               source = makeNode(query_tree::Filter{std::move(predicate), std::move(table_scan)});
             }
          }
+         if (!source) {
+            source = makeNode(query_tree::TableScan{schema::TableName::getDefault()});
+         }
 
-         // No filter — use True
-         auto filter = std::make_unique<filter::expressions::True>();
-         return std::make_shared<query_engine::Query>(std::move(filter), std::move(action));
+         return convertToActionNode(*outer_call, std::move(source));
       }
    }
 
    throw ParseException(
       ast_expr.location, "Query must end with an action (e.g., .aggregated(), .details())"
    );
+}
+
+std::shared_ptr<query_engine::Query> convertToQuery(const ast::Expression& ast_expr) {
+   auto tree = convertToQueryTree(ast_expr);
+   return lowerToQuery(std::move(tree));
 }
 
 }  // namespace silo::query_engine::saneql
