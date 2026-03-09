@@ -1,6 +1,6 @@
 # LAPIS-SILO
 
-Sequence Indexing engine for Large Order of genomic data
+High-performance analytical database for sequence alignment data
 
 For information on how to build, test, and contribute to SILO, see [Contributing](documentation/developer/contributing.md).
 
