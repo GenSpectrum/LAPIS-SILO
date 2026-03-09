@@ -16,18 +16,7 @@ class MostRecentCommonAncestor : public TreeAction {
   public:
    MostRecentCommonAncestor(std::string column_name, bool print_nodes_not_in_tree);
 
-   arrow::Status addResponseToBuilder(
-      NodeValuesResponse& all_node_ids,
-      std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
-      const common::PhyloTree& phylo_tree
-   ) const override;
-
-   [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema(
-      const schema::TableSchema& table_schema
-   ) const override;
-
-   [[nodiscard]] std::string_view getType() const override { return "MostRecentCommonAncestor"; }
-
+   // TODO.TAE
    [[nodiscard]] std::string_view myResultFieldName() const override { return "mrcaNode"; }
 };
 

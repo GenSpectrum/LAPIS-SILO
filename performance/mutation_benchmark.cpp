@@ -3,16 +3,21 @@
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
+#include "silo/query_engine/action_query.h"
+#include "silo/query_engine/planner.h"
+#include "silo/query_engine/binder.h"
 #include "silo/query_engine/actions/mutations.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/filter/expressions/negation.h"
 #include "silo/query_engine/filter/expressions/string_equals.h"
 #include "silo/query_engine/filter/expressions/true.h"
-#include "silo/query_engine/query.h"
+#include "silo/query_engine/operators/query_node.h"
 
 namespace {
 
-using silo::query_engine::Query;
+using silo::query_engine::ActionQuery;
+using silo::query_engine::Planner;
+using silo::query_engine::Binder;
 using silo::query_engine::filter::expressions::True;
 using silo::query_engine::filter::expressions::Negation;
 using silo::query_engine::filter::expressions::StringEquals;
@@ -110,11 +115,17 @@ void printClipped(const std::string& output){
 }
 
 void executeMutationsAllQuery(const std::shared_ptr<Database>& database){
-   std::vector<std::string_view> all_fields{Mutations<Nucleotide>::VALID_FIELDS.begin(), Mutations<Nucleotide>::VALID_FIELDS.end()};
+   using silo::query_engine::actions::Mutations;
 
-   Query query{std::make_unique<True>(), std::make_unique<Mutations<Nucleotide>>(std::vector<std::string>{"main"}, 0.05, std::move(all_fields))};
+   ActionQuery query{
+      std::make_unique<True>(),
+      std::make_unique<Mutations<Nucleotide>>(
+         std::vector<std::string>{"main"}, 0.05, std::vector<std::string_view>{}
+      )
+   };
 
-   auto query_plan = database->createQueryPlan(query, {}, "test_query");
+   auto bound_query = Binder::bindQuery(std::move(query), database->tables);
+   auto query_plan = Planner::planQuery(std::move(bound_query), database->tables, {}, "test_query");
    std::stringstream result;
    silo::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
    query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/3);
@@ -122,12 +133,18 @@ void executeMutationsAllQuery(const std::shared_ptr<Database>& database){
 }
 
 void executeMutationsAlmostAllQuery(const std::shared_ptr<Database>& database){
-   std::vector<std::string_view> all_fields{Mutations<Nucleotide>::VALID_FIELDS.begin(), Mutations<Nucleotide>::VALID_FIELDS.end()};
+   using silo::query_engine::actions::Mutations;
 
-   const Query query{std::make_unique<Negation>(std::make_unique<StringEquals>("key", "3")), std::make_unique<Mutations<Nucleotide>>(std::vector<std::string>{"main"}, 0.05, std::move(all_fields))};
 
-   auto query_plan = database->createQueryPlan(query, {}, "test_query");
-   std::stringstream result;
+   ActionQuery query{
+      std::make_unique<Negation>(std::make_unique<StringEquals>("key", "3")),
+      std::make_unique<Mutations<Nucleotide>>(
+         std::vector<std::string>{"main"}, 0.05, std::vector<std::string_view>{}
+      )
+   };
+
+   auto bound_query = Binder::bindQuery(std::move(query), database->tables);
+   auto query_plan = Planner::planQuery(std::move(bound_query), database->tables, {}, "test_query");   std::stringstream result;
    silo::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
    query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/3);
    printClipped(result.str());

@@ -9,6 +9,7 @@
 
 #include "silo/query_engine/actions/action.h"
 #include "silo/query_engine/illegal_query_exception.h"
+#include "silo/query_engine/operators/query_node.h"
 
 namespace silo::query_engine::actions {
 
@@ -18,31 +19,6 @@ FastaAligned::FastaAligned(
 )
     : sequence_names(sequence_names),
       additional_fields(additional_fields) {}
-
-std::vector<schema::ColumnIdentifier> FastaAligned::getOutputSchema(
-   const schema::TableSchema& table_schema
-) const {
-   std::set<schema::ColumnIdentifier> fields;
-   for (const auto& sequence_name : sequence_names) {
-      auto column = table_schema.getColumn(sequence_name);
-      CHECK_SILO_QUERY(
-         column.has_value() && isSequenceColumn(column.value().type),
-         "The table does not contain the SequenceColumn '{}'",
-         sequence_name
-      );
-      fields.emplace(column.value());
-   }
-   for (const auto& additional_field : additional_fields) {
-      auto column = table_schema.getColumn(additional_field);
-      CHECK_SILO_QUERY(
-         column.has_value(), "The table does not contain the Column '{}'", additional_field
-      );
-      fields.emplace(column.value());
-   }
-   fields.emplace(table_schema.primary_key);
-   std::vector<schema::ColumnIdentifier> unique_fields{fields.begin(), fields.end()};
-   return unique_fields;
-}
 
 namespace {
 
@@ -87,10 +63,7 @@ void from_json(const nlohmann::json& json, std::unique_ptr<FastaAligned>& action
          additional_fields.emplace_back(child.get<std::string>());
       }
    }
-   action = std::make_unique<FastaAligned>(
-      Action::deduplicateOrderPreserving(sequence_names),
-      Action::deduplicateOrderPreserving(additional_fields)
-   );
+   action = std::make_unique<FastaAligned>(std::move(sequence_names), std::move(additional_fields));
 }
 
 }  // namespace silo::query_engine::actions

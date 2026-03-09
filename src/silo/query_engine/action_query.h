@@ -11,12 +11,12 @@ namespace silo::query_engine {
 
 using filter::expressions::Expression;
 
-struct Query {
+struct ActionQuery {
    schema::TableName table_name;
    std::unique_ptr<Expression> filter;
    std::unique_ptr<actions::Action> action;
 
-   explicit Query(
+   explicit ActionQuery(
       schema::TableName table_name,
       std::unique_ptr<Expression> filter,
       std::unique_ptr<actions::Action> action
@@ -25,10 +25,10 @@ struct Query {
          filter(std::move(filter)),
          action(std::move(action)) {}
 
-   explicit Query(std::unique_ptr<Expression> filter, std::unique_ptr<actions::Action> action)
-       : Query(schema::TableName::getDefault(), std::move(filter), std::move(action)) {}
+   explicit ActionQuery(std::unique_ptr<Expression> filter, std::unique_ptr<actions::Action> action)
+       : ActionQuery(schema::TableName::getDefault(), std::move(filter), std::move(action)) {}
 
-   static std::shared_ptr<Query> parseQuery(const std::string& query_string);
+   static std::shared_ptr<ActionQuery> parseQuery(const std::string& query_string);
 };
 
 }  // namespace silo::query_engine

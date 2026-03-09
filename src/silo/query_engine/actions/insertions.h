@@ -26,8 +26,10 @@ class InsertionAggregation : public Action {
    static constexpr std::string_view SEQUENCE_FIELD_NAME = "sequenceName";
    static constexpr std::string_view COUNT_FIELD_NAME = "count";
 
+  public:
    std::vector<std::string> sequence_names;
 
+  private:
    struct PrefilteredBitmaps {
       std::vector<std::pair<
          const CopyOnWriteBitmap&,
@@ -53,21 +55,6 @@ class InsertionAggregation : public Action {
 
   public:
    explicit InsertionAggregation(std::vector<std::string>&& sequence_names);
-
-   void validateOrderByFields(const schema::TableSchema& schema) const override;
-
-   [[nodiscard]] arrow::Result<QueryPlan> toQueryPlanImpl(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> partition_filters,
-      const config::QueryOptions& query_options,
-      std::string_view request_id
-   ) const override;
-
-   [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema(
-      const silo::schema::TableSchema& table_schema
-   ) const override;
-
-   [[nodiscard]] std::string_view getType() const override { return "InsertionAggregation"; }
 };
 
 template <typename SymbolType>

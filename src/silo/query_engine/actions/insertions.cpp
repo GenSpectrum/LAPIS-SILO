@@ -20,6 +20,7 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/illegal_query_exception.h"
+#include "silo/query_engine/operators/query_node.h"
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/table_partition.h"
 
@@ -31,31 +32,6 @@ namespace silo::query_engine::actions {
 template <typename SymbolType>
 InsertionAggregation<SymbolType>::InsertionAggregation(std::vector<std::string>&& sequence_names)
     : sequence_names(std::move(sequence_names)) {}
-
-template <typename SymbolType>
-void InsertionAggregation<
-   SymbolType>::validateOrderByFields(const schema::TableSchema& /*table_schema*/) const {
-   const std::vector<std::string> result_field_names{
-      {std::string{POSITION_FIELD_NAME},
-       std::string{INSERTION_FIELD_NAME},
-       std::string{SEQUENCE_FIELD_NAME},
-       std::string{COUNT_FIELD_NAME},
-       std::string{INSERTED_SYMBOLS_FIELD_NAME}}
-   };
-
-   for (const OrderByField& field : order_by_fields) {
-      CHECK_SILO_QUERY(
-         std::ranges::any_of(
-            result_field_names,
-            [&](const std::string& result_field) { return result_field == field.name; }
-         ),
-         "OrderByField {} is not contained in the result of this operation. "
-         "Allowed values are {}.",
-         field.name,
-         fmt::join(result_field_names, ", ")
-      );
-   }
-}
 
 namespace {
 template <typename SymbolType>
@@ -199,100 +175,6 @@ arrow::Status InsertionAggregation<SymbolType>::addAggregatedInsertionsToInserti
       }
    }
    return arrow::Status::OK();
-}
-
-template <typename SymbolType>
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
-arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
-   std::shared_ptr<const storage::Table> table,
-   std::vector<CopyOnWriteBitmap> partition_filters,
-   const config::QueryOptions& /*query_options*/,
-   std::string_view request_id
-) const {
-   EVOBENCH_SCOPE("InsertionAggregation", "toQueryPlanImpl");
-   validateSequenceNames<SymbolType>(*table, sequence_names);
-   auto sequence_names_to_evaluate = sequence_names;
-
-   auto output_fields = getOutputSchema(table->schema);
-
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-      [table,
-       output_fields,
-       partition_filters,
-       sequence_names_to_evaluate,
-       already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
-      EVOBENCH_SCOPE("InsertionAggregation", "producer");
-      if (already_produced) {
-         const std::optional<arrow::ExecBatch> result = std::nullopt;
-         return arrow::Future{result};
-      }
-      already_produced = true;
-
-      std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder> output_builder;
-      for (const auto& output_field : output_fields) {
-         output_builder.emplace(
-            output_field.name, exec_node::columnTypeToArrowType(output_field.type)
-         );
-      }
-
-      const auto bitmaps_to_evaluate =
-         preFilterBitmaps(*table, sequence_names_to_evaluate, partition_filters);
-      for (const auto& [sequence_name, prefiltered_bitmaps] : bitmaps_to_evaluate) {
-         const auto default_sequence_name = table->schema.getDefaultSequenceName<SymbolType>();
-         const bool omit_sequence_in_response =
-            default_sequence_name.has_value() &&
-            (default_sequence_name.value().name == sequence_name);
-         ARROW_RETURN_NOT_OK(addAggregatedInsertionsToInsertionCounts(
-            sequence_name, !omit_sequence_in_response, prefiltered_bitmaps, output_builder
-         ));
-      }
-
-      // Order of result_columns is relevant as it needs to be consistent with vector in schema
-      std::vector<arrow::Datum> result_columns;
-      for (const auto& output_field : output_fields) {
-         if (auto array_builder = output_builder.find(output_field.name);
-             array_builder != output_builder.end()) {
-            arrow::Datum datum;
-            ARROW_ASSIGN_OR_RAISE(datum, array_builder->second.toDatum());
-            result_columns.push_back(std::move(datum));
-         }
-      }
-      ARROW_ASSIGN_OR_RAISE(
-         const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
-      );
-      return arrow::Future{result};
-   };
-
-   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
-
-   const arrow::acero::SourceNodeOptions options{
-      exec_node::columnsToArrowSchema(getOutputSchema(table->schema)),
-      std::move(producer),
-      arrow::Ordering::Implicit()
-   };
-   ARROW_ASSIGN_OR_RAISE(
-      auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
-   );
-
-   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, table->schema));
-
-   ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
-
-   return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
-}
-
-template <typename SymbolType>
-std::vector<schema::ColumnIdentifier> InsertionAggregation<SymbolType>::getOutputSchema(
-   const silo::schema::TableSchema& /*table_schema*/
-) const {
-   std::vector<schema::ColumnIdentifier> fields;
-   fields.emplace_back(std::string(POSITION_FIELD_NAME), schema::ColumnType::INT32);
-   fields.emplace_back(std::string(INSERTED_SYMBOLS_FIELD_NAME), schema::ColumnType::STRING);
-   fields.emplace_back(std::string(SEQUENCE_FIELD_NAME), schema::ColumnType::STRING);
-   fields.emplace_back(std::string(INSERTION_FIELD_NAME), schema::ColumnType::STRING);
-   fields.emplace_back(std::string(COUNT_FIELD_NAME), schema::ColumnType::INT32);
-   return fields;
 }
 
 namespace {

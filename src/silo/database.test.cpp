@@ -11,9 +11,13 @@
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
-#include "silo/query_engine/actions/aggregated.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/filter/expressions/true.h"
+#include "silo/query_engine/operators/aggregate_node.h"
+#include "silo/query_engine/operators/count_filter_node.h"
+#include "silo/query_engine/operators/query_node.h"
+#include "silo/query_engine/operators/table_scan_node.h"
+#include "silo/query_engine/planner.h"
 #include "silo/storage/reference_genomes.h"
 
 using silo::config::PreprocessingConfig;
@@ -123,10 +127,12 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
 }
 
 using silo::Nucleotide;
-using silo::query_engine::Query;
-using silo::query_engine::actions::Aggregated;
+using silo::query_engine::ActionQuery;
 using silo::query_engine::exec_node::NdjsonSink;
 using silo::query_engine::filter::expressions::True;
+using silo::query_engine::operators::AggregateNode;
+using silo::query_engine::operators::CountFilterNode;
+using silo::query_engine::operators::TableScanNode;
 using silo::schema::ColumnIdentifier;
 using silo::schema::ColumnType;
 using silo::schema::TableSchema;
@@ -151,33 +157,42 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
    };
    silo::schema::TableName first_table_name{"first"};
    database.createTable(first_table_name, TableSchema(column_metadata, primary_key));
+   silo::schema::TableName second_table_name{"second"};
+   database.createTable(second_table_name, TableSchema(column_metadata, primary_key));
+
+   auto first_table = database.tables.at(first_table_name);
 
    std::ifstream first_table_data{"testBaseData/example.ndjson"};
    database.appendData(first_table_name, first_table_data);
 
-   Query aggregated_all_query(
-      first_table_name,
-      std::make_unique<True>(),
-      std::make_unique<Aggregated>(std::vector<std::string>{})
+   auto aggregated_all_query_1 =
+      std::make_unique<CountFilterNode>(first_table, std::make_unique<True>());
+   auto query_plan_1 = silo::query_engine::Planner::planQuery(
+      std::move(aggregated_all_query_1),
+      database.tables,
+      silo::config::QueryOptions{},
+      "test_query_1"
    );
-   auto query_plan_1 =
-      database.createQueryPlan(aggregated_all_query, silo::config::QueryOptions{}, "test_query_1");
    std::stringstream result;
    NdjsonSink output_sink_1{&result, query_plan_1.results_schema};
    query_plan_1.executeAndWrite(output_sink_1, 100);
    ASSERT_EQ(result.str(), "{\"count\":20}\n");
-
-   silo::schema::TableName second_table_name{"second"};
-   database.createTable(second_table_name, TableSchema(column_metadata, primary_key));
 
    std::stringstream second_table_data;
    second_table_data
       << R"({"key":"id_1","sequence":{"sequence":"AAAA","insertions":[],"offset":0}})";
    database.appendData(second_table_name, second_table_data);
 
-   aggregated_all_query.table_name = second_table_name;
-   auto query_plan_2 =
-      database.createQueryPlan(aggregated_all_query, silo::config::QueryOptions{}, "test_query_2");
+   auto second_table = database.tables.at(second_table_name);
+
+   auto aggregated_all_query_2 =
+      std::make_unique<CountFilterNode>(second_table, std::make_unique<True>());
+   auto query_plan_2 = silo::query_engine::Planner::planQuery(
+      std::move(aggregated_all_query_2),
+      database.tables,
+      silo::config::QueryOptions{},
+      "test_query_2"
+   );
    std::stringstream result_2;
    NdjsonSink output_sink_2{&result_2, query_plan_2.results_schema};
    query_plan_2.executeAndWrite(output_sink_2, 100);

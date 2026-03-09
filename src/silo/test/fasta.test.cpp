@@ -243,7 +243,7 @@ const QueryTestScenario ORDER_BY_NOT_IN_OUTPUT = {
 )"),
    .expected_error_message =
       "OrderByField date is not contained in the result of this operation. "
-      "The only fields returned by this action are primaryKey, unaligned_segment1"
+      "Allowed values are primaryKey, unaligned_segment1."
 };
 
 const QueryTestScenario ORDER_BY_ADDITIONAL_FIELD = {
