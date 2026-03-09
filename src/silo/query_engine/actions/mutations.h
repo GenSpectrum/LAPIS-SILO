@@ -43,70 +43,17 @@ class Mutations : public Action {
       COUNT_FIELD_NAME
    };
 
-  private:
    std::vector<std::string> sequence_names;
    double min_proportion;
    std::vector<std::string_view> fields;
 
-   struct PrefilteredBitmaps {
-      std::vector<std::pair<
-         const CopyOnWriteBitmap&,
-         const storage::column::SequenceColumnPartition<SymbolType>&>>
-         bitmaps;
-      std::vector<std::pair<size_t, const storage::column::SequenceColumnPartition<SymbolType>&>>
-         full_bitmaps;
-   };
-
-   static std::unordered_map<std::string, Mutations<SymbolType>::PrefilteredBitmaps>
-   preFilterBitmaps(
-      const silo::storage::Table& table,
-      std::vector<CopyOnWriteBitmap>& bitmap_filter
-   );
-
-   static void addMutationCountsForMixedBitmaps(
-      const PrefilteredBitmaps& bitmaps_to_evaluate,
-      SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
-   );
-
-   static void addMutationCountsForFullBitmaps(
-      const PrefilteredBitmaps& bitmaps_to_evaluate,
-      SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
-   );
-
-   static SymbolMap<SymbolType, std::vector<uint32_t>> calculateMutationsPerPosition(
-      const storage::column::SequenceColumnMetadata<SymbolType>& column_metadata,
-      const PrefilteredBitmaps& bitmap_filter
-   );
-
-   static arrow::Status addMutationsToOutput(
-      const std::string& sequence_name,
-      const storage::column::SequenceColumnMetadata<SymbolType>& column_metadata,
-      double min_proportion,
-      const PrefilteredBitmaps& bitmap_filter,
-      std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder
-   );
-
-   void validateOrderByFields(const schema::TableSchema& schema) const override;
-
-   [[nodiscard]] arrow::Result<QueryPlan> toQueryPlanImpl(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> partition_filters,
-      const config::QueryOptions& query_options,
-      std::string_view request_id
-   ) const override;
-
+  private:
   public:
    explicit Mutations(
       std::vector<std::string>&& sequence_names,
       double min_proportion,
       std::vector<std::string_view>&& fields
    );
-
-   [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema(
-      const silo::schema::TableSchema& table_schema
-   ) const override;
-
-   [[nodiscard]] std::string_view getType() const override { return "Mutations"; }
 };
 
 template <typename SymbolType>

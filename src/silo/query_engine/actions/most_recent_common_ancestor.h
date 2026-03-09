@@ -8,27 +8,16 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/query_engine/actions/tree_action.h"
+#include "silo/query_engine/actions/action.h"
 
 namespace silo::query_engine::actions {
 
-class MostRecentCommonAncestor : public TreeAction {
+class MostRecentCommonAncestor : public Action {
   public:
+   std::string column_name;
+   bool print_nodes_not_in_tree;
+
    MostRecentCommonAncestor(std::string column_name, bool print_nodes_not_in_tree);
-
-   arrow::Status addResponseToBuilder(
-      NodeValuesResponse& all_node_ids,
-      std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
-      const common::PhyloTree& phylo_tree
-   ) const override;
-
-   [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema(
-      const schema::TableSchema& table_schema
-   ) const override;
-
-   [[nodiscard]] std::string_view getType() const override { return "MostRecentCommonAncestor"; }
-
-   [[nodiscard]] std::string_view myResultFieldName() const override { return "mrcaNode"; }
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

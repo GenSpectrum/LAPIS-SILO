@@ -26,48 +26,10 @@ class InsertionAggregation : public Action {
    static constexpr std::string_view SEQUENCE_FIELD_NAME = "sequenceName";
    static constexpr std::string_view COUNT_FIELD_NAME = "count";
 
+  public:
    std::vector<std::string> sequence_names;
 
-   struct PrefilteredBitmaps {
-      std::vector<std::pair<
-         const CopyOnWriteBitmap&,
-         const silo::storage::insertion::InsertionIndex<SymbolType>&>>
-         bitmaps;
-      std::vector<std::pair<size_t, const silo::storage::insertion::InsertionIndex<SymbolType>&>>
-         full_bitmaps;
-   };
-
-   static arrow::Status addAggregatedInsertionsToInsertionCounts(
-      const std::string& sequence_name,
-      bool show_sequence_in_response,
-      const PrefilteredBitmaps& prefiltered_bitmaps,
-      std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder
-   );
-
-   std::
-      unordered_map<std::string, InsertionAggregation<SymbolType>::PrefilteredBitmaps> static preFilterBitmaps(
-         const storage::Table& table,
-         const std::vector<std::string>& sequence_names,
-         std::vector<CopyOnWriteBitmap>& bitmap_filter
-      );
-
-  public:
    explicit InsertionAggregation(std::vector<std::string>&& sequence_names);
-
-   void validateOrderByFields(const schema::TableSchema& schema) const override;
-
-   [[nodiscard]] arrow::Result<QueryPlan> toQueryPlanImpl(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> partition_filters,
-      const config::QueryOptions& query_options,
-      std::string_view request_id
-   ) const override;
-
-   [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema(
-      const silo::schema::TableSchema& table_schema
-   ) const override;
-
-   [[nodiscard]] std::string_view getType() const override { return "InsertionAggregation"; }
 };
 
 template <typename SymbolType>

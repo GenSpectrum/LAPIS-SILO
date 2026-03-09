@@ -10,19 +10,24 @@
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
+#include "silo/query_engine/action_query.h"
 #include "silo/query_engine/actions/aggregated.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
+#include "silo/query_engine/planner.h"
+#include "silo/query_engine/binder.h"
 #include "silo/query_engine/filter/expressions/or.h"
 #include "silo/query_engine/filter/expressions/string_equals.h"
 #include "silo/query_engine/filter/expressions/string_in_set.h"
 #include "silo/query_engine/filter/expressions/true.h"
-#include "silo/query_engine/query.h"
+#include "silo/query_engine/operators/query_node.h"
 
 namespace {
 
 using silo::Database;
-using silo::query_engine::Query;
 using silo::query_engine::actions::Aggregated;
+using silo::query_engine::ActionQuery;
+using silo::query_engine::Planner;
+using silo::query_engine::Binder;
 using silo::query_engine::filter::expressions::Expression;
 using silo::query_engine::filter::expressions::ExpressionVector;
 using silo::query_engine::filter::expressions::Or;
@@ -123,8 +128,9 @@ std::unique_ptr<Expression> buildStringInSet(
    return std::make_unique<StringInSet>(column, std::move(value_set));
 }
 
-void executeAggregatedQuery(const std::shared_ptr<Database>& database, Query& query) {
-   auto query_plan = database->createQueryPlan(query, {}, "benchmark_query");
+void executeAggregatedQuery(const std::shared_ptr<Database>& database, ActionQuery& query) {
+   auto query_tree = Binder::bindQuery(std::move(query), database->tables);
+   auto query_plan = Planner::planQuery(std::move(query_tree), database->tables, {}, "benchmark_query");
    std::stringstream result;
    silo::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
    query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/60);
@@ -148,7 +154,8 @@ BenchmarkResult runBenchmark(
    for (int i = 0; i < iterations; ++i) {
       // Build a fresh filter for each iteration
       auto filter = build_filter();
-      Query query{std::move(filter), std::make_unique<Aggregated>(std::vector<std::string>{})};
+      auto action = std::make_unique<Aggregated>(std::vector<std::string>{});
+      ActionQuery query{std::move(filter), std::move(action)};
 
       auto start = std::chrono::high_resolution_clock::now();
       executeAggregatedQuery(database, query);

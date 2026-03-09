@@ -4,8 +4,10 @@
 
 #include "silo/common/data_version.h"
 #include "silo/common/silo_directory.h"
+#include "silo/config/runtime_config.h"
 #include "silo/database_info.h"
-#include "silo/query_engine/query.h"
+#include "silo/query_engine/action_query.h"
+#include "silo/query_engine/query_plan.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
@@ -34,8 +36,6 @@ class Database {
    );
 
    void appendData(const schema::TableName& table_name, std::istream& input_stream);
-
-   void query(query_engine::Query query);
 
    void createNucleotideSequenceTable(
       const std::string& table_name,
@@ -104,12 +104,6 @@ class Database {
    [[nodiscard]] virtual DatabaseInfo getDatabaseInfo() const;
 
    [[nodiscard]] virtual DataVersion::Timestamp getDataVersionTimestamp() const;
-
-   [[nodiscard]] query_engine::QueryPlan createQueryPlan(
-      const query_engine::Query& query,
-      const config::QueryOptions& query_options,
-      std::string_view request_id
-   ) const;
 
    [[nodiscard]] std::string executeQueryAsArrowIpc(
       const std::string& table_name,
