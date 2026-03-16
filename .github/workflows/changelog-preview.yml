@@ -40,7 +40,7 @@ jobs:
           EOF" >> "$GITHUB_OUTPUT"
 
       - name: Write changelog comment on PR
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         if: ${{ steps.changelog-preview.outputs.changelog != '' }}
         with:
           skip_unchanged: true
@@ -55,7 +55,7 @@ jobs:
             ${{ steps.changelog-preview.outputs.changelog }}
 
       - name: Write "no change" Comment on PR
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         if: ${{ steps.changelog-preview.outputs.changelog == '' }}
         with:
           skip_unchanged: true
