@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.11.0...v0.11.1) (2026-03-17)
+
+
+### Features
+
+* **silo:** allow sequence-column inputs to be zstd-compressed in base64 format ([1f2bbc5](https://github.com/GenSpectrum/LAPIS-SILO/commit/1f2bbc5aeefb586d25fc11396915987164103d31))
+
+
+### Bug Fixes
+
+* **silo:** let `N` (`X` for amino acids) also code for `-` ([a081630](https://github.com/GenSpectrum/LAPIS-SILO/commit/a081630ab382920c0805f72bfdc906bd5e433457))
+
 ## [0.11.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.10.1...v0.11.0) (2026-03-03)
 
 
