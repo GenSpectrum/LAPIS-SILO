@@ -1,18 +1,38 @@
 name: LAPIS-SILO
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
-  workflow_run:
-    workflows: [Release SILO]
-    types: [completed]
-    branches: [main]
-  workflow_dispatch:
 
 env:
   DOCKER_DEPENDENCY_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo-dependencies
   DOCKER_IMAGE_NAME: ghcr.io/genspectrum/lapis-silo
 
 jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: googleapis/release-please-action@v4
+        if: github.event_name == 'push'
+        id: release
+        with:
+          path: .
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          target-branch: main
+
+      - name: Inspect Release Outputs
+        if: github.event_name == 'push'
+        run: |
+          cat <<'EOF'
+          ${{ toJson(steps.release.outputs) }}
+          EOF
+
   dependencyImage:
     name: Build dependency image (${{ matrix.arch }})
     strategy:
@@ -96,8 +116,7 @@ jobs:
 
   dockerImage:
     name: Build docker images
-    needs: dependencyImage
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_run'
+    needs: [dependencyImage, release-please]
     strategy:
       matrix:
         arch: ["amd64", "arm64"]
@@ -347,7 +366,7 @@ jobs:
     name: Build/Run linter on all files
     needs: dependencyImage
     if: >-
-      github.event_name == 'workflow_run' ||
+      github.event_name == 'push' ||
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'trigger-linter'))
     runs-on: ubuntu-latest
     steps:
@@ -369,7 +388,6 @@ jobs:
 
   unitTests:
     needs: dependencyImage
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -392,7 +410,6 @@ jobs:
 
   pythonTests:
     needs: dependencyImage
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -415,7 +432,7 @@ jobs:
 
   buildWheelsLinux:
     name: Build wheel (linux-${{ matrix.arch }})
-    needs: dependencyImage
+    needs: [dependencyImage, release-please]
     strategy:
       matrix:
         arch: ["amd64", "arm64"]
@@ -490,6 +507,7 @@ jobs:
 
   buildWheelsMacos:
     name: Build wheel (macos-${{ matrix.arch }})
+    needs: release-please
     strategy:
       matrix:
         include:
