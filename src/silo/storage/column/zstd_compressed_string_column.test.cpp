@@ -11,7 +11,7 @@ TEST(ZstdCompressedStringColumnPartition, insertValuesAndGetThemBack) {
    };
    for (const auto& value : values_to_add) {
       if (value.has_value()) {
-         under_test.insert(value.value());
+         SILO_ASSERT(under_test.insert(value.value()).has_value());
       } else {
          under_test.insertNull();
       }
