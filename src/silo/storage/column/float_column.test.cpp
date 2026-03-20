@@ -9,7 +9,7 @@ using silo::storage::column::FloatColumnPartition;
 TEST(FloatColumn, doesNotErrorOnValidInputs) {
    ColumnMetadata column("float_column1");
    FloatColumnPartition column_partition{&column};
-   column_partition.insert(0.1);
+   SILO_ASSERT(column_partition.insert(0.1).has_value());
    column_partition.insertNull();
    ASSERT_EQ(column_partition.numValues(), 2);
    ASSERT_EQ(column_partition.getValue(0), 0.1);

@@ -13,16 +13,17 @@
 using silo::storage::column::StringColumnMetadata;
 using silo::storage::column::StringColumnPartition;
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumnPartition, rawInsertedValuesRequeried) {
    StringColumnMetadata metadata{"string_column"};
    StringColumnPartition under_test(&metadata);
 
-   under_test.insert("value 1");
-   under_test.insert("value 2");
-   under_test.insert("value 2");
-   under_test.insert("value 3");
-   under_test.insert("some string that is a little longer 1");
-   under_test.insert("value 1");
+   SILO_ASSERT(under_test.insert("value 1").has_value());
+   SILO_ASSERT(under_test.insert("value 2").has_value());
+   SILO_ASSERT(under_test.insert("value 2").has_value());
+   SILO_ASSERT(under_test.insert("value 3").has_value());
+   SILO_ASSERT(under_test.insert("some string that is a little longer 1").has_value());
+   SILO_ASSERT(under_test.insert("value 1").has_value());
 
    EXPECT_EQ(under_test.getValueString(0), "value 1");
    EXPECT_EQ(under_test.getValueString(1), "value 2");
@@ -32,6 +33,7 @@ TEST(StringColumnPartition, rawInsertedValuesRequeried) {
    EXPECT_EQ(under_test.getValueString(5), "value 1");
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumnPartition, serializationOfMetadataWorks) {
    auto phylo_tree = silo::common::PhyloTree::fromNewickString(
       "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
@@ -39,9 +41,9 @@ TEST(StringColumnPartition, serializationOfMetadataWorks) {
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
    StringColumnPartition partition(&metadata);
 
-   partition.insert("CHILD2");
-   partition.insert("CHILD3");
-   partition.insert("NOT_IN_TREE");
+   SILO_ASSERT(partition.insert("CHILD2").has_value());
+   SILO_ASSERT(partition.insert("CHILD3").has_value());
+   SILO_ASSERT(partition.insert("NOT_IN_TREE").has_value());
 
    std::ostringstream oss;
    boost::archive::binary_oarchive oarchive(oss);
@@ -74,6 +76,7 @@ TEST(StringColumnPartition, serializationOfMetadataWorks) {
    EXPECT_EQ(node_dict.at(silo::common::TreeNodeId{"NOT_IN_DATASET"})->row_index, std::nullopt);
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumnPartition, rawInsertedValuesWithPhyloTreeRequeried) {
    auto phylo_tree = silo::common::PhyloTree::fromNewickString(
       "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
@@ -81,9 +84,9 @@ TEST(StringColumnPartition, rawInsertedValuesWithPhyloTreeRequeried) {
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
    StringColumnPartition under_test(&metadata);
 
-   under_test.insert("CHILD2");
-   under_test.insert("CHILD3");
-   under_test.insert("NOT_IN_TREE");
+   SILO_ASSERT(under_test.insert("CHILD2").has_value());
+   SILO_ASSERT(under_test.insert("CHILD3").has_value());
+   SILO_ASSERT(under_test.insert("NOT_IN_TREE").has_value());
 
    auto tree_node_id_child = metadata.phylo_tree->getTreeNodeId("CHILD");
    auto tree_node_id_child2 = metadata.phylo_tree->getTreeNodeId("CHILD2");
@@ -105,12 +108,12 @@ TEST(StringColumn, rawInsertedValuesRequeried) {
    StringColumnMetadata column("string_column");
    StringColumnPartition under_test{&column};
 
-   under_test.insert("value 1");
-   under_test.insert("value 2");
-   under_test.insert("value 2");
-   under_test.insert("value 3");
-   under_test.insert("some string that is a little longer 1");
-   under_test.insert("value 1");
+   SILO_ASSERT(under_test.insert("value 1").has_value());
+   SILO_ASSERT(under_test.insert("value 2").has_value());
+   SILO_ASSERT(under_test.insert("value 2").has_value());
+   SILO_ASSERT(under_test.insert("value 3").has_value());
+   SILO_ASSERT(under_test.insert("some string that is a little longer 1").has_value());
+   SILO_ASSERT(under_test.insert("value 1").has_value());
 
    const silo::SiloString somehow_acquired_element_representation = under_test.getValue(4);
 
@@ -120,23 +123,24 @@ TEST(StringColumn, rawInsertedValuesRequeried) {
    );
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumn, compareAcrossPartitions) {
    StringColumnMetadata under_test("string_column");
    StringColumnPartition partition_1{&under_test};
-   partition_1.insert("value 1");
-   partition_1.insert("value 2");
-   partition_1.insert("value 2");
-   partition_1.insert("value 3");
-   partition_1.insert("some string that is a little longer 1");
-   partition_1.insert("value 1");
+   SILO_ASSERT(partition_1.insert("value 1").has_value());
+   SILO_ASSERT(partition_1.insert("value 2").has_value());
+   SILO_ASSERT(partition_1.insert("value 2").has_value());
+   SILO_ASSERT(partition_1.insert("value 3").has_value());
+   SILO_ASSERT(partition_1.insert("some string that is a little longer 1").has_value());
+   SILO_ASSERT(partition_1.insert("value 1").has_value());
 
    StringColumnPartition partition_2{&under_test};
-   partition_2.insert("other value 2");
-   partition_2.insert("other values 3");
-   partition_2.insert("value 1");
-   partition_2.insert("other value 3");
-   partition_2.insert("some string that is a little longer 1");
-   partition_2.insert("other value 1");
+   SILO_ASSERT(partition_2.insert("other value 2").has_value());
+   SILO_ASSERT(partition_2.insert("other values 3").has_value());
+   SILO_ASSERT(partition_2.insert("value 1").has_value());
+   SILO_ASSERT(partition_2.insert("other value 3").has_value());
+   SILO_ASSERT(partition_2.insert("some string that is a little longer 1").has_value());
+   SILO_ASSERT(partition_2.insert("other value 1").has_value());
 
    EXPECT_EQ(partition_1.getValueString(0), partition_1.getValueString(5));
    EXPECT_EQ(partition_1.getValueString(5), partition_2.getValueString(2));
@@ -154,7 +158,7 @@ TEST(StringColumn, manyLongValues) {
    StringColumnPartition partition{&under_test};
 
    for (auto& value : test_values) {
-      partition.insert(value);
+      SILO_ASSERT(partition.insert(value).has_value());
    }
 
    for (size_t i = 0; i < 50000; ++i) {
@@ -181,7 +185,7 @@ TEST(StringColumn, manyMixedValues) {
    StringColumnPartition partition{&under_test};
 
    for (auto& value : test_values) {
-      partition.insert(value);
+      SILO_ASSERT(partition.insert(value).has_value());
    }
 
    for (size_t i = 0; i < 50001; ++i) {
