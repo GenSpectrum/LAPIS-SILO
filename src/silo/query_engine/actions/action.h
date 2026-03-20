@@ -10,17 +10,13 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include "silo/config/runtime_config.h"
+#include "silo/query_engine/actions/order_by_field.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/query_plan.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
 namespace silo::query_engine::actions {
-
-struct OrderByField {
-   std::string name;
-   bool ascending;
-};
 
 class Action {
   protected:
@@ -29,21 +25,9 @@ class Action {
    std::optional<uint32_t> offset;
    std::optional<uint32_t> randomize_seed;
 
-   virtual void validateOrderByFields(const schema::TableSchema& schema) const = 0;
-
   public:
    Action();
    virtual ~Action() = default;
-
-   // Returns the type of this action, which is used for logging the performance by Action type
-   [[nodiscard]] virtual std::string_view getType() const = 0;
-
-   QueryPlan toQueryPlan(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> partition_filters,
-      const config::QueryOptions& query_options,
-      std::string_view request_id
-   );
 
    void setOrdering(
       const std::vector<OrderByField>& order_by_fields,
@@ -52,54 +36,15 @@ class Action {
       std::optional<uint32_t> randomize_seed
    );
 
-   [[nodiscard]] std::optional<arrow::Ordering> getOrdering() const;
+   [[nodiscard]] const std::vector<OrderByField>& getOrderByFields() const {
+      return order_by_fields;
+   }
 
-   [[nodiscard]] virtual std::vector<schema::ColumnIdentifier> getOutputSchema(
-      const silo::schema::TableSchema& table_schema
-   ) const = 0;
+   [[nodiscard]] std::optional<uint32_t> getLimit() const { return limit; }
 
-   arrow::Result<arrow::acero::ExecNode*> addOrderingNodes(
-      arrow::acero::ExecPlan* arrow_plan,
-      arrow::acero::ExecNode* node,
-      const silo::schema::TableSchema& table_schema
-   ) const;
+   [[nodiscard]] std::optional<uint32_t> getOffset() const { return offset; }
 
-   static std::vector<std::string> deduplicateOrderPreserving(const std::vector<std::string>& fields
-   );
-
-  protected:
-   arrow::Result<arrow::acero::ExecNode*> addLimitAndOffsetNode(
-      arrow::acero::ExecPlan* arrow_plan,
-      arrow::acero::ExecNode* node
-   ) const;
-
-   arrow::Result<arrow::acero::ExecNode*> addZstdDecompressNode(
-      arrow::acero::ExecPlan* arrow_plan,
-      arrow::acero::ExecNode* node,
-      const silo::schema::TableSchema& table_schema
-   ) const;
-
-  private:
-   [[nodiscard]] virtual arrow::Result<QueryPlan> toQueryPlanImpl(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> partition_filters,
-      const config::QueryOptions& query_options,
-      std::string_view request_id
-   ) const = 0;
-
-   static arrow::Result<arrow::acero::ExecNode*> addSortNode(
-      arrow::acero::ExecPlan* arrow_plan,
-      arrow::acero::ExecNode* node,
-      const std::vector<schema::ColumnIdentifier>& output_fields,
-      const arrow::Ordering& ordering,
-      std::optional<size_t> num_rows_to_produce
-   );
-
-   static arrow::Result<arrow::acero::ExecNode*> addRandomizeColumn(
-      arrow::acero::ExecPlan* arrow_plan,
-      arrow::acero::ExecNode* node,
-      size_t randomize_seed
-   );
+   [[nodiscard]] std::optional<uint32_t> getRandomizeSeed() const { return randomize_seed; }
 };
 
 std::optional<uint32_t> parseLimit(const nlohmann::json& json);

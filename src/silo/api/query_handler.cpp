@@ -15,10 +15,12 @@
 #include "silo/api/active_database.h"
 #include "silo/api/bad_request.h"
 #include "silo/api/error_request_handler.h"
+#include "silo/query_engine/action_query.h"
+#include "silo/query_engine/binder.h"
 #include "silo/query_engine/exec_node/arrow_ipc_sink.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/query_engine/query.h"
+#include "silo/query_engine/planner.h"
 
 namespace silo::api {
 
@@ -53,8 +55,12 @@ void QueryHandler::post(
    SPDLOG_INFO("Request Id [{}] - received query: {}", request_id, query_string);
 
    try {
-      auto query = query_engine::Query::parseQuery(query_string);
-      auto query_plan = database->createQueryPlan(*query, query_options, request_id);
+      auto action_query = query_engine::ActionQuery::parseQuery(query_string);
+      auto bound_query =
+         query_engine::Binder::bindQuery(std::move(*action_query), database->tables);
+      auto query_plan = query_engine::Planner::planQuery(
+         std::move(bound_query), database->tables, query_options, request_id
+      );
 
       response.set("data-version", database->getDataVersionTimestamp().value);
 
@@ -73,7 +79,6 @@ void QueryHandler::post(
          auto output_sink = std::move(result).ValueUnsafe();
 
          EVOBENCH_SCOPE("QueryPlan", "executeAndWrite");
-         EVOBENCH_KEY_VALUE("of query_type", query->action->getType());
          query_plan.executeAndWrite(output_sink, DEFAULT_TIMEOUT_TWO_MINUTES);
       } else {
          response.setContentType("application/x-ndjson");
@@ -81,7 +86,6 @@ void QueryHandler::post(
          query_engine::exec_node::NdjsonSink output_sink{&output_stream, query_plan.results_schema};
 
          EVOBENCH_SCOPE("QueryPlan", "executeAndWrite");
-         EVOBENCH_KEY_VALUE("of query_type", query->action->getType());
          query_plan.executeAndWrite(output_sink, DEFAULT_TIMEOUT_TWO_MINUTES);
       }
    } catch (const silo::query_engine::IllegalQueryException& ex) {

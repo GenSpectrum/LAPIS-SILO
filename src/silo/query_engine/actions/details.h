@@ -4,22 +4,18 @@
 #include <string>
 #include <vector>
 
+#include "silo/query_engine/actions/action.h"
+
 #include <arrow/acero/exec_plan.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/query_engine/actions/simple_select_action.h"
-
 namespace silo::query_engine::actions {
 
-class Details : public SimpleSelectAction {
+class Details : public Action {
+  public:
    std::vector<std::string> fields;
 
-  public:
    explicit Details(std::vector<std::string> fields);
-
-   [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema(
-      const silo::schema::TableSchema& table_schema
-   ) const override;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming)

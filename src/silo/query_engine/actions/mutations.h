@@ -43,11 +43,11 @@ class Mutations : public Action {
       COUNT_FIELD_NAME
    };
 
-  private:
    std::vector<std::string> sequence_names;
    double min_proportion;
    std::vector<std::string_view> fields;
 
+  private:
    struct PrefilteredBitmaps {
       std::vector<std::pair<
          const CopyOnWriteBitmap&,
@@ -86,27 +86,12 @@ class Mutations : public Action {
       std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder
    );
 
-   void validateOrderByFields(const schema::TableSchema& schema) const override;
-
-   [[nodiscard]] arrow::Result<QueryPlan> toQueryPlanImpl(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> partition_filters,
-      const config::QueryOptions& query_options,
-      std::string_view request_id
-   ) const override;
-
   public:
    explicit Mutations(
       std::vector<std::string>&& sequence_names,
       double min_proportion,
       std::vector<std::string_view>&& fields
    );
-
-   [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema(
-      const silo::schema::TableSchema& table_schema
-   ) const override;
-
-   [[nodiscard]] std::string_view getType() const override { return "Mutations"; }
 };
 
 template <typename SymbolType>

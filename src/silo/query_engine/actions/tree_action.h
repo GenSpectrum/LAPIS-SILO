@@ -40,29 +40,11 @@ class TreeAction : public Action {
       return fields;
    }
 
-   void validateOrderByFields(const schema::TableSchema& schema) const override;
-
   public:
    TreeAction(std::string column_name, bool print_nodes_not_in_tree);
 
-   static NodeValuesResponse getNodeValues(
-      const storage::Table& table,
-      const std::string& column_name,
-      std::vector<CopyOnWriteBitmap>& bitmap_filter
-   );
-
-   virtual arrow::Status addResponseToBuilder(
-      NodeValuesResponse& all_node_ids,
-      std::unordered_map<std::string_view, exec_node::JsonValueTypeArrayBuilder>& output_builder,
-      const common::PhyloTree& phylo_tree
-   ) const = 0;
-
-   [[nodiscard]] arrow::Result<QueryPlan> toQueryPlanImpl(
-      std::shared_ptr<const storage::Table> table,
-      std::vector<CopyOnWriteBitmap> partition_filters,
-      const config::QueryOptions& query_options,
-      std::string_view request_id
-   ) const override;
+   [[nodiscard]] const std::string& getColumnName() const { return column_name; }
+   [[nodiscard]] bool getPrintNodesNotInTree() const { return print_nodes_not_in_tree; }
 };
 
 }  // namespace silo::query_engine::actions

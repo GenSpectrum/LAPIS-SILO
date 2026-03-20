@@ -15,8 +15,10 @@
 #include "silo/config/database_config.h"
 #include "silo/database.h"
 #include "silo/initialize/initializer.h"
+#include "silo/query_engine/action_query.h"
+#include "silo/query_engine/binder.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/query.h"
+#include "silo/query_engine/planner.h"
 #include "silo/query_engine/query_plan.h"
 #include "silo/storage/reference_genomes.h"
 
@@ -110,9 +112,13 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
          scenario.query_options.value_or(config::RuntimeConfig::withDefaults().query_options);
       if (!scenario.expected_error_message.empty()) {
          try {
-            auto query = query_engine::Query::parseQuery(scenario.query.dump());
+            auto query = query_engine::ActionQuery::parseQuery(scenario.query.dump());
+            auto bound_query =
+               query_engine::Binder::bindQuery(std::move(*query), shared_database->tables);
+            auto query_plan = query_engine::Planner::planQuery(
+               std::move(bound_query), shared_database->tables, query_options, "some_id"
+            );
             std::stringstream buffer;
-            auto query_plan = shared_database->createQueryPlan(*query, query_options, "some_id");
             query_engine::exec_node::NdjsonSink output_sink{&buffer, query_plan.results_schema};
             query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/3);
             FAIL() << "Expected an error in test case, but nothing was thrown";
@@ -120,9 +126,13 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
             EXPECT_EQ(std::string(e.what()), scenario.expected_error_message);
          }
       } else {
-         auto query = query_engine::Query::parseQuery(scenario.query.dump());
+         auto query = query_engine::ActionQuery::parseQuery(scenario.query.dump());
+         auto bound_query =
+            query_engine::Binder::bindQuery(std::move(*query), shared_database->tables);
+         auto query_plan = query_engine::Planner::planQuery(
+            std::move(bound_query), shared_database->tables, query_options, "some_id"
+         );
          std::stringstream buffer;
-         auto query_plan = shared_database->createQueryPlan(*query, query_options, "some_id");
          query_engine::exec_node::NdjsonSink output_sink{&buffer, query_plan.results_schema};
          query_plan.executeAndWrite(output_sink, /*timeout_in_seconds=*/3);
          nlohmann::json actual_ndjson_result_as_array = nlohmann::json::array();
