@@ -24,7 +24,7 @@ std::pair<std::shared_ptr<StringColumnMetadata>, StringColumnPartition> makeTest
    auto metadata = std::make_shared<StringColumnMetadata>("test");
    StringColumnPartition test_column{metadata.get()};
    for (const auto& value : values) {
-      test_column.insert(value);
+      SILO_ASSERT(test_column.insert(value).has_value());
    }
    return {metadata, std::move(test_column)};
 }
@@ -34,7 +34,7 @@ makeTestIndexedStringColumn(const std::vector<std::string>& values) {
    auto metadata = std::make_shared<IndexedStringColumnMetadata>("test_indexed");
    IndexedStringColumnPartition test_column{metadata.get()};
    for (const auto& value : values) {
-      test_column.insert(value);
+      SILO_ASSERT(test_column.insert(value).has_value());
    }
    return {metadata, std::move(test_column)};
 }
@@ -162,7 +162,7 @@ TEST(OperatorStringInSet, toStringReturnsCorrectFormat) {
    const std::vector<std::string> values{"Switzerland", "Germany"};
    auto [metadata, test_column] = makeTestStringColumn(values);
 
-   StringInSet<StringColumnPartition> in_predicate(
+   const StringInSet<StringColumnPartition> in_predicate(
       &test_column,
       StringInSet<StringColumnPartition>::Comparator::IN,
       std::unordered_set<std::string>{"Value"}
@@ -170,7 +170,7 @@ TEST(OperatorStringInSet, toStringReturnsCorrectFormat) {
 
    ASSERT_EQ(in_predicate.toString(), "test IN [Value]");
 
-   StringInSet<StringColumnPartition> not_in_predicate(
+   const StringInSet<StringColumnPartition> not_in_predicate(
       &test_column,
       StringInSet<StringColumnPartition>::Comparator::NOT_IN,
       std::unordered_set<std::string>{"Value"}

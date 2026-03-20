@@ -19,7 +19,7 @@ std::pair<std::shared_ptr<ColumnMetadata>, IntColumnPartition> makeTestColumn(
    auto metadata = std::make_shared<ColumnMetadata>("test");
    IntColumnPartition test_column{metadata.get()};
    for (auto value : values) {
-      test_column.insert(value);
+      SILO_ASSERT(test_column.insert(value).has_value());
    }
    return {metadata, test_column};
 }
@@ -148,7 +148,7 @@ TEST(OperatorSelection, correctWithNegativeNumbers) {
 }
 
 TEST(OperatorSelection, returnsCorrectTypeInfo) {
-   std::vector<int32_t> values{{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}};
+   const std::vector<int32_t> values{{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}};
    auto [metadata, test_column] = makeTestColumn(values);
    const uint32_t row_count = values.size();
 
