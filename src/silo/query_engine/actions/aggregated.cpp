@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <arrow/acero/options.h>
+#include <arrow/builder.h>
 #include <arrow/compute/api.h>
 #include <arrow/compute/expression.h>
 #include <nlohmann/json.hpp>
@@ -131,7 +132,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithoutGrouping(
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
    const arrow::acero::SourceNodeOptions options{
-      exec_node::columnsToArrowSchema(getOutputSchema(table_schema)),
+      exec_node::columnsToArrowSchema(getOutputSchema(*table_schema)),
       std::move(producer),
       arrow::Ordering::Implicit()
    };
@@ -153,7 +154,7 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
    const std::vector<schema::ColumnIdentifier> group_by_fields_identifiers =
-      bindGroupByFields(table->schema, group_by_fields);
+      bindGroupByFields(*table->schema, group_by_fields);
 
    arrow::acero::ExecNode* node;
    ARROW_ASSIGN_OR_RAISE(
@@ -184,11 +185,11 @@ arrow::Result<QueryPlan> Aggregated::makeAggregateWithGrouping(
       arrow::acero::MakeExecNode("aggregate", arrow_plan.get(), {node}, aggregate_node_options)
    );
 
-   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, table_schema));
+   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, *table_schema));
 
    ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
 
-   ARROW_ASSIGN_OR_RAISE(node, addZstdDecompressNode(arrow_plan.get(), node, table_schema));
+   ARROW_ASSIGN_OR_RAISE(node, addZstdDecompressNode(arrow_plan.get(), node, *table_schema));
 
    return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
 }

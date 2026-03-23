@@ -174,9 +174,7 @@ class TableName {
 
 class DatabaseSchema {
   public:
-   std::map<TableName, TableSchema> tables;
-
-   [[nodiscard]] const TableSchema& getDefaultTableSchema() const;
+   std::map<TableName, std::shared_ptr<TableSchema>> tables;
 
    static DatabaseSchema loadFromFile(const std::filesystem::path& file_path);
    void saveToFile(const std::filesystem::path& file_path) const;

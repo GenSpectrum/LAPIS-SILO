@@ -11,6 +11,7 @@
 #include <boost/serialization/array.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/optional.hpp>
+#include <boost/serialization/split_free.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/utility.hpp>
 #include <boost/serialization/vector.hpp>
@@ -133,11 +134,34 @@ const TableName& TableName::getDefault() {
    return default_table_name;
 }
 
-const TableSchema& DatabaseSchema::getDefaultTableSchema() const {
-   return tables.at(TableName::getDefault());
+}  // namespace silo::schema
+
+namespace boost::serialization {
+
+template <class Archive>
+// NOLINTNEXTLINE (misc-use-internal-linkage)
+void save(
+   Archive& archive,
+   const std::shared_ptr<silo::schema::TableSchema>& ptr,
+   const unsigned int /*version*/
+) {
+   archive << *ptr;
 }
 
-}  // namespace silo::schema
+template <class Archive>
+// NOLINTNEXTLINE (misc-use-internal-linkage)
+void load(
+   Archive& archive,
+   std::shared_ptr<silo::schema::TableSchema>& ptr,
+   const unsigned int /*version*/
+) {
+   ptr = std::make_shared<silo::schema::TableSchema>();
+   archive >> *ptr;
+}
+
+}  // namespace boost::serialization
+
+BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<silo::schema::TableSchema>)
 
 namespace silo::schema {
 

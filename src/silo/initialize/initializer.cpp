@@ -39,14 +39,14 @@ void Initializer::createTableInDatabase(
       initialization_files.getDatabaseConfigFilepath()
    );
 
-   const schema::TableSchema table_schema = createSchemaFromConfigFiles(
+   auto table_schema = createSchemaFromConfigFiles(
       validated_config,
       ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilepath()),
       lineage_trees,
       phylo_tree_file,
       initialization_files.without_unaligned_sequences
    );
-   database.createTable(std::move(table_name), table_schema);
+   database.createTable(std::move(table_name), std::move(table_schema));
 }
 
 struct ColumnMetadataInitializer {
@@ -236,7 +236,7 @@ const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
 
 }  // namespace
 
-silo::schema::TableSchema Initializer::createSchemaFromConfigFiles(
+std::shared_ptr<schema::TableSchema> Initializer::createSchemaFromConfigFiles(
    config::DatabaseConfig database_config,
    ReferenceGenomes reference_genomes,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
@@ -309,15 +309,15 @@ silo::schema::TableSchema Initializer::createSchemaFromConfigFiles(
       column_metadata.emplace(column_identifier, std::move(metadata));
    }
 
-   silo::schema::TableSchema table_schema{column_metadata, primary_key};
+   auto table_schema = std::make_shared<schema::TableSchema>(column_metadata, primary_key);
    if (database_config.default_nucleotide_sequence.has_value()) {
-      table_schema.default_nucleotide_sequence = schema::ColumnIdentifier{
+      table_schema->default_nucleotide_sequence = schema::ColumnIdentifier{
          .name = database_config.default_nucleotide_sequence.value(),
          .type = schema::ColumnType::NUCLEOTIDE_SEQUENCE
       };
    }
    if (database_config.default_amino_acid_sequence.has_value()) {
-      table_schema.default_aa_sequence = schema::ColumnIdentifier{
+      table_schema->default_aa_sequence = schema::ColumnIdentifier{
          .name = database_config.default_amino_acid_sequence.value(),
          .type = schema::ColumnType::AMINO_ACID_SEQUENCE
       };

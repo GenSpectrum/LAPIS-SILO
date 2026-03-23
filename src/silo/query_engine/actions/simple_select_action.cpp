@@ -45,18 +45,18 @@ arrow::Result<QueryPlan> SimpleSelectAction::toQueryPlanImpl(
       node,
       exec_node::makeTableScan(
          arrow_plan.get(),
-         getOutputSchema(table->schema),
+         getOutputSchema(*table->schema),
          std::move(partition_filters),
          table,
          query_options.materialization_cutoff
       )
    );
 
-   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, table->schema));
+   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, *table->schema));
 
    ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
 
-   ARROW_ASSIGN_OR_RAISE(node, addZstdDecompressNode(arrow_plan.get(), node, table->schema));
+   ARROW_ASSIGN_OR_RAISE(node, addZstdDecompressNode(arrow_plan.get(), node, *table->schema));
 
    return QueryPlan::makeQueryPlan(arrow_plan, node, request_id);
 }

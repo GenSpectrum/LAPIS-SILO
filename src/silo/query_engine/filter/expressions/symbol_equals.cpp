@@ -67,7 +67,7 @@ std::unique_ptr<Expression> SymbolEquals<SymbolType>::rewrite(
    AmbiguityMode mode
 ) const {
    CHECK_SILO_QUERY(
-      sequence_name.has_value() || table.schema.getDefaultSequenceName<SymbolType>(),
+      sequence_name.has_value() || table.schema->getDefaultSequenceName<SymbolType>(),
       "Database does not have a default sequence name for {} sequences. "
       "You need to provide the sequence name with the {} filter.",
       SymbolType::SYMBOL_NAME,
@@ -75,7 +75,7 @@ std::unique_ptr<Expression> SymbolEquals<SymbolType>::rewrite(
    );
 
    const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, table.schema);
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
 
    const auto& sequence_column_partition =
       table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);

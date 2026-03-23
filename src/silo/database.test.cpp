@@ -74,7 +74,7 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
 
    first_database->saveDatabaseState(directory);
 
-   silo::SiloDataSource data_source =
+   const silo::SiloDataSource data_source =
       silo::SiloDataSource::checkValidDataSource(directory / data_version_timestamp.value);
 
    auto database = silo::Database::loadDatabaseState(data_source);
@@ -106,7 +106,7 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
    EXPECT_GT(database_info.vertical_bitmaps_size, 0);
    EXPECT_EQ(database_info.horizontal_bitmaps_size, 9);
 
-   std::string more_data =
+   const std::string more_data =
       R"(
 {"primaryKey": "key6", "pango_lineage": "XBB", "date": "2021-03-19", "region": "Europe", "country": "Switzerland", "division": "Solothurn", "unsorted_date": "2021-02-10", "age": 54, "qc_value": 0.94, "test_boolean_column": true, "float_value": null, "main": {"sequence": "ACGTACGT", "insertions": []}, "testSecondSequence": {"sequence": "ACGT", "insertions": []}, "unaligned_main": "ACGTACGT", "unaligned_testSecondSequence": "ACGT", "E": {"sequence": "MYSF*", "insertions": ["4:EPE"]}, "M": {"sequence": "XXXX*", "insertions": []}}
 {"primaryKey": "key7", "pango_lineage": "B", "date": "2021-03-21", "region": "Europe", "country": "Switzerland", "division": "Basel", "unsorted_date": null, "age": null, "qc_value": 0.94, "test_boolean_column": true, "float_value": null, "main": {"sequence": "AAAAAAAA", "insertions": []}, "testSecondSequence": {"sequence": "ACAT", "insertions": []}, "unaligned_main": "AAAAAAAA", "unaligned_testSecondSequence": "ACAT", "E": {"sequence": "MYSF*", "insertions": ["4:EPE"]}, "M": {"sequence": "XXXX*", "insertions": []}}
@@ -142,15 +142,17 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
       Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
    };
 
-   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
+   const std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
       {sequence_column,
        std::make_shared<SequenceColumnMetadata<Nucleotide>>(
           sequence_column.name, std::move(reference_sequence)
        )},
    };
-   silo::schema::TableName first_table_name{"first"};
-   database.createTable(first_table_name, TableSchema(column_metadata, primary_key));
+   const silo::schema::TableName first_table_name{"first"};
+   database.createTable(
+      first_table_name, std::make_shared<TableSchema>(column_metadata, primary_key)
+   );
 
    std::ifstream first_table_data{"testBaseData/example.ndjson"};
    database.appendData(first_table_name, first_table_data);
@@ -167,8 +169,10 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
    query_plan_1.executeAndWrite(output_sink_1, 100);
    ASSERT_EQ(result.str(), "{\"count\":20}\n");
 
-   silo::schema::TableName second_table_name{"second"};
-   database.createTable(second_table_name, TableSchema(column_metadata, primary_key));
+   const silo::schema::TableName second_table_name{"second"};
+   database.createTable(
+      second_table_name, std::make_shared<TableSchema>(column_metadata, primary_key)
+   );
 
    std::stringstream second_table_data;
    second_table_data

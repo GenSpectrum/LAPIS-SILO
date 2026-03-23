@@ -64,7 +64,7 @@ void validateSequenceNames(
    const std::vector<std::string>& sequence_names
 ) {
    for (const std::string& sequence_name : sequence_names) {
-      auto column = table.schema.getColumn(sequence_name);
+      auto column = table.schema->getColumn(sequence_name);
       CHECK_SILO_QUERY(
          column.has_value() && column.value().type == SymbolType::COLUMN_TYPE,
          "The database does not contain the {} sequence '{}'",
@@ -213,7 +213,7 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    validateSequenceNames<SymbolType>(*table, sequence_names);
    auto sequence_names_to_evaluate = sequence_names;
 
-   auto output_fields = getOutputSchema(table->schema);
+   auto output_fields = getOutputSchema(*table->schema);
 
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
       // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -239,7 +239,7 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
       const auto bitmaps_to_evaluate =
          preFilterBitmaps(*table, sequence_names_to_evaluate, partition_filters);
       for (const auto& [sequence_name, prefiltered_bitmaps] : bitmaps_to_evaluate) {
-         const auto default_sequence_name = table->schema.getDefaultSequenceName<SymbolType>();
+         const auto default_sequence_name = table->schema->getDefaultSequenceName<SymbolType>();
          const bool omit_sequence_in_response =
             default_sequence_name.has_value() &&
             (default_sequence_name.value().name == sequence_name);
@@ -267,7 +267,7 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
    const arrow::acero::SourceNodeOptions options{
-      exec_node::columnsToArrowSchema(getOutputSchema(table->schema)),
+      exec_node::columnsToArrowSchema(getOutputSchema(*table->schema)),
       std::move(producer),
       arrow::Ordering::Implicit()
    };
@@ -275,7 +275,7 @@ arrow::Result<QueryPlan> InsertionAggregation<SymbolType>::toQueryPlanImpl(
       auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
    );
 
-   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, table->schema));
+   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, *table->schema));
 
    ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
 
