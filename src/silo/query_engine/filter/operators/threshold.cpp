@@ -93,7 +93,7 @@ CopyOnWriteBitmap Threshold::evaluate() const {
    );  // Number of loop iterations
 
    for (int i = 1; i < non_negated_child_count; ++i) {
-      auto bitmap = non_negated_children[i]->evaluate();
+      const auto bitmap = non_negated_children[i]->evaluate();
       // positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
       // conjunction would return 0
       // positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
@@ -118,7 +118,7 @@ CopyOnWriteBitmap Threshold::evaluate() const {
       const int i = local_i + non_negated_child_count;
       // positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
       // conjunction would return 0
-      // positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
+      // positions lower than (n-1) - (k-i) are unable to affect the result, because only (k-i)
       // iterations are left
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
          partition_bitmaps[j] |= partition_bitmaps[j - 1] - bitmap.getConstReference();
