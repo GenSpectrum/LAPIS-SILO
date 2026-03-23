@@ -56,7 +56,7 @@ std::unique_ptr<operators::Operator> InsertionContains<SymbolType>::compile(
    const storage::TablePartition& table_partition
 ) const {
    const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, table.schema);
+      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
 
    const std::map<std::string, storage::column::SequenceColumnPartition<SymbolType>>&
       sequence_stores = table_partition.columns.getColumns<typename SymbolType::Column>();

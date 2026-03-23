@@ -458,7 +458,7 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
    EVOBENCH_SCOPE("Mutations", "toQueryPlanImpl");
    std::vector<std::string> sequence_names_to_evaluate;
    for (const auto& sequence_name : sequence_names) {
-      auto column_identifier = table->schema.getColumn(sequence_name);
+      auto column_identifier = table->schema->getColumn(sequence_name);
       CHECK_SILO_QUERY(
          column_identifier.has_value() && column_identifier.value().type == SymbolType::COLUMN_TYPE,
          "Database does not contain the {} sequence with name: '{}'",
@@ -469,12 +469,12 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
    }
    if (sequence_names.empty()) {
       for (const auto& [sequence_name, _] :
-           table->schema.getColumnByType<typename SymbolType::Column>()) {
+           table->schema->getColumnByType<typename SymbolType::Column>()) {
          sequence_names_to_evaluate.emplace_back(sequence_name);
       }
    }
 
-   auto output_fields = getOutputSchema(table->schema);
+   auto output_fields = getOutputSchema(*table->schema);
 
    const double given_min_proportion = min_proportion;
 
@@ -506,7 +506,7 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
 
       for (const auto& sequence_name : sequence_names_to_evaluate) {
          const storage::column::SequenceColumnMetadata<SymbolType>* sequence_column_metadata =
-            table->schema.getColumnMetadata<typename SymbolType::Column>(sequence_name).value();
+            table->schema->getColumnMetadata<typename SymbolType::Column>(sequence_name).value();
 
          if (bitmaps_to_evaluate.contains(sequence_name)) {
             ARROW_RETURN_NOT_OK(addMutationsToOutput(
@@ -537,7 +537,7 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
    const arrow::acero::SourceNodeOptions options{
-      exec_node::columnsToArrowSchema(getOutputSchema(table->schema)),
+      exec_node::columnsToArrowSchema(getOutputSchema(*table->schema)),
       std::move(producer),
       arrow::Ordering::Implicit()
    };
@@ -545,7 +545,7 @@ arrow::Result<QueryPlan> Mutations<SymbolType>::toQueryPlanImpl(
       auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
    );
 
-   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, table->schema));
+   ARROW_ASSIGN_OR_RAISE(node, addOrderingNodes(arrow_plan.get(), node, *table->schema));
 
    ARROW_ASSIGN_OR_RAISE(node, addLimitAndOffsetNode(arrow_plan.get(), node));
 

@@ -165,8 +165,8 @@ TEST(OrRewriteSymbolInSet, shouldMergeTwoSymbolInSetWithSamePosition) {
    // Format is "(sequence_name:symbol at position X in {A, G, ...})"
    const std::string str = merged->toString();
    EXPECT_NE(str.find("position 101"), std::string::npos);
-   EXPECT_NE(str.find("A"), std::string::npos);
-   EXPECT_NE(str.find("G"), std::string::npos);
+   EXPECT_NE(str.find('A'), std::string::npos);
+   EXPECT_NE(str.find('G'), std::string::npos);
 }
 
 TEST(OrRewriteSymbolInSet, shouldKeepSeparateSymbolInSetWithDifferentPositions) {
@@ -242,10 +242,10 @@ TEST(OrRewriteSymbolInSet, shouldMergeMultipleSymbolsFromMultipleExpressions) {
    auto* merged = dynamic_cast<SymbolInSet<Nucleotide>*>(result[0].get());
    ASSERT_NE(merged, nullptr);
    const std::string str = merged->toString();
-   EXPECT_NE(str.find("A"), std::string::npos);
-   EXPECT_NE(str.find("G"), std::string::npos);
-   EXPECT_NE(str.find("C"), std::string::npos);
-   EXPECT_NE(str.find("T"), std::string::npos);
+   EXPECT_NE(str.find('A'), std::string::npos);
+   EXPECT_NE(str.find('G'), std::string::npos);
+   EXPECT_NE(str.find('C'), std::string::npos);
+   EXPECT_NE(str.find('T'), std::string::npos);
 }
 
 TEST(OrRewriteSymbolInSet, shouldMergeOnlyMatchingPositionsAndSequences) {
@@ -286,13 +286,13 @@ TEST(OrToString, shouldFormatChildrenCorrectly) {
    children.emplace_back(std::make_unique<True>());
    children.emplace_back(std::make_unique<True>());
 
-   Or or_expression(std::move(children));
+   const Or or_expression(std::move(children));
 
    EXPECT_EQ(or_expression.toString(), "Or(True | True)");
 }
 
 TEST(OrToString, shouldHandleNestedOr) {
-   silo::storage::Table table(schema::TableSchema{});
+   silo::storage::Table table(std::make_shared<schema::TableSchema>());
    auto table_partition = table.addPartition();
 
    ExpressionVector inner_children;
@@ -303,7 +303,7 @@ TEST(OrToString, shouldHandleNestedOr) {
    outer_children.emplace_back(std::make_unique<Or>(std::move(inner_children)));
    outer_children.emplace_back(std::make_unique<True>());
 
-   Or outer_or(std::move(outer_children));
+   const Or outer_or(std::move(outer_children));
 
    EXPECT_EQ(outer_or.toString(), "Or(Or(True | True) | True)");
 
@@ -320,10 +320,10 @@ using silo::storage::column::StringColumnMetadata;
 
 TEST(OrToString, shouldHandleNestedStringEquals) {
    ColumnIdentifier primary_key{.name = "key", .type = ColumnType::STRING};
-   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
+   const std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   silo::storage::Table table(schema::TableSchema{column_metadata, primary_key});
+   silo::storage::Table table(std::make_shared<schema::TableSchema>(column_metadata, primary_key));
    auto table_partition = table.addPartition();
 
    ExpressionVector inner_children;
@@ -334,7 +334,7 @@ TEST(OrToString, shouldHandleNestedStringEquals) {
    outer_children.emplace_back(std::make_unique<Or>(std::move(inner_children)));
    outer_children.emplace_back(std::make_unique<StringEquals>("key", "value_3"));
 
-   Or outer_or(std::move(outer_children));
+   const Or outer_or(std::move(outer_children));
 
    EXPECT_EQ(outer_or.toString(), "Or(Or(key = 'value_1' | key = 'value_2') | key = 'value_3')");
 
@@ -345,10 +345,10 @@ TEST(OrToString, shouldHandleNestedStringEquals) {
 
 TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
    ColumnIdentifier primary_key{.name = "key", .type = ColumnType::STRING};
-   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
+   const std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   silo::storage::Table table(schema::TableSchema{column_metadata, primary_key});
+   silo::storage::Table table(std::make_shared<schema::TableSchema>(column_metadata, primary_key));
    auto table_partition = table.addPartition();
 
    ExpressionVector innermost_children;
@@ -363,7 +363,7 @@ TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
    outer_children.emplace_back(std::make_unique<Or>(std::move(inner_children)));
    outer_children.emplace_back(std::make_unique<StringEquals>("key", "value_3"));
 
-   Or outer_or(std::move(outer_children));
+   const Or outer_or(std::move(outer_children));
 
    EXPECT_EQ(
       outer_or.toString(), "Or(Or(Or(False | key = 'value_1') | key = 'value_2') | key = 'value_3')"
@@ -398,7 +398,7 @@ nlohmann::json createData(const std::string& primary_key, const std::string& cou
 )",
       primary_key,
       country,
-      country == "Switzerland" ? "Europe" : (country == "USA" ? "Americas" : "Europe")
+      country == "USA" ? "Americas" : "Europe"
    ));
 }
 

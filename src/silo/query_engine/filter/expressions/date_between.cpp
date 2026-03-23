@@ -51,7 +51,7 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
    const storage::TablePartition& table_partition
 ) const {
    CHECK_SILO_QUERY(
-      table.schema.getColumn(column_name).has_value(),
+      table.schema->getColumn(column_name).has_value(),
       "The database does not contain the column '{}'",
       column_name
    );

@@ -32,7 +32,7 @@ void Table::validate() const {
 
 void Table::validatePrimaryKeyUnique() const {
    SPDLOG_DEBUG("Checking that primary keys are unique.");
-   const auto primary_key = schema.primary_key;
+   const auto primary_key = schema->primary_key;
    SILO_ASSERT(primary_key.type == schema::ColumnType::STRING);
 
    size_t total_rows = 0;
@@ -65,7 +65,7 @@ std::shared_ptr<TablePartition> Table::getPartition(size_t partition_idx) {
 }
 
 std::shared_ptr<storage::TablePartition> Table::addPartition() {
-   return partitions.emplace_back(std::make_shared<TablePartition>(schema));
+   return partitions.emplace_back(std::make_shared<TablePartition>(*schema));
 }
 
 namespace {

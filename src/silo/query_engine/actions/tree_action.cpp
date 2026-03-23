@@ -89,19 +89,19 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
    std::string_view request_id
 ) const {
    CHECK_SILO_QUERY(
-      table->schema.getColumn(column_name).has_value(),
+      table->schema->getColumn(column_name).has_value(),
       "Column '{}' not found in table schema",
       column_name
    );
    CHECK_SILO_QUERY(
-      table->schema.getColumn(column_name).has_value() &&
-         table->schema.getColumn(column_name).value().type == ColumnType::STRING,
+      table->schema->getColumn(column_name).has_value() &&
+         table->schema->getColumn(column_name).value().type == ColumnType::STRING,
       "{} action cannot be called on column '{}' as it is not a column of type STRING",
       getType(),
       column_name
    );
    const auto& optional_table_metadata =
-      table->schema.getColumnMetadata<storage::column::StringColumnPartition>(column_name);
+      table->schema->getColumnMetadata<storage::column::StringColumnPartition>(column_name);
    CHECK_SILO_QUERY(
       optional_table_metadata.has_value() &&
          optional_table_metadata.value()->phylo_tree.has_value(),
@@ -111,7 +111,7 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
       column_name
    );
    const auto& phylo_tree = optional_table_metadata.value()->phylo_tree.value();
-   auto output_fields = getOutputSchema(table->schema);
+   auto output_fields = getOutputSchema(*table->schema);
    auto evaluated_partition_filters = std::move(partition_filters);
 
    auto column_name_to_evaluate = column_name;
@@ -162,7 +162,7 @@ arrow::Result<QueryPlan> TreeAction::toQueryPlanImpl(
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
    const arrow::acero::SourceNodeOptions options{
-      exec_node::columnsToArrowSchema(getOutputSchema(table->schema)),
+      exec_node::columnsToArrowSchema(getOutputSchema(*table->schema)),
       std::move(producer),
       arrow::Ordering::Implicit()
    };

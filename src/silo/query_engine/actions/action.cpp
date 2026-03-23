@@ -220,7 +220,7 @@ QueryPlan Action::toQueryPlan(
    const config::QueryOptions& query_options,
    std::string_view request_id
 ) {
-   validateOrderByFields(table->schema);
+   validateOrderByFields(*table->schema);
    auto query_plan =
       toQueryPlanImpl(std::move(table), std::move(partition_filters), query_options, request_id);
    if (!query_plan.status().ok()) {

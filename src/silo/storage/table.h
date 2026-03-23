@@ -9,9 +9,9 @@ class Table {
    std::vector<std::shared_ptr<TablePartition>> partitions;
 
   public:
-   schema::TableSchema schema;
+   std::shared_ptr<schema::TableSchema> schema;
 
-   explicit Table(schema::TableSchema schema)
+   explicit Table(std::shared_ptr<schema::TableSchema> schema)
        : schema(std::move(schema)) {}
 
    [[nodiscard]] size_t getNumberOfPartitions() const;

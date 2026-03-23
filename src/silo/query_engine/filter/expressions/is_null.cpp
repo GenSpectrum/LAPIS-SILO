@@ -34,7 +34,7 @@ std::unique_ptr<operators::Operator> IsNull::compile(
    const storage::Table& table,
    const silo::storage::TablePartition& table_partition
 ) const {
-   const auto& maybe_target_column = table.schema.getColumn(column_name);
+   const auto& maybe_target_column = table.schema->getColumn(column_name);
    CHECK_SILO_QUERY(
       maybe_target_column.has_value(),
       "The column '{}' is not contained in the database",

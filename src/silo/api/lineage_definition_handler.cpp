@@ -36,7 +36,7 @@ void LineageDefinitionHandler::get(
       throw BadRequest("The database does not contain a table with name {}", table_name.getName());
    }
 
-   auto column_identifier = table->second->schema.getColumn(column_name);
+   auto column_identifier = table->second->schema->getColumn(column_name);
    if (column_identifier == std::nullopt) {
       throw BadRequest("The column {} does not exist in this instance.", column_name);
    }
@@ -45,7 +45,7 @@ void LineageDefinitionHandler::get(
    }
    auto* metadata =
       table->second->schema
-         .getColumnMetadata<storage::column::IndexedStringColumnPartition>(column_name)
+         ->getColumnMetadata<storage::column::IndexedStringColumnPartition>(column_name)
          .value();
    if (!metadata->lineage_tree.has_value()) {
       throw BadRequest("The column {} does not have a lineageIndex defined.", column_name);

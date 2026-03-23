@@ -16,9 +16,9 @@ namespace {
 
 std::unique_ptr<SiloRequestHandlerFactory> createRequestHandlerWithInitializedDatabase() {
    auto handle = std::make_shared<silo::api::ActiveDatabase>();
-   silo::schema::TableSchema table_schema;
-   table_schema.primary_key = {.name = "primary_key", .type = silo::schema::ColumnType::STRING};
-   table_schema.column_metadata.emplace(
+   auto table_schema = std::make_shared<silo::schema::TableSchema>();
+   table_schema->primary_key = {.name = "primary_key", .type = silo::schema::ColumnType::STRING};
+   table_schema->column_metadata.emplace(
       silo::schema::ColumnIdentifier{
          .name = "primary_key", .type = silo::schema::ColumnType::STRING
       },
@@ -93,7 +93,7 @@ TEST(
 }
 
 TEST(SiloRequestHandlerFactory, routesGetInfoRequest) {
-   Poco::URI uri("/info");
+   const Poco::URI uri("/info");
 
    auto under_test = createRequestHandlerWithInitializedDatabase();
 
@@ -103,7 +103,7 @@ TEST(SiloRequestHandlerFactory, routesGetInfoRequest) {
 }
 
 TEST(SiloRequestHandlerFactory, routesLineageDefinitionRequest) {
-   Poco::URI uri("/lineageDefinition/someId");
+   const Poco::URI uri("/lineageDefinition/someId");
 
    auto under_test = createRequestHandlerWithInitializedDatabase();
 
@@ -113,7 +113,7 @@ TEST(SiloRequestHandlerFactory, routesLineageDefinitionRequest) {
 }
 
 TEST(SiloRequestHandlerFactory, routesPostQueryRequest) {
-   Poco::URI uri("/query");
+   const Poco::URI uri("/query");
 
    auto under_test = createRequestHandlerWithInitializedDatabase();
 
@@ -123,7 +123,7 @@ TEST(SiloRequestHandlerFactory, routesPostQueryRequest) {
 }
 
 TEST(SiloRequestHandlerFactory, routesUnknownUrlToNotFoundHandler) {
-   Poco::URI uri("/unknown");
+   const Poco::URI uri("/unknown");
 
    auto under_test = createRequestHandlerWithInitializedDatabase();
 
@@ -133,7 +133,7 @@ TEST(SiloRequestHandlerFactory, routesUnknownUrlToNotFoundHandler) {
 }
 
 TEST(SiloRequestHandlerFactory, routesToHealth) {
-   Poco::URI uri("/health");
+   const Poco::URI uri("/health");
 
    auto under_test = createRequestHandlerWithInitializedDatabase();
 

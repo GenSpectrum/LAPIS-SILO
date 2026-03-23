@@ -24,11 +24,14 @@ class Database {
   public:
    Database() = default;
 
-   explicit Database(silo::schema::DatabaseSchema database_schema);
+   explicit Database(schema::DatabaseSchema database_schema);
 
    virtual ~Database() = default;
 
-   void createTable(schema::TableName table_name, silo::schema::TableSchema table_schema);
+   void createTable(
+      schema::TableName table_name,
+      std::shared_ptr<schema::TableSchema> table_schema
+   );
 
    void appendData(const schema::TableName& table_name, std::istream& input_stream);
 
@@ -96,7 +99,7 @@ class Database {
       const std::filesystem::path& save_directory
    );
 
-   static Database loadDatabaseState(const silo::SiloDataSource& silo_data_source);
+   static Database loadDatabaseState(const SiloDataSource& silo_data_source);
 
    [[nodiscard]] virtual DatabaseInfo getDatabaseInfo() const;
 

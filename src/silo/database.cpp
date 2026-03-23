@@ -79,7 +79,10 @@ Database::Database(schema::DatabaseSchema database_schema)
    }
 }
 
-void Database::createTable(schema::TableName table_name, silo::schema::TableSchema table_schema) {
+void Database::createTable(
+   schema::TableName table_name,
+   std::shared_ptr<schema::TableSchema> table_schema
+) {
    tables.emplace(table_name, std::make_shared<storage::Table>(table_schema));
    schema.tables.emplace(std::move(table_name), std::move(table_schema));
 }
@@ -100,15 +103,15 @@ void Database::createNucleotideSequenceTable(
    const std::string& reference_sequence,
    const std::vector<std::string>& extra_string_columns
 ) {
-   silo::schema::TableSchema table_schema;
+   auto table_schema = std::make_shared<schema::TableSchema>();
    const schema::ColumnIdentifier primary_key = {
       .name = primary_key_name, .type = schema::ColumnType::STRING
    };
-   table_schema.column_metadata.emplace(
+   table_schema->column_metadata.emplace(
       primary_key, std::make_shared<storage::column::StringColumnMetadata>(primary_key_name)
    );
    auto reference_sequence_vector = stringToSymbolVector<Nucleotide>(reference_sequence).value();
-   table_schema.column_metadata.emplace(
+   table_schema->column_metadata.emplace(
       schema::ColumnIdentifier{
          .name = sequence_name, .type = schema::ColumnType::NUCLEOTIDE_SEQUENCE
       },
@@ -117,12 +120,12 @@ void Database::createNucleotideSequenceTable(
       )
    );
    for (const auto& column_name : extra_string_columns) {
-      table_schema.column_metadata.emplace(
+      table_schema->column_metadata.emplace(
          schema::ColumnIdentifier{.name = column_name, .type = schema::ColumnType::STRING},
          std::make_shared<storage::column::StringColumnMetadata>(column_name)
       );
    }
-   table_schema.primary_key = primary_key;
+   table_schema->primary_key = primary_key;
    createTable(schema::TableName(table_name), std::move(table_schema));
 }
 
@@ -133,15 +136,15 @@ void Database::createGeneTable(
    const std::string& reference_sequence,
    const std::vector<std::string>& extra_string_columns
 ) {
-   silo::schema::TableSchema table_schema;
+   auto table_schema = std::make_shared<schema::TableSchema>();
    const schema::ColumnIdentifier primary_key = {
       .name = primary_key_name, .type = schema::ColumnType::STRING
    };
-   table_schema.column_metadata.emplace(
+   table_schema->column_metadata.emplace(
       primary_key, std::make_shared<storage::column::StringColumnMetadata>(primary_key_name)
    );
    auto reference_sequence_vector = stringToSymbolVector<AminoAcid>(reference_sequence).value();
-   table_schema.column_metadata.emplace(
+   table_schema->column_metadata.emplace(
       schema::ColumnIdentifier{
          .name = sequence_name, .type = schema::ColumnType::AMINO_ACID_SEQUENCE
       },
@@ -150,12 +153,12 @@ void Database::createGeneTable(
       )
    );
    for (const auto& column_name : extra_string_columns) {
-      table_schema.column_metadata.emplace(
+      table_schema->column_metadata.emplace(
          schema::ColumnIdentifier{.name = column_name, .type = schema::ColumnType::STRING},
          std::make_shared<storage::column::StringColumnMetadata>(column_name)
       );
    }
-   table_schema.primary_key = primary_key;
+   table_schema->primary_key = primary_key;
    createTable(schema::TableName(table_name), std::move(table_schema));
 }
 
@@ -186,7 +189,7 @@ void Database::printAllData(const std::string& table_name) const {
    std::vector<std::string> sequence_column_identifiers;
    std::vector<std::string> non_sequence_column_identifiers;
    for (const auto& [column_identifier, _] :
-        schema.tables.at(schema::TableName{table_name}).column_metadata) {
+        schema.tables.at(schema::TableName{table_name})->column_metadata) {
       if (isSequenceColumn(column_identifier.type)) {
          if (column_identifier.type != schema::ColumnType::ZSTD_COMPRESSED_STRING) {
             sequence_column_identifiers.push_back(column_identifier.name);
@@ -218,7 +221,7 @@ std::string Database::getNucleotideReferenceSequence(
    const auto& table_schema = maybe_table_schema->second;
 
    auto maybe_sequence_column_metadata =
-      table_schema.getColumnMetadata<storage::column::SequenceColumnPartition<Nucleotide>>(
+      table_schema->getColumnMetadata<storage::column::SequenceColumnPartition<Nucleotide>>(
          sequence_name
       );
    if (maybe_sequence_column_metadata == std::nullopt) {
@@ -246,7 +249,7 @@ std::string Database::getAminoAcidReferenceSequence(
    const auto& table_schema = maybe_table_schema->second;
 
    auto maybe_sequence_column_metadata =
-      table_schema.getColumnMetadata<storage::column::SequenceColumnPartition<AminoAcid>>(
+      table_schema->getColumnMetadata<storage::column::SequenceColumnPartition<AminoAcid>>(
          sequence_name
       );
    if (maybe_sequence_column_metadata == std::nullopt) {
