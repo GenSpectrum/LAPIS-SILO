@@ -383,11 +383,8 @@ jobs:
             echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
           fi
 
-      - shell: bash
-        name: Build all files with clang-tidy
-        run: |
-          docker build -f ./Dockerfile_linter \
-            --build-arg DEPENDENCY_IMAGE=${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64 .
+      - name: Build all files with clang-tidy
+        run: buildScripts/lint-all ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64
 
   unitTests:
     needs: dependencyImage
