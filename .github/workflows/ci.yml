@@ -363,7 +363,7 @@ jobs:
           fi
 
       - name: Run linter script
-        run: bash ./linter_changes.bash ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64
+        run: buildScripts/lint-changes ${{ env.DOCKER_DEPENDENCY_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64
 
   linterAll:
     name: Build/Run linter on all files
