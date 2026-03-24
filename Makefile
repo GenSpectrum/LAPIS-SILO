@@ -136,6 +136,10 @@ check-format: check-format-cpp check-format-node
 lint-changes:
 	buildScripts/lint-changes
 
+.PHONY: lint-all
+lint-all:
+	buildScripts/lint-all
+
 .PHONY: clean-api
 clean-api:
 	@if [ -f ${RUNNING_SILO_FLAG} ]; then \
