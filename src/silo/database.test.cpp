@@ -1,5 +1,6 @@
 #include "silo/database.h"
 
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -90,15 +91,17 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    EXPECT_GT(database_info.horizontal_bitmaps_size, 0);
    EXPECT_EQ(database_info.number_of_partitions, 1);
 
-   // If the serialization version changes, comment out the next line to build a new database for
-   // the next test. Then add the produced directory to Git and remove the old serialized state.
-   // Also bump CURRENT_SILO_SERIALIZATION_VERSION in src/silo/common/data_version.h
-   std::filesystem::remove_all(data_source.path);
+   // When bumping the serialization version, run `make bump-serialization-version` which sets
+   // SILO_KEEP_SERIALIZED_STATE=1 to preserve the produced directory for committing to Git.
+   if (std::getenv("SILO_KEEP_SERIALIZED_STATE") == nullptr) {
+      std::filesystem::remove_all(data_source.path);
+   }
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
    // If this load fails, the serialization version likely needs to be increased
+   // Run `make bump-serialization-version`
    auto database = silo::Database::loadDatabaseState(
       silo::SiloDirectory{"testBaseData/siloSerializedState"}.getMostRecentDataDirectory().value()
    );

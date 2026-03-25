@@ -81,7 +81,7 @@ std::optional<SiloDataSource> SiloDirectory::getMostRecentDataDirectory() const 
          return entry;
       }
       SPDLOG_WARN(
-         "The database output {} is incompatible with the current SILO version {}.",
+         "The database output {} is incompatible with the current SILO serialization version '{}'.",
          entry.data_version.toString(),
          silo::DataVersion::CURRENT_SILO_SERIALIZATION_VERSION.value
       );
