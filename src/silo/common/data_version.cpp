@@ -13,6 +13,14 @@
 
 namespace silo {
 
+// NOLINTBEGIN(readability-identifier-naming)
+const DataVersion::SerializationVersion DataVersion::CURRENT_SILO_SERIALIZATION_VERSION{
+// clang-format off
+#include "serialization_version.txt"
+   // clang-format on
+};
+// NOLINTEND(readability-identifier-naming)
+
 static const std::string TIMESTAMP_FIELD = "timestamp";
 static const std::string SERIALIZATION_VERSION_FIELD = "serializationVersion";
 
