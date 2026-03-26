@@ -57,8 +57,7 @@ Returns metadata about the loaded database.
   "version": "0.1.0",
   "sequenceCount": 100,
   "horizontalBitmapsSize": 5594,
-  "verticalBitmapsSize": 28102,
-  "numberOfPartitions": 1
+  "verticalBitmapsSize": 28102
 }
 ```
 
@@ -68,7 +67,6 @@ Returns metadata about the loaded database.
 | `sequenceCount` | Total number of sequences in the database |
 | `horizontalBitmapsSize` | Size of horizontal bitmap indexes (bytes) |
 | `verticalBitmapsSize` | Size of vertical bitmap indexes (bytes) |
-| `numberOfPartitions` | Number of table partitions |
 
 ---
 

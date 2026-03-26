@@ -13,7 +13,6 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/column/date32_column.h"
-#include "silo/storage/table_partition.h"
 
 using silo::storage::column::Date32ColumnPartition;
 
@@ -40,33 +39,28 @@ std::string DateBetween::toString() const {
 
 std::unique_ptr<Expression> DateBetween::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
 ) const {
    return std::make_unique<DateBetween>(column_name, date_from, date_to);
 }
 
-std::unique_ptr<operators::Operator> DateBetween::compile(
-   const storage::Table& table,
-   const storage::TablePartition& table_partition
-) const {
+std::unique_ptr<operators::Operator> DateBetween::compile(const storage::Table& table) const {
    CHECK_SILO_QUERY(
       table.schema->getColumn(column_name).has_value(),
       "The database does not contain the column '{}'",
       column_name
    );
    CHECK_SILO_QUERY(
-      table_partition.columns.date32_columns.contains(column_name),
+      table.columns.date32_columns.contains(column_name),
       "The column '{}' is not of type date",
       column_name
    );
 
-   const auto& date_column = table_partition.columns.date32_columns.at(column_name);
+   const auto& date_column = table.columns.date32_columns.at(column_name);
 
    if (date_column.isSorted()) {
       return std::make_unique<operators::RangeSelection>(
-         computeRangesOfSortedColumn(date_column, {table_partition.sequence_count}),
-         table_partition.sequence_count
+         computeRangesOfSortedColumn(date_column, {table.sequence_count}), table.sequence_count
       );
    }
    operators::PredicateVector predicates;
@@ -84,9 +78,7 @@ std::unique_ptr<operators::Operator> DateBetween::compile(
          date_to.value_or(std::numeric_limits<silo::common::Date32>::max())
       )
    );
-   return std::make_unique<operators::Selection>(
-      std::move(predicates), table_partition.sequence_count
-   );
+   return std::make_unique<operators::Selection>(std::move(predicates), table.sequence_count);
 }
 
 std::vector<silo::query_engine::filter::operators::RangeSelection::Range> DateBetween::

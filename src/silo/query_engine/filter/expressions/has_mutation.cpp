@@ -14,7 +14,6 @@
 #include "silo/query_engine/query_compilation_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/table.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -35,7 +34,6 @@ std::string HasMutation<SymbolType>::toString() const {
 template <typename SymbolType>
 std::unique_ptr<Expression> HasMutation<SymbolType>::rewrite(
    const storage::Table& table,
-   const storage::TablePartition& table_partition,
    AmbiguityMode mode
 ) const {
    CHECK_SILO_QUERY(
@@ -50,7 +48,7 @@ std::unique_ptr<Expression> HasMutation<SymbolType>::rewrite(
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
 
    const auto& seq_store_partition =
-      table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
+      table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    auto column_metadata =
       table.schema->getColumnMetadata<typename SymbolType::Column>(valid_sequence_name).value();
@@ -82,8 +80,7 @@ std::unique_ptr<Expression> HasMutation<SymbolType>::rewrite(
 
 template <typename SymbolType>
 std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/
+   const storage::Table& /*table*/
 ) const {
    throw QueryCompilationException{
       "Has{}Mutation expression must be eliminated in query rewrite phase", SymbolType::SYMBOL_NAME

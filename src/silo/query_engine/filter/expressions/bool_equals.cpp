@@ -9,7 +9,6 @@
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -26,36 +25,32 @@ std::string BoolEquals::toString() const {
 
 std::unique_ptr<Expression> BoolEquals::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
    Expression::AmbiguityMode /*mode*/
 ) const {
    return std::make_unique<BoolEquals>(column_name, value);
 }
 
-std::unique_ptr<operators::Operator> BoolEquals::compile(
-   const storage::Table& /*table*/,
-   const silo::storage::TablePartition& table_partition
-) const {
+std::unique_ptr<operators::Operator> BoolEquals::compile(const storage::Table& table) const {
    CHECK_SILO_QUERY(
-      table_partition.columns.bool_columns.contains(column_name),
+      table.columns.bool_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
 
-   const auto& bool_column = table_partition.columns.bool_columns.at(column_name);
+   const auto& bool_column = table.columns.bool_columns.at(column_name);
 
    if (value == std::nullopt) {
       return std::make_unique<operators::IndexScan>(
-         CopyOnWriteBitmap{&bool_column.null_bitmap}, table_partition.sequence_count
+         CopyOnWriteBitmap{&bool_column.null_bitmap}, table.sequence_count
       );
    }
    if (value.value()) {
       return std::make_unique<operators::IndexScan>(
-         CopyOnWriteBitmap{&bool_column.true_bitmap}, table_partition.sequence_count
+         CopyOnWriteBitmap{&bool_column.true_bitmap}, table.sequence_count
       );
    }
    return std::make_unique<operators::IndexScan>(
-      CopyOnWriteBitmap{&bool_column.false_bitmap}, table_partition.sequence_count
+      CopyOnWriteBitmap{&bool_column.false_bitmap}, table.sequence_count
    );
 
    SILO_UNREACHABLE();

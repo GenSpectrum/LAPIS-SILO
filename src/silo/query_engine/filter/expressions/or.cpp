@@ -18,7 +18,6 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/union.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -164,17 +163,14 @@ ExpressionVector Or::mergeStringInSetExpressions(ExpressionVector children) {
    return new_children;
 }
 
-std::unique_ptr<Expression> Or::rewrite(
-   const storage::Table& table,
-   const storage::TablePartition& table_partition,
-   Expression::AmbiguityMode mode
-) const {
+std::unique_ptr<Expression> Or::rewrite(const storage::Table& table, Expression::AmbiguityMode mode)
+   const {
    std::vector<const Expression*> collected_children = collectChildren(children);
    ExpressionVector rewritten_children;
    std::ranges::transform(
       collected_children,
       std::back_inserter(rewritten_children),
-      [&](const Expression* child) { return child->rewrite(table, table_partition, mode); }
+      [&](const Expression* child) { return child->rewrite(table, mode); }
    );
    rewritten_children = algebraicSimplification(std::move(rewritten_children));
    rewritten_children = rewriteSymbolInSetExpressions<Nucleotide>(std::move(rewritten_children));
@@ -186,17 +182,12 @@ std::unique_ptr<Expression> Or::rewrite(
    return std::make_unique<Or>(std::move(rewritten_children));
 }
 
-std::unique_ptr<operators::Operator> Or::compile(
-   const storage::Table& table,
-   const storage::TablePartition& table_partition
-) const {
+std::unique_ptr<operators::Operator> Or::compile(const storage::Table& table) const {
    OperatorVector all_child_operators;
    std::ranges::transform(
       children,
       std::back_inserter(all_child_operators),
-      [&](const std::unique_ptr<Expression>& expression) {
-         return expression->compile(table, table_partition);
-      }
+      [&](const std::unique_ptr<Expression>& expression) { return expression->compile(table); }
    );
    OperatorVector filtered_child_operators;
    for (auto& child : all_child_operators) {
@@ -204,7 +195,7 @@ std::unique_ptr<operators::Operator> Or::compile(
          continue;
       }
       if (child->type() == operators::FULL) {
-         return std::make_unique<operators::Full>(table_partition.sequence_count);
+         return std::make_unique<operators::Full>(table.sequence_count);
       }
       if (child->type() == operators::UNION) {
          auto* or_child = dynamic_cast<operators::Union*>(child.get());
@@ -218,7 +209,7 @@ std::unique_ptr<operators::Operator> Or::compile(
       }
    }
    if (filtered_child_operators.empty()) {
-      return std::make_unique<operators::Empty>(table_partition.sequence_count);
+      return std::make_unique<operators::Empty>(table.sequence_count);
    }
    if (filtered_child_operators.size() == 1) {
       return std::move(filtered_child_operators[0]);
@@ -228,11 +219,11 @@ std::unique_ptr<operators::Operator> Or::compile(
           return child->type() == operators::COMPLEMENT;
        })) {
       return operators::Complement::fromDeMorgan(
-         std::move(filtered_child_operators), table_partition.sequence_count
+         std::move(filtered_child_operators), table.sequence_count
       );
    }
    return std::make_unique<operators::Union>(
-      std::move(filtered_child_operators), table_partition.sequence_count
+      std::move(filtered_child_operators), table.sequence_count
    );
 }
 

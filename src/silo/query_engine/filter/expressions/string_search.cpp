@@ -10,7 +10,6 @@
 #include "silo/query_engine/filter/operators/bitmap_producer.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -48,7 +47,6 @@ std::unique_ptr<operators::Operator> createMatchingBitmap(
 
 std::unique_ptr<Expression> StringSearch::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
 ) const {
    return std::make_unique<StringSearch>(
@@ -56,26 +54,21 @@ std::unique_ptr<Expression> StringSearch::rewrite(
    );
 }
 
-std::unique_ptr<operators::Operator> StringSearch::compile(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition
-) const {
+std::unique_ptr<operators::Operator> StringSearch::compile(const storage::Table& table) const {
    CHECK_SILO_QUERY(
-      table_partition.columns.string_columns.contains(column_name) ||
-         table_partition.columns.indexed_string_columns.contains(column_name),
+      table.columns.string_columns.contains(column_name) ||
+         table.columns.indexed_string_columns.contains(column_name),
       "The database does not contain the string column '{}'",
       column_name
    )
 
-   if (table_partition.columns.indexed_string_columns.contains(column_name)) {
-      const auto& string_column = table_partition.columns.indexed_string_columns.at(column_name);
-      return createMatchingBitmap(
-         string_column, *search_expression, table_partition.sequence_count
-      );
+   if (table.columns.indexed_string_columns.contains(column_name)) {
+      const auto& string_column = table.columns.indexed_string_columns.at(column_name);
+      return createMatchingBitmap(string_column, *search_expression, table.sequence_count);
    }
-   SILO_ASSERT(table_partition.columns.string_columns.contains(column_name));
-   const auto& string_column = table_partition.columns.string_columns.at(column_name);
-   return createMatchingBitmap(string_column, *search_expression, table_partition.sequence_count);
+   SILO_ASSERT(table.columns.string_columns.contains(column_name));
+   const auto& string_column = table.columns.string_columns.at(column_name);
+   return createMatchingBitmap(string_column, *search_expression, table.sequence_count);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

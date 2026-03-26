@@ -278,20 +278,9 @@ roaring::Roaring Database::getFilteredBitmap(
       return {};
    }
    auto table = maybe_table->second;
-   if (table->getNumberOfPartitions() == 0) {
-      SPDLOG_WARN("The table is empty");
-      return {};
-   }
-   if (table->getNumberOfPartitions() > 1) {
-      SPDLOG_ERROR(
-         "The table should not contain more than one partition (actual: {}), internal error.",
-         table->getNumberOfPartitions()
-      );
-      return {};
-   }
    auto rewritten_filter_expression =
-      filter_expression->rewrite(*table, *table->getPartition(0), Expression::AmbiguityMode::NONE);
-   auto filter_operator = rewritten_filter_expression->compile(*table, *table->getPartition(0));
+      filter_expression->rewrite(*table, Expression::AmbiguityMode::NONE);
+   auto filter_operator = rewritten_filter_expression->compile(*table);
    roaring::Roaring bitmap = filter_operator->evaluate().getConstReference();
    return bitmap;
 }
@@ -363,22 +352,18 @@ std::vector<std::pair<uint64_t, std::string>> Database::getPrevalentAminoAcidMut
 namespace {
 
 void addTableStatisticsToDatabaseInfo(DatabaseInfo& database_info, const storage::Table& table) {
-   for (size_t partition_idx = 0; partition_idx < table.getNumberOfPartitions(); ++partition_idx) {
-      auto table_partition = table.getPartition(partition_idx);
-      // TODO(#743) try to analyze size accuracy relative to RSS
-      for (const auto& [_, seq_column] : table_partition->columns.nuc_columns) {
-         auto info = seq_column.getInfo();
-         database_info.vertical_bitmaps_size += info.vertical_bitmaps_size;
-         database_info.horizontal_bitmaps_size += info.horizontal_bitmaps_size;
-      }
-      for (const auto& [_, seq_column] : table_partition->columns.aa_columns) {
-         auto info = seq_column.getInfo();
-         database_info.vertical_bitmaps_size += info.vertical_bitmaps_size;
-         database_info.horizontal_bitmaps_size += info.horizontal_bitmaps_size;
-      }
-      database_info.sequence_count += table_partition->sequence_count;
+   // TODO(#743) try to analyze size accuracy relative to RSS
+   for (const auto& [_, seq_column] : table.columns.nuc_columns) {
+      auto info = seq_column.getInfo();
+      database_info.vertical_bitmaps_size += info.vertical_bitmaps_size;
+      database_info.horizontal_bitmaps_size += info.horizontal_bitmaps_size;
    }
-   database_info.number_of_partitions += table.getNumberOfPartitions();
+   for (const auto& [_, seq_column] : table.columns.aa_columns) {
+      auto info = seq_column.getInfo();
+      database_info.vertical_bitmaps_size += info.vertical_bitmaps_size;
+      database_info.horizontal_bitmaps_size += info.horizontal_bitmaps_size;
+   }
+   database_info.sequence_count += table.sequence_count;
 }
 
 }  // namespace
@@ -388,8 +373,7 @@ DatabaseInfo Database::getDatabaseInfo() const {
       .version = silo::RELEASE_VERSION,
       .sequence_count = 0,
       .vertical_bitmaps_size = 0,
-      .horizontal_bitmaps_size = 0,
-      .number_of_partitions = 0
+      .horizontal_bitmaps_size = 0
    };
    for (const auto& [_, table] : tables) {
       addTableStatisticsToDatabaseInfo(database_info, *table);
@@ -441,8 +425,8 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
 
    for (const auto& [table_name, table] : tables) {
       SPDLOG_DEBUG("Saving table data for table {}", table_name.getName());
-      std::filesystem::create_directory(versioned_save_directory / table_name.getName());
-      table->saveData(versioned_save_directory / table_name.getName());
+      const std::filesystem::path table_file = versioned_save_directory / (table_name.getName() + ".silo");
+      table->saveData(table_file);
    }
 
    data_version_.saveToFile(versioned_save_directory / DATA_VERSION_FILENAME);
@@ -488,7 +472,7 @@ Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_sourc
 
    for (const auto& [table_name, _] : schema.tables) {
       SPDLOG_DEBUG("Loading data for table {}", table_name.getName());
-      database.tables.at(table_name)->loadData(save_directory / table_name.getName());
+      database.tables.at(table_name)->loadData(save_directory / (table_name.getName() + ".silo"));
    }
 
    database.data_version_ = loadDataVersion(save_directory / DATA_VERSION_FILENAME);
