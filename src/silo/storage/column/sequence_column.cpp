@@ -85,7 +85,7 @@ InsertionEntry<SymbolType> parseInsertion(const std::string& value) {
 }  // namespace
 
 template <typename SymbolType>
-SequenceColumnPartition<SymbolType>::SequenceColumnPartition(
+SequenceColumn<SymbolType>::SequenceColumn(
    SequenceColumnMetadata<SymbolType>* metadata
 )
     : metadata(metadata),
@@ -100,7 +100,7 @@ SequenceColumnPartition<SymbolType>::SequenceColumnPartition(
 }
 
 template <typename SymbolType>
-void SequenceColumnPartition<SymbolType>::append(
+void SequenceColumn<SymbolType>::append(
    std::string_view sequence,
    uint32_t offset,
    const std::vector<std::string>& insertions
@@ -161,7 +161,7 @@ void SequenceColumnPartition<SymbolType>::append(
 }
 
 template <typename SymbolType>
-void SequenceColumnPartition<SymbolType>::appendNull() {
+void SequenceColumn<SymbolType>::appendNull() {
    const size_t row_id = sequence_count;
    null_bitmap.add(row_id);
    sequence_count += 1;
@@ -169,12 +169,12 @@ void SequenceColumnPartition<SymbolType>::appendNull() {
 }
 
 template <typename SymbolType>
-bool SequenceColumnPartition<SymbolType>::isNull(size_t row_id) const {
+bool SequenceColumn<SymbolType>::isNull(size_t row_id) const {
    return null_bitmap.contains(row_id);
 }
 
 template <typename SymbolType>
-void SequenceColumnPartition<SymbolType>::finalize() {
+void SequenceColumn<SymbolType>::finalize() {
    flushBuffer();
 
    SPDLOG_DEBUG("Building insertion index");
@@ -247,7 +247,7 @@ void SequenceColumnPartition<SymbolType>::finalize() {
 namespace silo::storage::column {
 
 template <typename SymbolType>
-SequenceColumnInfo SequenceColumnPartition<SymbolType>::calculateInfo() {
+SequenceColumnInfo SequenceColumn<SymbolType>::calculateInfo() {
    sequence_column_info = {
       .sequence_count = sequence_count,
       .vertical_bitmaps_size = computeVerticalBitmapsSize(),
@@ -257,19 +257,19 @@ SequenceColumnInfo SequenceColumnPartition<SymbolType>::calculateInfo() {
 }
 
 template <typename SymbolType>
-SequenceColumnInfo SequenceColumnPartition<SymbolType>::getInfo() const {
+SequenceColumnInfo SequenceColumn<SymbolType>::getInfo() const {
    return sequence_column_info;
 }
 
 template <typename SymbolType>
-void SequenceColumnPartition<SymbolType>::fillIndexes() {
+void SequenceColumn<SymbolType>::fillIndexes() {
    for (size_t position_idx = 0; position_idx != genome_length; ++position_idx) {
       vertical_sequence_index.addSymbolsToPositions(position_idx, mutation_buffer.at(position_idx));
    }
 }
 
 template <typename SymbolType>
-void SequenceColumnPartition<SymbolType>::optimizeBitmaps() {
+void SequenceColumn<SymbolType>::optimizeBitmaps() {
    for (auto& [sequence_diff_key, sequence_diff] : vertical_sequence_index.vertical_bitmaps) {
       uint8_t new_container_type;
       auto new_container = roaring::internal::convert_run_optimize(
@@ -284,7 +284,7 @@ void SequenceColumnPartition<SymbolType>::optimizeBitmaps() {
 }
 
 template <typename SymbolType>
-void SequenceColumnPartition<SymbolType>::flushBuffer() {
+void SequenceColumn<SymbolType>::flushBuffer() {
    fillIndexes();
    for (auto& position : mutation_buffer) {
       for (auto symbol : SymbolType::SYMBOLS) {
@@ -294,7 +294,7 @@ void SequenceColumnPartition<SymbolType>::flushBuffer() {
 }
 
 template <typename SymbolType>
-size_t SequenceColumnPartition<SymbolType>::computeVerticalBitmapsSize() const {
+size_t SequenceColumn<SymbolType>::computeVerticalBitmapsSize() const {
    size_t result = 0;
    for (const auto& [_pos, sequence_diff] : vertical_sequence_index.vertical_bitmaps) {
       result += roaring::internal::container_size_in_bytes(
@@ -305,7 +305,7 @@ size_t SequenceColumnPartition<SymbolType>::computeVerticalBitmapsSize() const {
 }
 
 template <typename SymbolType>
-size_t SequenceColumnPartition<SymbolType>::computeHorizontalBitmapsSize() const {
+size_t SequenceColumn<SymbolType>::computeHorizontalBitmapsSize() const {
    size_t result = 0;
    for (const auto& [_pos, bitmap] : horizontal_coverage_index.horizontal_bitmaps) {
       result += bitmap.getSizeInBytes(false);
@@ -321,8 +321,8 @@ SequenceColumnMetadata<SymbolType>::SequenceColumnMetadata(
     : ColumnMetadata(std::move(column_name)),
       reference_sequence(std::move(reference_sequence)) {}
 
-template class SequenceColumnPartition<Nucleotide>;
-template class SequenceColumnPartition<AminoAcid>;
+template class SequenceColumn<Nucleotide>;
+template class SequenceColumn<AminoAcid>;
 template class SequenceColumnMetadata<Nucleotide>;
 template class SequenceColumnMetadata<AminoAcid>;
 }  // namespace silo::storage::column

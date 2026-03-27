@@ -202,7 +202,7 @@ __attribute__((noinline)) void accumulateFinalCounts(
 
 template <typename SymbolType>
 void addMutationCountsForMixedBitmaps(
-   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column,
+   const storage::column::SequenceColumn<SymbolType>& sequence_column,
    const CopyOnWriteBitmap& bitmap_filter,
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
@@ -233,7 +233,7 @@ void addMutationCountsForMixedBitmaps(
 
 template <typename SymbolType>
 void addMutationCountsForFullBitmaps(
-   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column,
+   const storage::column::SequenceColumn<SymbolType>& sequence_column,
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
    auto local_reference = sequence_column.getLocalReference();
@@ -264,7 +264,7 @@ void addMutationCountsForFullBitmaps(
 
 template <typename SymbolType>
 SymbolMap<SymbolType, std::vector<uint32_t>> calculateMutationsPerPosition(
-   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column,
+   const storage::column::SequenceColumn<SymbolType>& sequence_column,
    const CopyOnWriteBitmap& bitmap_filter,
    uint64_t sequence_count_in_column
 ) {
@@ -287,7 +287,7 @@ template <typename SymbolType>
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status addMutationsToOutput(
    const std::string& sequence_name,
-   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column,
+   const storage::column::SequenceColumn<SymbolType>& sequence_column,
    double min_proportion,
    const CopyOnWriteBitmap& bitmap_filter,
    uint64_t sequence_count_in_column,
@@ -403,9 +403,9 @@ arrow::Result<PartialArrowPlan> MutationsNode<SymbolType>::toQueryPlan(
       exec_node::SchemaOutputBuilder output_builder(output_fields);
 
       for (const auto& sequence_column_identifier : sequence_column_identifiers) {
-         const storage::column::SequenceColumnPartition<SymbolType>& sequence_column =
+         const storage::column::SequenceColumn<SymbolType>& sequence_column =
             table_handle->columns
-               .template getColumns<storage::column::SequenceColumnPartition<SymbolType>>()
+               .template getColumns<storage::column::SequenceColumn<SymbolType>>()
                .at(sequence_column_identifier.name);
 
          ARROW_RETURN_NOT_OK(addMutationsToOutput<SymbolType>(

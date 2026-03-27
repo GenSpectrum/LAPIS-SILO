@@ -34,7 +34,7 @@ class LineageFilter : public Expression {
 
   private:
    [[nodiscard]] std::optional<const roaring::Roaring*> getBitmapForValue(
-      const silo::storage::column::IndexedStringColumnPartition& lineage_column
+      const silo::storage::column::IndexedStringColumn& lineage_column
    ) const;
 };
 

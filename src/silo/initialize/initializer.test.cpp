@@ -57,12 +57,12 @@ A.11:
    ASSERT_EQ(table_schema->getColumn("M").value().type, ColumnType::AMINO_ACID_SEQUENCE);
    ASSERT_TRUE(
       table_schema
-         ->getColumnMetadata<silo::storage::column::SequenceColumnPartition<silo::AminoAcid>>("M")
+         ->getColumnMetadata<silo::storage::column::SequenceColumn<silo::AminoAcid>>("M")
          .has_value()
    );
    ASSERT_EQ(
       table_schema
-         ->getColumnMetadata<silo::storage::column::SequenceColumnPartition<silo::AminoAcid>>("M")
+         ->getColumnMetadata<silo::storage::column::SequenceColumn<silo::AminoAcid>>("M")
          .value()
          ->reference_sequence,
       reference_genomes.stringToVector<silo::AminoAcid>("MADS*")
@@ -74,7 +74,7 @@ A.11:
    ASSERT_TRUE(table_schema->getColumn("country").has_value());
    ASSERT_EQ(table_schema->getColumn("country").value().type, ColumnType::INDEXED_STRING);
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::IndexedStringColumnPartition>("country"
+                  ->getColumnMetadata<silo::storage::column::IndexedStringColumn>("country"
                   )
                   .has_value());
 
@@ -85,7 +85,7 @@ A.11:
    ASSERT_EQ(table_schema->getColumn("division").value().type, ColumnType::INDEXED_STRING);
    ASSERT_TRUE(
       table_schema
-         ->getColumnMetadata<silo::storage::column::IndexedStringColumnPartition>("division")
+         ->getColumnMetadata<silo::storage::column::IndexedStringColumn>("division")
          .has_value()
    );
 
@@ -93,14 +93,14 @@ A.11:
    ASSERT_EQ(table_schema->getColumn("main").value().type, ColumnType::NUCLEOTIDE_SEQUENCE);
    ASSERT_TRUE(
       table_schema
-         ->getColumnMetadata<silo::storage::column::SequenceColumnPartition<silo::Nucleotide>>(
+         ->getColumnMetadata<silo::storage::column::SequenceColumn<silo::Nucleotide>>(
             "main"
          )
          .has_value()
    );
    ASSERT_EQ(
       table_schema
-         ->getColumnMetadata<silo::storage::column::SequenceColumnPartition<silo::Nucleotide>>(
+         ->getColumnMetadata<silo::storage::column::SequenceColumn<silo::Nucleotide>>(
             "main"
          )
          .value()
@@ -112,12 +112,12 @@ A.11:
    ASSERT_EQ(table_schema->getColumn("pango_lineage").value().type, ColumnType::INDEXED_STRING);
    ASSERT_TRUE(
       table_schema
-         ->getColumnMetadata<silo::storage::column::IndexedStringColumnPartition>("pango_lineage")
+         ->getColumnMetadata<silo::storage::column::IndexedStringColumn>("pango_lineage")
          .has_value()
    );
    auto* pango_metadata =
       table_schema
-         ->getColumnMetadata<silo::storage::column::IndexedStringColumnPartition>("pango_lineage")
+         ->getColumnMetadata<silo::storage::column::IndexedStringColumn>("pango_lineage")
          .value();
    ASSERT_EQ(pango_metadata->dictionary.getValue(0), "A");
    ASSERT_EQ(pango_metadata->dictionary.getValue(1), "A.1");
@@ -129,7 +129,7 @@ A.11:
    ASSERT_TRUE(table_schema->getColumn("primaryKey").has_value());
    ASSERT_EQ(table_schema->getColumn("primaryKey").value().type, ColumnType::STRING);
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::StringColumnPartition>("primaryKey")
+                  ->getColumnMetadata<silo::storage::column::StringColumn>("primaryKey")
                   .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("qc_value").has_value());
@@ -138,7 +138,7 @@ A.11:
    ASSERT_TRUE(table_schema->getColumn("region").has_value());
    ASSERT_EQ(table_schema->getColumn("region").value().type, ColumnType::INDEXED_STRING);
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::IndexedStringColumnPartition>("region")
+                  ->getColumnMetadata<silo::storage::column::IndexedStringColumn>("region")
                   .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("testSecondSequence").has_value());
@@ -147,14 +147,14 @@ A.11:
    );
    ASSERT_TRUE(
       table_schema
-         ->getColumnMetadata<silo::storage::column::SequenceColumnPartition<silo::Nucleotide>>(
+         ->getColumnMetadata<silo::storage::column::SequenceColumn<silo::Nucleotide>>(
             "testSecondSequence"
          )
          .has_value()
    );
    ASSERT_EQ(
       table_schema
-         ->getColumnMetadata<silo::storage::column::SequenceColumnPartition<silo::Nucleotide>>(
+         ->getColumnMetadata<silo::storage::column::SequenceColumn<silo::Nucleotide>>(
             "testSecondSequence"
          )
          .value()
@@ -170,13 +170,13 @@ A.11:
       table_schema->getColumn("unaligned_main").value().type, ColumnType::ZSTD_COMPRESSED_STRING
    );
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::ZstdCompressedStringColumnPartition>(
+                  ->getColumnMetadata<silo::storage::column::ZstdCompressedStringColumn>(
                      "unaligned_main"
                   )
                   .has_value());
    ASSERT_EQ(
       table_schema
-         ->getColumnMetadata<silo::storage::column::ZstdCompressedStringColumnPartition>(
+         ->getColumnMetadata<silo::storage::column::ZstdCompressedStringColumn>(
             "unaligned_main"
          )
          .value()
@@ -190,13 +190,13 @@ A.11:
       ColumnType::ZSTD_COMPRESSED_STRING
    );
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::ZstdCompressedStringColumnPartition>(
+                  ->getColumnMetadata<silo::storage::column::ZstdCompressedStringColumn>(
                      "unaligned_testSecondSequence"
                   )
                   .has_value());
    ASSERT_EQ(
       table_schema
-         ->getColumnMetadata<silo::storage::column::ZstdCompressedStringColumnPartition>(
+         ->getColumnMetadata<silo::storage::column::ZstdCompressedStringColumn>(
             "unaligned_testSecondSequence"
          )
          .value()

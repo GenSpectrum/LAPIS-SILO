@@ -61,7 +61,7 @@ struct ColumnMetadataInitializer {
 };
 
 template <>
-void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumnPartition>(
+void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumn>(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& /*reference_genomes*/,
@@ -83,18 +83,18 @@ void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumnP
             fmt::join(keys, ",")
          );
       }
-      metadata = std::make_shared<storage::column::IndexedStringColumnPartition::Metadata>(
+      metadata = std::make_shared<storage::column::IndexedStringColumn::Metadata>(
          config_metadata.name, lineage_tree.value()
       );
    } else {
-      metadata = std::make_shared<storage::column::IndexedStringColumnPartition::Metadata>(
+      metadata = std::make_shared<storage::column::IndexedStringColumn::Metadata>(
          config_metadata.name
       );
    }
 }
 
 template <>
-void ColumnMetadataInitializer::operator()<storage::column::StringColumnPartition>(
+void ColumnMetadataInitializer::operator()<storage::column::StringColumn>(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& /*reference_genomes*/,
@@ -102,17 +102,17 @@ void ColumnMetadataInitializer::operator()<storage::column::StringColumnPartitio
    const common::PhyloTree& phylo_tree_file
 ) {
    if (config_metadata.phylo_tree_node_identifier) {
-      metadata = std::make_shared<storage::column::StringColumnPartition::Metadata>(
+      metadata = std::make_shared<storage::column::StringColumn::Metadata>(
          config_metadata.name, phylo_tree_file
       );
    } else {
       metadata =
-         std::make_shared<storage::column::StringColumnPartition::Metadata>(config_metadata.name);
+         std::make_shared<storage::column::StringColumn::Metadata>(config_metadata.name);
    }
 }
 
 template <>
-void ColumnMetadataInitializer::operator()<storage::column::ZstdCompressedStringColumnPartition>(
+void ColumnMetadataInitializer::operator()<storage::column::ZstdCompressedStringColumn>(
    std::shared_ptr<storage::column::ColumnMetadata>& /*metadata*/,
    const config::DatabaseMetadata& /*config_metadata*/,
    const ReferenceGenomes& /*reference_genomes*/,
@@ -123,7 +123,7 @@ void ColumnMetadataInitializer::operator()<storage::column::ZstdCompressedString
 }
 
 template <>
-void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartition<Nucleotide>>(
+void ColumnMetadataInitializer::operator()<storage::column::SequenceColumn<Nucleotide>>(
    std::shared_ptr<storage::column::ColumnMetadata>& /*metadata*/,
    const config::DatabaseMetadata& /*config_metadata*/,
    const ReferenceGenomes& /*reference_genomes*/,
@@ -134,7 +134,7 @@ void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartit
 }
 
 template <>
-void ColumnMetadataInitializer::operator()<storage::column::SequenceColumnPartition<AminoAcid>>(
+void ColumnMetadataInitializer::operator()<storage::column::SequenceColumn<AminoAcid>>(
    std::shared_ptr<storage::column::ColumnMetadata>& /*metadata*/,
    const config::DatabaseMetadata& /*config_metadata*/,
    const ReferenceGenomes& /*reference_genomes*/,
@@ -230,7 +230,7 @@ void assertPrimaryKeyOfTypeString(const silo::config::DatabaseConfig& database_c
 }
 
 // TODO(#741) we prepend the unalignedSequence columns (which are using the type
-// ZstdCompressedStringColumnPartition) with 'unaligned_'. This should be cleaned up with a
+// ZstdCompressedStringColumn) with 'unaligned_'. This should be cleaned up with a
 // refactor and breaking change of the current input format.
 const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
 

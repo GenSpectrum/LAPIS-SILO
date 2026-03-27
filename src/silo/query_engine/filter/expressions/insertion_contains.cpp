@@ -55,10 +55,10 @@ std::unique_ptr<operators::Operator> InsertionContains<SymbolType>::compile(
    const auto valid_sequence_name =
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
 
-   const std::map<std::string, storage::column::SequenceColumnPartition<SymbolType>>&
+   const std::map<std::string, storage::column::SequenceColumn<SymbolType>>&
       sequence_stores = table.columns.getColumns<typename SymbolType::Column>();
 
-   const storage::column::SequenceColumnPartition<SymbolType>& sequence_store =
+   const storage::column::SequenceColumn<SymbolType>& sequence_store =
       sequence_stores.at(valid_sequence_name);
    const size_t reference_sequence_size = sequence_store.metadata->reference_sequence.size();
    CHECK_SILO_QUERY(

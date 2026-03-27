@@ -6,10 +6,10 @@
 
 namespace silo::storage::column {
 
-BoolColumnPartition::BoolColumnPartition(ColumnMetadata* metadata)
+BoolColumn::BoolColumn(ColumnMetadata* metadata)
     : metadata(metadata) {}
 
-std::expected<void, std::string> BoolColumnPartition::insert(bool value) {
+std::expected<void, std::string> BoolColumn::insert(bool value) {
    if (value) {
       true_bitmap.add(num_values++);
    } else {
@@ -18,7 +18,7 @@ std::expected<void, std::string> BoolColumnPartition::insert(bool value) {
    return {};
 }
 
-void BoolColumnPartition::insertNull() {
+void BoolColumn::insertNull() {
    null_bitmap.add(num_values++);
 }
 }  // namespace silo::storage::column

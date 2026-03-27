@@ -221,7 +221,7 @@ std::string Database::getNucleotideReferenceSequence(
    const auto& table_schema = maybe_table_schema->second;
 
    auto maybe_sequence_column_metadata =
-      table_schema->getColumnMetadata<storage::column::SequenceColumnPartition<Nucleotide>>(
+      table_schema->getColumnMetadata<storage::column::SequenceColumn<Nucleotide>>(
          sequence_name
       );
    if (maybe_sequence_column_metadata == std::nullopt) {
@@ -249,7 +249,7 @@ std::string Database::getAminoAcidReferenceSequence(
    const auto& table_schema = maybe_table_schema->second;
 
    auto maybe_sequence_column_metadata =
-      table_schema->getColumnMetadata<storage::column::SequenceColumnPartition<AminoAcid>>(
+      table_schema->getColumnMetadata<storage::column::SequenceColumn<AminoAcid>>(
          sequence_name
       );
    if (maybe_sequence_column_metadata == std::nullopt) {

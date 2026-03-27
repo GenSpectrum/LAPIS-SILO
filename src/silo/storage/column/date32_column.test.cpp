@@ -2,9 +2,9 @@
 
 #include <gtest/gtest.h>
 
-TEST(Date32ColumnPartition, insertValues) {
+TEST(Date32Column, insertValues) {
    silo::storage::column::ColumnMetadata column_metadata{"test_column"};
-   silo::storage::column::Date32ColumnPartition under_test(&column_metadata);
+   silo::storage::column::Date32Column under_test(&column_metadata);
 
    std::vector<std::string> values_to_add{
       "2020-01-01", "2023-01-05", "2021-12-03", "2025-01-01", "2021-03-21"
@@ -22,9 +22,9 @@ TEST(Date32ColumnPartition, insertValues) {
    }
 }
 
-TEST(Date32ColumnPartition, insertNull) {
+TEST(Date32Column, insertNull) {
    silo::storage::column::ColumnMetadata column_metadata{"test_column"};
-   silo::storage::column::Date32ColumnPartition under_test(&column_metadata);
+   silo::storage::column::Date32Column under_test(&column_metadata);
 
    under_test.insertNull();
 
@@ -32,9 +32,9 @@ TEST(Date32ColumnPartition, insertNull) {
    ASSERT_TRUE(under_test.isNull(0));
 }
 
-TEST(Date32ColumnPartition, insertInvalidDateReturnsError) {
+TEST(Date32Column, insertInvalidDateReturnsError) {
    silo::storage::column::ColumnMetadata column_metadata{"test_column"};
-   silo::storage::column::Date32ColumnPartition under_test(&column_metadata);
+   silo::storage::column::Date32Column under_test(&column_metadata);
 
    auto result = under_test.insert("not-a-date");
    ASSERT_FALSE(result.has_value());

@@ -54,7 +54,7 @@ class StringColumnMetadata : public ColumnMetadata {
    StringColumnMetadata& operator=(StringColumnMetadata&& other) = delete;
 };
 
-class StringColumnPartition {
+class StringColumn {
   public:
    using Metadata = StringColumnMetadata;
 
@@ -74,7 +74,7 @@ class StringColumnPartition {
    vector::VariableDataRegistry variable_string_data;
 
   public:
-   explicit StringColumnPartition(Metadata* metadata);
+   explicit StringColumn(Metadata* metadata);
 
    [[nodiscard]] std::expected<void, std::string> insert(std::string_view value);
 

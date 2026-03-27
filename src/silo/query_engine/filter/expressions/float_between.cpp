@@ -12,7 +12,7 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/illegal_query_exception.h"
 
-using silo::storage::column::FloatColumnPartition;
+using silo::storage::column::FloatColumn;
 
 namespace silo::query_engine::filter::expressions {
 
@@ -52,7 +52,7 @@ std::unique_ptr<operators::Operator> FloatBetween::compile(const storage::Table&
    operators::PredicateVector predicates;
    if (from.has_value()) {
       predicates.emplace_back(
-         std::make_unique<operators::CompareToValueSelection<FloatColumnPartition>>(
+         std::make_unique<operators::CompareToValueSelection<FloatColumn>>(
             float_column, operators::Comparator::HIGHER_OR_EQUALS, from.value()
          )
       );
@@ -60,7 +60,7 @@ std::unique_ptr<operators::Operator> FloatBetween::compile(const storage::Table&
 
    if (to.has_value()) {
       predicates.emplace_back(
-         std::make_unique<operators::CompareToValueSelection<FloatColumnPartition>>(
+         std::make_unique<operators::CompareToValueSelection<FloatColumn>>(
             float_column, operators::Comparator::LESS, to.value()
          )
       );

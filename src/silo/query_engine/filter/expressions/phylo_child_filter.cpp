@@ -24,7 +24,7 @@ std::string PhyloChildFilter::toString() const {
 
 namespace {
 std::unique_ptr<operators::Operator> createMatchingBitmap(
-   const storage::column::StringColumnPartition& string_column,
+   const storage::column::StringColumn& string_column,
    const std::string& internal_node,
    size_t row_count
 ) {

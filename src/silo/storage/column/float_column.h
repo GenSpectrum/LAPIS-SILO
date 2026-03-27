@@ -13,7 +13,7 @@
 
 namespace silo::storage::column {
 
-class FloatColumnPartition {
+class FloatColumn {
   public:
    using Metadata = ColumnMetadata;
 
@@ -28,7 +28,7 @@ class FloatColumnPartition {
 
    [[maybe_unused]] Metadata* metadata;
 
-   explicit FloatColumnPartition(ColumnMetadata* metadata);
+   explicit FloatColumn(ColumnMetadata* metadata);
 
    [[nodiscard]] size_t numValues() const { return values.size(); }
 

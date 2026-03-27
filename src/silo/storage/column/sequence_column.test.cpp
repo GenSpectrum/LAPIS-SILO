@@ -10,11 +10,11 @@ using silo::Nucleotide;
 using silo::append::AppendException;
 using silo::storage::InsertionFormatException;
 using silo::storage::column::SequenceColumnMetadata;
-using silo::storage::column::SequenceColumnPartition;
+using silo::storage::column::SequenceColumn;
 
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_noTwoParts) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
-   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   SequenceColumn<Nucleotide> under_test(&column_metadata);
 
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
@@ -28,7 +28,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_noTwoParts) {
 
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartNotANumber) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
-   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   SequenceColumn<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
       [&]() { under_test.append("A", 0, {"A:G"}); },
@@ -41,7 +41,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartNotANumber) {
 
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIllegalSymbol) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
-   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   SequenceColumn<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
       [&]() {
@@ -56,7 +56,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIllegalSymbol) {
 
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIsANumber) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
-   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   SequenceColumn<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
       [&]() { under_test.append("A", 0, {"0:0"}); },
@@ -68,7 +68,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIsANumber) {
 
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartEmpty) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
-   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   SequenceColumn<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
       [&]() { under_test.append("A", 0, {"0:"}); },
@@ -81,7 +81,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartEmpty) {
 
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartEmpty) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
-   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   SequenceColumn<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
       [&]() { under_test.append("A", 0, {":A"}); },
@@ -94,7 +94,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartEmpty) {
 
 TEST(SequenceColumn, validErrorOnNegativeInsertionPosition) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
-   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   SequenceColumn<Nucleotide> under_test(&column_metadata);
 
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
@@ -105,7 +105,7 @@ TEST(SequenceColumn, validErrorOnNegativeInsertionPosition) {
 
 TEST(SequenceColumn, validErrorOnInsertionPositionOutOfRange) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
-   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   SequenceColumn<Nucleotide> under_test(&column_metadata);
 
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
@@ -118,14 +118,14 @@ TEST(SequenceColumn, validErrorOnInsertionPositionOutOfRange) {
 
 TEST(SequenceColumn, validInsertionAtPositionZero) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
-   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   SequenceColumn<Nucleotide> under_test(&column_metadata);
 
    EXPECT_NO_THROW(under_test.append("A", 0, {"0:G"}));
 }
 
 TEST(SequenceColumn, validInsertionAtPositionEqualToGenomeLength) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
-   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   SequenceColumn<Nucleotide> under_test(&column_metadata);
 
    EXPECT_NO_THROW(under_test.append("A", 0, {"1:G"}));
 }
@@ -135,7 +135,7 @@ TEST(SequenceColumn, canFinalizeTwice) {
       "test_column",
       {Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T}
    };
-   SequenceColumnPartition<Nucleotide> under_test(&column_metadata);
+   SequenceColumn<Nucleotide> under_test(&column_metadata);
 
    under_test.append("AAGT", 0, std::vector<std::string>{});
    under_test.append("AAGT", 0, std::vector<std::string>{});

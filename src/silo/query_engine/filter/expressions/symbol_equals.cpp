@@ -75,19 +75,19 @@ std::unique_ptr<Expression> SymbolEquals<SymbolType>::rewrite(
    const auto valid_sequence_name =
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
 
-   const auto& sequence_column_partition =
+   const auto& sequence_column =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    CHECK_SILO_QUERY(
-      position_idx < sequence_column_partition.metadata->reference_sequence.size(),
+      position_idx < sequence_column.metadata->reference_sequence.size(),
       "{} position is out of bounds {} > {}",
       getFilterName(),
       position_idx + 1,
-      sequence_column_partition.metadata->reference_sequence.size()
+      sequence_column.metadata->reference_sequence.size()
    );
 
    auto symbol = value.getSymbolOrReplaceDotWith(
-      sequence_column_partition.metadata->reference_sequence.at(position_idx)
+      sequence_column.metadata->reference_sequence.at(position_idx)
    );
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = SymbolType::AMBIGUITY_SYMBOLS.at(symbol);

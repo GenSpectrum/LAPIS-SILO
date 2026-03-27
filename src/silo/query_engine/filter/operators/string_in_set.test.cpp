@@ -12,27 +12,27 @@
 using silo::query_engine::filter::operators::Selection;
 using silo::query_engine::filter::operators::StringInSet;
 using silo::storage::column::IndexedStringColumnMetadata;
-using silo::storage::column::IndexedStringColumnPartition;
+using silo::storage::column::IndexedStringColumn;
 using silo::storage::column::StringColumnMetadata;
-using silo::storage::column::StringColumnPartition;
+using silo::storage::column::StringColumn;
 
 namespace {
 
-std::pair<std::shared_ptr<StringColumnMetadata>, StringColumnPartition> makeTestStringColumn(
+std::pair<std::shared_ptr<StringColumnMetadata>, StringColumn> makeTestStringColumn(
    const std::vector<std::string>& values
 ) {
    auto metadata = std::make_shared<StringColumnMetadata>("test");
-   StringColumnPartition test_column{metadata.get()};
+   StringColumn test_column{metadata.get()};
    for (const auto& value : values) {
       SILO_ASSERT(test_column.insert(value).has_value());
    }
    return {metadata, std::move(test_column)};
 }
 
-std::pair<std::shared_ptr<IndexedStringColumnMetadata>, IndexedStringColumnPartition>
+std::pair<std::shared_ptr<IndexedStringColumnMetadata>, IndexedStringColumn>
 makeTestIndexedStringColumn(const std::vector<std::string>& values) {
    auto metadata = std::make_shared<IndexedStringColumnMetadata>("test_indexed");
-   IndexedStringColumnPartition test_column{metadata.get()};
+   IndexedStringColumn test_column{metadata.get()};
    for (const auto& value : values) {
       SILO_ASSERT(test_column.insert(value).has_value());
    }
@@ -49,9 +49,9 @@ TEST(OperatorStringInSet, matchReturnsCorrectValuesForStringColumn) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<StringInSet<StringColumnPartition>>(
+      std::make_unique<StringInSet<StringColumn>>(
          &test_column,
-         StringInSet<StringColumnPartition>::Comparator::IN,
+         StringInSet<StringColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Switzerland", "Germany"}
       ),
       row_count
@@ -68,9 +68,9 @@ TEST(OperatorStringInSet, matchReturnsCorrectValuesForIndexedStringColumn) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<StringInSet<IndexedStringColumnPartition>>(
+      std::make_unique<StringInSet<IndexedStringColumn>>(
          &test_column,
-         StringInSet<IndexedStringColumnPartition>::Comparator::IN,
+         StringInSet<IndexedStringColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Switzerland", "Germany"}
       ),
       row_count
@@ -87,9 +87,9 @@ TEST(OperatorStringInSet, matchReturnsEmptyForNoMatches) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<StringInSet<StringColumnPartition>>(
+      std::make_unique<StringInSet<StringColumn>>(
          &test_column,
-         StringInSet<StringColumnPartition>::Comparator::IN,
+         StringInSet<StringColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Japan", "China"}
       ),
       row_count
@@ -106,9 +106,9 @@ TEST(OperatorStringInSet, matchReturnsEmptyForEmptySet) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<StringInSet<StringColumnPartition>>(
+      std::make_unique<StringInSet<StringColumn>>(
          &test_column,
-         StringInSet<StringColumnPartition>::Comparator::IN,
+         StringInSet<StringColumn>::Comparator::IN,
          std::unordered_set<std::string>{}
       ),
       row_count
@@ -125,9 +125,9 @@ TEST(OperatorStringInSet, negationWorksCorrectly) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<StringInSet<StringColumnPartition>>(
+      std::make_unique<StringInSet<StringColumn>>(
          &test_column,
-         StringInSet<StringColumnPartition>::Comparator::IN,
+         StringInSet<StringColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Switzerland", "Germany"}
       ),
       row_count
@@ -147,9 +147,9 @@ TEST(OperatorStringInSet, notInComparatorWorksCorrectly) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<StringInSet<StringColumnPartition>>(
+      std::make_unique<StringInSet<StringColumn>>(
          &test_column,
-         StringInSet<StringColumnPartition>::Comparator::NOT_IN,
+         StringInSet<StringColumn>::Comparator::NOT_IN,
          std::unordered_set<std::string>{"Switzerland", "Germany"}
       ),
       row_count
@@ -162,17 +162,17 @@ TEST(OperatorStringInSet, toStringReturnsCorrectFormat) {
    const std::vector<std::string> values{"Switzerland", "Germany"};
    auto [metadata, test_column] = makeTestStringColumn(values);
 
-   const StringInSet<StringColumnPartition> in_predicate(
+   const StringInSet<StringColumn> in_predicate(
       &test_column,
-      StringInSet<StringColumnPartition>::Comparator::IN,
+      StringInSet<StringColumn>::Comparator::IN,
       std::unordered_set<std::string>{"Value"}
    );
 
    ASSERT_EQ(in_predicate.toString(), "test IN [Value]");
 
-   const StringInSet<StringColumnPartition> not_in_predicate(
+   const StringInSet<StringColumn> not_in_predicate(
       &test_column,
-      StringInSet<StringColumnPartition>::Comparator::NOT_IN,
+      StringInSet<StringColumn>::Comparator::NOT_IN,
       std::unordered_set<std::string>{"Value"}
    );
 
@@ -183,9 +183,9 @@ TEST(OperatorStringInSet, copyCreatesIndependentCopy) {
    const std::vector<std::string> values{"Switzerland", "Germany"};
    auto [metadata, test_column] = makeTestStringColumn(values);
 
-   auto original = std::make_unique<StringInSet<StringColumnPartition>>(
+   auto original = std::make_unique<StringInSet<StringColumn>>(
       &test_column,
-      StringInSet<StringColumnPartition>::Comparator::IN,
+      StringInSet<StringColumn>::Comparator::IN,
       std::unordered_set<std::string>{"Switzerland"}
    );
 
@@ -202,9 +202,9 @@ TEST(OperatorStringInSet, matchSingleValue) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<StringInSet<StringColumnPartition>>(
+      std::make_unique<StringInSet<StringColumn>>(
          &test_column,
-         StringInSet<StringColumnPartition>::Comparator::IN,
+         StringInSet<StringColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Apple"}
       ),
       row_count
@@ -219,9 +219,9 @@ TEST(OperatorStringInSet, returnsCorrectTypeInfo) {
    const uint32_t row_count = values.size();
 
    const Selection under_test(
-      std::make_unique<StringInSet<StringColumnPartition>>(
+      std::make_unique<StringInSet<StringColumn>>(
          &test_column,
-         StringInSet<StringColumnPartition>::Comparator::IN,
+         StringInSet<StringColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Switzerland"}
       ),
       row_count

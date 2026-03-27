@@ -61,7 +61,7 @@ arrow::Status addAggregatedInsertionsToInsertionCounts(
    exec_node::SchemaOutputBuilder& output_builder
 ) {
    const auto& sequence_column =
-      table.columns.getColumns<storage::column::SequenceColumnPartition<SymbolType>>().at(
+      table.columns.getColumns<storage::column::SequenceColumn<SymbolType>>().at(
          sequence_name
       );
    std::unordered_map<PositionAndInsertionKey, uint32_t> all_insertions;

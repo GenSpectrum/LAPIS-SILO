@@ -11,7 +11,7 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/illegal_query_exception.h"
 
-using silo::storage::column::IntColumnPartition;
+using silo::storage::column::IntColumn;
 
 namespace silo::query_engine::filter::expressions {
 
@@ -44,7 +44,7 @@ std::unique_ptr<operators::Operator> IntEquals::compile(const storage::Table& ta
 
    if (value.has_value()) {
       return std::make_unique<operators::Selection>(
-         std::make_unique<operators::CompareToValueSelection<IntColumnPartition>>(
+         std::make_unique<operators::CompareToValueSelection<IntColumn>>(
             int_column, operators::Comparator::EQUALS, value.value()
          ),
          table.sequence_count

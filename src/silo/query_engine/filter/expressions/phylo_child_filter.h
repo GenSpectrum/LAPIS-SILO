@@ -29,7 +29,7 @@ class PhyloChildFilter : public Expression {
 
   private:
    [[nodiscard]] std::optional<const roaring::Roaring*> getBitmapForValue(
-      const silo::storage::column::StringColumnPartition& phylo_tree_index_column
+      const silo::storage::column::StringColumn& phylo_tree_index_column
    ) const;
 };
 

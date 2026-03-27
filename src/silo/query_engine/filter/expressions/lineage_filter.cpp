@@ -17,7 +17,7 @@
 namespace silo::query_engine::filter::expressions {
 
 using silo::common::RecombinantEdgeFollowingMode;
-using silo::storage::column::IndexedStringColumnPartition;
+using silo::storage::column::IndexedStringColumn;
 
 LineageFilter::LineageFilter(
    std::string column_name,
@@ -39,7 +39,7 @@ std::string LineageFilter::toString() const {
 }
 
 std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
-   const IndexedStringColumnPartition& lineage_column
+   const IndexedStringColumn& lineage_column
 ) const {
    if (lineage == std::nullopt) {
       return lineage_column.filter(std::nullopt);

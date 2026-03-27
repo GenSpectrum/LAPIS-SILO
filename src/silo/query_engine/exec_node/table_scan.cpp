@@ -18,22 +18,22 @@ namespace {
 
 template <typename SymbolType>
 std::vector<std::string> reconstructNonNullSequences(
-   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column_partition,
+   const storage::column::SequenceColumn<SymbolType>& sequence_column,
    const roaring::Roaring& non_null_row_ids
 ) {
    const size_t cardinality = non_null_row_ids.cardinality();
 
    const std::string partition_reference =
-      sequence_column_partition.local_reference_sequence_string;
+      sequence_column.local_reference_sequence_string;
 
    std::vector<std::string> reconstructed_sequences;
    reconstructed_sequences.resize(cardinality, partition_reference);
 
-   sequence_column_partition.vertical_sequence_index.overwriteSymbolsInSequences(
+   sequence_column.vertical_sequence_index.overwriteSymbolsInSequences(
       reconstructed_sequences, non_null_row_ids
    );
 
-   sequence_column_partition.horizontal_coverage_index
+   sequence_column.horizontal_coverage_index
       .template overwriteCoverageInSequence<SymbolType>(reconstructed_sequences, non_null_row_ids);
    return reconstructed_sequences;
 }
@@ -41,23 +41,23 @@ std::vector<std::string> reconstructNonNullSequences(
 template <typename SymbolType>
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status appendSequences(
-   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column_partition,
+   const storage::column::SequenceColumn<SymbolType>& sequence_column,
    const roaring::Roaring& row_ids,
    arrow::BinaryBuilder& output_array
 ) {
    auto reconstructed_non_null_sequences = reconstructNonNullSequences(
-      sequence_column_partition, row_ids - sequence_column_partition.null_bitmap
+      sequence_column, row_ids - sequence_column.null_bitmap
    );
 
    ARROW_RETURN_NOT_OK(output_array.Reserve(row_ids.cardinality()));
    auto reference_sequence =
-      SymbolType::sequenceToString(sequence_column_partition.metadata->reference_sequence);
+      SymbolType::sequenceToString(sequence_column.metadata->reference_sequence);
    auto dictionary = std::make_shared<silo::ZstdCDictionary>(reference_sequence, 3);
    silo::ZstdCompressor compressor{dictionary};
 
    auto reconstructed_sequence_iterator = reconstructed_non_null_sequences.begin();
    for (auto row_id : row_ids) {
-      if (sequence_column_partition.isNull(row_id)) {
+      if (sequence_column.isNull(row_id)) {
          ARROW_RETURN_NOT_OK(output_array.AppendNull());
       } else {
          auto& reconstructed_sequence = *reconstructed_sequence_iterator;
@@ -82,7 +82,7 @@ class ColumnEntryAppender {
 };
 
 template <>
-arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPartition<Nucleotide>>(
+arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumn<Nucleotide>>(
    ExecBatchBuilder& table_scan_node,
    const std::string& column_name,
    const storage::Table& table,
@@ -90,17 +90,17 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
 ) {
    EVOBENCH_SCOPE(
       "ColumnEntryAppender",
-      columnTypeToString(storage::column::SequenceColumnPartition<Nucleotide>::TYPE)
+      columnTypeToString(storage::column::SequenceColumn<Nucleotide>::TYPE)
    );
    auto* array =
       table_scan_node
-         .getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<Nucleotide>>()
+         .getColumnTypeArrayBuilders<storage::column::SequenceColumn<Nucleotide>>()
          .at(column_name);
    return appendSequences<Nucleotide>(table.columns.nuc_columns.at(column_name), row_ids, *array);
 }
 
 template <>
-arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPartition<AminoAcid>>(
+arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumn<AminoAcid>>(
    ExecBatchBuilder& table_scan_node,
    const std::string& column_name,
    const storage::Table& table,
@@ -108,18 +108,18 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumnPar
 ) {
    EVOBENCH_SCOPE(
       "ColumnEntryAppender",
-      columnTypeToString(storage::column::SequenceColumnPartition<AminoAcid>::TYPE)
+      columnTypeToString(storage::column::SequenceColumn<AminoAcid>::TYPE)
    );
    auto* array =
       table_scan_node
-         .getColumnTypeArrayBuilders<storage::column::SequenceColumnPartition<AminoAcid>>()
+         .getColumnTypeArrayBuilders<storage::column::SequenceColumn<AminoAcid>>()
          .at(column_name);
    return appendSequences<AminoAcid>(table.columns.aa_columns.at(column_name), row_ids, *array);
 }
 
 template <>
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStringColumnPartition>(
+arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStringColumn>(
    ExecBatchBuilder& table_scan_node,
    const std::string& column_name,
    const storage::Table& table,
@@ -127,14 +127,14 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStr
 ) {
    EVOBENCH_SCOPE(
       "ColumnEntryAppender",
-      columnTypeToString(storage::column::ZstdCompressedStringColumnPartition::TYPE)
+      columnTypeToString(storage::column::ZstdCompressedStringColumn::TYPE)
    );
    auto* array =
       table_scan_node
-         .getColumnTypeArrayBuilders<storage::column::ZstdCompressedStringColumnPartition>()
+         .getColumnTypeArrayBuilders<storage::column::ZstdCompressedStringColumn>()
          .at(column_name);
    const auto& column =
-      table.columns.getColumns<storage::column::ZstdCompressedStringColumnPartition>().at(
+      table.columns.getColumns<storage::column::ZstdCompressedStringColumn>().at(
          column_name
       );
    for (auto row_id : row_ids) {
@@ -163,14 +163,14 @@ arrow::Status ColumnEntryAppender::operator()(
       if (column.isNull(row_id)) {
          ARROW_RETURN_NOT_OK(array->AppendNull());
       } else {
-         if constexpr (std::is_same_v<Column, storage::column::StringColumnPartition>) {
+         if constexpr (std::is_same_v<Column, storage::column::StringColumn>) {
             auto value = column.getValueString(row_id);
             ARROW_RETURN_NOT_OK(array->Append(value));
          } else if constexpr (std::
-                                 is_same_v<Column, storage::column::IndexedStringColumnPartition>) {
+                                 is_same_v<Column, storage::column::IndexedStringColumn>) {
             auto value = column.getValueString(row_id);
             ARROW_RETURN_NOT_OK(array->Append(value));
-         } else if constexpr (std::is_same_v<Column, storage::column::Date32ColumnPartition>) {
+         } else if constexpr (std::is_same_v<Column, storage::column::Date32Column>) {
             auto value = common::date32ToString(column.getValue(row_id));
             ARROW_RETURN_NOT_OK(array->Append(value));
          } else {
