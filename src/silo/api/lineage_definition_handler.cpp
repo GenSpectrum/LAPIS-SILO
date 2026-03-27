@@ -44,8 +44,7 @@ void LineageDefinitionHandler::get(
       throw BadRequest("The column {} is not of type indexed-string.", column_name);
    }
    auto* metadata =
-      table->second->schema
-         ->getColumnMetadata<storage::column::IndexedStringColumnPartition>(column_name)
+      table->second->schema->getColumnMetadata<storage::column::IndexedStringColumn>(column_name)
          .value();
    if (!metadata->lineage_tree.has_value()) {
       throw BadRequest("The column {} does not have a lineageIndex defined.", column_name);

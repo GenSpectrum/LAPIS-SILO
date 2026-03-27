@@ -14,7 +14,7 @@ namespace silo {
 
 namespace storage::column {
 template <typename SymbolType>
-class SequenceColumnPartition;
+class SequenceColumn;
 }
 
 class AminoAcid {
@@ -52,7 +52,7 @@ class AminoAcid {
    };
 
    static constexpr schema::ColumnType COLUMN_TYPE = schema::ColumnType::AMINO_ACID_SEQUENCE;
-   using Column = storage::column::SequenceColumnPartition<AminoAcid>;
+   using Column = storage::column::SequenceColumn<AminoAcid>;
 
    static constexpr uint32_t COUNT = 28;
    static_assert(COUNT == static_cast<uint32_t>(Symbol::X) + 1);

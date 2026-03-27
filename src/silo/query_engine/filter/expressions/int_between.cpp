@@ -14,7 +14,7 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/illegal_query_exception.h"
 
-using silo::storage::column::IntColumnPartition;
+using silo::storage::column::IntColumn;
 
 namespace silo::query_engine::filter::expressions {
 
@@ -54,18 +54,14 @@ std::unique_ptr<operators::Operator> IntBetween::compile(const storage::Table& t
 
    operators::PredicateVector predicates;
    if (from.has_value()) {
-      predicates.emplace_back(
-         std::make_unique<operators::CompareToValueSelection<IntColumnPartition>>(
-            int_column, operators::Comparator::HIGHER_OR_EQUALS, from.value()
-         )
-      );
+      predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<IntColumn>>(
+         int_column, operators::Comparator::HIGHER_OR_EQUALS, from.value()
+      ));
    }
    if (to.has_value()) {
-      predicates.emplace_back(
-         std::make_unique<operators::CompareToValueSelection<IntColumnPartition>>(
-            int_column, operators::Comparator::LESS_OR_EQUALS, to.value()
-         )
-      );
+      predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<IntColumn>>(
+         int_column, operators::Comparator::LESS_OR_EQUALS, to.value()
+      ));
    }
 
    if (predicates.empty()) {

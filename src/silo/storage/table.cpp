@@ -28,7 +28,7 @@ namespace silo::storage {
 Table::Table(std::shared_ptr<schema::TableSchema> schema)
     : schema(std::move(schema)) {
    auto column_initializer = []<column::Column ColumnType>(
-                                ColumnPartitionGroup& column_group,
+                                ColumnGroup& column_group,
                                 const silo::schema::ColumnIdentifier& column_identifier,
                                 silo::schema::TableSchema& table_schema
                              ) {
@@ -109,9 +109,9 @@ void Table::validateAminoAcidSequences() const {
    }
 }
 
-template <typename ColumnPartition>
+template <typename Column>
 void Table::validateColumnsHaveSize(
-   const std::map<std::string, ColumnPartition>& columnsOfTheType,
+   const std::map<std::string, Column>& columnsOfTheType,
    const std::string& columnType
 ) const {
    for (const auto& col : columnsOfTheType) {

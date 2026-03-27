@@ -13,7 +13,7 @@
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/column/date32_column.h"
 
-using silo::storage::column::Date32ColumnPartition;
+using silo::storage::column::Date32Column;
 
 namespace silo::query_engine::filter::expressions {
 
@@ -52,7 +52,7 @@ std::unique_ptr<operators::Operator> DateEquals::compile(const storage::Table& t
 
    if (value.has_value()) {
       return std::make_unique<operators::Selection>(
-         std::make_unique<operators::CompareToValueSelection<Date32ColumnPartition>>(
+         std::make_unique<operators::CompareToValueSelection<Date32Column>>(
             date_column, operators::Comparator::EQUALS, value.value()
          ),
          table.sequence_count

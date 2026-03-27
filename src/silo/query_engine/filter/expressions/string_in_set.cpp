@@ -19,7 +19,7 @@
 
 namespace silo::query_engine::filter::expressions {
 
-using storage::column::StringColumnPartition;
+using storage::column::StringColumn;
 
 StringInSet::StringInSet(std::string column_name, std::unordered_set<std::string> values)
     : column_name(std::move(column_name)),
@@ -61,8 +61,8 @@ std::unique_ptr<operators::Operator> StringInSet::compile(const storage::Table& 
    SILO_ASSERT(table.columns.string_columns.contains(column_name));
    const auto& string_column = table.columns.string_columns.at(column_name);
    return std::make_unique<operators::Selection>(
-      std::make_unique<operators::StringInSet<StringColumnPartition>>(
-         &string_column, operators::StringInSet<StringColumnPartition>::Comparator::IN, values
+      std::make_unique<operators::StringInSet<StringColumn>>(
+         &string_column, operators::StringInSet<StringColumn>::Comparator::IN, values
       ),
       table.sequence_count
    );

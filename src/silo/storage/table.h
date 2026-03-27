@@ -15,7 +15,7 @@ namespace silo::storage {
 class Table {
   public:
    std::shared_ptr<schema::TableSchema> schema;
-   storage::ColumnPartitionGroup columns;
+   storage::ColumnGroup columns;
    uint32_t sequence_count = 0;
 
    explicit Table(std::shared_ptr<schema::TableSchema> schema);
@@ -47,9 +47,9 @@ class Table {
    void validateAminoAcidSequences() const;
    void validateMetadataColumns() const;
 
-   template <typename ColumnPartition>
+   template <typename Column>
    void validateColumnsHaveSize(
-      const std::map<std::string, ColumnPartition>& columnsOfTheType,
+      const std::map<std::string, Column>& columnsOfTheType,
       const std::string& columnType
    ) const;
 };

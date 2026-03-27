@@ -28,55 +28,55 @@ template <storage::column::Column Column>
 struct ArrowBuilderSelector;
 
 template <>
-struct ArrowBuilderSelector<storage::column::StringColumnPartition> {
+struct ArrowBuilderSelector<storage::column::StringColumn> {
    using builder_type = arrow::StringBuilder;
    using value_type = std::string;
 };
 
 template <>
-struct ArrowBuilderSelector<storage::column::IndexedStringColumnPartition> {
+struct ArrowBuilderSelector<storage::column::IndexedStringColumn> {
    using builder_type = arrow::StringBuilder;
    using value_type = std::string;
 };
 
 template <>
-struct ArrowBuilderSelector<storage::column::SequenceColumnPartition<Nucleotide>> {
+struct ArrowBuilderSelector<storage::column::SequenceColumn<Nucleotide>> {
    using builder_type = arrow::BinaryBuilder;
    using value_type = std::string;
 };
 
 template <>
-struct ArrowBuilderSelector<storage::column::SequenceColumnPartition<AminoAcid>> {
+struct ArrowBuilderSelector<storage::column::SequenceColumn<AminoAcid>> {
    using builder_type = arrow::BinaryBuilder;
    using value_type = std::string;
 };
 
 template <>
-struct ArrowBuilderSelector<storage::column::ZstdCompressedStringColumnPartition> {
+struct ArrowBuilderSelector<storage::column::ZstdCompressedStringColumn> {
    using builder_type = arrow::BinaryBuilder;
    using value_type = std::string;
 };
 
 template <>
-struct ArrowBuilderSelector<storage::column::FloatColumnPartition> {
+struct ArrowBuilderSelector<storage::column::FloatColumn> {
    using builder_type = arrow::DoubleBuilder;
    using value_type = double;
 };
 
 template <>
-struct ArrowBuilderSelector<storage::column::BoolColumnPartition> {
+struct ArrowBuilderSelector<storage::column::BoolColumn> {
    using builder_type = arrow::BooleanBuilder;
    using value_type = bool;
 };
 
 template <>
-struct ArrowBuilderSelector<storage::column::IntColumnPartition> {
+struct ArrowBuilderSelector<storage::column::IntColumn> {
    using builder_type = arrow::Int32Builder;
    using value_type = int32_t;
 };
 
 template <>
-struct ArrowBuilderSelector<storage::column::Date32ColumnPartition> {
+struct ArrowBuilderSelector<storage::column::Date32Column> {
    using builder_type = arrow::StringBuilder;
    using value_type = std::string;
 };

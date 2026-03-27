@@ -34,8 +34,8 @@ namespace {
 
 using silo::schema::ColumnIdentifier;
 using silo::schema::TableSchema;
-using silo::storage::column::SequenceColumnPartition;
-using silo::storage::column::ZstdCompressedStringColumnPartition;
+using silo::storage::column::SequenceColumn;
+using silo::storage::column::ZstdCompressedStringColumn;
 
 class ColumnToReferenceSequenceVisitor {
   public:
@@ -50,13 +50,12 @@ class ColumnToReferenceSequenceVisitor {
 
 template <>
 std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
-)<SequenceColumnPartition<silo::Nucleotide>>(
+)<SequenceColumn<silo::Nucleotide>>(
    const TableSchema& table_schema,
    const ColumnIdentifier& column_identifier
 ) {
    auto* metadata =
-      table_schema
-         .getColumnMetadata<SequenceColumnPartition<silo::Nucleotide>>(column_identifier.name)
+      table_schema.getColumnMetadata<SequenceColumn<silo::Nucleotide>>(column_identifier.name)
          .value();
    std::string reference;
    std::ranges::transform(
@@ -67,13 +66,12 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
 
 template <>
 std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
-)<SequenceColumnPartition<silo::AminoAcid>>(
+)<SequenceColumn<silo::AminoAcid>>(
    const TableSchema& table_schema,
    const ColumnIdentifier& column_identifier
 ) {
    auto* metadata =
-      table_schema
-         .getColumnMetadata<SequenceColumnPartition<silo::AminoAcid>>(column_identifier.name)
+      table_schema.getColumnMetadata<SequenceColumn<silo::AminoAcid>>(column_identifier.name)
          .value();
    std::string reference;
    std::ranges::transform(
@@ -83,14 +81,12 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
 }
 
 template <>
-std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
-)<ZstdCompressedStringColumnPartition>(
+std::optional<std::string> ColumnToReferenceSequenceVisitor::operator()<ZstdCompressedStringColumn>(
    const TableSchema& table_schema,
    const ColumnIdentifier& column_identifier
 ) {
    auto* metadata =
-      table_schema.getColumnMetadata<ZstdCompressedStringColumnPartition>(column_identifier.name)
-         .value();
+      table_schema.getColumnMetadata<ZstdCompressedStringColumn>(column_identifier.name).value();
    return metadata->dictionary_string;
 }
 

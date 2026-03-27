@@ -322,7 +322,9 @@ TEST(OrToString, shouldHandleNestedStringEquals) {
    const std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>(column_metadata, primary_key));
+   const silo::storage::Table table(
+      std::make_shared<schema::TableSchema>(column_metadata, primary_key)
+   );
 
    ExpressionVector inner_children;
    inner_children.emplace_back(std::make_unique<StringEquals>("key", "value_1"));
@@ -346,7 +348,9 @@ TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
    const std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>(column_metadata, primary_key));
+   const silo::storage::Table table(
+      std::make_shared<schema::TableSchema>(column_metadata, primary_key)
+   );
 
    ExpressionVector innermost_children;
    innermost_children.emplace_back(std::make_unique<False>());

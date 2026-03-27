@@ -14,7 +14,7 @@
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/column/date32_column.h"
 
-using silo::storage::column::Date32ColumnPartition;
+using silo::storage::column::Date32Column;
 
 namespace silo::query_engine::filter::expressions {
 
@@ -64,26 +64,22 @@ std::unique_ptr<operators::Operator> DateBetween::compile(const storage::Table& 
       );
    }
    operators::PredicateVector predicates;
-   predicates.emplace_back(
-      std::make_unique<operators::CompareToValueSelection<Date32ColumnPartition>>(
-         date_column,
-         operators::Comparator::HIGHER_OR_EQUALS,
-         date_from.value_or(std::numeric_limits<silo::common::Date32>::min())
-      )
-   );
-   predicates.emplace_back(
-      std::make_unique<operators::CompareToValueSelection<Date32ColumnPartition>>(
-         date_column,
-         operators::Comparator::LESS_OR_EQUALS,
-         date_to.value_or(std::numeric_limits<silo::common::Date32>::max())
-      )
-   );
+   predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<Date32Column>>(
+      date_column,
+      operators::Comparator::HIGHER_OR_EQUALS,
+      date_from.value_or(std::numeric_limits<silo::common::Date32>::min())
+   ));
+   predicates.emplace_back(std::make_unique<operators::CompareToValueSelection<Date32Column>>(
+      date_column,
+      operators::Comparator::LESS_OR_EQUALS,
+      date_to.value_or(std::numeric_limits<silo::common::Date32>::max())
+   ));
    return std::make_unique<operators::Selection>(std::move(predicates), table.sequence_count);
 }
 
 std::vector<silo::query_engine::filter::operators::RangeSelection::Range> DateBetween::
    computeRangesOfSortedColumn(
-      const silo::storage::column::Date32ColumnPartition& date_column,
+      const silo::storage::column::Date32Column& date_column,
       const std::vector<size_t>& chunk_sizes
    ) const {
    std::vector<operators::RangeSelection::Range> ranges;

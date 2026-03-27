@@ -21,110 +21,104 @@
 namespace silo::storage {
 
 template <>
-std::map<std::string, column::IndexedStringColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::IndexedStringColumnPartition>() {
+std::map<std::string, column::IndexedStringColumn>& ColumnGroup::getColumns<
+   column::IndexedStringColumn>() {
    return indexed_string_columns;
 }
 
 template <>
-std::map<std::string, column::StringColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::StringColumnPartition>() {
+std::map<std::string, column::StringColumn>& ColumnGroup::getColumns<column::StringColumn>() {
    return string_columns;
 }
 
 template <>
-std::map<std::string, column::IntColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::IntColumnPartition>() {
+std::map<std::string, column::IntColumn>& ColumnGroup::getColumns<column::IntColumn>() {
    return int_columns;
 }
 
 template <>
-std::map<std::string, column::BoolColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::BoolColumnPartition>() {
+std::map<std::string, column::BoolColumn>& ColumnGroup::getColumns<column::BoolColumn>() {
    return bool_columns;
 }
 
 template <>
-std::map<std::string, column::FloatColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::FloatColumnPartition>() {
+std::map<std::string, column::FloatColumn>& ColumnGroup::getColumns<column::FloatColumn>() {
    return float_columns;
 }
 
 template <>
-std::map<std::string, column::Date32ColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::Date32ColumnPartition>() {
+std::map<std::string, column::Date32Column>& ColumnGroup::getColumns<column::Date32Column>() {
    return date32_columns;
 }
 
 template <>
-std::map<std::string, column::SequenceColumnPartition<Nucleotide>>& ColumnPartitionGroup::
-   getColumns<column::SequenceColumnPartition<Nucleotide>>() {
+std::map<std::string, column::SequenceColumn<Nucleotide>>& ColumnGroup::getColumns<
+   column::SequenceColumn<Nucleotide>>() {
    return nuc_columns;
 }
 
 template <>
-std::map<std::string, column::SequenceColumnPartition<AminoAcid>>& ColumnPartitionGroup::getColumns<
-   column::SequenceColumnPartition<AminoAcid>>() {
+std::map<std::string, column::SequenceColumn<AminoAcid>>& ColumnGroup::getColumns<
+   column::SequenceColumn<AminoAcid>>() {
    return aa_columns;
 }
 
 template <>
-std::map<std::string, column::ZstdCompressedStringColumnPartition>& ColumnPartitionGroup::
-   getColumns<column::ZstdCompressedStringColumnPartition>() {
+std::map<std::string, column::ZstdCompressedStringColumn>& ColumnGroup::getColumns<
+   column::ZstdCompressedStringColumn>() {
    return zstd_compressed_string_columns;
 }
 
 template <>
-const std::map<std::string, column::IndexedStringColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::IndexedStringColumnPartition>() const {
+const std::map<std::string, column::IndexedStringColumn>& ColumnGroup::getColumns<
+   column::IndexedStringColumn>() const {
    return indexed_string_columns;
 }
 
 template <>
-const std::map<std::string, column::StringColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::StringColumnPartition>() const {
+const std::map<std::string, column::StringColumn>& ColumnGroup::getColumns<column::StringColumn>(
+) const {
    return string_columns;
 }
 
 template <>
-const std::map<std::string, column::IntColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::IntColumnPartition>() const {
+const std::map<std::string, column::IntColumn>& ColumnGroup::getColumns<column::IntColumn>() const {
    return int_columns;
 }
 
 template <>
-const std::map<std::string, column::BoolColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::BoolColumnPartition>() const {
+const std::map<std::string, column::BoolColumn>& ColumnGroup::getColumns<column::BoolColumn>(
+) const {
    return bool_columns;
 }
 
 template <>
-const std::map<std::string, column::FloatColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::FloatColumnPartition>() const {
+const std::map<std::string, column::FloatColumn>& ColumnGroup::getColumns<column::FloatColumn>(
+) const {
    return float_columns;
 }
 
 template <>
-const std::map<std::string, column::Date32ColumnPartition>& ColumnPartitionGroup::getColumns<
-   column::Date32ColumnPartition>() const {
+const std::map<std::string, column::Date32Column>& ColumnGroup::getColumns<column::Date32Column>(
+) const {
    return date32_columns;
 }
 
 template <>
-const std::map<std::string, column::SequenceColumnPartition<Nucleotide>>& ColumnPartitionGroup::
-   getColumns<column::SequenceColumnPartition<Nucleotide>>() const {
+const std::map<std::string, column::SequenceColumn<Nucleotide>>& ColumnGroup::getColumns<
+   column::SequenceColumn<Nucleotide>>() const {
    return nuc_columns;
 }
 
 template <>
-const std::map<std::string, column::SequenceColumnPartition<AminoAcid>>& ColumnPartitionGroup::
-   getColumns<column::SequenceColumnPartition<AminoAcid>>() const {
+const std::map<std::string, column::SequenceColumn<AminoAcid>>& ColumnGroup::getColumns<
+   column::SequenceColumn<AminoAcid>>() const {
    return aa_columns;
 }
 
 template <>
-const std::map<std::string, column::ZstdCompressedStringColumnPartition>& ColumnPartitionGroup::
-   getColumns<column::ZstdCompressedStringColumnPartition>() const {
+const std::map<std::string, column::ZstdCompressedStringColumn>& ColumnGroup::getColumns<
+   column::ZstdCompressedStringColumn>() const {
    return zstd_compressed_string_columns;
 }
 
@@ -159,7 +153,7 @@ template <typename SymbolType>
 std::expected<InputSequence, std::string> getSequenceFromJsonLine(
    simdjson::ondemand::value& value,
    std::string_view column_name,
-   column::SequenceColumnPartition<SymbolType>& sequence_column
+   column::SequenceColumn<SymbolType>& sequence_column
 ) {
    // Determine sequence: try 'sequenceCompressed' (base64-encoded zstd-compressed) first,
    // then fall back to plain 'sequence'.
@@ -201,12 +195,11 @@ std::expected<InputSequence, std::string> getSequenceFromJsonLine(
 
 template <typename SymbolType>
 std::expected<void, std::string> insertToSequenceColumn(
-   ColumnPartitionGroup& columns,
+   ColumnGroup& columns,
    const schema::ColumnIdentifier& column,
    simdjson::ondemand::value& value
 ) {
-   auto& sequence_column =
-      columns.getColumns<column::SequenceColumnPartition<SymbolType>>().at(column.name);
+   auto& sequence_column = columns.getColumns<column::SequenceColumn<SymbolType>>().at(column.name);
    bool is_null;
    auto error = value.is_null().get(is_null);
    RAISE_STRING_ERROR_WITH_CONTEXT(error, value, "error checking value for null: {}");
@@ -252,7 +245,7 @@ class ColumnValueInserter {
   public:
    template <column::Column ColumnType>
    std::expected<void, std::string> operator()(
-      ColumnPartitionGroup& columns,
+      ColumnGroup& columns,
       const schema::ColumnIdentifier& column,
       simdjson::ondemand::value& value
    ) {
@@ -278,8 +271,8 @@ class ColumnValueInserter {
 };
 
 template <>
-std::expected<void, std::string> ColumnValueInserter::operator()<column::Date32ColumnPartition>(
-   ColumnPartitionGroup& columns,
+std::expected<void, std::string> ColumnValueInserter::operator()<column::Date32Column>(
+   ColumnGroup& columns,
    const schema::ColumnIdentifier& column,
    simdjson::ondemand::value& value
 ) {
@@ -287,24 +280,21 @@ std::expected<void, std::string> ColumnValueInserter::operator()<column::Date32C
    auto error = value.is_null().get(is_null);
    RAISE_STRING_ERROR_WITH_CONTEXT(error, value, "error checking value for null: {}");
    if (is_null) {
-      columns.getColumns<column::Date32ColumnPartition>().at(column.name).insertNull();
+      columns.getColumns<column::Date32Column>().at(column.name).insertNull();
    } else {
       std::string_view column_value;
       error = value.get(column_value);
       RAISE_STRING_ERROR_WITH_CONTEXT(
          error, value, "error getting value as string: {}. {}", value.raw_json_token()
       );
-      return columns.getColumns<column::Date32ColumnPartition>()
-         .at(column.name)
-         .insert(column_value);
+      return columns.getColumns<column::Date32Column>().at(column.name).insert(column_value);
    }
    return {};
 }
 
 template <>
-std::expected<void, std::string> ColumnValueInserter::operator(
-)<column::SequenceColumnPartition<AminoAcid>>(
-   ColumnPartitionGroup& columns,
+std::expected<void, std::string> ColumnValueInserter::operator()<column::SequenceColumn<AminoAcid>>(
+   ColumnGroup& columns,
    const schema::ColumnIdentifier& column,
    simdjson::ondemand::value& value
 ) {
@@ -313,8 +303,8 @@ std::expected<void, std::string> ColumnValueInserter::operator(
 
 template <>
 std::expected<void, std::string> ColumnValueInserter::operator(
-)<column::SequenceColumnPartition<Nucleotide>>(
-   ColumnPartitionGroup& columns,
+)<column::SequenceColumn<Nucleotide>>(
+   ColumnGroup& columns,
    const schema::ColumnIdentifier& column,
    simdjson::ondemand::value& value
 ) {
@@ -323,11 +313,11 @@ std::expected<void, std::string> ColumnValueInserter::operator(
 
 }  // namespace
 
-std::expected<void, std::string> ColumnPartitionGroup::addJsonValueToColumn(
+std::expected<void, std::string> ColumnGroup::addJsonValueToColumn(
    const schema::ColumnIdentifier& column,
    simdjson::ondemand::value& value
 ) {
-   EVOBENCH_SCOPE_EVERY(1000, "ColumnPartitionGroup", "addJsonValueToColumn");
+   EVOBENCH_SCOPE_EVERY(1000, "ColumnGroup", "addJsonValueToColumn");
    auto success = column::visit(column.type, ColumnValueInserter{}, *this, column, value);
    if (!success.has_value()) {
       return std::unexpected(

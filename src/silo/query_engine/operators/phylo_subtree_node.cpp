@@ -42,9 +42,9 @@ NodeValuesResult getNodeValuesFromTable(
 
    const auto& string_column = table.columns.string_columns.at(column_name);
 
-   for (const uint32_t row_in_table_partition : bitmap_filter.getConstReference()) {
-      if (!string_column.isNull(row_in_table_partition)) {
-         auto value = string_column.getValueString(row_in_table_partition);
+   for (const uint32_t row_in_table : bitmap_filter.getConstReference()) {
+      if (!string_column.isNull(row_in_table)) {
+         auto value = string_column.getValueString(row_in_table);
          all_tree_node_ids.insert(value);
       } else {
          ++num_empty;
@@ -100,7 +100,7 @@ arrow::Result<PartialArrowPlan> PhyloSubtreeNode::toQueryPlan(
       column_name
    );
    const auto& optional_table_metadata =
-      table->schema->getColumnMetadata<storage::column::StringColumnPartition>(column_name);
+      table->schema->getColumnMetadata<storage::column::StringColumn>(column_name);
    CHECK_SILO_QUERY(
       optional_table_metadata.has_value() &&
          optional_table_metadata.value()->phylo_tree.has_value(),

@@ -23,7 +23,7 @@
 
 namespace silo::storage {
 
-class ColumnPartitionGroup {
+class ColumnGroup {
    friend class boost::serialization::access;
 
    template <class Archive>
@@ -62,16 +62,15 @@ class ColumnPartitionGroup {
   public:
    std::vector<silo::schema::ColumnIdentifier> metadata;
 
-   std::map<std::string, column::StringColumnPartition> string_columns;
-   std::map<std::string, column::IndexedStringColumnPartition> indexed_string_columns;
-   std::map<std::string, column::BoolColumnPartition> bool_columns;
-   std::map<std::string, column::IntColumnPartition> int_columns;
-   std::map<std::string, column::FloatColumnPartition> float_columns;
-   std::map<std::string, column::Date32ColumnPartition> date32_columns;
-   std::map<std::string, column::SequenceColumnPartition<Nucleotide>> nuc_columns;
-   std::map<std::string, column::SequenceColumnPartition<AminoAcid>> aa_columns;
-   std::map<std::string, column::ZstdCompressedStringColumnPartition>
-      zstd_compressed_string_columns;
+   std::map<std::string, column::StringColumn> string_columns;
+   std::map<std::string, column::IndexedStringColumn> indexed_string_columns;
+   std::map<std::string, column::BoolColumn> bool_columns;
+   std::map<std::string, column::IntColumn> int_columns;
+   std::map<std::string, column::FloatColumn> float_columns;
+   std::map<std::string, column::Date32Column> date32_columns;
+   std::map<std::string, column::SequenceColumn<Nucleotide>> nuc_columns;
+   std::map<std::string, column::SequenceColumn<AminoAcid>> aa_columns;
+   std::map<std::string, column::ZstdCompressedStringColumn> zstd_compressed_string_columns;
 
    std::expected<void, std::string> addJsonValueToColumn(
       const schema::ColumnIdentifier& column_identifier,

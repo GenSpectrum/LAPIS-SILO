@@ -13,7 +13,7 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/illegal_query_exception.h"
 
-using silo::storage::column::FloatColumnPartition;
+using silo::storage::column::FloatColumn;
 
 namespace silo::query_engine::filter::expressions {
 
@@ -46,7 +46,7 @@ std::unique_ptr<operators::Operator> FloatEquals::compile(const storage::Table& 
 
    if (value.has_value()) {
       return std::make_unique<operators::Selection>(
-         std::make_unique<operators::CompareToValueSelection<FloatColumnPartition>>(
+         std::make_unique<operators::CompareToValueSelection<FloatColumn>>(
             float_column, operators::Comparator::EQUALS, value.value()
          ),
          table.sequence_count

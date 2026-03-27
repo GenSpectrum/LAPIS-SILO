@@ -47,7 +47,7 @@ std::unique_ptr<Expression> HasMutation<SymbolType>::rewrite(
    const auto valid_sequence_name =
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
 
-   const auto& seq_store_partition =
+   const auto& sequence_column =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    auto column_metadata =
@@ -57,10 +57,10 @@ std::unique_ptr<Expression> HasMutation<SymbolType>::rewrite(
       "Has{}Mutation position is out of bounds {} > {}",
       SymbolType::SYMBOL_NAME,
       position_idx + 1,
-      seq_store_partition.metadata->reference_sequence.size()
+      sequence_column.metadata->reference_sequence.size()
    )
 
-   auto ref_symbol = seq_store_partition.metadata->reference_sequence.at(position_idx);
+   auto ref_symbol = sequence_column.metadata->reference_sequence.at(position_idx);
 
    std::vector<typename SymbolType::Symbol> symbols =
       std::vector(SymbolType::SYMBOLS.begin(), SymbolType::SYMBOLS.end());

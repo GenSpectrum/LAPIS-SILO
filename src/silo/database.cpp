@@ -221,9 +221,7 @@ std::string Database::getNucleotideReferenceSequence(
    const auto& table_schema = maybe_table_schema->second;
 
    auto maybe_sequence_column_metadata =
-      table_schema->getColumnMetadata<storage::column::SequenceColumnPartition<Nucleotide>>(
-         sequence_name
-      );
+      table_schema->getColumnMetadata<storage::column::SequenceColumn<Nucleotide>>(sequence_name);
    if (maybe_sequence_column_metadata == std::nullopt) {
       SPDLOG_ERROR(
          "The database table {} does not contain the nucleotide sequence column {}",
@@ -249,9 +247,7 @@ std::string Database::getAminoAcidReferenceSequence(
    const auto& table_schema = maybe_table_schema->second;
 
    auto maybe_sequence_column_metadata =
-      table_schema->getColumnMetadata<storage::column::SequenceColumnPartition<AminoAcid>>(
-         sequence_name
-      );
+      table_schema->getColumnMetadata<storage::column::SequenceColumn<AminoAcid>>(sequence_name);
    if (maybe_sequence_column_metadata == std::nullopt) {
       SPDLOG_ERROR(
          "The database table {} does not contain the nucleotide sequence column {}",
@@ -425,7 +421,8 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
 
    for (const auto& [table_name, table] : tables) {
       SPDLOG_DEBUG("Saving table data for table {}", table_name.getName());
-      const std::filesystem::path table_file = versioned_save_directory / (table_name.getName() + ".silo");
+      const std::filesystem::path table_file =
+         versioned_save_directory / (table_name.getName() + ".silo");
       table->saveData(table_file);
    }
 
