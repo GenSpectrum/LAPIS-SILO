@@ -34,10 +34,7 @@ class ExecBatchBuilder {
       return result;
    }
 
-   arrow::Status appendEntries(
-      const storage::TablePartition& table_partition,
-      const roaring::Roaring& row_ids
-   );
+   arrow::Status appendEntries(const storage::Table& table, const roaring::Roaring& row_ids);
 
    arrow::Result<arrow::ExecBatch> finishBatch();
 };
@@ -45,30 +42,24 @@ class ExecBatchBuilder {
 class TableScanGenerator {
    ExecBatchBuilder exec_batch_builder;
 
-   std::vector<CopyOnWriteBitmap> partition_filters;
+   CopyOnWriteBitmap bitmap_filter;
 
    std::optional<BatchedBitmapReader> current_bitmap_reader;
-   size_t current_partition_idx;
 
    const std::shared_ptr<const storage::Table> table;
-   size_t batch_size_cutoff;
 
   public:
    TableScanGenerator(
       const std::vector<silo::schema::ColumnIdentifier>& columns,
-      std::vector<CopyOnWriteBitmap> partition_filters_,
+      CopyOnWriteBitmap bitmap_filter_,
       std::shared_ptr<const storage::Table> table,
       size_t batch_size_cutoff
    )
        : exec_batch_builder(columns),
-         partition_filters(std::move(partition_filters_)),
-         table(std::move(table)),
-         batch_size_cutoff(batch_size_cutoff) {
-      current_partition_idx = 0;
-      if (!partition_filters.empty()) {
-         current_bitmap_reader =
-            BatchedBitmapReader{partition_filters.front().getConstReference(), batch_size_cutoff};
-      }
+         bitmap_filter(std::move(bitmap_filter_)),
+         table(std::move(table)) {
+      current_bitmap_reader =
+         BatchedBitmapReader{bitmap_filter.getConstReference(), batch_size_cutoff};
    }
 
    arrow::Future<std::optional<arrow::ExecBatch>> operator()() {
@@ -94,7 +85,7 @@ class TableScanGenerator {
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    arrow::acero::ExecPlan* plan,
    const std::vector<silo::schema::ColumnIdentifier>& columns,
-   std::vector<CopyOnWriteBitmap> partition_filters_,
+   CopyOnWriteBitmap bitmap_filter_,
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 );

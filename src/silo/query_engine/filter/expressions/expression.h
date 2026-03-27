@@ -7,7 +7,6 @@
 
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/table.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -28,13 +27,10 @@ class Expression {
 
    [[nodiscard]] virtual std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
-      const storage::TablePartition& table_partition,
       AmbiguityMode mode
    ) const = 0;
 
-   [[nodiscard]] virtual std::unique_ptr<operators::Operator> compile(
-      const storage::Table& table,
-      const storage::TablePartition& table_partition
+   [[nodiscard]] virtual std::unique_ptr<operators::Operator> compile(const storage::Table& table
    ) const = 0;
 };
 

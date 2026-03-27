@@ -88,8 +88,6 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    EXPECT_EQ(database_info.sequence_count, 5);
    EXPECT_GT(database_info.vertical_bitmaps_size, 0);
    EXPECT_GT(database_info.horizontal_bitmaps_size, 0);
-   EXPECT_EQ(database_info.number_of_partitions, 1);
-
    // If the serialization version changes, comment out the next line to build a new database for
    // the next test. Then add the produced directory to Git and remove the old serialized state.
    // Also bump CURRENT_SILO_SERIALIZATION_VERSION in src/silo/common/data_version.h

@@ -4,14 +4,14 @@
 #include <gtest/gtest.h>
 
 using silo::storage::column::ColumnMetadata;
-using silo::storage::column::FloatColumnPartition;
+using silo::storage::column::FloatColumn;
 
 TEST(FloatColumn, doesNotErrorOnValidInputs) {
-   ColumnMetadata column("float_column1");
-   FloatColumnPartition column_partition{&column};
-   SILO_ASSERT(column_partition.insert(0.1).has_value());
-   column_partition.insertNull();
-   ASSERT_EQ(column_partition.numValues(), 2);
-   ASSERT_EQ(column_partition.getValue(0), 0.1);
-   ASSERT_TRUE(std::isnan(column_partition.getValue(1)));
+   ColumnMetadata column_metadata("float_column1");
+   FloatColumn column{&column_metadata};
+   SILO_ASSERT(column.insert(0.1).has_value());
+   column.insertNull();
+   ASSERT_EQ(column.numValues(), 2);
+   ASSERT_EQ(column.getValue(0), 0.1);
+   ASSERT_TRUE(std::isnan(column.getValue(1)));
 }

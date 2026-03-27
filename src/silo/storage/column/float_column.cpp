@@ -4,20 +4,20 @@
 
 namespace silo::storage::column {
 
-FloatColumnPartition::FloatColumnPartition(ColumnMetadata* metadata)
+FloatColumn::FloatColumn(ColumnMetadata* metadata)
     : metadata(metadata) {}
 
-std::expected<void, std::string> FloatColumnPartition::insert(double value) {
+std::expected<void, std::string> FloatColumn::insert(double value) {
    values.push_back(value);
    return {};
 }
 
-void FloatColumnPartition::insertNull() {
+void FloatColumn::insertNull() {
    null_bitmap.add(values.size());
    values.push_back(std::nan(""));
 }
 
-void FloatColumnPartition::reserve(size_t row_count) {
+void FloatColumn::reserve(size_t row_count) {
    values.reserve(values.size() + row_count);
 }
 

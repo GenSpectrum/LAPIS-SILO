@@ -57,7 +57,7 @@ std::unique_ptr<Predicate> StringInSet<ColumnType>::negate() const {
    return std::make_unique<StringInSet<ColumnType>>(column, negated_comparator, values);
 }
 
-template class StringInSet<storage::column::StringColumnPartition>;
-template class StringInSet<storage::column::IndexedStringColumnPartition>;
+template class StringInSet<storage::column::StringColumn>;
+template class StringInSet<storage::column::IndexedStringColumn>;
 
 }  // namespace silo::query_engine::filter::operators

@@ -10,7 +10,7 @@
 
 namespace silo::storage::column {
 
-class BoolColumnPartition {
+class BoolColumn {
   public:
    using Metadata = ColumnMetadata;
 
@@ -27,7 +27,7 @@ class BoolColumnPartition {
    size_t num_values = 0;
 
   public:
-   explicit BoolColumnPartition(Metadata* metadata);
+   explicit BoolColumn(Metadata* metadata);
 
    [[nodiscard]] size_t numValues() const { return num_values; }
 

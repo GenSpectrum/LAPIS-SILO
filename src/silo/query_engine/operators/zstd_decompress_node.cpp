@@ -21,7 +21,7 @@
 #include "silo/query_engine/exec_node/table_scan.h"
 #include "silo/query_engine/exec_node/throttled_batch_reslicer.h"
 #include "silo/query_engine/exec_node/zstd_decompress_expression.h"
-#include "silo/query_engine/operators/compute_partition_filters.h"
+#include "silo/query_engine/operators/compute_filter.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column/sequence_column.h"
@@ -34,8 +34,8 @@ namespace {
 
 using silo::schema::ColumnIdentifier;
 using silo::schema::TableSchema;
-using silo::storage::column::SequenceColumnPartition;
-using silo::storage::column::ZstdCompressedStringColumnPartition;
+using silo::storage::column::SequenceColumn;
+using silo::storage::column::ZstdCompressedStringColumn;
 
 class ColumnToReferenceSequenceVisitor {
   public:
@@ -50,13 +50,13 @@ class ColumnToReferenceSequenceVisitor {
 
 template <>
 std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
-)<SequenceColumnPartition<silo::Nucleotide>>(
+)<SequenceColumn<silo::Nucleotide>>(
    const TableSchema& table_schema,
    const ColumnIdentifier& column_identifier
 ) {
    auto* metadata =
       table_schema
-         .getColumnMetadata<SequenceColumnPartition<silo::Nucleotide>>(column_identifier.name)
+         .getColumnMetadata<SequenceColumn<silo::Nucleotide>>(column_identifier.name)
          .value();
    std::string reference;
    std::ranges::transform(
@@ -67,13 +67,13 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
 
 template <>
 std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
-)<SequenceColumnPartition<silo::AminoAcid>>(
+)<SequenceColumn<silo::AminoAcid>>(
    const TableSchema& table_schema,
    const ColumnIdentifier& column_identifier
 ) {
    auto* metadata =
       table_schema
-         .getColumnMetadata<SequenceColumnPartition<silo::AminoAcid>>(column_identifier.name)
+         .getColumnMetadata<SequenceColumn<silo::AminoAcid>>(column_identifier.name)
          .value();
    std::string reference;
    std::ranges::transform(
@@ -84,12 +84,12 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
 
 template <>
 std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
-)<ZstdCompressedStringColumnPartition>(
+)<ZstdCompressedStringColumn>(
    const TableSchema& table_schema,
    const ColumnIdentifier& column_identifier
 ) {
    auto* metadata =
-      table_schema.getColumnMetadata<ZstdCompressedStringColumnPartition>(column_identifier.name)
+      table_schema.getColumnMetadata<ZstdCompressedStringColumn>(column_identifier.name)
          .value();
    return metadata->dictionary_string;
 }

@@ -13,9 +13,8 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/storage/table_partition.h"
 
-using silo::storage::column::IntColumnPartition;
+using silo::storage::column::IntColumn;
 
 namespace silo::query_engine::filter::expressions {
 
@@ -39,35 +38,31 @@ std::string IntBetween::toString() const {
 
 std::unique_ptr<Expression> IntBetween::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
 ) const {
    return std::make_unique<IntBetween>(column_name, from, to);
 }
 
-std::unique_ptr<operators::Operator> IntBetween::compile(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition
-) const {
+std::unique_ptr<operators::Operator> IntBetween::compile(const storage::Table& table) const {
    CHECK_SILO_QUERY(
-      table_partition.columns.int_columns.contains(column_name),
+      table.columns.int_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
 
-   const auto& int_column = table_partition.columns.int_columns.at(column_name);
+   const auto& int_column = table.columns.int_columns.at(column_name);
 
    operators::PredicateVector predicates;
    if (from.has_value()) {
       predicates.emplace_back(
-         std::make_unique<operators::CompareToValueSelection<IntColumnPartition>>(
+         std::make_unique<operators::CompareToValueSelection<IntColumn>>(
             int_column, operators::Comparator::HIGHER_OR_EQUALS, from.value()
          )
       );
    }
    if (to.has_value()) {
       predicates.emplace_back(
-         std::make_unique<operators::CompareToValueSelection<IntColumnPartition>>(
+         std::make_unique<operators::CompareToValueSelection<IntColumn>>(
             int_column, operators::Comparator::LESS_OR_EQUALS, to.value()
          )
       );
@@ -76,14 +71,14 @@ std::unique_ptr<operators::Operator> IntBetween::compile(
    if (predicates.empty()) {
       return std::make_unique<operators::Complement>(
          std::make_unique<operators::IndexScan>(
-            CopyOnWriteBitmap{&int_column.null_bitmap}, table_partition.sequence_count
+            CopyOnWriteBitmap{&int_column.null_bitmap}, table.sequence_count
          ),
-         table_partition.sequence_count
+         table.sequence_count
       );
    }
 
    auto result =
-      std::make_unique<operators::Selection>(std::move(predicates), table_partition.sequence_count);
+      std::make_unique<operators::Selection>(std::move(predicates), table.sequence_count);
 
    SPDLOG_TRACE("Compiled IntBetween filter expression to {}", result->toString());
 
