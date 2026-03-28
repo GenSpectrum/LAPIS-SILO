@@ -132,6 +132,10 @@ check-format-node: endToEndTests/node_modules
 .PHONY: check-format
 check-format: check-format-cpp check-format-node
 
+.PHONY: bump-serialization-version
+bump-serialization-version:
+	buildScripts/bump_serialization_version.sh
+
 .PHONY: clean-api
 clean-api:
 	@if [ -f ${RUNNING_SILO_FLAG} ]; then \
