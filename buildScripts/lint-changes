@@ -7,7 +7,6 @@ set -euo pipefail
 DOCKER_IMAGE="${1:-ghcr.io/genspectrum/lapis-silo-dependencies:latest}"
 
 echo "Using Docker image: $DOCKER_IMAGE"
-docker pull "$DOCKER_IMAGE"
 
 # Get the list of changed files from the local Git repository, only (A)dded, (C)reated, and (M)odified
 files=$(git diff --name-only --diff-filter=ACM origin/main)
@@ -21,15 +20,19 @@ fi
 # Iterate over the files and run clang-tidy on .cpp files
 echo "Changed files:"
 echo "$files"
+
+DOCKER_BUILD_CACHE_VOLUME="${LINT_DOCKER_BUILD_CACHE_VOLUME:-DockerBuildCache-$(basename "$(pwd)" | tr -c 'A-Za-z0-9_.-' '_')}"
+echo "Using Docker volume for build cache: $DOCKER_BUILD_CACHE_VOLUME (clear with: docker volume rm \"$DOCKER_BUILD_CACHE_VOLUME\")"
+
 docker run --rm \
   -v "$(pwd)/.clang-tidy:/src/.clang-tidy" \
   -v "$(pwd)/performance:/src/performance" \
   -v "$(pwd)/src:/src/src" \
   -v "$(pwd)/CMakeLists.txt:/src/CMakeLists.txt" \
-  -w /src \
+  -v "${DOCKER_BUILD_CACHE_VOLUME}:/src/build/Debug" \
   -e files="$files" \
   "$DOCKER_IMAGE" \
-  /bin/bash -c '
+  /bin/bash --login -c '
     set -euo pipefail
     cmake -G Ninja -D BUILD_WITH_CLANG_TIDY=ON -D CMAKE_BUILD_TYPE=Debug -B build/Debug
     targets=()
@@ -43,5 +46,5 @@ docker run --rm \
     done
     echo "Collected targets: ${targets[@]}"
     if [[ ${#targets[@]} -gt 0 ]]; then
-      cmake --build build/Debug "${targets[@]}" --parallel 16
+      cmake --build build/Debug "${targets[@]}"
     fi'
