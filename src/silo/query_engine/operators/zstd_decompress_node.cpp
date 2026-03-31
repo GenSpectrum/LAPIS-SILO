@@ -21,7 +21,7 @@
 #include "silo/query_engine/exec_node/table_scan.h"
 #include "silo/query_engine/exec_node/throttled_batch_reslicer.h"
 #include "silo/query_engine/exec_node/zstd_decompress_expression.h"
-#include "silo/query_engine/operators/compute_partition_filters.h"
+#include "silo/query_engine/operators/compute_filter.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column/sequence_column.h"

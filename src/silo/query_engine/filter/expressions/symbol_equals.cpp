@@ -15,7 +15,6 @@
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/query_compilation_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -63,7 +62,6 @@ std::string SymbolEquals<SymbolType>::toString() const {
 template <typename SymbolType>
 std::unique_ptr<Expression> SymbolEquals<SymbolType>::rewrite(
    const storage::Table& table,
-   const storage::TablePartition& table_partition,
    AmbiguityMode mode
 ) const {
    CHECK_SILO_QUERY(
@@ -78,7 +76,7 @@ std::unique_ptr<Expression> SymbolEquals<SymbolType>::rewrite(
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
 
    const auto& sequence_column_partition =
-      table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
+      table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    CHECK_SILO_QUERY(
       position_idx < sequence_column_partition.metadata->reference_sequence.size(),
@@ -105,8 +103,7 @@ std::unique_ptr<Expression> SymbolEquals<SymbolType>::rewrite(
 
 template <typename SymbolType>
 std::unique_ptr<operators::Operator> SymbolEquals<SymbolType>::compile(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/
+   const storage::Table& /*table*/
 ) const {
    throw QueryCompilationException("SymbolEquals should have been rewritten before compilation");
 }

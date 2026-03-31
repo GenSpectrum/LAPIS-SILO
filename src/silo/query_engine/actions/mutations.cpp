@@ -26,7 +26,6 @@
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/storage/column/sequence_column.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::actions {
 

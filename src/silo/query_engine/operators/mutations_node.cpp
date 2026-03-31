@@ -20,58 +20,14 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/schema_output_builder.h"
-#include "silo/query_engine/operators/compute_partition_filters.h"
+#include "silo/query_engine/operators/compute_filter.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::operators {
 
 namespace {
-
-template <typename SymbolType>
-struct MutationsPrefilteredBitmaps {
-   std::vector<std::pair<
-      const CopyOnWriteBitmap&,
-      const storage::column::SequenceColumnPartition<SymbolType>&>>
-      bitmaps;
-   std::vector<std::pair<size_t, const storage::column::SequenceColumnPartition<SymbolType>&>>
-      full_bitmaps;
-};
-
-template <typename SymbolType>
-std::unordered_map<std::string, MutationsPrefilteredBitmaps<SymbolType>> mutationsPreFilterBitmaps(
-   const silo::storage::Table& table,
-   std::vector<CopyOnWriteBitmap>& bitmap_filter
-) {
-   std::unordered_map<std::string, MutationsPrefilteredBitmaps<SymbolType>> bitmaps_to_evaluate;
-   for (size_t i = 0; i < table.getNumberOfPartitions(); ++i) {
-      auto table_partition = table.getPartition(i);
-      CopyOnWriteBitmap& filter = bitmap_filter[i];
-      const size_t cardinality = filter.getConstReference().cardinality();
-      if (cardinality == 0) {
-         continue;
-      }
-      if (cardinality == table_partition->sequence_count) {
-         for (const auto& [sequence_name, sequence_store] :
-              table_partition->columns.getColumns<typename SymbolType::Column>()) {
-            bitmaps_to_evaluate[sequence_name].full_bitmaps.emplace_back(
-               cardinality, sequence_store
-            );
-         }
-      } else {
-         if (filter.isMutable()) {
-            filter.getMutable().runOptimize();
-         }
-         for (const auto& [sequence_name, sequence_store] :
-              table_partition->columns.getColumns<typename SymbolType::Column>()) {
-            bitmaps_to_evaluate[sequence_name].bitmaps.emplace_back(filter, sequence_store);
-         }
-      }
-   }
-   return bitmaps_to_evaluate;
-}
 
 using silo::storage::column::VerticalSequenceIndex;
 
@@ -246,81 +202,84 @@ __attribute__((noinline)) void accumulateFinalCounts(
 
 template <typename SymbolType>
 void addMutationCountsForMixedBitmaps(
-   const MutationsPrefilteredBitmaps<SymbolType>& bitmaps_to_evaluate,
+   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column,
+   const CopyOnWriteBitmap& bitmap_filter,
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
-   for (const auto& [filter, sequence_column_partition] : bitmaps_to_evaluate.bitmaps) {
-      auto local_reference = sequence_column_partition.getLocalReference();
-      const size_t sequence_length = local_reference.size();
-      std::vector<uint32_t> count_per_local_reference_position(sequence_length);
+   auto local_reference = sequence_column.getLocalReference();
+   const size_t sequence_length = local_reference.size();
+   std::vector<uint32_t> count_per_local_reference_position(sequence_length);
 
-      initializeCountsWithSequenceCount(
-         count_per_local_reference_position, filter.getConstReference().cardinality()
-      );
-      subtractFilteredNCounts(
-         count_per_local_reference_position,
-         filter,
-         sequence_length,
-         sequence_column_partition.horizontal_coverage_index.horizontal_bitmaps,
-         sequence_column_partition.horizontal_coverage_index.start_end
-      );
-      countActualFilteredMutations(
-         count_of_mutations_per_position,
-         count_per_local_reference_position,
-         filter,
-         sequence_column_partition.vertical_sequence_index.vertical_bitmaps
-      );
-      accumulateFinalCounts(
-         count_per_local_reference_position, local_reference, count_of_mutations_per_position
-      );
-   }
+   initializeCountsWithSequenceCount(
+      count_per_local_reference_position, bitmap_filter.getConstReference().cardinality()
+   );
+   subtractFilteredNCounts(
+      count_per_local_reference_position,
+      bitmap_filter,
+      sequence_length,
+      sequence_column.horizontal_coverage_index.horizontal_bitmaps,
+      sequence_column.horizontal_coverage_index.start_end
+   );
+   countActualFilteredMutations(
+      count_of_mutations_per_position,
+      count_per_local_reference_position,
+      bitmap_filter,
+      sequence_column.vertical_sequence_index.vertical_bitmaps
+   );
+   accumulateFinalCounts(
+      count_per_local_reference_position, local_reference, count_of_mutations_per_position
+   );
 }
 
 template <typename SymbolType>
 void addMutationCountsForFullBitmaps(
-   const MutationsPrefilteredBitmaps<SymbolType>& bitmaps_to_evaluate,
+   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column,
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
-   for (const auto& [_, sequence_column_partition] : bitmaps_to_evaluate.full_bitmaps) {
-      auto local_reference = sequence_column_partition.getLocalReference();
-      const size_t sequence_length = local_reference.size();
-      std::vector<uint32_t> count_per_local_reference_position(sequence_length);
+   auto local_reference = sequence_column.getLocalReference();
+   const size_t sequence_length = local_reference.size();
+   std::vector<uint32_t> count_per_local_reference_position(sequence_length);
 
-      initializeCountsWithSequenceCount(
-         count_per_local_reference_position, sequence_column_partition.sequence_count
-      );
-      subtractHorizontalBitmapCounts(
-         count_per_local_reference_position,
-         sequence_column_partition.horizontal_coverage_index.horizontal_bitmaps
-      );
-      subtractStartAndEndNCounts(
-         count_per_local_reference_position,
-         sequence_column_partition.horizontal_coverage_index.start_end,
-         sequence_length
-      );
-      countActualMutations(
-         count_of_mutations_per_position,
-         count_per_local_reference_position,
-         sequence_column_partition.vertical_sequence_index.vertical_bitmaps
-      );
-      accumulateFinalCounts(
-         count_per_local_reference_position, local_reference, count_of_mutations_per_position
-      );
-   }
+   initializeCountsWithSequenceCount(
+      count_per_local_reference_position, sequence_column.sequence_count
+   );
+   subtractHorizontalBitmapCounts(
+      count_per_local_reference_position,
+      sequence_column.horizontal_coverage_index.horizontal_bitmaps
+   );
+   subtractStartAndEndNCounts(
+      count_per_local_reference_position,
+      sequence_column.horizontal_coverage_index.start_end,
+      sequence_length
+   );
+   countActualMutations(
+      count_of_mutations_per_position,
+      count_per_local_reference_position,
+      sequence_column.vertical_sequence_index.vertical_bitmaps
+   );
+   accumulateFinalCounts(
+      count_per_local_reference_position, local_reference, count_of_mutations_per_position
+   );
 }
 
 template <typename SymbolType>
 SymbolMap<SymbolType, std::vector<uint32_t>> calculateMutationsPerPosition(
-   const storage::column::SequenceColumnMetadata<SymbolType>& column_metadata,
-   const MutationsPrefilteredBitmaps<SymbolType>& bitmap_filter
+   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column,
+   const CopyOnWriteBitmap& bitmap_filter,
+   uint64_t sequence_count_in_column
 ) {
-   const size_t sequence_length = column_metadata.reference_sequence.size();
+   const size_t sequence_length = sequence_column.metadata->reference_sequence.size();
    SymbolMap<SymbolType, std::vector<uint32_t>> count_of_mutations_per_position;
    for (const auto symbol : SymbolType::SYMBOLS) {
       count_of_mutations_per_position[symbol] = std::vector<uint32_t>(sequence_length, 0);
    }
-   addMutationCountsForMixedBitmaps<SymbolType>(bitmap_filter, count_of_mutations_per_position);
-   addMutationCountsForFullBitmaps<SymbolType>(bitmap_filter, count_of_mutations_per_position);
+   if (bitmap_filter.getConstReference().cardinality() == sequence_count_in_column) {
+      addMutationCountsForFullBitmaps<SymbolType>(sequence_column, count_of_mutations_per_position);
+   } else if (bitmap_filter.getConstReference().cardinality() > 0) {
+      addMutationCountsForMixedBitmaps<SymbolType>(
+         sequence_column, bitmap_filter, count_of_mutations_per_position
+      );
+   }
    return count_of_mutations_per_position;
 }
 
@@ -328,15 +287,18 @@ template <typename SymbolType>
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status addMutationsToOutput(
    const std::string& sequence_name,
-   const storage::column::SequenceColumnMetadata<SymbolType>& column_metadata,
+   const storage::column::SequenceColumnPartition<SymbolType>& sequence_column,
    double min_proportion,
-   const MutationsPrefilteredBitmaps<SymbolType>& bitmap_filter,
+   const CopyOnWriteBitmap& bitmap_filter,
+   uint64_t sequence_count_in_column,
    exec_node::SchemaOutputBuilder& output_builder
 ) {
-   const uint32_t sequence_length = column_metadata.reference_sequence.size();
+   const uint32_t sequence_length = sequence_column.metadata->reference_sequence.size();
 
    const SymbolMap<SymbolType, std::vector<uint32_t>> count_of_mutations_per_position =
-      calculateMutationsPerPosition<SymbolType>(column_metadata, bitmap_filter);
+      calculateMutationsPerPosition<SymbolType>(
+         sequence_column, bitmap_filter, sequence_count_in_column
+      );
 
    for (uint32_t pos = 0; pos < sequence_length; ++pos) {
       uint32_t total = 0;
@@ -352,7 +314,7 @@ arrow::Status addMutationsToOutput(
             : static_cast<uint32_t>(std::ceil(static_cast<double>(total) * min_proportion) - 1);
 
       const typename SymbolType::Symbol symbol_in_reference_genome =
-         column_metadata.reference_sequence.at(pos);
+         sequence_column.metadata->reference_sequence.at(pos);
 
       for (const auto symbol : SymbolType::VALID_MUTATION_SYMBOLS) {
          if (symbol_in_reference_genome != symbol) {
@@ -418,19 +380,19 @@ arrow::Result<PartialArrowPlan> MutationsNode<SymbolType>::toQueryPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto partition_filters = computePartitionFilters(filter, *table);
+   auto bitmap_filter = computeFilter(filter, *table);
 
    auto table_handle = table;
    auto output_fields = getOutputSchema();
-   auto sequence_columns_handle = sequence_columns;
+   auto sequence_column_identifiers = sequence_columns;
    const double given_min_proportion = min_proportion;
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
       // NOLINTNEXTLINE(readability-function-cognitive-complexity)
       [table_handle,
        given_min_proportion,
        output_fields,
-       partition_filters,
-       sequence_columns_handle,
+       bitmap_filter = std::move(bitmap_filter),
+       sequence_column_identifiers,
        already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
          const std::optional<arrow::ExecBatch> result = std::nullopt;
@@ -438,26 +400,22 @@ arrow::Result<PartialArrowPlan> MutationsNode<SymbolType>::toQueryPlan(
       }
       already_produced = true;
 
-      auto bitmaps_to_evaluate =
-         mutationsPreFilterBitmaps<SymbolType>(*table_handle, partition_filters);
-
       exec_node::SchemaOutputBuilder output_builder(output_fields);
 
-      for (const auto& sequence_column : sequence_columns_handle) {
-         const storage::column::SequenceColumnMetadata<SymbolType>* sequence_column_metadata =
-            table_handle->schema
-               ->template getColumnMetadata<typename SymbolType::Column>(sequence_column.name)
-               .value();
+      for (const auto& sequence_column_identifier : sequence_column_identifiers) {
+         const storage::column::SequenceColumnPartition<SymbolType>& sequence_column =
+            table_handle->columns
+               .template getColumns<storage::column::SequenceColumnPartition<SymbolType>>()
+               .at(sequence_column_identifier.name);
 
-         if (bitmaps_to_evaluate.contains(sequence_column.name)) {
-            ARROW_RETURN_NOT_OK(addMutationsToOutput<SymbolType>(
-               sequence_column.name,
-               *sequence_column_metadata,
-               given_min_proportion,
-               bitmaps_to_evaluate.at(sequence_column.name),
-               output_builder
-            ));
-         }
+         ARROW_RETURN_NOT_OK(addMutationsToOutput<SymbolType>(
+            sequence_column_identifier.name,
+            sequence_column,
+            given_min_proportion,
+            bitmap_filter,
+            table_handle->sequence_count,
+            output_builder
+         ));
       }
       ARROW_ASSIGN_OR_RAISE(
          const std::vector<arrow::Datum> result_columns, output_builder.finish()

@@ -12,7 +12,6 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/range_selection.h"
 #include "silo/storage/column/date32_column.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -39,13 +38,10 @@ class DateBetween : public Expression {
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
-      const storage::TablePartition& table_partition,
       AmbiguityMode mode
    ) const override;
 
-   [[nodiscard]] std::unique_ptr<operators::Operator> compile(
-      const storage::Table& table,
-      const storage::TablePartition& table_partition
+   [[nodiscard]] std::unique_ptr<operators::Operator> compile(const storage::Table& table
    ) const override;
 };
 

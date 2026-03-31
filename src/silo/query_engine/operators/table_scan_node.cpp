@@ -1,7 +1,7 @@
 #include "silo/query_engine/operators/table_scan_node.h"
 
 #include "silo/query_engine/exec_node/table_scan.h"
-#include "silo/query_engine/operators/compute_partition_filters.h"
+#include "silo/query_engine/operators/compute_filter.h"
 
 namespace silo::query_engine::operators {
 
@@ -22,7 +22,7 @@ arrow::Result<PartialArrowPlan> TableScanNode::toQueryPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& query_options
 ) const {
-   auto partition_filters = computePartitionFilters(filter, *table);
+   auto bitmap_filter = computeFilter(filter, *table);
 
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
@@ -31,7 +31,7 @@ arrow::Result<PartialArrowPlan> TableScanNode::toQueryPlan(
       exec_node::makeTableScan(
          arrow_plan.get(),
          fields,
-         std::move(partition_filters),
+         std::move(bitmap_filter),
          table,
          query_options.materialization_cutoff
       )

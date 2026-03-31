@@ -8,22 +8,21 @@
 
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/storage/table.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::append {
 
-class TablePartitionInserter {
-   std::shared_ptr<storage::TablePartition> table_partition;
+class TableInserter {
+   std::shared_ptr<storage::Table> table;
 
   public:
    class Commit {
-      friend class TablePartitionInserter;
+      friend class TableInserter;
 
       Commit() = default;
    };
 
-   explicit TablePartitionInserter(std::shared_ptr<storage::TablePartition> table_partition)
-       : table_partition(std::move(table_partition)) {}
+   explicit TableInserter(std::shared_ptr<storage::Table> table)
+       : table(std::move(table)) {}
 
    struct SniffedField {
       silo::schema::ColumnIdentifier column_identifier;
@@ -46,31 +45,6 @@ class TablePartitionInserter {
 
    [[nodiscard]] Commit commit() const;
 };
-
-class TableInserter {
-   std::shared_ptr<storage::Table> table;
-
-  public:
-   class Commit {
-      friend class TableInserter;
-
-      Commit() = default;
-   };
-
-   explicit TableInserter(std::shared_ptr<storage::Table> table)
-       : table(std::move(table)) {}
-
-   [[nodiscard]] TablePartitionInserter openNewPartition() const;
-
-   [[nodiscard]] TablePartitionInserter openLastPartition() const;
-
-   [[nodiscard]] Commit commit() const;
-};
-
-TablePartitionInserter::Commit appendDataToTablePartition(
-   const TablePartitionInserter& partition_inserter,
-   NdjsonLineReader& input_data
-);
 
 TableInserter::Commit appendDataToTable(
    std::shared_ptr<silo::storage::Table> table,

@@ -11,7 +11,6 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/query_compilation_exception.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -24,15 +23,12 @@ std::string Exact::toString() const {
 
 std::unique_ptr<Expression> Exact::rewrite(
    const storage::Table& table,
-   const storage::TablePartition& table_partition,
    AmbiguityMode /*mode*/
 ) const {
-   return child->rewrite(table, table_partition, AmbiguityMode::LOWER_BOUND);
+   return child->rewrite(table, AmbiguityMode::LOWER_BOUND);
 }
 
-std::unique_ptr<operators::Operator> Exact::compile(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/
+std::unique_ptr<operators::Operator> Exact::compile(const storage::Table& /*table*/
 ) const {
    throw QueryCompilationException{"Exact expression must be elimitated in query rewrite phase"};
 }

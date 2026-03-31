@@ -15,7 +15,6 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -31,13 +30,12 @@ std::string StringEquals::toString() const {
 }
 
 std::unique_ptr<Expression> StringEquals::rewrite(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition,
+   const storage::Table& table,
    AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      table_partition.columns.string_columns.contains(column_name) ||
-         table_partition.columns.indexed_string_columns.contains(column_name),
+      table.columns.string_columns.contains(column_name) ||
+         table.columns.indexed_string_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
@@ -47,31 +45,28 @@ std::unique_ptr<Expression> StringEquals::rewrite(
    }
 
    // We do not change expressions for IndexedStringColumn
-   if (table_partition.columns.indexed_string_columns.contains(column_name)) {
+   if (table.columns.indexed_string_columns.contains(column_name)) {
       return std::make_unique<StringEquals>(column_name, value);
    }
 
-   SILO_ASSERT(table_partition.columns.string_columns.contains(column_name));
+   SILO_ASSERT(table.columns.string_columns.contains(column_name));
 
    return std::make_unique<StringInSet>(
       column_name, std::unordered_set<std::string>{value.value()}
    );
 }
 
-std::unique_ptr<operators::Operator> StringEquals::compile(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition
-) const {
+std::unique_ptr<operators::Operator> StringEquals::compile(const storage::Table& table) const {
    // If it was a StringColumn it should have been rewritten
-   SILO_ASSERT(table_partition.columns.indexed_string_columns.contains(column_name));
-   const auto& string_column = table_partition.columns.indexed_string_columns.at(column_name);
+   SILO_ASSERT(table.columns.indexed_string_columns.contains(column_name));
+   const auto& string_column = table.columns.indexed_string_columns.at(column_name);
    const auto bitmap = string_column.filter(value);
 
    if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
-      return std::make_unique<operators::Empty>(table_partition.sequence_count);
+      return std::make_unique<operators::Empty>(table.sequence_count);
    }
    return std::make_unique<operators::IndexScan>(
-      CopyOnWriteBitmap{bitmap.value()}, table_partition.sequence_count
+      CopyOnWriteBitmap{bitmap.value()}, table.sequence_count
    );
 }
 

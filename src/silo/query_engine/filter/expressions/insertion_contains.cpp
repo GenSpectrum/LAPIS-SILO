@@ -17,7 +17,6 @@
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/insertion_format_exception.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -44,7 +43,6 @@ std::string InsertionContains<SymbolType>::toString() const {
 template <typename SymbolType>
 std::unique_ptr<Expression> InsertionContains<SymbolType>::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
 ) const {
    return std::make_unique<InsertionContains<SymbolType>>(sequence_name, position_idx, value);
@@ -52,14 +50,13 @@ std::unique_ptr<Expression> InsertionContains<SymbolType>::rewrite(
 
 template <typename SymbolType>
 std::unique_ptr<operators::Operator> InsertionContains<SymbolType>::compile(
-   const storage::Table& table,
-   const storage::TablePartition& table_partition
+   const storage::Table& table
 ) const {
    const auto valid_sequence_name =
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
 
    const std::map<std::string, storage::column::SequenceColumnPartition<SymbolType>>&
-      sequence_stores = table_partition.columns.getColumns<typename SymbolType::Column>();
+      sequence_stores = table.columns.getColumns<typename SymbolType::Column>();
 
    const storage::column::SequenceColumnPartition<SymbolType>& sequence_store =
       sequence_stores.at(valid_sequence_name);
@@ -89,7 +86,7 @@ std::unique_ptr<operators::Operator> InsertionContains<SymbolType>::compile(
             );
          }
       },
-      table_partition.sequence_count
+      table.sequence_count
    );
 }
 

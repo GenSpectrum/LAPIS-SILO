@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <unordered_set>
+#include <utility>
 
 #include <spdlog/spdlog.h>
 #include <boost/archive/binary_iarchive.hpp>
@@ -17,17 +18,43 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/persistence/exception.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/roaring_util/roaring_serialize.h"
 #include "silo/schema/duplicate_primary_key_exception.h"
+#include "silo/storage/column/column_type_visitor.h"
 
 namespace silo::storage {
 
-size_t Table::getNumberOfPartitions() const {
-   return partitions.size();
+Table::Table(std::shared_ptr<schema::TableSchema> schema)
+    : schema(std::move(schema)) {
+   auto column_initializer = []<column::Column ColumnType>(
+                                ColumnPartitionGroup& column_group,
+                                const silo::schema::ColumnIdentifier& column_identifier,
+                                silo::schema::TableSchema& table_schema
+                             ) {
+      ColumnType column(table_schema.getColumnMetadata<ColumnType>(column_identifier.name).value());
+      column_group.metadata.emplace_back(column_identifier);
+      column_group.getColumns<ColumnType>().emplace(column_identifier.name, std::move(column));
+   };
+   for (const auto& col : this->schema->getColumnIdentifiers()) {
+      column::visit(col.type, column_initializer, columns, col, *this->schema);
+   }
 }
 
 void Table::validate() const {
    validatePrimaryKeyUnique();
+   validateNucleotideSequences();
+   validateAminoAcidSequences();
+   validateMetadataColumns();
+}
+
+void Table::finalize() {
+   for (auto& [_, sequence_column] : columns.nuc_columns) {
+      sequence_column.finalize();
+   }
+   for (auto& [_, sequence_column] : columns.aa_columns) {
+      sequence_column.finalize();
+   }
 }
 
 void Table::validatePrimaryKeyUnique() const {
@@ -35,37 +62,75 @@ void Table::validatePrimaryKeyUnique() const {
    const auto primary_key = schema->primary_key;
    SILO_ASSERT(primary_key.type == schema::ColumnType::STRING);
 
-   size_t total_rows = 0;
-   for (const auto& partition : partitions) {
-      total_rows += partition->sequence_count;
-   }
+   const auto& primary_key_column = columns.string_columns.at(primary_key.name);
+   auto num_values = primary_key_column.numValues();
 
    std::unordered_set<std::string> unique_keys;
-   unique_keys.reserve(total_rows);
-   for (const auto& partition : partitions) {
-      auto& primary_key_column = partition->columns.string_columns.at(primary_key.name);
-      auto num_values = primary_key_column.numValues();
-      for (size_t i = 0; i < num_values; ++i) {
-         std::string value = primary_key_column.getValueString(i);
-         if (unique_keys.contains(value)) {
-            throw schema::DuplicatePrimaryKeyException("Found duplicate primary key {}", value);
-         }
-         unique_keys.insert(value);
+   unique_keys.reserve(num_values);
+   for (size_t i = 0; i < num_values; ++i) {
+      std::string value = primary_key_column.getValueString(i);
+      if (unique_keys.contains(value)) {
+         throw schema::DuplicatePrimaryKeyException("Found duplicate primary key {}", value);
       }
+      unique_keys.insert(value);
    }
    SPDLOG_DEBUG("Found {} distinct primary keys.", unique_keys.size());
 }
 
-std::shared_ptr<TablePartition> Table::getPartition(size_t partition_idx) const {
-   return partitions.at(partition_idx);
+void Table::validateNucleotideSequences() const {
+   for (const auto& [name, nuc_column] : columns.nuc_columns) {
+      if (nuc_column.sequence_count > sequence_count) {
+         SILO_PANIC(
+            "nuc_store {} ({}) has invalid size (expected {}).",
+            name,
+            nuc_column.sequence_count,
+            sequence_count
+         );
+      }
+      if (nuc_column.metadata->reference_sequence.empty()) {
+         SILO_PANIC("reference_sequence {} is empty.", name);
+      }
+   }
 }
 
-std::shared_ptr<TablePartition> Table::getPartition(size_t partition_idx) {
-   return partitions.at(partition_idx);
+void Table::validateAminoAcidSequences() const {
+   for (const auto& [name, aa_column] : columns.aa_columns) {
+      if (aa_column.sequence_count > sequence_count) {
+         SILO_PANIC(
+            "aa_store {} ({}) has invalid size (expected {}).",
+            name,
+            aa_column.sequence_count,
+            sequence_count
+         );
+      }
+      if (aa_column.metadata->reference_sequence.empty()) {
+         SILO_PANIC("reference_sequence {} is empty.", name);
+      }
+   }
 }
 
-std::shared_ptr<storage::TablePartition> Table::addPartition() {
-   return partitions.emplace_back(std::make_shared<TablePartition>(*schema));
+template <typename ColumnPartition>
+void Table::validateColumnsHaveSize(
+   const std::map<std::string, ColumnPartition>& columnsOfTheType,
+   const std::string& columnType
+) const {
+   for (const auto& col : columnsOfTheType) {
+      if (col.second.numValues() != sequence_count) {
+         throw preprocessing::PreprocessingException(
+            columnType + " " + col.first + " has invalid size " +
+            std::to_string(col.second.numValues())
+         );
+      }
+   }
+}
+
+void Table::validateMetadataColumns() const {
+   validateColumnsHaveSize(columns.date32_columns, "date32_columns");
+   validateColumnsHaveSize(columns.bool_columns, "bool_columns");
+   validateColumnsHaveSize(columns.int_columns, "int_columns");
+   validateColumnsHaveSize(columns.indexed_string_columns, "indexed_string_columns");
+   validateColumnsHaveSize(columns.string_columns, "string_columns");
+   validateColumnsHaveSize(columns.float_columns, "float_columns");
 }
 
 namespace {
@@ -90,48 +155,28 @@ std::ofstream openOutputFileOrThrow(const std::string& path) {
 
 }  // namespace
 
-void Table::saveData(const std::filesystem::path& save_directory) {
+void Table::saveData(const std::filesystem::path& path) {
    EVOBENCH_SCOPE("Table", "saveData");
-   std::vector<std::ofstream> partition_archives;
-   for (uint32_t i = 0; i < getNumberOfPartitions(); ++i) {
-      const auto& partition_archive = save_directory / ("P" + std::to_string(i) + ".silo");
-      partition_archives.emplace_back(openOutputFileOrThrow(partition_archive));
-
-      if (!partition_archives.back()) {
-         throw persistence::SaveDatabaseException(
-            "Cannot open partition output file " + partition_archive.string() + " for saving"
-         );
-      }
+   auto output_file = openOutputFileOrThrow(path);
+   if (!output_file) {
+      throw persistence::SaveDatabaseException(
+         "Cannot open output file " + path.string() + " for saving"
+      );
    }
 
-   SPDLOG_INFO("Saving {} partitions...", getNumberOfPartitions());
-   for (size_t partition_idx = 0; partition_idx < getNumberOfPartitions(); ++partition_idx) {
-      ::boost::archive::binary_oarchive output_archive(partition_archives[partition_idx]);
-      partitions[partition_idx]->serializeData(output_archive, 0);
-   }
-   SPDLOG_INFO("Finished saving partitions");
+   SPDLOG_INFO("Saving table data...");
+   ::boost::archive::binary_oarchive output_archive(output_file);
+   serializeData(output_archive, 0);
+   SPDLOG_INFO("Finished saving table data");
 }
 
-void Table::loadData(const std::filesystem::path& save_directory) {
+void Table::loadData(const std::filesystem::path& path) {
    EVOBENCH_SCOPE("Table", "loadData");
-   std::vector<std::ifstream> file_vec;
-   for (const std::filesystem::path& file : std::filesystem::directory_iterator(save_directory)) {
-      if (file.extension() == ".silo") {
-         file_vec.emplace_back(openInputFileOrThrow(file));
-         addPartition();
 
-         if (!file_vec.back()) {
-            throw persistence::SaveDatabaseException(
-               fmt::format("Cannot open partition input file {} for loading", file.string())
-            );
-         }
-      }
-   }
-   for (size_t partition_index = 0; partition_index != getNumberOfPartitions(); ++partition_index) {
-      ::boost::archive::binary_iarchive input_archive(file_vec[partition_index]);
-      partitions[partition_index]->serializeData(input_archive, 0);
-   }
-   SPDLOG_INFO("Finished loading partition data");
+   auto input_file = openInputFileOrThrow(path);
+   ::boost::archive::binary_iarchive input_archive(input_file);
+   serializeData(input_archive, 0);
+   SPDLOG_INFO("Finished loading table data");
 }
 
 }  // namespace silo::storage

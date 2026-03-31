@@ -16,7 +16,6 @@
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/string_column.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -34,19 +33,18 @@ std::string StringInSet::toString() const {
 }
 
 std::unique_ptr<Expression> StringInSet::rewrite(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition,
+   const storage::Table& table,
    AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
-      table_partition.columns.string_columns.contains(column_name) ||
-         table_partition.columns.indexed_string_columns.contains(column_name),
+      table.columns.string_columns.contains(column_name) ||
+         table.columns.indexed_string_columns.contains(column_name),
       "The database does not contain the string column '{}'",
       column_name
    );
 
    // We do not change expressions for StringColumn
-   if (table_partition.columns.string_columns.contains(column_name)) {
+   if (table.columns.string_columns.contains(column_name)) {
       return std::make_unique<StringInSet>(column_name, values);
    }
 
@@ -59,17 +57,14 @@ std::unique_ptr<Expression> StringInSet::rewrite(
    return std::make_unique<Or>(std::move(string_equal_expressions));
 }
 
-std::unique_ptr<operators::Operator> StringInSet::compile(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition
-) const {
-   SILO_ASSERT(table_partition.columns.string_columns.contains(column_name));
-   const auto& string_column = table_partition.columns.string_columns.at(column_name);
+std::unique_ptr<operators::Operator> StringInSet::compile(const storage::Table& table) const {
+   SILO_ASSERT(table.columns.string_columns.contains(column_name));
+   const auto& string_column = table.columns.string_columns.at(column_name);
    return std::make_unique<operators::Selection>(
       std::make_unique<operators::StringInSet<StringColumnPartition>>(
          &string_column, operators::StringInSet<StringColumnPartition>::Comparator::IN, values
       ),
-      table_partition.sequence_count
+      table.sequence_count
    );
 }
 

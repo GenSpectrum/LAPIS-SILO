@@ -10,7 +10,6 @@ struct DatabaseInfo {
    uint32_t sequence_count;
    uint64_t vertical_bitmaps_size;
    uint64_t horizontal_bitmaps_size;
-   uint64_t number_of_partitions;
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming,misc-use-internal-linkage)

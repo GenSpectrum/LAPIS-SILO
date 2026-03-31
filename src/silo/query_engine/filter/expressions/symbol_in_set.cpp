@@ -198,7 +198,6 @@ std::unique_ptr<operators::Operator> compileOnlyMutations(
 template <typename SymbolType>
 std::unique_ptr<Expression> SymbolInSet<SymbolType>::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
 ) const {
    throw QueryCompilationException(
@@ -208,9 +207,7 @@ std::unique_ptr<Expression> SymbolInSet<SymbolType>::rewrite(
 }
 
 template <typename SymbolType>
-std::unique_ptr<operators::Operator> SymbolInSet<SymbolType>::compile(
-   const storage::Table& table,
-   const storage::TablePartition& table_partition
+std::unique_ptr<operators::Operator> SymbolInSet<SymbolType>::compile(const storage::Table& table
 ) const {
    CHECK_SILO_QUERY(
       sequence_name.has_value() || table.schema->getDefaultSequenceName<SymbolType>(),
@@ -224,7 +221,7 @@ std::unique_ptr<operators::Operator> SymbolInSet<SymbolType>::compile(
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
 
    const auto& sequence_column_partition =
-      table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
+      table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    CHECK_SILO_QUERY(
       position_idx < sequence_column_partition.metadata->reference_sequence.size(),

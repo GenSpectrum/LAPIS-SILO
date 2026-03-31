@@ -292,8 +292,7 @@ TEST(OrToString, shouldFormatChildrenCorrectly) {
 }
 
 TEST(OrToString, shouldHandleNestedOr) {
-   silo::storage::Table table(std::make_shared<schema::TableSchema>());
-   auto table_partition = table.addPartition();
+   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
 
    ExpressionVector inner_children;
    inner_children.emplace_back(std::make_unique<True>());
@@ -307,7 +306,7 @@ TEST(OrToString, shouldHandleNestedOr) {
 
    EXPECT_EQ(outer_or.toString(), "Or(Or(True | True) | True)");
 
-   auto rewritten_or = outer_or.rewrite(table, *table_partition, Or::AmbiguityMode::NONE);
+   auto rewritten_or = outer_or.rewrite(table, Or::AmbiguityMode::NONE);
 
    EXPECT_EQ(rewritten_or->toString(), "True");
 }
@@ -323,8 +322,7 @@ TEST(OrToString, shouldHandleNestedStringEquals) {
    const std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   silo::storage::Table table(std::make_shared<schema::TableSchema>(column_metadata, primary_key));
-   auto table_partition = table.addPartition();
+   const silo::storage::Table table(std::make_shared<schema::TableSchema>(column_metadata, primary_key));
 
    ExpressionVector inner_children;
    inner_children.emplace_back(std::make_unique<StringEquals>("key", "value_1"));
@@ -338,7 +336,7 @@ TEST(OrToString, shouldHandleNestedStringEquals) {
 
    EXPECT_EQ(outer_or.toString(), "Or(Or(key = 'value_1' | key = 'value_2') | key = 'value_3')");
 
-   auto rewritten_or = outer_or.rewrite(table, *table_partition, Or::AmbiguityMode::NONE);
+   auto rewritten_or = outer_or.rewrite(table, Or::AmbiguityMode::NONE);
 
    EXPECT_EQ(rewritten_or->toString(), "key IN [value_1,value_2,value_3]");
 }
@@ -348,8 +346,7 @@ TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
    const std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   silo::storage::Table table(std::make_shared<schema::TableSchema>(column_metadata, primary_key));
-   auto table_partition = table.addPartition();
+   const silo::storage::Table table(std::make_shared<schema::TableSchema>(column_metadata, primary_key));
 
    ExpressionVector innermost_children;
    innermost_children.emplace_back(std::make_unique<False>());
@@ -369,7 +366,7 @@ TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
       outer_or.toString(), "Or(Or(Or(False | key = 'value_1') | key = 'value_2') | key = 'value_3')"
    );
 
-   auto rewritten_or = outer_or.rewrite(table, *table_partition, Or::AmbiguityMode::NONE);
+   auto rewritten_or = outer_or.rewrite(table, Or::AmbiguityMode::NONE);
 
    EXPECT_EQ(rewritten_or->toString(), "key IN [value_1,value_2,value_3]");
 }

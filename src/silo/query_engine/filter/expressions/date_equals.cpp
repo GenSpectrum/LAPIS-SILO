@@ -12,7 +12,6 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/storage/column/date32_column.h"
-#include "silo/storage/table_partition.h"
 
 using silo::storage::column::Date32ColumnPartition;
 
@@ -32,39 +31,35 @@ std::string DateEquals::toString() const {
 
 std::unique_ptr<Expression> DateEquals::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
 ) const {
    return std::make_unique<DateEquals>(column_name, value);
 }
 
-std::unique_ptr<operators::Operator> DateEquals::compile(
-   const storage::Table& table,
-   const storage::TablePartition& table_partition
-) const {
+std::unique_ptr<operators::Operator> DateEquals::compile(const storage::Table& table) const {
    CHECK_SILO_QUERY(
       table.schema->getColumn(column_name).has_value(),
       "The database does not contain the column '{}'",
       column_name
    );
    CHECK_SILO_QUERY(
-      table_partition.columns.date32_columns.contains(column_name),
+      table.columns.date32_columns.contains(column_name),
       "The column '{}' is not of type date",
       column_name
    );
 
-   const auto& date_column = table_partition.columns.date32_columns.at(column_name);
+   const auto& date_column = table.columns.date32_columns.at(column_name);
 
    if (value.has_value()) {
       return std::make_unique<operators::Selection>(
          std::make_unique<operators::CompareToValueSelection<Date32ColumnPartition>>(
             date_column, operators::Comparator::EQUALS, value.value()
          ),
-         table_partition.sequence_count
+         table.sequence_count
       );
    }
    return std::make_unique<operators::IndexScan>(
-      CopyOnWriteBitmap{&date_column.null_bitmap}, table_partition.sequence_count
+      CopyOnWriteBitmap{&date_column.null_bitmap}, table.sequence_count
    );
 }
 
