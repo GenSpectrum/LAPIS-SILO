@@ -56,7 +56,7 @@ class IndexedStringColumnMetadata : public ColumnMetadata {
    IndexedStringColumnMetadata& operator=(IndexedStringColumnMetadata&& other) = delete;
 };
 
-class IndexedStringColumnPartition {
+class IndexedStringColumn {
   public:
    using Metadata = IndexedStringColumnMetadata;
 
@@ -72,7 +72,7 @@ class IndexedStringColumnPartition {
    std::optional<LineageIndex> lineage_index;
 
   public:
-   explicit IndexedStringColumnPartition(Metadata* metadata);
+   explicit IndexedStringColumn(Metadata* metadata);
 
    [[nodiscard]] std::optional<const roaring::Roaring*> filter(silo::Idx value_id) const;
 

@@ -14,7 +14,7 @@
 
 namespace silo::storage::column {
 
-class Date32ColumnPartition {
+class Date32Column {
   public:
    using Metadata = ColumnMetadata;
 
@@ -29,7 +29,7 @@ class Date32ColumnPartition {
    bool is_sorted = true;
 
   public:
-   explicit Date32ColumnPartition(Metadata* metadata);
+   explicit Date32Column(Metadata* metadata);
 
    [[nodiscard]] bool isSorted() const;
 

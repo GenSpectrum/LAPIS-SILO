@@ -11,10 +11,10 @@ using silo::common::TreeNodeId;
 
 namespace silo::storage::column {
 
-StringColumnPartition::StringColumnPartition(StringColumnMetadata* metadata)
+StringColumn::StringColumn(StringColumnMetadata* metadata)
     : metadata(metadata) {}
 
-std::expected<void, std::string> StringColumnPartition::insert(std::string_view value) {
+std::expected<void, std::string> StringColumn::insert(std::string_view value) {
    size_t row_id;
    if (value.size() <= SiloString::SHORT_STRING_SIZE) {
       row_id = fixed_string_data.insert(SiloString{value});
@@ -42,12 +42,12 @@ std::expected<void, std::string> StringColumnPartition::insert(std::string_view 
    return {};
 }
 
-void StringColumnPartition::insertNull() {
+void StringColumn::insertNull() {
    null_bitmap.add(fixed_string_data.numValues());
    fixed_string_data.insert(SiloString(""));
 }
 
-bool StringColumnPartition::isNull(size_t row_id) const {
+bool StringColumn::isNull(size_t row_id) const {
    return null_bitmap.contains(row_id);
 }
 

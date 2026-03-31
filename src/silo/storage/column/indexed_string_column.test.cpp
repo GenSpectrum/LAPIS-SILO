@@ -6,14 +6,14 @@
 using silo::common::LineageTreeAndIdMap;
 using silo::common::RecombinantEdgeFollowingMode;
 using silo::preprocessing::LineageDefinitionFile;
+using silo::storage::column::IndexedStringColumn;
 using silo::storage::column::IndexedStringColumnMetadata;
-using silo::storage::column::IndexedStringColumnPartition;
 
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
-TEST(IndexedStringColumnPartition, shouldReturnTheCorrectFilteredValues) {
+TEST(IndexedStringColumn, shouldReturnTheCorrectFilteredValues) {
    IndexedStringColumnMetadata column_metadata("some_column");
-   IndexedStringColumnPartition under_test{&column_metadata};
+   IndexedStringColumn under_test{&column_metadata};
 
    ASSERT_TRUE(under_test.insert({"value 1"}));
    ASSERT_TRUE(under_test.insert({"value 2"}));
@@ -31,9 +31,9 @@ TEST(IndexedStringColumnPartition, shouldReturnTheCorrectFilteredValues) {
    ASSERT_EQ(result3, std::nullopt);
 }
 
-TEST(IndexedStringColumnPartition, insertValuesToPartition) {
+TEST(IndexedStringColumn, insertValuesToPartition) {
    IndexedStringColumnMetadata column_metadata("some_column");
-   IndexedStringColumnPartition under_test{&column_metadata};
+   IndexedStringColumn under_test{&column_metadata};
 
    ASSERT_TRUE(under_test.insert({"value 1"}));
    ASSERT_TRUE(under_test.insert({"value 2"}));
@@ -52,12 +52,12 @@ TEST(IndexedStringColumnPartition, insertValuesToPartition) {
    EXPECT_EQ(under_test.lookupValue(2U), "value 3");
 }
 
-TEST(IndexedStringColumnPartition, addingLineageAndThenSublineageFiltersCorrectly) {
+TEST(IndexedStringColumn, addingLineageAndThenSublineageFiltersCorrectly) {
    auto lineage_definition = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
       "testBaseData/exampleDataset/lineage_definition.yaml"
    );
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
-   IndexedStringColumnPartition under_test{&column_metadata};
+   IndexedStringColumn under_test{&column_metadata};
 
    ASSERT_TRUE(under_test.insert({"BA.1.1"}));
    ASSERT_TRUE(under_test.insert({"BA.1.1"}));
@@ -86,12 +86,12 @@ TEST(IndexedStringColumnPartition, addingLineageAndThenSublineageFiltersCorrectl
    );
 }
 
-TEST(IndexedStringColumnPartition, addingSublineageAndThenLineageFiltersCorrectly) {
+TEST(IndexedStringColumn, addingSublineageAndThenLineageFiltersCorrectly) {
    auto lineage_definition = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
       "testBaseData/exampleDataset/lineage_definition.yaml"
    );
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
-   IndexedStringColumnPartition under_test{&column_metadata};
+   IndexedStringColumn under_test{&column_metadata};
 
    ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
    ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
@@ -134,12 +134,12 @@ TEST(IndexedStringColumnPartition, addingSublineageAndThenLineageFiltersCorrectl
    );
 }
 
-TEST(IndexedStringColumnPartition, queryParentLineageThatWasNeverInserted) {
+TEST(IndexedStringColumn, queryParentLineageThatWasNeverInserted) {
    auto lineage_definition = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
       "testBaseData/exampleDataset/lineage_definition.yaml"
    );
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
-   IndexedStringColumnPartition under_test{&column_metadata};
+   IndexedStringColumn under_test{&column_metadata};
 
    ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
    ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
@@ -161,7 +161,7 @@ TEST(IndexedStringColumnPartition, queryParentLineageThatWasNeverInserted) {
    );
 }
 
-TEST(IndexedStringColumnPartition, errorWhenInsertingIncorrectLineages) {
+TEST(IndexedStringColumn, errorWhenInsertingIncorrectLineages) {
    auto lineage_definition =
       LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 A: {}
@@ -169,7 +169,7 @@ A.1:
   parents: ["A"]
 )"));
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
-   IndexedStringColumnPartition under_test{&column_metadata};
+   IndexedStringColumn under_test{&column_metadata};
    ASSERT_TRUE(under_test.insert({"A"}));
    auto success = under_test.insert({"A.2"});
    ASSERT_FALSE(success);

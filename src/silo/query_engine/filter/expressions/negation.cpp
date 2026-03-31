@@ -9,7 +9,6 @@
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -20,19 +19,13 @@ std::string Negation::toString() const {
    return "!(" + child->toString() + ")";
 }
 
-std::unique_ptr<Expression> Negation::rewrite(
-   const storage::Table& table,
-   const storage::TablePartition& table_partition,
-   AmbiguityMode mode
-) const {
-   return std::make_unique<Negation>(child->rewrite(table, table_partition, invertMode(mode)));
+std::unique_ptr<Expression> Negation::rewrite(const storage::Table& table, AmbiguityMode mode)
+   const {
+   return std::make_unique<Negation>(child->rewrite(table, invertMode(mode)));
 }
 
-std::unique_ptr<operators::Operator> Negation::compile(
-   const storage::Table& table,
-   const storage::TablePartition& table_partition
-) const {
-   return operators::Operator::negate(child->compile(table, table_partition));
+std::unique_ptr<operators::Operator> Negation::compile(const storage::Table& table) const {
+   return operators::Operator::negate(child->compile(table));
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

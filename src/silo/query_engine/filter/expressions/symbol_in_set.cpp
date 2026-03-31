@@ -19,7 +19,7 @@
 #include "silo/query_engine/query_compilation_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 
-using silo::storage::column::SequenceColumnPartition;
+using silo::storage::column::SequenceColumn;
 
 namespace silo::query_engine::filter::expressions {
 
@@ -102,94 +102,92 @@ std::unique_ptr<operators::Operator> makeDifference(
 
 template <typename SymbolType>
 std::unique_ptr<operators::Operator> compileWithMissingSymbolAndReference(
-   const SequenceColumnPartition<SymbolType>& sequence_column_partition,
+   const SequenceColumn<SymbolType>& sequence_column,
    uint32_t position_idx,
    const std::vector<typename SymbolType::Symbol>& symbols
 ) {
    // as the missing symbol and the reference symbol are included, we can just negate the other
    // symbols
    auto negated_symbols = negateSymbols<SymbolType>(symbols);
-   auto bitmap = sequence_column_partition.vertical_sequence_index.getMatchingContainersAsBitmap(
+   auto bitmap = sequence_column.vertical_sequence_index.getMatchingContainersAsBitmap(
       position_idx, negated_symbols
    );
    return std::make_unique<operators::Complement>(
       std::make_unique<operators::IndexScan>(
-         CopyOnWriteBitmap{std::move(bitmap)}, sequence_column_partition.sequence_count
+         CopyOnWriteBitmap{std::move(bitmap)}, sequence_column.sequence_count
       ),
-      sequence_column_partition.sequence_count
+      sequence_column.sequence_count
    );
 }
 
 template <typename SymbolType>
 std::unique_ptr<operators::Operator> compileWithMissingSymbol(
-   const SequenceColumnPartition<SymbolType>& sequence_column_partition,
+   const SequenceColumn<SymbolType>& sequence_column,
    uint32_t position_idx,
    const std::vector<typename SymbolType::Symbol>& symbols
 ) {
    // The missing symbol is included, so we start with the sequences with no coverage at this
    // position and then add the sequences with the mutation symbols
-   auto bitmap = sequence_column_partition.vertical_sequence_index.getMatchingContainersAsBitmap(
-      position_idx, symbols
-   );
+   auto bitmap =
+      sequence_column.vertical_sequence_index.getMatchingContainersAsBitmap(position_idx, symbols);
 
    operators::OperatorVector operators_for_union;
    operators_for_union.push_back(std::make_unique<operators::Selection>(
       std::make_unique<operators::IsInCoveredRegion>(
-         &sequence_column_partition.horizontal_coverage_index,
+         &sequence_column.horizontal_coverage_index,
          position_idx,
          operators::IsInCoveredRegion::Comparator::IS_NOT_COVERED
       ),
-      sequence_column_partition.sequence_count
+      sequence_column.sequence_count
    ));
    operators_for_union.push_back(std::make_unique<operators::IndexScan>(
-      CopyOnWriteBitmap{std::move(bitmap)}, sequence_column_partition.sequence_count
+      CopyOnWriteBitmap{std::move(bitmap)}, sequence_column.sequence_count
    ));
    return std::make_unique<operators::Union>(
-      std::move(operators_for_union), sequence_column_partition.sequence_count
+      std::move(operators_for_union), sequence_column.sequence_count
    );
 }
 
 template <typename SymbolType>
 std::unique_ptr<operators::Operator> compileWithReference(
-   const SequenceColumnPartition<SymbolType>& sequence_column_partition,
+   const SequenceColumn<SymbolType>& sequence_column,
    uint32_t position_idx,
    const std::vector<typename SymbolType::Symbol>& symbols
 ) {
    // The reference symbol is included, so we start with the sequences with coverage at this
    // position and then remove the sequences with the negated mutation symbols
    auto negated_symbols = negateSymbolsExcluding<SymbolType>(symbols, SymbolType::SYMBOL_MISSING);
-   auto bitmap = sequence_column_partition.vertical_sequence_index.getMatchingContainersAsBitmap(
+   auto bitmap = sequence_column.vertical_sequence_index.getMatchingContainersAsBitmap(
       position_idx, negated_symbols
    );
 
    return makeDifference(
       std::make_unique<operators::Selection>(
          std::make_unique<operators::IsInCoveredRegion>(
-            &sequence_column_partition.horizontal_coverage_index,
+            &sequence_column.horizontal_coverage_index,
             position_idx,
             operators::IsInCoveredRegion::Comparator::IS_COVERED
          ),
-         sequence_column_partition.sequence_count
+         sequence_column.sequence_count
       ),
       std::make_unique<operators::IndexScan>(
-         CopyOnWriteBitmap{std::move(bitmap)}, sequence_column_partition.sequence_count
+         CopyOnWriteBitmap{std::move(bitmap)}, sequence_column.sequence_count
       ),
-      sequence_column_partition.sequence_count
+      sequence_column.sequence_count
    );
 }
 
 template <typename SymbolType>
 std::unique_ptr<operators::Operator> compileOnlyMutations(
-   const SequenceColumnPartition<SymbolType>& sequence_column_partition,
+   const SequenceColumn<SymbolType>& sequence_column,
    uint32_t position_idx,
    const std::vector<typename SymbolType::Symbol>& symbols
 ) {
    // All our results are fully included in the vertical sequence index
-   auto bitmap = sequence_column_partition.vertical_sequence_index.getMatchingContainersAsBitmap(
-      position_idx, symbols
-   );
+   auto bitmap =
+      sequence_column.vertical_sequence_index.getMatchingContainersAsBitmap(position_idx, symbols);
    return std::make_unique<operators::IndexScan>(
-      CopyOnWriteBitmap{std::move(bitmap)}, sequence_column_partition.sequence_count
+      CopyOnWriteBitmap{std::move(bitmap)}, sequence_column.sequence_count
    );
 }
 
@@ -198,7 +196,6 @@ std::unique_ptr<operators::Operator> compileOnlyMutations(
 template <typename SymbolType>
 std::unique_ptr<Expression> SymbolInSet<SymbolType>::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
 ) const {
    throw QueryCompilationException(
@@ -208,9 +205,7 @@ std::unique_ptr<Expression> SymbolInSet<SymbolType>::rewrite(
 }
 
 template <typename SymbolType>
-std::unique_ptr<operators::Operator> SymbolInSet<SymbolType>::compile(
-   const storage::Table& table,
-   const storage::TablePartition& table_partition
+std::unique_ptr<operators::Operator> SymbolInSet<SymbolType>::compile(const storage::Table& table
 ) const {
    CHECK_SILO_QUERY(
       sequence_name.has_value() || table.schema->getDefaultSequenceName<SymbolType>(),
@@ -223,18 +218,18 @@ std::unique_ptr<operators::Operator> SymbolInSet<SymbolType>::compile(
    const auto valid_sequence_name =
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
 
-   const auto& sequence_column_partition =
-      table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
+   const auto& sequence_column =
+      table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    CHECK_SILO_QUERY(
-      position_idx < sequence_column_partition.metadata->reference_sequence.size(),
+      position_idx < sequence_column.metadata->reference_sequence.size(),
       "{} position is out of bounds {} > {}",
       getFilterName(),
       position_idx + 1,
-      sequence_column_partition.metadata->reference_sequence.size()
+      sequence_column.metadata->reference_sequence.size()
    );
 
-   auto local_reference_symbol = sequence_column_partition.getLocalReferencePosition(position_idx);
+   auto local_reference_symbol = sequence_column.getLocalReferencePosition(position_idx);
    const bool includes_reference =
       std::find(symbols.begin(), symbols.end(), local_reference_symbol) != symbols.end();
 
@@ -242,15 +237,15 @@ std::unique_ptr<operators::Operator> SymbolInSet<SymbolType>::compile(
       std::find(symbols.begin(), symbols.end(), SymbolType::SYMBOL_MISSING) != symbols.end();
 
    if (includes_reference && includes_missing_symbol) {
-      return compileWithMissingSymbolAndReference(sequence_column_partition, position_idx, symbols);
+      return compileWithMissingSymbolAndReference(sequence_column, position_idx, symbols);
    }
    if (includes_missing_symbol) {
-      return compileWithMissingSymbol(sequence_column_partition, position_idx, symbols);
+      return compileWithMissingSymbol(sequence_column, position_idx, symbols);
    }
    if (includes_reference) {
-      return compileWithReference(sequence_column_partition, position_idx, symbols);
+      return compileWithReference(sequence_column, position_idx, symbols);
    }
-   return compileOnlyMutations(sequence_column_partition, position_idx, symbols);
+   return compileOnlyMutations(sequence_column, position_idx, symbols);
 }
 
 template class SymbolInSet<AminoAcid>;

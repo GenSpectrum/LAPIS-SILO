@@ -11,33 +11,31 @@ ZstdCompressedStringColumnMetadata::ZstdCompressedStringColumnMetadata(
       decompressor(std::make_shared<ZstdDDictionary>(dictionary_string)),
       dictionary_string(std::move(dictionary_string)) {}
 
-ZstdCompressedStringColumnPartition::ZstdCompressedStringColumnPartition(
-   silo::storage::column::ZstdCompressedStringColumnPartition::Metadata* metadata
+ZstdCompressedStringColumn::ZstdCompressedStringColumn(
+   silo::storage::column::ZstdCompressedStringColumn::Metadata* metadata
 )
     : metadata(metadata) {}
 
-void ZstdCompressedStringColumnPartition::reserve(size_t row_count) {
+void ZstdCompressedStringColumn::reserve(size_t row_count) {
    values.reserve(row_count);
 }
 
-void ZstdCompressedStringColumnPartition::insertNull() {
+void ZstdCompressedStringColumn::insertNull() {
    null_bitmap.add(values.size());
    values.emplace_back();
 }
 
-std::expected<void, std::string> ZstdCompressedStringColumnPartition::insert(std::string_view value
-) {
+std::expected<void, std::string> ZstdCompressedStringColumn::insert(std::string_view value) {
    auto compressed = metadata->compressor.compress(value.data(), value.size());
    values.emplace_back(compressed);
    return {};
 }
 
-bool ZstdCompressedStringColumnPartition::isNull(size_t row_id) const {
+bool ZstdCompressedStringColumn::isNull(size_t row_id) const {
    return null_bitmap.contains(row_id);
 }
 
-std::optional<std::string> ZstdCompressedStringColumnPartition::getDecompressed(size_t row_id
-) const {
+std::optional<std::string> ZstdCompressedStringColumn::getDecompressed(size_t row_id) const {
    const auto value = values.at(row_id);
    if (value.empty()) {
       return std::nullopt;
@@ -47,7 +45,7 @@ std::optional<std::string> ZstdCompressedStringColumnPartition::getDecompressed(
    return result_buffer;
 }
 
-std::optional<std::string> ZstdCompressedStringColumnPartition::getCompressed(size_t row_id) const {
+std::optional<std::string> ZstdCompressedStringColumn::getCompressed(size_t row_id) const {
    auto value = values.at(row_id);
    if (value.empty()) {
       return std::nullopt;

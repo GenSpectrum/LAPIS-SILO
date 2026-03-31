@@ -10,13 +10,13 @@
 #include "silo/common/phylo_tree.h"
 #include "silo/common/tree_node_id.h"
 
+using silo::storage::column::StringColumn;
 using silo::storage::column::StringColumnMetadata;
-using silo::storage::column::StringColumnPartition;
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(StringColumnPartition, rawInsertedValuesRequeried) {
+TEST(StringColumn, rawInsertedValuesRequeried) {
    StringColumnMetadata metadata{"string_column"};
-   StringColumnPartition under_test(&metadata);
+   StringColumn under_test(&metadata);
 
    SILO_ASSERT(under_test.insert("value 1").has_value());
    SILO_ASSERT(under_test.insert("value 2").has_value());
@@ -34,12 +34,12 @@ TEST(StringColumnPartition, rawInsertedValuesRequeried) {
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(StringColumnPartition, serializationOfMetadataWorks) {
+TEST(StringColumn, serializationOfMetadataWorks) {
    auto phylo_tree = silo::common::PhyloTree::fromNewickString(
       "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
    );
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
-   StringColumnPartition partition(&metadata);
+   StringColumn partition(&metadata);
 
    SILO_ASSERT(partition.insert("CHILD2").has_value());
    SILO_ASSERT(partition.insert("CHILD3").has_value());
@@ -77,12 +77,12 @@ TEST(StringColumnPartition, serializationOfMetadataWorks) {
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(StringColumnPartition, rawInsertedValuesWithPhyloTreeRequeried) {
+TEST(StringColumn, rawInsertedValuesWithPhyloTreeRequeried) {
    auto phylo_tree = silo::common::PhyloTree::fromNewickString(
       "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
    );
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
-   StringColumnPartition under_test(&metadata);
+   StringColumn under_test(&metadata);
 
    SILO_ASSERT(under_test.insert("CHILD2").has_value());
    SILO_ASSERT(under_test.insert("CHILD3").has_value());
@@ -104,9 +104,9 @@ TEST(StringColumnPartition, rawInsertedValuesWithPhyloTreeRequeried) {
    EXPECT_EQ(tree_node_id_not_in_tree, std::nullopt);
 }
 
-TEST(StringColumn, rawInsertedValuesRequeried) {
+TEST(StringColumn, rawInsertedValuesRequeryLongValue) {
    StringColumnMetadata column("string_column");
-   StringColumnPartition under_test{&column};
+   StringColumn under_test{&column};
 
    SILO_ASSERT(under_test.insert("value 1").has_value());
    SILO_ASSERT(under_test.insert("value 2").has_value());
@@ -126,7 +126,7 @@ TEST(StringColumn, rawInsertedValuesRequeried) {
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumn, compareAcrossPartitions) {
    StringColumnMetadata under_test("string_column");
-   StringColumnPartition partition_1{&under_test};
+   StringColumn partition_1{&under_test};
    SILO_ASSERT(partition_1.insert("value 1").has_value());
    SILO_ASSERT(partition_1.insert("value 2").has_value());
    SILO_ASSERT(partition_1.insert("value 2").has_value());
@@ -134,7 +134,7 @@ TEST(StringColumn, compareAcrossPartitions) {
    SILO_ASSERT(partition_1.insert("some string that is a little longer 1").has_value());
    SILO_ASSERT(partition_1.insert("value 1").has_value());
 
-   StringColumnPartition partition_2{&under_test};
+   StringColumn partition_2{&under_test};
    SILO_ASSERT(partition_2.insert("other value 2").has_value());
    SILO_ASSERT(partition_2.insert("other values 3").has_value());
    SILO_ASSERT(partition_2.insert("value 1").has_value());
@@ -155,7 +155,7 @@ TEST(StringColumn, manyLongValues) {
    }
 
    StringColumnMetadata under_test("string_column");
-   StringColumnPartition partition{&under_test};
+   StringColumn partition{&under_test};
 
    for (auto& value : test_values) {
       SILO_ASSERT(partition.insert(value).has_value());
@@ -182,7 +182,7 @@ TEST(StringColumn, manyMixedValues) {
    }
 
    StringColumnMetadata under_test("string_column");
-   StringColumnPartition partition{&under_test};
+   StringColumn partition{&under_test};
 
    for (auto& value : test_values) {
       SILO_ASSERT(partition.insert(value).has_value());
