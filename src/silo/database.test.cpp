@@ -89,7 +89,6 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    EXPECT_EQ(database_info.sequence_count, 5);
    EXPECT_GT(database_info.vertical_bitmaps_size, 0);
    EXPECT_GT(database_info.horizontal_bitmaps_size, 0);
-   EXPECT_EQ(database_info.number_of_partitions, 1);
 
    // When bumping the serialization version, run `make bump-serialization-version` which sets
    // SILO_KEEP_SERIALIZED_STATE=1 to preserve the produced directory for committing to Git.

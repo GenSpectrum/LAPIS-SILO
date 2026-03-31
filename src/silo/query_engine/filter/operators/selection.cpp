@@ -20,7 +20,7 @@
 
 namespace silo::query_engine::filter::operators {
 
-using storage::column::StringColumnPartition;
+using storage::column::StringColumn;
 
 Selection::Selection(
    std::optional<std::unique_ptr<Operator>> child_operator,
@@ -166,7 +166,7 @@ bool strongOrderingMatchesComparator(std::strong_ordering strong_ordering, Compa
 }  // namespace
 
 template <>
-bool CompareToValueSelection<StringColumnPartition>::match(uint32_t row_id) const {
+bool CompareToValueSelection<StringColumn>::match(uint32_t row_id) const {
    if (column.isNull(row_id)) {
       return with_nulls;
    }

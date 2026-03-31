@@ -20,11 +20,10 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/schema_output_builder.h"
-#include "silo/query_engine/operators/compute_partition_filters.h"
+#include "silo/query_engine/operators/compute_filter.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/table.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::operators {
 struct PositionAndInsertionKey {
@@ -53,74 +52,32 @@ namespace silo::query_engine::operators {
 namespace {
 
 template <typename SymbolType>
-struct InsertionsPrefilteredBitmaps {
-   std::vector<std::pair<
-      const CopyOnWriteBitmap&,
-      const silo::storage::insertion::InsertionIndex<SymbolType>&>>
-      bitmaps;
-   std::vector<std::pair<size_t, const silo::storage::insertion::InsertionIndex<SymbolType>&>>
-      full_bitmaps;
-};
-
-template <typename SymbolType>
-std::unordered_map<std::string, InsertionsPrefilteredBitmaps<SymbolType>>
-insertionsPreFilterBitmaps(
-   const storage::Table& table,
-   const std::vector<schema::ColumnIdentifier>& sequence_columns,
-   std::vector<CopyOnWriteBitmap>& bitmap_filter
-) {
-   std::unordered_map<std::string, InsertionsPrefilteredBitmaps<SymbolType>> pre_filtered_bitmaps;
-   for (size_t i = 0; i < table.getNumberOfPartitions(); ++i) {
-      auto table_partition = table.getPartition(i);
-
-      for (const auto& column_identifier : sequence_columns) {
-         const auto& sequence_column =
-            table_partition->columns.getColumns<typename SymbolType::Column>().at(
-               column_identifier.name
-            );
-         CopyOnWriteBitmap& filter = bitmap_filter[i];
-         const size_t cardinality = filter.getConstReference().cardinality();
-         if (cardinality == 0) {
-            continue;
-         }
-         if (cardinality == table_partition->sequence_count) {
-            pre_filtered_bitmaps[column_identifier.name].full_bitmaps.emplace_back(
-               cardinality, sequence_column.insertion_index
-            );
-         } else {
-            if (filter.isMutable()) {
-               filter.getMutable().runOptimize();
-            }
-            pre_filtered_bitmaps[column_identifier.name].bitmaps.emplace_back(
-               filter, sequence_column.insertion_index
-            );
-         }
-      }
-   }
-   return pre_filtered_bitmaps;
-}
-
-template <typename SymbolType>
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status addAggregatedInsertionsToInsertionCounts(
    const std::string& sequence_name,
    bool show_sequence_in_response,
-   const InsertionsPrefilteredBitmaps<SymbolType>& prefiltered_bitmaps,
+   const CopyOnWriteBitmap& bitmap_filter,
+   const storage::Table& table,
    exec_node::SchemaOutputBuilder& output_builder
 ) {
+   const auto& sequence_column =
+      table.columns.getColumns<storage::column::SequenceColumn<SymbolType>>().at(sequence_name);
    std::unordered_map<PositionAndInsertionKey, uint32_t> all_insertions;
-   for (const auto& [_, insertion_index] : prefiltered_bitmaps.full_bitmaps) {
+   auto bitmap_cardinality = bitmap_filter.getConstReference().cardinality();
+   if (bitmap_cardinality == 0) {
+      return arrow::Status::OK();
+   }
+   if (bitmap_cardinality == table.sequence_count) {
       for (const auto& [position, insertions_at_position] :
-           insertion_index.getInsertionPositions()) {
+           sequence_column.insertion_index.getInsertionPositions()) {
          for (const auto& insertion : insertions_at_position.insertions) {
             all_insertions[PositionAndInsertionKey{position, insertion.value}] +=
                insertion.row_ids.cardinality();
          }
       }
-   }
-   for (const auto& [bitmap_filter, insertion_index] : prefiltered_bitmaps.bitmaps) {
+   } else {
       for (const auto& [position, insertions_at_position] :
-           insertion_index.getInsertionPositions()) {
+           sequence_column.insertion_index.getInsertionPositions()) {
          for (const auto& insertion : insertions_at_position.insertions) {
             const uint32_t count =
                insertion.row_ids.and_cardinality(bitmap_filter.getConstReference());
@@ -172,7 +129,7 @@ arrow::Result<PartialArrowPlan> InsertionsNode<SymbolType>::toQueryPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto partition_filters = computePartitionFilters(filter, *table);
+   auto bitmap_filter = computeFilter(filter, *table);
 
    auto table_handle = table;
    auto sequence_columns_handle = sequence_columns;
@@ -181,7 +138,7 @@ arrow::Result<PartialArrowPlan> InsertionsNode<SymbolType>::toQueryPlan(
       // NOLINTNEXTLINE(readability-function-cognitive-complexity)
       [table_handle,
        output_fields,
-       partition_filters,
+       bitmap_filter,
        sequence_columns_handle,
        already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
@@ -192,17 +149,14 @@ arrow::Result<PartialArrowPlan> InsertionsNode<SymbolType>::toQueryPlan(
 
       exec_node::SchemaOutputBuilder output_builder{output_fields};
 
-      const auto bitmaps_to_evaluate = insertionsPreFilterBitmaps<SymbolType>(
-         *table_handle, sequence_columns_handle, partition_filters
-      );
-      for (const auto& [sequence_name, prefiltered_bitmaps] : bitmaps_to_evaluate) {
+      for (const auto& [sequence_name, _] : sequence_columns_handle) {
          const auto default_sequence_name =
             table_handle->schema->template getDefaultSequenceName<SymbolType>();
          const bool omit_sequence_in_response =
             default_sequence_name.has_value() &&
             (default_sequence_name.value().name == sequence_name);
          ARROW_RETURN_NOT_OK(addAggregatedInsertionsToInsertionCounts<SymbolType>(
-            sequence_name, !omit_sequence_in_response, prefiltered_bitmaps, output_builder
+            sequence_name, !omit_sequence_in_response, bitmap_filter, *table_handle, output_builder
          ));
       }
 

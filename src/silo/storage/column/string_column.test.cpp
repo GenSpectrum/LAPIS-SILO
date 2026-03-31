@@ -10,13 +10,13 @@
 #include "silo/common/phylo_tree.h"
 #include "silo/common/tree_node_id.h"
 
+using silo::storage::column::StringColumn;
 using silo::storage::column::StringColumnMetadata;
-using silo::storage::column::StringColumnPartition;
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(StringColumnPartition, rawInsertedValuesRequeried) {
+TEST(StringColumn, rawInsertedValuesRequeried) {
    StringColumnMetadata metadata{"string_column"};
-   StringColumnPartition under_test(&metadata);
+   StringColumn under_test(&metadata);
 
    SILO_ASSERT(under_test.insert("value 1").has_value());
    SILO_ASSERT(under_test.insert("value 2").has_value());
@@ -34,16 +34,16 @@ TEST(StringColumnPartition, rawInsertedValuesRequeried) {
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(StringColumnPartition, serializationOfMetadataWorks) {
+TEST(StringColumn, serializationOfMetadataWorks) {
    auto phylo_tree = silo::common::PhyloTree::fromNewickString(
       "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
    );
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
-   StringColumnPartition partition(&metadata);
+   StringColumn column(&metadata);
 
-   SILO_ASSERT(partition.insert("CHILD2").has_value());
-   SILO_ASSERT(partition.insert("CHILD3").has_value());
-   SILO_ASSERT(partition.insert("NOT_IN_TREE").has_value());
+   SILO_ASSERT(column.insert("CHILD2").has_value());
+   SILO_ASSERT(column.insert("CHILD3").has_value());
+   SILO_ASSERT(column.insert("NOT_IN_TREE").has_value());
 
    std::ostringstream oss;
    boost::archive::binary_oarchive oarchive(oss);
@@ -77,12 +77,12 @@ TEST(StringColumnPartition, serializationOfMetadataWorks) {
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(StringColumnPartition, rawInsertedValuesWithPhyloTreeRequeried) {
+TEST(StringColumn, rawInsertedValuesWithPhyloTreeRequeried) {
    auto phylo_tree = silo::common::PhyloTree::fromNewickString(
       "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
    );
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
-   StringColumnPartition under_test(&metadata);
+   StringColumn under_test(&metadata);
 
    SILO_ASSERT(under_test.insert("CHILD2").has_value());
    SILO_ASSERT(under_test.insert("CHILD3").has_value());
@@ -104,9 +104,9 @@ TEST(StringColumnPartition, rawInsertedValuesWithPhyloTreeRequeried) {
    EXPECT_EQ(tree_node_id_not_in_tree, std::nullopt);
 }
 
-TEST(StringColumn, rawInsertedValuesRequeried) {
+TEST(StringColumn, rawInsertedValuesRequeryLongValue) {
    StringColumnMetadata column("string_column");
-   StringColumnPartition under_test{&column};
+   StringColumn under_test{&column};
 
    SILO_ASSERT(under_test.insert("value 1").has_value());
    SILO_ASSERT(under_test.insert("value 2").has_value());
@@ -124,27 +124,27 @@ TEST(StringColumn, rawInsertedValuesRequeried) {
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(StringColumn, compareAcrossPartitions) {
+TEST(StringColumn, compareAcrossColumns) {
    StringColumnMetadata under_test("string_column");
-   StringColumnPartition partition_1{&under_test};
-   SILO_ASSERT(partition_1.insert("value 1").has_value());
-   SILO_ASSERT(partition_1.insert("value 2").has_value());
-   SILO_ASSERT(partition_1.insert("value 2").has_value());
-   SILO_ASSERT(partition_1.insert("value 3").has_value());
-   SILO_ASSERT(partition_1.insert("some string that is a little longer 1").has_value());
-   SILO_ASSERT(partition_1.insert("value 1").has_value());
+   StringColumn column_1{&under_test};
+   SILO_ASSERT(column_1.insert("value 1").has_value());
+   SILO_ASSERT(column_1.insert("value 2").has_value());
+   SILO_ASSERT(column_1.insert("value 2").has_value());
+   SILO_ASSERT(column_1.insert("value 3").has_value());
+   SILO_ASSERT(column_1.insert("some string that is a little longer 1").has_value());
+   SILO_ASSERT(column_1.insert("value 1").has_value());
 
-   StringColumnPartition partition_2{&under_test};
-   SILO_ASSERT(partition_2.insert("other value 2").has_value());
-   SILO_ASSERT(partition_2.insert("other values 3").has_value());
-   SILO_ASSERT(partition_2.insert("value 1").has_value());
-   SILO_ASSERT(partition_2.insert("other value 3").has_value());
-   SILO_ASSERT(partition_2.insert("some string that is a little longer 1").has_value());
-   SILO_ASSERT(partition_2.insert("other value 1").has_value());
+   StringColumn column_2{&under_test};
+   SILO_ASSERT(column_2.insert("other value 2").has_value());
+   SILO_ASSERT(column_2.insert("other values 3").has_value());
+   SILO_ASSERT(column_2.insert("value 1").has_value());
+   SILO_ASSERT(column_2.insert("other value 3").has_value());
+   SILO_ASSERT(column_2.insert("some string that is a little longer 1").has_value());
+   SILO_ASSERT(column_2.insert("other value 1").has_value());
 
-   EXPECT_EQ(partition_1.getValueString(0), partition_1.getValueString(5));
-   EXPECT_EQ(partition_1.getValueString(5), partition_2.getValueString(2));
-   EXPECT_EQ(partition_1.getValueString(4), partition_2.getValueString(4));
+   EXPECT_EQ(column_1.getValueString(0), column_1.getValueString(5));
+   EXPECT_EQ(column_1.getValueString(5), column_2.getValueString(2));
+   EXPECT_EQ(column_1.getValueString(4), column_2.getValueString(4));
 }
 
 TEST(StringColumn, manyLongValues) {
@@ -155,15 +155,15 @@ TEST(StringColumn, manyLongValues) {
    }
 
    StringColumnMetadata under_test("string_column");
-   StringColumnPartition partition{&under_test};
+   StringColumn column{&under_test};
 
    for (auto& value : test_values) {
-      SILO_ASSERT(partition.insert(value).has_value());
+      SILO_ASSERT(column.insert(value).has_value());
    }
 
    for (size_t i = 0; i < 50000; ++i) {
-      ASSERT_EQ(partition.getValue(i).fastCompare(test_values.at(i)), std::nullopt);
-      ASSERT_EQ(partition.getValueString(i), test_values.at(i));
+      ASSERT_EQ(column.getValue(i).fastCompare(test_values.at(i)), std::nullopt);
+      ASSERT_EQ(column.getValueString(i), test_values.at(i));
    }
 }
 
@@ -182,23 +182,22 @@ TEST(StringColumn, manyMixedValues) {
    }
 
    StringColumnMetadata under_test("string_column");
-   StringColumnPartition partition{&under_test};
+   StringColumn column{&under_test};
 
    for (auto& value : test_values) {
-      SILO_ASSERT(partition.insert(value).has_value());
+      SILO_ASSERT(column.insert(value).has_value());
    }
 
    for (size_t i = 0; i < 50001; ++i) {
       if (i % 2 == 1) {
-         ASSERT_TRUE(partition.getValue(i).fastCompare(test_values.at(i)).has_value());
+         ASSERT_TRUE(column.getValue(i).fastCompare(test_values.at(i)).has_value());
          ASSERT_EQ(
-            partition.getValue(i).fastCompare(test_values.at(i)).value(),
-            std::strong_ordering::equal
+            column.getValue(i).fastCompare(test_values.at(i)).value(), std::strong_ordering::equal
          );
-         ASSERT_EQ(partition.getValueString(i), test_values.at(i));
+         ASSERT_EQ(column.getValueString(i), test_values.at(i));
       } else {
-         ASSERT_EQ(partition.getValue(i).fastCompare(test_values.at(i)), std::nullopt);
-         ASSERT_EQ(partition.getValueString(i), test_values.at(i));
+         ASSERT_EQ(column.getValue(i).fastCompare(test_values.at(i)), std::nullopt);
+         ASSERT_EQ(column.getValueString(i), test_values.at(i));
       }
    }
 }

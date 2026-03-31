@@ -10,9 +10,8 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/storage/table_partition.h"
 
-using silo::storage::column::IntColumnPartition;
+using silo::storage::column::IntColumn;
 
 namespace silo::query_engine::filter::expressions {
 
@@ -29,34 +28,30 @@ std::string IntEquals::toString() const {
 
 std::unique_ptr<Expression> IntEquals::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
 ) const {
    return std::make_unique<IntEquals>(column_name, value);
 }
 
-std::unique_ptr<operators::Operator> IntEquals::compile(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition
-) const {
+std::unique_ptr<operators::Operator> IntEquals::compile(const storage::Table& table) const {
    CHECK_SILO_QUERY(
-      table_partition.columns.int_columns.contains(column_name),
+      table.columns.int_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
 
-   const auto& int_column = table_partition.columns.int_columns.at(column_name);
+   const auto& int_column = table.columns.int_columns.at(column_name);
 
    if (value.has_value()) {
       return std::make_unique<operators::Selection>(
-         std::make_unique<operators::CompareToValueSelection<IntColumnPartition>>(
+         std::make_unique<operators::CompareToValueSelection<IntColumn>>(
             int_column, operators::Comparator::EQUALS, value.value()
          ),
-         table_partition.sequence_count
+         table.sequence_count
       );
    }
    return std::make_unique<operators::IndexScan>(
-      CopyOnWriteBitmap{&int_column.null_bitmap}, table_partition.sequence_count
+      CopyOnWriteBitmap{&int_column.null_bitmap}, table.sequence_count
    );
 }
 

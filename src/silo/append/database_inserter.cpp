@@ -52,7 +52,7 @@ std::expected<simdjson::ondemand::value, std::string> findFieldManual(
 
 std::expected<simdjson::ondemand::value, std::string> findFieldWithFallbacks(
    simdjson::ondemand::object& object,
-   const TablePartitionInserter::SniffedField& sniffed_field
+   const TableInserter::SniffedField& sniffed_field
 ) {
    simdjson::ondemand::value column_value;
    auto error = object.find_field(sniffed_field.escaped_key).get(column_value);
@@ -108,10 +108,11 @@ std::expected<simdjson::ondemand::object, std::string> iterateToObject(
 
 }  // namespace
 
-std::expected<std::vector<TablePartitionInserter::SniffedField>, std::string>
-TablePartitionInserter::sniffFieldOrder(simdjson::ondemand::document_reference ndjson_line) const {
+std::expected<std::vector<TableInserter::SniffedField>, std::string> TableInserter::sniffFieldOrder(
+   simdjson::ondemand::document_reference ndjson_line
+) const {
    std::vector<SniffedField> order_in_json_line;
-   auto columns_in_table = table_partition->columns.metadata;
+   auto columns_in_table = table->columns.metadata;
    ASSIGN_OR_RAISE(auto object, iterateToObject(ndjson_line));
    for (auto maybe_field : object) {
       ASSIGN_OR_RAISE_SIMDJSON(
@@ -161,47 +162,27 @@ TablePartitionInserter::sniffFieldOrder(simdjson::ondemand::document_reference n
    return order_in_json_line;
 }
 
-std::expected<void, std::string> TablePartitionInserter::insert(
+std::expected<void, std::string> TableInserter::insert(
    simdjson::ondemand::document_reference ndjson_line,
-   const std::vector<TablePartitionInserter::SniffedField>& field_order_hint
+   const std::vector<TableInserter::SniffedField>& field_order_hint
 ) const {
-   EVOBENCH_SCOPE_EVERY(20, "TablePartitionInserter", "insert");
+   EVOBENCH_SCOPE_EVERY(20, "TableInserter", "insert");
    ASSIGN_OR_RAISE(auto object, iterateToObject(ndjson_line));
    for (const auto& sniffed_field : field_order_hint) {
       ASSIGN_OR_RAISE(auto column_value, findFieldWithFallbacks(object, sniffed_field));
-      auto success_or_error = table_partition->columns.addJsonValueToColumn(
-         sniffed_field.column_identifier, column_value
-      );
+      auto success_or_error =
+         table->columns.addJsonValueToColumn(sniffed_field.column_identifier, column_value);
       if (!success_or_error.has_value()) {
          return success_or_error;
       }
    }
-   table_partition->sequence_count++;
+   table->sequence_count++;
    return {};
-}
-
-TablePartitionInserter::Commit TablePartitionInserter::commit() const {
-   table_partition->finalize();
-   table_partition->validate();
-   return Commit{};
-}
-
-TablePartitionInserter TableInserter::openNewPartition() const {
-   if (table->getNumberOfPartitions() == 0) {
-      return TablePartitionInserter{table->addPartition()};
-   }
-   return TablePartitionInserter{table->getPartition(0)};
-}
-
-TablePartitionInserter TableInserter::openLastPartition() const {
-   if (table->getNumberOfPartitions() == 0) {
-      return openNewPartition();
-   }
-   return TablePartitionInserter{table->getPartition(table->getNumberOfPartitions() - 1)};
 }
 
 TableInserter::Commit TableInserter::commit() const {
    try {
+      table->finalize();
       table->validate();
       return Commit{};
    } catch (const silo::schema::DuplicatePrimaryKeyException& exception) {
@@ -209,16 +190,18 @@ TableInserter::Commit TableInserter::commit() const {
    }
 }
 
-TablePartitionInserter::Commit appendDataToTablePartition(
-   const TablePartitionInserter& partition_inserter,
+TableInserter::Commit appendDataToTable(
+   std::shared_ptr<silo::storage::Table> table,
    NdjsonLineReader& input_data
 ) {
-   EVOBENCH_SCOPE("TablePartitionInserter", "appendDataToTablePartition");
+   EVOBENCH_SCOPE("TableInserter", "appendDataToTable");
+   const TableInserter table_inserter(std::move(table));
+
    size_t line_count = 0;
 
    bool first_line = true;
 
-   std::vector<TablePartitionInserter::SniffedField> sniffed_field_order;
+   std::vector<TableInserter::SniffedField> sniffed_field_order;
    for (auto [json_obj_or_error, raw_line] : input_data) {
       simdjson::ondemand::document_reference ndjson_line;
       auto error = json_obj_or_error.get(ndjson_line);
@@ -231,7 +214,7 @@ TablePartitionInserter::Commit appendDataToTablePartition(
       }
 
       if (first_line) {
-         auto sniffed_field_order_or_error = partition_inserter.sniffFieldOrder(ndjson_line);
+         auto sniffed_field_order_or_error = table_inserter.sniffFieldOrder(ndjson_line);
          if (!sniffed_field_order_or_error.has_value()) {
             throw AppendException{
                "{} - current line: {}", sniffed_field_order_or_error.error(), raw_line
@@ -241,7 +224,7 @@ TablePartitionInserter::Commit appendDataToTablePartition(
          first_line = false;
       }
 
-      auto maybe_error = partition_inserter.insert(ndjson_line, sniffed_field_order);
+      auto maybe_error = table_inserter.insert(ndjson_line, sniffed_field_order);
       if (!maybe_error.has_value()) {
          throw AppendException{"{} - current line: {}", maybe_error.error(), raw_line};
       }
@@ -251,20 +234,6 @@ TablePartitionInserter::Commit appendDataToTablePartition(
          SPDLOG_INFO("Processed {} json objects from the input file", line_count);
       }
    }
-
-   return partition_inserter.commit();
-}
-
-TableInserter::Commit appendDataToTable(
-   std::shared_ptr<silo::storage::Table> table,
-   NdjsonLineReader& input_data
-) {
-   const TableInserter table_inserter(std::move(table));
-
-   // TODO(#738) make partition configurable
-   auto table_partition = table_inserter.openLastPartition();
-
-   appendDataToTablePartition(table_partition, input_data);
 
    return table_inserter.commit();
 }

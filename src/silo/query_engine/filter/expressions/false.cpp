@@ -5,7 +5,6 @@
 
 #include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -17,17 +16,13 @@ std::string False::toString() const {
 
 std::unique_ptr<Expression> False::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
 ) const {
    return std::make_unique<False>();
 }
 
-std::unique_ptr<operators::Operator> False::compile(
-   const storage::Table& /*table*/,
-   const silo::storage::TablePartition& table_partition
-) const {
-   return std::make_unique<operators::Empty>(table_partition.sequence_count);
+std::unique_ptr<operators::Operator> False::compile(const storage::Table& table) const {
+   return std::make_unique<operators::Empty>(table.sequence_count);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming)

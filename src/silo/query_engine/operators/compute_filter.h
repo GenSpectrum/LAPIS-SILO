@@ -9,7 +9,7 @@
 
 namespace silo::query_engine::operators {
 
-std::vector<CopyOnWriteBitmap> computePartitionFilters(
+CopyOnWriteBitmap computeFilter(
    const std::unique_ptr<filter::expressions::Expression>& filter,
    const storage::Table& table
 );

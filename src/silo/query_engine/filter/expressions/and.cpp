@@ -20,7 +20,6 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/filter/operators/union.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -79,16 +78,13 @@ void logCompiledChildren(
 }  // namespace
 
 std::tuple<OperatorVector, OperatorVector, operators::PredicateVector> And::compileChildren(
-   const storage::Table& table,
-   const storage::TablePartition& table_partition
+   const storage::Table& table
 ) const {
    OperatorVector unprocessed_child_operators;
    std::ranges::transform(
       children,
       std::back_inserter(unprocessed_child_operators),
-      [&](const std::unique_ptr<Expression>& expression) {
-         return expression->compile(table, table_partition);
-      }
+      [&](const std::unique_ptr<Expression>& expression) { return expression->compile(table); }
    );
    OperatorVector non_negated_child_operators;
    OperatorVector negated_child_operators;
@@ -103,7 +99,7 @@ std::tuple<OperatorVector, OperatorVector, operators::PredicateVector> And::comp
       if (child->type() == operators::EMPTY) {
          SPDLOG_TRACE("Shortcutting because found empty child");
          OperatorVector empty;
-         empty.emplace_back(std::make_unique<operators::Empty>(table_partition.sequence_count));
+         empty.emplace_back(std::make_unique<operators::Empty>(table.sequence_count));
          return {std::move(empty), OperatorVector(), operators::PredicateVector{}};
       }
       if (child->type() == operators::INTERSECTION) {
@@ -139,36 +135,27 @@ std::tuple<OperatorVector, OperatorVector, operators::PredicateVector> And::comp
    };
 }
 
-std::unique_ptr<Expression> And::rewrite(
-   const storage::Table& table,
-   const storage::TablePartition& table_partition,
-   AmbiguityMode mode
-) const {
+std::unique_ptr<Expression> And::rewrite(const storage::Table& table, AmbiguityMode mode) const {
    ExpressionVector rewritten_children;
    rewritten_children.reserve(children.size());
    for (const auto& child : children) {
-      rewritten_children.emplace_back(child->rewrite(table, table_partition, mode));
+      rewritten_children.emplace_back(child->rewrite(table, mode));
    }
    return std::make_unique<And>(std::move(rewritten_children));
 }
 
-std::unique_ptr<Operator> And::compile(
-   const storage::Table& table,
-   const storage::TablePartition& table_partition
-) const {
-   auto [non_negated_child_operators, negated_child_operators, predicates] =
-      compileChildren(table, table_partition);
+std::unique_ptr<Operator> And::compile(const storage::Table& table) const {
+   auto [non_negated_child_operators, negated_child_operators, predicates] = compileChildren(table);
 
    if (non_negated_child_operators.empty() && negated_child_operators.empty()) {
       if (predicates.empty()) {
          SPDLOG_TRACE(
             "Compiled And filter expression to Full, since no predicates and no child operators"
          );
-         return std::make_unique<operators::Full>(table_partition.sequence_count);
+         return std::make_unique<operators::Full>(table.sequence_count);
       }
-      auto result = std::make_unique<operators::Selection>(
-         std::move(predicates), table_partition.sequence_count
-      );
+      auto result =
+         std::make_unique<operators::Selection>(std::move(predicates), table.sequence_count);
       SPDLOG_TRACE(
          "Compiled And filter expression to {} - found only predicates", result->toString()
       );
@@ -181,20 +168,19 @@ std::unique_ptr<Operator> And::compile(
       index_arithmetic_operator = std::move(non_negated_child_operators[0]);
    } else if (negated_child_operators.size() == 1 && non_negated_child_operators.empty()) {
       index_arithmetic_operator = std::make_unique<operators::Complement>(
-         std::move(negated_child_operators[0]), table_partition.sequence_count
+         std::move(negated_child_operators[0]), table.sequence_count
       );
    } else if (non_negated_child_operators.empty()) {
       std::unique_ptr<operators::Union> union_ret = std::make_unique<operators::Union>(
-         std::move(negated_child_operators), table_partition.sequence_count
+         std::move(negated_child_operators), table.sequence_count
       );
-      index_arithmetic_operator = std::make_unique<operators::Complement>(
-         std::move(union_ret), table_partition.sequence_count
-      );
+      index_arithmetic_operator =
+         std::make_unique<operators::Complement>(std::move(union_ret), table.sequence_count);
    } else {
       index_arithmetic_operator = std::make_unique<operators::Intersection>(
          std::move(non_negated_child_operators),
          std::move(negated_child_operators),
-         table_partition.sequence_count
+         table.sequence_count
       );
    }
    if (predicates.empty()) {
@@ -206,7 +192,7 @@ std::unique_ptr<Operator> And::compile(
       return index_arithmetic_operator;
    }
    auto result = std::make_unique<operators::Selection>(
-      std::move(index_arithmetic_operator), std::move(predicates), table_partition.sequence_count
+      std::move(index_arithmetic_operator), std::move(predicates), table.sequence_count
    );
 
    SPDLOG_TRACE("Compiled And filter expression to {}", result->toString());

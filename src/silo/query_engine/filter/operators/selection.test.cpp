@@ -9,15 +9,15 @@ using silo::query_engine::filter::operators::Comparator;
 using silo::query_engine::filter::operators::CompareToValueSelection;
 using silo::query_engine::filter::operators::Selection;
 using silo::storage::column::ColumnMetadata;
-using silo::storage::column::IntColumnPartition;
+using silo::storage::column::IntColumn;
 
 namespace {
 
-std::pair<std::shared_ptr<ColumnMetadata>, IntColumnPartition> makeTestColumn(
+std::pair<std::shared_ptr<ColumnMetadata>, IntColumn> makeTestColumn(
    const std::vector<int32_t>& values
 ) {
    auto metadata = std::make_shared<ColumnMetadata>("test");
-   IntColumnPartition test_column{metadata.get()};
+   IntColumn test_column{metadata.get()};
    for (auto value : values) {
       SILO_ASSERT(test_column.insert(value).has_value());
    }
@@ -32,9 +32,7 @@ TEST(OperatorSelection, equalsShouldReturnCorrectValues) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
-         test_column, Comparator::EQUALS, 1
-      ),
+      std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::EQUALS, 1),
       row_count
    );
 
@@ -49,9 +47,7 @@ TEST(OperatorSelection, notEqualsShouldReturnCorrectValues) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
-         test_column, Comparator::NOT_EQUALS, 1
-      ),
+      std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::NOT_EQUALS, 1),
       row_count
    );
 
@@ -66,9 +62,7 @@ TEST(OperatorSelection, lessShouldReturnCorrectValues) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
-         test_column, Comparator::LESS, 1
-      ),
+      std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::LESS, 1),
       row_count
    );
 
@@ -85,7 +79,7 @@ TEST(OperatorSelection, lessOrEqualsShouldReturnCorrectValues) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
+      std::make_unique<CompareToValueSelection<IntColumn>>(
          test_column, Comparator::LESS_OR_EQUALS, 1
       ),
       row_count
@@ -102,7 +96,7 @@ TEST(OperatorSelection, higherOrEqualsShouldReturnCorrectValues) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
+      std::make_unique<CompareToValueSelection<IntColumn>>(
          test_column, Comparator::HIGHER_OR_EQUALS, 1
       ),
       row_count
@@ -121,9 +115,7 @@ TEST(OperatorSelection, higherShouldReturnCorrectValues) {
    const uint32_t row_count = values.size();
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
-         test_column, Comparator::HIGHER, 1
-      ),
+      std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::HIGHER, 1),
       row_count
    );
 
@@ -138,9 +130,7 @@ TEST(OperatorSelection, correctWithNegativeNumbers) {
    const uint32_t row_count = values.size();
 
    const Selection under_test(
-      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
-         test_column, Comparator::EQUALS, -1
-      ),
+      std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::EQUALS, -1),
       row_count
    );
 
@@ -153,9 +143,7 @@ TEST(OperatorSelection, returnsCorrectTypeInfo) {
    const uint32_t row_count = values.size();
 
    const Selection under_test(
-      std::make_unique<CompareToValueSelection<IntColumnPartition>>(
-         test_column, Comparator::EQUALS, -1
-      ),
+      std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::EQUALS, -1),
       row_count
    );
 

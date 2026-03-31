@@ -71,16 +71,16 @@ CopyOnWriteBitmap Threshold::evaluate() const {
    } else {
       dp_table_size = number_of_matchers;
    }
-   std::vector<roaring::Roaring> partition_bitmaps(dp_table_size);
+   std::vector<roaring::Roaring> bitmaps(dp_table_size);
    // Copy bitmap of first child if immutable, otherwise use it directly
    if (non_negated_children.empty()) {
-      partition_bitmaps[0] = negated_children[0]->evaluate().getConstReference();
+      bitmaps[0] = negated_children[0]->evaluate().getConstReference();
    } else {
-      partition_bitmaps[0] = non_negated_children[0]->evaluate().getConstReference();
+      bitmaps[0] = non_negated_children[0]->evaluate().getConstReference();
    }
 
    if (non_negated_children.empty()) {
-      partition_bitmaps[0].flip(0, row_count);
+      bitmaps[0].flip(0, row_count);
    }
 
    // NOLINTBEGIN(readability-identifier-length)
@@ -99,10 +99,10 @@ CopyOnWriteBitmap Threshold::evaluate() const {
       // positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
       // iterations are left
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
-         partition_bitmaps[j] |= partition_bitmaps[j - 1] & bitmap.getConstReference();
+         bitmaps[j] |= bitmaps[j - 1] & bitmap.getConstReference();
       }
       if (k - i > n - 1) {
-         partition_bitmaps[0] |= bitmap.getConstReference();
+         bitmaps[0] |= bitmap.getConstReference();
       }
    }
 
@@ -121,22 +121,22 @@ CopyOnWriteBitmap Threshold::evaluate() const {
       // positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
       // iterations are left
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
-         partition_bitmaps[j] |= partition_bitmaps[j - 1] - bitmap.getConstReference();
+         bitmaps[j] |= bitmaps[j - 1] - bitmap.getConstReference();
       }
       if (k - i > n - 1) {
          bitmap.getMutable().flip(0, row_count);
-         partition_bitmaps[0] |= bitmap.getConstReference();
+         bitmaps[0] |= bitmap.getConstReference();
       }
    }
    // NOLINTEND(readability-identifier-length)
 
    if (this->match_exactly) {
       // Because exact, we remove all that have too many
-      partition_bitmaps[number_of_matchers - 1] -= partition_bitmaps[number_of_matchers];
+      bitmaps[number_of_matchers - 1] -= bitmaps[number_of_matchers];
 
-      return CopyOnWriteBitmap(std::move(partition_bitmaps[number_of_matchers - 1]));
+      return CopyOnWriteBitmap(std::move(bitmaps[number_of_matchers - 1]));
    }
-   return CopyOnWriteBitmap(std::move(partition_bitmaps.back()));
+   return CopyOnWriteBitmap(std::move(bitmaps.back()));
 }
 
 std::unique_ptr<Operator> Threshold::negate(std::unique_ptr<Threshold>&& threshold) {

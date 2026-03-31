@@ -19,7 +19,6 @@ describe('The /info endpoint', () => {
           sequenceCount: 100,
           horizontalBitmapsSize: 5595,
           verticalBitmapsSize: 28102,
-          numberOfPartitions: 1,
         });
       });
   });

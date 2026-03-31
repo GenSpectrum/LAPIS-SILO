@@ -28,9 +28,7 @@ class ZstdCompressedStringColumnMetadata : public ColumnMetadata {
    );
 };
 
-/// Holds information where to read unaligned sequences for a
-/// segment (= the sequence of a particular name) in one partition.
-class ZstdCompressedStringColumnPartition {
+class ZstdCompressedStringColumn {
   public:
    using Metadata = ZstdCompressedStringColumnMetadata;
 
@@ -44,7 +42,7 @@ class ZstdCompressedStringColumnPartition {
    roaring::Roaring null_bitmap;
    Metadata* metadata;
 
-   explicit ZstdCompressedStringColumnPartition(Metadata* metadata);
+   explicit ZstdCompressedStringColumn(Metadata* metadata);
 
    void reserve(size_t row_count);
    void insertNull();

@@ -14,7 +14,6 @@
 #include "silo/query_engine/query_compilation_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/storage/table.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -35,7 +34,6 @@ std::string HasMutation<SymbolType>::toString() const {
 template <typename SymbolType>
 std::unique_ptr<Expression> HasMutation<SymbolType>::rewrite(
    const storage::Table& table,
-   const storage::TablePartition& table_partition,
    AmbiguityMode mode
 ) const {
    CHECK_SILO_QUERY(
@@ -49,8 +47,8 @@ std::unique_ptr<Expression> HasMutation<SymbolType>::rewrite(
    const auto valid_sequence_name =
       validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
 
-   const auto& seq_store_partition =
-      table_partition.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
+   const auto& sequence_column =
+      table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
    auto column_metadata =
       table.schema->getColumnMetadata<typename SymbolType::Column>(valid_sequence_name).value();
@@ -59,10 +57,10 @@ std::unique_ptr<Expression> HasMutation<SymbolType>::rewrite(
       "Has{}Mutation position is out of bounds {} > {}",
       SymbolType::SYMBOL_NAME,
       position_idx + 1,
-      seq_store_partition.metadata->reference_sequence.size()
+      sequence_column.metadata->reference_sequence.size()
    )
 
-   auto ref_symbol = seq_store_partition.metadata->reference_sequence.at(position_idx);
+   auto ref_symbol = sequence_column.metadata->reference_sequence.at(position_idx);
 
    std::vector<typename SymbolType::Symbol> symbols =
       std::vector(SymbolType::SYMBOLS.begin(), SymbolType::SYMBOLS.end());
@@ -82,8 +80,7 @@ std::unique_ptr<Expression> HasMutation<SymbolType>::rewrite(
 
 template <typename SymbolType>
 std::unique_ptr<operators::Operator> HasMutation<SymbolType>::compile(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/
+   const storage::Table& /*table*/
 ) const {
    throw QueryCompilationException{
       "Has{}Mutation expression must be eliminated in query rewrite phase", SymbolType::SYMBOL_NAME
