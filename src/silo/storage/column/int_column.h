@@ -12,7 +12,7 @@
 
 namespace silo::storage::column {
 
-class IntColumnPartition {
+class IntColumn {
   public:
    using Metadata = ColumnMetadata;
 
@@ -27,7 +27,7 @@ class IntColumnPartition {
 
    Metadata* metadata;
 
-   explicit IntColumnPartition(Metadata* metadata);
+   explicit IntColumn(Metadata* metadata);
 
    [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
 

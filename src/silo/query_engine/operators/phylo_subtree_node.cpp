@@ -18,11 +18,10 @@
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/exec_node/schema_output_builder.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/query_engine/operators/compute_partition_filters.h"
+#include "silo/query_engine/operators/compute_filter.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
-#include "silo/storage/table_partition.h"
 
 namespace {
 
@@ -34,31 +33,21 @@ struct NodeValuesResult {
 NodeValuesResult getNodeValuesFromTable(
    const silo::storage::Table& table,
    const std::string& column_name,
-   std::vector<silo::query_engine::CopyOnWriteBitmap>& bitmap_filter
+   silo::query_engine::CopyOnWriteBitmap& bitmap_filter
 ) {
-   size_t num_rows = 0;
-   for (const auto& filter : bitmap_filter) {
-      num_rows += filter.getConstReference().cardinality();
-   }
+   const size_t num_rows = bitmap_filter.getConstReference().cardinality();
    std::unordered_set<std::string> all_tree_node_ids;
    uint32_t num_empty = 0;
    all_tree_node_ids.reserve(num_rows);
-   for (size_t i = 0; i < table.getNumberOfPartitions(); ++i) {
-      auto table_partition = table.getPartition(i);
-      const auto& string_column = table_partition->columns.string_columns.at(column_name);
 
-      const silo::query_engine::CopyOnWriteBitmap& filter = bitmap_filter[i];
-      const size_t cardinality = filter.getConstReference().cardinality();
-      if (cardinality == 0) {
-         continue;
-      }
-      for (const uint32_t row_in_table_partition : filter.getConstReference()) {
-         if (!string_column.isNull(row_in_table_partition)) {
-            auto value = string_column.getValueString(row_in_table_partition);
-            all_tree_node_ids.insert(value);
-         } else {
-            ++num_empty;
-         }
+   const auto& string_column = table.columns.string_columns.at(column_name);
+
+   for (const uint32_t row_in_table : bitmap_filter.getConstReference()) {
+      if (!string_column.isNull(row_in_table)) {
+         auto value = string_column.getValueString(row_in_table);
+         all_tree_node_ids.insert(value);
+      } else {
+         ++num_empty;
       }
    }
    return NodeValuesResult{
@@ -98,7 +87,7 @@ arrow::Result<PartialArrowPlan> PhyloSubtreeNode::toQueryPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto partition_filters = computePartitionFilters(filter, *table);
+   auto bitmap_filter = computeFilter(filter, *table);
 
    CHECK_SILO_QUERY(
       table->schema->getColumn(column_name).has_value(),
@@ -111,7 +100,7 @@ arrow::Result<PartialArrowPlan> PhyloSubtreeNode::toQueryPlan(
       column_name
    );
    const auto& optional_table_metadata =
-      table->schema->getColumnMetadata<storage::column::StringColumnPartition>(column_name);
+      table->schema->getColumnMetadata<storage::column::StringColumn>(column_name);
    CHECK_SILO_QUERY(
       optional_table_metadata.has_value() &&
          optional_table_metadata.value()->phylo_tree.has_value(),
@@ -131,7 +120,7 @@ arrow::Result<PartialArrowPlan> PhyloSubtreeNode::toQueryPlan(
       [table_handle,
        column_name_copy,
        output_fields,
-       partition_filters = std::move(partition_filters),
+       bitmap_filter = std::move(bitmap_filter),
        &phylo_tree,
        contract,
        already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
@@ -143,7 +132,7 @@ arrow::Result<PartialArrowPlan> PhyloSubtreeNode::toQueryPlan(
 
       exec_node::SchemaOutputBuilder output_builder{output_fields};
 
-      auto node_vals = getNodeValuesFromTable(*table_handle, column_name_copy, partition_filters);
+      auto node_vals = getNodeValuesFromTable(*table_handle, column_name_copy, bitmap_filter);
 
       common::NewickResponse newick_resp =
          phylo_tree.toNewickString(node_vals.node_values, contract);

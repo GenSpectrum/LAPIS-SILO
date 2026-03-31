@@ -4,15 +4,15 @@
 
 namespace silo::storage::column {
 
-IntColumnPartition::IntColumnPartition(ColumnMetadata* metadata)
+IntColumn::IntColumn(ColumnMetadata* metadata)
     : metadata(metadata) {}
 
-std::expected<void, std::string> IntColumnPartition::insert(int32_t value) {
+std::expected<void, std::string> IntColumn::insert(int32_t value) {
    values.push_back(value);
    return {};
 }
 
-void IntColumnPartition::insertNull() {
+void IntColumn::insertNull() {
    null_bitmap.add(values.size());
    values.push_back(0);
 }

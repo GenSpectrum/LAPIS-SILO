@@ -11,13 +11,11 @@ output/
   1700000000/
     data_version.silo
     database_schema.silo
-    default/
-      ...  (partition data)
+    default.silo
   1700100000/
     data_version.silo
     database_schema.silo
-    default/
-      ...
+    default.silo
 ```
 
 ### data_version.silo format

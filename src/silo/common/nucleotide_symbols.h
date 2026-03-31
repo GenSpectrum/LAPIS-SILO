@@ -14,7 +14,7 @@ namespace silo {
 
 namespace storage::column {
 template <typename SymbolType>
-class SequenceColumnPartition;
+class SequenceColumn;
 }
 
 class Nucleotide {
@@ -40,7 +40,7 @@ class Nucleotide {
    };
 
    static constexpr schema::ColumnType COLUMN_TYPE = schema::ColumnType::NUCLEOTIDE_SEQUENCE;
-   using Column = storage::column::SequenceColumnPartition<Nucleotide>;
+   using Column = storage::column::SequenceColumn<Nucleotide>;
 
    static constexpr uint32_t COUNT = 16;
 

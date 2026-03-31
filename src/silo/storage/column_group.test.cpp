@@ -23,17 +23,17 @@
 
 using silo::Nucleotide;
 using silo::schema::ColumnIdentifier;
-using silo::storage::ColumnPartitionGroup;
-using silo::storage::column::BoolColumnPartition;
+using silo::storage::ColumnGroup;
+using silo::storage::column::BoolColumn;
 using silo::storage::column::Column;
 using silo::storage::column::ColumnMetadata;
-using silo::storage::column::Date32ColumnPartition;
-using silo::storage::column::FloatColumnPartition;
-using silo::storage::column::IntColumnPartition;
+using silo::storage::column::Date32Column;
+using silo::storage::column::FloatColumn;
+using silo::storage::column::IntColumn;
+using silo::storage::column::SequenceColumn;
 using silo::storage::column::SequenceColumnMetadata;
-using silo::storage::column::SequenceColumnPartition;
+using silo::storage::column::StringColumn;
 using silo::storage::column::StringColumnMetadata;
-using silo::storage::column::StringColumnPartition;
 
 namespace {
 
@@ -43,24 +43,22 @@ std::expected<void, std::string> setupColumnAndInsertJson(
    const std::string& json_string
 ) {
    std::unique_ptr<typename ColumnType::Metadata> meta;
-   if constexpr (std::is_same_v<ColumnType, SequenceColumnPartition<Nucleotide>>) {
+   if constexpr (std::is_same_v<ColumnType, SequenceColumn<Nucleotide>>) {
       meta = std::make_unique<SequenceColumnMetadata<Nucleotide>>(
          column_name, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
       );
    } else {
       meta = std::make_unique<typename ColumnType::Metadata>(column_name);
    }
-   ColumnPartitionGroup partition_group;
-   partition_group.getColumns<ColumnType>().emplace(column_name, ColumnType{meta.get()});
+   ColumnGroup column_group;
+   column_group.getColumns<ColumnType>().emplace(column_name, ColumnType{meta.get()});
 
    simdjson::ondemand::parser parser;
    const simdjson::padded_string json(json_string);
    auto doc = parser.iterate(json).value_unsafe();
    simdjson::ondemand::value val = doc[column_name].value_unsafe();
 
-   return partition_group.addJsonValueToColumn(
-      ColumnIdentifier{column_name, ColumnType::TYPE}, val
-   );
+   return column_group.addJsonValueToColumn(ColumnIdentifier{column_name, ColumnType::TYPE}, val);
 }
 
 std::expected<void, std::string> setupNucleotideColumnAndInsertJson(
@@ -71,9 +69,9 @@ std::expected<void, std::string> setupNucleotideColumnAndInsertJson(
    auto meta = std::make_unique<SequenceColumnMetadata<Nucleotide>>(
       column_name, std::vector<Nucleotide::Symbol>{reference}
    );
-   ColumnPartitionGroup partition_group;
-   partition_group.getColumns<SequenceColumnPartition<Nucleotide>>().emplace(
-      column_name, SequenceColumnPartition<Nucleotide>{meta.get()}
+   ColumnGroup column_group;
+   column_group.getColumns<SequenceColumn<Nucleotide>>().emplace(
+      column_name, SequenceColumn<Nucleotide>{meta.get()}
    );
 
    simdjson::ondemand::parser parser;
@@ -81,8 +79,8 @@ std::expected<void, std::string> setupNucleotideColumnAndInsertJson(
    auto doc = parser.iterate(json).value_unsafe();
    simdjson::ondemand::value val = doc[column_name].value_unsafe();
 
-   return partition_group.addJsonValueToColumn(
-      ColumnIdentifier{.name = column_name, .type = SequenceColumnPartition<Nucleotide>::TYPE}, val
+   return column_group.addJsonValueToColumn(
+      ColumnIdentifier{.name = column_name, .type = SequenceColumn<Nucleotide>::TYPE}, val
    );
 }
 
@@ -99,9 +97,8 @@ std::string compressAndBase64Encode(std::string_view sequence, const std::string
 
 }  // namespace
 
-TEST(ColumnPartitionGroup, givenIntegerValueForBoolColumn_returnsColumnInsertError) {
-   const auto result =
-      setupColumnAndInsertJson<BoolColumnPartition>("bool_col", R"({"bool_col": 42})");
+TEST(ColumnGroup, givenIntegerValueForBoolColumn_returnsColumnInsertError) {
+   const auto result = setupColumnAndInsertJson<BoolColumn>("bool_col", R"({"bool_col": 42})");
 
    ASSERT_FALSE(result.has_value());
    EXPECT_THAT(
@@ -112,9 +109,8 @@ TEST(ColumnPartitionGroup, givenIntegerValueForBoolColumn_returnsColumnInsertErr
    );
 }
 
-TEST(ColumnPartitionGroup, givenStringValueForIntColumn_returnsColumnInsertError) {
-   const auto result =
-      setupColumnAndInsertJson<IntColumnPartition>("int_col", R"({"int_col": "hello"})");
+TEST(ColumnGroup, givenStringValueForIntColumn_returnsColumnInsertError) {
+   const auto result = setupColumnAndInsertJson<IntColumn>("int_col", R"({"int_col": "hello"})");
 
    ASSERT_FALSE(result.has_value());
    EXPECT_THAT(
@@ -125,9 +121,9 @@ TEST(ColumnPartitionGroup, givenStringValueForIntColumn_returnsColumnInsertError
    );
 }
 
-TEST(ColumnPartitionGroup, givenStringValueForFloatColumn_returnsColumnInsertError) {
+TEST(ColumnGroup, givenStringValueForFloatColumn_returnsColumnInsertError) {
    const auto result =
-      setupColumnAndInsertJson<FloatColumnPartition>("float_col", R"({"float_col": "hello"})");
+      setupColumnAndInsertJson<FloatColumn>("float_col", R"({"float_col": "hello"})");
 
    ASSERT_FALSE(result.has_value());
    EXPECT_THAT(
@@ -138,9 +134,9 @@ TEST(ColumnPartitionGroup, givenStringValueForFloatColumn_returnsColumnInsertErr
    );
 }
 
-TEST(ColumnPartitionGroup, givenIntegerValueForStringColumn_returnsColumnInsertError) {
+TEST(ColumnGroup, givenIntegerValueForStringColumn_returnsColumnInsertError) {
    const auto result =
-      setupColumnAndInsertJson<StringColumnPartition>("string_col", R"({"string_col": 42})");
+      setupColumnAndInsertJson<StringColumn>("string_col", R"({"string_col": 42})");
 
    ASSERT_FALSE(result.has_value());
    EXPECT_THAT(
@@ -151,9 +147,8 @@ TEST(ColumnPartitionGroup, givenIntegerValueForStringColumn_returnsColumnInsertE
    );
 }
 
-TEST(ColumnPartitionGroup, givenIntegerValueForDate32Column_returnsColumnInsertError) {
-   const auto result =
-      setupColumnAndInsertJson<Date32ColumnPartition>("date_col", R"({"date_col": 42})");
+TEST(ColumnGroup, givenIntegerValueForDate32Column_returnsColumnInsertError) {
+   const auto result = setupColumnAndInsertJson<Date32Column>("date_col", R"({"date_col": 42})");
 
    ASSERT_FALSE(result.has_value());
    EXPECT_THAT(
@@ -164,10 +159,9 @@ TEST(ColumnPartitionGroup, givenIntegerValueForDate32Column_returnsColumnInsertE
    );
 }
 
-TEST(ColumnPartitionGroup, givenObjectMissingSequenceField_returnsColumnInsertError) {
-   const auto result = setupColumnAndInsertJson<SequenceColumnPartition<Nucleotide>>(
-      "nuc_col", R"({"nuc_col": {}})"
-   );
+TEST(ColumnGroup, givenObjectMissingSequenceField_returnsColumnInsertError) {
+   const auto result =
+      setupColumnAndInsertJson<SequenceColumn<Nucleotide>>("nuc_col", R"({"nuc_col": {}})");
 
    ASSERT_FALSE(result.has_value());
    EXPECT_THAT(
@@ -178,8 +172,8 @@ TEST(ColumnPartitionGroup, givenObjectMissingSequenceField_returnsColumnInsertEr
    );
 }
 
-TEST(ColumnPartitionGroup, givenObjectMissingInsertionsField_returnsColumnInsertError) {
-   const auto result = setupColumnAndInsertJson<SequenceColumnPartition<Nucleotide>>(
+TEST(ColumnGroup, givenObjectMissingInsertionsField_returnsColumnInsertError) {
+   const auto result = setupColumnAndInsertJson<SequenceColumn<Nucleotide>>(
       "nuc_col", R"({"nuc_col": {"sequence": "A"}})"
    );
 
@@ -192,7 +186,7 @@ TEST(ColumnPartitionGroup, givenObjectMissingInsertionsField_returnsColumnInsert
    );
 }
 
-TEST(ColumnPartitionGroup, givenValidSequenceCompressed_succeeds) {
+TEST(ColumnGroup, givenValidSequenceCompressed_succeeds) {
    const std::vector<Nucleotide::Symbol> reference = {
       Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
    };
@@ -208,7 +202,7 @@ TEST(ColumnPartitionGroup, givenValidSequenceCompressed_succeeds) {
    ASSERT_TRUE(result.has_value());
 }
 
-TEST(ColumnPartitionGroup, givenSequenceCompressedWithMutation_succeeds) {
+TEST(ColumnGroup, givenSequenceCompressedWithMutation_succeeds) {
    const std::vector<Nucleotide::Symbol> reference = {
       Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
    };
@@ -225,7 +219,7 @@ TEST(ColumnPartitionGroup, givenSequenceCompressedWithMutation_succeeds) {
    ASSERT_TRUE(result.has_value());
 }
 
-TEST(ColumnPartitionGroup, givenSequenceCompressedMultipleRows_succeeds) {
+TEST(ColumnGroup, givenSequenceCompressedMultipleRows_succeeds) {
    std::vector<Nucleotide::Symbol> reference = {
       Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
    };
@@ -233,9 +227,9 @@ TEST(ColumnPartitionGroup, givenSequenceCompressedMultipleRows_succeeds) {
 
    auto meta =
       std::make_unique<SequenceColumnMetadata<Nucleotide>>("nuc_col", std::move(reference));
-   ColumnPartitionGroup partition_group;
-   partition_group.getColumns<SequenceColumnPartition<Nucleotide>>().emplace(
-      "nuc_col", SequenceColumnPartition<Nucleotide>{meta.get()}
+   ColumnGroup column_group;
+   column_group.getColumns<SequenceColumn<Nucleotide>>().emplace(
+      "nuc_col", SequenceColumn<Nucleotide>{meta.get()}
    );
 
    for (const std::string_view sequence : {"ACGT", "ATGT", "ACGT"}) {
@@ -248,14 +242,14 @@ TEST(ColumnPartitionGroup, givenSequenceCompressedMultipleRows_succeeds) {
       auto doc = parser.iterate(padded).value_unsafe();
       simdjson::ondemand::value val = doc["nuc_col"].value_unsafe();
 
-      const auto result = partition_group.addJsonValueToColumn(
-         ColumnIdentifier{.name = "nuc_col", .type = SequenceColumnPartition<Nucleotide>::TYPE}, val
+      const auto result = column_group.addJsonValueToColumn(
+         ColumnIdentifier{.name = "nuc_col", .type = SequenceColumn<Nucleotide>::TYPE}, val
       );
       ASSERT_TRUE(result.has_value());
    }
 }
 
-TEST(ColumnPartitionGroup, givenSequenceCompressedWithInvalidBase64_returnsError) {
+TEST(ColumnGroup, givenSequenceCompressedWithInvalidBase64_returnsError) {
    const std::vector<Nucleotide::Symbol> reference = {Nucleotide::Symbol::A};
 
    const auto result = setupNucleotideColumnAndInsertJson(
@@ -268,7 +262,7 @@ TEST(ColumnPartitionGroup, givenSequenceCompressedWithInvalidBase64_returnsError
    EXPECT_THAT(result.error(), testing::HasSubstr("invalid base64"));
 }
 
-TEST(ColumnPartitionGroup, givenSequenceCompressedWithInvalidZstdData_returnsError) {
+TEST(ColumnGroup, givenSequenceCompressedWithInvalidZstdData_returnsError) {
    const std::vector<Nucleotide::Symbol> reference = {
       Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
    };

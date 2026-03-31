@@ -11,7 +11,7 @@
 #include <arrow/builder.h>
 
 #include "silo/query_engine/exec_node/arrow_util.h"
-#include "silo/query_engine/operators/compute_partition_filters.h"
+#include "silo/query_engine/operators/compute_filter.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
@@ -35,10 +35,10 @@ arrow::Result<PartialArrowPlan> CountFilterNode::toQueryPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto partition_filters = computePartitionFilters(filter, *table);
+   auto filter_bitmap = computeFilter(filter, *table);
 
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [partition_filters = std::move(partition_filters),
+      [filter_bitmap = std::move(filter_bitmap),
        already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
          const std::optional<arrow::ExecBatch> result = std::nullopt;
@@ -46,10 +46,7 @@ arrow::Result<PartialArrowPlan> CountFilterNode::toQueryPlan(
       }
       already_produced = true;
 
-      int64_t result_count = 0;
-      for (const auto& partition_filter : partition_filters) {
-         result_count += static_cast<int64_t>(partition_filter.getConstReference().cardinality());
-      }
+      auto result_count = static_cast<int64_t>(filter_bitmap.getConstReference().cardinality());
 
       arrow::Int64Builder result_builder{};
       ARROW_RETURN_NOT_OK(result_builder.Append(result_count));

@@ -51,7 +51,7 @@ class SequenceColumnMetadata : public ColumnMetadata {
 };
 
 template <typename SymbolType>
-class SequenceColumnPartition {
+class SequenceColumn {
   public:
    using Metadata = SequenceColumnMetadata<SymbolType>;
 
@@ -94,7 +94,7 @@ class SequenceColumnPartition {
 
    ZstdDecompressor compressed_input_decompressor;
 
-   explicit SequenceColumnPartition(Metadata* metadata);
+   explicit SequenceColumn(Metadata* metadata);
 
    [[nodiscard]] size_t numValues() const { return sequence_count; }
 

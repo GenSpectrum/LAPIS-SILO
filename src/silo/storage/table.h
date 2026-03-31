@@ -1,32 +1,57 @@
 #pragma once
 
+#include <cstdint>
+#include <filesystem>
+#include <map>
+#include <string>
+
+#include <boost/serialization/access.hpp>
+
 #include "silo/schema/database_schema.h"
-#include "silo/storage/table_partition.h"
+#include "silo/storage/column_group.h"
 
 namespace silo::storage {
 
 class Table {
-   std::vector<std::shared_ptr<TablePartition>> partitions;
-
   public:
    std::shared_ptr<schema::TableSchema> schema;
+   storage::ColumnGroup columns;
+   uint32_t sequence_count = 0;
 
-   explicit Table(std::shared_ptr<schema::TableSchema> schema)
-       : schema(std::move(schema)) {}
+   explicit Table(std::shared_ptr<schema::TableSchema> schema);
 
-   [[nodiscard]] size_t getNumberOfPartitions() const;
+   Table(Table&& other) = default;
+   Table& operator=(Table&& other) = default;
 
-   [[nodiscard]] std::shared_ptr<TablePartition> getPartition(size_t partition_idx) const;
+   Table(const Table& other) = delete;
+   Table& operator=(const Table& other) = delete;
 
-   std::shared_ptr<TablePartition> getPartition(size_t partition_idx);
-
-   std::shared_ptr<TablePartition> addPartition();
+   template <class Archive>
+   void serializeData(Archive& archive, [[maybe_unused]] const uint32_t version) {
+      // clang-format off
+      archive & columns;
+      archive & sequence_count;
+      // clang-format on
+   }
 
    void validate() const;
 
-   void loadData(const std::filesystem::path& save_directory);
-   void saveData(const std::filesystem::path& save_directory);
+   void finalize();
+
+   void loadData(const std::filesystem::path& path);
+   void saveData(const std::filesystem::path& path);
    void validatePrimaryKeyUnique() const;
+
+  private:
+   void validateNucleotideSequences() const;
+   void validateAminoAcidSequences() const;
+   void validateMetadataColumns() const;
+
+   template <typename Column>
+   void validateColumnsHaveSize(
+      const std::map<std::string, Column>& columnsOfTheType,
+      const std::string& columnType
+   ) const;
 };
 
 }  // namespace silo::storage

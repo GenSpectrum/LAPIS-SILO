@@ -162,8 +162,7 @@ class CompareToValueSelection : public Predicate {
 };
 
 template <>
-bool CompareToValueSelection<silo::storage::column::StringColumnPartition>::match(uint32_t row_id
-) const;
+bool CompareToValueSelection<silo::storage::column::StringColumn>::match(uint32_t row_id) const;
 
 class Selection : public Operator {
    friend class filter::expressions::And;

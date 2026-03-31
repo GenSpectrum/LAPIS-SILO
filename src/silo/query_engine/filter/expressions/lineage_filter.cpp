@@ -13,12 +13,11 @@
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
 using silo::common::RecombinantEdgeFollowingMode;
-using silo::storage::column::IndexedStringColumnPartition;
+using silo::storage::column::IndexedStringColumn;
 
 LineageFilter::LineageFilter(
    std::string column_name,
@@ -40,7 +39,7 @@ std::string LineageFilter::toString() const {
 }
 
 std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
-   const IndexedStringColumnPartition& lineage_column
+   const IndexedStringColumn& lineage_column
 ) const {
    if (lineage == std::nullopt) {
       return lineage_column.filter(std::nullopt);
@@ -67,35 +66,31 @@ std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
 
 std::unique_ptr<Expression> LineageFilter::rewrite(
    const storage::Table& /*table*/,
-   const storage::TablePartition& /*table_partition*/,
    AmbiguityMode /*mode*/
 ) const {
    return std::make_unique<LineageFilter>(column_name, lineage, sublineage_mode);
 }
 
-std::unique_ptr<operators::Operator> LineageFilter::compile(
-   const storage::Table& /*table*/,
-   const storage::TablePartition& table_partition
-) const {
+std::unique_ptr<operators::Operator> LineageFilter::compile(const storage::Table& table) const {
    CHECK_SILO_QUERY(
-      table_partition.columns.indexed_string_columns.contains(column_name),
+      table.columns.indexed_string_columns.contains(column_name),
       "The database does not contain the column '{}'",
       column_name
    );
    CHECK_SILO_QUERY(
-      table_partition.columns.indexed_string_columns.at(column_name).getLineageIndex().has_value(),
+      table.columns.indexed_string_columns.at(column_name).getLineageIndex().has_value(),
       "The database does not contain a lineage index for the column '{}'",
       column_name
    );
 
-   const auto& lineage_column = table_partition.columns.indexed_string_columns.at(column_name);
+   const auto& lineage_column = table.columns.indexed_string_columns.at(column_name);
    std::optional<const roaring::Roaring*> bitmap = getBitmapForValue(lineage_column);
 
    if (bitmap == std::nullopt) {
-      return std::make_unique<operators::Empty>(table_partition.sequence_count);
+      return std::make_unique<operators::Empty>(table.sequence_count);
    }
    return std::make_unique<operators::IndexScan>(
-      CopyOnWriteBitmap{bitmap.value()}, table_partition.sequence_count
+      CopyOnWriteBitmap{bitmap.value()}, table.sequence_count
    );
 }
 

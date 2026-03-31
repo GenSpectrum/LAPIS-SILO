@@ -25,21 +25,21 @@ IndexedStringColumnMetadata::IndexedStringColumnMetadata(
       dictionary(std::move(dictionary)),
       lineage_tree(std::move(lineage_tree_and_id_map)) {}
 
-IndexedStringColumnPartition::IndexedStringColumnPartition(IndexedStringColumnMetadata* metadata)
+IndexedStringColumn::IndexedStringColumn(IndexedStringColumnMetadata* metadata)
     : metadata(metadata) {
    if (metadata->lineage_tree.has_value()) {
       lineage_index = LineageIndex{&metadata->lineage_tree->lineage_tree};
    }
 }
 
-std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(Idx value_id) const {
+std::optional<const roaring::Roaring*> IndexedStringColumn::filter(Idx value_id) const {
    if (indexed_values.contains(value_id)) {
       return &indexed_values.at(value_id);
    }
    return std::nullopt;
 }
 
-std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(
+std::optional<const roaring::Roaring*> IndexedStringColumn::filter(
    const std::optional<std::string>& value
 ) const {
    if (value == std::nullopt) {
@@ -52,7 +52,7 @@ std::optional<const roaring::Roaring*> IndexedStringColumnPartition::filter(
    return filter(value_id.value());
 }
 
-std::expected<void, std::string> IndexedStringColumnPartition::insert(std::string_view value) {
+std::expected<void, std::string> IndexedStringColumn::insert(std::string_view value) {
    const size_t row_id = value_ids.size();
 
    if (lineage_index.has_value()) {
@@ -75,7 +75,7 @@ std::expected<void, std::string> IndexedStringColumnPartition::insert(std::strin
    return {};
 }
 
-void IndexedStringColumnPartition::insertNull() {
+void IndexedStringColumn::insertNull() {
    null_bitmap.add(value_ids.size());
    // We need to add something to the vector, so that the size of the vector remains equal to row_id
    // but we do not add our row_id to indexed_values[value_id]
@@ -84,19 +84,19 @@ void IndexedStringColumnPartition::insertNull() {
    value_ids.push_back(value_id);
 }
 
-bool IndexedStringColumnPartition::isNull(size_t row_id) const {
+bool IndexedStringColumn::isNull(size_t row_id) const {
    return null_bitmap.contains(row_id);
 }
 
-void IndexedStringColumnPartition::reserve(size_t row_count) {
+void IndexedStringColumn::reserve(size_t row_count) {
    value_ids.reserve(value_ids.size() + row_count);
 }
 
-std::optional<silo::Idx> IndexedStringColumnPartition::getValueId(const std::string& value) const {
+std::optional<silo::Idx> IndexedStringColumn::getValueId(const std::string& value) const {
    return metadata->dictionary.getId(value);
 }
 
-const std::optional<LineageIndex>& IndexedStringColumnPartition::getLineageIndex() const {
+const std::optional<LineageIndex>& IndexedStringColumn::getLineageIndex() const {
    return lineage_index;
 }
 

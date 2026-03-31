@@ -8,7 +8,6 @@
 
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
-#include "silo/storage/table_partition.h"
 
 namespace silo::query_engine::filter::expressions {
 
@@ -20,19 +19,16 @@ class NOf : public Expression {
 
    [[nodiscard]] ExpressionVector rewriteChildren(
       const storage::Table& table,
-      const storage::TablePartition& table_partition,
       Expression::AmbiguityMode mode
    ) const;
 
    [[nodiscard]] std::unique_ptr<Expression> rewriteToNonExact(
       const storage::Table& table,
-      const storage::TablePartition& table_partition,
       Expression::AmbiguityMode mode
    ) const;
 
    [[nodiscard]] std::tuple<operators::OperatorVector, operators::OperatorVector, int>
-   mapChildExpressions(const storage::Table& table, const storage::TablePartition& table_partition)
-      const;
+   mapChildExpressions(const storage::Table& table) const;
 
   public:
    explicit NOf(ExpressionVector&& children, int number_of_matchers, bool match_exactly);
@@ -41,13 +37,10 @@ class NOf : public Expression {
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
-      const storage::TablePartition& table_partition,
       AmbiguityMode mode
    ) const override;
 
-   [[nodiscard]] std::unique_ptr<operators::Operator> compile(
-      const storage::Table& table,
-      const storage::TablePartition& table_partition
+   [[nodiscard]] std::unique_ptr<operators::Operator> compile(const storage::Table& table
    ) const override;
 };
 
