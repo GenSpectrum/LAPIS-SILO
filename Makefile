@@ -13,7 +13,6 @@ CMAKE_BUILD_PARALLEL_LEVEL ?= 16
 .PHONY: ci
 ci: format all-tests
 
-.PHONY: conanprofile
 conanprofile:
 	buildScripts/create-conanprofile
 
