@@ -292,7 +292,7 @@ jobs:
 
       - name: Upload binaries to GitHub Release
         if: env.SILO_VERSION != ''
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             artifacts/*.tar.gz
@@ -498,7 +498,7 @@ jobs:
 
       - name: Upload wheel to GitHub release
         if: env.SILO_VERSION != ''
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: wheelhouse/*.whl
           tag_name: v${{ env.SILO_VERSION }}
@@ -553,7 +553,7 @@ jobs:
 
       - name: Upload wheel to GitHub release
         if: env.SILO_VERSION != ''
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: wheelhouse/*.whl
           tag_name: v${{ env.SILO_VERSION }}
