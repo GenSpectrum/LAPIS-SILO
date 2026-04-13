@@ -8,7 +8,7 @@
   "dependencies": {
     "apache-arrow": "^21.1.0",
     "chai": "^6.2.2",
-    "prettier": "^3.8.1",
+    "prettier": "^3.8.2",
     "supertest": "^7.2.2"
   }
 }
