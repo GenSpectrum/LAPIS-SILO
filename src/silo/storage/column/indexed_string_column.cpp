@@ -10,20 +10,24 @@ namespace silo::storage::column {
 
 IndexedStringColumnMetadata::IndexedStringColumnMetadata(
    std::string column_name,
-   common::LineageTreeAndIdMap lineage_tree_and_id_map
+   common::LineageTreeAndIdMap lineage_tree_and_id_map,
+   bool treat_unknown_lineages_as_null
 )
     : ColumnMetadata(std::move(column_name)),
       dictionary(lineage_tree_and_id_map.lineage_id_lookup_map.copy()),
-      lineage_tree(std::move(lineage_tree_and_id_map)) {}
+      lineage_tree(std::move(lineage_tree_and_id_map)),
+      treat_unknown_lineages_as_null(treat_unknown_lineages_as_null) {}
 
 IndexedStringColumnMetadata::IndexedStringColumnMetadata(
    std::string column_name,
    common::BidirectionalStringMap dictionary,
-   common::LineageTreeAndIdMap lineage_tree_and_id_map
+   common::LineageTreeAndIdMap lineage_tree_and_id_map,
+   bool treat_unknown_lineages_as_null
 )
     : ColumnMetadata(std::move(column_name)),
       dictionary(std::move(dictionary)),
-      lineage_tree(std::move(lineage_tree_and_id_map)) {}
+      lineage_tree(std::move(lineage_tree_and_id_map)),
+      treat_unknown_lineages_as_null(treat_unknown_lineages_as_null) {}
 
 IndexedStringColumn::IndexedStringColumn(IndexedStringColumnMetadata* metadata)
     : metadata(metadata) {
@@ -57,7 +61,9 @@ std::expected<void, std::string> IndexedStringColumn::insert(std::string_view va
 
    if (lineage_index.has_value()) {
       const auto value_id = metadata->dictionary.getId(value);
-      if (!value_id.has_value()) {
+      if (value_id.has_value()) {
+         lineage_index.value().insert(row_id, value_id.value());
+      } else if (!metadata->treat_unknown_lineages_as_null) {
          return std::unexpected(fmt::format(
             "The value '{}' is not a valid lineage value for column '{}'. "
             "Is your lineage definition file outdated?",
@@ -65,7 +71,6 @@ std::expected<void, std::string> IndexedStringColumn::insert(std::string_view va
             metadata->column_name
          ));
       }
-      lineage_index->insert(row_id, value_id.value());
    }
 
    const Idx value_id = metadata->dictionary.getOrCreateId(value);

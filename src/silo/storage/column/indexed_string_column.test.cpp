@@ -56,7 +56,7 @@ TEST(IndexedStringColumn, addingLineageAndThenSublineageFiltersCorrectly) {
    auto lineage_definition = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
       "testBaseData/exampleDataset/lineage_definition.yaml"
    );
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
+   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
    IndexedStringColumn under_test{&column_metadata};
 
    ASSERT_TRUE(under_test.insert({"BA.1.1"}));
@@ -90,7 +90,7 @@ TEST(IndexedStringColumn, addingSublineageAndThenLineageFiltersCorrectly) {
    auto lineage_definition = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
       "testBaseData/exampleDataset/lineage_definition.yaml"
    );
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
+   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
    IndexedStringColumn under_test{&column_metadata};
 
    ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
@@ -138,7 +138,7 @@ TEST(IndexedStringColumn, queryParentLineageThatWasNeverInserted) {
    auto lineage_definition = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
       "testBaseData/exampleDataset/lineage_definition.yaml"
    );
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
+   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
    IndexedStringColumn under_test{&column_metadata};
 
    ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
@@ -168,7 +168,7 @@ A: {}
 A.1:
   parents: ["A"]
 )"));
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition);
+   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
    IndexedStringColumn under_test{&column_metadata};
    ASSERT_TRUE(under_test.insert({"A"}));
    auto success = under_test.insert({"A.2"});
@@ -177,6 +177,27 @@ A.1:
       success.error(),
       "The value 'A.2' is not a valid lineage value for column 'some_column'. "
       "Is your lineage definition file outdated?"
+   );
+}
+
+TEST(IndexedStringColumn, ignoringErrorWhenInsertingIncorrectLineagesIfSpecified) {
+   auto lineage_definition =
+      LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
+A: {}
+A.1:
+  parents: ["A"]
+)"));
+   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, true);
+   IndexedStringColumn under_test{&column_metadata};
+   ASSERT_TRUE(under_test.insert({"A"}));
+   ASSERT_TRUE(under_test.insert({"not in the lineage hierarchy"}));
+   EXPECT_EQ(
+      *under_test.getLineageIndex()
+          ->filterIncludingSublineages(
+             under_test.getValueId("A").value(), RecombinantEdgeFollowingMode::DO_NOT_FOLLOW
+          )
+          .value(),
+      roaring::Roaring({0})
    );
 }
 

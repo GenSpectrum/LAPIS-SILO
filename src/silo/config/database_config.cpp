@@ -149,6 +149,11 @@ bool YAML::convert<silo::config::DatabaseMetadata>::decode(
    } else {
       metadata.phylo_tree_node_identifier = false;
    }
+   if (node["treatUnknownLineagesAsNull"].IsDefined()) {
+      metadata.treat_unknown_lineages_as_null = node["treatUnknownLineagesAsNull"].as<bool>();
+   } else {
+      metadata.treat_unknown_lineages_as_null = false;
+   }
    return true;
 }
 YAML::Node YAML::convert<silo::config::DatabaseMetadata>::encode(
@@ -163,6 +168,9 @@ YAML::Node YAML::convert<silo::config::DatabaseMetadata>::encode(
    }
    if (metadata.phylo_tree_node_identifier) {
       node["isPhyloTreeField"] = true;
+   }
+   if (metadata.treat_unknown_lineages_as_null) {
+      node["treatUnknownLineagesAsNull"] = true;
    }
    return node;
 }
