@@ -24,6 +24,7 @@ class DatabaseMetadata {
    bool generate_index;
    std::optional<std::string> generate_lineage_index;
    bool phylo_tree_node_identifier;
+   bool treat_unknown_lineages_as_null;
 
    [[nodiscard]] schema::ColumnType getColumnType() const;
 };

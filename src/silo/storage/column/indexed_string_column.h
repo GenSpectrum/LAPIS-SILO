@@ -27,6 +27,7 @@ class IndexedStringColumnMetadata : public ColumnMetadata {
   public:
    common::BidirectionalStringMap dictionary;
    std::optional<common::LineageTreeAndIdMap> lineage_tree;
+   bool treat_unknown_lineages_as_null = false;
 
    explicit IndexedStringColumnMetadata(std::string column_name)
        : ColumnMetadata(std::move(column_name)) {}
@@ -40,13 +41,15 @@ class IndexedStringColumnMetadata : public ColumnMetadata {
 
    IndexedStringColumnMetadata(
       std::string column_name,
-      common::LineageTreeAndIdMap lineage_tree_and_id_map
+      common::LineageTreeAndIdMap lineage_tree_and_id_map,
+      bool treat_unknown_lineages_as_null
    );
 
    IndexedStringColumnMetadata(
       std::string column_name,
       silo::common::BidirectionalStringMap dictionary,
-      common::LineageTreeAndIdMap lineage_tree_and_id_map
+      common::LineageTreeAndIdMap lineage_tree_and_id_map,
+      bool treat_unknown_lineages_as_null
    );
 
    IndexedStringColumnMetadata() = delete;
@@ -132,6 +135,7 @@ template <class Archive>
    archive & object.column_name;
    archive & object.dictionary;
    archive & object.lineage_tree;
+   archive & object.treat_unknown_lineages_as_null;
 }
 }  // namespace boost::serialization
 
@@ -146,12 +150,17 @@ template <class Archive>
    std::string column_name;
    silo::common::BidirectionalStringMap dictionary;
    std::optional<silo::common::LineageTreeAndIdMap> lineage_tree;
+   bool treat_unknown_lineages_as_null;
    archive & column_name;
    archive & dictionary;
    archive & lineage_tree;
+   archive & treat_unknown_lineages_as_null;
    if (lineage_tree.has_value()) {
       object = std::make_shared<silo::storage::column::IndexedStringColumnMetadata>(
-         std::move(column_name), std::move(dictionary), std::move(lineage_tree.value())
+         std::move(column_name),
+         std::move(dictionary),
+         std::move(lineage_tree.value()),
+         treat_unknown_lineages_as_null
       );
    } else {
       object = std::make_shared<silo::storage::column::IndexedStringColumnMetadata>(

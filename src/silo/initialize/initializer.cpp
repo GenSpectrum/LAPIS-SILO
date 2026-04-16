@@ -84,7 +84,7 @@ void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumn>
          );
       }
       metadata = std::make_shared<storage::column::IndexedStringColumn::Metadata>(
-         config_metadata.name, lineage_tree.value()
+         config_metadata.name, lineage_tree.value(), config_metadata.treat_unknown_lineages_as_null
       );
    } else {
       metadata =
