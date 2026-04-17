@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.11.1...v0.11.2) (2026-04-17)
+
+
+### Features
+
+* **silo:** add option to ignore unknown lineage values ([16e1389](https://github.com/GenSpectrum/LAPIS-SILO/commit/16e1389a39e81e0206a93e12ba9d3eaf7cfafabd))
+
 ## [0.11.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.11.0...v0.11.1) (2026-03-23)
 
 
