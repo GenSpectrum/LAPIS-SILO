@@ -3,6 +3,8 @@
 #include <cctype>
 #include <charconv>
 
+#include <fast_float/fast_float.h>
+
 #include "silo/query_engine/saneql/parse_exception.h"
 
 namespace silo::query_engine::saneql {
@@ -154,7 +156,7 @@ Token Lexer::readNumber() {
 
    if (is_float) {
       double val = 0;
-      auto [ptr, ec] = std::from_chars(num_str.data(), num_str.data() + num_str.size(), val);
+      auto [ptr, ec] = fast_float::from_chars(num_str.data(), num_str.data() + num_str.size(), val);
       if (ec != std::errc()) {
          throw ParseException("Invalid float literal", start);
       }
