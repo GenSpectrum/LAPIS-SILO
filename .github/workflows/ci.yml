@@ -20,7 +20,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@v5
         if: github.event_name == 'push'
         id: release
         with:
