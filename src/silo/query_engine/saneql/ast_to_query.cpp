@@ -637,9 +637,10 @@ operators::QueryNodePtr handleProject(
    const ChildConverter& convert_child
 ) {
    const auto& field_argument = args.at("fields");
-   const std::vector<std::string> field_names = holds_alternative<ast::Identifier>(field_argument.value)
-                                             ? std::vector{extractIdentifierName(field_argument)}
-                                             : extractSetOfIdentifiers(field_argument);
+   const std::vector<std::string> field_names =
+      holds_alternative<ast::Identifier>(field_argument.value)
+         ? std::vector{extractIdentifierName(field_argument)}
+         : extractSetOfIdentifiers(field_argument);
    auto child = convert_child(args.at("input"), tables);
    auto child_schema = child->getOutputSchema();
    std::vector<schema::ColumnIdentifier> fields;

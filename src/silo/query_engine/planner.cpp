@@ -79,13 +79,17 @@ struct ExtractedScanInfo {
 std::optional<ExtractedScanInfo> extractScanInfo(operators::QueryNodePtr& node) {
    auto* scan = dynamic_cast<operators::ScanNode*>(node.get());
    if (scan != nullptr) {
-      return ExtractedScanInfo{.table_name=scan->table_name, .filter=std::make_unique<filter::expressions::True>()};
+      return ExtractedScanInfo{
+         .table_name = scan->table_name, .filter = std::make_unique<filter::expressions::True>()
+      };
    }
    auto* filter = dynamic_cast<operators::FilterNode*>(node.get());
    if (filter != nullptr) {
       auto* inner_scan = dynamic_cast<operators::ScanNode*>(filter->child.get());
       if (inner_scan != nullptr) {
-         return ExtractedScanInfo{.table_name=inner_scan->table_name, .filter=std::move(filter->filter)};
+         return ExtractedScanInfo{
+            .table_name = inner_scan->table_name, .filter = std::move(filter->filter)
+         };
       }
    }
    return std::nullopt;
