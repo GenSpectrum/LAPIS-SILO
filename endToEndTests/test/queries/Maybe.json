@@ -1,18 +1,6 @@
 {
   "testCaseName": "Maybe Query",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "Maybe",
-      "child": {
-        "type": "NucleotideEquals",
-        "position": 122,
-        "symbol": "A"
-      }
-    }
-  },
+  "query": "default.filter(maybe(nucleotideEquals(position:=122, symbol:='A'))).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 96

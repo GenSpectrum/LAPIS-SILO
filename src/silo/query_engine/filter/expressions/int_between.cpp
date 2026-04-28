@@ -5,7 +5,6 @@
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
@@ -79,38 +78,6 @@ std::unique_ptr<operators::Operator> IntBetween::compile(const storage::Table& t
    SPDLOG_TRACE("Compiled IntBetween filter expression to {}", result->toString());
 
    return std::move(result);
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("column"), "The field 'column' is required in a IntBetween expression"
-   );
-   CHECK_SILO_QUERY(
-      json["column"].is_string(), "The field 'column' in a IntBetween expression must be a string"
-   );
-   CHECK_SILO_QUERY(json.contains("from"), "The field 'from' is required in IntBetween expression");
-   CHECK_SILO_QUERY(
-      json["from"].is_number_integer() || json["from"].is_null(),
-      "The field 'from' in an IntBetween expression must be an integer in [-2147483648; "
-      "2147483647] or null"
-   );
-   CHECK_SILO_QUERY(json.contains("to"), "The field 'to' is required in a IntBetween expression");
-   CHECK_SILO_QUERY(
-      (json["to"].is_number_integer() && json["to"].is_number_integer()) || json["to"].is_null(),
-      "The field 'to' in an IntBetween expression must be an integer in [-2147483648; 2147483647] "
-      "or null"
-   );
-   const std::string& column_name = json["column"];
-   std::optional<int32_t> value_from;
-   if (json["from"].is_number_integer()) {
-      value_from = json["from"].get<int32_t>();
-   }
-   std::optional<int32_t> value_to;
-   if (json["to"].is_number_integer()) {
-      value_to = json["to"].get<int32_t>();
-   }
-   filter = std::make_unique<IntBetween>(column_name, value_from, value_to);
 }
 
 }  // namespace silo::query_engine::filter::expressions

@@ -1,15 +1,6 @@
 {
   "testCaseName": "Order By QC float column ascending",
-  "query": {
-    "action": {
-      "type": "Aggregated",
-      "groupByFields": ["qc_value"],
-      "orderByFields": ["qc_value"]
-    },
-    "filterExpression": {
-      "type": "True"
-    }
-  },
+  "query": "default.groupBy({count:=count()},{qc_value}).orderBy({qc_value})",
   "expectedQueryResult": [
     {
       "count": 2,

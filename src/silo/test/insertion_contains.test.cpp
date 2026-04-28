@@ -56,58 +56,34 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-nlohmann::json createInsertionContainsQuery(
-   const nlohmann::json& sequenceName,
-   int position,
-   const std::string& insertedSymbols
-) {
-   return {
-      {"action", {{"type", "Details"}}},
-      {"filterExpression",
-       {{"type", "InsertionContains"},
-        {"position", position},
-        {"value", insertedSymbols},
-        {"sequenceName", sequenceName}}}
-   };
-}
-
-nlohmann::json createInsertionContainsQueryWithEmptySequenceName(
-   int position,
-   const std::string& insertedSymbols
-) {
-   return {
-      {"action", {{"type", "Details"}}},
-      {"filterExpression",
-       {
-          {"type", "InsertionContains"},
-          {"position", position},
-          {"value", insertedSymbols},
-       }}
-   };
-}
-
 const QueryTestScenario INSERTION_CONTAINS_SCENARIO = {
    .name = "INSERTION_CONTAINS_SCENARIO",
-   .query = createInsertionContainsQuery("segment1", 12, "A"),
+   .query =
+      "default.filter(insertionContains(position:=12, value:='A', "
+      "sequenceName:='segment1')).project(primaryKey)",
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
 const QueryTestScenario INSERTION_CONTAINS_WITH_EMPTY_SEGMENT_SCENARIO = {
    .name = "INSERTION_CONTAINS_WITH_EMPTY_SEGMENT_SCENARIO",
-   .query = createInsertionContainsQueryWithEmptySequenceName(12, "A"),
+   .query = "default.filter(insertionContains(position:=12, value:='A')).project(primaryKey)",
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
 const QueryTestScenario INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO = {
    .name = "INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO",
-   .query = createInsertionContainsQuery("unknownSegmentName", 12, "A"),
+   .query =
+      "default.filter(insertionContains(position:=12, value:='A', "
+      "sequenceName:='unknownSegmentName'))",
    .expected_error_message =
       "Database does not contain the Nucleotide Sequence with name: 'unknownSegmentName'"
 };
 
 const QueryTestScenario INSERTION_CONTAINS_POSITION_OUT_OF_RANGE = {
    .name = "INSERTION_CONTAINS_POSITION_OUT_OF_RANGE",
-   .query = createInsertionContainsQuery("segment2", 100, "A"),
+   .query =
+      "default.filter(insertionContains(position:=100, value:='A', sequenceName:='segment2'))"
+      "",
    .expected_error_message =
       "the requested insertion position (100) is larger than the length of the reference sequence "
       "(32) for sequence 'segment2'"
@@ -115,7 +91,7 @@ const QueryTestScenario INSERTION_CONTAINS_POSITION_OUT_OF_RANGE = {
 
 const QueryTestScenario INSERTION_CONTAINS_POSITION_OUT_OF_RANGE_DEFAULT_SEQUENCE = {
    .name = "INSERTION_CONTAINS_POSITION_OUT_OF_RANGE_DEFAULT_SEQUENCE",
-   .query = createInsertionContainsQueryWithEmptySequenceName(100, "A"),
+   .query = "default.filter(insertionContains(position:=100, value:='A'))",
    .expected_error_message =
       "the requested insertion position (100) is larger than the length of the reference sequence "
       "(32) for sequence 'segment1'"

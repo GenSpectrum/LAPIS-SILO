@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -23,9 +24,18 @@ class PhyloSubtreeNode final : public QueryNode {
    std::string column_name;
    bool print_nodes_not_in_tree;
    bool contract_unary_nodes;
+   std::optional<schema::TableName> table_name;
 
    PhyloSubtreeNode(
       std::shared_ptr<storage::Table> table,
+      std::unique_ptr<filter::expressions::Expression> filter,
+      std::string column_name,
+      bool print_nodes_not_in_tree,
+      bool contract_unary_nodes
+   );
+
+   PhyloSubtreeNode(
+      schema::TableName table_name,
       std::unique_ptr<filter::expressions::Expression> filter,
       std::string column_name,
       bool print_nodes_not_in_tree,

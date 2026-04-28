@@ -4,7 +4,6 @@
 #include <utility>
 
 #include <fmt/format.h>
-#include <nlohmann/json.hpp>
 
 #include "silo/common/panic.h"
 #include "silo/query_engine/filter/expressions/expression.h"
@@ -69,28 +68,6 @@ std::unique_ptr<operators::Operator> PhyloChildFilter::compile(const storage::Ta
    SILO_ASSERT(table.columns.string_columns.contains(column_name));
    const auto& string_column = table.columns.string_columns.at(column_name);
    return createMatchingBitmap(string_column, internal_node, table.sequence_count);
-}
-
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<PhyloChildFilter>& filter) {
-   CHECK_SILO_QUERY(
-      json.contains("column"), "The field 'column' is required in an PhyloChildFilter expression"
-   )
-   CHECK_SILO_QUERY(
-      json["column"].is_string(),
-      "The field 'column' in an PhyloChildFilter expression needs to be a string"
-   )
-   CHECK_SILO_QUERY(
-      json.contains("internalNode"),
-      "The field 'internalNode' is required in an PhyloChildFilter expression"
-   )
-   CHECK_SILO_QUERY(
-      json["internalNode"].is_string(),
-      "The field 'internalNode' in an PhyloChildFilter expression needs to be a string"
-   )
-   filter = std::make_unique<PhyloChildFilter>(
-      json["column"].get<std::string>(), json["internalNode"].get<std::string>()
-   );
 }
 
 }  // namespace silo::query_engine::filter::expressions

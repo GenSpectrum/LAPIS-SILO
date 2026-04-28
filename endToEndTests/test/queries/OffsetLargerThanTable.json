@@ -1,27 +1,5 @@
 {
   "testCaseName": "Offset is larger than the table",
-  "query": {
-    "action": {
-      "type": "Details",
-      "orderByFields": ["primary_key"],
-      "offset": 1231241
-    },
-    "filterExpression": {
-      "type": "And",
-      "children": [
-        {
-          "type": "StringEquals",
-          "column": "country",
-          "value": "Switzerland"
-        },
-        {
-          "type": "Lineage",
-          "column": "pango_lineage",
-          "value": "B.1.1.7",
-          "includeSublineages": true
-        }
-      ]
-    }
-  },
+  "query": "default.filter((country = 'Switzerland') && (pango_lineage.lineage('B.1.1.7', includeSublineages:=true))).orderBy({primary_key}).offset(1231241)",
   "expectedQueryResult": []
 }

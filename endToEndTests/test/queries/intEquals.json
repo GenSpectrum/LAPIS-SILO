@@ -1,15 +1,6 @@
 {
   "testCaseName": "IntEquals for column",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "IntEquals",
-      "column": "age",
-      "value": 55
-    }
-  },
+  "query": "default.filter(age = 55).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 8

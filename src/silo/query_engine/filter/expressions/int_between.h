@@ -36,7 +36,4 @@ class IntBetween : public Expression {
    ) const override;
 };
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& json, std::unique_ptr<IntBetween>& filter);
-
 }  // namespace silo::query_engine::filter::expressions

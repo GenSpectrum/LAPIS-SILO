@@ -25,9 +25,4 @@ std::unique_ptr<operators::Operator> True::compile(const storage::Table& table) 
    return std::make_unique<operators::Full>(table.sequence_count);
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-void from_json(const nlohmann::json& /*json*/, std::unique_ptr<True>& filter) {
-   filter = std::make_unique<True>();
-}
-
 }  // namespace silo::query_engine::filter::expressions

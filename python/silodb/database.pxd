@@ -28,7 +28,7 @@ cdef extern from "silo/database.h" namespace "silo":
         vector[pair[uint64_t, string]] getPrevalentAminoAcidMutations(string table_name, string sequence_name, double prevalence_threshold, string filter) except +handle_silo_exception
         Roaring getFilteredBitmap(string table_name, string filter) except +handle_silo_exception
         void saveDatabaseState(string save_directory) except +
-        string executeQueryAsArrowIpc(string table_name, string query_json) except +handle_silo_exception
+        string executeQueryAsArrowIpc(string query_string) except +handle_silo_exception
         string getTablesAsArrowIpc() except +
 
         @staticmethod

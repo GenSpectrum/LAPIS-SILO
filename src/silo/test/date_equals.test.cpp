@@ -14,51 +14,35 @@ const std::string DATE_2023 = "2023-01-20";
 const nlohmann::json DATA_ROW1 = {
    {"primaryKey", "row1"},
    {"sorted_date", DATE_2020},
-   {"unsorted_date", DATE_2023},
-   {"segment1", nullptr},
-   {"unaligned_segment1", nullptr},
-   {"gene1", nullptr}
+   {"unsorted_date", DATE_2023}
 };
 
 const nlohmann::json DATA_ROW2 = {
    {"primaryKey", "row2"},
    {"sorted_date", DATE_2021},
-   {"unsorted_date", DATE_2020},
-   {"segment1", nullptr},
-   {"unaligned_segment1", nullptr},
-   {"gene1", nullptr}
+   {"unsorted_date", DATE_2020}
 };
 
 const nlohmann::json DATA_ROW3 = {
    {"primaryKey", "row3"},
    {"sorted_date", DATE_2020},
-   {"unsorted_date", DATE_2021},
-   {"segment1", nullptr},
-   {"unaligned_segment1", nullptr},
-   {"gene1", nullptr}
+   {"unsorted_date", DATE_2021}
 };
 
 const nlohmann::json DATA_NULL1 = {
    {"primaryKey", "null1"},
    {"sorted_date", nullptr},
-   {"unsorted_date", nullptr},
-   {"segment1", nullptr},
-   {"unaligned_segment1", nullptr},
-   {"gene1", nullptr}
+   {"unsorted_date", nullptr}
 };
 
 const nlohmann::json DATA_NULL2 = {
    {"primaryKey", "null2"},
    {"sorted_date", nullptr},
-   {"unsorted_date", DATE_2023},
-   {"segment1", nullptr},
-   {"unaligned_segment1", nullptr},
-   {"gene1", nullptr}
+   {"unsorted_date", DATE_2023}
 };
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:
@@ -72,8 +56,8 @@ schema:
 )";
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{
-   {{"segment1", "A"}},
-   {{"gene1", "*"}},
+   {},
+   {},
 };
 
 const QueryTestData TEST_DATA{
@@ -82,11 +66,12 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-nlohmann::json createDateEqualsQuery(const std::string& column, const nlohmann::json& value) {
-   return {
-      {"action", {{"type", "Details"}}},
-      {"filterExpression", {{"type", "DateEquals"}, {"column", column}, {"value", value}}}
-   };
+std::string createDateEqualsQuery(const std::string& column, const std::string& date_value) {
+   return fmt::format("default.filter({} = '{}'::date)", column, date_value);
+}
+
+std::string createDateEqualsNullQuery(const std::string& column) {
+   return fmt::format("default.filter({} = null)", column);
 }
 
 // Matches row1 and row3 (both have sorted_date = 2020-12-24)
@@ -126,7 +111,7 @@ const QueryTestScenario UNSORTED_DATE_SINGLE_MATCH =
 // Matches null1 and null2 (both have sorted_date = null)
 const QueryTestScenario SORTED_DATE_NULL =
    {.name = "SORTED_DATE_NULL",
-    .query = createDateEqualsQuery("sorted_date", nullptr),
+    .query = createDateEqualsNullQuery("sorted_date"),
     .expected_query_result = {
        {{"primaryKey", "null1"}, {"sorted_date", nullptr}, {"unsorted_date", nullptr}},
        {{"primaryKey", "null2"}, {"sorted_date", nullptr}, {"unsorted_date", DATE_2023}},
@@ -135,7 +120,7 @@ const QueryTestScenario SORTED_DATE_NULL =
 // Matches only null1 (unsorted_date = null)
 const QueryTestScenario UNSORTED_DATE_NULL =
    {.name = "UNSORTED_DATE_NULL",
-    .query = createDateEqualsQuery("unsorted_date", nullptr),
+    .query = createDateEqualsNullQuery("unsorted_date"),
     .expected_query_result = {
        {{"primaryKey", "null1"}, {"sorted_date", nullptr}, {"unsorted_date", nullptr}},
     }};
@@ -146,32 +131,19 @@ const QueryTestScenario DATE_EQUALS_NO_MATCH = {
    .expected_query_result = nlohmann::json::array()
 };
 
-const QueryTestScenario DATE_EQUALS_COLUMN_NOT_IN_DB = {
-   .name = "DATE_EQUALS_COLUMN_NOT_IN_DB",
-   .query = createDateEqualsQuery("something_not_in_database", "2020-01-01"),
-   .expected_error_message = "The database does not contain the column 'something_not_in_database'"
-};
-
-const QueryTestScenario DATE_EQUALS_WRONG_COLUMN_TYPE = {
-   .name = "DATE_EQUALS_WRONG_COLUMN_TYPE",
-   .query = createDateEqualsQuery("primaryKey", "2020-01-01"),
-   .expected_error_message = "The column 'primaryKey' is not of type date"
-};
-
 const QueryTestScenario DATE_EQUALS_WRONG_FORMAT = {
    .name = "DATE_EQUALS_WRONG_FORMAT",
-   .query = createDateEqualsQuery("primaryKey", "2021-03-00018"),
+   .query = "default.filter(sorted_date = '2021-03-00018'::date)",
    .expected_error_message =
-      "The value for the DateEquals expression is not a valid date: Invalid date format "
-      "'2021-03-00018': expected exactly YYYY-MM-DD"
+      "invalid date '2021-03-00018' at 1:45: Invalid date format '2021-03-00018': "
+      "expected exactly YYYY-MM-DD"
 };
 
 const QueryTestScenario DATE_EQUALS_WRONG_VALUE_TYPE = {
    .name = "DATE_EQUALS_WRONG_VALUE_TYPE",
-   .query = createDateEqualsQuery("primaryKey", "asdf"),
+   .query = "default.filter(sorted_date = 'asdf'::date)",
    .expected_error_message =
-      "The value for the DateEquals expression is not a valid date: Invalid date format 'asdf': "
-      "expected exactly YYYY-MM-DD"
+      "invalid date 'asdf' at 1:36: Invalid date format 'asdf': expected exactly YYYY-MM-DD"
 };
 
 }  // namespace
@@ -187,8 +159,6 @@ QUERY_TEST(
       SORTED_DATE_NULL,
       UNSORTED_DATE_NULL,
       DATE_EQUALS_NO_MATCH,
-      DATE_EQUALS_COLUMN_NOT_IN_DB,
-      DATE_EQUALS_WRONG_COLUMN_TYPE,
       DATE_EQUALS_WRONG_FORMAT,
       DATE_EQUALS_WRONG_VALUE_TYPE
    )

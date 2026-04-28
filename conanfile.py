@@ -8,6 +8,7 @@ class SiloRecipe(ConanFile):
     requires = [
         "arrow/22.0.0",
         "boost/1.85.0",
+        "fast_float/8.1.0",
         "gtest/1.17.0",
         "mimalloc/2.2.4",
         "nlohmann_json/3.12.0",

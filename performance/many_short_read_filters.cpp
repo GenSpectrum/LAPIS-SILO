@@ -12,15 +12,11 @@
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
-#include "silo/query_engine/action_query.h"
-#include "silo/query_engine/planner.h"
-#include "silo/query_engine/binder.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
+#include "silo/query_engine/planner.h"
 #include "silo/storage/reference_genomes.h"
 
-using silo::query_engine::ActionQuery;
 using silo::query_engine::Planner;
-using silo::query_engine::Binder;
 using silo::Database;
 
 namespace {
@@ -313,7 +309,16 @@ class QueryGenerator {
       if (use_all_symbols) {
          // Query all 5 symbols (A, C, G, T, -) at the same position in an OR
          return fmt::format(
-            R"({{"action":{{"type":"Aggregated"}},"filterExpression":{{"children":[{{"children":[{{"children":[{{"column":"locationName","value":"generated","type":"StringEquals"}}],"type":"Or"}},{{"column":"samplingDate","from":"2024-01-01","to":"2024-01-07","type":"DateBetween"}}],"type":"And"}},{{"children":[{{"position":{0},"symbol":"A","type":"NucleotideEquals"}},{{"position":{0},"symbol":"C","type":"NucleotideEquals"}},{{"position":{0},"symbol":"G","type":"NucleotideEquals"}},{{"position":{0},"symbol":"T","type":"NucleotideEquals"}},{{"position":{0},"symbol":"-","type":"NucleotideEquals"}}],"type":"Or"}},{{"column":"samplingDate","from":"2024-01-01","to":"2024-01-07","type":"DateBetween"}}],"type":"And"}}}})",
+            "default.filter("
+            "locationName = 'generated' && "
+            "samplingDate.between('2024-01-01'::date, '2024-01-07'::date) && "
+            "(nucleotideEquals(position:={0}, symbol:='A') || "
+            "nucleotideEquals(position:={0}, symbol:='C') || "
+            "nucleotideEquals(position:={0}, symbol:='G') || "
+            "nucleotideEquals(position:={0}, symbol:='T') || "
+            "nucleotideEquals(position:={0}, symbol:='-')) && "
+            "samplingDate.between('2024-01-01'::date, '2024-01-07'::date)"
+            ").groupBy({{count:=count()}})",
             position
          );
       }
@@ -321,7 +326,12 @@ class QueryGenerator {
       std::uniform_int_distribution<size_t> sym_dist(0, SYMBOLS.size() - 1);
       char symbol = SYMBOLS[sym_dist(rng)];
       return fmt::format(
-         R"({{"action":{{"type":"Aggregated"}},"filterExpression":{{"children":[{{"children":[{{"children":[{{"column":"locationName","value":"generated","type":"StringEquals"}}],"type":"Or"}},{{"column":"samplingDate","from":"2024-01-01","to":"2024-01-07","type":"DateBetween"}}],"type":"And"}},{{"position":{},"symbol":"{}","type":"NucleotideEquals"}},{{"column":"samplingDate","from":"2024-01-01","to":"2024-01-07","type":"DateBetween"}}],"type":"And"}}}})",
+         "default.filter("
+         "locationName = 'generated' && "
+         "samplingDate.between('2024-01-01'::date, '2024-01-07'::date) && "
+         "nucleotideEquals(position:={}, symbol:='{}') && "
+         "samplingDate.between('2024-01-01'::date, '2024-01-07'::date)"
+         ").groupBy({{count:=count()}})",
          position,
          symbol
       );
@@ -340,10 +350,8 @@ void executeAllQueries(
          SPDLOG_INFO("Executing query number {}", query_num);
       }
       std::string query_string = query_gen.generateQuery();
-      auto query = ActionQuery::parseQuery(query_string);
-
-      auto bound_query = Binder::bindQuery(std::move(query), database->tables);
-      auto query_plan = Planner::planQuery(std::move(bound_query), database->tables, {}, "test_query");   std::stringstream result;
+      auto query_plan =
+         Planner::planSaneqlQuery(query_string, database->tables, {}, "test_query");
 
       std::ofstream null_output("/dev/null");
       silo::query_engine::exec_node::NdjsonSink sink{&null_output, query_plan.results_schema};

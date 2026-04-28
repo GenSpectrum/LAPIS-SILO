@@ -1,16 +1,6 @@
 {
   "testCaseName": "DateBetween Query without bounds",
-  "query": {
-    "action": {
-      "type": "Aggregated"
-    },
-    "filterExpression": {
-      "type": "DateBetween",
-      "column": "date",
-      "from": null,
-      "to": null
-    }
-  },
+  "query": "default.filter(date.isNotNull()).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 99
