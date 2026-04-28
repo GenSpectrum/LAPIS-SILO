@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fmt/core.h>
+#include <algorithm>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -29,5 +31,29 @@ std::string tieAsString(
    const std::vector<std::string>& elements2,
    std::string_view suffix
 );
+
+template <typename T>
+std::string joinWithLimit(
+   const std::vector<T>& items,
+   std::string_view delimiter = ", ",
+   size_t limit = 10
+) {
+   std::string res;
+   const size_t items_to_print = std::min(items.size(), limit);
+
+   for (size_t i = 0; i < items_to_print; ++i) {
+      if (i > 0) {
+         res += delimiter;
+      }
+      // Assumes items[i] has a toString() method or works with fmt
+      res += items[i]->toString();
+   }
+
+   if (items.size() > items_to_print) {
+      res += fmt::format("{}... ({} more)", delimiter, items.size() - items_to_print);
+   }
+
+   return res;
+}
 
 }  // namespace silo

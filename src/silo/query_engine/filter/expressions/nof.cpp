@@ -6,6 +6,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "silo/common/string_utils.h"
 #include "silo/query_engine/filter/expressions/and.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/filter/expressions/negation.h"
@@ -166,10 +167,7 @@ std::string NOf::toString() const {
    } else {
       res = "[" + std::to_string(number_of_matchers) + "-of:";
    }
-   for (const auto& child : children) {
-      res += child->toString();
-      res += ", ";
-   }
+   res += joinWithLimit(children);
    res += "]";
    return res;
 }
@@ -233,7 +231,6 @@ std::unique_ptr<Expression> NOf::rewriteToNonExact(
       this->number_of_matchers + 1,
       /*match_exactly=*/false
    );
-   ;
    ExpressionVector and_children;
    and_children.push_back(std::move(at_least_k));
    and_children.push_back(std::make_unique<Negation>(std::move(at_least_k_plus_one)));
@@ -252,6 +249,13 @@ std::unique_ptr<Expression> NOf::rewrite(const storage::Table& table, AmbiguityM
 std::unique_ptr<operators::Operator> NOf::compile(const storage::Table& table) const {
    auto [non_negated_child_operators, negated_child_operators, updated_number_of_matchers] =
       mapChildExpressions(table);
+
+   if (updated_number_of_matchers < 0) {
+      if (match_exactly) {
+         return std::make_unique<operators::Empty>(table.sequence_count);
+      }
+      return std::make_unique<operators::Full>(table.sequence_count);
+   }
 
    return toOperator(
       updated_number_of_matchers,
