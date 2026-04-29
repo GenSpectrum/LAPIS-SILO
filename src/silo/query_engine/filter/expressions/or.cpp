@@ -4,7 +4,6 @@
 #include <string>
 #include <utility>
 
-#include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/string_utils.h"

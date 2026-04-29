@@ -91,9 +91,10 @@ See `HasNucleotideMutation`.
 {
   "distance": number,
   "sequenceName": string,          // optional; uses the default sequence if omitted
+  // exactly one of these
   "querySequence": string
-  | "sequenceId": string
-  | "mutations": {"position": number, "symbol": string}[]
+  "sequenceId": string
+  "mutations": {"position": number, "symbol": string}[]
 }
 ```
 

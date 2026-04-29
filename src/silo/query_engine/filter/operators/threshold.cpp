@@ -43,13 +43,13 @@ Threshold::Threshold(
 Threshold::~Threshold() noexcept = default;
 
 std::string Threshold::toString() const {
-   std::string res;
+   std::string res = "Threshold(";
    if (match_exactly) {
       res += "=";
    } else {
       res += ">=";
    }
-   res += fmt::format("{}-of", number_of_matchers);
+   res += fmt::format("{}-of ", number_of_matchers);
 
    res += "non_negated: (" + joinWithLimit(non_negated_children) + ") ";
    res += "negated: (" + joinWithLimit(negated_children) + ") ";
