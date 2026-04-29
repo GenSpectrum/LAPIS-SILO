@@ -106,21 +106,20 @@ class SequenceTreeGenerator {
 
    std::vector<std::string> generateEvolvedSequences() {
       std::vector<std::string> all_sequences = {reference};
-      std::vector<std::string_view> current_gen = {reference};
+      std::vector<size_t> current_gen = {0};
       std::bernoulli_distribution survives(1.0 - death_rate);
-
       for (size_t gen = 0; gen < generations; ++gen) {
-         std::vector<std::string_view> next_gen;
-         for (const auto& seq : current_gen) {
+         std::vector<size_t> next_gen;
+         for (size_t seq_index : current_gen) {
             for (size_t child = 0; child < children_per_node; ++child) {
                if (survives(rng)) {
-                  all_sequences.push_back(mutateSequence(seq));
-                  next_gen.push_back(all_sequences.back());
+                  all_sequences.push_back(mutateSequence(all_sequences.at(seq_index)));
+                  next_gen.push_back(all_sequences.size() - 1);
                }
             }
          }
          if (next_gen.empty()) {
-            next_gen.push_back(all_sequences.back());
+            next_gen.push_back(all_sequences.size() - 1);
          }
          current_gen = std::move(next_gen);
       }

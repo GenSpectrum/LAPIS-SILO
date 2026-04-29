@@ -113,7 +113,7 @@ const QueryTestScenario MUTATIONS_DISTANCE_2 = {
    )
 };
 
-// Profile with explicit mutation C at position 1 (0-indexed: 0), distance=0
+// Profile with explicit mutation C at 1-based position 1, distance=0
 // Profile = CTGCN → should match seq_1mut (which has CTGCN) and seq_all_n
 // seq_mixed_amb does not match, because C is not in {A,G}=R
 const QueryTestScenario MUTATIONS_WITH_PROFILE_DISTANCE_0 = {
@@ -351,7 +351,7 @@ const QueryTestScenario AA_NO_SEQUENCE_NAME = {
       "You need to provide the sequence name with the AminoAcid MutationProfile filter."
 };
 
-// No sequenceName provided and no default AA sequence in the config → error
+// Mutation position is outside the bounds of the specified AA sequence → error
 const QueryTestScenario AA_MUTATION_OUT_OF_BOUNDS = {
    .name = "AA_MUTATION_OUT_OF_BOUNDS",
    .query = nlohmann::json::parse(R"({

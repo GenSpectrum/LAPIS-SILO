@@ -43,12 +43,10 @@ Intersection::Intersection(
 Intersection::~Intersection() noexcept = default;
 
 std::string Intersection::toString() const {
-   std::string res = "(" + children[0]->toString();
+   std::string res = "Intersection(";
 
-   res += joinWithLimit(children, " & ");
-   if (!negated_children.empty()) {
-      res += " &! " + joinWithLimit(negated_children, " &! ");
-   }
+   res += "non_negated: (" + joinWithLimit(children) + ") ";
+   res += "negated: (" + joinWithLimit(negated_children) + ") ";
 
    res += ")";
    return res;

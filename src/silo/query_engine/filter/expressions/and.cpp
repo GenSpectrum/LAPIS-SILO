@@ -8,7 +8,6 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
-#include <boost/algorithm/string/join.hpp>
 #include <nlohmann/json.hpp>
 
 #include "silo/common/string_utils.h"
