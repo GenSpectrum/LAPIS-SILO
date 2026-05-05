@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.11.2...v0.11.3) (2026-05-05)
+
+
+### Features
+
+* **silo:** add a MutationProfile filter ([2d49d9b](https://github.com/GenSpectrum/LAPIS-SILO/commit/2d49d9b708f22e16139c4f221f13aafc26e8f522))
+
 ## [0.11.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.11.1...v0.11.2) (2026-04-17)
 
 
