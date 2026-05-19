@@ -2,7 +2,6 @@
 
 #include <map>
 #include <memory>
-#include <string_view>
 #include <vector>
 
 #include <arrow/acero/exec_plan.h>
@@ -13,6 +12,30 @@
 #include "silo/storage/table.h"
 
 namespace silo::query_engine::operators {
+
+enum class NodeKind : uint8_t {
+   SCAN,
+   AGGREGATE,
+   PROJECT,
+   ORDER_BY,
+   FETCH,
+   FILTER,
+   UNRESOLVED_MUTATIONS_NUCLEOTIDE,
+   UNRESOLVED_MUTATIONS_AMINO_ACID,
+   UNRESOLVED_INSERTIONS_NUCLEOTIDE,
+   UNRESOLVED_INSERTIONS_AMINO_ACID,
+   UNRESOLVED_MOST_RECENT_COMMON_ANCESTOR,
+   UNRESOLVED_PHYLO_SUBTREE,
+   MUTATIONS_NUCLEOTIDE,
+   MUTATIONS_AMINO_ACID,
+   INSERTIONS_NUCLEOTIDE,
+   INSERTIONS_AMINO_ACID,
+   MOST_RECENT_COMMON_ANCESTOR,
+   PHYLO_SUBTREE,
+   TABLE_SCAN,
+   COUNT_FILTER,
+   ZSTD_DECOMPRESS,
+};
 
 struct PartialArrowPlan {
    arrow::acero::ExecNode* top_node;
@@ -29,6 +52,8 @@ class QueryNode {
    ) const = 0;
 
    [[nodiscard]] virtual std::vector<schema::ColumnIdentifier> getOutputSchema() const = 0;
+
+   [[nodiscard]] virtual NodeKind kind() const = 0;
 };
 
 using QueryNodePtr = std::unique_ptr<QueryNode>;

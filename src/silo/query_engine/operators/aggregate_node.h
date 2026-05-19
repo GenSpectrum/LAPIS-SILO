@@ -20,7 +20,7 @@ enum class AggregateFunction : uint8_t { COUNT };
 struct AggregateDefinition {
    std::string output_name;
    AggregateFunction function;
-   std::optional<std::string> source_column;
+   std::optional<schema::ColumnIdentifier> source_column;
 };
 
 class AggregateNode final : public QueryNode {
@@ -41,6 +41,8 @@ class AggregateNode final : public QueryNode {
       const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
       const config::QueryOptions& query_options
    ) const override;
+
+   [[nodiscard]] NodeKind kind() const override { return NodeKind::AGGREGATE; }
 };
 
 }  // namespace silo::query_engine::operators

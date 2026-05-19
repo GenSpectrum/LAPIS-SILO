@@ -3,10 +3,13 @@
 #include <map>
 #include <memory>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 #include <arrow/result.h>
 
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/filter/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/schema/database_schema.h"
@@ -90,6 +93,14 @@ class MutationsNode final : public QueryNode {
       const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
       const config::QueryOptions& query_options
    ) const override;
+
+   [[nodiscard]] NodeKind kind() const override {
+      if constexpr (std::is_same_v<SymbolType, silo::Nucleotide>) {
+         return NodeKind::MUTATIONS_NUCLEOTIDE;
+      } else {
+         return NodeKind::MUTATIONS_AMINO_ACID;
+      }
+   }
 };
 
 }  // namespace silo::query_engine::operators

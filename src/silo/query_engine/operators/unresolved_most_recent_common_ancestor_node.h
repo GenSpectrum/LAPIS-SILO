@@ -23,7 +23,15 @@ class UnresolvedMostRecentCommonAncestorNode final : public QueryNode {
          print_nodes_not_in_tree(print_nodes_not_in_tree) {}
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override {
-      return {};
+      std::vector<schema::ColumnIdentifier> output_fields;
+      output_fields.emplace_back("missingNodeCount", schema::ColumnType::INT32);
+      if (print_nodes_not_in_tree) {
+         output_fields.emplace_back("missingFromTree", schema::ColumnType::STRING);
+      }
+      output_fields.emplace_back("mrcaNode", schema::ColumnType::STRING);
+      output_fields.emplace_back("mrcaParent", schema::ColumnType::STRING);
+      output_fields.emplace_back("mrcaDepth", schema::ColumnType::INT32);
+      return output_fields;
    }
 
    [[nodiscard]] arrow::Result<PartialArrowPlan> toQueryPlan(
@@ -33,6 +41,10 @@ class UnresolvedMostRecentCommonAncestorNode final : public QueryNode {
       throw std::runtime_error(
          "UnresolvedMostRecentCommonAncestorNode must be eliminated during pushdown"
       );
+   }
+
+   [[nodiscard]] NodeKind kind() const override {
+      return NodeKind::UNRESOLVED_MOST_RECENT_COMMON_ANCESTOR;
    }
 };
 

@@ -27,7 +27,13 @@ class UnresolvedPhyloSubtreeNode final : public QueryNode {
          contract_unary_nodes(contract_unary_nodes) {}
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override {
-      return {};
+      std::vector<schema::ColumnIdentifier> output_fields;
+      output_fields.emplace_back("missingNodeCount", schema::ColumnType::INT32);
+      if (print_nodes_not_in_tree) {
+         output_fields.emplace_back("missingFromTree", schema::ColumnType::STRING);
+      }
+      output_fields.emplace_back("subtreeNewick", schema::ColumnType::STRING);
+      return output_fields;
    }
 
    [[nodiscard]] arrow::Result<PartialArrowPlan> toQueryPlan(
@@ -36,6 +42,8 @@ class UnresolvedPhyloSubtreeNode final : public QueryNode {
    ) const override {
       throw std::runtime_error("UnresolvedPhyloSubtreeNode must be eliminated during pushdown");
    }
+
+   [[nodiscard]] NodeKind kind() const override { return NodeKind::UNRESOLVED_PHYLO_SUBTREE; }
 };
 
 }  // namespace silo::query_engine::operators

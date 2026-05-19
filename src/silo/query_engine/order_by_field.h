@@ -4,10 +4,12 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/schema/database_schema.h"
+
 namespace silo::query_engine {
 
 struct OrderByField {
-   std::string name;
+   schema::ColumnIdentifier field;
    bool ascending;
 };
 
