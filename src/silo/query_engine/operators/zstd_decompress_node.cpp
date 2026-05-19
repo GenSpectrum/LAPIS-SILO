@@ -21,7 +21,6 @@
 #include "silo/query_engine/exec_node/table_scan.h"
 #include "silo/query_engine/exec_node/throttled_batch_reslicer.h"
 #include "silo/query_engine/exec_node/zstd_decompress_expression.h"
-#include "silo/query_engine/operators/compute_filter.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column/sequence_column.h"
@@ -92,16 +91,44 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator()<ZstdComp
 
 }  // namespace
 
-std::vector<schema::ColumnIdentifier> ZstdDecompressNode::getOutputSchema() const {
-   std::vector<schema::ColumnIdentifier> output_schema;
-   for (const auto& input_field : child->getOutputSchema()) {
-      if (isSequenceColumn(input_field.type)) {
-         output_schema.emplace_back(input_field.name, schema::ColumnType::STRING);
-      } else {
-         output_schema.push_back(input_field);
+std::vector<ZstdDecompressNode::ColumnMapping> buildDecompressColumnMapping(
+   const std::vector<schema::ColumnIdentifier>& child_schema,
+   const std::map<schema::ColumnIdentifier, std::shared_ptr<schema::TableSchema>>& table_schemas
+) {
+   std::vector<ZstdDecompressNode::ColumnMapping> result;
+   for (const auto& input_col : child_schema) {
+      if (auto iter = table_schemas.find(input_col); iter != table_schemas.end()) {
+         auto reference = silo::storage::column::visit(
+            input_col.type, ColumnToReferenceSequenceVisitor{}, *iter->second, input_col
+         );
+         result.push_back(
+            {.input = input_col,
+             .output = {.name = input_col.name, .type = schema::ColumnType::STRING},
+             .reference = std::move(reference).value()}
+         );
       }
    }
-   return output_schema;
+   return result;
+}
+
+ZstdDecompressNode::ZstdDecompressNode(
+   QueryNodePtr child_node,
+   std::vector<ColumnMapping> column_mapping_
+)
+    : child(std::move(child_node)),
+      column_mapping(std::move(column_mapping_)) {}
+
+std::vector<schema::ColumnIdentifier> ZstdDecompressNode::getOutputSchema() const {
+   auto child_schema = child->getOutputSchema();
+   std::vector<schema::ColumnIdentifier> output;
+   output.reserve(child_schema.size());
+   for (const auto& child_col : child_schema) {
+      auto it = std::ranges::find_if(column_mapping, [&](const auto& mapping) {
+         return mapping.input == child_col;
+      });
+      output.push_back(it != column_mapping.end() ? it->output : child_col);
+   }
+   return output;
 }
 
 arrow::Result<PartialArrowPlan> ZstdDecompressNode::toQueryPlan(
@@ -115,20 +142,19 @@ arrow::Result<PartialArrowPlan> ZstdDecompressNode::toQueryPlan(
 
    std::vector<arrow::compute::Expression> column_expressions;
    std::vector<std::string> column_names;
-   for (const auto& column : child->getOutputSchema()) {
-      if (auto iter = table_schemas_for_decompression.find(column);
-          iter != table_schemas_for_decompression.end()) {
-         auto reference = silo::storage::column::visit(
-            column.type, ColumnToReferenceSequenceVisitor{}, *iter->second, column
-         );
-         column_expressions.push_back(silo::query_engine::exec_node::ZstdDecompressExpression::make(
-            arrow::compute::field_ref(arrow::FieldRef{column.name}), reference.value()
+   for (const auto& child_col : child->getOutputSchema()) {
+      auto it = std::ranges::find_if(column_mapping, [&](const auto& mapping) {
+         return mapping.input == child_col;
+      });
+      if (it != column_mapping.end()) {
+         column_expressions.push_back(exec_node::ZstdDecompressExpression::make(
+            arrow::compute::field_ref(arrow::FieldRef{child_col.name}), it->reference
          ));
-         sum_of_reference_genome_sizes += reference.value().length();
+         sum_of_reference_genome_sizes += it->reference.length();
       } else {
-         column_expressions.push_back(arrow::compute::field_ref(arrow::FieldRef{column.name}));
+         column_expressions.push_back(arrow::compute::field_ref(arrow::FieldRef{child_col.name}));
       }
-      column_names.push_back(column.name);
+      column_names.push_back(child_col.name);
    }
 
    // Add a sink and source to let arrow apply correct backpressure
