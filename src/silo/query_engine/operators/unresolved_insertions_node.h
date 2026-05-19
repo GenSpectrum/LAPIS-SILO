@@ -1,8 +1,12 @@
 #pragma once
 
 #include <string>
+#include <type_traits>
 #include <vector>
 
+#include "silo/common/aa_symbols.h"
+#include "silo/common/nucleotide_symbols.h"
+#include "silo/query_engine/operators/insertions_node.h"
 #include "silo/query_engine/operators/query_node.h"
 
 namespace silo::query_engine::operators {
@@ -19,7 +23,14 @@ class UnresolvedInsertionsNode final : public QueryNode {
          sequence_names(std::move(sequence_names)) {}
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override {
-      return {};
+      using IN = InsertionsNode<SymbolType>;
+      return {
+         {.name = std::string(IN::POSITION_FIELD_NAME), .type = schema::ColumnType::INT32},
+         {.name = std::string(IN::INSERTED_SYMBOLS_FIELD_NAME), .type = schema::ColumnType::STRING},
+         {.name = std::string(IN::SEQUENCE_FIELD_NAME), .type = schema::ColumnType::STRING},
+         {.name = std::string(IN::INSERTION_FIELD_NAME), .type = schema::ColumnType::STRING},
+         {.name = std::string(IN::COUNT_FIELD_NAME), .type = schema::ColumnType::INT32},
+      };
    }
 
    [[nodiscard]] arrow::Result<PartialArrowPlan> toQueryPlan(
@@ -27,6 +38,14 @@ class UnresolvedInsertionsNode final : public QueryNode {
       const config::QueryOptions& /*query_options*/
    ) const override {
       throw std::runtime_error("UnresolvedInsertionsNode must be eliminated during pushdown");
+   }
+
+   [[nodiscard]] NodeKind kind() const override {
+      if constexpr (std::is_same_v<SymbolType, silo::Nucleotide>) {
+         return NodeKind::UNRESOLVED_INSERTIONS_NUCLEOTIDE;
+      } else {
+         return NodeKind::UNRESOLVED_INSERTIONS_AMINO_ACID;
+      }
    }
 };
 

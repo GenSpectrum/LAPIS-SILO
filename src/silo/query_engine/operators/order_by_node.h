@@ -8,8 +8,8 @@
 
 #include <arrow/result.h>
 
-#include "silo/query_engine/actions/order_by_field.h"
 #include "silo/query_engine/operators/query_node.h"
+#include "silo/query_engine/order_by_field.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
@@ -34,6 +34,8 @@ class OrderByNode final : public QueryNode {
       const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
       const config::QueryOptions& query_options
    ) const override;
+
+   [[nodiscard]] NodeKind kind() const override { return NodeKind::ORDER_BY; }
 };
 
 }  // namespace silo::query_engine::operators

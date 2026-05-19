@@ -74,6 +74,10 @@ class ErrorQueryNode final : public operators::QueryNode {
    ) const override {
       return arrow::Status::ExecutionError("induced test error");
    }
+
+   [[nodiscard]] operators::NodeKind kind() const override {
+      return operators::NodeKind::TABLE_SCAN;
+   }
 };
 
 // --- resolveTable ---

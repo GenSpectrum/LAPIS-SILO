@@ -1,12 +1,13 @@
 #include "silo/query_engine/planner.h"
 
 #include <stdexcept>
-#include <unordered_set>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/query_engine/column_narrowing_pass.h"
 #include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/illegal_query_exception.h"
+#include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/count_filter_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
@@ -335,7 +336,7 @@ operators::QueryNodePtr tryReorderProject(operators::QueryNodePtr node) {
          projected_names.insert(field.name);
       }
       for (const auto& order_field : order_by->fields) {
-         if (!projected_names.contains(order_field.name)) {
+         if (!projected_names.contains(order_field.field.name)) {
             return node;
          }
       }
@@ -453,6 +454,10 @@ QueryPlan Planner::planQuery(
    const config::QueryOptions& query_options,
    std::string_view request_id
 ) {
+   ColumnNarrowingPass pass(node->getOutputSchema());
+   if (auto new_node = operators::visit(*node, pass)) {
+      node = std::move(new_node);
+   }
    auto pushed_down_tree = pushdown(std::move(node), tables);
    auto optimized_tree = optimize(std::move(pushed_down_tree));
    auto result = planQueryOrError(*optimized_tree, tables, query_options, request_id);

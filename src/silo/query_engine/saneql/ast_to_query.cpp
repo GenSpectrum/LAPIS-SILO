@@ -9,12 +9,12 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <re2/re2.h>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/lineage_tree.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/actions/order_by_field.h"
 #include "silo/query_engine/filter/expressions/and.h"
 #include "silo/query_engine/filter/expressions/bool_equals.h"
 #include "silo/query_engine/filter/expressions/date_between.h"
@@ -52,6 +52,7 @@
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
+#include "silo/query_engine/order_by_field.h"
 #include "silo/query_engine/saneql/ast.h"
 #include "silo/query_engine/saneql/function_registry.h"
 #include "silo/query_engine/saneql/parser.h"
@@ -618,11 +619,62 @@ operators::AggregateFunction parseAggregateFunctionName(const std::string& funct
 }
 
 struct GroupByArgs {
-   std::vector<std::string> group_by_names;
+   std::vector<schema::ColumnIdentifier> group_by_fields;
    std::vector<operators::AggregateDefinition> aggregates;
 };
 
-GroupByArgs parseGroupBySpecs(const BoundArguments& args) {
+operators::AggregateDefinition parseAggregateDefinition(
+   const ast::RecordField& field,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   CHECK_SILO_QUERY(
+      std::holds_alternative<ast::FunctionCall>(field.value->value),
+      "aggregate definition '{}' must be a function call (e.g. count(), sum(col))",
+      field.name
+   );
+   const auto& func = std::get<ast::FunctionCall>(field.value->value);
+   auto agg_func = parseAggregateFunctionName(func.function_name);
+   std::optional<schema::ColumnIdentifier> source_column;
+   if (!func.positional_arguments.empty()) {
+      auto source_column_name = extractIdentifierName(*func.positional_arguments[0].value);
+      auto found = std::ranges::find_if(schema, [&](const auto& col) {
+         return col.name == source_column_name;
+      });
+      CHECK_SILO_QUERY(
+         found != schema.end(),
+         "source column {} is not present in the input's output schema",
+         source_column_name
+      );
+      source_column = *found;
+   }
+   return {
+      .output_name = field.name, .function = agg_func, .source_column = std::move(source_column)
+   };
+}
+
+std::vector<schema::ColumnIdentifier> parseGroupByFields(
+   const ast::SetLiteral& set,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   std::vector<schema::ColumnIdentifier> group_by_fields;
+   for (const auto& elem : set.elements) {
+      auto group_by_name = extractIdentifierName(*elem);
+      auto found =
+         std::ranges::find_if(schema, [&](const auto& col) { return col.name == group_by_name; });
+      CHECK_SILO_QUERY(
+         found != schema.end(),
+         "groupBy field '{}' is not present in the input's output schema",
+         group_by_name
+      );
+      group_by_fields.push_back(*found);
+   }
+   return group_by_fields;
+}
+
+GroupByArgs parseGroupBySpecs(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& child_schema
+) {
    GroupByArgs result;
 
    // Parse aggregates (required) — a RecordLiteral like {count:=count()}
@@ -633,62 +685,89 @@ GroupByArgs parseGroupBySpecs(const BoundArguments& args) {
    );
    const auto& record = std::get<ast::RecordLiteral>(agg_expr.value);
    for (const auto& field : record.fields) {
-      CHECK_SILO_QUERY(
-         std::holds_alternative<ast::FunctionCall>(field.value->value),
-         "aggregate definition '{}' must be a function call (e.g. count(), sum(col))",
-         field.name
-      );
-      const auto& func = std::get<ast::FunctionCall>(field.value->value);
-      auto agg_func = parseAggregateFunctionName(func.function_name);
-      std::optional<std::string> source_column;
-      if (!func.positional_arguments.empty()) {
-         source_column = extractIdentifierName(*func.positional_arguments[0].value);
-      }
-      result.aggregates.push_back({field.name, agg_func, std::move(source_column)});
+      result.aggregates.push_back(parseAggregateDefinition(field, child_schema));
    }
-
    // Parse columns (optional) — a SetLiteral like {pango_lineage, division}
    if (const auto* columns_expr = args.get("columns")) {
       const auto& set = extractSetLiteral(*columns_expr);
-      for (const auto& elem : set.elements) {
-         result.group_by_names.push_back(extractIdentifierName(*elem));
-      }
+      result.group_by_fields = parseGroupByFields(set, child_schema);
    }
 
    return result;
 }
 
-std::vector<OrderByField> parseOrderByFields(const ast::Expression& expression) {
+std::vector<std::string> names(const std::vector<schema::ColumnIdentifier>& schema) {
+   std::vector<std::string> names;
+   names.reserve(schema.size());
+   for (const auto& col : schema) {
+      names.push_back(col.name);
+   }
+   return names;
+}
+
+OrderByField parseOrderByField(
+   const ast::Expression& expression,
+   const std::vector<schema::ColumnIdentifier>& child_schema
+) {
+   if (std::holds_alternative<ast::Identifier>(expression.value)) {
+      const auto identifier_name = extractIdentifierName(expression);
+      auto found =
+         std::ranges::find_if(child_schema.begin(), child_schema.end(), [&](const auto& col) {
+            return col.name == identifier_name;
+         });
+      CHECK_SILO_QUERY(
+         found != child_schema.end(),
+         "OrderByField {} is not contained in the result of this operation. "
+         "Allowed values are {}.",
+         identifier_name,
+         fmt::join(names(child_schema), ", ")
+      );
+      return {.field = *found, .ascending = true};
+   }
+   if (std::holds_alternative<ast::FunctionCall>(expression.value)) {
+      const auto& call = std::get<ast::FunctionCall>(expression.value);
+      CHECK_SILO_QUERY(
+         call.function_name == "asc" || call.function_name == "desc",
+         "orderBy field must be an identifier or asc()/desc() call, got '{}' at {}:{}",
+         call.function_name,
+         expression.location.line,
+         expression.location.column
+      );
+      CHECK_SILO_QUERY(
+         call.positional_arguments.size() == 1 && call.named_arguments.empty(),
+         "{}() expects exactly one argument",
+         call.function_name
+      );
+      const auto identifier_name = extractIdentifierName(*call.positional_arguments[0].value);
+      auto found =
+         std::ranges::find_if(child_schema.begin(), child_schema.end(), [&](const auto& col) {
+            return col.name == identifier_name;
+         });
+      CHECK_SILO_QUERY(
+         found != child_schema.end(),
+         "OrderByField {} is not contained in the result of this operation. "
+         "Allowed values are {}.",
+         identifier_name,
+         fmt::join(names(child_schema), ", ")
+      );
+      return {.field = *found, .ascending = call.function_name == "asc"};
+   }
+   throw IllegalQueryException(
+      "orderBy field must be an identifier or asc()/desc() call at {}:{}",
+      expression.location.line,
+      expression.location.column
+   );
+}
+
+std::vector<OrderByField> parseOrderByFields(
+   const ast::Expression& expression,
+   const std::vector<schema::ColumnIdentifier>& child_schema
+) {
    const auto& set = extractSetLiteral(expression);
    std::vector<OrderByField> fields;
    for (const auto& elem : set.elements) {
-      if (std::holds_alternative<ast::Identifier>(elem->value)) {
-         fields.push_back({.name = extractIdentifierName(*elem), .ascending = true});
-      } else if (std::holds_alternative<ast::FunctionCall>(elem->value)) {
-         const auto& call = std::get<ast::FunctionCall>(elem->value);
-         CHECK_SILO_QUERY(
-            call.function_name == "asc" || call.function_name == "desc",
-            "orderBy field must be an identifier or asc()/desc() call, got '{}' at {}:{}",
-            call.function_name,
-            elem->location.line,
-            elem->location.column
-         );
-         CHECK_SILO_QUERY(
-            call.positional_arguments.size() == 1 && call.named_arguments.empty(),
-            "{}() expects exactly one argument",
-            call.function_name
-         );
-         fields.push_back(
-            {.name = extractIdentifierName(*call.positional_arguments[0].value),
-             .ascending = call.function_name == "asc"}
-         );
-      } else {
-         throw IllegalQueryException(
-            "orderBy field must be an identifier or asc()/desc() call at {}:{}",
-            elem->location.line,
-            elem->location.column
-         );
-      }
+      auto order_by_field = parseOrderByField(*elem, child_schema);
+      fields.push_back(order_by_field);
    }
    return fields;
 }
@@ -725,25 +804,10 @@ operators::QueryNodePtr handleGroupBy(
    const Tables& tables,
    const ChildConverter& convert_child
 ) {
-   auto [group_by_names, aggregates] = parseGroupBySpecs(args);
    auto child = convert_child(args.at("input"), tables);
    auto child_schema = child->getOutputSchema();
 
-   std::vector<schema::ColumnIdentifier> group_by_fields;
-   std::unordered_set<std::string> seen_names;
-   for (auto& name : group_by_names) {
-      if (!seen_names.insert(name).second) {
-         continue;
-      }
-      auto found =
-         std::ranges::find_if(child_schema, [&](const auto& col) { return col.name == name; });
-      CHECK_SILO_QUERY(
-         found != child_schema.end(),
-         "groupBy field '{}' is not present in the input's output schema",
-         name
-      );
-      group_by_fields.emplace_back(std::move(name), found->type);
-   }
+   auto [group_by_fields, aggregates] = parseGroupBySpecs(args, child_schema);
 
    return std::make_unique<operators::AggregateNode>(
       std::move(child), std::move(group_by_fields), std::move(aggregates)
@@ -887,8 +951,8 @@ operators::QueryNodePtr handleOrderBy(
    const Tables& tables,
    const ChildConverter& convert_child
 ) {
-   auto order_fields = parseOrderByFields(args.at("fields"));
    auto child = convert_child(args.at("input"), tables);
+   auto order_fields = parseOrderByFields(args.at("fields"), child->getOutputSchema());
    return std::make_unique<operators::OrderByNode>(
       std::move(child), std::move(order_fields), std::nullopt
    );

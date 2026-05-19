@@ -39,6 +39,8 @@ class PhyloSubtreeNode final : public QueryNode {
       const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
       const config::QueryOptions& query_options
    ) const override;
+
+   [[nodiscard]] NodeKind kind() const override { return NodeKind::PHYLO_SUBTREE; }
 };
 
 }  // namespace silo::query_engine::operators

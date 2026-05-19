@@ -178,15 +178,6 @@ arrow::Result<PartialArrowPlan> OrderByNode::toQueryPlan(
    for (const auto& identifier : child_schema) {
       field_names.push_back(identifier.name);
    }
-   for (const auto& order_by_field : fields) {
-      CHECK_SILO_QUERY(
-         std::ranges::find(field_names, order_by_field.name) != field_names.end(),
-         "OrderByField {} is not contained in the result of this operation. "
-         "Allowed values are {}.",
-         order_by_field.name,
-         fmt::join(field_names, ", ")
-      );
-   }
 
    ARROW_ASSIGN_OR_RAISE(auto plan, child->toQueryPlan(tables, query_options));
 
@@ -196,7 +187,7 @@ arrow::Result<PartialArrowPlan> OrderByNode::toQueryPlan(
    std::vector<arrow::compute::SortKey> sort_keys;
    for (const auto& order_by_field : fields) {
       auto sort_order = order_by_field.ascending ? SortOrder::Ascending : SortOrder::Descending;
-      sort_keys.emplace_back(order_by_field.name, sort_order);
+      sort_keys.emplace_back(order_by_field.field.name, sort_order);
    }
    if (randomize_seed.has_value()) {
       sort_keys.emplace_back(RANDOMIZE_HASH_FIELD_NAME);

@@ -37,6 +37,8 @@ class MostRecentCommonAncestorNode final : public QueryNode {
       const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
       const config::QueryOptions& query_options
    ) const override;
+
+   [[nodiscard]] NodeKind kind() const override { return NodeKind::MOST_RECENT_COMMON_ANCESTOR; }
 };
 
 }  // namespace silo::query_engine::operators
