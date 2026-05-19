@@ -11,6 +11,7 @@
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
+#include "silo/query_engine/operators/zstd_decompress_node.h"
 
 namespace silo::query_engine {
 
@@ -75,6 +76,32 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::ProjectNode& 
    if (node.child->getOutputSchema() == node.fields) {
       return std::move(node.child);
    }
+   return nullptr;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::ZstdDecompressNode& node) {
+   RequiredColumns child_required;
+   std::vector<operators::ZstdDecompressNode::ColumnMapping> new_column_mapping;
+   for (const auto& req : required) {
+      auto it = std::ranges::find_if(node.column_mapping, [&](const auto& mapping) {
+         return mapping.output == req;
+      });
+      if (it != node.column_mapping.end()) {
+         child_required.push_back(it->input);
+         new_column_mapping.push_back(std::move(*it));
+         node.column_mapping.erase(it);
+      } else {
+         child_required.push_back(req);
+      }
+   }
+   required = std::move(child_required);
+   applyToChild(node.child, *this);
+
+   if (new_column_mapping.empty()) {
+      return std::move(node.child);
+   }
+   node.column_mapping = new_column_mapping;
    return nullptr;
 }
 

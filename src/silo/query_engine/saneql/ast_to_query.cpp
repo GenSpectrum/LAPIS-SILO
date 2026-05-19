@@ -52,6 +52,7 @@
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
+#include "silo/query_engine/operators/zstd_decompress_node.h"
 #include "silo/query_engine/order_by_field.h"
 #include "silo/query_engine/saneql/ast.h"
 #include "silo/query_engine/saneql/function_registry.h"
@@ -772,6 +773,27 @@ std::vector<OrderByField> parseOrderByFields(
    return fields;
 }
 
+namespace {
+
+operators::QueryNodePtr wrapWithDecompressIfNeeded(
+   operators::QueryNodePtr node,
+   const std::shared_ptr<schema::TableSchema>& table_schema
+) {
+   std::map<schema::ColumnIdentifier, std::shared_ptr<schema::TableSchema>> table_schemas;
+   for (const auto& col : node->getOutputSchema()) {
+      if (schema::isSequenceColumn(col.type)) {
+         table_schemas.emplace(col, table_schema);
+      }
+   }
+   auto mapping = operators::buildDecompressColumnMapping(node->getOutputSchema(), table_schemas);
+   if (mapping.empty()) {
+      return node;
+   }
+   return std::make_unique<operators::ZstdDecompressNode>(std::move(node), std::move(mapping));
+}
+
+}  // namespace
+
 operators::QueryNodePtr buildScanNode(
    const ast::Expression& ast,
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables
@@ -780,10 +802,12 @@ operators::QueryNodePtr buildScanNode(
    auto table_name = schema::TableName(name);
    auto iter = tables.find(table_name);
    CHECK_SILO_QUERY(iter != tables.end(), "table '{}' not found in database", table_name.getName());
+   const auto table_schema = iter->second->schema;
    std::vector<schema::ColumnIdentifier> fields = iter->second->schema->getColumnIdentifiers();
-   return std::make_unique<operators::TableScanNode>(
+   auto table_scan = std::make_unique<operators::TableScanNode>(
       iter->second, std::make_unique<filter::expressions::True>(), std::move(fields)
    );
+   return wrapWithDecompressIfNeeded(std::move(table_scan), table_schema);
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)

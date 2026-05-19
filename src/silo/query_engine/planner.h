@@ -9,10 +9,6 @@ namespace silo::query_engine {
 
 class Planner {
   public:
-   static operators::QueryNodePtr pushdown(operators::QueryNodePtr node);
-
-   static operators::QueryNodePtr optimize(operators::QueryNodePtr node);
-
    static QueryPlan planQuery(
       operators::QueryNodePtr node,
       const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
