@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { tableFromIPC } from 'apache-arrow';
+import { DataType, tableFromIPC } from 'apache-arrow';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -39,6 +39,10 @@ function arrowTableToObjects(table) {
       const value = column.get(i);
       if (value === null) {
         obj[field.name] = null;
+      } else if (DataType.isDate(field.type)) {
+        // Arrow JS reads Date32 columns as epoch-millisecond numbers (UTC midnight);
+        // In ndjson, SILO emits date columns as YYYY-MM-DD strings, so normalize to match.
+        obj[field.name] = new Date(value).toISOString().slice(0, 10);
       } else if (typeof value === 'bigint') {
         obj[field.name] = Number(value);
       } else if (value instanceof Uint8Array) {

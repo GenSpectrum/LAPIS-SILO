@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include "evobench/evobench.hpp"
+#include "silo/common/date32.h"
 #include "silo/common/panic.h"
 
 namespace silo::query_engine::exec_node {
@@ -96,6 +97,19 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
          } else {
             const nlohmann::json json = array.GetView(row_base + i);
             output_stream.streams.at(i) << json;
+         }
+      }
+      return arrow::Status::OK();
+   }
+
+   arrow::Status Visit(const arrow::Date32Array& array) override {
+      for (size_t i = 0; i < BatchSize; ++i) {
+         if (array.IsNull(row_base + i)) {
+            output_stream.streams.at(i) << "null";
+         } else {
+            const std::string date_string = common::date32ToString(array.Value(row_base + i));
+            const nlohmann::json json_string = date_string;
+            output_stream.streams.at(i) << json_string.dump();
          }
       }
       return arrow::Status::OK();
