@@ -77,8 +77,8 @@ struct ArrowBuilderSelector<storage::column::IntColumn> {
 
 template <>
 struct ArrowBuilderSelector<storage::column::Date32Column> {
-   using builder_type = arrow::StringBuilder;
-   using value_type = std::string;
+   using builder_type = arrow::Date32Builder;
+   using value_type = int32_t;
 };
 
 template <storage::column::Column ColumnType>

@@ -163,9 +163,6 @@ arrow::Status ColumnEntryAppender::operator()(
          } else if constexpr (std::is_same_v<Column, storage::column::IndexedStringColumn>) {
             auto value = column.getValueString(row_id);
             ARROW_RETURN_NOT_OK(array->Append(value));
-         } else if constexpr (std::is_same_v<Column, storage::column::Date32Column>) {
-            auto value = common::date32ToString(column.getValue(row_id));
-            ARROW_RETURN_NOT_OK(array->Append(value));
          } else {
             auto value = column.getValue(row_id);
             ARROW_RETURN_NOT_OK(array->Append(value));
