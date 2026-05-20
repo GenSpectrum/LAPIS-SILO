@@ -158,7 +158,7 @@ const QueryTestScenario AGGREGATE_RANDOMIZE = {
 };
 
 const QueryTestScenario ORDER_BY_PRECEDENCE = {
-   .name = "orderByTakePrecedenceOverRandomize",
+   .name = "ORDER_BY_PRECEDENCE",
    .query = "default.project({key, col}).randomize(seed:=12321).orderBy({col})",
    .expected_query_result = json::parse(
       R"([
@@ -172,7 +172,7 @@ const QueryTestScenario ORDER_BY_PRECEDENCE = {
 };
 
 const QueryTestScenario ORDER_BY_AGGREGATE_RANDOMIZE = {
-   .name = "orderingByAggregatedCount",
+   .name = "ORDER_BY_AGGREGATE_RANDOMIZE",
    .query = "default.groupBy({count:=count()},{col}).randomize().orderBy({count})",
    .expected_query_result = json::parse(
       R"([{"count": 2, "col": "B"},
@@ -181,7 +181,7 @@ const QueryTestScenario ORDER_BY_AGGREGATE_RANDOMIZE = {
 };
 
 const QueryTestScenario LIMIT_2_RANDOMIZE = {
-   .name = "detailsWithLimit2AndOffsetRandomized",
+   .name = "LIMIT_2_RANDOMIZE",
    .query =
       "default.project({key, col}).randomize(seed:=42).offset(2).limit(2).orderBy({col, key})",
    .expected_query_result = json::parse(
@@ -191,7 +191,7 @@ const QueryTestScenario LIMIT_2_RANDOMIZE = {
 };
 
 const QueryTestScenario LIMIT_3_RANDOMIZE = {
-   .name = "detailsWithLimit3AndOffsetRandomized",
+   .name = "LIMIT_3_RANDOMIZE",
    .query =
       "default.project({key, col}).randomize(seed:=42).offset(2).limit(3).orderBy({col, key})",
    .expected_query_result = json::parse(
@@ -202,7 +202,7 @@ const QueryTestScenario LIMIT_3_RANDOMIZE = {
 };
 
 const QueryTestScenario AGGREGATE_LIMIT_RANDOMIZE = {
-   .name = "aggregateWithLimitAndOffsetRandomized",
+   .name = "AGGREGATE_LIMIT_RANDOMIZE",
    .query = "default.groupBy({count:=count()},{key}).randomize(seed:=12321).offset(1).limit(2)",
    .expected_query_result = json::parse(
       R"([{"count": 1, "key": "id5"},

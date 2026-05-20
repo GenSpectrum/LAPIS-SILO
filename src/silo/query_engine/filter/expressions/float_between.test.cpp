@@ -2,11 +2,10 @@
 
 #include "silo/test/query_fixture.test.h"
 
+namespace {
 using silo::ReferenceGenomes;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
-
-namespace {
 
 nlohmann::json createDataWithFloatValue(const std::string& primaryKey, double value) {
    return {
@@ -58,42 +57,6 @@ const QueryTestData TEST_DATA{
    .ndjson_input_data = DATA,
    .database_config = DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES
-};
-
-const QueryTestScenario FLOAT_EQUALS_VALUE_SCENARIO = {
-   .name = "FLOAT_EQUALS_VALUE_SCENARIO",
-   .query = "default.filter(float_value = 1.23).project({primaryKey, float_value})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"float_value", 1.23}},
-       {{"primaryKey", "id_1"}, {"float_value", 1.23}}}
-   )
-};
-
-const QueryTestScenario NEGATED_FLOAT_EQUALS_VALUE_SCENARIO = {
-   .name = "NEGATED_FLOAT_EQUALS_VALUE_SCENARIO",
-   .query = "default.filter(!(float_value = 1.23)).project({primaryKey, float_value})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_2"}, {"float_value", 0.345}},
-       {{"primaryKey", "id_3"}, {"float_value", 2.345}},
-       {{"primaryKey", "id_4"}, {"float_value", nullptr}}}
-   )
-};
-
-const QueryTestScenario FLOAT_EQUALS_NULL_SCENARIO = {
-   .name = "FLOAT_EQUALS_NULL_SCENARIO",
-   .query = "default.filter(float_value = null).project({primaryKey, float_value})",
-   .expected_query_result = nlohmann::json({{{"primaryKey", "id_4"}, {"float_value", nullptr}}})
-};
-
-const QueryTestScenario NEGATED_FLOAT_EQUALS_NULL_SCENARIO = {
-   .name = "NEGATED_FLOAT_EQUALS_NULL_SCENARIO",
-   .query = "default.filter(!(float_value = null)).project({primaryKey, float_value})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"float_value", 1.23}},
-       {{"primaryKey", "id_1"}, {"float_value", 1.23}},
-       {{"primaryKey", "id_2"}, {"float_value", 0.345}},
-       {{"primaryKey", "id_3"}, {"float_value", 2.345}}}
-   )
 };
 
 const QueryTestScenario FLOAT_BETWEEN_WITH_FROM_AND_TO_SCENARIO = {
@@ -170,12 +133,6 @@ const QueryTestScenario NEGATED_FLOAT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_4"}, {"float_value", nullptr}}})
 };
 
-const QueryTestScenario FLOAT_EQUALS_WITH_INVALID_VALUE = {
-   .name = "FLOAT_EQUALS_WITH_INVALID_VALUE",
-   .query = "default.filter(float_value = 'something').project({primaryKey, float_value})",
-   .expected_error_message = "The column 'float_value' is not of type string"
-};
-
 const QueryTestScenario FLOAT_BETWEEN_WITH_INVALID_FROM_VALUE = {
    .name = "FLOAT_BETWEEN_WITH_INVALID_FROM_VALUE",
    .query =
@@ -188,16 +145,13 @@ const QueryTestScenario FLOAT_BETWEEN_WITH_INVALID_TO_VALUE = {
    .query = "default.filter(float_value.between(2, 'test')).project({primaryKey, float_value})",
    .expected_error_message = "expected integer literal at 1:39"
 };
+
 }  // namespace
 
 QUERY_TEST(
-   FloatEqualsTest,
+   FloatBetweenTest,
    TEST_DATA,
    ::testing::Values(
-      FLOAT_EQUALS_VALUE_SCENARIO,
-      NEGATED_FLOAT_EQUALS_VALUE_SCENARIO,
-      FLOAT_EQUALS_NULL_SCENARIO,
-      NEGATED_FLOAT_EQUALS_NULL_SCENARIO,
       FLOAT_BETWEEN_WITH_FROM_AND_TO_SCENARIO,
       NEGATED_FLOAT_BETWEEN_WITH_FROM_AND_TO_SCENARIO,
       FLOAT_BETWEEN_WITH_FROM_SCENARIO,
@@ -206,7 +160,6 @@ QUERY_TEST(
       NEGATED_FLOAT_BETWEEN_WITH_TO_SCENARIO,
       FLOAT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO,
       NEGATED_FLOAT_BETWEEN_WITH_FROM_AND_TO_NULL_SCENARIO,
-      FLOAT_EQUALS_WITH_INVALID_VALUE,
       FLOAT_BETWEEN_WITH_INVALID_FROM_VALUE,
       FLOAT_BETWEEN_WITH_INVALID_TO_VALUE
    )

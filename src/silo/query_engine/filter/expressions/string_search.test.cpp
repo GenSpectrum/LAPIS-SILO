@@ -75,37 +75,37 @@ nlohmann::json createExpectedResult(const std::vector<std::string>& primary_keys
 }
 
 const QueryTestScenario FILTER_FOR_AA = {
-   .name = "filterForAA",
+   .name = "FILTER_FOR_AA",
    .query = "default.filter(test_column.like('AA')).project(primaryKey)",
    .expected_query_result = createExpectedResult({"id1", "id2", "id3", "id5"})
 };
 
 const QueryTestScenario FILTER_FOR_AA_AT_THE_BEGINNING = {
-   .name = "filterForAAatTheBeginning",
+   .name = "FILTER_FOR_AA_AT_THE_BEGINNING",
    .query = "default.filter(test_column.like('^AA')).project(primaryKey)",
    .expected_query_result = createExpectedResult({"id1", "id3", "id5"})
 };
 
 const QueryTestScenario FILTER_FOR_SOMETHING_THAT_DOES_NOT_OCCUR = {
-   .name = "filterForSomethingThatDoesNotOccur",
+   .name = "FILTER_FOR_SOMETHING_THAT_DOES_NOT_OCCUR",
    .query = "default.filter(test_column.like('should not match on anything')).project(primaryKey)",
    .expected_query_result = createExpectedResult({})
 };
 
 const QueryTestScenario FILTER_FOR_AA_ON_INDEXED_COLUMN = {
-   .name = "filterForAAOnIndexedColumn",
+   .name = "FILTER_FOR_AA_ON_INDEXED_COLUMN",
    .query = "default.filter(indexed_test_column.like('AA')).project(primaryKey)",
    .expected_query_result = createExpectedResult({"id1", "id2", "id3", "id5"})
 };
 
 const QueryTestScenario FILTER_FOR_AA_AT_THE_BEGINNING_ON_INDEXED_COLUMN = {
-   .name = "filterForAAatTheBeginningOnIndexedColumn",
+   .name = "FILTER_FOR_AA_AT_THE_BEGINNING_ON_INDEXED_COLUMN",
    .query = "default.filter(indexed_test_column.like('^AA')).project(primaryKey)",
    .expected_query_result = createExpectedResult({"id1", "id3", "id5"})
 };
 
 const QueryTestScenario FILTER_FOR_SOMETHING_THAT_DOES_NOT_OCCUR_ON_INDEXED_COLUMN = {
-   .name = "filterForSomethingThatDoesNotOccurOnIndexedColumn",
+   .name = "FILTER_FOR_SOMETHING_THAT_DOES_NOT_OCCUR_ON_INDEXED_COLUMN",
    .query =
       "default.filter(indexed_test_column.like('should not match on anything'))"
       ".project(primaryKey)",
@@ -113,7 +113,7 @@ const QueryTestScenario FILTER_FOR_SOMETHING_THAT_DOES_NOT_OCCUR_ON_INDEXED_COLU
 };
 
 const QueryTestScenario INVALID_REGULAR_EXPRESSION = {
-   .name = "invalidRegularExpressionShouldReturnProperError",
+   .name = "INVALID_REGULAR_EXPRESSION",
    .query = "default.filter(test_column.like('^(')).project(primaryKey)",
    .expected_error_message =
       "Invalid Regular Expression. The parsing of the regular expression failed with the error "
@@ -121,14 +121,14 @@ const QueryTestScenario INVALID_REGULAR_EXPRESSION = {
 };
 
 const QueryTestScenario FILTER_FOR_COLUMN_THAT_DOES_NOT_EXIST = {
-   .name = "filterForColumnThatDoesNotExist",
+   .name = "FILTER_FOR_COLUMN_THAT_DOES_NOT_EXIST",
    .query = "default.filter(column_that_does_not_exist.like('some value')).project(primaryKey)",
    .expected_error_message =
       "The database does not contain the string column 'column_that_does_not_exist'"
 };
 
 const QueryTestScenario TABLE_NOT_FOUND = {
-   .name = "tableNotFound",
+   .name = "TABLE_NOT_FOUND",
    .query = "nonexistent.filter(test_column.like('AA')).project(primaryKey)",
    .expected_error_message = "table 'nonexistent' not found in database"
 };

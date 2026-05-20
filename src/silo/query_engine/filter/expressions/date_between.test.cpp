@@ -47,37 +47,37 @@ const nlohmann::json EXPECTED_RESULT = {
 };
 
 const QueryTestScenario SORTED_DATE_WITH_TO_AND_FROM_SCENARIO = {
-   .name = "sortedDateWithToEqualsFrom",
+   .name = "SORTED_DATE_WITH_TO_AND_FROM_SCENARIO",
    .query = "default.filter(sorted_date.between('2020-12-24'::date, '2020-12-24'::date))",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario SORTED_DATE_WITH_TO_ONLY_SCENARIO = {
-   .name = "sortedDateWithToOnly",
+   .name = "SORTED_DATE_WITH_TO_ONLY_SCENARIO",
    .query = "default.filter(sorted_date <= '2020-12-24'::date)",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario SORTED_DATE_WITH_FROM_ONLY_SCENARIO = {
-   .name = "sortedDateWithFromOnly",
+   .name = "SORTED_DATE_WITH_FROM_ONLY_SCENARIO",
    .query = "default.filter(sorted_date >= '2020-12-24'::date)",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario UNSORTED_DATE_WITH_TO_AND_FROM_SCENARIO = {
-   .name = "unsortedDateWithToEqualsFrom",
+   .name = "UNSORTED_DATE_WITH_TO_AND_FROM_SCENARIO",
    .query = "default.filter(unsorted_date.between('2023-01-20'::date, '2023-01-20'::date))",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario UNSORTED_DATE_WITH_TO_ONLY_SCENARIO = {
-   .name = "unsortedDateWithToOnly",
+   .name = "UNSORTED_DATE_WITH_TO_ONLY_SCENARIO",
    .query = "default.filter(unsorted_date <= '2023-01-20'::date)",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario UNSORTED_DATE_WITH_FROM_ONLY_SCENARIO = {
-   .name = "unsortedDateWithFromOnly",
+   .name = "UNSORTED_DATE_WITH_FROM_ONLY_SCENARIO",
    .query = "default.filter(unsorted_date >= '2023-01-20'::date)",
    .expected_query_result = EXPECTED_RESULT
 };
