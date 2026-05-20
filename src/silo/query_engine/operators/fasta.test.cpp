@@ -67,7 +67,7 @@ std::string createFastaQuery(const std::string& primaryKey) {
 }
 
 const QueryTestScenario SEQUENCE_WITH_BOTH_SEGMENTS_SCENARIO = {
-   .name = "sequenceWithBothSegments",
+   .name = "SEQUENCE_WITH_BOTH_SEGMENTS_SCENARIO",
    .query = createFastaQuery("bothSegments"),
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "bothSegments"}, {"unaligned_segment1", "A"}, {"unaligned_segment2", "G"}}}
@@ -75,7 +75,7 @@ const QueryTestScenario SEQUENCE_WITH_BOTH_SEGMENTS_SCENARIO = {
 };
 
 const QueryTestScenario SEQUENCE_WITH_ONLY_FIRST_SEGMENT_SCENARIO = {
-   .name = "sequenceWithOnlyFirstSegment",
+   .name = "SEQUENCE_WITH_ONLY_FIRST_SEGMENT_SCENARIO",
    .query = createFastaQuery("onlySegment1"),
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "onlySegment1"}, {"unaligned_segment1", "T"}, {"unaligned_segment2", nullptr}
@@ -84,7 +84,7 @@ const QueryTestScenario SEQUENCE_WITH_ONLY_FIRST_SEGMENT_SCENARIO = {
 };
 
 const QueryTestScenario SEQUENCE_WITH_ONLY_SECOND_SEGMENT_SCENARIO = {
-   .name = "sequenceWithOnlySecondSegment",
+   .name = "SEQUENCE_WITH_ONLY_SECOND_SEGMENT_SCENARIO",
    .query = createFastaQuery("onlySegment2"),
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "onlySegment2"}, {"unaligned_segment1", nullptr}, {"unaligned_segment2", "T"}
@@ -93,7 +93,7 @@ const QueryTestScenario SEQUENCE_WITH_ONLY_SECOND_SEGMENT_SCENARIO = {
 };
 
 const QueryTestScenario SEQUENCE_WITH_NO_SEGMENT_SCENARIO = {
-   .name = "sequenceWithNoSegment",
+   .name = "SEQUENCE_WITH_NO_SEGMENT_SCENARIO",
    .query = createFastaQuery("noSegment"),
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "noSegment"},
@@ -103,7 +103,7 @@ const QueryTestScenario SEQUENCE_WITH_NO_SEGMENT_SCENARIO = {
 };
 
 const QueryTestScenario DOWNLOAD_ALL_SEQUENCES_SCENARIO = {
-   .name = "downloadAllSequences",
+   .name = "DOWNLOAD_ALL_SEQUENCES_SCENARIO",
    .query =
       "default.project({primaryKey, unaligned_segment1, unaligned_segment2}).orderBy({primaryKey})",
    .expected_query_result = nlohmann::json(

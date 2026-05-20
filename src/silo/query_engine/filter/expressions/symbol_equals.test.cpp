@@ -9,6 +9,8 @@ using silo::ReferenceGenomes;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
+namespace nucleotide {
+
 using boost::uuids::random_generator;
 
 nlohmann::json createDataWithNucleotideSequence(const std::string& nucleotideSequence) {
@@ -199,34 +201,104 @@ const QueryTestScenario NUCLEOTIDE_EQUALS_OUT_OF_RANGE_EDGE_LOW = {
    .expected_error_message = "The field 'position' is 1-indexed. Value of 0 not allowed."
 };
 
+}  // namespace nucleotide
+
+namespace amino_acid {
+
+const std::string GENE = "gene1";
+
+size_t idx = 0;
+
+nlohmann::json createDataWithAminoAcidSequence(const std::string& aminoAcidSequence) {
+   return {
+      {"primaryKey", fmt::format("id_{}", idx++)},
+      {"segment1", nullptr},
+      {GENE, {{"sequence", aminoAcidSequence}, {"insertions", nlohmann::json::array()}}},
+      {"unaligned_segment1", {}}
+   };
+}
+const nlohmann::json DATA_WITH_D = createDataWithAminoAcidSequence("D*");
+const nlohmann::json DATA_SAME_AS_REFERENCE = createDataWithAminoAcidSequence("M*");
+const nlohmann::json DATA_SAME_AS_REFERENCE2 = createDataWithAminoAcidSequence("M*");
+const nlohmann::json DATA_WITH_B = createDataWithAminoAcidSequence("B*");
+
+const auto DATABASE_CONFIG =
+   R"(
+defaultNucleotideSequence: "segment1"
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+  primaryKey: "primaryKey"
+)";
+
+const auto REFERENCE_GENOMES = ReferenceGenomes{
+   {{"segment1", "A"}},
+   {{GENE, "M*"}},
+};
+
+const QueryTestData TEST_DATA{
+   .ndjson_input_data = {DATA_WITH_D, DATA_SAME_AS_REFERENCE, DATA_SAME_AS_REFERENCE2, DATA_WITH_B},
+   .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
+};
+
+const QueryTestScenario AMINO_ACID_EQUALS_D = {
+   .name = "AMINO_ACID_EQUALS_D",
+   .query =
+      "default.filter(aminoAcidEquals(position:=1, symbol:='D', sequenceName:='gene1'))"
+      ".groupBy({count:=count()})",
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
+};
+
+const QueryTestScenario AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE = {
+   .name = "AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE",
+   .query =
+      "default.filter(aminoAcidEquals(position:=1, symbol:='.', sequenceName:='gene1'))"
+      ".groupBy({count:=count()})",
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
+};
+
+}  // namespace amino_acid
+
 }  // namespace
 
 QUERY_TEST(
    NucleotideSymbolEquals,
-   TEST_DATA,
+   nucleotide::TEST_DATA,
    ::testing::Values(
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL,
-      NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE,
-      NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE,
-      NUCLEOTIDE_EQUALS_OUT_OF_RANGE_EDGE_LOW,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_2,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_3,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_4,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_5,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_1,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_2,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_3,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_4,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_5,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_1,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_2,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_3,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_4,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_5,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_1,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_2,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_3,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_4,
-      NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_5
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_DOT_RETURNS_REFERENCE,
+      nucleotide::NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE,
+      nucleotide::NUCLEOTIDE_EQUALS_OUT_OF_RANGE_EDGE_LOW,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_2,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_3,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_4,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_C_AT_5,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_1,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_2,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_3,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_4,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_A_AT_5,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_1,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_2,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_3,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_4,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_G_AT_5,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_1,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_2,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_3,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_4,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_5
+   )
+);
+
+QUERY_TEST(
+   AminoAcidSymbolEquals,
+   amino_acid::TEST_DATA,
+   ::testing::Values(
+      amino_acid::AMINO_ACID_EQUALS_D,
+      amino_acid::AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE
    )
 );

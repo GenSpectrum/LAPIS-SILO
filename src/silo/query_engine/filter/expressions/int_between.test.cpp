@@ -63,84 +63,6 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-const QueryTestScenario INT_EQUALS_VALUE_SCENARIO = {
-   .name = "INT_EQUALS_VALUE_SCENARIO",
-   .query = "default.filter(int_value = 3)",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"},
-        {"int_value", VALUE_IN_FILTER},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}},
-       {{"primaryKey", "id_1"},
-        {"int_value", VALUE_IN_FILTER},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}}}
-   )
-};
-
-const QueryTestScenario NEGATED_INT_EQUALS_VALUE_SCENARIO = {
-   .name = "NEGATED_INT_EQUALS_VALUE_SCENARIO",
-   .query = "default.filter(!(int_value = 3))",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_2"},
-        {"int_value", VALUE_BELOW_FILTER},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}},
-       {{"primaryKey", "id_3"},
-        {"int_value", VALUE_ABOVE_FILTER},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}},
-       {{"primaryKey", "id_4"},
-        {"int_value", nullptr},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}}}
-   )
-};
-
-const QueryTestScenario INT_EQUALS_NULL_SCENARIO = {
-   .name = "INT_EQUALS_NULL_SCENARIO",
-   .query = "default.filter(int_value = null)",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_4"},
-        {"int_value", nullptr},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}}}
-   )
-};
-
-const QueryTestScenario NEGATED_INT_EQUALS_NULL_SCENARIO = {
-   .name = "NEGATED_INT_EQUALS_NULL_SCENARIO",
-   .query = "default.filter(!(int_value = null))",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"},
-        {"int_value", VALUE_IN_FILTER},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}},
-       {{"primaryKey", "id_1"},
-        {"int_value", VALUE_IN_FILTER},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}},
-       {{"primaryKey", "id_2"},
-        {"int_value", VALUE_BELOW_FILTER},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}},
-       {{"primaryKey", "id_3"},
-        {"int_value", VALUE_ABOVE_FILTER},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}}}
-   )
-};
-
 const QueryTestScenario INT_BETWEEN_WITH_FROM_AND_TO_SCENARIO = {
    .name = "INT_BETWEEN_WITH_FROM_AND_TO_SCENARIO",
    .query = "default.filter(int_value.between(2, 4))",
@@ -306,13 +228,9 @@ const QueryTestScenario INT_COMPARE_WITH_OVERFLOW = {
 }  // namespace
 
 QUERY_TEST(
-   IntEqualsTest,
+   IntBetweenTest,
    TEST_DATA,
    ::testing::Values(
-      INT_EQUALS_VALUE_SCENARIO,
-      NEGATED_INT_EQUALS_VALUE_SCENARIO,
-      INT_EQUALS_NULL_SCENARIO,
-      NEGATED_INT_EQUALS_NULL_SCENARIO,
       INT_BETWEEN_WITH_FROM_AND_TO_SCENARIO,
       NEGATED_INT_BETWEEN_WITH_FROM_AND_TO_SCENARIO,
       INT_BETWEEN_WITH_FROM_SCENARIO,

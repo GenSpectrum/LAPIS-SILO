@@ -57,19 +57,19 @@ const QueryTestData TEST_DATA{
 const nlohmann::json EXPECTED_RESULT = {{{"primaryKey", "id"}}};
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_NO_SEQUENCE_NAME = {
-   .name = "nucleotideEqualsWithoutSegmentTakesDefaultSequence",
+   .name = "NUCLEOTIDE_EQUALS_NO_SEQUENCE_NAME",
    .query = "default.filter(nucleotideEquals(position:=1, symbol:='A')).project(primaryKey)",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_NO_SEQUENCE_NAME_FILTER_BY_WRONG_VALUE = {
-   .name = "nucleotideEqualsWithoutSegmentFilterByWrongValue",
+   .name = "NUCLEOTIDE_EQUALS_NO_SEQUENCE_NAME_FILTER_BY_WRONG_VALUE",
    .query = "default.filter(nucleotideEquals(position:=1, symbol:='C')).project(primaryKey)",
    .expected_query_result = nlohmann::json::array()
 };
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_SEGMENT_1 = {
-   .name = "nucleotideEqualsSegment1",
+   .name = "NUCLEOTIDE_EQUALS_SEGMENT_1",
    .query =
       "default.filter(nucleotideEquals(position:=1, symbol:='A', "
       "sequenceName:='segment1')).project(primaryKey)",
@@ -77,7 +77,7 @@ const QueryTestScenario NUCLEOTIDE_EQUALS_SEGMENT_1 = {
 };
 
 const QueryTestScenario NUCLEOTIDE_EQUALS_SEGMENT_2 = {
-   .name = "nucleotideEqualsSegment2",
+   .name = "NUCLEOTIDE_EQUALS_SEGMENT_2",
    .query =
       "default.filter(nucleotideEquals(position:=1, symbol:='C', "
       "sequenceName:='segment2')).project(primaryKey)",
@@ -85,19 +85,19 @@ const QueryTestScenario NUCLEOTIDE_EQUALS_SEGMENT_2 = {
 };
 
 const QueryTestScenario AMINO_ACID_EQUALS_NO_SEQUENCE_NAME = {
-   .name = "aminoAcidEqualsWithoutSequenceNameTakesDefaultSequence",
+   .name = "AMINO_ACID_EQUALS_NO_SEQUENCE_NAME",
    .query = "default.filter(aminoAcidEquals(position:=1, symbol:='A')).project(primaryKey)",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario AMINO_ACID_EQUALS_NO_SEQUENCE_NAME_FILTER_BY_WRONG_VALUE = {
-   .name = "aminoAcidEqualsWithoutSequenceNameFilterByWrongValue",
+   .name = "AMINO_ACID_EQUALS_NO_SEQUENCE_NAME_FILTER_BY_WRONG_VALUE",
    .query = "default.filter(aminoAcidEquals(position:=1, symbol:='C')).project(primaryKey)",
    .expected_query_result = nlohmann::json::array()
 };
 
 const QueryTestScenario AMINO_ACID_EQUALS_GENE_1 = {
-   .name = "aminoAcidEqualsGene1",
+   .name = "AMINO_ACID_EQUALS_GENE_1",
    .query =
       "default.filter(aminoAcidEquals(position:=1, symbol:='A', "
       "sequenceName:='gene1')).project(primaryKey)",
@@ -105,7 +105,7 @@ const QueryTestScenario AMINO_ACID_EQUALS_GENE_1 = {
 };
 
 const QueryTestScenario AMINO_ACID_EQUALS_GENE_2 = {
-   .name = "aminoAcidEqualsGene2",
+   .name = "AMINO_ACID_EQUALS_GENE_2",
    .query =
       "default.filter(aminoAcidEquals(position:=1, symbol:='C', "
       "sequenceName:='gene2')).project(primaryKey)",
@@ -113,25 +113,25 @@ const QueryTestScenario AMINO_ACID_EQUALS_GENE_2 = {
 };
 
 const QueryTestScenario HAS_NUCLEOTIDE_MUTATION_WITHOUT_SEQUENCE_NAME = {
-   .name = "hasNucleotideMutationWithoutSequenceName",
+   .name = "HAS_NUCLEOTIDE_MUTATION_WITHOUT_SEQUENCE_NAME",
    .query = "default.filter(hasMutation(position:=1)).project(primaryKey)",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario HAS_AMINO_ACID_MUTATION_WITHOUT_SEQUENCE_NAME = {
-   .name = "hasAminoAcidMutationWithoutSequenceName",
+   .name = "HAS_AMINO_ACID_MUTATION_WITHOUT_SEQUENCE_NAME",
    .query = "default.filter(hasAAMutation(position:=1)).project(primaryKey)",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario NUCLEOTIDE_INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME = {
-   .name = "nucleotideInsertionContainsWithoutSequenceName",
+   .name = "NUCLEOTIDE_INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME",
    .query = "default.filter(insertionContains(position:=1, value:='AAA')).project(primaryKey)",
    .expected_query_result = EXPECTED_RESULT
 };
 
 const QueryTestScenario AMINO_ACID_INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME = {
-   .name = "aminoAcidInsertionContainsWithoutSequenceName",
+   .name = "AMINO_ACID_INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME",
    .query =
       "default.filter(aminoAcidInsertionContains(position:=1, value:='AAA')).project(primaryKey)",
    .expected_query_result = EXPECTED_RESULT
