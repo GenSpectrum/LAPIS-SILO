@@ -34,6 +34,7 @@ class Parser {
    [[nodiscard]] ast::ExpressionPtr parseComparisonExpr();
    [[nodiscard]] ast::ExpressionPtr parsePostfixExpr();
    [[nodiscard]] ast::ExpressionPtr parsePrimaryExpr();
+   [[nodiscard]] ast::ExpressionPtr parseUnaryMinus();
    [[nodiscard]] ast::ExpressionPtr parseSetOrRecordExpression();
    [[nodiscard]] ast::ExpressionPtr parseIdentifierOrFunctionCall();
    [[nodiscard]] ast::ExpressionPtr parseLiteral();

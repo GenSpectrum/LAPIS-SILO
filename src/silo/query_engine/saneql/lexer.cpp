@@ -118,11 +118,6 @@ Token Lexer::readNumber() {
    const SourceLocation start = current_location;
    const size_t num_start = position;
 
-   // TODO(#1246) do not lex negative numbers
-   if (peek() == '-') {
-      advance();
-   }
-
    bool is_float = false;
    while (!isAtEnd() && (std::isalnum(static_cast<unsigned char>(peek())) || peek() == '.')) {
       if (peek() == '.') {
@@ -193,10 +188,6 @@ Token Lexer::nextToken() {
    }
 
    if (std::isdigit(static_cast<unsigned char>(current))) {
-      return readNumber();
-   }
-
-   if (current == '-' && std::isdigit(static_cast<unsigned char>(peekNext()))) {
       return readNumber();
    }
 
@@ -272,6 +263,9 @@ Token Lexer::nextToken() {
             return makeToken(TokenType::COLON_EQUALS, start);
          }
          throw ParseException(start, "Expected '::' or ':='");
+      case '-':
+         advance();
+         return makeToken(TokenType::MINUS, start);
       default:
          advance();
          throw ParseException(start, "Unexpected character '{}'", current);

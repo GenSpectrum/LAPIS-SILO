@@ -42,6 +42,8 @@ std::string tokenTypeToString(TokenType type) {
          return "Or";
       case TokenType::NOT:
          return "Not";
+      case TokenType::MINUS:
+         return "Minus";
       case TokenType::LEFT_PAREN:
          return "LeftParen";
       case TokenType::RIGHT_PAREN:

@@ -213,6 +213,25 @@ ast::ExpressionPtr Parser::parsePostfixExpr() {
    return expr;
 }
 
+ast::ExpressionPtr Parser::parseUnaryMinus() {
+   const SourceLocation loc = current().location;
+   expect(TokenType::MINUS);
+
+   if (check(TokenType::INT_LITERAL)) {
+      const int64_t val = current().getIntValue();
+      advance();
+      return ast::makeExpr(ast::IntLiteral{-val}, loc);
+   }
+
+   if (check(TokenType::FLOAT_LITERAL)) {
+      const double val = current().getFloatValue();
+      advance();
+      return ast::makeExpr(ast::FloatLiteral{-val}, loc);
+   }
+
+   throw ParseException(loc, "Expected number after '-'");
+}
+
 // NOLINTNEXTLINE(misc-no-recursion)
 ast::ExpressionPtr Parser::parsePrimaryExpr() {
    if (check(TokenType::LEFT_PAREN)) {
@@ -224,6 +243,10 @@ ast::ExpressionPtr Parser::parsePrimaryExpr() {
 
    if (check(TokenType::LEFT_BRACE)) {
       return parseSetOrRecordExpression();
+   }
+
+   if (check(TokenType::MINUS)) {
+      return parseUnaryMinus();
    }
 
    if (check(TokenType::IDENTIFIER)) {

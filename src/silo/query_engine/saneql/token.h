@@ -27,6 +27,7 @@ enum class TokenType : uint8_t {
    AND,
    OR,
    NOT,
+   MINUS,
    LEFT_PAREN,
    RIGHT_PAREN,
    LEFT_BRACE,
