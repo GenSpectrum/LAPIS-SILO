@@ -28,11 +28,26 @@ TEST(SaneQLParser, parsesIntLiteral) {
    EXPECT_EQ(expr->toString(), "42");
 }
 
+TEST(SaneQLParser, parsesNegativeIntLiteral) {
+   Parser parser("-42");
+   auto expr = parser.parse();
+   ASSERT_TRUE(std::holds_alternative<ast::IntLiteral>(expr->value));
+   EXPECT_EQ(std::get<ast::IntLiteral>(expr->value).value, -42);
+   EXPECT_EQ(expr->toString(), "-42");
+}
+
 TEST(SaneQLParser, parsesFloatLiteral) {
    Parser parser("3.14");
    auto expr = parser.parse();
    ASSERT_TRUE(std::holds_alternative<ast::FloatLiteral>(expr->value));
    EXPECT_DOUBLE_EQ(std::get<ast::FloatLiteral>(expr->value).value, 3.14);
+}
+
+TEST(SaneQLParser, parsesNegativeFloat) {
+   Parser parser("-3.14");
+   auto expr = parser.parse();
+   ASSERT_TRUE(std::holds_alternative<ast::FloatLiteral>(expr->value));
+   EXPECT_DOUBLE_EQ(std::get<ast::FloatLiteral>(expr->value).value, -3.14);
 }
 
 TEST(SaneQLParser, parsesBoolLiteral) {
@@ -549,21 +564,6 @@ TEST(SaneQLParser, parsesFalseLiteral) {
    EXPECT_EQ(expr->toString(), "false");
 }
 
-TEST(SaneQLParser, parsesNegativeFloat) {
-   Parser parser("-3.14");
-   auto expr = parser.parse();
-   ASSERT_TRUE(std::holds_alternative<ast::FloatLiteral>(expr->value));
-   EXPECT_DOUBLE_EQ(std::get<ast::FloatLiteral>(expr->value).value, -3.14);
-}
-
-TEST(SaneQLParser, parsesNegativeIntLiteral) {
-   Parser parser("-42");
-   auto expr = parser.parse();
-   ASSERT_TRUE(std::holds_alternative<ast::IntLiteral>(expr->value));
-   EXPECT_EQ(std::get<ast::IntLiteral>(expr->value).value, -42);
-   EXPECT_EQ(expr->toString(), "-42");
-}
-
 TEST(SaneQLParser, throwsOnMinusWithoutNumber) {
    EXPECT_THAT(
       []() {
@@ -571,6 +571,16 @@ TEST(SaneQLParser, throwsOnMinusWithoutNumber) {
          (void)parser.parse();
       },
       ThrowsMessage<ParseException>(::testing::HasSubstr("Expected number after '-'"))
+   );
+}
+
+TEST(SaneQLParser, throwsExpressionWithMinus) {
+   EXPECT_THAT(
+      []() {
+         Parser parser("x - 5");
+         (void)parser.parse();
+      },
+      ThrowsMessage<ParseException>(::testing::HasSubstr("Expected Eof but got Minus"))
    );
 }
 
