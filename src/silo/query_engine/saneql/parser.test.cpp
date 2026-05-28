@@ -584,6 +584,47 @@ TEST(SaneQLParser, throwsExpressionWithMinus) {
    );
 }
 
+TEST(SaneQLParser, parsesInt64Max) {
+   Parser parser("9223372036854775807");
+   auto expr = parser.parse();
+   ASSERT_TRUE(std::holds_alternative<ast::IntLiteral>(expr->value));
+   EXPECT_EQ(std::get<ast::IntLiteral>(expr->value).value, INT64_MAX);
+}
+
+TEST(SaneQLParser, throwsOnInt64MaxPlusOne) {
+   EXPECT_THAT(
+      []() {
+         Parser parser("9223372036854775808");
+         (void)parser.parse();
+      },
+      ThrowsMessage<ParseException>(::testing::HasSubstr("Integer literal out of range"))
+   );
+}
+
+TEST(SaneQLParser, parsesNegativeInt64Max) {
+   Parser parser("-9223372036854775807");
+   auto expr = parser.parse();
+   ASSERT_TRUE(std::holds_alternative<ast::IntLiteral>(expr->value));
+   EXPECT_EQ(std::get<ast::IntLiteral>(expr->value).value, -INT64_MAX);
+}
+
+TEST(SaneQLParser, parsesInt64Min) {
+   Parser parser("-9223372036854775808");
+   auto expr = parser.parse();
+   ASSERT_TRUE(std::holds_alternative<ast::IntLiteral>(expr->value));
+   EXPECT_EQ(std::get<ast::IntLiteral>(expr->value).value, INT64_MIN);
+}
+
+TEST(SaneQLParser, throwsOnNegativeInt64MinMinusOne) {
+   EXPECT_THAT(
+      []() {
+         Parser parser("-9223372036854775809");
+         (void)parser.parse();
+      },
+      ThrowsMessage<ParseException>(::testing::HasSubstr("Integer literal out of range"))
+   );
+}
+
 TEST(SaneQLParser, parsesTypeCastChaining) {
    Parser parser("a::t1::t2");
    auto expr = parser.parse();

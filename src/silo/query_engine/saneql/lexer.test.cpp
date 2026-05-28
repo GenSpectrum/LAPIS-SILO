@@ -44,7 +44,7 @@ TEST(SaneQLLexer, tokenizesIntLiteral) {
 TEST(SaneQLLexer, invalidIntLiteral) {
    EXPECT_THAT(
       []() {
-         const std::string input = fmt::format("{}0", INT64_MAX);
+         const std::string input = fmt::format("{}0", UINT64_MAX);
          Lexer lexer(input);
          auto tokens = lexer.tokenizeAll();
       },

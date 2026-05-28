@@ -38,7 +38,7 @@ enum class TokenType : uint8_t {
 
 [[nodiscard]] std::string tokenTypeToString(TokenType type);
 
-using TokenValue = std::variant<std::monostate, int64_t, double, std::string, bool>;
+using TokenValue = std::variant<std::monostate, uint64_t, double, std::string, bool>;
 
 struct Token {
    TokenType type;
@@ -48,7 +48,7 @@ struct Token {
    [[nodiscard]] std::string toString() const;
 
    [[nodiscard]] std::string getStringValue() const;
-   [[nodiscard]] int64_t getIntValue() const;
+   [[nodiscard]] uint64_t getIntValue() const;
    [[nodiscard]] double getFloatValue() const;
    [[nodiscard]] bool getBoolValue() const;
 };

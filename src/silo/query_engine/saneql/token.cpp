@@ -85,8 +85,8 @@ std::string Token::getStringValue() const {
    return std::get<std::string>(value);
 }
 
-int64_t Token::getIntValue() const {
-   return std::get<int64_t>(value);
+uint64_t Token::getIntValue() const {
+   return std::get<uint64_t>(value);
 }
 
 double Token::getFloatValue() const {

@@ -137,7 +137,7 @@ Token Lexer::readNumber() {
       return makeToken(TokenType::FLOAT_LITERAL, val, start);
    }
 
-   int64_t val = 0;
+   uint64_t val = 0;
    auto [ptr, ec] = fast_float::from_chars(num_str.data(), num_str.data() + num_str.size(), val);
    if (ec != std::errc() || ptr != num_str.end()) {
       throw ParseException(start, "Invalid integer literal");

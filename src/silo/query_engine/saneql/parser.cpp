@@ -1,5 +1,8 @@
 #include "silo/query_engine/saneql/parser.h"
 
+#include <cstdint>
+#include <limits>
+
 #include "silo/query_engine/saneql/ast.h"
 #include "silo/query_engine/saneql/parse_exception.h"
 
@@ -218,9 +221,16 @@ ast::ExpressionPtr Parser::parseUnaryMinus() {
    expect(TokenType::MINUS);
 
    if (check(TokenType::INT_LITERAL)) {
-      const int64_t val = current().getIntValue();
+      const uint64_t val = current().getIntValue();
       advance();
-      return ast::makeExpr(ast::IntLiteral{-val}, loc);
+      constexpr auto INT64_MAX_AS_UINT = static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
+      if (val <= INT64_MAX_AS_UINT) {
+         return ast::makeExpr(ast::IntLiteral{-static_cast<int64_t>(val)}, loc);
+      }
+      if (val == INT64_MAX_AS_UINT + 1) {
+         return ast::makeExpr(ast::IntLiteral{std::numeric_limits<int64_t>::min()}, loc);
+      }
+      throw ParseException(loc, "Integer literal out of range");
    }
 
    if (check(TokenType::FLOAT_LITERAL)) {
@@ -333,9 +343,12 @@ ast::ExpressionPtr Parser::parseLiteral() {
    }
 
    if (check(TokenType::INT_LITERAL)) {
-      const int64_t val = current().getIntValue();
+      const uint64_t val = current().getIntValue();
+      if (val > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
+         throw ParseException(loc, "Integer literal out of range");
+      }
       advance();
-      return ast::makeExpr(ast::IntLiteral{val}, loc);
+      return ast::makeExpr(ast::IntLiteral{static_cast<int64_t>(val)}, loc);
    }
 
    if (check(TokenType::FLOAT_LITERAL)) {
