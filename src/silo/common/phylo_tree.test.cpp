@@ -185,6 +185,34 @@ TEST(PhyloTree, throwsOnNewickWithInvalidCharacters) {
    }
 }
 
+TEST(PhyloTree, throwsOnNewickWithUnclosedComment) {
+   try {
+      PhyloTree::fromNewickString("(CHILD[comment)ROOT;");
+      FAIL() << "Expected PreprocessingException";
+   } catch (const silo::preprocessing::PreprocessingException& e) {
+      EXPECT_THAT(
+         std::string(e.what()),
+         ::testing::HasSubstr("Error when parsing the Newick string - unclosed '[' comment")
+      );
+   } catch (...) {
+      FAIL() << "Expected PreprocessingException, but caught a different exception";
+   }
+}
+
+TEST(PhyloTree, throwsOnNewickWithUnmatchedClosingBracket) {
+   try {
+      PhyloTree::fromNewickString("(CHILD]comment)ROOT;");
+      FAIL() << "Expected PreprocessingException";
+   } catch (const silo::preprocessing::PreprocessingException& e) {
+      EXPECT_THAT(
+         std::string(e.what()),
+         ::testing::HasSubstr("Error when parsing the Newick string - unmatched ']'")
+      );
+   } catch (...) {
+      FAIL() << "Expected PreprocessingException, but caught a different exception";
+   }
+}
+
 TEST(PhyloTree, throwsOnInvalidNewickNoSemicolon) {
    EXPECT_THROW(
       PhyloTree::fromNewickString("((CHILD2)CHILD)ROOT"),
