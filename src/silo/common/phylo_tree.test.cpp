@@ -149,6 +149,22 @@ TEST(PhyloTree, correctlyParsesFromNewickWithBranchLengths) {
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->parent, TreeNodeId{"CHILD"});
 }
 
+TEST(PhyloTree, correctlyParsesFromNewickWithComments) {
+   auto phylo_tree_file = PhyloTree::fromNewickString(
+      "((CHILD2:0.5[leaf comment], CHILD3:1)[internal comment]CHILD:0.1, "
+      "CHILD4:1.5)ROOT[ignored root comment];"
+   );
+   ASSERT_EQ(phylo_tree_file.nodes.size(), 5);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->parent, std::nullopt);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->depth, 0);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->children.size(), 2);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->depth, 1);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->branch_length, 0.1F);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->branch_length, 0.5F);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD3"})->branch_length, 1.0F);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD4"})->branch_length, 1.5F);
+}
+
 TEST(PhyloTree, throwsOnInvalidNewick) {
    EXPECT_THROW(
       PhyloTree::fromNewickString("((CHILD2)CHILD;"), silo::preprocessing::PreprocessingException

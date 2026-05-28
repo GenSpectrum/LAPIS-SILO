@@ -235,6 +235,39 @@ std::string_view trim(std::string_view label) {
    return label.substr(start, end - start + 1);
 }
 
+std::string stripNewickComments(std::string_view newick_string) {
+   std::string stripped_newick;
+   stripped_newick.reserve(newick_string.size());
+   int comment_depth = 0;
+
+   for (char c : newick_string) {
+      if (c == '[') {
+         ++comment_depth;
+         continue;
+      }
+      if (c == ']') {
+         if (comment_depth == 0) {
+            throw silo::preprocessing::PreprocessingException(
+               "Error when parsing the Newick string - unmatched ']'"
+            );
+         }
+         --comment_depth;
+         continue;
+      }
+      if (comment_depth == 0) {
+         stripped_newick.push_back(c);
+      }
+   }
+
+   if (comment_depth != 0) {
+      throw silo::preprocessing::PreprocessingException(
+         "Error when parsing the Newick string - unclosed '[' comment"
+      );
+   }
+
+   return stripped_newick;
+}
+
 }  // namespace
 
 PhyloTree PhyloTree::fromAuspiceJSONString(const std::string& json_string) {
@@ -280,7 +313,8 @@ PhyloTree PhyloTree::fromAuspiceJSONFile(const std::filesystem::path& json_path)
 PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
    PhyloTree file;
 
-   std::string_view newick(newick_string);
+   std::string uncommented_newick = stripNewickComments(newick_string);
+   std::string_view newick(uncommented_newick);
    newick = trim(newick);
    if (newick.empty()) {
       throw silo::preprocessing::PreprocessingException(
