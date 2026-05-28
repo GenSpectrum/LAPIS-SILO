@@ -116,7 +116,41 @@ bool isValidLength(char c) {
    return (isdigit(c) != 0) || c == '.' || c == '-' || c == '+' || c == 'e';
 }
 
-void skipIgnoredNewickTokens(std::string_view& label);
+void skipIgnoredNewickTokens(std::string_view& label) {
+   while (!label.empty()) {
+      if (std::isspace(label.back())) {
+         label.remove_suffix(1);
+         continue;
+      }
+
+      if (label.back() == ']') {
+         int bracket_nesting_level = 1;
+         label.remove_suffix(1);
+         while (!label.empty() && bracket_nesting_level > 0) {
+            if (label.back() == ']') {
+               ++bracket_nesting_level;
+            } else if (label.back() == '[') {
+               --bracket_nesting_level;
+            }
+            label.remove_suffix(1);
+         }
+         if (bracket_nesting_level != 0) {
+            throw silo::preprocessing::PreprocessingException(
+               "Error when parsing the Newick string - unmatched ']'"
+            );
+         }
+         continue;
+      }
+
+      if (label.back() == '[') {
+         throw silo::preprocessing::PreprocessingException(
+            "Error when parsing the Newick string - unclosed '[' comment"
+         );
+      }
+
+      break;
+   }
+}
 
 TreeNodeId parseLabel(std::string_view& label) {
    skipIgnoredNewickTokens(label);
@@ -126,7 +160,7 @@ TreeNodeId parseLabel(std::string_view& label) {
       label.remove_suffix(1);
    }
    skipIgnoredNewickTokens(label);
-   if (label.back() != ')' && label.back() != '(' && label.back() != ',' && label.back() != ' ') {
+   if (label.back() != ')' && label.back() != '(' && label.back() != ',') {
       throw silo::preprocessing::PreprocessingException(
          fmt::format("Newick string contains invalid characters: '{}'", label.back())
       );
@@ -165,49 +199,13 @@ TreeNodeInfo parseFullLabel(std::string_view& label) {
       );
    }
    skipIgnoredNewickTokens(label);
-   if (label.back() != ')' && label.back() != '(' && label.back() != ',' && label.back() != ' ') {
+   if (label.back() != ')' && label.back() != '(' && label.back() != ',') {
       throw silo::preprocessing::PreprocessingException(
          fmt::format("Newick string contains invalid characters: '{}'", label.back())
       );
    }
    std::ranges::reverse(full_label);
    return TreeNodeInfo{.node_id = TreeNodeId{full_label}};
-}
-
-void skipIgnoredNewickTokens(std::string_view& label) {
-   while (!label.empty()) {
-      if (std::isspace(label.back())) {
-         label.remove_suffix(1);
-         continue;
-      }
-
-      if (label.back() == ']') {
-         int bracket_depth = 1;
-         label.remove_suffix(1);
-         while (!label.empty() && bracket_depth > 0) {
-            if (label.back() == ']') {
-               ++bracket_depth;
-            } else if (label.back() == '[') {
-               --bracket_depth;
-            }
-            label.remove_suffix(1);
-         }
-         if (bracket_depth != 0) {
-            throw silo::preprocessing::PreprocessingException(
-               "Error when parsing the Newick string - unmatched ']'"
-            );
-         }
-         continue;
-      }
-
-      if (label.back() == '[') {
-         throw silo::preprocessing::PreprocessingException(
-            "Error when parsing the Newick string - unclosed '[' comment"
-         );
-      }
-
-      break;
-   }
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
