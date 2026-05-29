@@ -172,45 +172,30 @@ TEST(PhyloTree, throwsOnInvalidNewick) {
 }
 
 TEST(PhyloTree, throwsOnNewickWithInvalidCharacters) {
-   try {
-      PhyloTree::fromNewickString("(CHILD%)CHILD;");
-      FAIL() << "Expected PreprocessingException";
-   } catch (const silo::preprocessing::PreprocessingException& e) {
-      EXPECT_THAT(
-         std::string(e.what()),
+   EXPECT_THAT(
+      [] { PhyloTree::fromNewickString("(CHILD%)CHILD;"); },
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(
          ::testing::HasSubstr("Newick string contains invalid characters: '%'")
-      );
-   } catch (...) {
-      FAIL() << "Expected PreprocessingException, but caught a different exception";
-   }
+      )
+   );
 }
 
 TEST(PhyloTree, throwsOnNewickWithUnclosedComment) {
-   try {
-      PhyloTree::fromNewickString("(CHILD[comment)ROOT;");
-      FAIL() << "Expected PreprocessingException";
-   } catch (const silo::preprocessing::PreprocessingException& e) {
-      EXPECT_THAT(
-         std::string(e.what()),
+   EXPECT_THAT(
+      [] { PhyloTree::fromNewickString("(CHILD[comment)ROOT;"); },
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(
          ::testing::HasSubstr("Error when parsing the Newick string - unclosed '[' comment")
-      );
-   } catch (...) {
-      FAIL() << "Expected PreprocessingException, but caught a different exception";
-   }
+      )
+   );
 }
 
 TEST(PhyloTree, throwsOnNewickWithUnmatchedClosingBracket) {
-   try {
-      PhyloTree::fromNewickString("(CHILD]comment)ROOT;");
-      FAIL() << "Expected PreprocessingException";
-   } catch (const silo::preprocessing::PreprocessingException& e) {
-      EXPECT_THAT(
-         std::string(e.what()),
+   EXPECT_THAT(
+      [] { PhyloTree::fromNewickString("(CHILD]comment)ROOT;"); },
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(
          ::testing::HasSubstr("Error when parsing the Newick string - unmatched ']'")
-      );
-   } catch (...) {
-      FAIL() << "Expected PreprocessingException, but caught a different exception";
-   }
+      )
+   );
 }
 
 TEST(PhyloTree, throwsOnInvalidNewickNoSemicolon) {
