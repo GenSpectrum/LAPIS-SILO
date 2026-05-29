@@ -165,6 +165,48 @@ TEST(PhyloTree, correctlyParsesFromNewickWithComments) {
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD4"})->branch_length, 1.5F);
 }
 
+TEST(PhyloTree, ignoresCommentAfterLeafLabelBeforeColon) {
+   auto result = PhyloTree::fromNewickString("(A [c] :0.1)R;");
+   ASSERT_EQ(result.nodes.size(), 2);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"A"})->branch_length, 0.1F);
+}
+
+TEST(PhyloTree, ignoresCommentAfterLeafLabelNoBranchLength) {
+   auto result = PhyloTree::fromNewickString("(A [c] )R;");
+   ASSERT_EQ(result.nodes.size(), 2);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"A"})->branch_length, std::nullopt);
+}
+
+TEST(PhyloTree, ignoresCommentAfterInternalLabelBeforeColon) {
+   auto result = PhyloTree::fromNewickString("((A)C [c] :0.3)R;");
+   ASSERT_EQ(result.nodes.size(), 3);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"C"})->branch_length, 0.3F);
+}
+
+TEST(PhyloTree, ignoresCommentAfterInternalBranchLength) {
+   auto result = PhyloTree::fromNewickString("((A)C:0.3 [c] )R;");
+   ASSERT_EQ(result.nodes.size(), 3);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"C"})->branch_length, 0.3F);
+}
+
+TEST(PhyloTree, ignoresCommentBeforeComma) {
+   auto result = PhyloTree::fromNewickString("(A [c] ,B)R;");
+   ASSERT_EQ(result.nodes.size(), 3);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"R"})->children.size(), 2);
+}
+
+TEST(PhyloTree, ignoresCommentAfterComma) {
+   auto result = PhyloTree::fromNewickString("(A, [c] B)R;");
+   ASSERT_EQ(result.nodes.size(), 3);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"R"})->children.size(), 2);
+}
+
+TEST(PhyloTree, ignoresCommentAfterOpeningParen) {
+   auto result = PhyloTree::fromNewickString("( [c] A)R;");
+   ASSERT_EQ(result.nodes.size(), 2);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"A"})->parent, TreeNodeId{"R"});
+}
+
 TEST(PhyloTree, throwsOnInvalidNewick) {
    EXPECT_THROW(
       PhyloTree::fromNewickString("((CHILD2)CHILD;"), silo::preprocessing::PreprocessingException
