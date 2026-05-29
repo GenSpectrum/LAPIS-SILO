@@ -252,6 +252,15 @@ TEST(PhyloTree, throwsOnNewickWithUnmatchedClosingBracket) {
    );
 }
 
+TEST(PhyloTree, throwsOnNewickWithOnlyComment) {
+   EXPECT_THAT(
+      [] { PhyloTree::fromNewickString("[comment];"); },
+      ThrowsMessage<silo::preprocessing::PreprocessingException>(
+         ::testing::HasSubstr("unexpected end of input")
+      )
+   );
+}
+
 TEST(PhyloTree, throwsOnInvalidNewickNoSemicolon) {
    EXPECT_THROW(
       PhyloTree::fromNewickString("((CHILD2)CHILD)ROOT"),

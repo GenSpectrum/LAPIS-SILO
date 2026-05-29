@@ -160,10 +160,11 @@ TreeNodeId parseLabel(std::string_view& label) {
       label.remove_suffix(1);
    }
    skipIgnoredNewickTokens(label);
-   if (label.back() != ')' && label.back() != '(' && label.back() != ',') {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format("Newick string contains invalid characters: '{}'", label.back())
-      );
+   if (label.empty() || (label.back() != ')' && label.back() != '(' && label.back() != ',')) {
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "Newick string contains invalid characters: '{}'",
+         label.empty() ? std::string("<end of input>") : std::string(1, label.back())
+      ));
    }
    std::ranges::reverse(parsed_label_string);
    return TreeNodeId{parsed_label_string};
@@ -198,10 +199,11 @@ TreeNodeInfo parseFullLabel(std::string_view& label) {
       );
    }
    skipIgnoredNewickTokens(label);
-   if (label.back() != ')' && label.back() != '(' && label.back() != ',') {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format("Newick string contains invalid characters: '{}'", label.back())
-      );
+   if (label.empty() ||(label.back() != ')' && label.back() != '(' && label.back() != ',')) {
+      throw silo::preprocessing::PreprocessingException(fmt::format(
+         "Newick string contains invalid characters: '{}'",
+         label.empty() ? std::string("<end of input>") : std::string(1, label.back())
+      ));
    }
    std::ranges::reverse(full_label);
    return TreeNodeInfo{.node_id = TreeNodeId{full_label}};
@@ -221,6 +223,11 @@ TreeNodeId parseSubtree(
    node->parent = std::move(parent);
 
    skipIgnoredNewickTokens(label);
+   if (label.empty()) {
+      throw silo::preprocessing::PreprocessingException(
+         "Error when parsing the Newick string - unexpected end of input"
+      );
+   }
    const TreeNodeInfo tree_node_info = parseFullLabel(label);
    node->node_id = tree_node_info.node_id;
    node->branch_length = tree_node_info.branch_length;
