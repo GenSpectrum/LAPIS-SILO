@@ -200,7 +200,7 @@ TreeNodeInfo parseFullLabel(std::string_view& label) {
       );
    }
    skipIgnoredNewickTokens(label);
-   if (label.empty() ||(label.back() != ')' && label.back() != '(' && label.back() != ',')) {
+   if (label.empty() || (label.back() != ')' && label.back() != '(' && label.back() != ',')) {
       throw PreprocessingException(fmt::format(
          "Newick string contains invalid characters: '{}'",
          label.empty() ? std::string("<end of input>") : std::string(1, label.back())
