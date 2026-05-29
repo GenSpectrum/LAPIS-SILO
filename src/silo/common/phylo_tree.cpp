@@ -170,7 +170,6 @@ TreeNodeId parseLabel(std::string_view& label) {
 }
 
 TreeNodeInfo parseFullLabel(std::string_view& label) {
-   skipIgnoredNewickTokens(label);
    std::string full_label;
    while (!label.empty() && (isValidLabelChar(label.back()) || isValidLength(label.back()))) {
       full_label += label.back();
@@ -225,7 +224,6 @@ TreeNodeId parseSubtree(
    const TreeNodeInfo tree_node_info = parseFullLabel(label);
    node->node_id = tree_node_info.node_id;
    node->branch_length = tree_node_info.branch_length;
-   skipIgnoredNewickTokens(label);
    if (!label.empty() && label.back() == ')') {
       label.remove_suffix(1);
       depth++;
