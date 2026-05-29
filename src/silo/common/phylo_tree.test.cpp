@@ -165,6 +165,12 @@ TEST(PhyloTree, correctlyParsesFromNewickWithComments) {
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD4"})->branch_length, 1.5F);
 }
 
+TEST(PhyloTree, ignoresCommentAtStart) {
+   auto result = PhyloTree::fromNewickString("( [c] A:0.1)R;");
+   ASSERT_EQ(result.nodes.size(), 2);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"A"})->branch_length, 0.1F);
+}
+
 TEST(PhyloTree, ignoresCommentAfterLeafLabelBeforeColon) {
    auto result = PhyloTree::fromNewickString("(A [c] :0.1)R;");
    ASSERT_EQ(result.nodes.size(), 2);
