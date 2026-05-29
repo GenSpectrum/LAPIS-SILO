@@ -8,6 +8,7 @@
 
 using silo::common::PhyloTree;
 using silo::common::TreeNodeId;
+using silo::preprocessing::PreprocessingException;
 
 TEST(PhyloTree, correctlyParsesFromJSON) {
    auto phylo_tree_file = PhyloTree::fromAuspiceJSONString(
@@ -81,7 +82,7 @@ TEST(PhyloTree, correctlyParsesFromJSONwithBranchLengths) {
 TEST(PhyloTree, throwsOnInvalidJSON) {
    EXPECT_THROW(
       PhyloTree::fromAuspiceJSONString("{\"invalid\": \"json\"}"),
-      silo::preprocessing::PreprocessingException
+      PreprocessingException
    );
 }
 
@@ -104,7 +105,7 @@ TEST(PhyloTree, throwsOnInvalidAuspiceJSONDuplicateNodeId) {
     ]  
   }  
 })"),
-      silo::preprocessing::PreprocessingException
+      PreprocessingException
    );
 }
 
@@ -221,14 +222,14 @@ TEST(PhyloTree, ignoresCommentAfterOpeningParen) {
 
 TEST(PhyloTree, throwsOnInvalidNewick) {
    EXPECT_THROW(
-      PhyloTree::fromNewickString("((CHILD2)CHILD;"), silo::preprocessing::PreprocessingException
+      PhyloTree::fromNewickString("((CHILD2)CHILD;"), PreprocessingException
    );
 }
 
 TEST(PhyloTree, throwsOnNewickWithInvalidCharacters) {
    EXPECT_THAT(
       [] { PhyloTree::fromNewickString("(CHILD%)CHILD;"); },
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(
+      ThrowsMessage<PreprocessingException>(
          ::testing::HasSubstr("Newick string contains invalid characters: '%'")
       )
    );
@@ -237,7 +238,7 @@ TEST(PhyloTree, throwsOnNewickWithInvalidCharacters) {
 TEST(PhyloTree, throwsOnNewickWithUnclosedComment) {
    EXPECT_THAT(
       [] { PhyloTree::fromNewickString("(CHILD[comment)ROOT;"); },
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(
+      ThrowsMessage<PreprocessingException>(
          ::testing::HasSubstr("Error when parsing the Newick string - unclosed '[' comment")
       )
    );
@@ -246,7 +247,7 @@ TEST(PhyloTree, throwsOnNewickWithUnclosedComment) {
 TEST(PhyloTree, throwsOnNewickWithUnmatchedClosingBracket) {
    EXPECT_THAT(
       [] { PhyloTree::fromNewickString("(CHILD]comment)ROOT;"); },
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(
+      ThrowsMessage<PreprocessingException>(
          ::testing::HasSubstr("Error when parsing the Newick string - unmatched ']'")
       )
    );
@@ -255,7 +256,7 @@ TEST(PhyloTree, throwsOnNewickWithUnmatchedClosingBracket) {
 TEST(PhyloTree, throwsOnNewickWithOnlyComment) {
    EXPECT_THAT(
       [] { PhyloTree::fromNewickString("[comment];"); },
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(
+      ThrowsMessage<PreprocessingException>(
          ::testing::HasSubstr("unexpected end of input")
       )
    );
@@ -264,13 +265,13 @@ TEST(PhyloTree, throwsOnNewickWithOnlyComment) {
 TEST(PhyloTree, throwsOnInvalidNewickNoSemicolon) {
    EXPECT_THROW(
       PhyloTree::fromNewickString("((CHILD2)CHILD)ROOT"),
-      silo::preprocessing::PreprocessingException
+      PreprocessingException
    );
 }
 
 TEST(PhyloTree, throwsOnInvalidNewickWithDuplicateNodeId) {
    EXPECT_THROW(
-      PhyloTree::fromNewickString("((CHILD)CHILD)ROOT"), silo::preprocessing::PreprocessingException
+      PhyloTree::fromNewickString("((CHILD)CHILD)ROOT"), PreprocessingException
    );
 }
 
