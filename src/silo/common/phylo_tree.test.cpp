@@ -81,8 +81,7 @@ TEST(PhyloTree, correctlyParsesFromJSONwithBranchLengths) {
 
 TEST(PhyloTree, throwsOnInvalidJSON) {
    EXPECT_THROW(
-      PhyloTree::fromAuspiceJSONString("{\"invalid\": \"json\"}"),
-      PreprocessingException
+      PhyloTree::fromAuspiceJSONString("{\"invalid\": \"json\"}"), PreprocessingException
    );
 }
 
@@ -221,9 +220,7 @@ TEST(PhyloTree, ignoresCommentAfterOpeningParen) {
 }
 
 TEST(PhyloTree, throwsOnInvalidNewick) {
-   EXPECT_THROW(
-      PhyloTree::fromNewickString("((CHILD2)CHILD;"), PreprocessingException
-   );
+   EXPECT_THROW(PhyloTree::fromNewickString("((CHILD2)CHILD;"), PreprocessingException);
 }
 
 TEST(PhyloTree, throwsOnNewickWithInvalidCharacters) {
@@ -256,23 +253,16 @@ TEST(PhyloTree, throwsOnNewickWithUnmatchedClosingBracket) {
 TEST(PhyloTree, throwsOnNewickWithOnlyComment) {
    EXPECT_THAT(
       [] { PhyloTree::fromNewickString("[comment];"); },
-      ThrowsMessage<PreprocessingException>(
-         ::testing::HasSubstr("unexpected end of input")
-      )
+      ThrowsMessage<PreprocessingException>(::testing::HasSubstr("unexpected end of input"))
    );
 }
 
 TEST(PhyloTree, throwsOnInvalidNewickNoSemicolon) {
-   EXPECT_THROW(
-      PhyloTree::fromNewickString("((CHILD2)CHILD)ROOT"),
-      PreprocessingException
-   );
+   EXPECT_THROW(PhyloTree::fromNewickString("((CHILD2)CHILD)ROOT"), PreprocessingException);
 }
 
 TEST(PhyloTree, throwsOnInvalidNewickWithDuplicateNodeId) {
-   EXPECT_THROW(
-      PhyloTree::fromNewickString("((CHILD)CHILD)ROOT"), PreprocessingException
-   );
+   EXPECT_THROW(PhyloTree::fromNewickString("((CHILD)CHILD)ROOT"), PreprocessingException);
 }
 
 TEST(PhyloTree, correctlyReturnsMRCA) {
