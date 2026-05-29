@@ -189,6 +189,12 @@ TEST(PhyloTree, ignoresCommentAfterInternalLabelBeforeColon) {
    ASSERT_EQ(result.nodes.at(TreeNodeId{"C"})->branch_length, 0.3F);
 }
 
+TEST(PhyloTree, ignoresCommentBetweenColonAndBranchLength) {
+   auto result = PhyloTree::fromNewickString("(A: [c] 0.1)R;");
+   ASSERT_EQ(result.nodes.size(), 2);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"A"})->branch_length, 0.1F);
+}
+
 TEST(PhyloTree, ignoresCommentAfterInternalBranchLength) {
    auto result = PhyloTree::fromNewickString("((A)C:0.3 [c] )R;");
    ASSERT_EQ(result.nodes.size(), 3);
