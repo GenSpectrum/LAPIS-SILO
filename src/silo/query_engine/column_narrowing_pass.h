@@ -6,7 +6,7 @@
 #include "silo/schema/database_schema.h"
 
 namespace silo::query_engine::operators {
-class ScanNode;
+class TableScanNode;
 class AggregateNode;
 class ProjectNode;
 class OrderByNode;
@@ -31,7 +31,7 @@ class ColumnNarrowingPass {
    explicit ColumnNarrowingPass(RequiredColumns required)
        : required(std::move(required)) {}
 
-   operators::QueryNodePtr operator()(operators::ScanNode& node);
+   operators::QueryNodePtr operator()(operators::TableScanNode& node);
    operators::QueryNodePtr operator()(operators::AggregateNode& node);
    operators::QueryNodePtr operator()(operators::ProjectNode& node);
    operators::QueryNodePtr operator()(operators::OrderByNode& node);

@@ -14,9 +14,10 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/config/runtime_config.h"
+#include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/query_node.h"
-#include "silo/query_engine/operators/scan_node.h"
+#include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
@@ -33,9 +34,7 @@ namespace operators = silo::query_engine::operators;
 
 namespace {
 
-using Tables = std::map<silo::schema::TableName, std::shared_ptr<silo::storage::Table>>;
-
-Tables makeTablesWithDefault() {
+std::shared_ptr<silo::storage::Table> makeDefaultTable() {
    using silo::schema::ColumnIdentifier;
    using silo::schema::ColumnType;
    using silo::storage::column::ColumnMetadata;
@@ -46,19 +45,20 @@ Tables makeTablesWithDefault() {
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
    auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), primary_key);
-   Tables tables;
-   tables[silo::schema::TableName("default")] = std::make_shared<silo::storage::Table>(schema);
-   return tables;
+   return std::make_shared<silo::storage::Table>(schema);
+}
+
+operators::QueryNodePtr makeScan(const std::shared_ptr<silo::storage::Table>& table) {
+   return std::make_unique<operators::TableScanNode>(
+      table,
+      std::make_unique<silo::query_engine::filter::expressions::True>(),
+      std::vector<silo::schema::ColumnIdentifier>{}
+   );
 }
 
 operators::QueryNodePtr makeNonScanChild() {
    return std::make_unique<operators::UnresolvedMutationsNode<Nucleotide>>(
-      std::make_unique<operators::ScanNode>(
-         silo::schema::TableName{"default"}, std::vector<silo::schema::ColumnIdentifier>{}
-      ),
-      std::vector<std::string>{},
-      0.0,
-      std::vector<std::string>{}
+      makeScan(makeDefaultTable()), std::vector<std::string>{}, 0.0, std::vector<std::string>{}
    );
 }
 
@@ -76,23 +76,10 @@ class ErrorQueryNode final : public operators::QueryNode {
    }
 
    [[nodiscard]] operators::NodeKind kind() const override {
-      return operators::NodeKind::TABLE_SCAN;
+      // Visitors should not be called on this node, and this class should not be moved out of tests
+      return operators::NodeKind::COUNT_FILTER;
    }
 };
-
-// --- resolveTable ---
-
-TEST(PlannerResolveTable, tableNotFoundThrows) {
-   auto node = std::make_unique<operators::ScanNode>(
-      silo::schema::TableName{"missingtable"}, std::vector<silo::schema::ColumnIdentifier>{}
-   );
-   EXPECT_THAT(
-      [&]() { (void)Planner::pushdown(std::move(node), {}); },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("table 'missingtable' not found in database")
-      )
-   );
-}
 
 // --- mutations() pushdown ---
 
@@ -102,7 +89,7 @@ TEST(PlannerMutations, onNonScanNodeThrows) {
       std::move(non_scan), std::vector<std::string>{}, 0.0, std::vector<std::string>{}
    );
    EXPECT_THAT(
-      [&]() { (void)Planner::pushdown(std::move(node), {}); },
+      [&]() { (void)Planner::pushdown(std::move(node)); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("mutations() must be applied to a table scan")
       )
@@ -110,16 +97,13 @@ TEST(PlannerMutations, onNonScanNodeThrows) {
 }
 
 TEST(PlannerMutations, invalidAASequenceNameThrows) {
-   auto tables = makeTablesWithDefault();
-   auto scan = std::make_unique<operators::ScanNode>(
-      silo::schema::TableName{"default"}, std::vector<silo::schema::ColumnIdentifier>{}
-   );
+   auto scan = makeScan(makeDefaultTable());
    std::vector<std::string> seq_names{"noseq"};
    auto node = std::make_unique<operators::UnresolvedMutationsNode<AminoAcid>>(
       std::move(scan), std::move(seq_names), 0.0, std::vector<std::string>{}
    );
    EXPECT_THAT(
-      [&]() { (void)Planner::pushdown(std::move(node), tables); },
+      [&]() { (void)Planner::pushdown(std::move(node)); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("The database does not contain the AminoAcid sequence 'noseq'")
       )
@@ -127,16 +111,13 @@ TEST(PlannerMutations, invalidAASequenceNameThrows) {
 }
 
 TEST(PlannerMutations, invalidFieldThrows) {
-   auto tables = makeTablesWithDefault();
-   auto scan = std::make_unique<operators::ScanNode>(
-      silo::schema::TableName{"default"}, std::vector<silo::schema::ColumnIdentifier>{}
-   );
+   auto scan = makeScan(makeDefaultTable());
    std::vector<std::string> bad_fields{"badfield"};
    auto node = std::make_unique<operators::UnresolvedMutationsNode<Nucleotide>>(
       std::move(scan), std::vector<std::string>{}, 0.0, std::move(bad_fields)
    );
    EXPECT_THAT(
-      [&]() { (void)Planner::pushdown(std::move(node), tables); },
+      [&]() { (void)Planner::pushdown(std::move(node)); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("The attribute 'fields' contains an invalid field 'badfield'")
       )
@@ -151,7 +132,7 @@ TEST(PlannerInsertions, onNonScanNodeThrows) {
       std::move(non_scan), std::vector<std::string>{}
    );
    EXPECT_THAT(
-      [&]() { (void)Planner::pushdown(std::move(node), {}); },
+      [&]() { (void)Planner::pushdown(std::move(node)); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("insertions() must be applied to a table scan")
       )
@@ -159,16 +140,13 @@ TEST(PlannerInsertions, onNonScanNodeThrows) {
 }
 
 TEST(PlannerInsertions, invalidAASequenceNameThrows) {
-   auto tables = makeTablesWithDefault();
-   auto scan = std::make_unique<operators::ScanNode>(
-      silo::schema::TableName{"default"}, std::vector<silo::schema::ColumnIdentifier>{}
-   );
+   auto scan = makeScan(makeDefaultTable());
    std::vector<std::string> seq_names{"noseq"};
    auto node = std::make_unique<operators::UnresolvedInsertionsNode<AminoAcid>>(
       std::move(scan), std::move(seq_names)
    );
    EXPECT_THAT(
-      [&]() { (void)Planner::pushdown(std::move(node), tables); },
+      [&]() { (void)Planner::pushdown(std::move(node)); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("The database does not contain the AminoAcid sequence 'noseq'")
       )
@@ -183,7 +161,7 @@ TEST(PlannerPhyloSubtree, onNonScanNodeThrows) {
       std::move(non_scan), std::string{"col"}, false, false
    );
    EXPECT_THAT(
-      [&]() { (void)Planner::pushdown(std::move(node), {}); },
+      [&]() { (void)Planner::pushdown(std::move(node)); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("phyloSubtree() must be applied to a table scan")
       )
@@ -198,7 +176,7 @@ TEST(PlannerMostRecentCommonAncestor, onNonScanNodeThrows) {
       std::move(non_scan), std::string{"col"}, false
    );
    EXPECT_THAT(
-      [&]() { (void)Planner::pushdown(std::move(node), {}); },
+      [&]() { (void)Planner::pushdown(std::move(node)); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("mostRecentCommonAncestor() must be applied to a table scan")
       )

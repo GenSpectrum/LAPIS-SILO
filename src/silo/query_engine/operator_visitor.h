@@ -13,7 +13,6 @@
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/phylo_subtree_node.h"
 #include "silo/query_engine/operators/project_node.h"
-#include "silo/query_engine/operators/scan_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
@@ -27,8 +26,6 @@ template <typename Func>
 // NOLINTNEXTLINE(misc-no-recursion)
 decltype(auto) visit(QueryNode& node, Func&& func) {
    switch (node.kind()) {
-      case NodeKind::SCAN:
-         return std::forward<Func>(func)(static_cast<ScanNode&>(node));
       case NodeKind::AGGREGATE:
          return std::forward<Func>(func)(static_cast<AggregateNode&>(node));
       case NodeKind::PROJECT:

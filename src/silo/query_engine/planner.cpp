@@ -5,7 +5,7 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/column_narrowing_pass.h"
-#include "silo/query_engine/filter/expressions/true.h"
+#include "silo/query_engine/filter/expressions/and.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
@@ -18,7 +18,6 @@
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/phylo_subtree_node.h"
 #include "silo/query_engine/operators/project_node.h"
-#include "silo/query_engine/operators/scan_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
@@ -62,34 +61,33 @@ operators::QueryNodePtr wrapWithDecompressIfNeeded(
    );
 }
 
-std::shared_ptr<storage::Table> resolveTable(
-   const schema::TableName& table_name,
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables
+/// Conjoins two filter expressions. A trivial True operand compiles to Full and is dropped by
+/// And's compilation, so this stays cheap when one side is the leaf scan's default True filter.
+std::unique_ptr<filter::expressions::Expression> conjoinFilters(
+   std::unique_ptr<filter::expressions::Expression> first,
+   std::unique_ptr<filter::expressions::Expression> second
 ) {
-   auto iter = tables.find(table_name);
-   CHECK_SILO_QUERY(iter != tables.end(), "table '{}' not found in database", table_name.getName());
-   return iter->second;
+   filter::expressions::ExpressionVector children;
+   children.push_back(std::move(first));
+   children.push_back(std::move(second));
+   return std::make_unique<filter::expressions::And>(std::move(children));
 }
 
 struct ExtractedScanInfo {
-   schema::TableName table_name;
+   std::shared_ptr<storage::Table> table;
    std::unique_ptr<filter::expressions::Expression> filter;
 };
 
-/// Extracts table name and filter from a ScanNode or FilterNode(ScanNode) chain.
+/// Extracts the table and filter from a TableScanNode or FilterNode(TableScanNode) chain.
 std::optional<ExtractedScanInfo> extractScanInfo(operators::QueryNodePtr& node) {
-   auto* scan = dynamic_cast<operators::ScanNode*>(node.get());
-   if (scan != nullptr) {
-      return ExtractedScanInfo{
-         .table_name = scan->table_name, .filter = std::make_unique<filter::expressions::True>()
-      };
+   if (auto* scan = dynamic_cast<operators::TableScanNode*>(node.get())) {
+      return ExtractedScanInfo{.table = scan->table, .filter = std::move(scan->filter)};
    }
-   auto* filter = dynamic_cast<operators::FilterNode*>(node.get());
-   if (filter != nullptr) {
-      auto* inner_scan = dynamic_cast<operators::ScanNode*>(filter->child.get());
-      if (inner_scan != nullptr) {
+   if (auto* filter = dynamic_cast<operators::FilterNode*>(node.get())) {
+      if (auto* inner_scan = dynamic_cast<operators::TableScanNode*>(filter->child.get())) {
          return ExtractedScanInfo{
-            .table_name = inner_scan->table_name, .filter = std::move(filter->filter)
+            .table = inner_scan->table,
+            .filter = conjoinFilters(std::move(inner_scan->filter), std::move(filter->filter))
          };
       }
    }
@@ -98,13 +96,12 @@ std::optional<ExtractedScanInfo> extractScanInfo(operators::QueryNodePtr& node) 
 
 template <typename SymbolType>
 operators::QueryNodePtr pushdownUnresolvedMutations(
-   operators::UnresolvedMutationsNode<SymbolType>* unresolved,
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables
+   operators::UnresolvedMutationsNode<SymbolType>* unresolved
 ) {
    auto scan_info = extractScanInfo(unresolved->child);
    CHECK_SILO_QUERY(scan_info.has_value(), "mutations() must be applied to a table scan");
 
-   auto table = resolveTable(scan_info->table_name, tables);
+   auto table = scan_info->table;
 
    std::vector<schema::ColumnIdentifier> bound_sequence_columns;
    for (const auto& sequence_name : unresolved->sequence_names) {
@@ -160,13 +157,12 @@ operators::QueryNodePtr pushdownUnresolvedMutations(
 
 template <typename SymbolType>
 operators::QueryNodePtr pushdownUnresolvedInsertions(
-   operators::UnresolvedInsertionsNode<SymbolType>* unresolved,
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables
+   operators::UnresolvedInsertionsNode<SymbolType>* unresolved
 ) {
    auto scan_info = extractScanInfo(unresolved->child);
    CHECK_SILO_QUERY(scan_info.has_value(), "insertions() must be applied to a table scan");
 
-   auto table = resolveTable(scan_info->table_name, tables);
+   auto table = scan_info->table;
 
    std::vector<schema::ColumnIdentifier> bound_sequence_columns;
    for (const auto& sequence_name : unresolved->sequence_names) {
@@ -192,12 +188,11 @@ operators::QueryNodePtr pushdownUnresolvedInsertions(
 }
 
 operators::QueryNodePtr pushdownUnresolvedPhyloSubtree(
-   operators::UnresolvedPhyloSubtreeNode* unresolved,
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables
+   operators::UnresolvedPhyloSubtreeNode* unresolved
 ) {
    auto scan_info = extractScanInfo(unresolved->child);
    CHECK_SILO_QUERY(scan_info.has_value(), "phyloSubtree() must be applied to a table scan");
-   auto table = resolveTable(scan_info->table_name, tables);
+   auto table = scan_info->table;
    return std::make_unique<operators::PhyloSubtreeNode>(
       std::move(table),
       std::move(scan_info->filter),
@@ -208,14 +203,13 @@ operators::QueryNodePtr pushdownUnresolvedPhyloSubtree(
 }
 
 operators::QueryNodePtr pushdownUnresolvedMostRecentCommonAncestor(
-   operators::UnresolvedMostRecentCommonAncestorNode* unresolved,
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables
+   operators::UnresolvedMostRecentCommonAncestorNode* unresolved
 ) {
    auto scan_info = extractScanInfo(unresolved->child);
    CHECK_SILO_QUERY(
       scan_info.has_value(), "mostRecentCommonAncestor() must be applied to a table scan"
    );
-   auto table = resolveTable(scan_info->table_name, tables);
+   auto table = scan_info->table;
    return std::make_unique<operators::MostRecentCommonAncestorNode>(
       std::move(table),
       std::move(scan_info->filter),
@@ -224,20 +218,16 @@ operators::QueryNodePtr pushdownUnresolvedMostRecentCommonAncestor(
    );
 }
 
-/// Collapses Scan/Filter/Project combinations into a single TableScanNode.
-/// Handles: ScanNode, FilterNode(ScanNode), ProjectNode(ScanNode),
-///          ProjectNode(FilterNode(ScanNode)), FilterNode(ProjectNode(ScanNode)).
+/// Collapses Filter/Project nodes wrapping a TableScanNode into a single TableScanNode.
+/// Handles: TableScanNode, FilterNode(TableScanNode), ProjectNode(TableScanNode),
+///          ProjectNode(FilterNode(TableScanNode)), FilterNode(ProjectNode(TableScanNode)).
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr pushdownScanFilterProject(
-   operators::QueryNodePtr node,
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables
-) {
+operators::QueryNodePtr pushdownScanFilterProject(operators::QueryNodePtr node) {
    operators::ProjectNode* project_node = nullptr;
    operators::FilterNode* filter_node = nullptr;
-   operators::ScanNode* scan_node = nullptr;
    operators::QueryNode* current = node.get();
 
-   for (int i = 0; i < 3; ++i) {
+   for (int i = 0; i < 2; ++i) {
       if (auto* proj = dynamic_cast<operators::ProjectNode*>(current);
           proj != nullptr && project_node == nullptr) {
          project_node = proj;
@@ -252,20 +242,20 @@ operators::QueryNodePtr pushdownScanFilterProject(
       }
       break;
    }
-   scan_node = dynamic_cast<operators::ScanNode*>(current);
+   auto* scan_node = dynamic_cast<operators::TableScanNode*>(current);
    if (scan_node == nullptr) {
       return node;
    }
 
-   auto table = resolveTable(scan_node->table_name, tables);
+   auto table = scan_node->table;
    std::unique_ptr<filter::expressions::Expression> filter =
-      filter_node != nullptr ? std::move(filter_node->filter)
-                             : std::make_unique<filter::expressions::True>();
+      filter_node != nullptr
+         ? conjoinFilters(std::move(scan_node->filter), std::move(filter_node->filter))
+         : std::move(scan_node->filter);
 
    std::vector<schema::ColumnIdentifier> fields;
    std::unordered_set<std::string> seen_names;
-   const auto& source_fields =
-      project_node != nullptr ? project_node->fields : scan_node->output_schema;
+   const auto& source_fields = project_node != nullptr ? project_node->fields : scan_node->fields;
    for (const auto& field : source_fields) {
       if (seen_names.insert(field.name).second) {
          fields.push_back(field);
@@ -354,80 +344,77 @@ operators::QueryNodePtr tryReorderProject(operators::QueryNodePtr node) {
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr Planner::pushdown(
-   operators::QueryNodePtr node,
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables
-) {
+operators::QueryNodePtr Planner::pushdown(operators::QueryNodePtr node) {
    // Push Project below OrderBy/Fetch when safe, so it can collapse into TableScan.
    if (dynamic_cast<operators::ProjectNode*>(node.get()) != nullptr) {
       operators::QueryNode* before = node.get();
       node = tryReorderProject(std::move(node));
       if (node.get() != before) {
-         return pushdown(std::move(node), tables);
+         return pushdown(std::move(node));
       }
    }
 
-   // Try to collapse Scan/Filter/Project combinations into TableScanNode
-   if (dynamic_cast<operators::ScanNode*>(node.get()) != nullptr) {
-      return pushdownScanFilterProject(std::move(node), tables);
+   // Collapse TableScan/Filter/Project combinations into a single TableScanNode
+   if (dynamic_cast<operators::TableScanNode*>(node.get()) != nullptr) {
+      return pushdownScanFilterProject(std::move(node));
    }
    if (auto* filter_node = dynamic_cast<operators::FilterNode*>(node.get())) {
-      if (dynamic_cast<operators::ScanNode*>(filter_node->child.get()) != nullptr ||
+      if (dynamic_cast<operators::TableScanNode*>(filter_node->child.get()) != nullptr ||
           dynamic_cast<operators::ProjectNode*>(filter_node->child.get()) != nullptr) {
-         return pushdownScanFilterProject(std::move(node), tables);
+         return pushdownScanFilterProject(std::move(node));
       }
    }
    if (auto* project_node = dynamic_cast<operators::ProjectNode*>(node.get())) {
-      if (dynamic_cast<operators::ScanNode*>(project_node->child.get()) != nullptr ||
+      if (dynamic_cast<operators::TableScanNode*>(project_node->child.get()) != nullptr ||
           dynamic_cast<operators::FilterNode*>(project_node->child.get()) != nullptr) {
-         return pushdownScanFilterProject(std::move(node), tables);
+         return pushdownScanFilterProject(std::move(node));
       }
    }
 
    // Resolve unresolved mutations/insertions nodes
    if (auto* unresolved =
           dynamic_cast<operators::UnresolvedMutationsNode<Nucleotide>*>(node.get())) {
-      return pushdownUnresolvedMutations<Nucleotide>(unresolved, tables);
+      return pushdownUnresolvedMutations<Nucleotide>(unresolved);
    }
    if (auto* unresolved =
           dynamic_cast<operators::UnresolvedMutationsNode<AminoAcid>*>(node.get())) {
-      return pushdownUnresolvedMutations<AminoAcid>(unresolved, tables);
+      return pushdownUnresolvedMutations<AminoAcid>(unresolved);
    }
    if (auto* unresolved =
           dynamic_cast<operators::UnresolvedInsertionsNode<Nucleotide>*>(node.get())) {
-      return pushdownUnresolvedInsertions<Nucleotide>(unresolved, tables);
+      return pushdownUnresolvedInsertions<Nucleotide>(unresolved);
    }
    if (auto* unresolved =
           dynamic_cast<operators::UnresolvedInsertionsNode<AminoAcid>*>(node.get())) {
-      return pushdownUnresolvedInsertions<AminoAcid>(unresolved, tables);
+      return pushdownUnresolvedInsertions<AminoAcid>(unresolved);
    }
    if (auto* unresolved = dynamic_cast<operators::UnresolvedPhyloSubtreeNode*>(node.get())) {
-      return pushdownUnresolvedPhyloSubtree(unresolved, tables);
+      return pushdownUnresolvedPhyloSubtree(unresolved);
    }
    if (auto* unresolved =
           dynamic_cast<operators::UnresolvedMostRecentCommonAncestorNode*>(node.get())) {
-      return pushdownUnresolvedMostRecentCommonAncestor(unresolved, tables);
+      return pushdownUnresolvedMostRecentCommonAncestor(unresolved);
    }
 
    // Recurse into nodes with children
    if (auto* aggregate = dynamic_cast<operators::AggregateNode*>(node.get())) {
-      aggregate->child = pushdown(std::move(aggregate->child), tables);
+      aggregate->child = pushdown(std::move(aggregate->child));
       return node;
    }
    if (auto* order_by = dynamic_cast<operators::OrderByNode*>(node.get())) {
-      order_by->child = pushdown(std::move(order_by->child), tables);
+      order_by->child = pushdown(std::move(order_by->child));
       return node;
    }
    if (auto* fetch = dynamic_cast<operators::FetchNode*>(node.get())) {
-      fetch->child = pushdown(std::move(fetch->child), tables);
+      fetch->child = pushdown(std::move(fetch->child));
       return node;
    }
    if (auto* project = dynamic_cast<operators::ProjectNode*>(node.get())) {
-      project->child = pushdown(std::move(project->child), tables);
+      project->child = pushdown(std::move(project->child));
       return node;
    }
    if (auto* filter_node = dynamic_cast<operators::FilterNode*>(node.get())) {
-      filter_node->child = pushdown(std::move(filter_node->child), tables);
+      filter_node->child = pushdown(std::move(filter_node->child));
       return node;
    }
 
@@ -458,7 +445,7 @@ QueryPlan Planner::planQuery(
    if (auto new_node = operators::visit(*node, pass)) {
       node = std::move(new_node);
    }
-   auto pushed_down_tree = pushdown(std::move(node), tables);
+   auto pushed_down_tree = pushdown(std::move(node));
    auto optimized_tree = optimize(std::move(pushed_down_tree));
    auto result = planQueryOrError(*optimized_tree, tables, query_options, request_id);
    if (!result.ok()) {

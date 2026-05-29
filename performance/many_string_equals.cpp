@@ -14,10 +14,11 @@
 #include "silo/query_engine/filter/expressions/or.h"
 #include "silo/query_engine/filter/expressions/string_equals.h"
 #include "silo/query_engine/filter/expressions/string_in_set.h"
+#include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/query_node.h"
-#include "silo/query_engine/operators/scan_node.h"
+#include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/planner.h"
 
 namespace {
@@ -29,11 +30,12 @@ using silo::query_engine::filter::expressions::ExpressionVector;
 using silo::query_engine::filter::expressions::Or;
 using silo::query_engine::filter::expressions::StringEquals;
 using silo::query_engine::filter::expressions::StringInSet;
+using silo::query_engine::filter::expressions::True;
 using silo::query_engine::operators::AggregateDefinition;
 using silo::query_engine::operators::AggregateFunction;
 using silo::query_engine::operators::AggregateNode;
 using silo::query_engine::operators::FilterNode;
-using silo::query_engine::operators::ScanNode;
+using silo::query_engine::operators::TableScanNode;
 
 std::shared_ptr<Database> initializeDatabase() {
    auto database_config = silo::config::DatabaseConfig::getValidatedConfig(R"(
@@ -134,7 +136,9 @@ void executeCountWithFilter(
 ) {
    const auto& table_name = silo::schema::TableName::getDefault();
    auto table = database->tables.at(table_name);
-   auto scan = std::make_unique<ScanNode>(table_name, table->schema->getColumnIdentifiers());
+   auto scan = std::make_unique<TableScanNode>(
+      table, std::make_unique<True>(), table->schema->getColumnIdentifiers()
+   );
    auto filter_node = std::make_unique<FilterNode>(std::move(scan), std::move(filter));
    std::vector<AggregateDefinition> aggregates{
       {.output_name = "count", .function = AggregateFunction::COUNT, .source_column = std::nullopt}
@@ -142,8 +146,7 @@ void executeCountWithFilter(
    auto root = std::make_unique<AggregateNode>(
       std::move(filter_node), std::vector<silo::schema::ColumnIdentifier>{}, std::move(aggregates)
    );
-   auto query_plan =
-      Planner::planQuery(std::move(root), database->tables, {}, "benchmark_query");
+   auto query_plan = Planner::planQuery(std::move(root), database->tables, {}, "benchmark_query");
    std::stringstream result;
    silo::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
    query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/60);
@@ -233,7 +236,9 @@ int main() {
 
       // Lambda builders that capture search_values
       auto build_or = [&]() { return buildManyStringEquals("accession", search_values); };
-      auto build_nested_or = [&]() { return buildManyNestedStringEquals("accession", search_values); };
+      auto build_nested_or = [&]() {
+         return buildManyNestedStringEquals("accession", search_values);
+      };
       auto build_set = [&]() { return buildStringInSet("accession", search_values); };
 
       // Run benchmarks
@@ -290,7 +295,9 @@ int main() {
          }
       }
       auto build_or = [&]() { return buildManyStringEquals("country", search_countries); };
-      auto build_nested_or = [&]() { return buildManyNestedStringEquals("country", search_countries); };
+      auto build_nested_or = [&]() {
+         return buildManyNestedStringEquals("country", search_countries);
+      };
       auto build_set = [&]() { return buildStringInSet("country", search_countries); };
 
       auto or_result = runBenchmark(database, build_or, ITERATIONS);

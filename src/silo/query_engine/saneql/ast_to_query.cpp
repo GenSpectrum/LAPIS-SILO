@@ -47,7 +47,7 @@
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
-#include "silo/query_engine/operators/scan_node.h"
+#include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
@@ -780,11 +780,10 @@ operators::QueryNodePtr buildScanNode(
    auto table_name = schema::TableName(name);
    auto iter = tables.find(table_name);
    CHECK_SILO_QUERY(iter != tables.end(), "table '{}' not found in database", table_name.getName());
-   std::vector<schema::ColumnIdentifier> output_schema;
-   for (const auto& identifier : iter->second->schema->getColumnIdentifiers()) {
-      output_schema.push_back(identifier);
-   }
-   return std::make_unique<operators::ScanNode>(std::move(table_name), std::move(output_schema));
+   std::vector<schema::ColumnIdentifier> fields = iter->second->schema->getColumnIdentifiers();
+   return std::make_unique<operators::TableScanNode>(
+      iter->second, std::make_unique<filter::expressions::True>(), std::move(fields)
+   );
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)

@@ -9,18 +9,20 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
-#include "silo/query_engine/operators/scan_node.h"
+#include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/order_by_field.h"
 #include "silo/schema/database_schema.h"
+#include "silo/storage/column/string_column.h"
+#include "silo/storage/table.h"
 
 using silo::schema::ColumnIdentifier;
 using silo::schema::ColumnType;
-using silo::schema::TableName;
 namespace operators = silo::query_engine::operators;
 
 namespace {
@@ -29,14 +31,35 @@ ColumnIdentifier col(std::string name) {
    return ColumnIdentifier{.name = std::move(name), .type = ColumnType::STRING};
 }
 
-std::vector<ColumnIdentifier> scanSchema(const operators::ScanNode& node) {
-   return node.output_schema;
+std::shared_ptr<silo::storage::Table> dummyTable() {
+   using silo::storage::column::ColumnMetadata;
+   using silo::storage::column::StringColumnMetadata;
+
+   ColumnIdentifier primary_key = col("id");
+   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
+      {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
+   };
+   auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), primary_key);
+   return std::make_shared<silo::storage::Table>(schema);
 }
 
-// Extracts the ScanNode from the bottom of a chain of unary nodes.
+// The narrowing pass only inspects the scan's field list, so the table identity is irrelevant.
+std::unique_ptr<operators::TableScanNode> makeScan(std::vector<ColumnIdentifier> fields) {
+   return std::make_unique<operators::TableScanNode>(
+      dummyTable(),
+      std::make_unique<silo::query_engine::filter::expressions::True>(),
+      std::move(fields)
+   );
+}
+
+std::vector<ColumnIdentifier> scanSchema(const operators::TableScanNode& node) {
+   return node.fields;
+}
+
+// Extracts the TableScanNode from the bottom of a chain of unary nodes.
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::ScanNode& leafScan(operators::QueryNode& node) {
-   if (auto* scan = dynamic_cast<operators::ScanNode*>(&node)) {
+operators::TableScanNode& leafScan(operators::QueryNode& node) {
+   if (auto* scan = dynamic_cast<operators::TableScanNode*>(&node)) {
       return *scan;
    }
    if (auto* proj = dynamic_cast<operators::ProjectNode*>(&node)) {
@@ -57,12 +80,10 @@ operators::ScanNode& leafScan(operators::QueryNode& node) {
    throw std::logic_error("unexpected node type in leafScan");
 }
 
-// --- ScanNode ---
+// --- TableScanNode ---
 
 TEST(ColumnNarrowingPassScan, keepsOnlyRequiredColumns) {
-   auto scan = std::make_unique<operators::ScanNode>(
-      TableName{"t"}, std::vector{col("a"), col("b"), col("c")}
-   );
+   auto scan = makeScan({col("a"), col("b"), col("c")});
    silo::query_engine::ColumnNarrowingPass pass({col("b")});
    pass(*scan);
 
@@ -70,8 +91,7 @@ TEST(ColumnNarrowingPassScan, keepsOnlyRequiredColumns) {
 }
 
 TEST(ColumnNarrowingPassScan, removesAllWhenNoneRequired) {
-   auto scan =
-      std::make_unique<operators::ScanNode>(TableName{"t"}, std::vector{col("a"), col("b")});
+   auto scan = makeScan({col("a"), col("b")});
    silo::query_engine::ColumnNarrowingPass pass({});
    pass(*scan);
 
@@ -79,20 +99,17 @@ TEST(ColumnNarrowingPassScan, removesAllWhenNoneRequired) {
 }
 
 TEST(ColumnNarrowingPassScan, keepsAllWhenAllRequired) {
-   auto scan =
-      std::make_unique<operators::ScanNode>(TableName{"t"}, std::vector{col("x"), col("y")});
+   auto scan = makeScan({col("x"), col("y")});
    silo::query_engine::ColumnNarrowingPass pass({col("x"), col("y")});
    pass(*scan);
 
    EXPECT_THAT(scanSchema(*scan), ::testing::ElementsAre(col("x"), col("y")));
 }
 
-// --- ProjectNode -> ScanNode ---
+// --- ProjectNode -> TableScanNode ---
 
 TEST(ColumnNarrowingPassProject, narrowsScanToProjectedColumns) {
-   auto scan = std::make_unique<operators::ScanNode>(
-      TableName{"t"}, std::vector{col("a"), col("b"), col("c")}
-   );
+   auto scan = makeScan({col("a"), col("b"), col("c")});
    operators::QueryNodePtr node =
       std::make_unique<operators::ProjectNode>(std::move(scan), std::vector{col("a")});
 
@@ -104,12 +121,10 @@ TEST(ColumnNarrowingPassProject, narrowsScanToProjectedColumns) {
    EXPECT_THAT(scanSchema(leafScan(*node)), ::testing::ElementsAre(col("a")));
 }
 
-// --- AggregateNode -> ScanNode ---
+// --- AggregateNode -> TableScanNode ---
 
 TEST(ColumnNarrowingPassAggregate, narrowsScanToGroupByColumns) {
-   auto scan = std::make_unique<operators::ScanNode>(
-      TableName{"t"}, std::vector{col("a"), col("b"), col("c")}
-   );
+   auto scan = makeScan({col("a"), col("b"), col("c")});
    auto agg = std::make_unique<operators::AggregateNode>(
       std::move(scan),
       std::vector{col("b")},
@@ -127,9 +142,7 @@ TEST(ColumnNarrowingPassAggregate, narrowsScanToGroupByColumns) {
 }
 
 TEST(ColumnNarrowingPassAggregate, countStarWithNoGroupByKeepsOneColumn) {
-   auto scan = std::make_unique<operators::ScanNode>(
-      TableName{"t"}, std::vector{col("a"), col("b"), col("c")}
-   );
+   auto scan = makeScan({col("a"), col("b"), col("c")});
    auto agg = std::make_unique<operators::AggregateNode>(
       std::move(scan),
       std::vector<ColumnIdentifier>{},
@@ -147,12 +160,10 @@ TEST(ColumnNarrowingPassAggregate, countStarWithNoGroupByKeepsOneColumn) {
    EXPECT_THAT(scanSchema(leafScan(*agg)), ::testing::SizeIs(1));
 }
 
-// --- OrderByNode -> ScanNode ---
+// --- OrderByNode -> TableScanNode ---
 
 TEST(ColumnNarrowingPassOrderBy, appendsSortKeyToRequired) {
-   auto scan = std::make_unique<operators::ScanNode>(
-      TableName{"t"}, std::vector{col("a"), col("b"), col("c")}
-   );
+   auto scan = makeScan({col("a"), col("b"), col("c")});
    auto order = std::make_unique<operators::OrderByNode>(
       std::move(scan),
       std::vector<silo::query_engine::OrderByField>{{.field = col("c"), .ascending = true}},
@@ -169,9 +180,7 @@ TEST(ColumnNarrowingPassOrderBy, appendsSortKeyToRequired) {
 // --- ProjectNode elimination ---
 
 TEST(ColumnNarrowingPassProject, collapsesWhenScanNarrowedToProjectFields) {
-   auto scan = std::make_unique<operators::ScanNode>(
-      TableName{"t"}, std::vector{col("a"), col("b"), col("c")}
-   );
+   auto scan = makeScan({col("a"), col("b"), col("c")});
    auto proj =
       std::make_unique<operators::ProjectNode>(std::move(scan), std::vector{col("a"), col("b")});
    auto fetch = std::make_unique<operators::FetchNode>(std::move(proj), std::nullopt, std::nullopt);
@@ -179,17 +188,15 @@ TEST(ColumnNarrowingPassProject, collapsesWhenScanNarrowedToProjectFields) {
    silo::query_engine::ColumnNarrowingPass pass({col("a"), col("b")});
    pass(*fetch);
 
-   // The ProjectNode should be removed; FetchNode's child is now directly the ScanNode.
-   EXPECT_NE(dynamic_cast<operators::ScanNode*>(fetch->child.get()), nullptr);
+   // The ProjectNode should be removed; FetchNode's child is now directly the TableScanNode.
+   EXPECT_NE(dynamic_cast<operators::TableScanNode*>(fetch->child.get()), nullptr);
    EXPECT_THAT(scanSchema(leafScan(*fetch)), ::testing::ElementsAre(col("a"), col("b")));
 }
 
 TEST(ColumnNarrowingPassProject, stackedProjectsDoNotPropagateSuperfluousColumnsToScan) {
    // Only "a" is needed from outside, but the outer project exposes [a, b] and the inner [a, b, c].
    // The scan should still be narrowed to just [a].
-   auto scan = std::make_unique<operators::ScanNode>(
-      TableName{"t"}, std::vector{col("a"), col("b"), col("c"), col("d")}
-   );
+   auto scan = makeScan({col("a"), col("b"), col("c"), col("d")});
    auto inner_proj = std::make_unique<operators::ProjectNode>(
       std::move(scan), std::vector{col("a"), col("b"), col("c")}
    );
@@ -206,9 +213,7 @@ TEST(ColumnNarrowingPassProject, stackedProjectsDoNotPropagateSuperfluousColumns
 }
 
 TEST(ColumnNarrowingPassProject, stackedProjectsAreCollapsedAfterNarrowing) {
-   auto scan = std::make_unique<operators::ScanNode>(
-      TableName{"t"}, std::vector{col("a"), col("b"), col("c"), col("d")}
-   );
+   auto scan = makeScan({col("a"), col("b"), col("c"), col("d")});
    auto inner_proj = std::make_unique<operators::ProjectNode>(
       std::move(scan), std::vector{col("a"), col("b"), col("c")}
    );
@@ -221,16 +226,14 @@ TEST(ColumnNarrowingPassProject, stackedProjectsAreCollapsedAfterNarrowing) {
    silo::query_engine::ColumnNarrowingPass pass({col("a")});
    pass(*fetch);
 
-   EXPECT_NE(dynamic_cast<operators::ScanNode*>(fetch->child.get()), nullptr);
+   EXPECT_NE(dynamic_cast<operators::TableScanNode*>(fetch->child.get()), nullptr);
    EXPECT_THAT(scanSchema(leafScan(*fetch)), ::testing::ElementsAre(col("a")));
 }
 
-// --- FetchNode -> ScanNode ---
+// --- FetchNode -> TableScanNode ---
 
 TEST(ColumnNarrowingPassFetch, propagatesRequiredThroughFetch) {
-   auto scan = std::make_unique<operators::ScanNode>(
-      TableName{"t"}, std::vector{col("a"), col("b"), col("c")}
-   );
+   auto scan = makeScan({col("a"), col("b"), col("c")});
    auto fetch = std::make_unique<operators::FetchNode>(std::move(scan), std::nullopt, std::nullopt);
 
    silo::query_engine::ColumnNarrowingPass pass({col("b")});
