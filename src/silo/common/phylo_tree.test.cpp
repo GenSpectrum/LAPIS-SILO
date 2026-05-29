@@ -236,7 +236,7 @@ TEST(PhyloTree, throwsOnNewickWithUnclosedComment) {
    EXPECT_THAT(
       [] { PhyloTree::fromNewickString("(CHILD[comment)ROOT;"); },
       ThrowsMessage<PreprocessingException>(
-         ::testing::HasSubstr("Error when parsing the Newick string - unclosed '[' comment")
+         ::testing::HasSubstr("Error when parsing the Newick string - unmatched '['")
       )
    );
 }

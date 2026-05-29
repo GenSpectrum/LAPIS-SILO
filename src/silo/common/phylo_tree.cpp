@@ -142,8 +142,7 @@ void skipIgnoredNewickTokens(std::string_view& label) {
       }
 
       if (label.back() == '[') {
-         throw PreprocessingException("Error when parsing the Newick string - unclosed '[' comment"
-         );
+         throw PreprocessingException("Error when parsing the Newick string - unmatched '['");
       }
 
       break;
