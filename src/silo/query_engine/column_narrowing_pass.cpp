@@ -6,7 +6,7 @@
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
-#include "silo/query_engine/operators/scan_node.h"
+#include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
@@ -24,14 +24,14 @@ void applyToChild(operators::QueryNodePtr& child, ColumnNarrowingPass& pass) {
 }  // namespace
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static,misc-no-recursion)
-operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::ScanNode& node) {
+operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::TableScanNode& node) {
    std::vector<schema::ColumnIdentifier> pruned;
-   for (const auto& col : node.output_schema) {
+   for (const auto& col : node.fields) {
       if (std::ranges::find(required, col) != required.end()) {
          pruned.push_back(col);
       }
    }
-   node.output_schema = std::move(pruned);
+   node.fields = std::move(pruned);
    return nullptr;
 }
 

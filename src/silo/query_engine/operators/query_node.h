@@ -14,7 +14,6 @@
 namespace silo::query_engine::operators {
 
 enum class NodeKind : uint8_t {
-   SCAN,
    AGGREGATE,
    PROJECT,
    ORDER_BY,
