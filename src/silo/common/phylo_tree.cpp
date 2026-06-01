@@ -27,6 +27,7 @@
 
 namespace silo::common {
 using silo::common::TreeNodeId;
+using silo::preprocessing::PreprocessingException;
 
 template <class Archive>
 void PhyloTree::save(Archive& archive, const unsigned int /*version*/) const {
@@ -75,7 +76,7 @@ TreeNodeId parseAuspiceTree(
 ) {
    auto node = std::make_shared<TreeNode>();
    if (!json.contains("name")) {
-      throw silo::preprocessing::PreprocessingException(
+      throw PreprocessingException(
          "Invalid File: Auspice JSON node does not contain a 'name' entry."
       );
    }
@@ -96,7 +97,7 @@ TreeNodeId parseAuspiceTree(
    }
 
    if (node_map.contains(node->node_id)) {
-      throw silo::preprocessing::PreprocessingException(
+      throw PreprocessingException(
          fmt::format("Duplicate node ID found in Auspice JSON string: '{}'", node->node_id.string)
       );
    }
@@ -116,16 +117,51 @@ bool isValidLength(char c) {
    return (isdigit(c) != 0) || c == '.' || c == '-' || c == '+' || c == 'e';
 }
 
+void skipIgnoredNewickTokens(std::string_view& label) {
+   while (!label.empty()) {
+      if (std::isspace(label.back())) {
+         label.remove_suffix(1);
+         continue;
+      }
+
+      if (label.back() == ']') {
+         int bracket_nesting_level = 1;
+         label.remove_suffix(1);
+         while (!label.empty() && bracket_nesting_level > 0) {
+            if (label.back() == ']') {
+               ++bracket_nesting_level;
+            } else if (label.back() == '[') {
+               --bracket_nesting_level;
+            }
+            label.remove_suffix(1);
+         }
+         if (bracket_nesting_level != 0) {
+            throw PreprocessingException("Error when parsing the Newick string - unmatched ']'");
+         }
+         continue;
+      }
+
+      if (label.back() == '[') {
+         throw PreprocessingException("Error when parsing the Newick string - unmatched '['");
+      }
+
+      break;
+   }
+}
+
 TreeNodeId parseLabel(std::string_view& label) {
+   skipIgnoredNewickTokens(label);
    std::string parsed_label_string;
    while (!label.empty() && isValidLabelChar(label.back())) {
       parsed_label_string += label.back();
       label.remove_suffix(1);
    }
-   if (label.back() != ')' && label.back() != '(' && label.back() != ',' && label.back() != ' ') {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format("Newick string contains invalid characters: '{}'", label.back())
-      );
+   skipIgnoredNewickTokens(label);
+   if (label.empty() || (label.back() != ')' && label.back() != '(' && label.back() != ',')) {
+      throw PreprocessingException(fmt::format(
+         "Newick string contains invalid characters: '{}'",
+         label.empty() ? std::string("<end of input>") : std::string(1, label.back())
+      ));
    }
    std::ranges::reverse(parsed_label_string);
    return TreeNodeId{parsed_label_string};
@@ -137,6 +173,7 @@ TreeNodeInfo parseFullLabel(std::string_view& label) {
       full_label += label.back();
       label.remove_suffix(1);
    }
+   skipIgnoredNewickTokens(label);
    if (!label.empty() && label.back() == ':') {
       label.remove_suffix(1);
       try {
@@ -144,33 +181,29 @@ TreeNodeInfo parseFullLabel(std::string_view& label) {
          float branch_length = std::stof(reversed);
          return TreeNodeInfo{.node_id = parseLabel(label), .branch_length = branch_length};
       } catch (const std::invalid_argument& e) {
-         throw silo::preprocessing::PreprocessingException(
+         throw PreprocessingException(
             fmt::format("Invalid branch length '{}' in Newick string", full_label)
          );
       } catch (const std::out_of_range& e) {
-         throw silo::preprocessing::PreprocessingException(
+         throw PreprocessingException(
             fmt::format("Branch length out of range '{}' in Newick string", full_label)
          );
       }
    }
    if (!std::ranges::all_of(full_label, isValidLabelChar)) {
-      throw silo::preprocessing::PreprocessingException(
+      throw PreprocessingException(
          fmt::format("Label of node in Newick string contains invalid characters: '{}'", full_label)
       );
    }
-   if (label.back() != ')' && label.back() != '(' && label.back() != ',' && label.back() != ' ') {
-      throw silo::preprocessing::PreprocessingException(
-         fmt::format("Newick string contains invalid characters: '{}'", label.back())
-      );
+   skipIgnoredNewickTokens(label);
+   if (label.empty() || (label.back() != ')' && label.back() != '(' && label.back() != ',')) {
+      throw PreprocessingException(fmt::format(
+         "Newick string contains invalid characters: '{}'",
+         label.empty() ? std::string("<end of input>") : std::string(1, label.back())
+      ));
    }
    std::ranges::reverse(full_label);
    return TreeNodeInfo{.node_id = TreeNodeId{full_label}};
-}
-
-void skipWhitespace(std::string_view& label) {
-   while (!label.empty() && std::isspace(label.back())) {
-      label.remove_suffix(1);
-   }
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -186,7 +219,11 @@ TreeNodeId parseSubtree(
    node->depth = depth;
    node->parent = std::move(parent);
 
-   skipWhitespace(label);
+   skipIgnoredNewickTokens(label);
+   if (label.empty()) {
+      throw PreprocessingException("Error when parsing the Newick string - unexpected end of input"
+      );
+   }
    const TreeNodeInfo tree_node_info = parseFullLabel(label);
    node->node_id = tree_node_info.node_id;
    node->branch_length = tree_node_info.branch_length;
@@ -196,7 +233,7 @@ TreeNodeId parseSubtree(
       do {
          auto child_node = parseSubtree(label, node_map, depth, node->node_id);
          node->children.push_back(child_node);
-         skipWhitespace(label);
+         skipIgnoredNewickTokens(label);
          if (!label.empty() && label.back() == ',') {
             label.remove_suffix(1);
          }
@@ -208,14 +245,12 @@ TreeNodeId parseSubtree(
    }
 
    if (depth != node->depth) {
-      throw silo::preprocessing::PreprocessingException(
-         "Parenthesis mismatch in Newick string - depth does not match"
-      );
+      throw PreprocessingException("Parenthesis mismatch in Newick string - depth does not match");
    }
 
-   skipWhitespace(label);
+   skipIgnoredNewickTokens(label);
    if (node_map.contains(node->node_id)) {
-      throw silo::preprocessing::PreprocessingException(
+      throw PreprocessingException(
          fmt::format("Duplicate node ID found in Newick string: '{}'", node->node_id.string)
       );
    }
@@ -241,9 +276,7 @@ PhyloTree PhyloTree::fromAuspiceJSONString(const std::string& json_string) {
    nlohmann::json json = nlohmann::json::parse(json_string);
 
    if (!json.contains("tree")) {
-      throw silo::preprocessing::PreprocessingException(
-         "Invalid File: Auspice JSON does not contain a 'tree' entry."
-      );
+      throw PreprocessingException("Invalid File: Auspice JSON does not contain a 'tree' entry.");
    }
 
    PhyloTree file;
@@ -254,7 +287,7 @@ PhyloTree PhyloTree::fromAuspiceJSONString(const std::string& json_string) {
 PhyloTree PhyloTree::fromAuspiceJSONFile(const std::filesystem::path& json_path) {
    std::ifstream file(json_path, std::ios::in | std::ios::binary);
    if (!file) {
-      throw silo::preprocessing::PreprocessingException(
+      throw PreprocessingException(
          fmt::format("Could not open the JSON file: '{}'", json_path.string())
       );
    }
@@ -263,7 +296,7 @@ PhyloTree PhyloTree::fromAuspiceJSONFile(const std::filesystem::path& json_path)
    if (file.peek() != std::ifstream::traits_type::eof()) {
       contents << file.rdbuf();
       if (contents.fail()) {
-         throw silo::preprocessing::PreprocessingException(
+         throw PreprocessingException(
             fmt::format("Error when reading the JSON file: '{}'", json_path.string())
          );
       }
@@ -271,7 +304,7 @@ PhyloTree PhyloTree::fromAuspiceJSONFile(const std::filesystem::path& json_path)
    try {
       return fromAuspiceJSONString(contents.str());
    } catch (const nlohmann::json::parse_error& parse_exception) {
-      throw silo::preprocessing::PreprocessingException(
+      throw PreprocessingException(
          fmt::format("The JSON file '{}' does not contain valid JSON.", json_path.string())
       );
    }
@@ -283,15 +316,13 @@ PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
    std::string_view newick(newick_string);
    newick = trim(newick);
    if (newick.empty()) {
-      throw silo::preprocessing::PreprocessingException(
-         "Error when parsing the Newick string - The string is empty"
-      );
+      throw PreprocessingException("Error when parsing the Newick string - The string is empty");
    }
    if (newick.back() != ';') {
       std::string shortened =
          newick_string.size() > 200 ? newick_string.substr(0, 200) + "..." : newick_string;
 
-      throw silo::preprocessing::PreprocessingException(fmt::format(
+      throw PreprocessingException(fmt::format(
          "Error when parsing the Newick string: '{}' - string does not end in ';'", shortened
       ));
    }
@@ -301,7 +332,7 @@ PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
       if (!newick.empty()) {
          std::string shortened =
             newick_string.size() > 200 ? newick_string.substr(0, 200) + "..." : newick_string;
-         throw silo::preprocessing::PreprocessingException(fmt::format(
+         throw PreprocessingException(fmt::format(
             "Error when parsing the Newick string: '{}' - extra characters found: '{}'",
             shortened,
             newick
@@ -310,7 +341,7 @@ PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
    } catch (const std::exception& e) {
       std::string shortened =
          newick_string.size() > 200 ? newick_string.substr(0, 200) + "..." : newick_string;
-      throw silo::preprocessing::PreprocessingException(
+      throw PreprocessingException(
          fmt::format("Error when parsing the Newick string '{}': {}", shortened, e.what())
       );
    }
@@ -321,7 +352,7 @@ PhyloTree PhyloTree::fromNewickString(const std::string& newick_string) {
 PhyloTree PhyloTree::fromNewickFile(const std::filesystem::path& newick_path) {
    std::ifstream file(newick_path, std::ios::in | std::ios::binary);
    if (!file) {
-      throw silo::preprocessing::PreprocessingException(
+      throw PreprocessingException(
          fmt::format("Could not open the Newick file: '{}'", newick_path.string())
       );
    }
@@ -330,7 +361,7 @@ PhyloTree PhyloTree::fromNewickFile(const std::filesystem::path& newick_path) {
    if (file.peek() != std::ifstream::traits_type::eof()) {
       contents << file.rdbuf();
       if (contents.fail()) {
-         throw silo::preprocessing::PreprocessingException(
+         throw PreprocessingException(
             fmt::format("Error when reading the Newick file: '{}'", newick_path.string())
          );
       }
@@ -338,7 +369,7 @@ PhyloTree PhyloTree::fromNewickFile(const std::filesystem::path& newick_path) {
    try {
       return fromNewickString(contents.str());
    } catch (const std::exception& e) {
-      throw silo::preprocessing::PreprocessingException(fmt::format(
+      throw PreprocessingException(fmt::format(
          "Error when parsing the Newick string '{}': {}", newick_path.string(), e.what()
       ));
    }
@@ -357,7 +388,7 @@ PhyloTree PhyloTree::fromFile(const std::filesystem::path& path) {
    if (ext == ".json") {
       return common::PhyloTree::fromAuspiceJSONFile(path);
    }
-   throw silo::preprocessing::PreprocessingException(fmt::format(
+   throw PreprocessingException(fmt::format(
       "Error when parsing tree file: '{}'. Path must end with .nwk or .json", path.string()
    ));
 }

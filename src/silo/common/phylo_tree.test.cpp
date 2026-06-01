@@ -8,6 +8,7 @@
 
 using silo::common::PhyloTree;
 using silo::common::TreeNodeId;
+using silo::preprocessing::PreprocessingException;
 
 TEST(PhyloTree, correctlyParsesFromJSON) {
    auto phylo_tree_file = PhyloTree::fromAuspiceJSONString(
@@ -80,8 +81,7 @@ TEST(PhyloTree, correctlyParsesFromJSONwithBranchLengths) {
 
 TEST(PhyloTree, throwsOnInvalidJSON) {
    EXPECT_THROW(
-      PhyloTree::fromAuspiceJSONString("{\"invalid\": \"json\"}"),
-      silo::preprocessing::PreprocessingException
+      PhyloTree::fromAuspiceJSONString("{\"invalid\": \"json\"}"), PreprocessingException
    );
 }
 
@@ -104,7 +104,7 @@ TEST(PhyloTree, throwsOnInvalidAuspiceJSONDuplicateNodeId) {
     ]  
   }  
 })"),
-      silo::preprocessing::PreprocessingException
+      PreprocessingException
    );
 }
 
@@ -149,37 +149,129 @@ TEST(PhyloTree, correctlyParsesFromNewickWithBranchLengths) {
    ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->parent, TreeNodeId{"CHILD"});
 }
 
-TEST(PhyloTree, throwsOnInvalidNewick) {
-   EXPECT_THROW(
-      PhyloTree::fromNewickString("((CHILD2)CHILD;"), silo::preprocessing::PreprocessingException
+TEST(PhyloTree, correctlyParsesFromNewickWithComments) {
+   auto phylo_tree_file = PhyloTree::fromNewickString(
+      "((CHILD2:0.5[leaf comment], CHILD3:1)[internal comment]CHILD:0.1, "
+      "CHILD4:1.5)ROOT[ignored root comment];"
    );
+   ASSERT_EQ(phylo_tree_file.nodes.size(), 5);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->parent, std::nullopt);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->depth, 0);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"ROOT"})->children.size(), 2);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->depth, 1);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD"})->branch_length, 0.1F);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD2"})->branch_length, 0.5F);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD3"})->branch_length, 1.0F);
+   ASSERT_EQ(phylo_tree_file.nodes.at(TreeNodeId{"CHILD4"})->branch_length, 1.5F);
+}
+
+TEST(PhyloTree, ignoresCommentAtStart) {
+   auto result = PhyloTree::fromNewickString(" [c] (A:0.1)R;");
+   ASSERT_EQ(result.nodes.size(), 2);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"A"})->branch_length, 0.1F);
+}
+
+TEST(PhyloTree, ignoresCommentAfterLeafLabelBeforeColon) {
+   auto result = PhyloTree::fromNewickString("(A [c] :0.1)R;");
+   ASSERT_EQ(result.nodes.size(), 2);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"A"})->branch_length, 0.1F);
+}
+
+TEST(PhyloTree, ignoresCommentAfterLeafLabelNoBranchLength) {
+   auto result = PhyloTree::fromNewickString("(A [c] )R;");
+   ASSERT_EQ(result.nodes.size(), 2);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"A"})->branch_length, std::nullopt);
+}
+
+TEST(PhyloTree, ignoresCommentAfterInternalLabelBeforeColon) {
+   auto result = PhyloTree::fromNewickString("((A)C [c] :0.3)R;");
+   ASSERT_EQ(result.nodes.size(), 3);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"C"})->branch_length, 0.3F);
+}
+
+TEST(PhyloTree, ignoresCommentBetweenColonAndBranchLength) {
+   auto result = PhyloTree::fromNewickString("(A: [c] 0.1)R;");
+   ASSERT_EQ(result.nodes.size(), 2);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"A"})->branch_length, 0.1F);
+}
+
+TEST(PhyloTree, ignoresCommentAfterInternalBranchLength) {
+   auto result = PhyloTree::fromNewickString("((A)C:0.3 [c] )R;");
+   ASSERT_EQ(result.nodes.size(), 3);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"C"})->branch_length, 0.3F);
+}
+
+TEST(PhyloTree, ignoresCommentBeforeComma) {
+   auto result = PhyloTree::fromNewickString("(A [c] ,B)R;");
+   ASSERT_EQ(result.nodes.size(), 3);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"R"})->children.size(), 2);
+}
+
+TEST(PhyloTree, ignoresCommentAfterComma) {
+   auto result = PhyloTree::fromNewickString("(A, [c] B)R;");
+   ASSERT_EQ(result.nodes.size(), 3);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"R"})->children.size(), 2);
+}
+
+TEST(PhyloTree, ignoresCommentAfterOpeningParen) {
+   auto result = PhyloTree::fromNewickString("( [c] A)R;");
+   ASSERT_EQ(result.nodes.size(), 2);
+   ASSERT_EQ(result.nodes.at(TreeNodeId{"A"})->parent, TreeNodeId{"R"});
+}
+
+TEST(PhyloTree, throwsOnInvalidNewick) {
+   EXPECT_THROW(PhyloTree::fromNewickString("((CHILD2)CHILD;"), PreprocessingException);
 }
 
 TEST(PhyloTree, throwsOnNewickWithInvalidCharacters) {
-   try {
-      PhyloTree::fromNewickString("(CHILD%)CHILD;");
-      FAIL() << "Expected PreprocessingException";
-   } catch (const silo::preprocessing::PreprocessingException& e) {
-      EXPECT_THAT(
-         std::string(e.what()),
+   EXPECT_THAT(
+      [] { PhyloTree::fromNewickString("(CHILD%)CHILD;"); },
+      ThrowsMessage<PreprocessingException>(
          ::testing::HasSubstr("Newick string contains invalid characters: '%'")
-      );
-   } catch (...) {
-      FAIL() << "Expected PreprocessingException, but caught a different exception";
-   }
+      )
+   );
+}
+
+TEST(PhyloTree, throwsOnNewickWithUnclosedComment) {
+   EXPECT_THAT(
+      [] { PhyloTree::fromNewickString("(CHILD[comment)ROOT;"); },
+      ThrowsMessage<PreprocessingException>(
+         ::testing::HasSubstr("Error when parsing the Newick string - unmatched '['")
+      )
+   );
+}
+
+TEST(PhyloTree, throwsOnNewickWithUnclosedCommentAtInputEnd) {
+   EXPECT_THAT(
+      [] { PhyloTree::fromNewickString("[;"); },
+      ThrowsMessage<PreprocessingException>(
+         ::testing::HasSubstr("Error when parsing the Newick string - unmatched '['")
+      )
+   );
+}
+
+TEST(PhyloTree, throwsOnNewickWithUnmatchedClosingBracket) {
+   EXPECT_THAT(
+      [] { PhyloTree::fromNewickString("(CHILD]comment)ROOT;"); },
+      ThrowsMessage<PreprocessingException>(
+         ::testing::HasSubstr("Error when parsing the Newick string - unmatched ']'")
+      )
+   );
+}
+
+TEST(PhyloTree, throwsOnNewickWithOnlyComment) {
+   EXPECT_THAT(
+      [] { PhyloTree::fromNewickString("[comment];"); },
+      ThrowsMessage<PreprocessingException>(::testing::HasSubstr("unexpected end of input"))
+   );
 }
 
 TEST(PhyloTree, throwsOnInvalidNewickNoSemicolon) {
-   EXPECT_THROW(
-      PhyloTree::fromNewickString("((CHILD2)CHILD)ROOT"),
-      silo::preprocessing::PreprocessingException
-   );
+   EXPECT_THROW(PhyloTree::fromNewickString("((CHILD2)CHILD)ROOT"), PreprocessingException);
 }
 
 TEST(PhyloTree, throwsOnInvalidNewickWithDuplicateNodeId) {
-   EXPECT_THROW(
-      PhyloTree::fromNewickString("((CHILD)CHILD)ROOT"), silo::preprocessing::PreprocessingException
-   );
+   EXPECT_THROW(PhyloTree::fromNewickString("((CHILD)CHILD)ROOT"), PreprocessingException);
 }
 
 TEST(PhyloTree, correctlyReturnsMRCA) {
@@ -201,7 +293,7 @@ TEST(PhyloTree, correctlyReturnsMRCA) {
    ASSERT_EQ(mrca_response.mrca_node_id.value(), TreeNodeId{"ROOT"});
    ASSERT_TRUE(mrca_response.not_in_tree.empty());
 
-   std::vector<std::string> expected = {"NOT_IN_TREE", "NOT_IN_TREE2"};
+   const std::vector<std::string> expected = {"NOT_IN_TREE", "NOT_IN_TREE2"};
    mrca_response = phylo_tree_file.getMRCA({"NOT_IN_TREE", "NOT_IN_TREE2"});
    ASSERT_FALSE(mrca_response.mrca_node_id.has_value());
    ASSERT_TRUE(mrca_response.not_in_tree.size() == 2 && mrca_response.not_in_tree == expected);
