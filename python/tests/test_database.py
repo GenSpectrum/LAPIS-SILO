@@ -59,7 +59,7 @@ class TestDatabaseCreation:
             'append_data_from_string',
             'create_gene_table',
             'create_nucleotide_sequence_table',
-            'execute_query',
+            'query',
             'get_filtered_bitmap',
             'get_nucleotide_reference_sequence',
             'get_amino_acid_reference_sequence',
@@ -466,7 +466,7 @@ class TestExtraColumns:
         db.append_data_from_string("test", '{"id": "s2", "seq": {"sequence": "CCCC", "insertions": []}, "country": "UK", "lineage": "BA.2"}')
 
         query = 'test'
-        result = db.execute_query(query)
+        result = db.query(query)
 
         assert "country" in result.column_names
         assert "lineage" in result.column_names
@@ -489,7 +489,7 @@ class TestExtraColumns:
         db.append_data_from_string("test", '{"id": "s1", "seq": {"sequence": "AAAA", "insertions": []}}')
 
         query = 'test'
-        result = db.execute_query(query)
+        result = db.query(query)
         assert result.num_rows == 1
 
     def test_extra_columns_with_none(self):
@@ -507,7 +507,7 @@ class TestExtraColumns:
         db.append_data_from_string("test", '{"id": "s1", "seq": {"sequence": "AAAA", "insertions": []}}')
 
         query = 'test'
-        result = db.execute_query(query)
+        result = db.query(query)
         assert result.num_rows == 1
 
     def test_extra_columns_invalid_type_raises(self):
@@ -589,11 +589,11 @@ class TestGetTables:
         assert "genes" in table_names
 
 
-class TestExecuteQuery:
-    """Test the execute_query method that returns PyArrow Tables."""
+class TestQuery:
+    """Test the query method that returns PyArrow Tables."""
 
-    def test_execute_query_returns_pyarrow_table(self, empty_database, main_reference_sequence):
-        """Test that execute_query returns a PyArrow Table."""
+    def test_query_returns_pyarrow_table(self, empty_database, main_reference_sequence):
+        """Test that query returns a PyArrow Table."""
         empty_database.create_nucleotide_sequence_table(
             table_name="sequences",
             primary_key_name="primary_key",
@@ -603,11 +603,12 @@ class TestExecuteQuery:
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
         query = 'sequences'
-        result = empty_database.execute_query(query)
+
+        result = empty_database.query(query)
 
         assert isinstance(result, pa.Table)
 
-    def test_execute_query_has_correct_schema(self, empty_database, main_reference_sequence):
+    def test_query_has_correct_schema(self, empty_database, main_reference_sequence):
         """Test that the returned table has expected columns."""
         empty_database.create_nucleotide_sequence_table(
             table_name="sequences",
@@ -618,13 +619,13 @@ class TestExecuteQuery:
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
         query = 'sequences'
-        result = empty_database.execute_query(query)
+        result = empty_database.query(query)
 
         # Should have at least the primary key column
         assert "primary_key" in result.column_names
 
-    def test_execute_query_returns_data(self, empty_database, main_reference_sequence):
-        """Test that execute_query returns rows."""
+    def test_query_returns_data(self, empty_database, main_reference_sequence):
+        """Test that query returns rows."""
         empty_database.create_nucleotide_sequence_table(
             table_name="sequences",
             primary_key_name="primary_key",
@@ -634,12 +635,12 @@ class TestExecuteQuery:
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
         query = 'sequences'
-        result = empty_database.execute_query(query)
+        result = empty_database.query(query)
 
         assert result.num_rows > 0
 
-    def test_execute_query_with_filter(self, empty_database, main_reference_sequence):
-        """Test execute_query with a filter expression."""
+    def test_query_with_filter(self, empty_database, main_reference_sequence):
+        """Test query with a filter expression."""
         empty_database.create_nucleotide_sequence_table(
             table_name="sequences",
             primary_key_name="primary_key",
@@ -650,16 +651,16 @@ class TestExecuteQuery:
 
         # Get all rows first
         all_query = 'sequences'
-        all_result = empty_database.execute_query(all_query)
+        all_result = empty_database.query(all_query)
 
         # Get filtered rows (False filter should return 0 rows)
         filtered_query = 'sequences.filter(false)'
-        filtered_result = empty_database.execute_query(filtered_query)
+        filtered_result = empty_database.query(filtered_query)
 
         assert filtered_result.num_rows == 0
         assert all_result.num_rows > filtered_result.num_rows
 
-    def test_execute_query_to_batches(self, empty_database, main_reference_sequence):
+    def test_query_to_batches(self, empty_database, main_reference_sequence):
         """Test that the result can be converted to RecordBatches."""
         empty_database.create_nucleotide_sequence_table(
             table_name="sequences",
@@ -670,14 +671,14 @@ class TestExecuteQuery:
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
         query = 'sequences'
-        result = empty_database.execute_query(query)
+        result = empty_database.query(query)
 
         batches = result.to_batches()
         assert isinstance(batches, list)
         for batch in batches:
             assert isinstance(batch, pa.RecordBatch)
 
-    def test_execute_query_to_pydict(self, empty_database, main_reference_sequence):
+    def test_query_to_pydict(self, empty_database, main_reference_sequence):
         """Test that the result can be converted to Python dict."""
         empty_database.create_nucleotide_sequence_table(
             table_name="sequences",
@@ -688,14 +689,14 @@ class TestExecuteQuery:
         empty_database.append_data_from_file("sequences", INPUT_FILE)
 
         query = 'sequences'
-        result = empty_database.execute_query(query)
+        result = empty_database.query(query)
 
         data = result.to_pydict()
         assert isinstance(data, dict)
         assert "primary_key" in data
         assert isinstance(data["primary_key"], list)
 
-    def test_execute_query_empty_query_raises(self, empty_database, main_reference_sequence):
+    def test_query_empty_query_raises(self, empty_database, main_reference_sequence):
         """Test that empty query raises ValueError."""
         empty_database.create_nucleotide_sequence_table(
             table_name="sequences",
@@ -705,9 +706,9 @@ class TestExecuteQuery:
         )
 
         with pytest.raises(ValueError, match="query_string cannot be empty"):
-            empty_database.execute_query("")
+            empty_database.query("")
 
-    def test_execute_query_invalid_query_raises(self, empty_database, main_reference_sequence):
+    def test_query_invalid_query_raises(self, empty_database, main_reference_sequence):
         """Test that invalid SaneQL raises an error."""
         empty_database.create_nucleotide_sequence_table(
             table_name="sequences",
@@ -717,10 +718,10 @@ class TestExecuteQuery:
         )
 
         with pytest.raises(RuntimeError):
-            empty_database.execute_query("not valid saneql !")
+            empty_database.query("not valid saneql !")
 
-    def test_execute_query_simple_database(self):
-        """Test execute_query with a simple in-memory database."""
+    def test_query_simple_database(self):
+        """Test query with a simple in-memory database."""
         from silodb import Database
 
         db = Database()
@@ -734,7 +735,7 @@ class TestExecuteQuery:
         db.append_data_from_string("test", '{"id": "sample2", "seq": {"sequence": "CCCC", "insertions": []}}')
 
         query = 'test'
-        result = db.execute_query(query)
+        result = db.query(query)
 
         assert isinstance(result, pa.Table)
         assert result.num_rows == 2
@@ -744,8 +745,8 @@ class TestExecuteQuery:
         data = result.to_pydict()
         assert set(data["id"]) == {"sample1", "sample2"}
 
-    def test_execute_query_preserves_data_after_checkpoint(self, empty_database, main_reference_sequence, temp_dir):
-        """Test that execute_query works correctly after loading from checkpoint."""
+    def test_query_preserves_data_after_checkpoint(self, empty_database, main_reference_sequence, temp_dir):
+        """Test that query works correctly after loading from checkpoint."""
         from silodb import Database
 
         # Create and populate database
@@ -759,7 +760,7 @@ class TestExecuteQuery:
 
         # Query before checkpoint
         query = 'sequences'
-        result_before = empty_database.execute_query(query)
+        result_before = empty_database.query(query)
 
         # Save and reload
         save_path = os.path.join(temp_dir, "checkpoint")
@@ -767,7 +768,7 @@ class TestExecuteQuery:
         loaded_db = Database(save_path)
 
         # Query after checkpoint
-        result_after = loaded_db.execute_query(query)
+        result_after = loaded_db.query(query)
 
         # Results should match
         assert result_before.num_rows == result_after.num_rows
