@@ -410,23 +410,6 @@ cdef class PyDatabase:
         except Exception as e:
             raise RuntimeError(f"Failed to execute query: {e}")
 
-    def execute_query(self, str query_string):
-        """Execute a query and return results as a PyArrow Table.
-
-        Deprecated: Use :meth:`query` instead. This wrapper is maintained for
-        backward compatibility.
-
-        Parameters
-        ----------
-        query_string : str
-            SaneQL query string to execute.
-
-        Returns
-        -------
-        pyarrow.Table
-            Query results as a PyArrow Table.
-        """
-        return self.query(query_string)
 
     def __repr__(self):
         return "Database()"
