@@ -411,6 +411,10 @@ cdef class PyDatabase:
             raise RuntimeError(f"Failed to execute query: {e}")
 
     def execute_query(self, str query_string):
+        """Execute a query and return results as a PyArrow Table.
+
+        Prefer :meth:`query` for new code.
+        """
         return self.query(query_string)
 
     def __repr__(self):
