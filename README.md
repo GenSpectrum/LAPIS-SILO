@@ -38,6 +38,9 @@ ref = db.get_nucleotide_reference_sequence("sequences", "main")
 # Get filtered bitmap (list of matching row indices)
 indices = db.get_filtered_bitmap("sequences", "some_filter")
 
+# Query data through the SaneQL front-end
+table = db.query("sequences.filter(true)")
+
 # Save database state
 db.save_checkpoint("/path/to/save/directory")
 

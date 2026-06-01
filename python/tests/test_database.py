@@ -59,6 +59,7 @@ class TestDatabaseCreation:
             'append_data_from_string',
             'create_gene_table',
             'create_nucleotide_sequence_table',
+            'query',
             'execute_query',
             'get_filtered_bitmap',
             'get_nucleotide_reference_sequence',
@@ -591,6 +592,24 @@ class TestGetTables:
 
 class TestExecuteQuery:
     """Test the execute_query method that returns PyArrow Tables."""
+
+    def test_query_returns_same_results_as_execute_query(self, empty_database, main_reference_sequence):
+        """Test that query is the preferred alias for execute_query."""
+        empty_database.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence
+        )
+        empty_database.append_data_from_file("sequences", INPUT_FILE)
+
+        query = 'sequences'
+
+        result = empty_database.query(query)
+        legacy_result = empty_database.execute_query(query)
+
+        assert isinstance(result, pa.Table)
+        assert result.equals(legacy_result)
 
     def test_execute_query_returns_pyarrow_table(self, empty_database, main_reference_sequence):
         """Test that execute_query returns a PyArrow Table."""

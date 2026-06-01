@@ -367,7 +367,7 @@ cdef class PyDatabase:
         except Exception as e:
             raise RuntimeError(f"Failed to get filtered bitmap: {e}")
 
-    def execute_query(self, str query_string):
+    def query(self, str query_string):
         """
         Execute a query and return results as a PyArrow Table
 
@@ -385,7 +385,7 @@ cdef class PyDatabase:
         Example
         -------
         >>> db = PyDatabase("path/to/database")
-        >>> table = db.execute_query("my_table.filter(true)")
+        >>> table = db.query("my_table.filter(true)")
         >>> print(table.schema)
         >>> df = table.to_pandas()  # Convert to pandas DataFrame
         """
@@ -409,6 +409,9 @@ cdef class PyDatabase:
             raise
         except Exception as e:
             raise RuntimeError(f"Failed to execute query: {e}")
+
+    def execute_query(self, str query_string):
+        return self.query(query_string)
 
     def __repr__(self):
         return "Database()"
