@@ -413,7 +413,18 @@ cdef class PyDatabase:
     def execute_query(self, str query_string):
         """Execute a query and return results as a PyArrow Table.
 
-        Prefer :meth:`query` for new code.
+        Deprecated: Use :meth:`query` instead. This wrapper is maintained for
+        backward compatibility.
+
+        Parameters
+        ----------
+        query_string : str
+            SaneQL query string to execute.
+
+        Returns
+        -------
+        pyarrow.Table
+            Query results as a PyArrow Table.
         """
         return self.query(query_string)
 
