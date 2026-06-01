@@ -44,7 +44,7 @@ TEST(SaneQLLexer, tokenizesIntLiteral) {
 TEST(SaneQLLexer, invalidIntLiteral) {
    EXPECT_THAT(
       []() {
-         const std::string input = fmt::format("{}0", INT64_MAX);
+         const std::string input = fmt::format("{}0", UINT64_MAX);
          Lexer lexer(input);
          auto tokens = lexer.tokenizeAll();
       },
@@ -91,9 +91,9 @@ TEST(SaneQLLexer, tokenizesNullLiteral) {
 }
 
 TEST(SaneQLLexer, tokenizesOperators) {
-   Lexer lexer("= <> < > <= >= && || !");
+   Lexer lexer("= <> < > <= >= && || ! -");
    auto tokens = lexer.tokenizeAll();
-   ASSERT_EQ(tokens.size(), 10);
+   ASSERT_EQ(tokens.size(), 11);
    EXPECT_EQ(tokens[0].type, TokenType::EQUALS);
    EXPECT_EQ(tokens[1].type, TokenType::NOT_EQUALS);
    EXPECT_EQ(tokens[2].type, TokenType::LESS_THAN);
@@ -103,6 +103,7 @@ TEST(SaneQLLexer, tokenizesOperators) {
    EXPECT_EQ(tokens[6].type, TokenType::AND);
    EXPECT_EQ(tokens[7].type, TokenType::OR);
    EXPECT_EQ(tokens[8].type, TokenType::NOT);
+   EXPECT_EQ(tokens[9].type, TokenType::MINUS);
 }
 
 TEST(SaneQLLexer, invalidPartialAnd) {
@@ -325,20 +326,33 @@ TEST(SaneQLLexer, quotedIdentifierWithNumericName) {
    EXPECT_EQ(tokens[0].getStringValue(), "2");
 }
 
-TEST(SaneQLLexer, tokenizesNegativeInt) {
+TEST(SaneQLLexer, tokenizesMinusInt) {
    Lexer lexer("-42");
    auto tokens = lexer.tokenizeAll();
-   ASSERT_EQ(tokens.size(), 2);
-   EXPECT_EQ(tokens[0].type, TokenType::INT_LITERAL);
-   EXPECT_EQ(tokens[0].getIntValue(), -42);
+   ASSERT_EQ(tokens.size(), 3);
+   EXPECT_EQ(tokens[0].type, TokenType::MINUS);
+   EXPECT_EQ(tokens[1].type, TokenType::INT_LITERAL);
+   EXPECT_EQ(tokens[1].getIntValue(), 42);
 }
 
-TEST(SaneQLLexer, tokenizesNegativeFloat) {
+TEST(SaneQLLexer, tokenizesMinusFloat) {
    Lexer lexer("-3.14");
    auto tokens = lexer.tokenizeAll();
-   ASSERT_EQ(tokens.size(), 2);
-   EXPECT_EQ(tokens[0].type, TokenType::FLOAT_LITERAL);
-   EXPECT_DOUBLE_EQ(tokens[0].getFloatValue(), -3.14);
+   ASSERT_EQ(tokens.size(), 3);
+   EXPECT_EQ(tokens[0].type, TokenType::MINUS);
+   EXPECT_EQ(tokens[1].type, TokenType::FLOAT_LITERAL);
+   EXPECT_DOUBLE_EQ(tokens[1].getFloatValue(), 3.14);
+}
+
+TEST(SaneQLLexer, disambiguatesMinusFromNegative) {
+   Lexer lexer("x -42");
+   auto tokens = lexer.tokenizeAll();
+   ASSERT_EQ(tokens.size(), 4);
+   EXPECT_EQ(tokens[0].type, TokenType::IDENTIFIER);
+   EXPECT_EQ(tokens[0].getStringValue(), "x");
+   EXPECT_EQ(tokens[1].type, TokenType::MINUS);
+   EXPECT_EQ(tokens[2].type, TokenType::INT_LITERAL);
+   EXPECT_EQ(tokens[2].getIntValue(), 42);
 }
 
 TEST(SaneQLLexer, tokenizesEmptyStringLiteral) {
@@ -490,29 +504,21 @@ TEST(SaneQLLexer, emptyQuotedIdentifierProducesEmptyString) {
    EXPECT_EQ(tokens[0].getStringValue(), "");
 }
 
-TEST(SaneQLLexer, negativeIntegerOverflowThrows) {
-   EXPECT_THAT(
-      []() {
-         const std::string input = fmt::format("-{}0", INT64_MAX);
-         Lexer lexer(input);
-         (void)lexer.tokenizeAll();
-      },
-      ThrowsMessage<ParseException>(
-         ::testing::HasSubstr("Parse error at 1:1: Invalid integer literal")
-      )
-   );
+TEST(SaneQLLexer, tokenizesMinusToken) {
+   Lexer lexer("-");
+   auto tokens = lexer.tokenizeAll();
+   ASSERT_EQ(tokens.size(), 2);
+   EXPECT_EQ(tokens[0].type, TokenType::MINUS);
+   EXPECT_EQ(tokens[1].type, TokenType::END_OF_FILE);
 }
 
-TEST(SaneQLLexer, dashNotFollowedByDigitThrows) {
-   EXPECT_THAT(
-      []() {
-         Lexer lexer("-");
-         (void)lexer.nextToken();
-      },
-      ThrowsMessage<ParseException>(
-         ::testing::HasSubstr("Parse error at 1:1: Unexpected character '-'")
-      )
-   );
+TEST(SaneQLLexer, dashFollowedByIdentifier) {
+   Lexer lexer("-x");
+   auto tokens = lexer.tokenizeAll();
+   ASSERT_EQ(tokens.size(), 3);
+   EXPECT_EQ(tokens[0].type, TokenType::MINUS);
+   EXPECT_EQ(tokens[1].type, TokenType::IDENTIFIER);
+   EXPECT_EQ(tokens[1].getStringValue(), "x");
 }
 
 TEST(SaneQLLexer, multipleConsecutiveComments) {

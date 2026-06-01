@@ -42,6 +42,8 @@ std::string tokenTypeToString(TokenType type) {
          return "Or";
       case TokenType::NOT:
          return "Not";
+      case TokenType::MINUS:
+         return "Minus";
       case TokenType::LEFT_PAREN:
          return "LeftParen";
       case TokenType::RIGHT_PAREN:
@@ -83,8 +85,8 @@ std::string Token::getStringValue() const {
    return std::get<std::string>(value);
 }
 
-int64_t Token::getIntValue() const {
-   return std::get<int64_t>(value);
+uint64_t Token::getIntValue() const {
+   return std::get<uint64_t>(value);
 }
 
 double Token::getFloatValue() const {
