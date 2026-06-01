@@ -6,15 +6,24 @@ The response is NDJSON by default (`application/x-ndjson`), or Apache Arrow IPC 
 
 ## Query Structure
 
-A query is a **pipeline** of operations chained with `.method()` syntax, starting from a table name:
+A query is a **pipeline** of operators chained with `.method()` syntax, starting from a table name:
 
 ```
 tableName
-  .operation1(...)
-  .operation2(...)
+  .operator1(...)
+  .operator2(...)
 ```
 
 The table name is `default` for now.
+
+### Tabular data model
+
+Every operator takes a table as input and produces a table as output. Internally these tables are Apache Arrow record batches; externally they are streamed as NDJSON or Arrow IPC. The **response schema** — which fields are returned and their types — is always the output schema of the **last operator** in the pipeline.
+
+Operators fall into two categories:
+
+- **Schema-preserving** (`filter`, `orderBy`, `limit`, `offset`, `randomize`): pass all input columns through unchanged. They select or reorder rows but do not add, remove, or rename fields.
+- **Schema-defining** (`groupBy`, `project`, `mutations`, `aminoAcidMutations`, `insertions`, `aminoAcidInsertions`, `mostRecentCommonAncestor`, `phyloSubtree`): produce a changed output schema. Each operator's section below documents its output fields.
 
 Simple example — count all sequences from Switzerland:
 
@@ -23,6 +32,8 @@ default
   .filter(country = 'Switzerland')
   .groupBy({count:=count()})
 ```
+
+`filter` is schema-preserving; `groupBy` is last and schema-defining, so the response is `{"count": <integer>}`.
 
 ## Language Basics
 
@@ -78,7 +89,7 @@ After the first named argument is given, no more positional arguments are accept
 
 ### `filter(predicate)`
 
-Keeps only rows where the boolean predicate is true.
+Keeps only rows where the boolean predicate is true. Passes all input columns through unchanged.
 
 ```
 default.filter(country = 'USA' && age > 30)
@@ -96,20 +107,33 @@ default.groupBy({count:=count()}, {pango_lineage})
 default.groupBy({count:=count()}, {country, pango_lineage})
 ```
 
+**Output:** one row per group, containing the named aggregation fields and the groupBy columns. Rows where a groupBy column is null form their own group with a null value for that column.
+
+```json
+{"count": 48, "pango_lineage": "B.1.1.7"}
+{"count": 1,  "pango_lineage": null}
+```
+
 ### `project(fields)`
 
 Returns only the specified columns. `fields` is a set of column names (or a single name without braces).
 
 ```
-default.project({primary_key, country, date})
+default.project({primary_key, country, date, pango_lineage, qc_value})
 default.project(division)
 ```
 
 Sequence data columns use the naming convention `<sequenceName>` for aligned sequences and `unaligned_<sequenceName>` for unaligned sequences.
 
+**Output:** one row per input row containing only the projected columns. Values reflect the column type: strings, integers, floats, booleans, dates (`"YYYY-MM-DD"` string in ndjson output), or `null`.
+
+```json
+{"primary_key": "key_31", "country": "Switzerland", "date": "2021-03-21", "pango_lineage": "B.1.1.7", "qc_value": 0.96}
+```
+
 ### `orderBy(fields)`
 
-Sorts results. Each field is either a bare name (ascending) or a `asc(name)` / `desc(name)` call.
+Sorts results. Each field is either a bare name (ascending) or a `asc(name)` / `desc(name)` call. Passes all input columns through unchanged.
 
 ```
 default.orderBy({primary_key})
@@ -119,7 +143,7 @@ default.orderBy({asc(date), desc(age)})
 
 ### `limit(count)`
 
-Returns at most `count` rows. Must be a positive integer.
+Returns at most `count` rows. Must be a positive integer. Passes all input columns through unchanged.
 
 ```
 default.limit(100)
@@ -127,7 +151,7 @@ default.limit(100)
 
 ### `offset(count)`
 
-Skips the first `count` rows.
+Skips the first `count` rows. Passes all input columns through unchanged.
 
 ```
 default.orderBy({primary_key}).offset(10).limit(10)
@@ -135,7 +159,7 @@ default.orderBy({primary_key}).offset(10).limit(10)
 
 ### `randomize([seed:=n])`
 
-Returns rows in random order. An optional integer seed makes the result reproducible.
+Returns rows in random order. An optional integer seed makes the result reproducible. Passes all input columns through unchanged.
 
 ```
 default.randomize()
@@ -144,22 +168,33 @@ default.randomize(seed:=42)
 
 ### `mutations(minProportion:=p [, sequenceNames:={...}] [, fields:={...}])`
 
-Returns nucleotide mutation statistics for the filtered rows. `minProportion` (0.0–1.0) is the minimum frequency threshold.
-
-Output columns: `mutation`, `mutationFrom`, `mutationTo`, `position`, `sequenceName`, `coverage`, `proportion`, `count`.
+Returns nucleotide mutation statistics for the filtered rows. `minProportion` (0.0–1.0) is the minimum frequency threshold. Only valid on a table or direct filters of a table.
 
 ```
 default.filter(pango_lineage = 'B.1.1.7').mutations(minProportion:=0.05)
 default.mutations(minProportion:=0.9, sequenceNames:={main, S})
 ```
 
-This is only a valid operation on a table or direct filters of a table.
+**Output:** one row per mutation meeting the threshold. The field set can be narrowed via `fields:={...}`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `mutation` | string | Substitution formatted as `<from><position><to>`, e.g. `A23403G`, `E156-` |
+| `mutationFrom` | string | Reference symbol at this position |
+| `mutationTo` | string | Observed symbol (`-` for a deletion) |
+| `position` | integer | 1-based position in the sequence |
+| `sequenceName` | string | Name of the sequence, e.g. `main` or `S` |
+| `proportion` | float | Fraction of covered sequences that carry this mutation |
+| `coverage` | integer | Number of sequences with a non-N symbol at this position |
+| `count` | integer | Number of sequences carrying this mutation |
+
+```json
+{"mutation": "N501Y", "mutationFrom": "N", "mutationTo": "Y", "position": 501, "sequenceName": "S", "proportion": 0.44086021505376344, "coverage": 93, "count": 41}
+```
 
 ### `aminoAcidMutations(minProportion:=p [, sequenceNames:={...}] [, fields:={...}])`
 
-Same as `mutations` but for amino acid sequences.
-
-This is only a valid operation on a table or direct filters of a table.
+Same as `mutations` but for amino acid sequences. Output schema is identical. Only valid on a table or direct filters of a table.
 
 ```
 default.aminoAcidMutations(minProportion:=0.3, sequenceNames:={S})
@@ -167,44 +202,76 @@ default.aminoAcidMutations(minProportion:=0.3, sequenceNames:={S})
 
 ### `insertions([sequenceNames:={...}])`
 
-Returns nucleotide insertions aggregated by insertion value. Output columns: `insertion`, `insertedSymbols`, `position`, `sequenceName`, `count`.
+Returns nucleotide insertions aggregated by insertion value. Only valid on a table or direct filters of a table.
 
 ```
 default.insertions()
 default.insertions(sequenceNames:={main})
 ```
 
-This is only a valid operation on a table or direct filters of a table.
+**Output:** one row per unique insertion observed across the filtered sequences.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `insertion` | string | Formatted as `ins_<position>:<symbols>`, e.g. `ins_22204:CAGAA` |
+| `insertedSymbols` | string | The inserted nucleotide sequence |
+| `position` | integer | 1-based position after which the insertion occurs (0 = before position 1) |
+| `sequenceName` | string | Name of the sequence |
+| `count` | integer | Number of sequences carrying this exact insertion |
+
+```json
+{"insertion": "ins_22204:CAGAA", "insertedSymbols": "CAGAA", "position": 22204, "sequenceName": "main", "count": 1}
+```
 
 ### `aminoAcidInsertions([sequenceNames:={...}])`
 
-Same as `insertions` but for amino acid sequences.
+Same as `insertions` but for amino acid sequences. Output schema is identical. Only valid on a table or direct filters of a table.
 
 ```
 default.aminoAcidInsertions()
 ```
 
-This is only a valid operation on a table or direct filters of a table.
-
 ### `mostRecentCommonAncestor(column [, printNodesNotInTree:=bool])`
 
-Finds the most recent common ancestor in a phylogenetic tree column for the filtered sequences.
+Finds the most recent common ancestor in a phylogenetic tree column for the filtered sequences. Only valid on a table or direct filters of a table.
 
 ```
 default.filter(country = 'Germany').mostRecentCommonAncestor('usherTree')
 ```
 
-This is only a valid operation on a table or direct filters of a table.
+**Output:** a single row.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `mrcaNode` | string | Node ID of the most recent common ancestor |
+| `mrcaParent` | string | Parent node ID of the MRCA |
+| `mrcaDepth` | integer | Depth of the MRCA in the tree (root = 0) |
+| `missingNodeCount` | integer | Number of filtered sequences not found in the tree |
+| `missingFromTree` | string | Comma-separated primary keys of sequences not in the tree. Only present when `printNodesNotInTree:=true` |
+
+```json
+{"mrcaNode": "NODE_0000072", "mrcaParent": "NODE_0000070", "mrcaDepth": 23, "missingNodeCount": 0}
+```
 
 ### `phyloSubtree(column [, printNodesNotInTree:=bool] [, contractUnaryNodes:=bool])`
 
-Returns the phylogenetic subtree for the filtered sequences.
+Returns the phylogenetic subtree for the filtered sequences. Only valid on a table or direct filters of a table.
 
 ```
 default.filter(pango_lineage = 'B.1.1.7').phyloSubtree('usherTree')
 ```
 
-This is only a valid operation on a table or direct filters of a table.
+**Output:** a single row.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `subtreeNewick` | string | Newick-format string of the subtree spanning the filtered sequences |
+| `missingNodeCount` | integer | Number of filtered sequences not found in the tree |
+| `missingFromTree` | string | Comma-separated primary keys of sequences not in the tree. Only present when `printNodesNotInTree:=true` |
+
+```json
+{"subtreeNewick": "((key_83:0.00027051)NODE_0000077:3.291e-05,(...)NODE_0000079:1e-06)NODE_0000076;", "missingNodeCount": 0}
+```
 
 ---
 
