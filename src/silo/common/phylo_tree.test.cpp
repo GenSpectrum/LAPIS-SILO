@@ -241,6 +241,15 @@ TEST(PhyloTree, throwsOnNewickWithUnclosedComment) {
    );
 }
 
+TEST(PhyloTree, throwsOnNewickWithUnclosedCommentAtInputEnd) {
+   EXPECT_THAT(
+      [] { PhyloTree::fromNewickString("[;"); },
+      ThrowsMessage<PreprocessingException>(
+         ::testing::HasSubstr("Error when parsing the Newick string - unmatched '['")
+      )
+   );
+}
+
 TEST(PhyloTree, throwsOnNewickWithUnmatchedClosingBracket) {
    EXPECT_THAT(
       [] { PhyloTree::fromNewickString("(CHILD]comment)ROOT;"); },
