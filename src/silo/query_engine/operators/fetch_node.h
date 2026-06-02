@@ -30,6 +30,8 @@ class FetchNode final : public QueryNode {
    ) const override;
 
    [[nodiscard]] NodeKind kind() const override { return NodeKind::FETCH; }
+
+   [[nodiscard]] nlohmann::json toJson() const override;
 };
 
 }  // namespace silo::query_engine::operators

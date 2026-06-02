@@ -39,6 +39,8 @@ class MostRecentCommonAncestorNode final : public QueryNode {
    ) const override;
 
    [[nodiscard]] NodeKind kind() const override { return NodeKind::MOST_RECENT_COMMON_ANCESTOR; }
+
+   [[nodiscard]] nlohmann::json toJson() const override;
 };
 
 }  // namespace silo::query_engine::operators

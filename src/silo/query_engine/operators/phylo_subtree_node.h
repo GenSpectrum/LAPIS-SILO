@@ -41,6 +41,8 @@ class PhyloSubtreeNode final : public QueryNode {
    ) const override;
 
    [[nodiscard]] NodeKind kind() const override { return NodeKind::PHYLO_SUBTREE; }
+
+   [[nodiscard]] nlohmann::json toJson() const override;
 };
 
 }  // namespace silo::query_engine::operators

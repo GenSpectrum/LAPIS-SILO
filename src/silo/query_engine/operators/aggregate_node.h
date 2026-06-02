@@ -17,6 +17,8 @@ namespace silo::query_engine::operators {
 // TODO(#1231) extend with sum, avg, max, min
 enum class AggregateFunction : uint8_t { COUNT };
 
+std::string_view displayName(AggregateFunction aggregate);
+
 struct AggregateDefinition {
    std::string output_name;
    AggregateFunction function;
@@ -43,6 +45,8 @@ class AggregateNode final : public QueryNode {
    ) const override;
 
    [[nodiscard]] NodeKind kind() const override { return NodeKind::AGGREGATE; }
+
+   [[nodiscard]] nlohmann::json toJson() const override;
 };
 
 }  // namespace silo::query_engine::operators

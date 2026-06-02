@@ -101,6 +101,8 @@ class MutationsNode final : public QueryNode {
          return NodeKind::MUTATIONS_AMINO_ACID;
       }
    }
+
+   [[nodiscard]] nlohmann::json toJson() const override;
 };
 
 }  // namespace silo::query_engine::operators

@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <nlohmann/json.hpp>
+
 #include "silo/query_engine/operators/query_node.h"
 
 namespace silo::query_engine::operators {
@@ -44,6 +46,16 @@ class UnresolvedPhyloSubtreeNode final : public QueryNode {
    }
 
    [[nodiscard]] NodeKind kind() const override { return NodeKind::UNRESOLVED_PHYLO_SUBTREE; }
+
+   [[nodiscard]] nlohmann::json toJson() const override {
+      return {
+         {"type", nodeKindToString(kind())},
+         {"columnName", column_name},
+         {"printNodesNotInTree", print_nodes_not_in_tree},
+         {"contractUnaryNodes", contract_unary_nodes},
+         {"child", child->toJson()},
+      };
+   }
 };
 
 }  // namespace silo::query_engine::operators

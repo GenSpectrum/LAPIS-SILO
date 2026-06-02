@@ -1,5 +1,7 @@
 #include "silo/query_engine/operators/table_scan_node.h"
 
+#include <nlohmann/json.hpp>
+
 #include "silo/query_engine/exec_node/table_scan.h"
 #include "silo/query_engine/operators/compute_filter.h"
 
@@ -38,6 +40,15 @@ arrow::Result<PartialArrowPlan> TableScanNode::toQueryPlan(
    );
 
    return PartialArrowPlan{.top_node = node, .plan = arrow_plan};
+}
+
+nlohmann::json TableScanNode::toJson() const {
+   return {
+      {"type", nodeKindToString(kind())},
+      {"table", table->logTable()},
+      {"filter", filter->toString()},
+      {"fields", columnsToJson(fields)},
+   };
 }
 
 }  // namespace silo::query_engine::operators

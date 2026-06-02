@@ -76,7 +76,7 @@ namespace silo {
 Database::Database(schema::DatabaseSchema database_schema)
     : schema(std::move(database_schema)) {
    for (const auto& [table_name, table_schema] : schema.tables) {
-      tables.emplace(table_name, std::make_shared<storage::Table>(table_schema));
+      tables.emplace(table_name, std::make_shared<storage::Table>(table_name, table_schema));
    }
 }
 
@@ -84,7 +84,7 @@ void Database::createTable(
    schema::TableName table_name,
    std::shared_ptr<schema::TableSchema> table_schema
 ) {
-   tables.emplace(table_name, std::make_shared<storage::Table>(table_schema));
+   tables.emplace(table_name, std::make_shared<storage::Table>(table_name, table_schema));
    schema.tables.emplace(std::move(table_name), std::move(table_schema));
 }
 

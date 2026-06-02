@@ -2,10 +2,12 @@
 
 #include <map>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 #include <arrow/acero/exec_plan.h>
 #include <arrow/result.h>
+#include <nlohmann/json_fwd.hpp>
 
 #include "silo/config/runtime_config.h"
 #include "silo/schema/database_schema.h"
@@ -54,8 +56,18 @@ class QueryNode {
    [[nodiscard]] virtual std::vector<schema::ColumnIdentifier> getOutputSchema() const = 0;
 
    [[nodiscard]] virtual NodeKind kind() const = 0;
+
+   /// Serializes this node (and its children) into a JSON representation that can be
+   /// displayed elsewhere for debugging or query-plan inspection.
+   [[nodiscard]] virtual nlohmann::json toJson() const = 0;
 };
 
 using QueryNodePtr = std::unique_ptr<QueryNode>;
+
+[[nodiscard]] std::string_view nodeKindToString(NodeKind kind);
+
+[[nodiscard]] nlohmann::json columnToJson(const schema::ColumnIdentifier& column);
+
+[[nodiscard]] nlohmann::json columnsToJson(const std::vector<schema::ColumnIdentifier>& columns);
 
 }  // namespace silo::query_engine::operators

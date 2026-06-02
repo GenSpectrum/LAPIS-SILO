@@ -4,6 +4,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/operators/insertions_node.h"
@@ -46,6 +48,14 @@ class UnresolvedInsertionsNode final : public QueryNode {
       } else {
          return NodeKind::UNRESOLVED_INSERTIONS_AMINO_ACID;
       }
+   }
+
+   [[nodiscard]] nlohmann::json toJson() const override {
+      return {
+         {"type", nodeKindToString(kind())},
+         {"sequenceNames", sequence_names},
+         {"child", child->toJson()},
+      };
    }
 };
 

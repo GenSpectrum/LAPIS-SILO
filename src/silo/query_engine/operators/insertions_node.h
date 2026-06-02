@@ -62,6 +62,8 @@ class InsertionsNode final : public QueryNode {
          return NodeKind::INSERTIONS_AMINO_ACID;
       }
    }
+
+   [[nodiscard]] nlohmann::json toJson() const override;
 };
 
 }  // namespace silo::query_engine::operators

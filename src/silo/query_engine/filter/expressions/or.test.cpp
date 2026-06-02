@@ -292,7 +292,9 @@ TEST(OrToString, shouldFormatChildrenCorrectly) {
 }
 
 TEST(OrToString, shouldHandleNestedOr) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
+   const storage::Table table(
+      schema::TableName::getDefault(), std::make_shared<schema::TableSchema>()
+   );
 
    ExpressionVector inner_children;
    inner_children.emplace_back(std::make_unique<True>());
@@ -311,18 +313,19 @@ TEST(OrToString, shouldHandleNestedOr) {
    EXPECT_EQ(rewritten_or->toString(), "True");
 }
 
-using silo::query_engine::filter::expressions::StringEquals;
-using silo::schema::ColumnIdentifier;
-using silo::schema::ColumnType;
-using silo::storage::column::ColumnMetadata;
-using silo::storage::column::StringColumnMetadata;
+using expressions::StringEquals;
+using schema::ColumnIdentifier;
+using schema::ColumnType;
+using storage::column::ColumnMetadata;
+using storage::column::StringColumnMetadata;
 
 TEST(OrToString, shouldHandleNestedStringEquals) {
    ColumnIdentifier primary_key{.name = "key", .type = ColumnType::STRING};
    const std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   const silo::storage::Table table(
+   const storage::Table table(
+      schema::TableName::getDefault(),
       std::make_shared<schema::TableSchema>(column_metadata, primary_key)
    );
 
@@ -348,7 +351,8 @@ TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
    const std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   const silo::storage::Table table(
+   const storage::Table table(
+      schema::TableName::getDefault(),
       std::make_shared<schema::TableSchema>(column_metadata, primary_key)
    );
 

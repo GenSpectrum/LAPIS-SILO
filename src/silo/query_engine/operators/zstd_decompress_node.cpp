@@ -12,6 +12,7 @@
 #include <arrow/acero/options.h>
 #include <arrow/compute/expression.h>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
@@ -219,6 +220,25 @@ arrow::Result<PartialArrowPlan> ZstdDecompressNode::toQueryPlan(
    );
 
    return plan;
+}
+
+nlohmann::json ZstdDecompressNode::toJson() const {
+   nlohmann::json column_mapping_json = nlohmann::json::array();
+   for (const auto& mapping : column_mapping) {
+      const bool abbreviate_dictionary = mapping.reference.size() > 10;
+      auto dictionary_display =
+         abbreviate_dictionary ? (mapping.reference.substr(0, 10) + "...") : mapping.reference;
+      column_mapping_json.push_back(
+         {{"input", columnToJson(mapping.input)},
+          {"output", columnToJson(mapping.output)},
+          {"dictionary", dictionary_display}}
+      );
+   }
+   return {
+      {"type", nodeKindToString(kind())},
+      {"columnMapping", std::move(column_mapping_json)},
+      {"child", child->toJson()},
+   };
 }
 
 }  // namespace silo::query_engine::operators

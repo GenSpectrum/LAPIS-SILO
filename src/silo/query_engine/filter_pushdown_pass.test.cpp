@@ -31,7 +31,7 @@ std::shared_ptr<silo::storage::Table> makeTable() {
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
    auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), primary_key);
-   return std::make_shared<silo::storage::Table>(schema);
+   return std::make_shared<silo::storage::Table>(silo::schema::TableName("default"), schema);
 }
 
 std::unique_ptr<expressions::Expression> makeDummyFilter() {
