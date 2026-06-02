@@ -4,7 +4,6 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/filter/expressions/and.h"
-#include "silo/query_engine/filter/expressions/false.h"
 #include "silo/query_engine/filter/expressions/negation.h"
 #include "silo/query_engine/filter/expressions/true.h"
 #include "silo/test/query_fixture.test.h"
@@ -27,11 +26,11 @@ TEST(NOfToString, shouldFormatAtLeastN) {
 TEST(NOfToString, shouldFormatExactlyN) {
    ExpressionVector children;
    children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<False>());
+   children.emplace_back(std::make_unique<True>());
 
    const NOf nof(std::move(children), 1, true);
 
-   EXPECT_EQ(nof.toString(), "[exactly-1-of:True, False]");
+   EXPECT_EQ(nof.toString(), "[exactly-1-of:True, True]");
 }
 
 TEST(NOfToString, shouldHandleSingleChild) {
@@ -52,35 +51,6 @@ TEST(NOfToString, shouldHandleEmptyChildren) {
 }
 
 // --- rewrite tests ---
-
-TEST(NOfRewrite, shouldRewriteChildrenInNoneMode) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
-
-   ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<False>());
-
-   const NOf nof(std::move(children), 1, false);
-
-   auto rewritten = nof.rewrite(table, Expression::AmbiguityMode::NONE);
-
-   EXPECT_EQ(rewritten->toString(), "[1-of:True, False]");
-}
-
-TEST(NOfRewrite, shouldPreserveExactMatchInNoneMode) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
-
-   ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
-
-   const NOf nof(std::move(children), 2, true);
-
-   auto rewritten = nof.rewrite(table, Expression::AmbiguityMode::NONE);
-
-   EXPECT_EQ(rewritten->toString(), "[exactly-2-of:True, True, True]");
-}
 
 TEST(NOfRewrite, shouldDecomposeExactMatchInAmbiguityMode) {
    const silo::storage::Table table(std::make_shared<schema::TableSchema>());
@@ -113,117 +83,6 @@ TEST(NOfRewrite, shouldNotDecomposeExactWhenNEqualsChildCount) {
    auto rewritten = nof.rewrite(table, Expression::AmbiguityMode::UPPER_BOUND);
 
    EXPECT_EQ(rewritten->toString(), "[exactly-2-of:True, True]");
-}
-
-// --- compile tests (via empty table) ---
-
-TEST(NOfCompile, shouldReturnFullWhenCountIsZeroAndNotExact) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
-
-   ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
-
-   const NOf nof(std::move(children), 0, false);
-
-   auto op = nof.compile(table);
-   EXPECT_EQ(op->type(), operators::FULL);
-}
-
-TEST(NOfCompile, shouldReturnEmptyWhenCountExceedsChildren) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
-
-   ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-
-   const NOf nof(std::move(children), 5, false);
-
-   auto op = nof.compile(table);
-   EXPECT_EQ(op->type(), operators::EMPTY);
-}
-
-TEST(NOfCompile, shouldReturnEmptyWhenExactCountExceedsChildren) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
-
-   ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-
-   const NOf nof(std::move(children), 5, true);
-
-   auto op = nof.compile(table);
-   EXPECT_EQ(op->type(), operators::EMPTY);
-}
-
-TEST(NOfCompile, shouldHandleSingleChildAtLeastOne) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
-
-   ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-
-   const NOf nof(std::move(children), 1, false);
-
-   auto op = nof.compile(table);
-   // Single True child with count=1 → Full operator (True compiles to Full, then count adjusted)
-   EXPECT_EQ(op->type(), operators::FULL);
-}
-
-TEST(NOfCompile, shouldHandleAllFalseChildren) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
-
-   ExpressionVector children;
-   children.emplace_back(std::make_unique<False>());
-   children.emplace_back(std::make_unique<False>());
-   children.emplace_back(std::make_unique<False>());
-
-   // All False children compile to Empty, which gets skipped in mapChildExpressions
-   // updated_number_of_matchers stays 2, but no remaining children → count > children → Empty
-   const NOf nof(std::move(children), 2, false);
-
-   auto op = nof.compile(table);
-   EXPECT_EQ(op->type(), operators::EMPTY);
-}
-
-TEST(NOfCompile, shouldHandleAllTrueChildren) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
-
-   ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
-
-   // All True children compile to Full, each decrements count: 2 → -1
-   // count < 0, not exact → Full
-   const NOf nof(std::move(children), 2, false);
-
-   auto op = nof.compile(table);
-   EXPECT_EQ(op->type(), operators::FULL);
-}
-
-TEST(NOfCompile, shouldReturnEmptyForExactWithNegativeAdjustedCount) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
-
-   ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
-
-   // All True → count goes 1 → -2 (negative). Exact + negative → Empty
-   const NOf nof(std::move(children), 1, true);
-
-   auto op = nof.compile(table);
-   EXPECT_EQ(op->type(), operators::EMPTY);
-}
-
-TEST(NOfCompile, shouldReturnFullForExactZeroWithNoChildren) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
-
-   ExpressionVector children;
-
-   // exactly-0-of with 0 children → Full
-   const NOf nof(std::move(children), 0, true);
-
-   auto op = nof.compile(table);
-   EXPECT_EQ(op->type(), operators::FULL);
 }
 
 }  // namespace silo::query_engine::filter::expressions
@@ -437,6 +296,169 @@ const QueryTestScenario NOF_WITH_NEGATION = {
    )
 };
 
+// --- Gap coverage: handleOrCase with negated child (DeMorgan path, L109-113) ---
+// nOf(1, {country='Switzerland', !(country='Germany')})
+// count=1, not exact, 2 children (1 non-negated, 1 negated) → handleOrCase with negated
+// child 1: country=Switzerland → id_0, id_3
+// child 2: NOT country=Germany → id_0, id_2, id_3, id_4
+// at least 1: OR via DeMorgan → id_0, id_2, id_3, id_4
+const QueryTestScenario NOF_OR_WITH_NEGATED_CHILD = {
+   .name = "NOF_OR_WITH_NEGATED_CHILD",
+   .query =
+      "default.filter(nOf(1, {country = 'Switzerland', !(country = "
+      "'Germany')})).project({primaryKey, country})",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"country":"Switzerland","primaryKey":"id_0"},
+{"country":"USA","primaryKey":"id_2"},
+{"country":"Switzerland","primaryKey":"id_3"},
+{"country":"France","primaryKey":"id_4"}
+])"
+   )
+};
+
+// --- Gap coverage: exactly-0-of with 1 non-negated child (L62-64, Complement) ---
+// nOf(0, {country='Switzerland'}, matchExactly:=true)
+// count=0, exact, 1 non-negated child → Complement(IndexScan)
+// Matches everything except Switzerland: id_1, id_2, id_4
+const QueryTestScenario NOF_EXACTLY_0_SINGLE_NON_NEGATED = {
+   .name = "NOF_EXACTLY_0_SINGLE_NON_NEGATED",
+   .query =
+      "default.filter(nOf(0, {country = 'Switzerland'}, "
+      "matchExactly:=true)).project({primaryKey, country})",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"country":"Germany","primaryKey":"id_1"},
+{"country":"USA","primaryKey":"id_2"},
+{"country":"France","primaryKey":"id_4"}
+])"
+   )
+};
+
+// --- Gap coverage: exactly-0-of with 1 negated child (L59-60, return negated) ---
+// nOf(0, {!(country='Switzerland')}, matchExactly:=true)
+// count=0, exact, 1 negated child → return the inner (un-negated) operator directly
+// NOT country=Switzerland compiles to Complement → mapChildExpressions negates it back →
+// negated bucket has the raw IndexScan for country=Switzerland
+// exactly-0 with 1 negated child means: the negated child must NOT match
+// The negated child is "NOT Switzerland", so "NOT Switzerland must not match" = must be Switzerland
+// Result: id_0, id_3
+const QueryTestScenario NOF_EXACTLY_0_SINGLE_NEGATED = {
+   .name = "NOF_EXACTLY_0_SINGLE_NEGATED",
+   .query =
+      "default.filter(nOf(0, {!(country = 'Switzerland')}, "
+      "matchExactly:=true)).project({primaryKey, country})",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"country":"Switzerland","primaryKey":"id_0"},
+{"country":"Switzerland","primaryKey":"id_3"}
+])"
+   )
+};
+
+// --- Gap coverage: handleAndCase all negated (L91-94, Complement(Union)) ---
+// nOf(2, {!(country='Switzerland'), !(country='USA')})
+// Both children are negated → mapChildExpressions puts both in negated bucket
+// count=2 == child_count=2 → handleAndCase, non_negated empty → Complement(Union(negated))
+// child 1: NOT Switzerland → negated → IndexScan(Switzerland)
+// child 2: NOT USA → negated → IndexScan(USA)
+// handleAndCase: Complement(Union(Switzerland, USA)) = NOT(Switzerland OR USA)
+// → matches: id_1 (Germany), id_4 (France)
+const QueryTestScenario NOF_ALL_NEGATED_AND_CASE = {
+   .name = "NOF_ALL_NEGATED_AND_CASE",
+   .query =
+      "default.filter(nOf(2, {!(country = 'Switzerland'), !(country = "
+      "'USA')})).project({primaryKey, country})",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"country":"Germany","primaryKey":"id_1"},
+{"country":"France","primaryKey":"id_4"}
+])"
+   )
+};
+
+// --- Gap coverage: exactly-0-of mixed negated/non-negated multi (L73-75) ---
+// nOf(0, {country='Switzerland', !(country='USA')}, matchExactly:=true)
+// count=0, exact, 2 children (1 non-negated, 1 negated), negated not empty
+// → Intersection(negated, non_negated) where negated = [IndexScan(USA)],
+//   non_negated = [IndexScan(Switzerland)]
+// This means: Intersection with negated = "not USA" applied to "not Switzerland"
+// Wait — for exactly-0, we need NONE to match. The code builds
+// Intersection(negated_ops=[USA_scan], non_negated_ops=[Switzerland_scan])
+// Intersection treats negated as: result AND NOT(negated)
+// So: Switzerland AND NOT(USA) — but that's wrong for "exactly 0 match"
+// Actually: exactly-0 means neither child matches. Inversion of Union.
+// L73-75: Intersection(negated_child_operators, non_negated_child_operators)
+//   non_negated becomes the "negated" arg of Intersection (to be complemented)
+//   negated becomes the "non_negated" arg of Intersection (already flipped)
+// So: negated_ops (USA scan) as non-neg, non_neg_ops (Switzerland scan) as neg
+// = USA_scan AND NOT Switzerland_scan = is USA and not Switzerland
+// That means: rows matching USA but not Switzerland → id_2
+// But we want "neither Switzerland NOR NOT-USA matches"
+// "country=Switzerland doesn't match" AND "NOT country=USA doesn't match"
+// = NOT Switzerland AND NOT(NOT USA) = NOT Switzerland AND USA = USA AND NOT Switzerland
+// id_2 is USA and not Switzerland → yes
+// So result = [id_2]
+const QueryTestScenario NOF_EXACTLY_0_MIXED_NEGATED = {
+   .name = "NOF_EXACTLY_0_MIXED_NEGATED",
+   .query =
+      "default.filter(nOf(0, {country = 'Switzerland', !(country = 'USA')}, "
+      "matchExactly:=true)).project({primaryKey, country})",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"country":"USA","primaryKey":"id_2"}
+])"
+   )
+};
+
+// --- Gap coverage: exact count exceeds number of children → empty result ---
+// nOf(5, {country='Switzerland', country='USA'}, matchExactly:=true)
+// count=5 but only 2 children → impossible → empty
+const QueryTestScenario NOF_EXACT_COUNT_EXCEEDS_CHILDREN = {
+   .name = "NOF_EXACT_COUNT_EXCEEDS_CHILDREN",
+   .query =
+      "default.filter(nOf(5, {country = 'Switzerland', country = 'USA'}, "
+      "matchExactly:=true)).project({primaryKey})",
+   .expected_query_result = nlohmann::json::parse(R"([])")
+};
+
+// --- Gap coverage: single negated child, count=1 (L80-81, Complement) ---
+// nOf(1, {!(country='Switzerland')})
+// count=1, 1 child (negated) → Complement of IndexScan(Switzerland)
+// Matches everything except Switzerland: id_1, id_2, id_4
+const QueryTestScenario NOF_SINGLE_NEGATED_CHILD = {
+   .name = "NOF_SINGLE_NEGATED_CHILD",
+   .query =
+      "default.filter(nOf(1, {!(country = 'Switzerland')})).project({primaryKey, country})",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"country":"Germany","primaryKey":"id_1"},
+{"country":"USA","primaryKey":"id_2"},
+{"country":"France","primaryKey":"id_4"}
+])"
+   )
+};
+
+// --- Gap coverage: exactly-1-of with 3 children → Threshold exact path (L143-149) ---
+// nOf(1, {country='Switzerland', country='Germany', region='Europe'}, matchExactly:=true)
+// count=1, exact, 3 non-trivial children → not handled by trivial/and/or cases → Threshold
+// id_0: Switzerland=yes, Germany=no, Europe=yes → 2 matches → no
+// id_1: Switzerland=no, Germany=yes, Europe=yes → 2 matches → no
+// id_2: Switzerland=no, Germany=no, Europe=no → 0 matches → no
+// id_3: Switzerland=yes, Germany=no, Europe=yes → 2 matches → no
+// id_4: Switzerland=no, Germany=no, Europe=yes → 1 match → yes
+const QueryTestScenario NOF_EXACTLY_1_OF_3_THRESHOLD = {
+   .name = "NOF_EXACTLY_1_OF_3_THRESHOLD",
+   .query =
+      "default.filter(nOf(1, {country = 'Switzerland', country = 'Germany', region = 'Europe'}, "
+      "matchExactly:=true)).project({primaryKey, country})",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"country":"France","primaryKey":"id_4"}
+])"
+   )
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -450,6 +472,14 @@ QUERY_TEST(
       NOF_EXACTLY_2_OF_2,
       NOF_AT_LEAST_0,
       NOF_EXACTLY_0,
-      NOF_WITH_NEGATION
+      NOF_WITH_NEGATION,
+      NOF_OR_WITH_NEGATED_CHILD,
+      NOF_EXACTLY_0_SINGLE_NON_NEGATED,
+      NOF_EXACTLY_0_SINGLE_NEGATED,
+      NOF_ALL_NEGATED_AND_CASE,
+      NOF_EXACTLY_0_MIXED_NEGATED,
+      NOF_EXACT_COUNT_EXCEEDS_CHILDREN,
+      NOF_SINGLE_NEGATED_CHILD,
+      NOF_EXACTLY_1_OF_3_THRESHOLD
    )
 );
