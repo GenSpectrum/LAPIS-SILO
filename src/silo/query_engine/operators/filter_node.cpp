@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include <nlohmann/json.hpp>
+
 namespace silo::query_engine::operators {
 
 FilterNode::FilterNode(QueryNodePtr child, std::unique_ptr<filter::expressions::Expression> filter)
@@ -19,6 +21,14 @@ arrow::Result<PartialArrowPlan> FilterNode::toQueryPlan(
    throw std::runtime_error(
       "FilterNode must be eliminated during pushdown before query plan generation"
    );
+}
+
+nlohmann::json FilterNode::toJson() const {
+   return {
+      {"type", nodeKindToString(kind())},
+      {"filter", filter->toString()},
+      {"child", child->toJson()},
+   };
 }
 
 }  // namespace silo::query_engine::operators

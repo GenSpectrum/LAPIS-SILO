@@ -1,11 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <filesystem>
 #include <map>
 #include <string>
-
-#include <boost/serialization/access.hpp>
 
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column_group.h"
@@ -14,11 +11,12 @@ namespace silo::storage {
 
 class Table {
   public:
+   schema::TableName table_name;
    std::shared_ptr<schema::TableSchema> schema;
-   storage::ColumnGroup columns;
+   ColumnGroup columns;
    uint32_t sequence_count = 0;
 
-   explicit Table(std::shared_ptr<schema::TableSchema> schema);
+   explicit Table(schema::TableName table_name, std::shared_ptr<schema::TableSchema> schema);
 
    Table(Table&& other) = default;
    Table& operator=(Table&& other) = default;
@@ -33,6 +31,8 @@ class Table {
       archive & sequence_count;
       // clang-format on
    }
+
+   [[nodiscard]] nlohmann::json logTable() const;
 
    void validate() const;
 

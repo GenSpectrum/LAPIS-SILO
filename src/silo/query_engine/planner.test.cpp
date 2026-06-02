@@ -8,6 +8,7 @@
 #include <arrow/status.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 #include "silo/config/runtime_config.h"
 #include "silo/query_engine/operators/query_node.h"
@@ -35,6 +36,8 @@ class ErrorQueryNode final : public operators::QueryNode {
    [[nodiscard]] operators::NodeKind kind() const override {
       return operators::NodeKind::COUNT_FILTER;
    }
+
+   [[nodiscard]] nlohmann::json toJson() const override { return {{"type", "ErrorQueryNode"}}; }
 };
 
 TEST(PlannerPlanQuery, arrowErrorThrows) {

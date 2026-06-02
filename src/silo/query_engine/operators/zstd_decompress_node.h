@@ -35,6 +35,8 @@ class ZstdDecompressNode : public QueryNode {
    ) const override;
 
    [[nodiscard]] NodeKind kind() const override { return NodeKind::ZSTD_DECOMPRESS; }
+
+   [[nodiscard]] nlohmann::json toJson() const override;
 };
 
 /// Builds the ColumnMapping vector from a child's output schema and the map of columns

@@ -30,7 +30,8 @@ Tables makeTablesWithDefault() {
    };
    auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), primary_key);
    Tables tables;
-   tables[silo::schema::TableName("default")] = std::make_shared<silo::storage::Table>(schema);
+   const silo::schema::TableName table_name("default");
+   tables[table_name] = std::make_shared<silo::storage::Table>(table_name, schema);
    return tables;
 }
 

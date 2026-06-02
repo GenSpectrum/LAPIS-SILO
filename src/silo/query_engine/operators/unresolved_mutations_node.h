@@ -4,7 +4,8 @@
 #include <type_traits>
 #include <vector>
 
-#include "silo/common/aa_symbols.h"
+#include <nlohmann/json_fwd.hpp>
+
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/operators/mutations_node.h"
 #include "silo/query_engine/operators/query_node.h"
@@ -79,6 +80,16 @@ class UnresolvedMutationsNode final : public QueryNode {
       } else {
          return NodeKind::UNRESOLVED_MUTATIONS_AMINO_ACID;
       }
+   }
+
+   [[nodiscard]] nlohmann::json toJson() const override {
+      return {
+         {"type", nodeKindToString(kind())},
+         {"sequenceNames", sequence_names},
+         {"minProportion", min_proportion},
+         {"fields", fields},
+         {"child", child->toJson()},
+      };
    }
 };
 

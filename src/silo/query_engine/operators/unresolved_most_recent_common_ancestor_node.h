@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include <nlohmann/json.hpp>
+
 #include "silo/query_engine/operators/query_node.h"
 
 namespace silo::query_engine::operators {
@@ -45,6 +47,15 @@ class UnresolvedMostRecentCommonAncestorNode final : public QueryNode {
 
    [[nodiscard]] NodeKind kind() const override {
       return NodeKind::UNRESOLVED_MOST_RECENT_COMMON_ANCESTOR;
+   }
+
+   [[nodiscard]] nlohmann::json toJson() const override {
+      return {
+         {"type", nodeKindToString(kind())},
+         {"columnName", column_name},
+         {"printNodesNotInTree", print_nodes_not_in_tree},
+         {"child", child->toJson()},
+      };
    }
 };
 

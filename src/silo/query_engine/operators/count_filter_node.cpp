@@ -9,6 +9,7 @@
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
 #include <arrow/builder.h>
+#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/operators/compute_filter.h"
@@ -72,6 +73,14 @@ arrow::Result<PartialArrowPlan> CountFilterNode::toQueryPlan(
    );
 
    return PartialArrowPlan{.top_node = node, .plan = arrow_plan};
+}
+
+nlohmann::json CountFilterNode::toJson() const {
+   return {
+      {"type", nodeKindToString(kind())},
+      {"table", table->logTable()},
+      {"filter", filter->toString()},
+   };
 }
 
 }  // namespace silo::query_engine::operators

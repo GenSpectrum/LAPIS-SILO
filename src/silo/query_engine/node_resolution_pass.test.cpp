@@ -42,7 +42,8 @@ std::map<silo::schema::TableName, std::shared_ptr<silo::storage::Table>> makeTab
    };
    auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), primary_key);
    std::map<silo::schema::TableName, std::shared_ptr<silo::storage::Table>> tables;
-   tables[silo::schema::TableName("default")] = std::make_shared<silo::storage::Table>(schema);
+   tables[silo::schema::TableName::getDefault()] =
+      std::make_shared<silo::storage::Table>(silo::schema::TableName::getDefault(), schema);
    return tables;
 }
 

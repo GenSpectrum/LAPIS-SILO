@@ -12,6 +12,7 @@
 #include <arrow/acero/options.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <nlohmann/json.hpp>
 
 #include "silo/common/phylo_tree.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
@@ -180,6 +181,16 @@ arrow::Result<PartialArrowPlan> MostRecentCommonAncestorNode::toQueryPlan(
    );
 
    return PartialArrowPlan{.top_node = node, .plan = arrow_plan};
+}
+
+nlohmann::json MostRecentCommonAncestorNode::toJson() const {
+   return {
+      {"type", nodeKindToString(kind())},
+      {"table", table->logTable()},
+      {"filter", filter->toString()},
+      {"columnName", column_name},
+      {"printNodesNotInTree", print_nodes_not_in_tree},
+   };
 }
 
 }  // namespace silo::query_engine::operators

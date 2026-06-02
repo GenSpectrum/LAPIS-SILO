@@ -6,12 +6,12 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <unordered_map>
 #include <vector>
 
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
 #include <fmt/format.h>
+#include <nlohmann/json.hpp>
 
 #include "evobench/evobench.hpp"
 #include "silo/common/aa_symbols.h"
@@ -437,6 +437,26 @@ arrow::Result<PartialArrowPlan> MutationsNode<SymbolType>::toQueryPlan(
    );
 
    return PartialArrowPlan{.top_node = node, .plan = arrow_plan};
+}
+
+template <typename SymbolType>
+nlohmann::json MutationsNode<SymbolType>::toJson() const {
+   nlohmann::json sequence_columns_json = nlohmann::json::array();
+   for (const auto& sequence_column : sequence_columns) {
+      sequence_columns_json.push_back(sequence_column.name);
+   }
+   nlohmann::json fields_json = nlohmann::json::array();
+   for (const auto& field : fields) {
+      fields_json.push_back(std::string{field});
+   }
+   return {
+      {"type", nodeKindToString(kind())},
+      {"table", table->logTable()},
+      {"filter", filter->toString()},
+      {"sequenceColumns", std::move(sequence_columns_json)},
+      {"minProportion", min_proportion},
+      {"fields", std::move(fields_json)},
+   };
 }
 
 template class MutationsNode<Nucleotide>;

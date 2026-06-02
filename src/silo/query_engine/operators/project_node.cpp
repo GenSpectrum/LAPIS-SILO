@@ -3,6 +3,7 @@
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
 #include <arrow/compute/api.h>
+#include <nlohmann/json.hpp>
 
 namespace silo::query_engine::operators {
 
@@ -35,6 +36,14 @@ arrow::Result<PartialArrowPlan> ProjectNode::toQueryPlan(
       arrow::acero::MakeExecNode("project", plan.plan.get(), {plan.top_node}, options)
    );
    return plan;
+}
+
+nlohmann::json ProjectNode::toJson() const {
+   return {
+      {"type", nodeKindToString(kind())},
+      {"fields", columnsToJson(fields)},
+      {"child", child->toJson()},
+   };
 }
 
 }  // namespace silo::query_engine::operators

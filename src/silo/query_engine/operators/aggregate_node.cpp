@@ -5,6 +5,7 @@
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
 #include <arrow/compute/api.h>
+#include <nlohmann/json.hpp>
 
 #include "silo/common/panic.h"
 #include "silo/query_engine/illegal_query_exception.h"
@@ -86,6 +87,14 @@ ColumnType getType(const AggregateDefinition& aggregate_definition) {
 
 namespace silo::query_engine::operators {
 
+std::string_view displayName(AggregateFunction aggregate) {
+   switch (aggregate) {
+      case AggregateFunction::COUNT:
+         return "COUNT";
+   }
+   SILO_UNREACHABLE();
+}
+
 AggregateNode::AggregateNode(
    QueryNodePtr child,
    std::vector<schema::ColumnIdentifier> group_by_fields,
@@ -122,6 +131,26 @@ arrow::Result<PartialArrowPlan> AggregateNode::toQueryPlan(
    );
 
    return plan;
+}
+
+nlohmann::json AggregateNode::toJson() const {
+   nlohmann::json aggregates_json = nlohmann::json::array();
+   for (const auto& agg : aggregates) {
+      nlohmann::json agg_json{
+         {"outputName", agg.output_name},
+         {"function", displayName(agg.function)},
+      };
+      if (agg.source_column.has_value()) {
+         agg_json["sourceColumn"] = columnToJson(agg.source_column.value());
+      }
+      aggregates_json.push_back(std::move(agg_json));
+   }
+   return {
+      {"type", nodeKindToString(kind())},
+      {"groupByFields", columnsToJson(group_by_fields)},
+      {"aggregates", std::move(aggregates_json)},
+      {"child", child->toJson()},
+   };
 }
 
 }  // namespace silo::query_engine::operators

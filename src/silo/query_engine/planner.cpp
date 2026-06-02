@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include <fmt/format.h>
+#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/column_narrowing_pass.h"
 #include "silo/query_engine/filter/expressions/and.h"
@@ -36,11 +37,20 @@ QueryPlan Planner::planQuery(
    const config::QueryOptions& query_options,
    std::string_view request_id
 ) {
+   auto log_plan = [&](std::string_view phase) {
+      if (spdlog::should_log(spdlog::level::debug)) {
+         SPDLOG_DEBUG("[{}] {}: {}", request_id, phase, node->toJson().dump());
+      }
+   };
+   log_plan("initial");
    if (auto new_node = operators::visit(*node, ColumnNarrowingPass(node->getOutputSchema()))) {
       node = std::move(new_node);
    }
+   log_plan("after ColumnNarrowingPass");
    node = FilterPushdownPass::run(std::move(node));
+   log_plan("after FilterPushdownPass");
    node = NodeResolutionPass::run(std::move(node));
+   log_plan("after NodeResolutionPass");
    auto result = planQueryOrError(*node, tables, query_options, request_id);
    if (!result.ok()) {
       throw std::runtime_error(

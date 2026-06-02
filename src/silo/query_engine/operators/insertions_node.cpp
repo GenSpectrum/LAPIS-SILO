@@ -14,6 +14,7 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <boost/container_hash/hash.hpp>
+#include <nlohmann/json.hpp>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -181,6 +182,20 @@ arrow::Result<PartialArrowPlan> InsertionsNode<SymbolType>::toQueryPlan(
    );
 
    return PartialArrowPlan{.top_node = node, .plan = arrow_plan};
+}
+
+template <typename SymbolType>
+nlohmann::json InsertionsNode<SymbolType>::toJson() const {
+   nlohmann::json sequence_names_json = nlohmann::json::array();
+   for (const auto& sequence_column : sequence_columns) {
+      sequence_names_json.push_back(sequence_column.name);
+   }
+   return {
+      {"type", nodeKindToString(kind())},
+      {"table", table->logTable()},
+      {"filter", filter->toString()},
+      {"sequenceColumns", std::move(sequence_names_json)},
+   };
 }
 
 template class InsertionsNode<Nucleotide>;

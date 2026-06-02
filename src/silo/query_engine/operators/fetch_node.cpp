@@ -8,6 +8,7 @@
 
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
+#include <nlohmann/json.hpp>
 
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/schema/database_schema.h"
@@ -54,6 +55,20 @@ arrow::Result<PartialArrowPlan> FetchNode::toQueryPlan(
    );
 
    return PartialArrowPlan{.top_node = node, .plan = partial.plan};
+}
+
+nlohmann::json FetchNode::toJson() const {
+   nlohmann::json result{
+      {"type", nodeKindToString(kind())},
+      {"child", child->toJson()},
+   };
+   if (count.has_value()) {
+      result["count"] = count.value();
+   }
+   if (offset.has_value()) {
+      result["offset"] = offset.value();
+   }
+   return result;
 }
 
 }  // namespace silo::query_engine::operators

@@ -19,6 +19,7 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #include "silo/common/panic.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
@@ -214,6 +215,25 @@ arrow::Result<PartialArrowPlan> OrderByNode::toQueryPlan(
    }
 
    return plan;
+}
+
+nlohmann::json OrderByNode::toJson() const {
+   nlohmann::json fields_json = nlohmann::json::array();
+   for (const auto& order_by_field : fields) {
+      fields_json.push_back({
+         {"field", columnToJson(order_by_field.field)},
+         {"ascending", order_by_field.ascending},
+      });
+   }
+   nlohmann::json result{
+      {"type", nodeKindToString(kind())},
+      {"fields", std::move(fields_json)},
+      {"child", child->toJson()},
+   };
+   if (randomize_seed.has_value()) {
+      result["randomizeSeed"] = randomize_seed.value();
+   }
+   return result;
 }
 
 }  // namespace silo::query_engine::operators

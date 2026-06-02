@@ -25,8 +25,9 @@
 
 namespace silo::storage {
 
-Table::Table(std::shared_ptr<schema::TableSchema> schema)
-    : schema(std::move(schema)) {
+Table::Table(schema::TableName table_name, std::shared_ptr<schema::TableSchema> schema)
+    : table_name(std::move(table_name)),
+      schema(std::move(schema)) {
    auto column_initializer = []<column::Column ColumnType>(
                                 ColumnGroup& column_group,
                                 const silo::schema::ColumnIdentifier& column_identifier,
@@ -39,6 +40,10 @@ Table::Table(std::shared_ptr<schema::TableSchema> schema)
    for (const auto& col : this->schema->getColumnIdentifiers()) {
       column::visit(col.type, column_initializer, columns, col, *this->schema);
    }
+}
+
+nlohmann::json Table::logTable() const {
+   return {{"name", table_name.getName()}, {"primaryKey", schema->primary_key.name}};
 }
 
 void Table::validate() const {

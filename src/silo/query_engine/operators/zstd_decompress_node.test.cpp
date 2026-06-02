@@ -57,7 +57,7 @@ std::shared_ptr<silo::storage::Table> dummyTable() {
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
    auto schema = std::make_shared<TableSchema>(std::move(col_meta), primary_key);
-   return std::make_shared<silo::storage::Table>(schema);
+   return std::make_shared<silo::storage::Table>(silo::schema::TableName::getDefault(), schema);
 }
 
 // The table identity is irrelevant for the schema-only assertions below; only the field
