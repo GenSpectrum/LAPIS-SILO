@@ -18,9 +18,11 @@ std::pair<std::shared_ptr<ColumnMetadata>, IntColumn> makeTestColumn(
 ) {
    auto metadata = std::make_shared<ColumnMetadata>("test");
    IntColumn test_column{metadata.get()};
+   IntColumn::Builder builder;
    for (auto value : values) {
-      SILO_ASSERT(test_column.insert(value).has_value());
+      builder.insert(value);
    }
+   SILO_ASSERT(test_column.appendChunk(builder.finalize()).has_value());
    return {metadata, test_column};
 }
 

@@ -52,6 +52,8 @@ std::string_view nodeKindToString(NodeKind kind) {
          return "CountFilter";
       case NodeKind::ZSTD_DECOMPRESS:
          return "ZstdDecompress";
+      case NodeKind::MAP:
+         return "Map";
    }
    SILO_UNREACHABLE();
 }

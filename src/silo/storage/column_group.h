@@ -1,12 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <expected>
 #include <map>
 #include <string>
 #include <vector>
 
-#include <simdjson.h>
 #include <boost/serialization/access.hpp>
 
 #include "silo/common/aa_symbols.h"
@@ -71,11 +69,6 @@ class ColumnGroup {
    std::map<std::string, column::SequenceColumn<Nucleotide>> nuc_columns;
    std::map<std::string, column::SequenceColumn<AminoAcid>> aa_columns;
    std::map<std::string, column::ZstdCompressedStringColumn> zstd_compressed_string_columns;
-
-   std::expected<void, std::string> addJsonValueToColumn(
-      const schema::ColumnIdentifier& column_identifier,
-      simdjson::ondemand::value& value
-   );
 
    template <column::Column ColumnType>
    std::map<std::string, ColumnType>& getColumns();

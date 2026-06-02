@@ -22,8 +22,25 @@
 #include "silo/roaring_util/roaring_serialize.h"
 #include "silo/schema/duplicate_primary_key_exception.h"
 #include "silo/storage/column/column_type_visitor.h"
+#include "silo/storage/column_group_builder.h"
 
 namespace silo::storage {
+
+namespace {
+class BulkInsertVisitor {
+  public:
+   template <column::Column ColumnType>
+   std::expected<void, std::string> operator()(
+      ColumnGroup& columns,
+      ColumnGroupBuilder& block,
+      const std::string& name
+   ) {
+      return columns.getColumns<ColumnType>().at(name).appendChunk(
+         block.getColumnBuilders<ColumnType>().at(name).finalize()
+      );
+   }
+};
+}  // namespace
 
 Table::Table(schema::TableName table_name, std::shared_ptr<schema::TableSchema> schema)
     : table_name(std::move(table_name)),
@@ -51,6 +68,17 @@ void Table::validate() const {
    validateNucleotideSequences();
    validateAminoAcidSequences();
    validateMetadataColumns();
+}
+
+std::expected<void, std::string> Table::bulkInsert(ColumnGroupBuilder& block) {
+   sequence_count += block.numBufferedRows();
+   for (const auto& column : columns.metadata) {
+      auto result = column::visit(column.type, BulkInsertVisitor{}, columns, block, column.name);
+      if (!result.has_value()) {
+         return result;
+      }
+   }
+   return {};
 }
 
 void Table::finalize() {

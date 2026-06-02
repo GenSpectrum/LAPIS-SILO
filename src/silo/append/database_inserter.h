@@ -7,12 +7,15 @@
 #include <spdlog/spdlog.h>
 
 #include "silo/append/ndjson_line_reader.h"
+#include "silo/storage/column_group_builder.h"
 #include "silo/storage/table.h"
 
 namespace silo::append {
 
 class TableInserter {
    std::shared_ptr<storage::Table> table;
+   // Buffers the current ingestion chunk; flushed to the table via bulkInsert.
+   storage::ColumnGroupBuilder column_builder;
 
   public:
    class Commit {
@@ -22,7 +25,8 @@ class TableInserter {
    };
 
    explicit TableInserter(std::shared_ptr<storage::Table> table)
-       : table(std::move(table)) {}
+       : table(std::move(table)),
+         column_builder(*this->table->schema, this->table->columns) {}
 
    struct SniffedField {
       silo::schema::ColumnIdentifier column_identifier;
@@ -41,9 +45,9 @@ class TableInserter {
    [[nodiscard]] std::expected<void, std::string> insert(
       simdjson::ondemand::document_reference ndjson_line,
       const std::vector<SniffedField>& field_order_hint
-   ) const;
+   );
 
-   [[nodiscard]] Commit commit() const;
+   [[nodiscard]] Commit commit();
 };
 
 TableInserter::Commit appendDataToTable(

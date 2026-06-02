@@ -1,7 +1,8 @@
 #include "silo/storage/column/sequence_column.h"
 
 #include <algorithm>
-#include <iterator>
+#include <expected>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -12,9 +13,11 @@
 
 #include "silo/append/append_exception.h"
 #include "silo/common/aa_symbols.h"
+#include "silo/common/aligned_sequence.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/string_utils.h"
-#include "silo/common/symbol_map.h"
+#include "silo/preprocessing/preprocessing.h"
+#include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/insertion_format_exception.h"
 
 namespace silo::storage::column {
@@ -88,59 +91,35 @@ template <typename SymbolType>
 SequenceColumn<SymbolType>::SequenceColumn(SequenceColumnMetadata<SymbolType>* metadata)
     : metadata(metadata),
       genome_length(metadata->reference_sequence.size()),
-      local_reference_sequence_string(SymbolType::sequenceToString(metadata->reference_sequence)),
-      horizontal_coverage_index(),
-      compressed_input_decompressor(
-         std::make_shared<ZstdDDictionary>(local_reference_sequence_string)
-      ) {
+      local_reference_sequence_string(SymbolType::sequenceToString(metadata->reference_sequence)) {
    mutation_buffer.resize(genome_length);
    SILO_ASSERT_GT(genome_length, 0ULL);
 }
 
 template <typename SymbolType>
-void SequenceColumn<SymbolType>::append(
-   std::string_view sequence,
-   uint32_t offset,
-   const std::vector<std::string>& insertions
-) {
-   uint32_t sequence_idx = sequence_count;
+std::expected<void, std::string> SequenceColumn<SymbolType>::appendChunk(const Buffer& buffer) {
+   for (const auto& buffered : buffer) {
+      if (buffered.is_null) {
+         appendNullValue();
+      } else {
+         appendValue(buffered);
+      }
+   }
+   return {};
+}
+
+template <typename SymbolType>
+void SequenceColumn<SymbolType>::appendValue(const BufferedSequence& buffered) {
+   const uint32_t sequence_idx = sequence_count;
    sequence_count++;
 
-   horizontal_coverage_index.insertSequenceCoverage<SymbolType>(sequence, offset);
+   horizontal_coverage_index.insertCoverage(buffered.coverage);
 
-   if (sequence.size() + offset > genome_length) {
-      throw append::AppendException(
-         "the sequence '{}' which was inserted with an offset {} is larger than the length of "
-         "the reference genome: {}",
-         sequence,
-         offset,
-         genome_length
-      );
-   }
-   for (size_t char_in_sequence = 0; char_in_sequence != sequence.size(); ++char_in_sequence) {
-      size_t position_idx = char_in_sequence + offset;
-
-      if (sequence.at(char_in_sequence) == local_reference_sequence_string.at(position_idx)) {
-         continue;
-      }
-
-      const char character = sequence.at(char_in_sequence);
-      const auto symbol = SymbolType::charToSymbol(character);
-      if (!symbol.has_value()) {
-         throw append::AppendException(
-            "illegal character '{}' at position {} contained in sequence with index {} in "
-            "the current input",
-            character,
-            position_idx,
-            sequence_idx
-         );
-      }
-      if (symbol != SymbolType::SYMBOL_MISSING) {
-         mutation_buffer.at(position_idx)[*symbol].push_back(sequence_idx);
-      }
+   for (const auto& [position_idx, symbol] : buffered.mutations.mutations) {
+      mutation_buffer.at(position_idx)[symbol].push_back(sequence_idx);
    }
 
-   for (const auto& insertion_and_position : insertions) {
+   for (const auto& insertion_and_position : buffered.insertions.insertions) {
       auto [position, insertion] = parseInsertion<SymbolType>(insertion_and_position);
       if (position > genome_length) {
          throw append::AppendException(
@@ -159,7 +138,7 @@ void SequenceColumn<SymbolType>::append(
 }
 
 template <typename SymbolType>
-void SequenceColumn<SymbolType>::appendNull() {
+void SequenceColumn<SymbolType>::appendNullValue() {
    const size_t row_id = sequence_count;
    null_bitmap.add(row_id);
    sequence_count += 1;
@@ -319,8 +298,57 @@ SequenceColumnMetadata<SymbolType>::SequenceColumnMetadata(
     : ColumnMetadata(std::move(column_name)),
       reference_sequence(std::move(reference_sequence)) {}
 
+template <typename SymbolType>
+SequenceColumnBuilder<SymbolType>::SequenceColumnBuilder(
+   const SequenceColumnMetadata<SymbolType>* metadata,
+   std::string local_reference
+)
+    : local_reference(std::move(local_reference)),
+      compressed_input_decompressor(std::make_shared<ZstdDDictionary>(
+         SymbolType::sequenceToString(metadata->reference_sequence)
+      )) {
+   SILO_ASSERT_GT(metadata->reference_sequence.size(), 0ULL);
+   SILO_ASSERT_EQ(this->local_reference.size(), metadata->reference_sequence.size());
+}
+
+template <typename SymbolType>
+void SequenceColumnBuilder<SymbolType>::insert(
+   std::string_view sequence,
+   uint32_t offset,
+   const std::vector<std::string>& insertions
+) {
+   const size_t genome_length = local_reference.size();
+   if (sequence.size() + offset > genome_length) {
+      throw append::AppendException(
+         "the sequence '{}' which was inserted with an offset {} is larger than the length of "
+         "the reference genome: {}",
+         sequence,
+         offset,
+         genome_length
+      );
+   }
+   SILO_ASSERT(sequence.size() + offset < UINT32_MAX);
+
+   auto coverage_mutations = extractCoverageAndMutationsFromSequence<SymbolType>(
+      sequence, offset, std::string_view{local_reference}
+   );
+   if (!coverage_mutations.has_value()) {
+      SPDLOG_INFO("{}", coverage_mutations.error());
+      throw append::AppendException{coverage_mutations.error()};
+   }
+   auto [coverage, mutations] = std::move(coverage_mutations).value();
+
+   typename SequenceColumn<SymbolType>::BufferedSequence buffered{
+      .coverage = std::move(coverage), .mutations = std::move(mutations), .insertions = {insertions}
+   };
+
+   buffer.push_back(std::move(buffered));
+}
+
 template class SequenceColumn<Nucleotide>;
 template class SequenceColumn<AminoAcid>;
 template class SequenceColumnMetadata<Nucleotide>;
 template class SequenceColumnMetadata<AminoAcid>;
+template class SequenceColumnBuilder<Nucleotide>;
+template class SequenceColumnBuilder<AminoAcid>;
 }  // namespace silo::storage::column

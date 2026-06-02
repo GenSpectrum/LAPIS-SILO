@@ -56,45 +56,45 @@ std::optional<const roaring::Roaring*> IndexedStringColumn::filter(
    return filter(value_id.value());
 }
 
-std::expected<void, std::string> IndexedStringColumn::insert(std::string_view value) {
-   const size_t row_id = value_ids.size();
-
-   if (lineage_index.has_value()) {
-      const auto value_id = metadata->dictionary.getId(value);
-      if (value_id.has_value()) {
-         lineage_index.value().insert(row_id, value_id.value());
-      } else if (!metadata->treat_unknown_lineages_as_null) {
-         return std::unexpected(fmt::format(
-            "The value '{}' is not a valid lineage value for column '{}'. "
-            "Is your lineage definition file outdated?",
-            value,
-            metadata->column_name
-         ));
+std::expected<void, std::string> IndexedStringColumn::appendChunk(const Buffer& buffer) {
+   value_ids.reserve(value_ids.size() + buffer.size());
+   for (const auto& maybe_value : buffer) {
+      const size_t row_id = value_ids.size();
+      if (!maybe_value.has_value()) {
+         null_bitmap.add(row_id);
+         // We need to add something to the vector, so that the size of the vector remains equal to
+         // row_id but we do not add our row_id to indexed_values[value_id]
+         const Idx value_id = metadata->dictionary.getOrCreateId("");
+         indexed_values.try_emplace(value_id);
+         value_ids.push_back(value_id);
+         continue;
       }
+      const std::string_view value = *maybe_value;
+
+      if (lineage_index.has_value()) {
+         const auto value_id = metadata->dictionary.getId(value);
+         if (value_id.has_value()) {
+            lineage_index.value().insert(row_id, value_id.value());
+         } else if (!metadata->treat_unknown_lineages_as_null) {
+            return std::unexpected(fmt::format(
+               "The value '{}' is not a valid lineage value for column '{}'. "
+               "Is your lineage definition file outdated?",
+               value,
+               metadata->column_name
+            ));
+         }
+      }
+
+      const Idx value_id = metadata->dictionary.getOrCreateId(value);
+
+      indexed_values[value_id].add(row_id);
+      value_ids.push_back(value_id);
    }
-
-   const Idx value_id = metadata->dictionary.getOrCreateId(value);
-
-   indexed_values[value_id].add(row_id);
-   value_ids.push_back(value_id);
    return {};
-}
-
-void IndexedStringColumn::insertNull() {
-   null_bitmap.add(value_ids.size());
-   // We need to add something to the vector, so that the size of the vector remains equal to row_id
-   // but we do not add our row_id to indexed_values[value_id]
-   const Idx value_id = metadata->dictionary.getOrCreateId("");
-   indexed_values.try_emplace(value_id);
-   value_ids.push_back(value_id);
 }
 
 bool IndexedStringColumn::isNull(size_t row_id) const {
    return null_bitmap.contains(row_id);
-}
-
-void IndexedStringColumn::reserve(size_t row_count) {
-   value_ids.reserve(value_ids.size() + row_count);
 }
 
 std::optional<silo::Idx> IndexedStringColumn::getValueId(const std::string& value) const {

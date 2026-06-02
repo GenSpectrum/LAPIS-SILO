@@ -9,13 +9,15 @@ TEST(ZstdCompressedStringColumn, insertValuesAndGetThemBack) {
    std::vector<std::optional<std::string>> values_to_add{
       "2020-01-01", "2023-01-05", "2021-12-03", "2025-01-01", std::nullopt, "2021-03-21", "asd"
    };
+   silo::storage::column::ZstdCompressedStringColumn::Builder builder;
    for (const auto& value : values_to_add) {
       if (value.has_value()) {
-         SILO_ASSERT(under_test.insert(value.value()).has_value());
+         builder.insert(value.value());
       } else {
-         under_test.insertNull();
+         builder.insertNull();
       }
    }
+   SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
 
    for (size_t value_idx = 0; value_idx < values_to_add.size(); ++value_idx) {
       ASSERT_EQ(under_test.getDecompressed(value_idx), values_to_add.at(value_idx));

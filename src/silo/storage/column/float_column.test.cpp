@@ -9,8 +9,10 @@ using silo::storage::column::FloatColumn;
 TEST(FloatColumn, doesNotErrorOnValidInputs) {
    ColumnMetadata column_metadata("float_column1");
    FloatColumn column{&column_metadata};
-   SILO_ASSERT(column.insert(0.1).has_value());
-   column.insertNull();
+   FloatColumn::Builder builder;
+   builder.insert(0.1);
+   builder.insertNull();
+   SILO_ASSERT(column.appendChunk(builder.finalize()).has_value());
    ASSERT_EQ(column.numValues(), 2);
    ASSERT_EQ(column.getValue(0), 0.1);
    ASSERT_TRUE(std::isnan(column.getValue(1)));

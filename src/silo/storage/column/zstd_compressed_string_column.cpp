@@ -16,18 +16,16 @@ ZstdCompressedStringColumn::ZstdCompressedStringColumn(
 )
     : metadata(metadata) {}
 
-void ZstdCompressedStringColumn::reserve(size_t row_count) {
-   values.reserve(row_count);
-}
-
-void ZstdCompressedStringColumn::insertNull() {
-   null_bitmap.add(values.size());
-   values.emplace_back();
-}
-
-std::expected<void, std::string> ZstdCompressedStringColumn::insert(std::string_view value) {
-   auto compressed = metadata->compressor.compress(value.data(), value.size());
-   values.emplace_back(compressed);
+std::expected<void, std::string> ZstdCompressedStringColumn::appendChunk(const Buffer& buffer) {
+   values.reserve(values.size() + buffer.size());
+   for (const auto& value : buffer) {
+      if (value.has_value()) {
+         values.emplace_back(metadata->compressor.compress(value->data(), value->size()));
+      } else {
+         null_bitmap.add(values.size());
+         values.emplace_back();
+      }
+   }
    return {};
 }
 

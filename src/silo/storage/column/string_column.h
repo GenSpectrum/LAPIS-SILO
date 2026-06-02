@@ -5,6 +5,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_free.hpp>
@@ -14,12 +15,15 @@
 #include "silo/common/phylo_tree.h"
 #include "silo/common/tree_node_id.h"
 #include "silo/schema/database_schema.h"
+#include "silo/storage/column/column.h"
 #include "silo/storage/column/column_metadata.h"
 #include "silo/storage/vector/german_string_registry.h"
 #include "silo/storage/vector/variable_data_registry.h"
 
 namespace silo::storage::column {
 using silo::common::TreeNodeId;
+
+class StringColumnBuilder;
 
 class StringColumnMetadata : public ColumnMetadata {
   public:
@@ -57,6 +61,8 @@ class StringColumnMetadata : public ColumnMetadata {
 class StringColumn {
   public:
    using Metadata = StringColumnMetadata;
+   using Builder = StringColumnBuilder;
+   using Buffer = std::vector<std::optional<std::string>>;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::STRING;
    // The type with which one can call insert
@@ -76,9 +82,7 @@ class StringColumn {
   public:
    explicit StringColumn(Metadata* metadata);
 
-   [[nodiscard]] std::expected<void, std::string> insert(std::string_view value);
-
-   void insertNull();
+   std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
    [[nodiscard]] bool isNull(size_t row_id) const;
 
@@ -129,6 +133,23 @@ class StringColumn {
       archive & fixed_string_data;
       archive & variable_string_data;
       // clang-format on
+   }
+};
+
+class StringColumnBuilder {
+   StringColumn::Buffer buffer;
+
+  public:
+   void insert(std::string_view value) { buffer.emplace_back(std::string{value}); }
+
+   void insertNull() { buffer.emplace_back(std::nullopt); }
+
+   [[nodiscard]] size_t numValues() const { return buffer.size(); }
+
+   [[nodiscard]] StringColumn::Buffer finalize() {
+      StringColumn::Buffer result = std::move(buffer);
+      buffer.clear();
+      return result;
    }
 };
 

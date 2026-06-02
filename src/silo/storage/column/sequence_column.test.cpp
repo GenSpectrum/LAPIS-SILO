@@ -1,5 +1,9 @@
 #include "silo/storage/column/sequence_column.h"
 
+#include <string>
+#include <string_view>
+#include <vector>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -12,13 +16,31 @@ using silo::storage::InsertionFormatException;
 using silo::storage::column::SequenceColumn;
 using silo::storage::column::SequenceColumnMetadata;
 
+namespace {
+// Buffers a single sequence into a chunk and applies it to the column. Parsing
+// and validation happen inside appendChunk, so this is where errors are thrown.
+void appendSequence(
+   SequenceColumn<Nucleotide>& column,
+   std::string_view sequence,
+   uint32_t offset,
+   const std::vector<std::string>& insertions
+) {
+   SequenceColumn<Nucleotide>::Builder builder(
+      column.metadata, column.local_reference_sequence_string
+   );
+   builder.insert(sequence, offset, insertions);
+   auto result = column.appendChunk(builder.finalize());
+   SILO_ASSERT(result.has_value());
+}
+}  // namespace
+
 TEST(SequenceColumn, validErrorOnBadInsertionFormat_noTwoParts) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
    SequenceColumn<Nucleotide> under_test(&column_metadata);
 
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { under_test.append("A", 0, {"A"}); },
+      [&]() { appendSequence(under_test, "A", 0, {"A"}); },
       ThrowsMessage<InsertionFormatException>(
          ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected two parts "
                               "(position and non-empty insertion value), instead got: 'A'")
@@ -31,7 +53,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartNotANumber) {
    SequenceColumn<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { under_test.append("A", 0, {"A:G"}); },
+      [&]() { appendSequence(under_test, "A", 0, {"A:G"}); },
       ThrowsMessage<InsertionFormatException>(
          ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected position "
                               "that is parsable as an integer, instead got: 'A:G'")
@@ -45,7 +67,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIllegalSymbol) {
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
       [&]() {
-         under_test.append("A", 0, {"0:EEEEE"});
+         appendSequence(under_test, "A", 0, {"0:EEEEE"});
          under_test.finalize();
       },
       ThrowsMessage<InsertionFormatException>(
@@ -59,7 +81,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartIsANumber) {
    SequenceColumn<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { under_test.append("A", 0, {"0:0"}); },
+      [&]() { appendSequence(under_test, "A", 0, {"0:0"}); },
       ThrowsMessage<InsertionFormatException>(
          ::testing::HasSubstr("Illegal nucleotide character '0' in insertion: 0:0")
       )
@@ -71,7 +93,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartEmpty) {
    SequenceColumn<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { under_test.append("A", 0, {"0:"}); },
+      [&]() { appendSequence(under_test, "A", 0, {"0:"}); },
       ThrowsMessage<InsertionFormatException>(
          ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected two parts "
                               "(position and non-empty insertion value), instead got: '0:'")
@@ -84,7 +106,7 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartEmpty) {
    SequenceColumn<Nucleotide> under_test(&column_metadata);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { under_test.append("A", 0, {":A"}); },
+      [&]() { appendSequence(under_test, "A", 0, {":A"}); },
       ThrowsMessage<InsertionFormatException>(
          ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected position "
                               "that is parsable as an integer, instead got: ':A'")
@@ -98,7 +120,7 @@ TEST(SequenceColumn, validErrorOnNegativeInsertionPosition) {
 
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { under_test.append("A", 0, {"-5:G"}); },
+      [&]() { appendSequence(under_test, "A", 0, {"-5:G"}); },
       ThrowsMessage<InsertionFormatException>(::testing::HasSubstr("position must not be negative"))
    );
 }
@@ -109,7 +131,7 @@ TEST(SequenceColumn, validErrorOnInsertionPositionOutOfRange) {
 
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { under_test.append("A", 0, {"100:G"}); },
+      [&]() { appendSequence(under_test, "A", 0, {"100:G"}); },
       ThrowsMessage<AppendException>(::testing::HasSubstr(
          "the insertion position (100) is larger than the length of the reference sequence (1)"
       ))
@@ -120,14 +142,14 @@ TEST(SequenceColumn, validInsertionAtPositionZero) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
    SequenceColumn<Nucleotide> under_test(&column_metadata);
 
-   EXPECT_NO_THROW(under_test.append("A", 0, {"0:G"}));
+   EXPECT_NO_THROW(appendSequence(under_test, "A", 0, {"0:G"}));
 }
 
 TEST(SequenceColumn, validInsertionAtPositionEqualToGenomeLength) {
    SequenceColumnMetadata<Nucleotide> column_metadata{"test_column", {Nucleotide::Symbol::A}};
    SequenceColumn<Nucleotide> under_test(&column_metadata);
 
-   EXPECT_NO_THROW(under_test.append("A", 0, {"1:G"}));
+   EXPECT_NO_THROW(appendSequence(under_test, "A", 0, {"1:G"}));
 }
 
 TEST(SequenceColumn, canFinalizeTwice) {
@@ -137,10 +159,16 @@ TEST(SequenceColumn, canFinalizeTwice) {
    };
    SequenceColumn<Nucleotide> under_test(&column_metadata);
 
-   under_test.append("AAGT", 0, std::vector<std::string>{});
-   under_test.append("AAGT", 0, std::vector<std::string>{});
-   under_test.append("AAGT", 0, std::vector<std::string>{});
-   under_test.append("ACGT", 0, std::vector<std::string>{});
+   {
+      SequenceColumn<Nucleotide>::Builder builder(
+         under_test.metadata, under_test.local_reference_sequence_string
+      );
+      builder.insert("AAGT", 0, std::vector<std::string>{});
+      builder.insert("AAGT", 0, std::vector<std::string>{});
+      builder.insert("AAGT", 0, std::vector<std::string>{});
+      builder.insert("ACGT", 0, std::vector<std::string>{});
+      SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
+   }
 
    under_test.finalize();
 
@@ -157,10 +185,16 @@ TEST(SequenceColumn, canFinalizeTwice) {
       (roaring::Roaring{})
    );
 
-   under_test.append("ACGT", 0, std::vector<std::string>{});
-   under_test.append("ACGT", 0, std::vector<std::string>{});
-   under_test.append("ACGT", 0, std::vector<std::string>{});
-   under_test.append("ACGT", 0, std::vector<std::string>{});
+   {
+      SequenceColumn<Nucleotide>::Builder builder(
+         under_test.metadata, under_test.local_reference_sequence_string
+      );
+      builder.insert("ACGT", 0, std::vector<std::string>{});
+      builder.insert("ACGT", 0, std::vector<std::string>{});
+      builder.insert("ACGT", 0, std::vector<std::string>{});
+      builder.insert("ACGT", 0, std::vector<std::string>{});
+      SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
+   }
 
    under_test.finalize();
 

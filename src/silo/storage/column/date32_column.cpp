@@ -13,29 +13,23 @@ bool Date32Column::isSorted() const {
    return is_sorted;
 }
 
-std::expected<void, std::string> Date32Column::insert(std::string_view value) {
-   auto date_result = silo::common::stringToDate32(value);
-   if (!date_result.has_value()) {
-      return std::unexpected{date_result.error()};
+std::expected<void, std::string> Date32Column::appendChunk(const Buffer& buffer) {
+   values.reserve(values.size() + buffer.size());
+   for (const auto& value : buffer) {
+      if (value.has_value()) {
+         if (!values.empty() && *value < values.back()) {
+            is_sorted = false;
+         }
+         values.push_back(*value);
+      } else {
+         null_bitmap.add(values.size());
+         // We need to insert _some_ value to keep vector size correct. However, it will never
+         // be read
+         values.push_back(0);
+         is_sorted = false;
+      }
    }
-   const auto date_value = date_result.value();
-   if (!values.empty() && date_value < values.back()) {
-      is_sorted = false;
-   }
-   values.push_back(date_value);
    return {};
-}
-
-void Date32Column::insertNull() {
-   const size_t row_id = values.size();
-   null_bitmap.add(row_id);
-   // We need to insert _some_ value to keep vector size correct. However, it will never be read
-   values.push_back(0);
-   is_sorted = false;
-}
-
-void Date32Column::reserve(size_t row_count) {
-   values.reserve(values.size() + row_count);
 }
 
 const std::vector<silo::common::Date32>& Date32Column::getValues() const {

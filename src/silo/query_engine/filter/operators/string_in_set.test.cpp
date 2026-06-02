@@ -23,9 +23,11 @@ std::pair<std::shared_ptr<StringColumnMetadata>, StringColumn> makeTestStringCol
 ) {
    auto metadata = std::make_shared<StringColumnMetadata>("test");
    StringColumn test_column{metadata.get()};
+   StringColumn::Builder builder;
    for (const auto& value : values) {
-      SILO_ASSERT(test_column.insert(value).has_value());
+      builder.insert(value);
    }
+   SILO_ASSERT(test_column.appendChunk(builder.finalize()).has_value());
    return {metadata, std::move(test_column)};
 }
 
@@ -33,9 +35,11 @@ std::pair<std::shared_ptr<IndexedStringColumnMetadata>, IndexedStringColumn>
 makeTestIndexedStringColumn(const std::vector<std::string>& values) {
    auto metadata = std::make_shared<IndexedStringColumnMetadata>("test_indexed");
    IndexedStringColumn test_column{metadata.get()};
+   IndexedStringColumn::Builder builder;
    for (const auto& value : values) {
-      SILO_ASSERT(test_column.insert(value).has_value());
+      builder.insert(value);
    }
+   SILO_ASSERT(test_column.appendChunk(builder.finalize()).has_value());
    return {metadata, std::move(test_column)};
 }
 

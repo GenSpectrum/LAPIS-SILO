@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <map>
 #include <vector>
 
@@ -9,6 +8,10 @@
 
 #include "silo/common/panic.h"
 #include "silo/roaring_util/bitmap_builder.h"
+
+namespace silo {
+class Coverage;
+}
 
 namespace silo::storage::column {
 
@@ -22,16 +25,9 @@ class HorizontalCoverageIndex {
    // if we can be sure they have no coverage at given positions.
    std::vector<std::pair<uint32_t, uint32_t>> batch_start_ends;
 
-   void insertCoverage(
-      uint32_t start,
-      uint32_t end,
-      const std::vector<uint32_t>& positions_with_symbol_missing
-   );
+   void insertCoverage(const Coverage& coverage);
 
    void insertNullSequence();
-
-   template <typename SymbolType>
-   void insertSequenceCoverage(std::string_view sequence, uint32_t offset);
 
    template <size_t BatchSize>
    [[nodiscard]] std::array<roaring::Roaring, BatchSize> getCoverageBitmapForPositions(
@@ -42,7 +38,7 @@ class HorizontalCoverageIndex {
       const uint32_t range_start = position;
       const uint32_t range_end = position + BatchSize;
 
-      using silo::roaring_util::BitmapBuilderByRange;
+      using roaring_util::BitmapBuilderByRange;
       std::array<BitmapBuilderByRange, BatchSize> result_builders;
 
       for (uint32_t row_id_upper_bits = 0; row_id_upper_bits << 16 < row_count;

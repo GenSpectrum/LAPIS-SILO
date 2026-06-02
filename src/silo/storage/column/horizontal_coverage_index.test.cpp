@@ -1,7 +1,12 @@
 #include "silo/storage/column/horizontal_coverage_index.h"
 
+#include <memory>
+#include <string>
+#include <string_view>
+
 #include <gtest/gtest.h>
 
+#include "silo/common/aligned_sequence.h"
 #include "silo/common/nucleotide_symbols.h"
 
 namespace silo::storage::column {
@@ -11,7 +16,24 @@ class HorizontalCoverageIndexTest : public ::testing::Test {
   protected:
    static constexpr size_t GENOME_LENGTH = 100;
 
+   // A reference long enough to cover every sequence inserted in these tests (some
+   // extend past GENOME_LENGTH). Only the coverage information is used here, so the
+   // reference content is irrelevant - any sequence that differs only produces
+   // mutations, which HorizontalCoverageIndex ignores.
+   // NOLINTNEXTLINE(readability-identifier-naming)
+   inline static const std::string REFERENCE = std::string(256, 'A');
+
    void SetUp() override { index = std::make_unique<HorizontalCoverageIndex>(); }
+
+   // Bridges the old per-sequence insertion API onto the new interface: derive the
+   // Coverage from the sequence and offset and hand it to insertCoverage.
+   void insertSequenceCoverage(std::string_view sequence, size_t offset) {
+      index->insertCoverage(
+         extractCoverageAndMutationsFromSequence<Nucleotide>(sequence, offset, REFERENCE)
+            .value()
+            .coverage
+      );
+   }
 
    std::unique_ptr<HorizontalCoverageIndex> index;
 };
@@ -43,31 +65,31 @@ TEST_F(HorizontalCoverageIndexTest, MultipleNullSequencesAllUncovered) {
 
 // Coverage Insertion Tests
 TEST_F(HorizontalCoverageIndexTest, InsertSingleSequenceAtOffsetZero) {
-   std::string sequence = "ACGT";
-   EXPECT_NO_THROW(index->insertSequenceCoverage<Nucleotide>(sequence, 0));
+   const std::string sequence = "ACGT";
+   EXPECT_NO_THROW(insertSequenceCoverage(sequence, 0));
 }
 
 TEST_F(HorizontalCoverageIndexTest, InsertSequenceWithOffset) {
-   std::string sequence = "ACGT";
-   EXPECT_NO_THROW(index->insertSequenceCoverage<Nucleotide>(sequence, 10));
+   const std::string sequence = "ACGT";
+   EXPECT_NO_THROW(insertSequenceCoverage(sequence, 10));
 }
 
 TEST_F(HorizontalCoverageIndexTest, InsertEmptySequence) {
-   std::string sequence;
-   EXPECT_NO_THROW(index->insertSequenceCoverage<Nucleotide>(sequence, 0));
+   const std::string sequence;
+   EXPECT_NO_THROW(insertSequenceCoverage(sequence, 0));
 }
 
 TEST_F(HorizontalCoverageIndexTest, InsertMultipleSequences) {
    EXPECT_NO_THROW({
-      index->insertSequenceCoverage<Nucleotide>("ACGT", 0);
-      index->insertSequenceCoverage<Nucleotide>("TGCA", 5);
-      index->insertSequenceCoverage<Nucleotide>("AAAA", 10);
+      insertSequenceCoverage("ACGT", 0);
+      insertSequenceCoverage("TGCA", 5);
+      insertSequenceCoverage("AAAA", 10);
    });
 }
 
 // Bitmap Retrieval Tests - Covered Positions
 TEST_F(HorizontalCoverageIndexTest, SequenceNotInBitmapForCoveredPositions) {
-   index->insertSequenceCoverage<Nucleotide>("ACGT", 0);  // Covers positions 0-3
+   insertSequenceCoverage("ACGT", 0);  // Covers positions 0-3
 
    // Sequence 0 is covered at positions 0-3, so it should appear in bitmap
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{0});
@@ -77,7 +99,7 @@ TEST_F(HorizontalCoverageIndexTest, SequenceNotInBitmapForCoveredPositions) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, SequenceInBitmapForUncoveredPositions) {
-   index->insertSequenceCoverage<Nucleotide>("ACGT", 0);  // Covers positions 0-3
+   insertSequenceCoverage("ACGT", 0);  // Covers positions 0-3
 
    // Sequence 0 is NOT covered at positions 4+, so it should NOT appear in bitmap
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(4).at(0), roaring::Roaring{});
@@ -86,9 +108,9 @@ TEST_F(HorizontalCoverageIndexTest, SequenceInBitmapForUncoveredPositions) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, MultipleSequencesWithOverlap) {
-   index->insertSequenceCoverage<Nucleotide>("ACGTACGT", 0);  // Sequence 0 covers 0-7
-   index->insertSequenceCoverage<Nucleotide>("TGCA", 5);      // Sequence 1 covers 5-8
-   index->insertSequenceCoverage<Nucleotide>("AAAA", 10);     // Sequence 2 covers 10-13
+   insertSequenceCoverage("ACGTACGT", 0);  // Sequence 0 covers 0-7
+   insertSequenceCoverage("TGCA", 5);      // Sequence 1 covers 5-8
+   insertSequenceCoverage("AAAA", 10);     // Sequence 2 covers 10-13
 
    // Position 6: covered by sequences 0 and 1, so only 2 is uncovered
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(6).at(0), (roaring::Roaring{0, 1}));
@@ -107,8 +129,8 @@ TEST_F(HorizontalCoverageIndexTest, MultipleSequencesWithOverlap) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, NonOverlappingSequences) {
-   index->insertSequenceCoverage<Nucleotide>("ACGT", 0);   // Covers 0-3
-   index->insertSequenceCoverage<Nucleotide>("TGCA", 10);  // Covers 10-13
+   insertSequenceCoverage("ACGT", 0);   // Covers 0-3
+   insertSequenceCoverage("TGCA", 10);  // Covers 10-13
 
    // Position 2: covered by 0, uncovered by 1
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), roaring::Roaring{0});
@@ -122,7 +144,7 @@ TEST_F(HorizontalCoverageIndexTest, NonOverlappingSequences) {
 
 // N Character Tests - N counts as uncovered!
 TEST_F(HorizontalCoverageIndexTest, SequenceWithNIsUncoveredAtNPosition) {
-   index->insertSequenceCoverage<Nucleotide>("ACNGT", 0);  // Position 2 has N
+   insertSequenceCoverage("ACNGT", 0);  // Position 2 has N
 
    // Positions 0, 1, 3, 4 are covered (A, C, G, T)
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{0}));
@@ -135,7 +157,7 @@ TEST_F(HorizontalCoverageIndexTest, SequenceWithNIsUncoveredAtNPosition) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, SequenceWithMultipleNs) {
-   index->insertSequenceCoverage<Nucleotide>("ANNNGTA", 0);  // Positions 1, 2, 3 have N
+   insertSequenceCoverage("ANNNGTA", 0);  // Positions 1, 2, 3 have N
 
    // Positions with actual nucleotides are covered
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{0});  // A
@@ -150,7 +172,7 @@ TEST_F(HorizontalCoverageIndexTest, SequenceWithMultipleNs) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, SequenceWithAllNs) {
-   index->insertSequenceCoverage<Nucleotide>("NNNN", 5);
+   insertSequenceCoverage("NNNN", 5);
 
    // All positions with N are uncovered
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), roaring::Roaring{});
@@ -163,9 +185,9 @@ TEST_F(HorizontalCoverageIndexTest, SequenceWithAllNs) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, MultipleSequencesWithNAtSamePosition) {
-   index->insertSequenceCoverage<Nucleotide>("ACNGT", 0);  // N at position 2
-   index->insertSequenceCoverage<Nucleotide>("AANAT", 0);  // N at position 2
-   index->insertSequenceCoverage<Nucleotide>("ACGGT", 0);  // No N (G at position 2)
+   insertSequenceCoverage("ACNGT", 0);  // N at position 2
+   insertSequenceCoverage("AANAT", 0);  // N at position 2
+   insertSequenceCoverage("ACGGT", 0);  // No N (G at position 2)
 
    // At position 2: sequences 0 and 1 have N (uncovered), sequence 2 has G (covered)
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), (roaring::Roaring{2}));
@@ -175,7 +197,7 @@ TEST_F(HorizontalCoverageIndexTest, MultipleSequencesWithNAtSamePosition) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, SequenceWithNAndOffset) {
-   index->insertSequenceCoverage<Nucleotide>("ACNGT", 10);  // N at position 12
+   insertSequenceCoverage("ACNGT", 10);  // N at position 12
 
    // Position 12 has N, so sequence 0 is uncovered
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(12).at(0), roaring::Roaring{});
@@ -188,12 +210,12 @@ TEST_F(HorizontalCoverageIndexTest, SequenceWithNAndOffset) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, SequenceWithMixedCase) {
-   index->insertSequenceCoverage<Nucleotide>("AcGt", 0);
-   EXPECT_NO_THROW(index->insertSequenceCoverage<Nucleotide>("AcGt", 0));
+   insertSequenceCoverage("AcGt", 0);
+   EXPECT_NO_THROW(insertSequenceCoverage("AcGt", 0));
 }
 
 TEST_F(HorizontalCoverageIndexTest, SequenceWithLowercaseN) {
-   index->insertSequenceCoverage<Nucleotide>("ACnGT", 0);  // lowercase n at position 2
+   insertSequenceCoverage("ACnGT", 0);  // lowercase n at position 2
 
    // Lowercase n should also count as uncovered
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), roaring::Roaring{});
@@ -206,13 +228,13 @@ TEST_F(HorizontalCoverageIndexTest, EmptyIndexAllPositionsEmpty) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, GetBitmapAtGenomeBoundary) {
-   index->insertSequenceCoverage<Nucleotide>("ACGT", 0);
+   insertSequenceCoverage("ACGT", 0);
 
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH - 1).at(0), roaring::Roaring{});
 }
 
 TEST_F(HorizontalCoverageIndexTest, GetBitmapBeyondGenomeLength) {
-   index->insertSequenceCoverage<Nucleotide>("ACGT", 0);
+   insertSequenceCoverage("ACGT", 0);
 
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH).at(0), roaring::Roaring{});
    EXPECT_EQ(
@@ -221,7 +243,7 @@ TEST_F(HorizontalCoverageIndexTest, GetBitmapBeyondGenomeLength) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, InsertSequenceAtEndOfGenome) {
-   index->insertSequenceCoverage<Nucleotide>("ACG", GENOME_LENGTH - 3);
+   insertSequenceCoverage("ACG", GENOME_LENGTH - 3);
 
    // Sequence covers last 3 positions
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH - 3).at(0), roaring::Roaring{0});
@@ -233,7 +255,7 @@ TEST_F(HorizontalCoverageIndexTest, InsertSequenceAtEndOfGenome) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, InsertSequenceWithNAtEndOfGenome) {
-   index->insertSequenceCoverage<Nucleotide>("ACN", GENOME_LENGTH - 3);
+   insertSequenceCoverage("ACN", GENOME_LENGTH - 3);
 
    // Positions with A and C are covered
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH - 3).at(0), roaring::Roaring{0});
@@ -245,14 +267,14 @@ TEST_F(HorizontalCoverageIndexTest, InsertSequenceWithNAtEndOfGenome) {
 
 TEST_F(HorizontalCoverageIndexTest, InsertSequenceExtendingBeyondGenome) {
    // Sequence extends beyond genome length
-   EXPECT_NO_THROW(index->insertSequenceCoverage<Nucleotide>("ACGTACGT", GENOME_LENGTH - 2));
+   EXPECT_NO_THROW(insertSequenceCoverage("ACGTACGT", GENOME_LENGTH - 2));
 }
 
 // Mixed Null and Non-Null Sequences
 TEST_F(HorizontalCoverageIndexTest, MixedNullAndCoveredSequences) {
-   index->insertSequenceCoverage<Nucleotide>("ACGT", 0);  // Sequence 0: covers 0-3
-   index->insertNullSequence();                           // Sequence 1: null (uncovered everywhere)
-   index->insertSequenceCoverage<Nucleotide>("TGCA", 0);  // Sequence 2: covers 0-3
+   insertSequenceCoverage("ACGT", 0);  // Sequence 0: covers 0-3
+   index->insertNullSequence();        // Sequence 1: null (uncovered everywhere)
+   insertSequenceCoverage("TGCA", 0);  // Sequence 2: covers 0-3
 
    // At positions 0-3: sequences 0 and 2 are covered, sequence 1 is uncovered
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{0, 2}));
@@ -265,10 +287,10 @@ TEST_F(HorizontalCoverageIndexTest, MixedNullAndCoveredSequences) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, MultipleNullsWithCoverage) {
-   index->insertNullSequence();                           // Sequence 0: null
-   index->insertNullSequence();                           // Sequence 1: null
-   index->insertSequenceCoverage<Nucleotide>("ACGT", 5);  // Sequence 2: covers 5-8
-   index->insertNullSequence();                           // Sequence 3: null
+   index->insertNullSequence();        // Sequence 0: null
+   index->insertNullSequence();        // Sequence 1: null
+   insertSequenceCoverage("ACGT", 5);  // Sequence 2: covers 5-8
+   index->insertNullSequence();        // Sequence 3: null
 
    // At position 0: all nulls are uncovered, seq 2 is also uncovered
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{}));
@@ -279,9 +301,9 @@ TEST_F(HorizontalCoverageIndexTest, MultipleNullsWithCoverage) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, MixedNullCoverageAndNCharacters) {
-   index->insertSequenceCoverage<Nucleotide>("ACNGT", 0);  // Sequence 0: N at position 2
-   index->insertNullSequence();                            // Sequence 1: null everywhere
-   index->insertSequenceCoverage<Nucleotide>("ACGGT", 0);  // Sequence 2: fully covered 0-4
+   insertSequenceCoverage("ACNGT", 0);  // Sequence 0: N at position 2
+   index->insertNullSequence();         // Sequence 1: null everywhere
+   insertSequenceCoverage("ACGGT", 0);  // Sequence 2: fully covered 0-4
 
    // Position 2: seq 0 has N (uncovered), seq 1 is null (uncovered), seq 2 has G (covered)
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), (roaring::Roaring{2}));
@@ -292,9 +314,9 @@ TEST_F(HorizontalCoverageIndexTest, MixedNullCoverageAndNCharacters) {
 
 // Overlapping Coverage Tests
 TEST_F(HorizontalCoverageIndexTest, CompletelyOverlappingSequences) {
-   index->insertSequenceCoverage<Nucleotide>("AAAA", 5);
-   index->insertSequenceCoverage<Nucleotide>("TTTT", 5);
-   index->insertSequenceCoverage<Nucleotide>("GGGG", 5);
+   insertSequenceCoverage("AAAA", 5);
+   insertSequenceCoverage("TTTT", 5);
+   insertSequenceCoverage("GGGG", 5);
 
    // At positions 5-8: all three sequences are covered
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), (roaring::Roaring{0, 1, 2}));
@@ -307,9 +329,9 @@ TEST_F(HorizontalCoverageIndexTest, CompletelyOverlappingSequences) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, OverlappingSequencesWithN) {
-   index->insertSequenceCoverage<Nucleotide>("ANNN", 5);  // Only position 5 covered
-   index->insertSequenceCoverage<Nucleotide>("NANN", 5);  // Only position 6 covered
-   index->insertSequenceCoverage<Nucleotide>("NNAN", 5);  // Only position 7 covered
+   insertSequenceCoverage("ANNN", 5);  // Only position 5 covered
+   insertSequenceCoverage("NANN", 5);  // Only position 6 covered
+   insertSequenceCoverage("NNAN", 5);  // Only position 7 covered
 
    // Position 5: seq 0 covered, seq 1 and 2 have N
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), (roaring::Roaring{0}));
@@ -325,9 +347,9 @@ TEST_F(HorizontalCoverageIndexTest, OverlappingSequencesWithN) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, PartiallyOverlappingSequences) {
-   index->insertSequenceCoverage<Nucleotide>("AAAAAAAA", 0);  // 0-7
-   index->insertSequenceCoverage<Nucleotide>("TTTTTTTT", 4);  // 4-11
-   index->insertSequenceCoverage<Nucleotide>("GGGGGGGG", 8);  // 8-15
+   insertSequenceCoverage("AAAAAAAA", 0);  // 0-7
+   insertSequenceCoverage("TTTTTTTT", 4);  // 4-11
+   insertSequenceCoverage("GGGGGGGG", 8);  // 8-15
 
    // Position 2: only seq 0 is covered
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), (roaring::Roaring{0}));
@@ -343,9 +365,9 @@ TEST_F(HorizontalCoverageIndexTest, PartiallyOverlappingSequences) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, AdjacentNonOverlappingSequences) {
-   index->insertSequenceCoverage<Nucleotide>("AAAA", 0);  // 0-3
-   index->insertSequenceCoverage<Nucleotide>("TTTT", 4);  // 4-7
-   index->insertSequenceCoverage<Nucleotide>("GGGG", 8);  // 8-11
+   insertSequenceCoverage("AAAA", 0);  // 0-3
+   insertSequenceCoverage("TTTT", 4);  // 4-7
+   insertSequenceCoverage("GGGG", 8);  // 8-11
 
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(3).at(0), (roaring::Roaring{0}));
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(4).at(0), (roaring::Roaring{1}));
@@ -358,7 +380,7 @@ TEST_F(HorizontalCoverageIndexTest, ManySequences) {
    constexpr size_t NUM_SEQUENCES = 1000;
 
    for (size_t i = 0; i < NUM_SEQUENCES; ++i) {
-      index->insertSequenceCoverage<Nucleotide>("ACGT", 0);
+      insertSequenceCoverage("ACGT", 0);
    }
    roaring::Roaring full_bitmap;
    full_bitmap.addRange(0, NUM_SEQUENCES);
@@ -374,7 +396,7 @@ TEST_F(HorizontalCoverageIndexTest, ManySequencesAtDifferentPositions) {
    constexpr size_t NUM_SEQUENCES = 100;
 
    for (size_t i = 0; i < NUM_SEQUENCES; ++i) {
-      index->insertSequenceCoverage<Nucleotide>("A", i);  // Each sequence covers one position
+      insertSequenceCoverage("A", i);  // Each sequence covers one position
    }
 
    for (uint32_t pos = 0; pos < NUM_SEQUENCES; ++pos) {
@@ -384,8 +406,8 @@ TEST_F(HorizontalCoverageIndexTest, ManySequencesAtDifferentPositions) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, LongSequence) {
-   std::string long_sequence(GENOME_LENGTH / 2, 'A');
-   index->insertSequenceCoverage<Nucleotide>(long_sequence, 0);
+   const std::string long_sequence(GENOME_LENGTH / 2, 'A');
+   insertSequenceCoverage(long_sequence, 0);
 
    // Verify coverage
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{0});
@@ -400,9 +422,9 @@ TEST_F(HorizontalCoverageIndexTest, LongSequence) {
 
 // Sequence Order Tests
 TEST_F(HorizontalCoverageIndexTest, InsertSequencesInOrder) {
-   index->insertSequenceCoverage<Nucleotide>("A", 0);
-   index->insertSequenceCoverage<Nucleotide>("T", 0);
-   index->insertSequenceCoverage<Nucleotide>("G", 0);
+   insertSequenceCoverage("A", 0);
+   insertSequenceCoverage("T", 0);
+   insertSequenceCoverage("G", 0);
 
    // All covered at position 0
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{0, 1, 2}));
@@ -412,9 +434,9 @@ TEST_F(HorizontalCoverageIndexTest, InsertSequencesInOrder) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, InsertSequencesOutOfOrder) {
-   index->insertSequenceCoverage<Nucleotide>("G", 0);
-   index->insertSequenceCoverage<Nucleotide>("A", 0);
-   index->insertSequenceCoverage<Nucleotide>("T", 0);
+   insertSequenceCoverage("G", 0);
+   insertSequenceCoverage("A", 0);
+   insertSequenceCoverage("T", 0);
 
    // All covered at position 0
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{0, 1, 2}));
@@ -425,7 +447,7 @@ TEST_F(HorizontalCoverageIndexTest, InsertSequencesOutOfOrder) {
 
 // Empty Sequence Tests
 TEST_F(HorizontalCoverageIndexTest, EmptySequenceIsAlwaysUncovered) {
-   index->insertSequenceCoverage<Nucleotide>("", 5);
+   insertSequenceCoverage("", 5);
 
    // Empty sequence doesn't cover anything, so it's uncovered everywhere
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{});

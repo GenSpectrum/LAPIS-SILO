@@ -8,6 +8,7 @@
 #include <arrow/acero/options.h>
 #include <arrow/compute/api.h>
 #include <arrow/datum.h>
+#include <nlohmann/json_fwd.hpp>
 
 namespace silo::query_engine::operators {
 
@@ -69,6 +70,32 @@ arrow::Result<PartialArrowPlan> MapNode::toQueryPlan(
       arrow::acero::MakeExecNode("project", plan.plan.get(), {plan.top_node}, options)
    );
    return plan;
+}
+
+namespace {
+
+std::string expressionToString(const std::variant<
+                               MapNode::Int64Literal,
+                               MapNode::FloatLiteral,
+                               MapNode::StringLiteral,
+                               MapNode::BoolLiteral>& expression) {
+   return std::visit(
+      [](const auto& expression) { return fmt::format("{}", expression.value); }, expression
+   );
+}
+
+}  // namespace
+
+nlohmann::json MapNode::toJson() const {
+   nlohmann::json map_expressions = nlohmann::json::array();
+   for (const auto& [field, expression] : assignments) {
+      map_expressions.push_back(nlohmann::json{field.name, expressionToString(expression)});
+   }
+   return nlohmann::json{
+      {"type", nodeKindToString(kind())},
+      {"child", child->toJson()},
+      {"mapExpressions", map_expressions}
+   };
 }
 
 }  // namespace silo::query_engine::operators

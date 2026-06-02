@@ -7,18 +7,17 @@ namespace silo::storage::column {
 FloatColumn::FloatColumn(ColumnMetadata* metadata)
     : metadata(metadata) {}
 
-std::expected<void, std::string> FloatColumn::insert(double value) {
-   values.push_back(value);
+std::expected<void, std::string> FloatColumn::appendChunk(const Buffer& buffer) {
+   values.reserve(values.size() + buffer.size());
+   for (const auto& value : buffer) {
+      if (value.has_value()) {
+         values.push_back(*value);
+      } else {
+         null_bitmap.add(values.size());
+         values.push_back(std::nan(""));
+      }
+   }
    return {};
-}
-
-void FloatColumn::insertNull() {
-   null_bitmap.add(values.size());
-   values.push_back(std::nan(""));
-}
-
-void FloatColumn::reserve(size_t row_count) {
-   values.reserve(values.size() + row_count);
 }
 
 }  // namespace silo::storage::column
