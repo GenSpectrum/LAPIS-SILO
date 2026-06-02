@@ -1,5 +1,10 @@
 #include "silo/storage/column/string_column.h"
 
+#include <expected>
+#include <initializer_list>
+#include <string>
+#include <string_view>
+
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/optional.hpp>
@@ -13,17 +18,35 @@
 using silo::storage::column::StringColumn;
 using silo::storage::column::StringColumnMetadata;
 
+namespace {
+// Buffers the values into a chunk and appends it to the column.
+[[nodiscard]] std::expected<void, std::string> appendStringValues(
+   StringColumn& column,
+   std::initializer_list<std::string_view> values
+) {
+   StringColumn::Builder builder;
+   for (const auto& value : values) {
+      builder.insert(value);
+   }
+   return column.appendChunk(builder.finalize());
+}
+}  // namespace
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumn, rawInsertedValuesRequeried) {
    StringColumnMetadata metadata{"string_column"};
    StringColumn under_test(&metadata);
 
-   SILO_ASSERT(under_test.insert("value 1").has_value());
-   SILO_ASSERT(under_test.insert("value 2").has_value());
-   SILO_ASSERT(under_test.insert("value 2").has_value());
-   SILO_ASSERT(under_test.insert("value 3").has_value());
-   SILO_ASSERT(under_test.insert("some string that is a little longer 1").has_value());
-   SILO_ASSERT(under_test.insert("value 1").has_value());
+   SILO_ASSERT(appendStringValues(
+                  under_test,
+                  {"value 1",
+                   "value 2",
+                   "value 2",
+                   "value 3",
+                   "some string that is a little longer 1",
+                   "value 1"}
+   )
+                  .has_value());
 
    EXPECT_EQ(under_test.getValueString(0), "value 1");
    EXPECT_EQ(under_test.getValueString(1), "value 2");
@@ -41,9 +64,7 @@ TEST(StringColumn, serializationOfMetadataWorks) {
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
    StringColumn column(&metadata);
 
-   SILO_ASSERT(column.insert("CHILD2").has_value());
-   SILO_ASSERT(column.insert("CHILD3").has_value());
-   SILO_ASSERT(column.insert("NOT_IN_TREE").has_value());
+   SILO_ASSERT(appendStringValues(column, {"CHILD2", "CHILD3", "NOT_IN_TREE"}).has_value());
 
    std::ostringstream oss;
    boost::archive::binary_oarchive oarchive(oss);
@@ -84,9 +105,7 @@ TEST(StringColumn, rawInsertedValuesWithPhyloTreeRequeried) {
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
    StringColumn under_test(&metadata);
 
-   SILO_ASSERT(under_test.insert("CHILD2").has_value());
-   SILO_ASSERT(under_test.insert("CHILD3").has_value());
-   SILO_ASSERT(under_test.insert("NOT_IN_TREE").has_value());
+   SILO_ASSERT(appendStringValues(under_test, {"CHILD2", "CHILD3", "NOT_IN_TREE"}).has_value());
 
    auto tree_node_id_child = metadata.phylo_tree->getTreeNodeId("CHILD");
    auto tree_node_id_child2 = metadata.phylo_tree->getTreeNodeId("CHILD2");
@@ -108,12 +127,16 @@ TEST(StringColumn, rawInsertedValuesRequeryLongValue) {
    StringColumnMetadata column("string_column");
    StringColumn under_test{&column};
 
-   SILO_ASSERT(under_test.insert("value 1").has_value());
-   SILO_ASSERT(under_test.insert("value 2").has_value());
-   SILO_ASSERT(under_test.insert("value 2").has_value());
-   SILO_ASSERT(under_test.insert("value 3").has_value());
-   SILO_ASSERT(under_test.insert("some string that is a little longer 1").has_value());
-   SILO_ASSERT(under_test.insert("value 1").has_value());
+   SILO_ASSERT(appendStringValues(
+                  under_test,
+                  {"value 1",
+                   "value 2",
+                   "value 2",
+                   "value 3",
+                   "some string that is a little longer 1",
+                   "value 1"}
+   )
+                  .has_value());
 
    const silo::SiloString somehow_acquired_element_representation = under_test.getValue(4);
 
@@ -127,20 +150,28 @@ TEST(StringColumn, rawInsertedValuesRequeryLongValue) {
 TEST(StringColumn, compareAcrossColumns) {
    StringColumnMetadata under_test("string_column");
    StringColumn column_1{&under_test};
-   SILO_ASSERT(column_1.insert("value 1").has_value());
-   SILO_ASSERT(column_1.insert("value 2").has_value());
-   SILO_ASSERT(column_1.insert("value 2").has_value());
-   SILO_ASSERT(column_1.insert("value 3").has_value());
-   SILO_ASSERT(column_1.insert("some string that is a little longer 1").has_value());
-   SILO_ASSERT(column_1.insert("value 1").has_value());
+   SILO_ASSERT(appendStringValues(
+                  column_1,
+                  {"value 1",
+                   "value 2",
+                   "value 2",
+                   "value 3",
+                   "some string that is a little longer 1",
+                   "value 1"}
+   )
+                  .has_value());
 
    StringColumn column_2{&under_test};
-   SILO_ASSERT(column_2.insert("other value 2").has_value());
-   SILO_ASSERT(column_2.insert("other values 3").has_value());
-   SILO_ASSERT(column_2.insert("value 1").has_value());
-   SILO_ASSERT(column_2.insert("other value 3").has_value());
-   SILO_ASSERT(column_2.insert("some string that is a little longer 1").has_value());
-   SILO_ASSERT(column_2.insert("other value 1").has_value());
+   SILO_ASSERT(appendStringValues(
+                  column_2,
+                  {"other value 2",
+                   "other values 3",
+                   "value 1",
+                   "other value 3",
+                   "some string that is a little longer 1",
+                   "other value 1"}
+   )
+                  .has_value());
 
    EXPECT_EQ(column_1.getValueString(0), column_1.getValueString(5));
    EXPECT_EQ(column_1.getValueString(5), column_2.getValueString(2));
@@ -157,9 +188,11 @@ TEST(StringColumn, manyLongValues) {
    StringColumnMetadata under_test("string_column");
    StringColumn column{&under_test};
 
+   StringColumn::Builder builder;
    for (auto& value : test_values) {
-      SILO_ASSERT(column.insert(value).has_value());
+      builder.insert(value);
    }
+   SILO_ASSERT(column.appendChunk(builder.finalize()).has_value());
 
    for (size_t i = 0; i < 50000; ++i) {
       ASSERT_EQ(column.getValue(i).fastCompare(test_values.at(i)), std::nullopt);
@@ -184,9 +217,11 @@ TEST(StringColumn, manyMixedValues) {
    StringColumnMetadata under_test("string_column");
    StringColumn column{&under_test};
 
+   StringColumn::Builder builder;
    for (auto& value : test_values) {
-      SILO_ASSERT(column.insert(value).has_value());
+      builder.insert(value);
    }
+   SILO_ASSERT(column.appendChunk(builder.finalize()).has_value());
 
    for (size_t i = 0; i < 50001; ++i) {
       if (i % 2 == 1) {

@@ -3,19 +3,26 @@
 #include <cmath>
 #include <cstdint>
 #include <expected>
+#include <optional>
+#include <string>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/schema/database_schema.h"
+#include "silo/storage/column/column.h"
 #include "silo/storage/column/column_metadata.h"
 
 namespace silo::storage::column {
 
+class FloatColumnBuilder;
+
 class FloatColumn {
   public:
    using Metadata = ColumnMetadata;
+   using Builder = FloatColumnBuilder;
+   using Buffer = std::vector<std::optional<double>>;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::FLOAT;
    using value_type = double;
@@ -36,11 +43,7 @@ class FloatColumn {
 
    [[nodiscard]] double getValue(size_t row_id) const { return values.at(row_id); }
 
-   [[nodiscard]] std::expected<void, std::string> insert(double value);
-
-   void insertNull();
-
-   void reserve(size_t row_count);
+   std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
   private:
    friend class boost::serialization::access;
@@ -50,6 +53,23 @@ class FloatColumn {
       archive & values;
       archive & null_bitmap;
       // clang-format on
+   }
+};
+
+class FloatColumnBuilder {
+   FloatColumn::Buffer buffer;
+
+  public:
+   void insert(double value) { buffer.emplace_back(value); }
+
+   void insertNull() { buffer.emplace_back(std::nullopt); }
+
+   [[nodiscard]] size_t numValues() const { return buffer.size(); }
+
+   [[nodiscard]] FloatColumn::Buffer finalize() {
+      FloatColumn::Buffer result = std::move(buffer);
+      buffer.clear();
+      return result;
    }
 };
 

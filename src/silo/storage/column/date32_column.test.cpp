@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include "silo/common/date32.h"
+
 TEST(Date32Column, insertValues) {
    silo::storage::column::ColumnMetadata column_metadata{"test_column"};
    silo::storage::column::Date32Column under_test(&column_metadata);
@@ -9,10 +11,13 @@ TEST(Date32Column, insertValues) {
    std::vector<std::string> values_to_add{
       "2020-01-01", "2023-01-05", "2021-12-03", "2025-01-01", "2021-03-21"
    };
+   silo::storage::column::Date32Column::Builder builder;
    for (const auto& value : values_to_add) {
-      auto result = under_test.insert(value);
-      ASSERT_TRUE(result.has_value()) << result.error();
+      auto date = silo::common::stringToDate32(value);
+      ASSERT_TRUE(date.has_value()) << date.error();
+      builder.insert(date.value());
    }
+   SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
 
    ASSERT_EQ(under_test.getValues().size(), 5);
 
@@ -26,17 +31,17 @@ TEST(Date32Column, insertNull) {
    silo::storage::column::ColumnMetadata column_metadata{"test_column"};
    silo::storage::column::Date32Column under_test(&column_metadata);
 
-   under_test.insertNull();
+   silo::storage::column::Date32Column::Builder builder;
+   builder.insertNull();
+   SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
 
    ASSERT_EQ(under_test.numValues(), 1);
    ASSERT_TRUE(under_test.isNull(0));
 }
 
-TEST(Date32Column, insertInvalidDateReturnsError) {
-   silo::storage::column::ColumnMetadata column_metadata{"test_column"};
-   silo::storage::column::Date32Column under_test(&column_metadata);
-
-   auto result = under_test.insert("not-a-date");
+TEST(Date32Column, parseInvalidDateReturnsError) {
+   // Date parsing happens during phase-1 extraction (see stringToDate32), before
+   // values reach the column builder.
+   auto result = silo::common::stringToDate32("not-a-date");
    ASSERT_FALSE(result.has_value());
-   ASSERT_EQ(under_test.numValues(), 0);
 }

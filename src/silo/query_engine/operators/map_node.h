@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <arrow/result.h>
-#include <arrow/scalar.h>
+#include <nlohmann/json_fwd.hpp>
 
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/schema/database_schema.h"
@@ -51,6 +51,8 @@ class MapNode final : public QueryNode {
    ) const override;
 
    [[nodiscard]] NodeKind kind() const override { return NodeKind::MAP; }
+
+   [[nodiscard]] nlohmann::json toJson() const override;
 };
 
 }  // namespace silo::query_engine::operators

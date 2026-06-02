@@ -1,5 +1,6 @@
 #pragma once
 
+#include <expected>
 #include <filesystem>
 #include <map>
 #include <string>
@@ -8,6 +9,8 @@
 #include "silo/storage/column_group.h"
 
 namespace silo::storage {
+
+class ColumnGroupBuilder;
 
 class Table {
   public:
@@ -35,6 +38,10 @@ class Table {
    [[nodiscard]] nlohmann::json logTable() const;
 
    void validate() const;
+
+   /// Apply a finalized ingestion chunk (one buffer per column) to the columns'
+   /// global structures. Consumes (clears) the builder's buffers.
+   std::expected<void, std::string> bulkInsert(ColumnGroupBuilder& block);
 
    void finalize();
 

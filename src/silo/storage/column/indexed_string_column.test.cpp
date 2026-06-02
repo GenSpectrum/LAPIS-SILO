@@ -1,5 +1,10 @@
 #include "silo/storage/column/indexed_string_column.h"
 
+#include <expected>
+#include <initializer_list>
+#include <string>
+#include <string_view>
+
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
@@ -9,17 +14,30 @@ using silo::preprocessing::LineageDefinitionFile;
 using silo::storage::column::IndexedStringColumn;
 using silo::storage::column::IndexedStringColumnMetadata;
 
+namespace {
+// Buffers the values into a chunk and appends it to the column.
+[[nodiscard]] std::expected<void, std::string> appendIndexedValues(
+   IndexedStringColumn& column,
+   std::initializer_list<std::string_view> values
+) {
+   IndexedStringColumn::Builder builder;
+   for (const auto& value : values) {
+      builder.insert(value);
+   }
+   return column.appendChunk(builder.finalize());
+}
+}  // namespace
+
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
 TEST(IndexedStringColumn, shouldReturnTheCorrectFilteredValues) {
    IndexedStringColumnMetadata column_metadata("some_column");
    IndexedStringColumn under_test{&column_metadata};
 
-   ASSERT_TRUE(under_test.insert({"value 1"}));
-   ASSERT_TRUE(under_test.insert({"value 2"}));
-   ASSERT_TRUE(under_test.insert({"value 2"}));
-   ASSERT_TRUE(under_test.insert({"value 3"}));
-   ASSERT_TRUE(under_test.insert({"value 1"}));
+   ASSERT_TRUE(
+      appendIndexedValues(under_test, {"value 1", "value 2", "value 2", "value 3", "value 1"})
+         .has_value()
+   );
 
    const auto result1 = under_test.filter("value 1");
    ASSERT_EQ(*result1.value(), roaring::Roaring({0, 4}));
@@ -35,11 +53,10 @@ TEST(IndexedStringColumn, insertValuesToPartition) {
    IndexedStringColumnMetadata column_metadata("some_column");
    IndexedStringColumn under_test{&column_metadata};
 
-   ASSERT_TRUE(under_test.insert({"value 1"}));
-   ASSERT_TRUE(under_test.insert({"value 2"}));
-   ASSERT_TRUE(under_test.insert({"value 2"}));
-   ASSERT_TRUE(under_test.insert({"value 3"}));
-   ASSERT_TRUE(under_test.insert({"value 1"}));
+   ASSERT_TRUE(
+      appendIndexedValues(under_test, {"value 1", "value 2", "value 2", "value 3", "value 1"})
+         .has_value()
+   );
 
    EXPECT_EQ(under_test.getValue(0), 0U);
    EXPECT_EQ(under_test.getValue(1), 1U);
@@ -59,11 +76,10 @@ TEST(IndexedStringColumn, addingLineageAndThenSublineageFiltersCorrectly) {
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
    IndexedStringColumn under_test{&column_metadata};
 
-   ASSERT_TRUE(under_test.insert({"BA.1.1"}));
-   ASSERT_TRUE(under_test.insert({"BA.1.1"}));
-   ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
-   ASSERT_TRUE(under_test.insert({"BA.1.1.1.1"}));
-   ASSERT_TRUE(under_test.insert({"BA.1.1"}));
+   ASSERT_TRUE(
+      appendIndexedValues(under_test, {"BA.1.1", "BA.1.1", "BA.1.1.1", "BA.1.1.1.1", "BA.1.1"})
+         .has_value()
+   );
 
    EXPECT_EQ(*under_test.filter({"BA.1.1"}).value(), roaring::Roaring({0, 1, 4}));
    EXPECT_EQ(
@@ -93,11 +109,10 @@ TEST(IndexedStringColumn, addingSublineageAndThenLineageFiltersCorrectly) {
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
    IndexedStringColumn under_test{&column_metadata};
 
-   ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
-   ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
-   ASSERT_TRUE(under_test.insert({"BA.1"}));
-   ASSERT_TRUE(under_test.insert({"BA.1.1"}));
-   ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
+   ASSERT_TRUE(
+      appendIndexedValues(under_test, {"BA.1.1.1", "BA.1.1.1", "BA.1", "BA.1.1", "BA.1.1.1"})
+         .has_value()
+   );
 
    EXPECT_EQ(*under_test.filter({"BA.1.1"}).value(), roaring::Roaring({3}));
    EXPECT_EQ(under_test.filter({"B.1.1.529.1.1"}), std::nullopt);
@@ -141,10 +156,9 @@ TEST(IndexedStringColumn, queryParentLineageThatWasNeverInserted) {
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
    IndexedStringColumn under_test{&column_metadata};
 
-   ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
-   ASSERT_TRUE(under_test.insert({"BA.1.1.1"}));
-   ASSERT_TRUE(under_test.insert({"BA.2"}));
-   ASSERT_TRUE(under_test.insert({"BA.1.1"}));
+   ASSERT_TRUE(
+      appendIndexedValues(under_test, {"BA.1.1.1", "BA.1.1.1", "BA.2", "BA.1.1"}).has_value()
+   );
 
    EXPECT_EQ(
       under_test.getLineageIndex()->filterExcludingSublineages(under_test.getValueId("BA.1").value()
@@ -170,9 +184,9 @@ A.1:
 )"));
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
    IndexedStringColumn under_test{&column_metadata};
-   ASSERT_TRUE(under_test.insert({"A"}));
-   auto success = under_test.insert({"A.2"});
-   ASSERT_FALSE(success);
+   ASSERT_TRUE(appendIndexedValues(under_test, {"A"}).has_value());
+   auto success = appendIndexedValues(under_test, {"A.2"});
+   ASSERT_FALSE(success.has_value());
    ASSERT_EQ(
       success.error(),
       "The value 'A.2' is not a valid lineage value for column 'some_column'. "
@@ -189,8 +203,7 @@ A.1:
 )"));
    IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, true);
    IndexedStringColumn under_test{&column_metadata};
-   ASSERT_TRUE(under_test.insert({"A"}));
-   ASSERT_TRUE(under_test.insert({"not in the lineage hierarchy"}));
+   ASSERT_TRUE(appendIndexedValues(under_test, {"A", "not in the lineage hierarchy"}).has_value());
    EXPECT_EQ(
       *under_test.getLineageIndex()
           ->filterIncludingSublineages(

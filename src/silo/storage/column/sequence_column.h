@@ -1,30 +1,34 @@
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
+#include <expected>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 #include <fmt/format.h>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_free.hpp>
-#include <boost/serialization/string.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/common/aa_symbols.h"
+#include "silo/common/aligned_sequence.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/storage/column/column.h"
+#include "silo/storage/column/column_metadata.h"
 #include "silo/storage/column/horizontal_coverage_index.h"
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/column/vertical_sequence_index.h"
 #include "silo/zstd/zstd_decompressor.h"
-#include "silo/zstd/zstd_dictionary.h"
 
 namespace silo::storage::column {
 
+template <typename SymbolType>
+class SequenceColumnBuilder;
+
 class SequenceColumnInfo {
-  private:
    friend class boost::serialization::access;
    template <class Archive>
    void serialize(Archive& archive, [[maybe_unused]] const uint32_t version) {
@@ -54,6 +58,22 @@ template <typename SymbolType>
 class SequenceColumn {
   public:
    using Metadata = SequenceColumnMetadata<SymbolType>;
+   using Builder = SequenceColumnBuilder<SymbolType>;
+
+   /// Compact, reference-diffed representation of a single sequence row. The
+   /// builder diffs each inserted sequence against the column's (possibly
+   /// adapted) local reference at insert time, so only the differences -- the
+   /// covered range, the missing positions within it, and the mutations -- are
+   /// buffered for the chunk. The full sequence is never retained, keeping
+   /// per-chunk memory bounded regardless of genome length. appendChunk assigns
+   /// the global row id and populates the column's indexes from this.
+   struct BufferedSequence {
+      bool is_null = false;
+      Coverage coverage;
+      Mutations<SymbolType> mutations;
+      Insertions insertions;
+   };
+   using Buffer = std::vector<BufferedSequence>;
 
    static constexpr schema::ColumnType TYPE = SymbolType::COLUMN_TYPE;
    using value_type = void;
@@ -71,11 +91,6 @@ class SequenceColumn {
       archive & sequence_count;
       archive & null_bitmap;
       // clang-format on
-      if constexpr (Archive::is_loading::value) {
-         compressed_input_decompressor = ZstdDecompressor{std::make_shared<ZstdDDictionary>(
-            SymbolType::sequenceToString(metadata->reference_sequence)
-         )};
-      }
    }
 
   public:
@@ -87,12 +102,10 @@ class SequenceColumn {
 
    VerticalSequenceIndex<SymbolType> vertical_sequence_index;
    HorizontalCoverageIndex horizontal_coverage_index;
-   storage::insertion::InsertionIndex<SymbolType> insertion_index;
+   insertion::InsertionIndex<SymbolType> insertion_index;
    SequenceColumnInfo sequence_column_info;
    roaring::Roaring null_bitmap;
    uint32_t sequence_count = 0;
-
-   ZstdDecompressor compressed_input_decompressor;
 
    explicit SequenceColumn(Metadata* metadata);
 
@@ -113,13 +126,9 @@ class SequenceColumn {
 
    [[nodiscard]] SequenceColumnInfo getInfo() const;
 
-   void append(
-      std::string_view sequence,
-      uint32_t offset,
-      const std::vector<std::string>& insertions
-   );
-
-   void appendNull();
+   /// Append a finalized ingestion chunk to the column's global structures,
+   /// assigning global row ids as it goes.
+   std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
    [[nodiscard]] bool isNull(size_t row_id) const;
 
@@ -129,9 +138,13 @@ class SequenceColumn {
    static constexpr size_t BUFFER_SIZE = 1024;
    std::vector<SymbolMap<SymbolType, std::vector<uint32_t>>> mutation_buffer;
 
-   void fillIndexes();
+   // Population of a single pre-diffed row into the global structures: assigns
+   // the global row id and records its coverage, mutations and insertions.
+   void appendValue(const BufferedSequence& buffered);
 
-   void fillNBitmaps();
+   void appendNullValue();
+
+   void fillIndexes();
 
    void optimizeBitmaps();
 
@@ -143,6 +156,51 @@ class SequenceColumn {
 
    [[nodiscard]] size_t computeHorizontalBitmapsSize() const;
 };
+
+/// Buffers one ingestion chunk by diffing each inserted sequence against the
+/// column's (possibly adapted) local reference and storing only the differences
+/// (covered range, missing positions, mutations). The full sequences are never
+/// retained, so per-chunk memory stays bounded regardless of genome length.
+template <typename SymbolType>
+class SequenceColumnBuilder {
+   SequenceColumn<SymbolType>::Buffer buffer;
+
+   // The column's current local reference (possibly adapted by a previous
+   // finalize); inserted sequences are diffed against this so newly buffered
+   // rows share the same reference basis as the already-stored ones.
+   std::string local_reference;
+
+  public:
+   // Decompresses 'sequenceCompressed' input during phase-1 extraction. Uses the
+   // initial (unadapted) reference, which is what inputs are compressed against.
+   ZstdDecompressor compressed_input_decompressor;
+
+   SequenceColumnBuilder(
+      const SequenceColumnMetadata<SymbolType>* metadata,
+      std::string local_reference
+   );
+
+   // Diffs the sequence against the local reference and buffers the differences.
+   // Throws AppendException on an illegal character or an over-long sequence.
+   void insert(
+      std::string_view sequence,
+      uint32_t offset,
+      const std::vector<std::string>& insertions
+   );
+
+   void insertNull() {
+      buffer.push_back(typename SequenceColumn<SymbolType>::BufferedSequence{.is_null = true});
+   }
+
+   [[nodiscard]] size_t numValues() const { return buffer.size(); }
+
+   [[nodiscard]] SequenceColumn<SymbolType>::Buffer finalize() {
+      typename SequenceColumn<SymbolType>::Buffer result = std::move(buffer);
+      buffer.clear();
+      return result;
+   }
+};
+
 }  // namespace silo::storage::column
 
 template <>

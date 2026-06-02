@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
@@ -9,6 +10,11 @@ enum class ColumnType : uint8_t;
 }
 
 namespace silo::storage::column {
+
+/// During ingestion, data is buffered into fixed-size chunks of at most this
+/// many rows. A column builder accumulates one such chunk and the resulting
+/// value array is applied to the column in a single bulk insert.
+static constexpr size_t COLUMN_CHUNK_SIZE = 1UL << 16;
 
 template <typename T>
 concept Column = requires(T column) {

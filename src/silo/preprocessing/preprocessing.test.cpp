@@ -964,7 +964,7 @@ schema:
 })",
    .assertion{
       .error_message =
-         R"(preprocessing - exception when appending data: illegal character 'E' at position 2 contained in sequence with index 0 in the current input)"
+         R"(preprocessing - exception when appending data: illegal character 'E' at position 2 in the input sequence)"
    }
 };
 

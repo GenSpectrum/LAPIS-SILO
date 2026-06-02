@@ -2,19 +2,24 @@
 
 #include <cstdint>
 #include <expected>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_free.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/schema/database_schema.h"
+#include "silo/storage/column/column.h"
 #include "silo/storage/column/column_metadata.h"
 #include "silo/zstd/zstd_compressor.h"
 #include "silo/zstd/zstd_decompressor.h"
 #include "silo/zstd/zstd_dictionary.h"
 
 namespace silo::storage::column {
+
+class ZstdCompressedStringColumnBuilder;
 
 class ZstdCompressedStringColumnMetadata : public ColumnMetadata {
   public:
@@ -31,6 +36,8 @@ class ZstdCompressedStringColumnMetadata : public ColumnMetadata {
 class ZstdCompressedStringColumn {
   public:
    using Metadata = ZstdCompressedStringColumnMetadata;
+   using Builder = ZstdCompressedStringColumnBuilder;
+   using Buffer = std::vector<std::optional<std::string>>;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::ZSTD_COMPRESSED_STRING;
    using value_type = std::string_view;
@@ -44,9 +51,7 @@ class ZstdCompressedStringColumn {
 
    explicit ZstdCompressedStringColumn(Metadata* metadata);
 
-   void reserve(size_t row_count);
-   void insertNull();
-   [[nodiscard]] std::expected<void, std::string> insert(std::string_view value);
+   [[nodiscard]] std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
    [[nodiscard]] bool isNull(size_t row_id) const;
 
@@ -64,6 +69,23 @@ class ZstdCompressedStringColumn {
       archive & values;
       archive & null_bitmap;
       // clang-format on
+   }
+};
+
+class ZstdCompressedStringColumnBuilder {
+   ZstdCompressedStringColumn::Buffer buffer;
+
+  public:
+   void insert(std::string_view value) { buffer.emplace_back(std::string{value}); }
+
+   void insertNull() { buffer.emplace_back(std::nullopt); }
+
+   [[nodiscard]] size_t numValues() const { return buffer.size(); }
+
+   [[nodiscard]] ZstdCompressedStringColumn::Buffer finalize() {
+      ZstdCompressedStringColumn::Buffer result = std::move(buffer);
+      buffer.clear();
+      return result;
    }
 };
 

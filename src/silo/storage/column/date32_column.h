@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <expected>
-#include <string_view>
+#include <optional>
+#include <string>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
@@ -14,9 +14,14 @@
 
 namespace silo::storage::column {
 
+class Date32ColumnBuilder;
+
 class Date32Column {
   public:
    using Metadata = ColumnMetadata;
+   using Builder = Date32ColumnBuilder;
+   /// Dates are parsed during phase-1 extraction so the chunk holds parsed values.
+   using Buffer = std::vector<std::optional<common::Date32>>;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::DATE32;
    using value_type = common::Date32;
@@ -25,7 +30,7 @@ class Date32Column {
    roaring::Roaring null_bitmap;
 
   private:
-   std::vector<silo::common::Date32> values;
+   std::vector<common::Date32> values;
    bool is_sorted = true;
 
   public:
@@ -33,18 +38,14 @@ class Date32Column {
 
    [[nodiscard]] bool isSorted() const;
 
-   [[nodiscard]] std::expected<void, std::string> insert(std::string_view value);
+   std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
-   void insertNull();
-
-   void reserve(size_t row_count);
-
-   [[nodiscard]] const std::vector<silo::common::Date32>& getValues() const;
+   [[nodiscard]] const std::vector<common::Date32>& getValues() const;
 
    [[nodiscard]] size_t numValues() const { return values.size(); }
 
    [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
-   [[nodiscard]] silo::common::Date32 getValue(size_t row_id) const { return values.at(row_id); }
+   [[nodiscard]] common::Date32 getValue(size_t row_id) const { return values.at(row_id); }
 
   private:
    friend class boost::serialization::access;
@@ -55,6 +56,23 @@ class Date32Column {
       archive & values;
       archive & is_sorted;
       // clang-format on
+   }
+};
+
+class Date32ColumnBuilder {
+   Date32Column::Buffer buffer;
+
+  public:
+   void insert(common::Date32 value) { buffer.emplace_back(value); }
+
+   void insertNull() { buffer.emplace_back(std::nullopt); }
+
+   [[nodiscard]] size_t numValues() const { return buffer.size(); }
+
+   [[nodiscard]] Date32Column::Buffer finalize() {
+      Date32Column::Buffer result = std::move(buffer);
+      buffer.clear();
+      return result;
    }
 };
 

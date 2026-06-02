@@ -14,7 +14,13 @@ namespace silo::storage::column {
 StringColumn::StringColumn(StringColumnMetadata* metadata)
     : metadata(metadata) {}
 
-std::expected<void, std::string> StringColumn::insert(std::string_view value) {
+namespace {
+std::expected<void, std::string> insertValue(
+   std::string_view value,
+   StringColumnMetadata* metadata,
+   vector::GermanStringRegistry& fixed_string_data,
+   vector::VariableDataRegistry& variable_string_data
+) {
    size_t row_id;
    if (value.size() <= SiloString::SHORT_STRING_SIZE) {
       row_id = fixed_string_data.insert(SiloString{value});
@@ -41,10 +47,21 @@ std::expected<void, std::string> StringColumn::insert(std::string_view value) {
    }
    return {};
 }
+}  // namespace
 
-void StringColumn::insertNull() {
-   null_bitmap.add(fixed_string_data.numValues());
-   fixed_string_data.insert(SiloString(""));
+std::expected<void, std::string> StringColumn::appendChunk(const Buffer& buffer) {
+   for (const auto& value : buffer) {
+      if (value.has_value()) {
+         auto result = insertValue(*value, metadata, fixed_string_data, variable_string_data);
+         if (!result.has_value()) {
+            return result;
+         }
+      } else {
+         null_bitmap.add(fixed_string_data.numValues());
+         fixed_string_data.insert(SiloString(""));
+      }
+   }
+   return {};
 }
 
 bool StringColumn::isNull(size_t row_id) const {

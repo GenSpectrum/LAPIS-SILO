@@ -18,10 +18,13 @@
 #include "silo/common/lineage_tree.h"
 #include "silo/common/types.h"
 #include "silo/schema/database_schema.h"
+#include "silo/storage/column/column.h"
 #include "silo/storage/column/column_metadata.h"
 #include "silo/storage/column/lineage_index.h"
 
 namespace silo::storage::column {
+
+class IndexedStringColumnBuilder;
 
 class IndexedStringColumnMetadata : public ColumnMetadata {
   public:
@@ -62,6 +65,8 @@ class IndexedStringColumnMetadata : public ColumnMetadata {
 class IndexedStringColumn {
   public:
    using Metadata = IndexedStringColumnMetadata;
+   using Builder = IndexedStringColumnBuilder;
+   using Buffer = std::vector<std::optional<std::string>>;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::INDEXED_STRING;
    using value_type = std::string_view;
@@ -83,11 +88,7 @@ class IndexedStringColumn {
       const std::optional<std::string>& value
    ) const;
 
-   [[nodiscard]] std::expected<void, std::string> insert(std::string_view value);
-
-   void insertNull();
-
-   void reserve(size_t row_count);
+   std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
    [[nodiscard]] size_t numValues() const { return value_ids.size(); }
 
@@ -119,6 +120,23 @@ class IndexedStringColumn {
          archive & lineage_index.value();
       }
       // clang-format on
+   }
+};
+
+class IndexedStringColumnBuilder {
+   IndexedStringColumn::Buffer buffer;
+
+  public:
+   void insert(std::string_view value) { buffer.emplace_back(std::string{value}); }
+
+   void insertNull() { buffer.emplace_back(std::nullopt); }
+
+   [[nodiscard]] size_t numValues() const { return buffer.size(); }
+
+   [[nodiscard]] IndexedStringColumn::Buffer finalize() {
+      IndexedStringColumn::Buffer result = std::move(buffer);
+      buffer.clear();
+      return result;
    }
 };
 

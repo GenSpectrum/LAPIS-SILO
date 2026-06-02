@@ -14,7 +14,7 @@ namespace {
 
 std::expected<simdjson::ondemand::value, std::string> findFieldManual(
    simdjson::ondemand::object& object,
-   const silo::schema::ColumnIdentifier& column_identifier
+   const schema::ColumnIdentifier& column_identifier
 ) {
    object.reset();
    for (auto maybe_field : object) {
@@ -82,8 +82,7 @@ std::expected<simdjson::ondemand::object, std::string> iterateToObject(
    simdjson::ondemand::document_reference ndjson_line
 ) {
    simdjson::ondemand::object object;
-   auto error = ndjson_line.get_object().get(object);
-   if (error) {
+   if (auto error = ndjson_line.get_object().get(object)) {
       if (error == simdjson::INCOMPLETE_ARRAY_OR_OBJECT) {
          return std::unexpected(
             "the ndjson line does not contain valid json (incomplete object or array)"
@@ -164,38 +163,52 @@ std::expected<std::vector<TableInserter::SniffedField>, std::string> TableInsert
 
 std::expected<void, std::string> TableInserter::insert(
    simdjson::ondemand::document_reference ndjson_line,
-   const std::vector<TableInserter::SniffedField>& field_order_hint
-) const {
+   const std::vector<SniffedField>& field_order_hint
+) {
    EVOBENCH_SCOPE_EVERY(20, "TableInserter", "insert");
    ASSIGN_OR_RAISE(auto object, iterateToObject(ndjson_line));
    for (const auto& sniffed_field : field_order_hint) {
       ASSIGN_OR_RAISE(auto column_value, findFieldWithFallbacks(object, sniffed_field));
       auto success_or_error =
-         table->columns.addJsonValueToColumn(sniffed_field.column_identifier, column_value);
+         column_builder.addJsonValueToColumn(sniffed_field.column_identifier, column_value);
       if (!success_or_error.has_value()) {
          return success_or_error;
       }
    }
-   table->sequence_count++;
+
+   // Flush the chunk once it is full.
+   if (column_builder.numBufferedRows() >= storage::column::COLUMN_CHUNK_SIZE) {
+      auto bulk_insert_result = table->bulkInsert(column_builder);
+      if (!bulk_insert_result.has_value()) {
+         return bulk_insert_result;
+      }
+   }
    return {};
 }
 
-TableInserter::Commit TableInserter::commit() const {
+TableInserter::Commit TableInserter::commit() {
+   // Flush the final, partially-filled chunk.
+   if (column_builder.numBufferedRows() > 0) {
+      auto bulk_insert_result = table->bulkInsert(column_builder);
+      if (!bulk_insert_result.has_value()) {
+         throw AppendException(bulk_insert_result.error());
+      }
+   }
    try {
       table->finalize();
       table->validate();
       return Commit{};
-   } catch (const silo::schema::DuplicatePrimaryKeyException& exception) {
-      throw silo::append::AppendException(exception.what());
+   } catch (const schema::DuplicatePrimaryKeyException& exception) {
+      throw AppendException(exception.what());
    }
 }
 
 TableInserter::Commit appendDataToTable(
-   std::shared_ptr<silo::storage::Table> table,
+   std::shared_ptr<storage::Table> table,
    NdjsonLineReader& input_data
 ) {
    EVOBENCH_SCOPE("TableInserter", "appendDataToTable");
-   const TableInserter table_inserter(std::move(table));
+   TableInserter table_inserter(std::move(table));
 
    size_t line_count = 0;
 
@@ -204,8 +217,7 @@ TableInserter::Commit appendDataToTable(
    std::vector<TableInserter::SniffedField> sniffed_field_order;
    for (auto [json_obj_or_error, raw_line] : input_data) {
       simdjson::ondemand::document_reference ndjson_line;
-      auto error = json_obj_or_error.get(ndjson_line);
-      if (error) {
+      if (auto error = json_obj_or_error.get(ndjson_line)) {
          throw AppendException(
             "get error '{}' when parsing the current line: {}",
             simdjson::error_message(error),
