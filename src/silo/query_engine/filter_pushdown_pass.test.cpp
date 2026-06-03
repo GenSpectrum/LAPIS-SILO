@@ -8,6 +8,7 @@
 
 #include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/operators/filter_node.h"
+#include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/string_column.h"
@@ -51,6 +52,33 @@ TEST(FilterPushdownPass, eliminatesFilterNodeAboveTableScan) {
    // The FilterNode is gone; result is the TableScanNode directly.
    EXPECT_EQ(result->kind(), operators::NodeKind::TABLE_SCAN);
    auto* table_scan = dynamic_cast<operators::TableScanNode*>(result.get());
+   EXPECT_EQ(table_scan->filter->toString(), "And(And(True & True))");
+}
+
+// --- MapNode(FilterNode(TableScanNode)) ---
+
+TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
+   auto table = makeTable();
+   auto scan = std::make_unique<operators::TableScanNode>(
+      table, makeDummyFilter(), std::vector<silo::schema::ColumnIdentifier>{}
+   );
+   auto filter_node = std::make_unique<operators::FilterNode>(std::move(scan), makeDummyFilter());
+
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
+       .expression = operators::MapNode::Int64Literal{.value = 3}}
+   );
+   auto map_node =
+      std::make_unique<operators::MapNode>(std::move(filter_node), std::move(assignments));
+
+   auto result = FilterPushdownPass::run(std::move(map_node));
+
+   // The MapNode is retained; the FilterNode below it was pushed into the TableScan.
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
    EXPECT_EQ(table_scan->filter->toString(), "And(And(True & True))");
 }
 

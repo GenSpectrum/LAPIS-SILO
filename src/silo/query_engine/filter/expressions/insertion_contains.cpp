@@ -2,9 +2,6 @@
 
 #include <utility>
 
-#include <spdlog/spdlog.h>
-#include <boost/algorithm/string/join.hpp>
-
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/copy_on_write_bitmap.h"
@@ -13,7 +10,6 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
-#include "silo/storage/column/insertion_index.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/insertion_format_exception.h"
 
@@ -73,8 +69,8 @@ std::unique_ptr<operators::Operator> InsertionContains<SymbolType>::compile(
          try {
             auto search_result = sequence_store.insertion_index.search(position_idx, value);
             return CopyOnWriteBitmap(std::move(*search_result));
-         } catch (const silo::storage::InsertionFormatException& exception) {
-            throw silo::query_engine::IllegalQueryException(
+         } catch (const storage::InsertionFormatException& exception) {
+            throw IllegalQueryException(
                "The field 'value' in the InsertionContains expression does not contain a valid "
                "regex "
                "pattern: \"{}\". It must only consist of {} symbols and the regex symbol '.*'. "

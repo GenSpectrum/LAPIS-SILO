@@ -10,6 +10,7 @@
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/insertions_node.h"
+#include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/mutations_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
@@ -53,6 +54,12 @@ operators::QueryNodePtr NodeResolutionPass::operator()(operators::FilterNode& no
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr NodeResolutionPass::operator()(operators::ProjectNode& node) {
+   applyToNode(node.child, *this);
+   return nullptr;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr NodeResolutionPass::operator()(operators::MapNode& node) {
    applyToNode(node.child, *this);
    return nullptr;
 }

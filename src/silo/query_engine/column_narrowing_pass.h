@@ -9,6 +9,7 @@ namespace silo::query_engine::operators {
 class TableScanNode;
 class AggregateNode;
 class ProjectNode;
+class MapNode;
 class ZstdDecompressNode;
 class OrderByNode;
 class FetchNode;
@@ -36,6 +37,7 @@ class ColumnNarrowingPass {
    operators::QueryNodePtr operator()(operators::AggregateNode& node);
    operators::QueryNodePtr operator()(operators::ProjectNode& node);
    operators::QueryNodePtr operator()(operators::ZstdDecompressNode& node);
+   operators::QueryNodePtr operator()(operators::MapNode& node);
    operators::QueryNodePtr operator()(operators::OrderByNode& node);
    operators::QueryNodePtr operator()(operators::FetchNode& node);
    operators::QueryNodePtr operator()(operators::FilterNode& node);

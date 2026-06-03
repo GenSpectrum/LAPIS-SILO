@@ -17,13 +17,13 @@ namespace silo::query_engine {
 namespace {
 
 arrow::Result<QueryPlan> planQueryOrError(
-   const silo::query_engine::operators::QueryNode& node,
+   const operators::QueryNode& node,
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
    const config::QueryOptions& query_options,
    std::string_view request_id
 ) {
    ARROW_ASSIGN_OR_RAISE(auto partial_query_plan, node.toQueryPlan(tables, query_options));
-   return query_engine::QueryPlan::makeQueryPlan(
+   return QueryPlan::makeQueryPlan(
       partial_query_plan.plan, partial_query_plan.top_node, request_id
    );
 }

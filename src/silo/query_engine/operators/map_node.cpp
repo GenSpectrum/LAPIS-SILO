@@ -1,0 +1,74 @@
+#include "silo/query_engine/operators/map_node.h"
+
+#include <algorithm>
+#include <string>
+#include <variant>
+
+#include <arrow/acero/exec_plan.h>
+#include <arrow/acero/options.h>
+#include <arrow/compute/api.h>
+#include <arrow/datum.h>
+
+namespace silo::query_engine::operators {
+
+MapNode::MapNode(QueryNodePtr child, std::vector<Assignment> assignments)
+    : child(std::move(child)),
+      assignments(std::move(assignments)) {}
+
+std::vector<schema::ColumnIdentifier> MapNode::getOutputSchema() const {
+   auto output = child->getOutputSchema();
+   for (const auto& assignment : assignments) {
+      auto found = std::ranges::find_if(output, [&](const auto& column) {
+         return column.name == assignment.output_column.name;
+      });
+      if (found != output.end()) {
+         *found = assignment.output_column;
+      } else {
+         output.push_back(assignment.output_column);
+      }
+   }
+   return output;
+}
+
+arrow::Result<PartialArrowPlan> MapNode::toQueryPlan(
+   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
+   const config::QueryOptions& query_options
+) const {
+   ARROW_ASSIGN_OR_RAISE(auto plan, child->toQueryPlan(tables, query_options));
+
+   // Map output column names to the assignment that produces them.
+   std::map<std::string, const Assignment*> assignment_by_name;
+   for (const auto& assignment : assignments) {
+      assignment_by_name[assignment.output_column.name] = &assignment;
+   }
+
+   const auto output_schema = getOutputSchema();
+   std::vector<arrow::Expression> expressions;
+   std::vector<std::string> names;
+   expressions.reserve(output_schema.size());
+   names.reserve(output_schema.size());
+   for (const auto& [name, type] : output_schema) {
+      names.push_back(name);
+      auto found = assignment_by_name.find(name);
+      if (found == assignment_by_name.end()) {
+         // Column passed through unchanged from the child.
+         expressions.push_back(arrow::compute::field_ref(name));
+         continue;
+      }
+      expressions.push_back(std::visit(
+         [](const auto& expression) {
+            return arrow::compute::literal(arrow::Datum(expression.value));
+         },
+         found->second->expression
+      ));
+   }
+
+   const arrow::acero::ProjectNodeOptions options{std::move(expressions), std::move(names)};
+   ARROW_ASSIGN_OR_RAISE(
+      plan.top_node,
+      arrow::acero::MakeExecNode("project", plan.plan.get(), {plan.top_node}, options)
+   );
+   return plan;
+}
+
+}  // namespace silo::query_engine::operators

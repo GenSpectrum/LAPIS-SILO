@@ -8,6 +8,7 @@
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/insertions_node.h"
+#include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/mutations_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
@@ -30,6 +31,8 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
          return std::forward<Func>(func)(static_cast<AggregateNode&>(node));
       case NodeKind::PROJECT:
          return std::forward<Func>(func)(static_cast<ProjectNode&>(node));
+      case NodeKind::MAP:
+         return std::forward<Func>(func)(static_cast<MapNode&>(node));
       case NodeKind::ORDER_BY:
          return std::forward<Func>(func)(static_cast<OrderByNode&>(node));
       case NodeKind::FETCH:

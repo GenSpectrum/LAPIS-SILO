@@ -23,7 +23,7 @@ Every operator takes a table as input and produces a table as output. Internally
 Operators fall into two categories:
 
 - **Schema-preserving** (`filter`, `orderBy`, `limit`, `offset`, `randomize`): pass all input columns through unchanged. They select or reorder rows but do not add, remove, or rename fields.
-- **Schema-defining** (`groupBy`, `project`, `mutations`, `aminoAcidMutations`, `insertions`, `aminoAcidInsertions`, `mostRecentCommonAncestor`, `phyloSubtree`): produce a changed output schema. Each operator's section below documents its output fields.
+- **Schema-defining** (`groupBy`, `project`, `map`, `mutations`, `aminoAcidMutations`, `insertions`, `aminoAcidInsertions`, `mostRecentCommonAncestor`, `phyloSubtree`): produce a changed output schema. Each operator's section below documents its output fields.
 
 Simple example — count all sequences from Switzerland:
 
@@ -129,6 +129,22 @@ Sequence data columns use the naming convention `<sequenceName>` for aligned seq
 
 ```json
 {"primary_key": "key_31", "country": "Switzerland", "date": "2021-03-21", "pango_lineage": "B.1.1.7", "qc_value": 0.96}
+```
+
+### `map(expressions)`
+
+Adds columns to the table. `expressions` is a record of `name := value` assignments. For now only literal values are supported: integers, floats, strings (single-quoted), and booleans.
+
+```
+default.map({x := 3, label := 'cohort A', active := true})
+```
+
+All input columns are passed through unchanged and the new columns are appended. An assignment whose name matches an existing column replaces that column in place.
+
+**Output:** one row per input row containing all input columns plus the assigned columns. Integer literals become `INT32` (or `INT64` when out of `INT32` range), floats become `FLOAT`, single-quoted literals become `STRING`, and `true`/`false` become `BOOL`.
+
+```json
+{"primary_key": "key_31", "x": 3, "label": "cohort A", "active": true}
 ```
 
 ### `orderBy(fields)`
