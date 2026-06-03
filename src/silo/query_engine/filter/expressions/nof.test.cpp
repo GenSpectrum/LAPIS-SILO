@@ -3,8 +3,6 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/query_engine/filter/expressions/and.h"
-#include "silo/query_engine/filter/expressions/negation.h"
 #include "silo/query_engine/filter/expressions/true.h"
 #include "silo/test/query_fixture.test.h"
 
@@ -48,41 +46,6 @@ TEST(NOfToString, shouldHandleEmptyChildren) {
    const NOf nof(std::move(children), 0, false);
 
    EXPECT_EQ(nof.toString(), "[0-of:]");
-}
-
-// --- rewrite tests ---
-
-TEST(NOfRewrite, shouldDecomposeExactMatchInAmbiguityMode) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
-
-   ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
-
-   const NOf nof(std::move(children), 2, true);
-
-   auto rewritten = nof.rewrite(table, Expression::AmbiguityMode::UPPER_BOUND);
-
-   // exact-2-of with ambiguity rewrites to: And(NOf(2,false), !NOf(3,false))
-   EXPECT_EQ(
-      rewritten->toString(), "And([2-of:True, True, True] & !([3-of:True, True, True]))"
-   );
-}
-
-TEST(NOfRewrite, shouldNotDecomposeExactWhenNEqualsChildCount) {
-   const silo::storage::Table table(std::make_shared<schema::TableSchema>());
-
-   ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
-
-   // exactly-2-of with 2 children: number_of_matchers == children.size(), no decompose
-   const NOf nof(std::move(children), 2, true);
-
-   auto rewritten = nof.rewrite(table, Expression::AmbiguityMode::UPPER_BOUND);
-
-   EXPECT_EQ(rewritten->toString(), "[exactly-2-of:True, True]");
 }
 
 }  // namespace silo::query_engine::filter::expressions
@@ -144,12 +107,6 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
    {},
 };
 
-// Data:
-// id_0: Switzerland, Europe, 2020-01-01  → matches country=Switzerland, region=Europe
-// id_1: Germany, Europe, 2021-06-15      → matches country=Germany, region=Europe
-// id_2: USA, Americas, 2019-03-20        → matches country=USA, region=Americas
-// id_3: Switzerland, Europe, 2018-11-01  → matches country=Switzerland, region=Europe
-// id_4: France, Europe, 2022-07-10       → matches country=France, region=Europe
 const QueryTestData NOF_TEST_DATA{
    .ndjson_input_data =
       {createNOfData("id_0", "Switzerland", "Europe", "2020-01-01"),
@@ -162,12 +119,6 @@ const QueryTestData NOF_TEST_DATA{
    .without_unaligned_sequences = true
 };
 
-// nOf(2, {country='Switzerland', country='Germany', region='Europe'})
-// Switzerland+Europe: id_0, id_3 match 2 of 3
-// Germany+Europe: id_1 matches 2 of 3
-// USA+Americas: id_2 matches 0 of 3
-// France+Europe: id_4 matches 1 of 3 (region=Europe only)
-// → at least 2: id_0, id_1, id_3
 const QueryTestScenario NOF_AT_LEAST_2_OF_3 = {
    .name = "NOF_AT_LEAST_2_OF_3",
    .query =
@@ -182,24 +133,30 @@ const QueryTestScenario NOF_AT_LEAST_2_OF_3 = {
    )
 };
 
-// nOf(3, {country='Switzerland', country='Germany', region='Europe'})
-// Need all 3 → impossible (can't be both Switzerland AND Germany)
-// → empty
 const QueryTestScenario NOF_AT_LEAST_3_OF_3 = {
    .name = "NOF_AT_LEAST_3_OF_3",
    .query =
-      "default.filter(nOf(3, {country = 'Switzerland', country = 'Germany', region = "
-      "'Europe'})).project({primaryKey})",
+      "default"
+      ".filter(nOf(3, {country = 'Switzerland', date = '2020-01-01'::date, region = 'Europe'}))"
+      ".project({primaryKey})",
+   .expected_query_result = nlohmann::json::parse(R"([
+{"primaryKey":"id_0"},
+])")
+};
+
+const QueryTestScenario NOF_AT_LEAST_3_OF_3_EMPTY = {
+   .name = "NOF_AT_LEAST_3_OF_3_EMPTY",
+   .query =
+      "default.filter(nOf(3, {country = 'Switzerland', country = 'Germany', region = 'Europe'}))"
+      ".project({primaryKey})",
    .expected_query_result = nlohmann::json::parse(R"([])")
 };
 
-// nOf(1, {country='Switzerland', country='USA'})
-// → at least 1: id_0, id_2, id_3
 const QueryTestScenario NOF_AT_LEAST_1_OF_2 = {
    .name = "NOF_AT_LEAST_1_OF_2",
    .query =
-      "default.filter(nOf(1, {country = 'Switzerland', country = 'USA'})).project({primaryKey, "
-      "country})",
+      "default.filter(nOf(1, {country = 'Switzerland', country = 'USA'}))"
+      ".project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Switzerland","primaryKey":"id_0"},
@@ -209,18 +166,11 @@ const QueryTestScenario NOF_AT_LEAST_1_OF_2 = {
    )
 };
 
-// nOf(1, {country='Switzerland', region='Europe'}, matchExactly:=true)
-// exactly 1 match:
-// id_0: Switzerland+Europe → 2 matches → no
-// id_1: Germany+Europe → 1 match (region) → yes
-// id_2: USA+Americas → 0 → no
-// id_3: Switzerland+Europe → 2 matches → no
-// id_4: France+Europe → 1 match (region) → yes
 const QueryTestScenario NOF_EXACTLY_1_OF_2 = {
    .name = "NOF_EXACTLY_1_OF_2",
    .query =
-      "default.filter(nOf(1, {country = 'Switzerland', region = 'Europe'}, "
-      "matchExactly:=true)).project({primaryKey, country, region})",
+      "default.filter(nOf(1, {country = 'Switzerland', region = 'Europe'}, matchExactly:=true))"
+      ".project({primaryKey, country, region})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Germany","primaryKey":"id_1","region":"Europe"},
@@ -229,15 +179,11 @@ const QueryTestScenario NOF_EXACTLY_1_OF_2 = {
    )
 };
 
-// nOf(2, {country='Switzerland', region='Europe'}, matchExactly:=true)
-// exactly 2 → both must match
-// id_0: Switzerland+Europe → 2 → yes
-// id_3: Switzerland+Europe → 2 → yes
 const QueryTestScenario NOF_EXACTLY_2_OF_2 = {
    .name = "NOF_EXACTLY_2_OF_2",
    .query =
-      "default.filter(nOf(2, {country = 'Switzerland', region = 'Europe'}, "
-      "matchExactly:=true)).project({primaryKey, country})",
+      "default.filter(nOf(2, {country = 'Switzerland', region = 'Europe'}, matchExactly:=true))"
+      ".project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Switzerland","primaryKey":"id_0"},
@@ -246,13 +192,11 @@ const QueryTestScenario NOF_EXACTLY_2_OF_2 = {
    )
 };
 
-// nOf(0, {country='Switzerland', country='Germany'})
-// at least 0 → everything matches
 const QueryTestScenario NOF_AT_LEAST_0 = {
    .name = "NOF_AT_LEAST_0",
    .query =
-      "default.filter(nOf(0, {country = 'Switzerland', country = "
-      "'Germany'})).project({primaryKey})",
+      "default.filter(nOf(0, {country = 'Switzerland', country = 'Germany'}))"
+      ".project({primaryKey})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"primaryKey":"id_0"},
@@ -264,14 +208,11 @@ const QueryTestScenario NOF_AT_LEAST_0 = {
    )
 };
 
-// nOf(0, {country='Switzerland', region='Europe'}, matchExactly:=true)
-// exactly 0 → neither matches
-// id_2: USA+Americas → 0 matches → yes
 const QueryTestScenario NOF_EXACTLY_0 = {
    .name = "NOF_EXACTLY_0",
    .query =
-      "default.filter(nOf(0, {country = 'Switzerland', region = 'Europe'}, "
-      "matchExactly:=true)).project({primaryKey, country})",
+      "default.filter(nOf(0, {country = 'Switzerland', region = 'Europe'}, matchExactly:=true))"
+      ".project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"USA","primaryKey":"id_2"}
@@ -279,15 +220,11 @@ const QueryTestScenario NOF_EXACTLY_0 = {
    )
 };
 
-// nOf with negation child: nOf(2, {country='Switzerland', !country='USA'})
-// child 1: country=Switzerland → id_0, id_3
-// child 2: NOT country=USA → id_0, id_1, id_3, id_4
-// at least 2: id_0, id_3 (match both)
 const QueryTestScenario NOF_WITH_NEGATION = {
    .name = "NOF_WITH_NEGATION",
    .query =
-      "default.filter(nOf(2, {country = 'Switzerland', !(country = "
-      "'USA')})).project({primaryKey, country})",
+      "default.filter(nOf(2, {country = 'Switzerland', !(country = 'USA')}))"
+      ".project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Switzerland","primaryKey":"id_0"},
@@ -296,7 +233,7 @@ const QueryTestScenario NOF_WITH_NEGATION = {
    )
 };
 
-// --- Gap coverage: handleOrCase with negated child (DeMorgan path, L109-113) ---
+// --- Gap coverage: handleOrCase with negated child (DeMorgan path) ---
 // nOf(1, {country='Switzerland', !(country='Germany')})
 // count=1, not exact, 2 children (1 non-negated, 1 negated) → handleOrCase with negated
 // child 1: country=Switzerland → id_0, id_3
@@ -305,8 +242,8 @@ const QueryTestScenario NOF_WITH_NEGATION = {
 const QueryTestScenario NOF_OR_WITH_NEGATED_CHILD = {
    .name = "NOF_OR_WITH_NEGATED_CHILD",
    .query =
-      "default.filter(nOf(1, {country = 'Switzerland', !(country = "
-      "'Germany')})).project({primaryKey, country})",
+      "default.filter(nOf(1, {country = 'Switzerland', !(country = 'Germany')}))"
+      ".project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Switzerland","primaryKey":"id_0"},
@@ -317,15 +254,13 @@ const QueryTestScenario NOF_OR_WITH_NEGATED_CHILD = {
    )
 };
 
-// --- Gap coverage: exactly-0-of with 1 non-negated child (L62-64, Complement) ---
-// nOf(0, {country='Switzerland'}, matchExactly:=true)
+// --- Gap coverage: exactly-0-of with 1 non-negated child (Complement) ---
 // count=0, exact, 1 non-negated child → Complement(IndexScan)
-// Matches everything except Switzerland: id_1, id_2, id_4
 const QueryTestScenario NOF_EXACTLY_0_SINGLE_NON_NEGATED = {
    .name = "NOF_EXACTLY_0_SINGLE_NON_NEGATED",
    .query =
-      "default.filter(nOf(0, {country = 'Switzerland'}, "
-      "matchExactly:=true)).project({primaryKey, country})",
+      "default.filter(nOf(0, {country = 'Switzerland'}, matchExactly:=true))"
+      ".project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Germany","primaryKey":"id_1"},
@@ -335,19 +270,16 @@ const QueryTestScenario NOF_EXACTLY_0_SINGLE_NON_NEGATED = {
    )
 };
 
-// --- Gap coverage: exactly-0-of with 1 negated child (L59-60, return negated) ---
-// nOf(0, {!(country='Switzerland')}, matchExactly:=true)
+// --- Gap coverage: exactly-0-of with 1 negated child (return negated) ---
 // count=0, exact, 1 negated child → return the inner (un-negated) operator directly
 // NOT country=Switzerland compiles to Complement → mapChildExpressions negates it back →
 // negated bucket has the raw IndexScan for country=Switzerland
 // exactly-0 with 1 negated child means: the negated child must NOT match
-// The negated child is "NOT Switzerland", so "NOT Switzerland must not match" = must be Switzerland
-// Result: id_0, id_3
 const QueryTestScenario NOF_EXACTLY_0_SINGLE_NEGATED = {
    .name = "NOF_EXACTLY_0_SINGLE_NEGATED",
    .query =
-      "default.filter(nOf(0, {!(country = 'Switzerland')}, "
-      "matchExactly:=true)).project({primaryKey, country})",
+      "default.filter(nOf(0, {!(country = 'Switzerland')}, matchExactly:=true))"
+      ".project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Switzerland","primaryKey":"id_0"},
@@ -356,19 +288,17 @@ const QueryTestScenario NOF_EXACTLY_0_SINGLE_NEGATED = {
    )
 };
 
-// --- Gap coverage: handleAndCase all negated (L91-94, Complement(Union)) ---
-// nOf(2, {!(country='Switzerland'), !(country='USA')})
+// --- Gap coverage: handleAndCase all negated (Complement(Union)) ---
 // Both children are negated → mapChildExpressions puts both in negated bucket
 // count=2 == child_count=2 → handleAndCase, non_negated empty → Complement(Union(negated))
 // child 1: NOT Switzerland → negated → IndexScan(Switzerland)
 // child 2: NOT USA → negated → IndexScan(USA)
 // handleAndCase: Complement(Union(Switzerland, USA)) = NOT(Switzerland OR USA)
-// → matches: id_1 (Germany), id_4 (France)
 const QueryTestScenario NOF_ALL_NEGATED_AND_CASE = {
    .name = "NOF_ALL_NEGATED_AND_CASE",
    .query =
-      "default.filter(nOf(2, {!(country = 'Switzerland'), !(country = "
-      "'USA')})).project({primaryKey, country})",
+      "default.filter(nOf(2, {!(country = 'Switzerland'), !(country = 'USA')}))"
+      ".project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Germany","primaryKey":"id_1"},
@@ -377,33 +307,16 @@ const QueryTestScenario NOF_ALL_NEGATED_AND_CASE = {
    )
 };
 
-// --- Gap coverage: exactly-0-of mixed negated/non-negated multi (L73-75) ---
-// nOf(0, {country='Switzerland', !(country='USA')}, matchExactly:=true)
-// count=0, exact, 2 children (1 non-negated, 1 negated), negated not empty
-// → Intersection(negated, non_negated) where negated = [IndexScan(USA)],
-//   non_negated = [IndexScan(Switzerland)]
-// This means: Intersection with negated = "not USA" applied to "not Switzerland"
-// Wait — for exactly-0, we need NONE to match. The code builds
-// Intersection(negated_ops=[USA_scan], non_negated_ops=[Switzerland_scan])
-// Intersection treats negated as: result AND NOT(negated)
-// So: Switzerland AND NOT(USA) — but that's wrong for "exactly 0 match"
-// Actually: exactly-0 means neither child matches. Inversion of Union.
-// L73-75: Intersection(negated_child_operators, non_negated_child_operators)
-//   non_negated becomes the "negated" arg of Intersection (to be complemented)
-//   negated becomes the "non_negated" arg of Intersection (already flipped)
-// So: negated_ops (USA scan) as non-neg, non_neg_ops (Switzerland scan) as neg
-// = USA_scan AND NOT Switzerland_scan = is USA and not Switzerland
-// That means: rows matching USA but not Switzerland → id_2
-// But we want "neither Switzerland NOR NOT-USA matches"
-// "country=Switzerland doesn't match" AND "NOT country=USA doesn't match"
-// = NOT Switzerland AND NOT(NOT USA) = NOT Switzerland AND USA = USA AND NOT Switzerland
-// id_2 is USA and not Switzerland → yes
-// So result = [id_2]
+// --- Gap coverage: exactly-0-of with mixed negated/non-negated children (Intersection) ---
+// "exactly 0 match" means neither child should be true:
+//   country='Switzerland' must not match → not Switzerland
+//   !(country='USA') must not match → must be USA
+// Result: USA AND NOT Switzerland
 const QueryTestScenario NOF_EXACTLY_0_MIXED_NEGATED = {
    .name = "NOF_EXACTLY_0_MIXED_NEGATED",
    .query =
-      "default.filter(nOf(0, {country = 'Switzerland', !(country = 'USA')}, "
-      "matchExactly:=true)).project({primaryKey, country})",
+      "default.filter(nOf(0, {country = 'Switzerland', !(country = 'USA')}, matchExactly:=true))"
+      ".project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"USA","primaryKey":"id_2"}
@@ -411,21 +324,16 @@ const QueryTestScenario NOF_EXACTLY_0_MIXED_NEGATED = {
    )
 };
 
-// --- Gap coverage: exact count exceeds number of children → empty result ---
-// nOf(5, {country='Switzerland', country='USA'}, matchExactly:=true)
-// count=5 but only 2 children → impossible → empty
 const QueryTestScenario NOF_EXACT_COUNT_EXCEEDS_CHILDREN = {
    .name = "NOF_EXACT_COUNT_EXCEEDS_CHILDREN",
    .query =
-      "default.filter(nOf(5, {country = 'Switzerland', country = 'USA'}, "
-      "matchExactly:=true)).project({primaryKey})",
+      "default.filter(nOf(5, {country = 'Switzerland', country = 'USA'}, matchExactly:=true))"
+      ".project({primaryKey})",
    .expected_query_result = nlohmann::json::parse(R"([])")
 };
 
-// --- Gap coverage: single negated child, count=1 (L80-81, Complement) ---
-// nOf(1, {!(country='Switzerland')})
+// --- Gap coverage: single negated child, count=1 (Complement) ---
 // count=1, 1 child (negated) → Complement of IndexScan(Switzerland)
-// Matches everything except Switzerland: id_1, id_2, id_4
 const QueryTestScenario NOF_SINGLE_NEGATED_CHILD = {
    .name = "NOF_SINGLE_NEGATED_CHILD",
    .query =
@@ -439,8 +347,7 @@ const QueryTestScenario NOF_SINGLE_NEGATED_CHILD = {
    )
 };
 
-// --- Gap coverage: exactly-1-of with 3 children → Threshold exact path (L143-149) ---
-// nOf(1, {country='Switzerland', country='Germany', region='Europe'}, matchExactly:=true)
+// --- Gap coverage: exactly-1-of with 3 children → Threshold exact path ---
 // count=1, exact, 3 non-trivial children → not handled by trivial/and/or cases → Threshold
 // id_0: Switzerland=yes, Germany=no, Europe=yes → 2 matches → no
 // id_1: Switzerland=no, Germany=yes, Europe=yes → 2 matches → no
@@ -459,6 +366,24 @@ const QueryTestScenario NOF_EXACTLY_1_OF_3_THRESHOLD = {
    )
 };
 
+// --- maybe(nOf(...)) exercises rewriteToNonExact decomposition end-to-end ---
+// maybe(nOf(1, {country='Switzerland', region='Europe'}, matchExactly:=true))
+// maybe triggers UPPER_BOUND rewrite → NOf exact with k < children.size() decomposes to
+// And(nOf(1, ..., false), !nOf(2, ..., false))
+// Same semantic result as NOF_EXACTLY_1_OF_2: exactly 1 of {Switzerland, Europe} must match
+const QueryTestScenario NOF_MAYBE_EXACT_DECOMPOSITION = {
+   .name = "NOF_MAYBE_EXACT_DECOMPOSITION",
+   .query =
+      "default.filter(maybe(nOf(1, {country = 'Switzerland', region = 'Europe'}, "
+      "matchExactly:=true))).project({primaryKey, country, region})",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"country":"Germany","primaryKey":"id_1","region":"Europe"},
+{"country":"France","primaryKey":"id_4","region":"Europe"}
+])"
+   )
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -467,6 +392,7 @@ QUERY_TEST(
    ::testing::Values(
       NOF_AT_LEAST_2_OF_3,
       NOF_AT_LEAST_3_OF_3,
+      NOF_AT_LEAST_3_OF_3_EMPTY,
       NOF_AT_LEAST_1_OF_2,
       NOF_EXACTLY_1_OF_2,
       NOF_EXACTLY_2_OF_2,
@@ -480,6 +406,7 @@ QUERY_TEST(
       NOF_EXACTLY_0_MIXED_NEGATED,
       NOF_EXACT_COUNT_EXCEEDS_CHILDREN,
       NOF_SINGLE_NEGATED_CHILD,
-      NOF_EXACTLY_1_OF_3_THRESHOLD
+      NOF_EXACTLY_1_OF_3_THRESHOLD,
+      NOF_MAYBE_EXACT_DECOMPOSITION
    )
 );
