@@ -332,6 +332,14 @@ const QueryTestScenario NOF_EXACT_COUNT_EXCEEDS_CHILDREN = {
    .expected_query_result = nlohmann::json::parse(R"([])")
 };
 
+const QueryTestScenario NOF_AT_LEAST_COUNT_EXCEEDS_CHILDREN = {
+   .name = "NOF_AT_LEAST_COUNT_EXCEEDS_CHILDREN",
+   .query =
+      "default.filter(nOf(5, {country = 'Switzerland', country = 'USA'}))"
+      ".project({primaryKey})",
+   .expected_query_result = nlohmann::json::parse(R"([])")
+};
+
 // --- Gap coverage: single negated child, count=1 (Complement) ---
 // count=1, 1 child (negated) → Complement of IndexScan(Switzerland)
 const QueryTestScenario NOF_SINGLE_NEGATED_CHILD = {
@@ -405,6 +413,7 @@ QUERY_TEST(
       NOF_ALL_NEGATED_AND_CASE,
       NOF_EXACTLY_0_MIXED_NEGATED,
       NOF_EXACT_COUNT_EXCEEDS_CHILDREN,
+      NOF_AT_LEAST_COUNT_EXCEEDS_CHILDREN,
       NOF_SINGLE_NEGATED_CHILD,
       NOF_EXACTLY_1_OF_3_THRESHOLD,
       NOF_MAYBE_EXACT_DECOMPOSITION
