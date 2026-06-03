@@ -453,6 +453,28 @@ const QueryTestScenario NOF_MIXED_TRIVIAL_AND_REAL = {
    )
 };
 
+const QueryTestScenario NOF_NEGATIVE_COUNT = {
+   .name = "NOF_NEGATIVE_COUNT",
+   .query = "default.filter(nOf(-1, {country = 'Switzerland'})).project({primaryKey})",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"primaryKey":"id_0"},
+{"primaryKey":"id_1"},
+{"primaryKey":"id_2"},
+{"primaryKey":"id_3"},
+{"primaryKey":"id_4"}
+])"
+   )
+};
+
+const QueryTestScenario NOF_NEGATIVE_COUNT_EXACT = {
+   .name = "NOF_NEGATIVE_COUNT_EXACT",
+   .query =
+      "default.filter(nOf(-1, {country = 'Switzerland'}, matchExactly:=true))"
+      ".project({primaryKey})",
+   .expected_query_result = nlohmann::json::parse(R"([])")
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -482,6 +504,8 @@ QUERY_TEST(
       NOF_ALL_TRUE_CHILDREN,
       NOF_ALL_TRUE_EXACT_EMPTY,
       NOF_ALL_FALSE_CHILDREN,
-      NOF_MIXED_TRIVIAL_AND_REAL
+      NOF_MIXED_TRIVIAL_AND_REAL,
+      NOF_NEGATIVE_COUNT,
+      NOF_NEGATIVE_COUNT_EXACT
    )
 );
