@@ -140,7 +140,7 @@ const QueryTestScenario NOF_AT_LEAST_3_OF_3 = {
       ".filter(nOf(3, {country = 'Switzerland', date = '2020-01-01'::date, region = 'Europe'}))"
       ".project({primaryKey})",
    .expected_query_result = nlohmann::json::parse(R"([
-{"primaryKey":"id_0"},
+{"primaryKey":"id_0"}
 ])")
 };
 
@@ -355,6 +355,19 @@ const QueryTestScenario NOF_SINGLE_NEGATED_CHILD = {
    )
 };
 
+// --- Coverage: count=1, 1 non-negated child → return child directly ---
+const QueryTestScenario NOF_SINGLE_NON_NEGATED_CHILD = {
+   .name = "NOF_SINGLE_NON_NEGATED_CHILD",
+   .query =
+      "default.filter(nOf(1, {country = 'Switzerland'})).project({primaryKey, country})",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"country":"Switzerland","primaryKey":"id_0"},
+{"country":"Switzerland","primaryKey":"id_3"}
+])"
+   )
+};
+
 // --- Gap coverage: exactly-1-of with 3 children → Threshold exact path ---
 // count=1, exact, 3 non-trivial children → not handled by trivial/and/or cases → Threshold
 // id_0: Switzerland=yes, Germany=no, Europe=yes → 2 matches → no
@@ -392,6 +405,54 @@ const QueryTestScenario NOF_MAYBE_EXACT_DECOMPOSITION = {
    )
 };
 
+// --- Coverage: all True children, count goes negative, !exact → Full ---
+const QueryTestScenario NOF_ALL_TRUE_CHILDREN = {
+   .name = "NOF_ALL_TRUE_CHILDREN",
+   .query = "default.filter(nOf(2, {true, true, true})).project({primaryKey})",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"primaryKey":"id_0"},
+{"primaryKey":"id_1"},
+{"primaryKey":"id_2"},
+{"primaryKey":"id_3"},
+{"primaryKey":"id_4"}
+])"
+   )
+};
+
+// --- Coverage: all True children, count goes negative, exact → Empty ---
+const QueryTestScenario NOF_ALL_TRUE_EXACT_EMPTY = {
+   .name = "NOF_ALL_TRUE_EXACT_EMPTY",
+   .query =
+      "default.filter(nOf(1, {true, true, true}, matchExactly:=true)).project({primaryKey})",
+   .expected_query_result = nlohmann::json::parse(R"([])")
+};
+
+// --- Coverage: all False children → all skipped, count > 0 remaining → Empty
+const QueryTestScenario NOF_ALL_FALSE_CHILDREN = {
+   .name = "NOF_ALL_FALSE_CHILDREN",
+   .query = "default.filter(nOf(2, {false, false, false})).project({primaryKey})",
+   .expected_query_result = nlohmann::json::parse(R"([])")
+};
+
+// --- Coverage: mix of True/False/real children in mapChildExpressions ---
+// True: count 1→0, False: skipped, Switzerland: non-negated bucket
+// count=0, !exact → Full → all rows
+const QueryTestScenario NOF_MIXED_TRIVIAL_AND_REAL = {
+   .name = "NOF_MIXED_TRIVIAL_AND_REAL",
+   .query =
+      "default.filter(nOf(1, {true, false, country = 'Switzerland'})).project({primaryKey})",
+   .expected_query_result = nlohmann::json::parse(
+      R"([
+{"primaryKey":"id_0"},
+{"primaryKey":"id_1"},
+{"primaryKey":"id_2"},
+{"primaryKey":"id_3"},
+{"primaryKey":"id_4"}
+])"
+   )
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -415,7 +476,12 @@ QUERY_TEST(
       NOF_EXACT_COUNT_EXCEEDS_CHILDREN,
       NOF_AT_LEAST_COUNT_EXCEEDS_CHILDREN,
       NOF_SINGLE_NEGATED_CHILD,
+      NOF_SINGLE_NON_NEGATED_CHILD,
       NOF_EXACTLY_1_OF_3_THRESHOLD,
-      NOF_MAYBE_EXACT_DECOMPOSITION
+      NOF_MAYBE_EXACT_DECOMPOSITION,
+      NOF_ALL_TRUE_CHILDREN,
+      NOF_ALL_TRUE_EXACT_EMPTY,
+      NOF_ALL_FALSE_CHILDREN,
+      NOF_MIXED_TRIVIAL_AND_REAL
    )
 );
