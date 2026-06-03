@@ -344,8 +344,7 @@ const QueryTestScenario NOF_AT_LEAST_COUNT_EXCEEDS_CHILDREN = {
 // count=1, 1 child (negated) → Complement of IndexScan(Switzerland)
 const QueryTestScenario NOF_SINGLE_NEGATED_CHILD = {
    .name = "NOF_SINGLE_NEGATED_CHILD",
-   .query =
-      "default.filter(nOf(1, {!(country = 'Switzerland')})).project({primaryKey, country})",
+   .query = "default.filter(nOf(1, {!(country = 'Switzerland')})).project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Germany","primaryKey":"id_1"},
@@ -358,8 +357,7 @@ const QueryTestScenario NOF_SINGLE_NEGATED_CHILD = {
 // --- Coverage: count=1, 1 non-negated child → return child directly ---
 const QueryTestScenario NOF_SINGLE_NON_NEGATED_CHILD = {
    .name = "NOF_SINGLE_NON_NEGATED_CHILD",
-   .query =
-      "default.filter(nOf(1, {country = 'Switzerland'})).project({primaryKey, country})",
+   .query = "default.filter(nOf(1, {country = 'Switzerland'})).project({primaryKey, country})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"country":"Switzerland","primaryKey":"id_0"},
@@ -423,8 +421,7 @@ const QueryTestScenario NOF_ALL_TRUE_CHILDREN = {
 // --- Coverage: all True children, count goes negative, exact → Empty ---
 const QueryTestScenario NOF_ALL_TRUE_EXACT_EMPTY = {
    .name = "NOF_ALL_TRUE_EXACT_EMPTY",
-   .query =
-      "default.filter(nOf(1, {true, true, true}, matchExactly:=true)).project({primaryKey})",
+   .query = "default.filter(nOf(1, {true, true, true}, matchExactly:=true)).project({primaryKey})",
    .expected_query_result = nlohmann::json::parse(R"([])")
 };
 
@@ -440,8 +437,7 @@ const QueryTestScenario NOF_ALL_FALSE_CHILDREN = {
 // count=0, !exact → Full → all rows
 const QueryTestScenario NOF_MIXED_TRIVIAL_AND_REAL = {
    .name = "NOF_MIXED_TRIVIAL_AND_REAL",
-   .query =
-      "default.filter(nOf(1, {true, false, country = 'Switzerland'})).project({primaryKey})",
+   .query = "default.filter(nOf(1, {true, false, country = 'Switzerland'})).project({primaryKey})",
    .expected_query_result = nlohmann::json::parse(
       R"([
 {"primaryKey":"id_0"},

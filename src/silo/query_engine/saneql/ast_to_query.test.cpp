@@ -446,9 +446,7 @@ TEST(AstToQueryNOf, childrenNotSetLiteralThrows) {
 
 TEST(AstToQueryNOf, matchExactlyNotBoolThrows) {
    EXPECT_THAT(
-      []() {
-         (void)parseFilter("nOf(1, {country = 'Switzerland'}, matchExactly:='yes')");
-      },
+      []() { (void)parseFilter("nOf(1, {country = 'Switzerland'}, matchExactly:='yes')"); },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("expected boolean literal"))
    );
 }
