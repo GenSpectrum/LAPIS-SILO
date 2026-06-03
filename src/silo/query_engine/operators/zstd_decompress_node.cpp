@@ -27,14 +27,23 @@
 #include "silo/storage/column/zstd_compressed_string_column.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
-
-namespace {
-
 using silo::schema::ColumnIdentifier;
+using silo::schema::ColumnType;
+using silo::schema::TableName;
 using silo::schema::TableSchema;
 using silo::storage::column::SequenceColumn;
 using silo::storage::column::ZstdCompressedStringColumn;
+
+namespace silo::query_engine::operators {
+
+ZstdDecompressNode::ZstdDecompressNode(
+   QueryNodePtr child_node,
+   std::vector<ColumnMapping> column_mapping_
+)
+    : child(std::move(child_node)),
+      column_mapping(std::move(column_mapping_)) {}
+
+namespace {
 
 class ColumnToReferenceSequenceVisitor {
   public:
@@ -92,18 +101,18 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator()<ZstdComp
 }  // namespace
 
 std::vector<ZstdDecompressNode::ColumnMapping> buildDecompressColumnMapping(
-   const std::vector<schema::ColumnIdentifier>& child_schema,
-   const std::map<schema::ColumnIdentifier, std::shared_ptr<schema::TableSchema>>& table_schemas
+   const std::vector<ColumnIdentifier>& child_schema,
+   const std::map<ColumnIdentifier, std::shared_ptr<TableSchema>>& table_schemas
 ) {
    std::vector<ZstdDecompressNode::ColumnMapping> result;
    for (const auto& input_col : child_schema) {
       if (auto iter = table_schemas.find(input_col); iter != table_schemas.end()) {
-         auto reference = silo::storage::column::visit(
+         auto reference = storage::column::visit(
             input_col.type, ColumnToReferenceSequenceVisitor{}, *iter->second, input_col
          );
          result.push_back(
             {.input = input_col,
-             .output = {.name = input_col.name, .type = schema::ColumnType::STRING},
+             .output = {.name = input_col.name, .type = ColumnType::STRING},
              .reference = std::move(reference).value()}
          );
       }
@@ -111,16 +120,9 @@ std::vector<ZstdDecompressNode::ColumnMapping> buildDecompressColumnMapping(
    return result;
 }
 
-ZstdDecompressNode::ZstdDecompressNode(
-   QueryNodePtr child_node,
-   std::vector<ColumnMapping> column_mapping_
-)
-    : child(std::move(child_node)),
-      column_mapping(std::move(column_mapping_)) {}
-
-std::vector<schema::ColumnIdentifier> ZstdDecompressNode::getOutputSchema() const {
+std::vector<ColumnIdentifier> ZstdDecompressNode::getOutputSchema() const {
    auto child_schema = child->getOutputSchema();
-   std::vector<schema::ColumnIdentifier> output;
+   std::vector<ColumnIdentifier> output;
    output.reserve(child_schema.size());
    for (const auto& child_col : child_schema) {
       auto it = std::ranges::find_if(column_mapping, [&](const auto& mapping) {
@@ -132,7 +134,7 @@ std::vector<schema::ColumnIdentifier> ZstdDecompressNode::getOutputSchema() cons
 }
 
 arrow::Result<PartialArrowPlan> ZstdDecompressNode::toQueryPlan(
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
+   const std::map<TableName, std::shared_ptr<storage::Table>>& tables,
    const config::QueryOptions& query_options
 ) const {
    ARROW_ASSIGN_OR_RAISE(auto plan, child->toQueryPlan(tables, query_options));

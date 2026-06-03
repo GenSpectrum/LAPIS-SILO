@@ -19,8 +19,6 @@ namespace expressions = silo::query_engine::filter::expressions;
 
 namespace {
 
-using Tables = std::map<silo::schema::TableName, std::shared_ptr<silo::storage::Table>>;
-
 std::shared_ptr<silo::storage::Table> makeTable() {
    using silo::schema::ColumnIdentifier;
    using silo::schema::ColumnType;
@@ -41,18 +39,6 @@ std::unique_ptr<expressions::Expression> makeDummyFilter() {
 
 // --- FilterNode(TableScanNode) ---
 
-TEST(FilterPushdownPass, pushesFilterIntoTableScanNode) {
-   auto table = makeTable();
-   auto scan = std::make_unique<operators::TableScanNode>(
-      table, makeDummyFilter(), std::vector<silo::schema::ColumnIdentifier>{}
-   );
-   auto filter_node = std::make_unique<operators::FilterNode>(std::move(scan), makeDummyFilter());
-
-   auto result = FilterPushdownPass::run(std::move(filter_node));
-
-   EXPECT_NE(dynamic_cast<operators::TableScanNode*>(result.get()), nullptr);
-}
-
 TEST(FilterPushdownPass, eliminatesFilterNodeAboveTableScan) {
    auto table = makeTable();
    auto scan = std::make_unique<operators::TableScanNode>(
@@ -64,6 +50,8 @@ TEST(FilterPushdownPass, eliminatesFilterNodeAboveTableScan) {
 
    // The FilterNode is gone; result is the TableScanNode directly.
    EXPECT_EQ(result->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(result.get());
+   EXPECT_EQ(table_scan->filter->toString(), "And(And(True & True))");
 }
 
 }  // namespace
