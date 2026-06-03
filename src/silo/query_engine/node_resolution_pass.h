@@ -24,17 +24,14 @@ class ZstdDecompressNode;
 
 namespace silo::query_engine {
 
-/// Optimization pass that converts abstract placeholder nodes into concrete, table-backed nodes.
-/// - ScanNode → TableScanNode (with True filter)
-/// - FilterNode(ScanNode) → TableScanNode (with filter embedded, FilterNode eliminated)
+/// Optimization pass that resolves placeholder nodes into concrete, table-backed nodes.
 /// - UnresolvedMutationsNode → MutationsNode
 /// - UnresolvedInsertionsNode → InsertionsNode
 /// - UnresolvedPhyloSubtreeNode → PhyloSubtreeNode
 /// - UnresolvedMostRecentCommonAncestorNode → MostRecentCommonAncestorNode
+/// - AggregateNode(COUNT(*), TableScanNode) → CountFilterNode
 class NodeResolutionPass {
   public:
-   using Tables = std::map<schema::TableName, std::shared_ptr<storage::Table>>;
-
    static operators::QueryNodePtr run(operators::QueryNodePtr node);
 
    operators::QueryNodePtr operator()(operators::FilterNode& node);

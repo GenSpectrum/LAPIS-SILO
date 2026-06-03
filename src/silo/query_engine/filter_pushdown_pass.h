@@ -29,11 +29,11 @@ class ZstdDecompressNode;
 namespace silo::query_engine {
 
 /// Optimization pass that eliminates FilterNodes by pushing their filter expression
-/// into the child node's filter field. Runs after NodeResolutionPass.
+/// into the child node's filter field
 class FilterPushdownPass {
-  public:
    std::vector<std::unique_ptr<filter::expressions::Expression>> current_filters;
 
+  public:
    static operators::QueryNodePtr run(operators::QueryNodePtr node);
 
    operators::QueryNodePtr operator()(operators::FilterNode& node);
