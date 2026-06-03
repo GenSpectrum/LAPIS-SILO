@@ -354,6 +354,48 @@ TEST(AstToQueryProject, fieldNotInSchemaThrows) {
    );
 }
 
+// --- map ---
+
+TEST(AstToQueryMap, expressionsNotRecordLiteralThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() { (void)parseAndConvertToQueryTree("default.map(id)", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("map() expects a record of assignments like {x := 3, y := age}")
+      )
+   );
+}
+
+TEST(AstToQueryMap, emptyBracesAreNotARecordLiteral) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() { (void)parseAndConvertToQueryTree("default.map({})", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("map() expects a record of assignments like {x := 3, y := age}")
+      )
+   );
+}
+
+TEST(AstToQueryMap, fieldReferenceRejectedForNow) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() { (void)parseAndConvertToQueryTree("default.map({x := id})", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("map() field 'x' must be assigned a literal value")
+      )
+   );
+}
+
+TEST(AstToQueryMap, unsupportedValueThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() { (void)parseAndConvertToQueryTree("default.map({x := count()})", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("map() field 'x' must be assigned a literal value")
+      )
+   );
+}
+
 // --- orderBy ---
 
 TEST(AstToQueryOrderBy, fieldUnsupportedTypeThrows) {

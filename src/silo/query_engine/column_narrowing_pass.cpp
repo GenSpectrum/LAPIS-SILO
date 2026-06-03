@@ -4,6 +4,7 @@
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
+#include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
@@ -102,6 +103,31 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::ZstdDecompres
       return std::move(node.child);
    }
    node.column_mapping = new_column_mapping;
+   return nullptr;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node) {
+   // A map keeps all of its child's columns and adds (or replaces) some via
+   // literal assignments. Literal assignments need nothing from the child, so
+   // only the required pass-through columns must still be provided by it.
+   RequiredColumns child_required;
+   for (const auto& required_column : required) {
+      const bool produced_by_map =
+         std::ranges::any_of(node.assignments, [&](const auto& assignment) {
+            return assignment.output_column.name == required_column.name;
+         });
+      if (!produced_by_map) {
+         child_required.push_back(required_column);
+      }
+   }
+   if (child_required.empty()) {
+      auto child_schema = node.child->getOutputSchema();
+      SILO_ASSERT(!child_schema.empty());
+      child_required.push_back(child_schema.front());
+   }
+   required = std::move(child_required);
+   applyToChild(node.child, *this);
    return nullptr;
 }
 

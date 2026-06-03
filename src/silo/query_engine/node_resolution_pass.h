@@ -10,6 +10,7 @@
 namespace silo::query_engine::operators {
 class AggregateNode;
 class ProjectNode;
+class MapNode;
 class OrderByNode;
 class FetchNode;
 class FilterNode;
@@ -37,6 +38,7 @@ class NodeResolutionPass {
    operators::QueryNodePtr operator()(operators::FilterNode& node);
    operators::QueryNodePtr operator()(operators::AggregateNode& node);
    operators::QueryNodePtr operator()(operators::ProjectNode& node);
+   operators::QueryNodePtr operator()(operators::MapNode& node);
    operators::QueryNodePtr operator()(operators::OrderByNode& node);
    operators::QueryNodePtr operator()(operators::FetchNode& node);
    operators::QueryNodePtr operator()(operators::ZstdDecompressNode& node);

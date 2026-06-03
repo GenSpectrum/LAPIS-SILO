@@ -72,7 +72,7 @@ size_t ThreeMerHash<SymbolType>::operator()(
 template <typename SymbolType>
 std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::searchWithThreeMerIndex(
    const std::vector<std::array<typename SymbolType::Symbol, 3>>& search_three_mers,
-   const re2::RE2& search_pattern
+   const RE2& search_pattern
 ) const {
    // We perform a k-way intersection between the candidate sets of insertion ids.
    // The candidate insertions are selected based on the 3-mers within the search pattern.
@@ -118,7 +118,7 @@ std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::searchWithThree
       if (next_insertion_id != current_insertion_id) {
          if (count == search_three_mers.size()) {
             const auto& insertion = insertions[current_insertion_id];
-            if (re2::RE2::FullMatch(insertion.value, search_pattern)) {
+            if (RE2::FullMatch(insertion.value, search_pattern)) {
                *result |= insertion.row_ids;
             }
          }
@@ -131,7 +131,7 @@ std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::searchWithThree
 
    if (count == search_three_mers.size()) {
       const auto& insertion = insertions[current_insertion_id];
-      if (re2::RE2::FullMatch(insertion.value, search_pattern)) {
+      if (RE2::FullMatch(insertion.value, search_pattern)) {
          *result |= insertion.row_ids;
       }
    }
@@ -141,12 +141,12 @@ std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::searchWithThree
 
 template <typename SymbolType>
 std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::searchWithRegex(
-   const re2::RE2& regex_search_pattern
+   const RE2& regex_search_pattern
 ) const {
    auto result = std::make_unique<roaring::Roaring>();
-   for (const auto& insertion : insertions) {
-      if (re2::RE2::FullMatch(insertion.value, regex_search_pattern)) {
-         *result |= insertion.row_ids;
+   for (const auto& [value, row_ids] : insertions) {
+      if (RE2::FullMatch(value, regex_search_pattern)) {
+         *result |= row_ids;
       }
    }
    return result;
@@ -175,7 +175,7 @@ void InsertionPosition<Nucleotide>::buildThreeMerIndex() {
          for (const Nucleotide::Symbol symbol2 : Nucleotide::SYMBOLS) {
             for (const Nucleotide::Symbol symbol3 : Nucleotide::SYMBOLS) {
                if (unique_three_mers[symbol1][symbol2][symbol3]) {
-                  const std::array<Nucleotide::Symbol, 3> tuple{symbol1, symbol2, symbol3};
+                  const std::array tuple{symbol1, symbol2, symbol3};
                   three_mer_index.emplace(tuple, InsertionIds{})
                      .first->second.push_back(insertion_id);
                }
@@ -207,7 +207,7 @@ void InsertionPosition<AminoAcid>::buildThreeMerIndex() {
          for (const AminoAcid::Symbol symbol2 : AminoAcid::SYMBOLS) {
             for (const AminoAcid::Symbol symbol3 : AminoAcid::SYMBOLS) {
                if (unique_three_mers[symbol1][symbol2][symbol3]) {
-                  const std::array<AminoAcid::Symbol, 3> tuple{symbol1, symbol2, symbol3};
+                  const std::array tuple{symbol1, symbol2, symbol3};
                   three_mer_index.emplace(tuple, InsertionIds{})
                      .first->second.push_back(insertion_id);
                }
@@ -222,7 +222,7 @@ std::unique_ptr<roaring::Roaring> InsertionPosition<SymbolType>::search(
    const std::string& search_pattern
 ) const {
    const auto search_three_mers = extractThreeMers<SymbolType>(search_pattern);
-   const re2::RE2 regex_search_pattern(search_pattern);
+   const RE2 regex_search_pattern(search_pattern);
 
    if (!search_three_mers.empty()) {
       // We can only use the ThreeMerIndex if there is at least one 3-mer in the search pattern
@@ -235,7 +235,7 @@ template <typename SymbolType>
 void InsertionIndex<SymbolType>::addLazily(
    uint32_t position_idx,
    const std::string& insertion,
-   uint32_t row_id
+   const uint32_t row_id
 ) {
    auto& insertions_at_position =
       collected_insertions

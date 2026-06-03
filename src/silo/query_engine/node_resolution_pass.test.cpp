@@ -13,6 +13,7 @@
 #include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/filter_node.h"
+#include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
@@ -60,6 +61,15 @@ operators::QueryNodePtr makeNonScanChild() {
    return std::make_unique<operators::FilterNode>(
       makeTableScan(), std::make_unique<silo::query_engine::filter::expressions::True>()
    );
+}
+
+std::vector<operators::MapNode::Assignment> makeMapAssignments() {
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
+       .expression = operators::MapNode::Int64Literal{.value = 3}}
+   );
+   return assignments;
 }
 
 // --- mutations() ---
@@ -153,6 +163,35 @@ TEST(NodeResolutionPassMostRecentCommonAncestor, onNonScanNodeThrows) {
       [&]() { (void)NodeResolutionPass::run(std::move(node)); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("mostRecentCommonAncestor() must be applied to a table scan")
+      )
+   );
+}
+
+// --- map() ---
+
+TEST(NodeResolutionPassMap, resolvesUnresolvedChildBelowMap) {
+   auto unresolved = std::make_unique<operators::UnresolvedInsertionsNode<Nucleotide>>(
+      makeTableScan(), std::vector<std::string>{}
+   );
+   auto map = std::make_unique<operators::MapNode>(std::move(unresolved), makeMapAssignments());
+
+   auto result = NodeResolutionPass::run(std::move(map));
+
+   // The MapNode is retained; its unresolved child was resolved into a concrete node.
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* resolved_map = dynamic_cast<operators::MapNode*>(result.get());
+   EXPECT_EQ(resolved_map->child->kind(), operators::NodeKind::INSERTIONS_NUCLEOTIDE);
+}
+
+TEST(NodeResolutionPassMap, propagatesChildErrorThroughMap) {
+   auto unresolved = std::make_unique<operators::UnresolvedInsertionsNode<Nucleotide>>(
+      makeNonScanChild(), std::vector<std::string>{}
+   );
+   auto map = std::make_unique<operators::MapNode>(std::move(unresolved), makeMapAssignments());
+   EXPECT_THAT(
+      [&]() { (void)NodeResolutionPass::run(std::move(map)); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("insertions() must be applied to a table scan")
       )
    );
 }

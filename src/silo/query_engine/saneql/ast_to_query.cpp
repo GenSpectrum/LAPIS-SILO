@@ -1,6 +1,7 @@
 #include "silo/query_engine/saneql/ast_to_query.h"
 
 #include <chrono>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -8,6 +9,7 @@
 #include <variant>
 #include <vector>
 
+#include <arrow/scalar.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <re2/re2.h>
@@ -45,6 +47,7 @@
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
+#include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
@@ -450,7 +453,7 @@ FilterPtr handleNOf(const BoundArguments& args) {
 }
 
 template <typename SymbolType>
-typename filter::expressions::MutationProfile<SymbolType>::Mutation parseMutationRecord(
+filter::expressions::MutationProfile<SymbolType>::Mutation parseMutationRecord(
    const ast::RecordLiteral& record
 ) {
    uint32_t position_idx = 0;
@@ -865,6 +868,78 @@ operators::QueryNodePtr handleProject(
 }
 
 namespace {
+
+using operators::MapNode;
+
+/// Parses a single `name := value` assignment of a map() record. For now only
+/// literals (int, float, string, bool) are supported as the assigned value.
+MapNode::Assignment parseMapAssignment(const ast::RecordField& field) {
+   const auto& value = *field.value;
+
+   if (std::holds_alternative<ast::IntLiteral>(value.value)) {
+      const int64_t int_value = std::get<ast::IntLiteral>(value.value).value;
+      return {
+         .output_column = {.name = field.name, .type = schema::ColumnType::INT64},
+         .expression = MapNode::Int64Literal{.value = int_value}
+      };
+   }
+   if (std::holds_alternative<ast::FloatLiteral>(value.value)) {
+      const double float_value = std::get<ast::FloatLiteral>(value.value).value;
+      return {
+         .output_column = {.name = field.name, .type = schema::ColumnType::FLOAT},
+         .expression = MapNode::FloatLiteral{.value = float_value}
+      };
+   }
+   if (std::holds_alternative<ast::StringLiteral>(value.value)) {
+      const std::string string_value = std::get<ast::StringLiteral>(value.value).value;
+      return {
+         .output_column = {.name = field.name, .type = schema::ColumnType::STRING},
+         .expression = MapNode::StringLiteral{.value = string_value}
+      };
+   }
+   if (std::holds_alternative<ast::BoolLiteral>(value.value)) {
+      const bool bool_value = std::get<ast::BoolLiteral>(value.value).value;
+      return {
+         .output_column = {.name = field.name, .type = schema::ColumnType::BOOL},
+         .expression = MapNode::BoolLiteral{.value = bool_value}
+      };
+   }
+
+   throw IllegalQueryException(
+      "map() field '{}' must be assigned a literal value (int, float, string, or bool) at {}:{}",
+      field.name,
+      value.location.line,
+      value.location.column
+   );
+}
+
+}  // namespace
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr handleMap(
+   const BoundArguments& args,
+   const Tables& tables,
+   const ChildConverter& convert_child
+) {
+   const auto& expressions_argument = args.at("expressions");
+   CHECK_SILO_QUERY(
+      std::holds_alternative<ast::RecordLiteral>(expressions_argument.value),
+      "map() expects a record of assignments like {x := 3, y := age}"
+   );
+   const auto& record = std::get<ast::RecordLiteral>(expressions_argument.value);
+   CHECK_SILO_QUERY(!record.fields.empty(), "map() requires at least one assignment");
+
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.reserve(record.fields.size());
+   for (const auto& field : record.fields) {
+      assignments.push_back(parseMapAssignment(field));
+   }
+
+   auto child = convert_child(args.at("input"), tables);
+   return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
+}
+
+namespace {
 constexpr std::string_view NUCLEOTIDE_MUTATIONS_FUNCTION_NAME = "mutations";
 constexpr std::string_view AMINO_ACID_MUTATIONS_FUNCTION_NAME = "aminoAcidMutations";
 }  // namespace
@@ -1095,6 +1170,8 @@ FunctionRegistry::FunctionRegistry() {
    );
 
    registerFunction("project", {{pos("input"), pos("fields")}}, handleProject);
+
+   registerFunction("map", {{pos("input"), pos("expressions")}}, handleMap);
 
    auto mutations_sig = FunctionSignature{
       {pos("input"), named("minProportion"), named("sequenceNames", false), named("fields", false)}

@@ -7,6 +7,7 @@ namespace silo::query_engine::operators {
 class AggregateNode;
 class FetchNode;
 class FilterNode;
+class MapNode;
 class OrderByNode;
 class ProjectNode;
 class TableScanNode;
@@ -41,6 +42,7 @@ class FilterPushdownPass {
    operators::QueryNodePtr operator()(operators::OrderByNode& node);
    operators::QueryNodePtr operator()(operators::FetchNode& node);
    operators::QueryNodePtr operator()(operators::ProjectNode& node);
+   operators::QueryNodePtr operator()(operators::MapNode& node);
    operators::QueryNodePtr operator()(operators::ZstdDecompressNode& node);
 
    operators::QueryNodePtr operator()(operators::TableScanNode& node);
