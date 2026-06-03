@@ -428,6 +428,29 @@ TEST(AstToQueryBuildScanNode, tableNotFoundThrows) {
    );
 }
 
+// --- nOf ---
+
+TEST(AstToQueryNOf, countNotIntegerThrows) {
+   EXPECT_THAT(
+      []() { (void)parseFilter("nOf('two', {country = 'Switzerland'})"); },
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("expected integer literal"))
+   );
+}
+
+TEST(AstToQueryNOf, childrenNotSetLiteralThrows) {
+   EXPECT_THAT(
+      []() { (void)parseFilter("nOf(1, country = 'Switzerland')"); },
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("expected set literal"))
+   );
+}
+
+TEST(AstToQueryNOf, matchExactlyNotBoolThrows) {
+   EXPECT_THAT(
+      []() { (void)parseFilter("nOf(1, {country = 'Switzerland'}, matchExactly:='yes')"); },
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("expected boolean literal"))
+   );
+}
+
 // --- convertExpression ---
 
 TEST(AstToQueryConvertExpression, nonIdentifierNonFunctionCallThrows) {
