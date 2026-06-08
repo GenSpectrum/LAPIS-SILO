@@ -17,4 +17,10 @@ This:
 4. Builds the test binary.
 5. Runs the save/reload test to produce a new serialized state directory.
 
-After it finishes, `git add` the new directory under `testBaseData/siloSerializedState/` and commit.
+After it finishes, `git add` the new directory under `testBaseData/siloSerializedState/` and commit using:
+
+```text
+feat(serialization): bump SILO serialization version to <new version>
+```
+
+This ensures release-please includes a clear serialization-version note in the release changelog.

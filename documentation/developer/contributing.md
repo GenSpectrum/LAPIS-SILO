@@ -218,6 +218,10 @@ resolves #123
 - Squash-merging on GitHub and adding the PR number to the commit message
   (useful for smaller changes that don't have a corresponding issue).
 
+When bumping `src/silo/common/serialization_version.txt`, use a commit message like
+`feat(serialization): bump SILO serialization version to <new version>` so release-please adds
+an explicit serialization-version note to the generated release notes.
+
 We use [commitlint](https://commitlint.js.org/) to enforce the commit message format.
 To use it locally, run `npm install`.
 
