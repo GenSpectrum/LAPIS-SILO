@@ -23,9 +23,8 @@ TEST(CommandLineArguments, correctUnixOptionString) {
       "--ab2c"
    );
    ASSERT_EQ(
-      CommandLineArguments::configKeyPathToString(
-         ConfigKeyPath::tryFrom({{"some", "camel", "case"}}).value()
-      ),
+      CommandLineArguments::configKeyPathToString(ConfigKeyPath::tryFrom({{"some", "camel", "case"}}
+      ).value()),
       "--some-camel-case"
    );
    ASSERT_EQ(

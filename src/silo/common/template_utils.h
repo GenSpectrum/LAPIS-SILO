@@ -6,7 +6,8 @@ namespace silo {
 
 template <
    size_t N,
-   template <typename, typename> typename Container,
+   template <typename, typename>
+   typename Container,
    typename ContainerArg,
    typename Base>
 struct NestedContainer {
