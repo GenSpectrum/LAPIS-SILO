@@ -96,17 +96,6 @@ bool YAML::convert<silo::config::DatabaseSchema>::decode(
 ) {
    schema.instance_name = node["instanceName"].as<std::string>();
    schema.primary_key = node["primaryKey"].as<std::string>();
-   // DEPRECATED: TODO(#737) fully remove them after the next major release
-   if (node["dateToSortBy"].IsDefined()) {
-      SPDLOG_WARN(
-         "DatabaseConfig field `dateToSortBy` is deprecated and will be removed in future releases."
-      );
-   }
-   if (node["partitionBy"].IsDefined()) {
-      SPDLOG_WARN(
-         "DatabaseConfig field `partitionBy` is deprecated and will be removed in future releases."
-      );
-   }
 
    if (!node["metadata"].IsSequence()) {
       return false;

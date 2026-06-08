@@ -33,14 +33,11 @@ TEST(PreprocessingConfig, shouldReadConfigWithOverriddenDefaults) {
    config.overwriteFrom(YamlFile::fromYAML("inline", R"(
 inputDirectory: "./testBaseData/exampleDataset/"
 outputDirectory: "./output/custom/"
-intermediateResultsDirectory: "./output/overriddenTemp/"
 ndjsonInputFilename: "input_file.ndjson"
 lineageDefinitionFilenames:
   - "lineage_definition.yaml"
 phyloTreeFilename: "phylogenetic_tree.yaml"
-referenceGenomeFilename: "reference_genomes.json"
-preprocessingDatabaseLocation: "preprocessing.duckdb"
-duckdbMemoryLimitInG: 8)")
+referenceGenomeFilename: "reference_genomes.json")")
                            .verify(PreprocessingConfig::getConfigSpecification()));
 
    const std::filesystem::path input_directory = "./testBaseData/exampleDataset/";
