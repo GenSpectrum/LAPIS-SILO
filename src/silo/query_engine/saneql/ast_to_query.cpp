@@ -15,33 +15,33 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/lineage_tree.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/filter/expressions/and.h"
-#include "silo/query_engine/filter/expressions/bool_equals.h"
-#include "silo/query_engine/filter/expressions/date_between.h"
-#include "silo/query_engine/filter/expressions/date_equals.h"
-#include "silo/query_engine/filter/expressions/exact.h"
-#include "silo/query_engine/filter/expressions/expression.h"
-#include "silo/query_engine/filter/expressions/false.h"
-#include "silo/query_engine/filter/expressions/float_between.h"
-#include "silo/query_engine/filter/expressions/float_equals.h"
-#include "silo/query_engine/filter/expressions/has_mutation.h"
-#include "silo/query_engine/filter/expressions/insertion_contains.h"
-#include "silo/query_engine/filter/expressions/int_between.h"
-#include "silo/query_engine/filter/expressions/int_equals.h"
-#include "silo/query_engine/filter/expressions/is_null.h"
-#include "silo/query_engine/filter/expressions/lineage_filter.h"
-#include "silo/query_engine/filter/expressions/literal.h"
-#include "silo/query_engine/filter/expressions/maybe.h"
-#include "silo/query_engine/filter/expressions/mutation_profile.h"
-#include "silo/query_engine/filter/expressions/negation.h"
-#include "silo/query_engine/filter/expressions/nof.h"
-#include "silo/query_engine/filter/expressions/or.h"
-#include "silo/query_engine/filter/expressions/phylo_child_filter.h"
-#include "silo/query_engine/filter/expressions/string_equals.h"
-#include "silo/query_engine/filter/expressions/string_in_set.h"
-#include "silo/query_engine/filter/expressions/string_search.h"
-#include "silo/query_engine/filter/expressions/symbol_equals.h"
-#include "silo/query_engine/filter/expressions/true.h"
+#include "silo/query_engine/expressions/and.h"
+#include "silo/query_engine/expressions/bool_equals.h"
+#include "silo/query_engine/expressions/date_between.h"
+#include "silo/query_engine/expressions/date_equals.h"
+#include "silo/query_engine/expressions/exact.h"
+#include "silo/query_engine/expressions/expression.h"
+#include "silo/query_engine/expressions/false.h"
+#include "silo/query_engine/expressions/float_between.h"
+#include "silo/query_engine/expressions/float_equals.h"
+#include "silo/query_engine/expressions/has_mutation.h"
+#include "silo/query_engine/expressions/insertion_contains.h"
+#include "silo/query_engine/expressions/int_between.h"
+#include "silo/query_engine/expressions/int_equals.h"
+#include "silo/query_engine/expressions/is_null.h"
+#include "silo/query_engine/expressions/lineage_filter.h"
+#include "silo/query_engine/expressions/literal.h"
+#include "silo/query_engine/expressions/maybe.h"
+#include "silo/query_engine/expressions/mutation_profile.h"
+#include "silo/query_engine/expressions/negation.h"
+#include "silo/query_engine/expressions/nof.h"
+#include "silo/query_engine/expressions/or.h"
+#include "silo/query_engine/expressions/phylo_child_filter.h"
+#include "silo/query_engine/expressions/string_equals.h"
+#include "silo/query_engine/expressions/string_in_set.h"
+#include "silo/query_engine/expressions/string_search.h"
+#include "silo/query_engine/expressions/symbol_equals.h"
+#include "silo/query_engine/expressions/true.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
@@ -66,32 +66,28 @@ namespace {
 
 FilterPtr convertEqualsToFilter(const std::string& column_name, const ast::Expression& value_expr) {
    if (isNullLiteral(value_expr)) {
-      return std::make_unique<filter::expressions::IsNull>(column_name);
+      return std::make_unique<expressions::IsNull>(column_name);
    }
    if (isStringLiteral(value_expr)) {
-      return std::make_unique<filter::expressions::StringEquals>(
+      return std::make_unique<expressions::StringEquals>(
          column_name, extractStringLiteral(value_expr)
       );
    }
    if (isIntLiteral(value_expr)) {
-      return std::make_unique<filter::expressions::IntEquals>(
-         column_name, extractInt32Literal(value_expr)
-      );
+      return std::make_unique<expressions::IntEquals>(column_name, extractInt32Literal(value_expr));
    }
    if (isFloatLiteral(value_expr)) {
-      return std::make_unique<filter::expressions::FloatEquals>(
+      return std::make_unique<expressions::FloatEquals>(
          column_name, extractNumericAsFloatLiteral(value_expr)
       );
    }
    if (isBoolLiteral(value_expr)) {
-      return std::make_unique<filter::expressions::BoolEquals>(
+      return std::make_unique<expressions::BoolEquals>(
          column_name, std::get<ast::BoolLiteral>(value_expr.value).value
       );
    }
    if (isDateExpression(value_expr)) {
-      return std::make_unique<filter::expressions::DateEquals>(
-         column_name, extractDateValue(value_expr)
-      );
+      return std::make_unique<expressions::DateEquals>(column_name, extractDateValue(value_expr));
    }
    throw IllegalQueryException(
       "unsupported value type in equality at {}:{}",
@@ -109,11 +105,11 @@ FilterPtr convertIntComparison(
       case ast::BinaryOp::LESS_THAN:
          throw IllegalQueryException("less than is not implemented for integer expressions");
       case ast::BinaryOp::LESS_EQUAL:
-         return std::make_unique<filter::expressions::IntBetween>(column_name, std::nullopt, value);
+         return std::make_unique<expressions::IntBetween>(column_name, std::nullopt, value);
       case ast::BinaryOp::GREATER_THAN:
          throw IllegalQueryException("greater than is not implemented for integer expressions");
       case ast::BinaryOp::GREATER_EQUAL:
-         return std::make_unique<filter::expressions::IntBetween>(column_name, value, std::nullopt);
+         return std::make_unique<expressions::IntBetween>(column_name, value, std::nullopt);
       default:
          throw IllegalQueryException("unexpected operator for integer comparison");
    }
@@ -126,17 +122,13 @@ FilterPtr convertFloatComparison(
 ) {
    switch (binary_op) {
       case ast::BinaryOp::LESS_THAN:
-         return std::make_unique<filter::expressions::FloatBetween>(
-            column_name, std::nullopt, value
-         );
+         return std::make_unique<expressions::FloatBetween>(column_name, std::nullopt, value);
       case ast::BinaryOp::LESS_EQUAL:
          throw IllegalQueryException("less equal is not implemented for float expressions");
       case ast::BinaryOp::GREATER_THAN:
          throw IllegalQueryException("greater than is not implemented for float expressions");
       case ast::BinaryOp::GREATER_EQUAL:
-         return std::make_unique<filter::expressions::FloatBetween>(
-            column_name, value, std::nullopt
-         );
+         return std::make_unique<expressions::FloatBetween>(column_name, value, std::nullopt);
       default:
          throw IllegalQueryException("unexpected operator for float comparison");
    }
@@ -152,15 +144,11 @@ FilterPtr convertDateComparison(
       case ast::BinaryOp::LESS_THAN:
          throw IllegalQueryException("less than is not implemented for date expressions");
       case ast::BinaryOp::LESS_EQUAL:
-         return std::make_unique<filter::expressions::DateBetween>(
-            column_name, std::nullopt, date_val
-         );
+         return std::make_unique<expressions::DateBetween>(column_name, std::nullopt, date_val);
       case ast::BinaryOp::GREATER_THAN:
          throw IllegalQueryException("greater than is not implemented for date expressions");
       case ast::BinaryOp::GREATER_EQUAL:
-         return std::make_unique<filter::expressions::DateBetween>(
-            column_name, date_val, std::nullopt
-         );
+         return std::make_unique<expressions::DateBetween>(column_name, date_val, std::nullopt);
       default:
          throw IllegalQueryException("unexpected operator for date comparison");
    }
@@ -192,16 +180,16 @@ FilterPtr convertComparisonToFilter(
 FilterPtr convertBinaryExprToFilter(const ast::BinaryExpr& bin_expr) {
    switch (bin_expr.op) {
       case ast::BinaryOp::AND: {
-         filter::expressions::ExpressionVector children;
+         expressions::ExpressionVector children;
          children.push_back(convertToFilter(*bin_expr.left));
          children.push_back(convertToFilter(*bin_expr.right));
-         return std::make_unique<filter::expressions::And>(std::move(children));
+         return std::make_unique<expressions::And>(std::move(children));
       }
       case ast::BinaryOp::OR: {
-         filter::expressions::ExpressionVector children;
+         expressions::ExpressionVector children;
          children.push_back(convertToFilter(*bin_expr.left));
          children.push_back(convertToFilter(*bin_expr.right));
-         return std::make_unique<filter::expressions::Or>(std::move(children));
+         return std::make_unique<expressions::Or>(std::move(children));
       }
       case ast::BinaryOp::EQUALS: {
          if (std::holds_alternative<ast::Identifier>(bin_expr.left->value)) {
@@ -218,12 +206,12 @@ FilterPtr convertBinaryExprToFilter(const ast::BinaryExpr& bin_expr) {
       }
       case ast::BinaryOp::NOT_EQUALS: {
          if (std::holds_alternative<ast::Identifier>(bin_expr.left->value)) {
-            return std::make_unique<filter::expressions::Negation>(
+            return std::make_unique<expressions::Negation>(
                convertEqualsToFilter(extractIdentifierName(*bin_expr.left), *bin_expr.right)
             );
          }
          if (std::holds_alternative<ast::Identifier>(bin_expr.right->value)) {
-            return std::make_unique<filter::expressions::Negation>(
+            return std::make_unique<expressions::Negation>(
                convertEqualsToFilter(extractIdentifierName(*bin_expr.right), *bin_expr.left)
             );
          }
@@ -261,7 +249,7 @@ FilterPtr handleBetween(const BoundArguments& args) {
    const auto& to_expr = args.at("to");
 
    if (isDateExpression(from_expr) || isDateExpression(to_expr)) {
-      return std::make_unique<filter::expressions::DateBetween>(
+      return std::make_unique<expressions::DateBetween>(
          column_name, extractOptionalDateValue(from_expr), extractOptionalDateValue(to_expr)
       );
    }
@@ -274,7 +262,7 @@ FilterPtr handleBetween(const BoundArguments& args) {
       if (!isNullLiteral(to_expr)) {
          to_val = extractNumericAsFloatLiteral(to_expr);
       }
-      return std::make_unique<filter::expressions::FloatBetween>(column_name, from_val, to_val);
+      return std::make_unique<expressions::FloatBetween>(column_name, from_val, to_val);
    }
    if (isIntLiteral(from_expr) || isIntLiteral(to_expr)) {
       std::optional<int32_t> from_val;
@@ -285,7 +273,7 @@ FilterPtr handleBetween(const BoundArguments& args) {
       if (!isNullLiteral(to_expr)) {
          to_val = extractInt32Literal(to_expr);
       }
-      return std::make_unique<filter::expressions::IntBetween>(column_name, from_val, to_val);
+      return std::make_unique<expressions::IntBetween>(column_name, from_val, to_val);
    }
    throw IllegalQueryException(
       "Could not infer type of between expression. From-value or to-value needs to be a typed "
@@ -309,16 +297,16 @@ FilterPtr handleIn(const BoundArguments& args) {
    for (const auto& elem : set.elements) {
       values.insert(extractStringLiteral(*elem));
    }
-   return std::make_unique<filter::expressions::StringInSet>(column_name, std::move(values));
+   return std::make_unique<expressions::StringInSet>(column_name, std::move(values));
 }
 
 FilterPtr handleIsNull(const BoundArguments& args) {
-   return std::make_unique<filter::expressions::IsNull>(extractIdentifierName(args.at("column")));
+   return std::make_unique<expressions::IsNull>(extractIdentifierName(args.at("column")));
 }
 
 FilterPtr handleIsNotNull(const BoundArguments& args) {
-   return std::make_unique<filter::expressions::Negation>(
-      std::make_unique<filter::expressions::IsNull>(extractIdentifierName(args.at("column")))
+   return std::make_unique<expressions::Negation>(
+      std::make_unique<expressions::IsNull>(extractIdentifierName(args.at("column")))
    );
 }
 
@@ -353,13 +341,11 @@ FilterPtr handleLineage(const BoundArguments& args) {
          );
       }
    }
-   return std::make_unique<filter::expressions::LineageFilter>(
-      column_name, lineage_value, sublineage_mode
-   );
+   return std::make_unique<expressions::LineageFilter>(column_name, lineage_value, sublineage_mode);
 }
 
 FilterPtr handlePhyloDescendantOf(const BoundArguments& args) {
-   return std::make_unique<filter::expressions::PhyloChildFilter>(
+   return std::make_unique<expressions::PhyloChildFilter>(
       extractIdentifierName(args.at("column")), extractStringLiteral(args.at("node"))
    );
 }
@@ -374,7 +360,7 @@ FilterPtr handleLike(const BoundArguments& args) {
       "error '{}'. See https://github.com/google/re2/wiki/Syntax for a Syntax specification.",
       regex->error()
    );
-   return std::make_unique<filter::expressions::StringSearch>(column_name, std::move(regex));
+   return std::make_unique<expressions::StringSearch>(column_name, std::move(regex));
 }
 
 template <typename SymbolType>
@@ -389,16 +375,16 @@ FilterPtr handleSymbolEquals(const BoundArguments& args) {
    auto sequence_name = args.getOptionalString("sequenceName");
    char symbol_char = symbol_str[0];
    if (symbol_char == '.') {
-      return std::make_unique<filter::expressions::SymbolEquals<SymbolType>>(
-         sequence_name, position_idx, filter::expressions::SymbolOrDot<SymbolType>::dot()
+      return std::make_unique<expressions::SymbolEquals<SymbolType>>(
+         sequence_name, position_idx, expressions::SymbolOrDot<SymbolType>::dot()
       );
    }
    auto symbol = SymbolType::charToSymbol(symbol_char);
    CHECK_SILO_QUERY(
       symbol.has_value(), "{}() invalid symbol '{}'", args.functionName(), symbol_char
    );
-   return std::make_unique<filter::expressions::SymbolEquals<SymbolType>>(
-      sequence_name, position_idx, filter::expressions::SymbolOrDot<SymbolType>(symbol.value())
+   return std::make_unique<expressions::SymbolEquals<SymbolType>>(
+      sequence_name, position_idx, expressions::SymbolOrDot<SymbolType>(symbol.value())
    );
 }
 
@@ -407,7 +393,7 @@ FilterPtr handleHasMutation(const BoundArguments& args) {
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_SILO_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
    auto sequence_name = args.getOptionalString("sequenceName");
-   return std::make_unique<filter::expressions::HasMutation<SymbolType>>(
+   return std::make_unique<expressions::HasMutation<SymbolType>>(
       std::move(sequence_name), position - 1
    );
 }
@@ -421,17 +407,17 @@ FilterPtr handleInsertionContains(const BoundArguments& args) {
       "The field 'value' in an InsertionContains expression must not be an empty string"
    );
    auto sequence_name = args.getOptionalString("sequenceName");
-   return std::make_unique<filter::expressions::InsertionContains<SymbolType>>(
+   return std::make_unique<expressions::InsertionContains<SymbolType>>(
       sequence_name, position, std::move(value)
    );
 }
 
 FilterPtr handleExact(const BoundArguments& args) {
-   return std::make_unique<filter::expressions::Exact>(convertToFilter(args.at("child")));
+   return std::make_unique<expressions::Exact>(convertToFilter(args.at("child")));
 }
 
 FilterPtr handleMaybe(const BoundArguments& args) {
-   return std::make_unique<filter::expressions::Maybe>(convertToFilter(args.at("child")));
+   return std::make_unique<expressions::Maybe>(convertToFilter(args.at("child")));
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -442,17 +428,17 @@ FilterPtr handleNOf(const BoundArguments& args) {
       match_exactly = extractBoolLiteral(*expr);
    }
    const auto& children_set = extractSetLiteral(args.at("children"));
-   filter::expressions::ExpressionVector children;
+   expressions::ExpressionVector children;
    for (const auto& child_expr : children_set.elements) {
       children.push_back(convertToFilter(*child_expr));
    }
-   return std::make_unique<filter::expressions::NOf>(
+   return std::make_unique<expressions::NOf>(
       std::move(children), number_of_matchers, match_exactly
    );
 }
 
 template <typename SymbolType>
-filter::expressions::MutationProfile<SymbolType>::Mutation parseMutationRecord(
+expressions::MutationProfile<SymbolType>::Mutation parseMutationRecord(
    const ast::RecordLiteral& record
 ) {
    uint32_t position_idx = 0;
@@ -504,10 +490,10 @@ filter::expressions::MutationProfile<SymbolType>::Mutation parseMutationRecord(
 }
 
 template <typename SymbolType>
-std::vector<typename filter::expressions::MutationProfile<SymbolType>::Mutation> parseMutationList(
+std::vector<typename expressions::MutationProfile<SymbolType>::Mutation> parseMutationList(
    const ast::SetLiteral& mutations_set
 ) {
-   using MP = filter::expressions::MutationProfile<SymbolType>;
+   using MP = expressions::MutationProfile<SymbolType>;
    std::vector<typename MP::Mutation> parsed_mutations;
    for (const auto& elem : mutations_set.elements) {
       CHECK_SILO_QUERY(
@@ -542,7 +528,7 @@ FilterPtr handleMutationProfile(const BoundArguments& args) {
       input_count
    );
 
-   using MP = filter::expressions::MutationProfile<SymbolType>;
+   using MP = expressions::MutationProfile<SymbolType>;
 
    if (query_seq_expr != nullptr) {
       return std::make_unique<MP>(
@@ -573,7 +559,7 @@ FilterPtr handleMutationProfile(const BoundArguments& args) {
 
 }  // namespace
 
-std::unique_ptr<filter::expressions::Expression> convertToFilter(const ast::Expression& ast) {
+std::unique_ptr<expressions::Expression> convertToFilter(const ast::Expression& ast) {
    return std::visit(
       [&](const auto& node) -> FilterPtr {
          using T = std::decay_t<decltype(node)>;
@@ -581,12 +567,12 @@ std::unique_ptr<filter::expressions::Expression> convertToFilter(const ast::Expr
          if constexpr (std::is_same_v<T, ast::BinaryExpr>) {
             return convertBinaryExprToFilter(node);
          } else if constexpr (std::is_same_v<T, ast::UnaryNotExpr>) {
-            return std::make_unique<filter::expressions::Negation>(convertToFilter(*node.operand));
+            return std::make_unique<expressions::Negation>(convertToFilter(*node.operand));
          } else if constexpr (std::is_same_v<T, ast::BoolLiteral>) {
             if (node.value) {
-               return std::make_unique<filter::expressions::True>();
+               return std::make_unique<expressions::True>();
             }
-            return std::make_unique<filter::expressions::False>();
+            return std::make_unique<expressions::False>();
          } else if constexpr (std::is_same_v<T, ast::FunctionCall>) {
             const auto* entry = ScalarFunctionRegistry::instance().findFunction(node.function_name);
             CHECK_SILO_QUERY(entry != nullptr, "unknown scalar function '{}'", node.function_name);
@@ -807,7 +793,7 @@ operators::QueryNodePtr buildScanNode(
    const auto table_schema = iter->second->schema;
    std::vector<schema::ColumnIdentifier> fields = iter->second->schema->getColumnIdentifiers();
    auto table_scan = std::make_unique<operators::TableScanNode>(
-      iter->second, std::make_unique<filter::expressions::True>(), std::move(fields)
+      iter->second, std::make_unique<expressions::True>(), std::move(fields)
    );
    return wrapWithDecompressIfNeeded(std::move(table_scan), table_schema);
 }
@@ -879,28 +865,28 @@ MapNode::Assignment parseMapAssignment(const ast::RecordField& field) {
       const int64_t int_value = std::get<ast::IntLiteral>(value).value;
       return {
          .output_column = {.name = field.name, .type = schema::ColumnType::INT64},
-         .expression = std::make_unique<filter::expressions::Int64Literal>(int_value)
+         .expression = std::make_unique<expressions::Int64Literal>(int_value)
       };
    }
    if (std::holds_alternative<ast::FloatLiteral>(value)) {
       const double float_value = std::get<ast::FloatLiteral>(value).value;
       return {
          .output_column = {.name = field.name, .type = schema::ColumnType::FLOAT},
-         .expression = std::make_unique<filter::expressions::FloatLiteral>(float_value)
+         .expression = std::make_unique<expressions::FloatLiteral>(float_value)
       };
    }
    if (std::holds_alternative<ast::StringLiteral>(value)) {
       std::string string_value = std::get<ast::StringLiteral>(value).value;
       return {
          .output_column = {.name = field.name, .type = schema::ColumnType::STRING},
-         .expression = std::make_unique<filter::expressions::StringLiteral>(std::move(string_value))
+         .expression = std::make_unique<expressions::StringLiteral>(std::move(string_value))
       };
    }
    if (std::holds_alternative<ast::BoolLiteral>(value)) {
       const bool bool_value = std::get<ast::BoolLiteral>(value).value;
       return {
          .output_column = {.name = field.name, .type = schema::ColumnType::BOOL},
-         .expression = std::make_unique<filter::expressions::BoolLiteral>(bool_value)
+         .expression = std::make_unique<expressions::BoolLiteral>(bool_value)
       };
    }
 

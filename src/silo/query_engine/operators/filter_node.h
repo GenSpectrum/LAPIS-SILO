@@ -6,7 +6,7 @@
 
 #include <arrow/result.h>
 
-#include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
@@ -18,9 +18,9 @@ namespace silo::query_engine::operators {
 class FilterNode final : public QueryNode {
   public:
    QueryNodePtr child;
-   std::unique_ptr<filter::expressions::Expression> filter;
+   std::unique_ptr<expressions::Expression> filter;
 
-   FilterNode(QueryNodePtr child, std::unique_ptr<filter::expressions::Expression> filter);
+   FilterNode(QueryNodePtr child, std::unique_ptr<expressions::Expression> filter);
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override;
 

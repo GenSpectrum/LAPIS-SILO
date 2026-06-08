@@ -2,7 +2,7 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/filter/expressions/and.h"
+#include "silo/query_engine/expressions/and.h"
 #include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
@@ -46,7 +46,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::FilterNode& no
 
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::TableScanNode& node) {
    current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<filter::expressions::And>(std::move(current_filters));
+   node.filter = std::make_unique<expressions::And>(std::move(current_filters));
    return nullptr;
 }
 
@@ -54,7 +54,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(
    operators::MutationsNode<silo::Nucleotide>& node
 ) {
    current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<filter::expressions::And>(std::move(current_filters));
+   node.filter = std::make_unique<expressions::And>(std::move(current_filters));
    return nullptr;
 }
 
@@ -62,32 +62,32 @@ operators::QueryNodePtr FilterPushdownPass::operator()(
    operators::MutationsNode<silo::AminoAcid>& node
 ) {
    current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<filter::expressions::And>(std::move(current_filters));
+   node.filter = std::make_unique<expressions::And>(std::move(current_filters));
    return nullptr;
 }
 operators::QueryNodePtr FilterPushdownPass::operator()(
    operators::InsertionsNode<silo::Nucleotide>& node
 ) {
    current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<filter::expressions::And>(std::move(current_filters));
+   node.filter = std::make_unique<expressions::And>(std::move(current_filters));
    return nullptr;
 }
 operators::QueryNodePtr FilterPushdownPass::operator()(
    operators::InsertionsNode<silo::AminoAcid>& node
 ) {
    current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<filter::expressions::And>(std::move(current_filters));
+   node.filter = std::make_unique<expressions::And>(std::move(current_filters));
    return nullptr;
 }
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::PhyloSubtreeNode& node) {
    current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<filter::expressions::And>(std::move(current_filters));
+   node.filter = std::make_unique<expressions::And>(std::move(current_filters));
    return nullptr;
 }
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::MostRecentCommonAncestorNode& node
 ) {
    current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<filter::expressions::And>(std::move(current_filters));
+   node.filter = std::make_unique<expressions::And>(std::move(current_filters));
    return nullptr;
 }
 

@@ -4,7 +4,7 @@
 #include <memory>
 #include <string_view>
 
-#include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/saneql/ast.h"
 #include "silo/schema/database_schema.h"
@@ -27,6 +27,6 @@ operators::QueryNodePtr convertExpression(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables
 );
 
-std::unique_ptr<filter::expressions::Expression> convertToFilter(const ast::Expression& ast);
+std::unique_ptr<expressions::Expression> convertToFilter(const ast::Expression& ast);
 
 }  // namespace silo::query_engine::saneql

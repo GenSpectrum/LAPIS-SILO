@@ -6,7 +6,7 @@
 
 namespace silo::query_engine::operators {
 
-FilterNode::FilterNode(QueryNodePtr child, std::unique_ptr<filter::expressions::Expression> filter)
+FilterNode::FilterNode(QueryNodePtr child, std::unique_ptr<expressions::Expression> filter)
     : child(std::move(child)),
       filter(std::move(filter)) {}
 

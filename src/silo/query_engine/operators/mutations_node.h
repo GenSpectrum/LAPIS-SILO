@@ -10,7 +10,7 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
@@ -41,14 +41,14 @@ class MutationsNode final : public QueryNode {
    };
 
    std::shared_ptr<storage::Table> table;
-   std::unique_ptr<filter::expressions::Expression> filter;
+   std::unique_ptr<expressions::Expression> filter;
    std::vector<schema::ColumnIdentifier> sequence_columns;
    double min_proportion;
    std::vector<std::string_view> fields;
 
    MutationsNode(
       std::shared_ptr<storage::Table> table,
-      std::unique_ptr<filter::expressions::Expression> filter,
+      std::unique_ptr<expressions::Expression> filter,
       std::vector<schema::ColumnIdentifier> sequence_columns,
       double min_proportion,
       std::vector<std::string_view> fields

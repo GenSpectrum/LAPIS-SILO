@@ -9,7 +9,7 @@ namespace silo::query_engine::operators {
 
 TableScanNode::TableScanNode(
    std::shared_ptr<storage::Table> table,
-   std::unique_ptr<filter::expressions::Expression> filter,
+   std::unique_ptr<expressions::Expression> filter,
    std::vector<schema::ColumnIdentifier> fields
 )
     : table(std::move(table)),

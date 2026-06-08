@@ -10,10 +10,10 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::filter::expressions {
+namespace silo::query_engine::expressions {
 // Forward declaration for friend class access. Include would introduce cyclic dependency
 class Expression;
-}  // namespace silo::query_engine::filter::expressions
+}  // namespace silo::query_engine::expressions
 
 namespace silo::query_engine::filter::operators {
 
@@ -29,7 +29,7 @@ class IndexScan : public Operator {
    explicit IndexScan(CopyOnWriteBitmap bitmap, uint32_t row_count);
 
    explicit IndexScan(
-      std::unique_ptr<query_engine::filter::expressions::Expression>&& logical_equivalent,
+      std::unique_ptr<query_engine::expressions::Expression>&& logical_equivalent,
       CopyOnWriteBitmap bitmap,
       uint32_t row_count
    );

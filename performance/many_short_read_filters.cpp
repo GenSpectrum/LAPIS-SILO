@@ -16,8 +16,8 @@
 #include "silo/query_engine/planner.h"
 #include "silo/storage/reference_genomes.h"
 
-using silo::query_engine::Planner;
 using silo::Database;
+using silo::query_engine::Planner;
 
 namespace {
 
@@ -100,8 +100,7 @@ void executeAllQueries(
          SPDLOG_INFO("Executing query number {}", query_num);
       }
       std::string query_string = query_gen.generateQuery();
-      auto query_plan =
-         Planner::planSaneqlQuery(query_string, database->tables, {}, "test_query");
+      auto query_plan = Planner::planSaneqlQuery(query_string, database->tables, {}, "test_query");
 
       std::ofstream null_output("/dev/null");
       silo::query_engine::exec_node::NdjsonSink sink{&null_output, query_plan.results_schema};

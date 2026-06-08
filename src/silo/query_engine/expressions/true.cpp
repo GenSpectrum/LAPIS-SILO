@@ -1,0 +1,28 @@
+#include "silo/query_engine/expressions/true.h"
+
+#include <string>
+
+#include "silo/query_engine/expressions/expression.h"
+#include "silo/query_engine/filter/operators/full.h"
+#include "silo/query_engine/filter/operators/operator.h"
+
+namespace silo::query_engine::expressions {
+
+True::True() = default;
+
+std::string True::toString() const {
+   return "True";
+}
+
+std::unique_ptr<Expression> True::rewrite(
+   const storage::Table& /*table*/,
+   Expression::AmbiguityMode /*mode*/
+) const {
+   return std::make_unique<True>();
+}
+
+std::unique_ptr<filter::operators::Operator> True::compile(const storage::Table& table) const {
+   return std::make_unique<filter::operators::Full>(table.sequence_count);
+}
+
+}  // namespace silo::query_engine::expressions

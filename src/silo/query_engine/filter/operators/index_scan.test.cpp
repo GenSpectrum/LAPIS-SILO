@@ -3,12 +3,12 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-#include "silo/query_engine/filter/expressions/false.h"
-#include "silo/query_engine/filter/expressions/true.h"
+#include "silo/query_engine/expressions/false.h"
+#include "silo/query_engine/expressions/true.h"
 
 using silo::query_engine::CopyOnWriteBitmap;
-using silo::query_engine::filter::expressions::False;
-using silo::query_engine::filter::expressions::True;
+using silo::query_engine::expressions::False;
+using silo::query_engine::expressions::True;
 using silo::query_engine::filter::operators::IndexScan;
 
 TEST(OperatorIndexScan, evaluateShouldReturnCorrectValues) {

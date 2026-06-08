@@ -11,10 +11,10 @@
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/filter/expressions/or.h"
-#include "silo/query_engine/filter/expressions/string_equals.h"
-#include "silo/query_engine/filter/expressions/string_in_set.h"
-#include "silo/query_engine/filter/expressions/true.h"
+#include "silo/query_engine/expressions/or.h"
+#include "silo/query_engine/expressions/string_equals.h"
+#include "silo/query_engine/expressions/string_in_set.h"
+#include "silo/query_engine/expressions/true.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/query_node.h"
@@ -25,12 +25,12 @@ namespace {
 
 using silo::Database;
 using silo::query_engine::Planner;
-using silo::query_engine::filter::expressions::Expression;
-using silo::query_engine::filter::expressions::ExpressionVector;
-using silo::query_engine::filter::expressions::Or;
-using silo::query_engine::filter::expressions::StringEquals;
-using silo::query_engine::filter::expressions::StringInSet;
-using silo::query_engine::filter::expressions::True;
+using silo::query_engine::expressions::Expression;
+using silo::query_engine::expressions::ExpressionVector;
+using silo::query_engine::expressions::Or;
+using silo::query_engine::expressions::StringEquals;
+using silo::query_engine::expressions::StringInSet;
+using silo::query_engine::expressions::True;
 using silo::query_engine::operators::AggregateDefinition;
 using silo::query_engine::operators::AggregateFunction;
 using silo::query_engine::operators::AggregateNode;

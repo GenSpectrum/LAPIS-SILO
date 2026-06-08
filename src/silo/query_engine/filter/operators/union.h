@@ -7,17 +7,17 @@
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::filter::expressions {
+namespace silo::query_engine::expressions {
 // Forward declaration for friend class access. Include would introduce cyclic dependency
 class Or;
 class NOf;
-}  // namespace silo::query_engine::filter::expressions
+}  // namespace silo::query_engine::expressions
 
 namespace silo::query_engine::filter::operators {
 
 class Union : public Operator {
-   friend class silo::query_engine::filter::expressions::Or;
-   friend class silo::query_engine::filter::expressions::NOf;
+   friend class silo::query_engine::expressions::Or;
+   friend class silo::query_engine::expressions::NOf;
 
    OperatorVector children;
    uint32_t row_count;

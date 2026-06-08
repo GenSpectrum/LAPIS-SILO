@@ -216,12 +216,14 @@ std::stringstream generateShortReadNdjson(
    ShortReadGenerator generator(reference, count, read_length);
    std::stringstream buffer;
    for (const auto& read : generator) {
-      buffer << fmt::format(
-         R"({{"readId":"read_{}","samplingDate":"2024-01-01","locationName":"generated","main":{{"insertions":[],"offset":{},"sequence":"{}"}}}})",
-         read.id,
-         read.offset,
-         read.sequence
-      ) << "\n";
+      buffer
+         << fmt::format(
+               R"({{"readId":"read_{}","samplingDate":"2024-01-01","locationName":"generated","main":{{"insertions":[],"offset":{},"sequence":"{}"}}}})",
+               read.id,
+               read.offset,
+               read.sequence
+            )
+         << "\n";
    }
    return buffer;
 }
@@ -235,24 +237,20 @@ std::stringstream generateFullSequenceNdjson(
    SequenceTreeGenerator tree_gen(reference);
    const auto evolved = tree_gen.generateEvolvedSequences();
    SPDLOG_INFO(
-      "Repeating {} evolved sequences to fill {} full-sequence entries",
-      evolved.size(),
-      count
+      "Repeating {} evolved sequences to fill {} full-sequence entries", evolved.size(), count
    );
    std::stringstream buffer;
    for (size_t i = 0; i < count; ++i) {
       const auto& seq = evolved[i % evolved.size()];
-      buffer << fmt::format(
-         R"({{"key":"{}","main":{{"sequence":"{}","insertions":[]}}}})", i, seq
-      ) << "\n";
+      buffer << fmt::format(R"({{"key":"{}","main":{{"sequence":"{}","insertions":[]}}}})", i, seq)
+             << "\n";
    }
    return buffer;
 }
 
 // --- Database initializers ---
 
-std::shared_ptr<silo::Database> initializeDatabaseWithShortReadSchema(
-   const std::string& reference
+std::shared_ptr<silo::Database> initializeDatabaseWithShortReadSchema(const std::string& reference
 ) {
    auto database_config = silo::config::DatabaseConfig::getValidatedConfig(R"(
 schema:
