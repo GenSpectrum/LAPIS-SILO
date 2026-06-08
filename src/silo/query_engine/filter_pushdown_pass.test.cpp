@@ -6,6 +6,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "silo/query_engine/filter/expressions/literal.h"
 #include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/map_node.h"
@@ -67,7 +68,7 @@ TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
-       .expression = operators::MapNode::Int64Literal{.value = 3}}
+       .expression = std::make_unique<expressions::Int64Literal>(3)}
    );
    auto map_node =
       std::make_unique<operators::MapNode>(std::move(filter_node), std::move(assignments));

@@ -90,26 +90,33 @@ class FunctionRegistry {
    std::map<std::string, Entry> entries_;
 };
 
-// --- Filter function registry ---
+// --- Scalar function registry ---
 
+// Currently every scalar function produces a boolean filter predicate. As other
+// scalar expressions (e.g. for use in a MapNode) are added, the registry will be
+// extended to produce them as well.
 using FilterPtr = std::unique_ptr<query_engine::filter::expressions::Expression>;
 
-using FilterHandler = std::function<FilterPtr(const BoundArguments& args)>;
+using ScalarFunctionHandler = std::function<FilterPtr(const BoundArguments& args)>;
 
-class FilterFunctionRegistry {
+class ScalarFunctionRegistry {
   public:
    struct Entry {
       FunctionSignature signature;
-      FilterHandler handler;
+      ScalarFunctionHandler handler;
    };
 
-   FilterFunctionRegistry();
+   ScalarFunctionRegistry();
 
-   void registerFunction(std::string name, FunctionSignature signature, FilterHandler handler);
+   void registerFunction(
+      std::string name,
+      FunctionSignature signature,
+      ScalarFunctionHandler handler
+   );
 
    [[nodiscard]] const Entry* findFunction(const std::string& name) const;
 
-   [[nodiscard]] static FilterFunctionRegistry& instance();
+   [[nodiscard]] static ScalarFunctionRegistry& instance();
 
   private:
    std::map<std::string, Entry> entries_;

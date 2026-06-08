@@ -1,7 +1,6 @@
 #include "silo/query_engine/saneql/ast_to_query.h"
 
 #include <chrono>
-#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -9,7 +8,6 @@
 #include <variant>
 #include <vector>
 
-#include <arrow/scalar.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <re2/re2.h>
@@ -32,6 +30,7 @@
 #include "silo/query_engine/filter/expressions/int_equals.h"
 #include "silo/query_engine/filter/expressions/is_null.h"
 #include "silo/query_engine/filter/expressions/lineage_filter.h"
+#include "silo/query_engine/filter/expressions/literal.h"
 #include "silo/query_engine/filter/expressions/maybe.h"
 #include "silo/query_engine/filter/expressions/mutation_profile.h"
 #include "silo/query_engine/filter/expressions/negation.h"
@@ -253,7 +252,7 @@ FilterPtr convertBinaryExprToFilter(const ast::BinaryExpr& bin_expr) {
 }
 
 // ========================================================================
-// Filter function handlers (registered in FilterFunctionRegistry)
+// Scalar function handlers (registered in ScalarFunctionRegistry)
 // ========================================================================
 
 FilterPtr handleBetween(const BoundArguments& args) {
@@ -589,7 +588,7 @@ std::unique_ptr<filter::expressions::Expression> convertToFilter(const ast::Expr
             }
             return std::make_unique<filter::expressions::False>();
          } else if constexpr (std::is_same_v<T, ast::FunctionCall>) {
-            const auto* entry = FilterFunctionRegistry::instance().findFunction(node.function_name);
+            const auto* entry = ScalarFunctionRegistry::instance().findFunction(node.function_name);
             CHECK_SILO_QUERY(entry != nullptr, "unknown scalar function '{}'", node.function_name);
             auto bound = bindArguments(
                node.function_name, entry->signature, node.positional_arguments, node.named_arguments
@@ -874,42 +873,42 @@ using operators::MapNode;
 /// Parses a single `name := value` assignment of a map() record. For now only
 /// literals (int, float, string, bool) are supported as the assigned value.
 MapNode::Assignment parseMapAssignment(const ast::RecordField& field) {
-   const auto& value = *field.value;
+   const auto& [value, location] = *field.value;
 
-   if (std::holds_alternative<ast::IntLiteral>(value.value)) {
-      const int64_t int_value = std::get<ast::IntLiteral>(value.value).value;
+   if (std::holds_alternative<ast::IntLiteral>(value)) {
+      const int64_t int_value = std::get<ast::IntLiteral>(value).value;
       return {
          .output_column = {.name = field.name, .type = schema::ColumnType::INT64},
-         .expression = MapNode::Int64Literal{.value = int_value}
+         .expression = std::make_unique<filter::expressions::Int64Literal>(int_value)
       };
    }
-   if (std::holds_alternative<ast::FloatLiteral>(value.value)) {
-      const double float_value = std::get<ast::FloatLiteral>(value.value).value;
+   if (std::holds_alternative<ast::FloatLiteral>(value)) {
+      const double float_value = std::get<ast::FloatLiteral>(value).value;
       return {
          .output_column = {.name = field.name, .type = schema::ColumnType::FLOAT},
-         .expression = MapNode::FloatLiteral{.value = float_value}
+         .expression = std::make_unique<filter::expressions::FloatLiteral>(float_value)
       };
    }
-   if (std::holds_alternative<ast::StringLiteral>(value.value)) {
-      const std::string string_value = std::get<ast::StringLiteral>(value.value).value;
+   if (std::holds_alternative<ast::StringLiteral>(value)) {
+      std::string string_value = std::get<ast::StringLiteral>(value).value;
       return {
          .output_column = {.name = field.name, .type = schema::ColumnType::STRING},
-         .expression = MapNode::StringLiteral{.value = string_value}
+         .expression = std::make_unique<filter::expressions::StringLiteral>(std::move(string_value))
       };
    }
-   if (std::holds_alternative<ast::BoolLiteral>(value.value)) {
-      const bool bool_value = std::get<ast::BoolLiteral>(value.value).value;
+   if (std::holds_alternative<ast::BoolLiteral>(value)) {
+      const bool bool_value = std::get<ast::BoolLiteral>(value).value;
       return {
          .output_column = {.name = field.name, .type = schema::ColumnType::BOOL},
-         .expression = MapNode::BoolLiteral{.value = bool_value}
+         .expression = std::make_unique<filter::expressions::BoolLiteral>(bool_value)
       };
    }
 
    throw IllegalQueryException(
       "map() field '{}' must be assigned a literal value (int, float, string, or bool) at {}:{}",
       field.name,
-      value.location.line,
-      value.location.column
+      location.line,
+      location.column
    );
 }
 
@@ -1220,7 +1219,7 @@ FunctionRegistry& FunctionRegistry::instance() {
    return registry;
 }
 
-FilterFunctionRegistry::FilterFunctionRegistry() {
+ScalarFunctionRegistry::ScalarFunctionRegistry() {
    registerFunction("between", {{pos("column"), pos("from"), pos("to")}}, handleBetween);
 
    registerFunction("in", {{pos("column"), pos("values")}}, handleIn);
@@ -1273,8 +1272,8 @@ FilterFunctionRegistry::FilterFunctionRegistry() {
    registerFunction("aminoAcidMutationProfile", mutation_profile_sig, handleMutationProfile<AminoAcid>);
 }
 
-FilterFunctionRegistry& FilterFunctionRegistry::instance() {
-   static FilterFunctionRegistry registry;
+ScalarFunctionRegistry& ScalarFunctionRegistry::instance() {
+   static ScalarFunctionRegistry registry;
    return registry;
 }
 
