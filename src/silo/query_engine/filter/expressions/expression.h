@@ -4,6 +4,7 @@
 #include <string>
 
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
 namespace silo::query_engine::filter::expressions {
@@ -20,6 +21,10 @@ class Expression {
    /// expression (i.e. ambiguous codes in negations count as matches)
    /// NONE does not specially consider ambiguous symbols
    enum AmbiguityMode : uint8_t { UPPER_BOUND, LOWER_BOUND, NONE };
+
+   /// The column type this expression evaluates to. All current expressions are
+   /// boolean filter predicates; non-boolean scalar expressions may override this.
+   [[nodiscard]] virtual schema::ColumnType type() const { return schema::ColumnType::BOOL; }
 
    [[nodiscard]] virtual std::string toString() const = 0;
 

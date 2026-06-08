@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <string>
-#include <variant>
 
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
@@ -10,7 +9,36 @@
 #include <arrow/datum.h>
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/query_engine/filter/expressions/literal.h"
+
 namespace silo::query_engine::operators {
+
+namespace {
+
+/// Translates a scalar expression into an Arrow compute expression for use in a
+/// projection. Only literals are currently supported; non-literal scalar expressions
+/// need to be evaluated against the column store first.
+arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
+   const filter::expressions::Expression& expression
+) {
+   if (const auto* literal = dynamic_cast<const filter::expressions::Int64Literal*>(&expression)) {
+      return arrow::compute::literal(arrow::Datum(literal->value));
+   }
+   if (const auto* literal = dynamic_cast<const filter::expressions::FloatLiteral*>(&expression)) {
+      return arrow::compute::literal(arrow::Datum(literal->value));
+   }
+   if (const auto* literal = dynamic_cast<const filter::expressions::StringLiteral*>(&expression)) {
+      return arrow::compute::literal(arrow::Datum(literal->value));
+   }
+   if (const auto* literal = dynamic_cast<const filter::expressions::BoolLiteral*>(&expression)) {
+      return arrow::compute::literal(arrow::Datum(literal->value));
+   }
+   return arrow::Status::NotImplemented(
+      "non-literal scalar expressions are not yet supported in map() assignments"
+   );
+}
+
+}  // namespace
 
 MapNode::MapNode(QueryNodePtr child, std::vector<Assignment> assignments)
     : child(std::move(child)),
@@ -56,12 +84,10 @@ arrow::Result<PartialArrowPlan> MapNode::toQueryPlan(
          expressions.push_back(arrow::compute::field_ref(name));
          continue;
       }
-      expressions.push_back(std::visit(
-         [](const auto& expression) {
-            return arrow::compute::literal(arrow::Datum(expression.value));
-         },
-         found->second->expression
-      ));
+      ARROW_ASSIGN_OR_RAISE(
+         auto arrow_expression, scalarToArrowExpression(*found->second->expression)
+      );
+      expressions.push_back(std::move(arrow_expression));
    }
 
    const arrow::acero::ProjectNodeOptions options{std::move(expressions), std::move(names)};
@@ -72,24 +98,10 @@ arrow::Result<PartialArrowPlan> MapNode::toQueryPlan(
    return plan;
 }
 
-namespace {
-
-std::string expressionToString(const std::variant<
-                               MapNode::Int64Literal,
-                               MapNode::FloatLiteral,
-                               MapNode::StringLiteral,
-                               MapNode::BoolLiteral>& expression) {
-   return std::visit(
-      [](const auto& expression) { return fmt::format("{}", expression.value); }, expression
-   );
-}
-
-}  // namespace
-
 nlohmann::json MapNode::toJson() const {
    nlohmann::json map_expressions = nlohmann::json::array();
    for (const auto& [field, expression] : assignments) {
-      map_expressions.push_back(nlohmann::json{field.name, expressionToString(expression)});
+      map_expressions.push_back(nlohmann::json{field.name, expression->toString()});
    }
    return nlohmann::json{
       {"type", nodeKindToString(kind())},

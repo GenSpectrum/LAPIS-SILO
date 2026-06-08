@@ -136,18 +136,18 @@ const FunctionRegistry::Entry* FunctionRegistry::findFunction(const std::string&
    return &it->second;
 }
 
-// --- FilterFunctionRegistry ---
+// --- ScalarFunctionRegistry ---
 
-void FilterFunctionRegistry::registerFunction(
+void ScalarFunctionRegistry::registerFunction(
    std::string name,
    FunctionSignature signature,
-   FilterHandler handler
+   ScalarFunctionHandler handler
 ) {
    entries_[std::move(name)] =
       Entry{.signature = std::move(signature), .handler = std::move(handler)};
 }
 
-const FilterFunctionRegistry::Entry* FilterFunctionRegistry::findFunction(const std::string& name
+const ScalarFunctionRegistry::Entry* ScalarFunctionRegistry::findFunction(const std::string& name
 ) const {
    auto it = entries_.find(name);
    if (it == entries_.end()) {

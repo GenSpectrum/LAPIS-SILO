@@ -10,6 +10,7 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/query_engine/filter/expressions/literal.h"
 #include "silo/query_engine/filter/expressions/true.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/filter_node.h"
@@ -68,7 +69,7 @@ std::vector<operators::MapNode::Assignment> makeMapAssignments() {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
-       .expression = operators::MapNode::Int64Literal{.value = 3}}
+       .expression = std::make_unique<silo::query_engine::filter::expressions::Int64Literal>(3)}
    );
    return assignments;
 }
