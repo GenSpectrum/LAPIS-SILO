@@ -10,7 +10,7 @@ class SiloRecipe(ConanFile):
         "boost/1.85.0",
         "fast_float/8.1.0",
         "gtest/1.17.0",
-        "mimalloc/2.2.4",
+        "mimalloc/3.3.2",
         "nlohmann_json/3.12.0",
         "poco/1.14.2",
         "re2/20240702",
