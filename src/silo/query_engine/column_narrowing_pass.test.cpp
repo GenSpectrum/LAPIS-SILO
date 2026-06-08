@@ -9,7 +9,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "silo/query_engine/filter/expressions/true.h"
+#include "silo/query_engine/expressions/true.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
@@ -51,9 +51,7 @@ std::shared_ptr<silo::storage::Table> dummyTable() {
 // The narrowing pass only inspects the scan's field list, so the table identity is irrelevant.
 std::unique_ptr<operators::TableScanNode> makeScan(std::vector<ColumnIdentifier> fields) {
    return std::make_unique<operators::TableScanNode>(
-      dummyTable(),
-      std::make_unique<silo::query_engine::filter::expressions::True>(),
-      std::move(fields)
+      dummyTable(), std::make_unique<silo::query_engine::expressions::True>(), std::move(fields)
    );
 }
 

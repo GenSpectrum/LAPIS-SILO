@@ -10,8 +10,8 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/filter/expressions/literal.h"
-#include "silo/query_engine/filter/expressions/true.h"
+#include "silo/query_engine/expressions/literal.h"
+#include "silo/query_engine/expressions/true.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/map_node.h"
@@ -53,7 +53,7 @@ operators::QueryNodePtr makeTableScan() {
    auto tables = makeTablesWithDefault();
    return std::make_unique<operators::TableScanNode>(
       tables.at(silo::schema::TableName{"default"}),
-      std::make_unique<silo::query_engine::filter::expressions::True>(),
+      std::make_unique<silo::query_engine::expressions::True>(),
       std::vector<silo::schema::ColumnIdentifier>{}
    );
 }
@@ -61,7 +61,7 @@ operators::QueryNodePtr makeTableScan() {
 operators::QueryNodePtr makeNonScanChild() {
    // A FilterNode is not a TableScanNode — used to exercise the "must be a table scan" error path.
    return std::make_unique<operators::FilterNode>(
-      makeTableScan(), std::make_unique<silo::query_engine::filter::expressions::True>()
+      makeTableScan(), std::make_unique<silo::query_engine::expressions::True>()
    );
 }
 
@@ -69,7 +69,7 @@ std::vector<operators::MapNode::Assignment> makeMapAssignments() {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
-       .expression = std::make_unique<silo::query_engine::filter::expressions::Int64Literal>(3)}
+       .expression = std::make_unique<silo::query_engine::expressions::Int64Literal>(3)}
    );
    return assignments;
 }

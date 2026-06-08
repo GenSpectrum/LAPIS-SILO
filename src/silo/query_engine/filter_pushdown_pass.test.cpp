@@ -6,8 +6,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "silo/query_engine/filter/expressions/literal.h"
-#include "silo/query_engine/filter/expressions/true.h"
+#include "silo/query_engine/expressions/literal.h"
+#include "silo/query_engine/expressions/true.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
@@ -17,7 +17,7 @@
 
 using silo::query_engine::FilterPushdownPass;
 namespace operators = silo::query_engine::operators;
-namespace expressions = silo::query_engine::filter::expressions;
+namespace expressions = silo::query_engine::expressions;
 
 namespace {
 

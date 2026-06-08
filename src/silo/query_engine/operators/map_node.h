@@ -7,8 +7,8 @@
 #include <arrow/result.h>
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
-#include "silo/query_engine/operators/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
@@ -22,7 +22,7 @@ class MapNode final : public QueryNode {
   public:
    struct Assignment {
       schema::ColumnIdentifier output_column;
-      ScalarExpression expression;
+      std::unique_ptr<expressions::Expression> expression;
    };
 
    QueryNodePtr child;

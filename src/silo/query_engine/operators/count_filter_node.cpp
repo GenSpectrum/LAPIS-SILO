@@ -20,7 +20,7 @@ namespace silo::query_engine::operators {
 
 CountFilterNode::CountFilterNode(
    std::shared_ptr<storage::Table> table,
-   std::unique_ptr<filter::expressions::Expression> filter
+   std::unique_ptr<expressions::Expression> filter
 )
     : table(std::move(table)),
       filter(std::move(filter)) {}

@@ -6,7 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/column_narrowing_pass.h"
-#include "silo/query_engine/filter/expressions/and.h"
+#include "silo/query_engine/expressions/and.h"
 #include "silo/query_engine/filter_pushdown_pass.h"
 #include "silo/query_engine/node_resolution_pass.h"
 #include "silo/query_engine/operator_visitor.h"

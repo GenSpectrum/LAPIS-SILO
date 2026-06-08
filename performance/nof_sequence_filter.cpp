@@ -16,8 +16,8 @@
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/planner.h"
 
-using silo::query_engine::Planner;
 using silo::Database;
+using silo::query_engine::Planner;
 
 namespace {
 
@@ -48,8 +48,7 @@ BenchmarkResult runBenchmark(
       silo::query_engine::exec_node::NdjsonSink sink{&null_output, query_plan.results_schema};
       query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/60);
       const auto end = std::chrono::high_resolution_clock::now();
-      durations.push_back(
-         std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
+      durations.push_back(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
       );
    }
 
@@ -82,9 +81,7 @@ std::string buildMutationProfileQuery(const std::string& query_sequence, uint32_
 // ---- Database setup ----
 
 std::shared_ptr<Database> setupShortReadDatabase(const std::string& reference, size_t read_count) {
-   SPDLOG_INFO(
-      "Generating {} short reads (length {})...", read_count, DEFAULT_READ_LENGTH
-   );
+   SPDLOG_INFO("Generating {} short reads (length {})...", read_count, DEFAULT_READ_LENGTH);
    auto ndjson = generateShortReadNdjson(reference, read_count);
    auto database = initializeDatabaseWithShortReadSchema(reference);
    database->appendData(silo::schema::TableName::getDefault(), ndjson);
@@ -92,7 +89,10 @@ std::shared_ptr<Database> setupShortReadDatabase(const std::string& reference, s
    return database;
 }
 
-std::shared_ptr<Database> setupFullSequenceDatabase(const std::string& reference, size_t read_count) {
+std::shared_ptr<Database> setupFullSequenceDatabase(
+   const std::string& reference,
+   size_t read_count
+) {
    SPDLOG_INFO("Generating {} full-length sequences...", read_count);
    auto ndjson = generateFullSequenceNdjson(reference, read_count);
    auto database = initializeDatabaseWithFullSequenceSchema(reference);
@@ -147,8 +147,7 @@ void run() {
    const auto evolved = tree_gen.generateEvolvedSequences();
    const std::string& query_sequence = evolved.back();
    SPDLOG_INFO(
-      "Using evolved sequence as query profile ({} sequences generated, using last)",
-      evolved.size()
+      "Using evolved sequence as query profile ({} sequences generated, using last)", evolved.size()
    );
    SPDLOG_INFO("");
 

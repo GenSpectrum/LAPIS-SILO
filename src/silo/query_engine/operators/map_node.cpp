@@ -9,7 +9,7 @@
 #include <arrow/datum.h>
 #include <nlohmann/json_fwd.hpp>
 
-#include "silo/query_engine/filter/expressions/literal.h"
+#include "silo/query_engine/expressions/literal.h"
 
 namespace silo::query_engine::operators {
 
@@ -19,18 +19,18 @@ namespace {
 /// projection. Only literals are currently supported; non-literal scalar expressions
 /// need to be evaluated against the column store first.
 arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
-   const filter::expressions::Expression& expression
+   const expressions::Expression& expression
 ) {
-   if (const auto* literal = dynamic_cast<const filter::expressions::Int64Literal*>(&expression)) {
+   if (const auto* literal = dynamic_cast<const expressions::Int64Literal*>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
-   if (const auto* literal = dynamic_cast<const filter::expressions::FloatLiteral*>(&expression)) {
+   if (const auto* literal = dynamic_cast<const expressions::FloatLiteral*>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
-   if (const auto* literal = dynamic_cast<const filter::expressions::StringLiteral*>(&expression)) {
+   if (const auto* literal = dynamic_cast<const expressions::StringLiteral*>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
-   if (const auto* literal = dynamic_cast<const filter::expressions::BoolLiteral*>(&expression)) {
+   if (const auto* literal = dynamic_cast<const expressions::BoolLiteral*>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
    return arrow::Status::NotImplemented(

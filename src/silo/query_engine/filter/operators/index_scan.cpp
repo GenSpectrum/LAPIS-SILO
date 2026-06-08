@@ -7,7 +7,7 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
 

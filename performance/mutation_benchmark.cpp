@@ -8,10 +8,10 @@
 
 namespace {
 
-using silo::query_engine::Planner;
 using silo::Database;
+using silo::query_engine::Planner;
 
-std::shared_ptr<Database> initializeDatabaseWithSingleReference(std::string reference){
+std::shared_ptr<Database> initializeDatabaseWithSingleReference(std::string reference) {
    auto database_config = silo::config::DatabaseConfig::getValidatedConfig(R"(
 schema:
   instanceName: test
@@ -24,27 +24,35 @@ schema:
    silo::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
 
    auto database = std::make_shared<silo::Database>();
-   database->createTable(silo::schema::TableName::getDefault(), silo::initialize::Initializer::createSchemaFromConfigFiles(
-      std::move(database_config),
-      std::move(reference_genomes),
-      {},
-      silo::common::PhyloTree{},
-      /*without_unaligned_sequences=*/true
-   ));
+   database->createTable(
+      silo::schema::TableName::getDefault(),
+      silo::initialize::Initializer::createSchemaFromConfigFiles(
+         std::move(database_config),
+         std::move(reference_genomes),
+         {},
+         silo::common::PhyloTree{},
+         /*without_unaligned_sequences=*/true
+      )
+   );
    return database;
 }
 
 size_t current_id = 0;
 
-void addThousandShortReads(std::stringstream& buffer, size_t offset){
-   for(size_t i = 0; i < 1000; ++i){
+void addThousandShortReads(std::stringstream& buffer, size_t offset) {
+   for (size_t i = 0; i < 1000; ++i) {
       std::string sequence = "ACGT";
-      buffer << fmt::format(R"({{"key":"{}","main":{{"sequence":"{}","offset":{},"insertions":[]}}}}
-)", current_id++, sequence, offset);
+      buffer << fmt::format(
+         R"({{"key":"{}","main":{{"sequence":"{}","offset":{},"insertions":[]}}}}
+)",
+         current_id++,
+         sequence,
+         offset
+      );
    }
 }
 
-std::shared_ptr<Database> setupTestDatabase(){
+std::shared_ptr<Database> setupTestDatabase() {
    const std::string pattern = "ACGT";
    std::string reference;
    reference.reserve(4000);
@@ -54,19 +62,19 @@ std::shared_ptr<Database> setupTestDatabase(){
 
    std::stringstream input_buffer;
 
-   for(size_t i = 0; i < 1000; ++i){
+   for (size_t i = 0; i < 1000; ++i) {
       addThousandShortReads(input_buffer, 0);
    }
-   for(size_t i = 0; i < 1000; ++i){
+   for (size_t i = 0; i < 1000; ++i) {
       addThousandShortReads(input_buffer, 4);
    }
-   for(size_t i = 0; i < 100; ++i){
+   for (size_t i = 0; i < 100; ++i) {
       addThousandShortReads(input_buffer, 99);
    }
-   for(size_t i = 0; i < 100; ++i){
+   for (size_t i = 0; i < 100; ++i) {
       addThousandShortReads(input_buffer, 100 + i);
    }
-   for(size_t i = 0; i < 1000; ++i){
+   for (size_t i = 0; i < 1000; ++i) {
       addThousandShortReads(input_buffer, 2000);
    }
 
@@ -77,7 +85,7 @@ std::shared_ptr<Database> setupTestDatabase(){
    return database;
 }
 
-void printClipped(const std::string& output){
+void printClipped(const std::string& output) {
    std::istringstream iss(output);
    std::string line;
    int line_count = 0;
@@ -100,7 +108,7 @@ void printClipped(const std::string& output){
    }
 }
 
-void executeMutationsAllQuery(const std::shared_ptr<Database>& database){
+void executeMutationsAllQuery(const std::shared_ptr<Database>& database) {
    auto query_plan = Planner::planSaneqlQuery(
       "default.mutations(minProportion:=0.05, sequenceNames:={main})",
       database->tables,
@@ -113,7 +121,7 @@ void executeMutationsAllQuery(const std::shared_ptr<Database>& database){
    printClipped(result.str());
 }
 
-void executeMutationsAlmostAllQuery(const std::shared_ptr<Database>& database){
+void executeMutationsAlmostAllQuery(const std::shared_ptr<Database>& database) {
    auto query_plan = Planner::planSaneqlQuery(
       "default.filter(!(key = '3')).mutations(minProportion:=0.05, sequenceNames:={main})",
       database->tables,
@@ -127,7 +135,7 @@ void executeMutationsAlmostAllQuery(const std::shared_ptr<Database>& database){
 }
 }  // namespace
 
-int main(){
+int main() {
    SPDLOG_INFO("Starting micro benchmark:");
 
    auto start0 = std::chrono::high_resolution_clock::now();
@@ -140,11 +148,17 @@ int main(){
    executeMutationsAllQuery(database);
    auto end1 = std::chrono::high_resolution_clock::now();
    auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end1 - start1).count();
-   SPDLOG_INFO("Finished executeMutationsAllQuery in {}.{:03} seconds", duration1 / 1000, duration1 % 1000);
+   SPDLOG_INFO(
+      "Finished executeMutationsAllQuery in {}.{:03} seconds", duration1 / 1000, duration1 % 1000
+   );
 
    auto start2 = std::chrono::high_resolution_clock::now();
    executeMutationsAlmostAllQuery(database);
    auto end2 = std::chrono::high_resolution_clock::now();
    auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2).count();
-   SPDLOG_INFO("Finished executeMutationsAlmostAllQuery in {}.{:03} seconds", duration2 / 1000, duration2 % 1000);
+   SPDLOG_INFO(
+      "Finished executeMutationsAlmostAllQuery in {}.{:03} seconds",
+      duration2 / 1000,
+      duration2 % 1000
+   );
 }

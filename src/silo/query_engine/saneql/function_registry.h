@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "silo/query_engine/filter/expressions/expression.h"
+#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/saneql/ast.h"
 #include "silo/storage/table.h"
@@ -95,7 +95,7 @@ class FunctionRegistry {
 // Currently every scalar function produces a boolean filter predicate. As other
 // scalar expressions (e.g. for use in a MapNode) are added, the registry will be
 // extended to produce them as well.
-using FilterPtr = std::unique_ptr<query_engine::filter::expressions::Expression>;
+using FilterPtr = std::unique_ptr<query_engine::expressions::Expression>;
 
 using ScalarFunctionHandler = std::function<FilterPtr(const BoundArguments& args)>;
 
