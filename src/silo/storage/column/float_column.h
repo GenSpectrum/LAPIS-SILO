@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cmath>
 #include <cstdint>
 #include <expected>
 #include <optional>
@@ -11,6 +10,7 @@
 #include <roaring/roaring.hh>
 
 #include "silo/schema/database_schema.h"
+#include "silo/storage/column/chunked_value_buffer.h"
 #include "silo/storage/column/column.h"
 #include "silo/storage/column/column_metadata.h"
 
@@ -28,7 +28,7 @@ class FloatColumn {
    using value_type = double;
 
   private:
-   std::vector<double> values;
+   ChunkedValueBuffer<double> values;
 
   public:
    roaring::Roaring null_bitmap;
@@ -37,7 +37,7 @@ class FloatColumn {
 
    explicit FloatColumn(ColumnMetadata* metadata);
 
-   [[nodiscard]] size_t numValues() const { return values.size(); }
+   [[nodiscard]] size_t numValues() const { return values.numValues(); }
 
    [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
 

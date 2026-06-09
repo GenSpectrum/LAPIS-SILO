@@ -10,6 +10,7 @@
 
 #include "silo/common/date32.h"
 #include "silo/schema/database_schema.h"
+#include "silo/storage/column/chunked_value_buffer.h"
 #include "silo/storage/column/column_metadata.h"
 
 namespace silo::storage::column {
@@ -30,8 +31,11 @@ class Date32Column {
    roaring::Roaring null_bitmap;
 
   private:
-   std::vector<common::Date32> values;
+   ChunkedValueBuffer<common::Date32> values;
    bool is_sorted = true;
+   /// Transient ingestion state: the last non-null value appended, used to detect whether values
+   /// stay sorted across chunk boundaries. Not serialized.
+   std::optional<common::Date32> last_appended_value;
 
   public:
    explicit Date32Column(Metadata* metadata);
@@ -40,11 +44,13 @@ class Date32Column {
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
-   [[nodiscard]] const std::vector<common::Date32>& getValues() const;
+   /// The per-chunk value buffers. Used by `DateBetween` to binary search a sorted column.
+   [[nodiscard]] const ChunkedValueBuffer<common::Date32>& getValueBuffer() const { return values; }
 
-   [[nodiscard]] size_t numValues() const { return values.size(); }
+   [[nodiscard]] size_t numValues() const { return values.numValues(); }
 
    [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
+
    [[nodiscard]] common::Date32 getValue(size_t row_id) const { return values.at(row_id); }
 
   private:
@@ -55,6 +61,11 @@ class Date32Column {
       archive & null_bitmap;
       archive & values;
       archive & is_sorted;
+      if constexpr (Archive::is_loading::value) {
+         if (numValues() > 0) {
+            last_appended_value = values.at(numValues() - 1);
+         }
+      }
       // clang-format on
    }
 };
