@@ -27,7 +27,7 @@ class Insertion {
    friend class boost::serialization::access;
 
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       archive & value;
       archive & row_ids;
@@ -45,7 +45,7 @@ class InsertionPosition {
    friend class boost::serialization::access;
 
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
          archive & insertions;
          archive & three_mer_index;
@@ -78,11 +78,10 @@ class InsertionPosition {
 
 template <typename SymbolType>
 class InsertionIndex {
-  private:
    friend class boost::serialization::access;
 
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       archive & insertion_positions;
       archive & collected_insertions;

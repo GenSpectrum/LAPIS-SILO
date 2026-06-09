@@ -34,7 +34,7 @@ class Page {
    friend class boost::serialization::access;
 
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       if(Archive::is_saving::value) {
          // Saving: write buffer contents to archive

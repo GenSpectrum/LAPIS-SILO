@@ -53,7 +53,7 @@ class LineageTree {
    std::unordered_map<Idx, Idx> alias_mapping;
 
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       archive & child_to_parent_relation;
       archive & recombinant_clade_ancestors;
@@ -118,7 +118,7 @@ class LineageTreeAndIdMap {
 
    friend class boost::serialization::access;
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       archive & lineage_tree;
       archive & lineage_id_lookup_map;

@@ -79,12 +79,12 @@ class BidirectionalStringMap {
    }
 
    template <class Archive>
-   void save(Archive& archive, const uint32_t /* version */) const {
+   void save(Archive& archive, const uint32_t /*version*/) const {
       archive & id_to_value;
    }
 
    template <class Archive>
-   void load(Archive& archive, const uint32_t /* version */) {
+   void load(Archive& archive, const uint32_t /*version*/) {
       archive & id_to_value;
 
       fillLookupFromVector();

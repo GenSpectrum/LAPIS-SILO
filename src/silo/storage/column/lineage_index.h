@@ -22,7 +22,7 @@ class LineageIndex {
       index_including_sublineages;
 
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       archive & index_including_sublineages;
       archive & index_excluding_sublineages;

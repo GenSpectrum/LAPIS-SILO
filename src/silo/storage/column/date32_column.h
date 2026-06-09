@@ -50,7 +50,7 @@ class Date32Column {
   private:
    friend class boost::serialization::access;
    template <class Archive>
-   void serialize(Archive& archive, const uint32_t /* version */) {
+   void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       archive & null_bitmap;
       archive & values;
