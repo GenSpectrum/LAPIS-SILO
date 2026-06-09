@@ -12,7 +12,7 @@ namespace silo::storage::vector {
 
 class VariableDataRegistry {
    std::deque<buffer::Page> variable_data_pages;
-   uint16_t offset;
+   uint16_t offset = 0;
 
   public:
    struct DataList {
@@ -28,12 +28,12 @@ class VariableDataRegistry {
    };
    static_assert(sizeof(Identifier) == 8);
 
-   VariableDataRegistry::Identifier insert(std::string_view data);
+   Identifier insert(std::string_view data);
 
-   [[nodiscard]] DataList get(VariableDataRegistry::Identifier identifier) const;
+   [[nodiscard]] DataList get(Identifier identifier) const;
 
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       archive & variable_data_pages;
       archive & offset;

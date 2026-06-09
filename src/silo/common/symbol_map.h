@@ -13,7 +13,7 @@ class SymbolMap {
 
   private:
    template <class Archive>
-   void serialize(Archive& archive, const uint32_t /* version */) {
+   void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       archive & data;
       // clang-format on

@@ -63,7 +63,7 @@ class GermanStringPage {
    friend class boost::serialization::access;
 
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       archive & page;
       // clang-format on
@@ -82,15 +82,17 @@ class GermanStringRegistry {
       if (german_string_pages.empty()) {
          return 0;
       }
-      return ((german_string_pages.size() - 1) * GermanStringPage::MAX_STRINGS_PER_PAGE) +
-             german_string_pages.back().n();
+      const size_t values_on_closed_pages =
+         (german_string_pages.size() - 1) * GermanStringPage::MAX_STRINGS_PER_PAGE;
+      const size_t values_on_last_page = german_string_pages.back().n();
+      return values_on_closed_pages + values_on_last_page;
    }
 
   private:
    friend class boost::serialization::access;
 
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       archive & german_string_pages;
       // clang-format on

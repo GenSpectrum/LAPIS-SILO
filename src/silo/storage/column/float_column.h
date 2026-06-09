@@ -48,7 +48,7 @@ class FloatColumn {
   private:
    friend class boost::serialization::access;
    template <class Archive>
-   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       archive & values;
       archive & null_bitmap;
