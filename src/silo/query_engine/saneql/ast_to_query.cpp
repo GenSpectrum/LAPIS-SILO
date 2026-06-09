@@ -22,6 +22,7 @@
 #include "silo/query_engine/expressions/exact.h"
 #include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/expressions/false.h"
+#include "silo/query_engine/expressions/field_ref.h"
 #include "silo/query_engine/expressions/float_between.h"
 #include "silo/query_engine/expressions/float_equals.h"
 #include "silo/query_engine/expressions/has_mutation.h"
@@ -856,10 +857,32 @@ namespace {
 
 using operators::MapNode;
 
-/// Parses a single `name := value` assignment of a map() record. For now only
-/// literals (int, float, string, bool) are supported as the assigned value.
-MapNode::Assignment parseMapAssignment(const ast::RecordField& field) {
+/// Parses a single `name := value` assignment of a map() record. The assigned
+/// value may be a literal (int, float, string, bool) or a reference to an
+/// existing column of the input (resolved against `child_schema`).
+MapNode::Assignment parseMapAssignment(
+   const ast::RecordField& field,
+   const std::vector<schema::ColumnIdentifier>& child_schema
+) {
    const auto& [value, location] = *field.value;
+
+   if (std::holds_alternative<ast::Identifier>(value)) {
+      const auto& name = std::get<ast::Identifier>(value).name;
+      auto found =
+         std::ranges::find_if(child_schema, [&](const auto& col) { return col.name == name; });
+      CHECK_SILO_QUERY(
+         found != child_schema.end(),
+         "map() field '{}' references unknown column '{}' at {}:{}",
+         field.name,
+         name,
+         location.line,
+         location.column
+      );
+      return {
+         .output_column = {.name = field.name, .type = found->type},
+         .expression = std::make_unique<expressions::FieldRef>(*found)
+      };
+   }
 
    if (std::holds_alternative<ast::IntLiteral>(value)) {
       const int64_t int_value = std::get<ast::IntLiteral>(value).value;
@@ -891,7 +914,8 @@ MapNode::Assignment parseMapAssignment(const ast::RecordField& field) {
    }
 
    throw IllegalQueryException(
-      "map() field '{}' must be assigned a literal value (int, float, string, or bool) at {}:{}",
+      "map() field '{}' must be assigned a literal value (int, float, string, or bool) or a "
+      "column reference at {}:{}",
       field.name,
       location.line,
       location.column
@@ -914,13 +938,15 @@ operators::QueryNodePtr handleMap(
    const auto& record = std::get<ast::RecordLiteral>(expressions_argument.value);
    CHECK_SILO_QUERY(!record.fields.empty(), "map() requires at least one assignment");
 
+   auto child = convert_child(args.at("input"), tables);
+   const auto child_schema = child->getOutputSchema();
+
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.reserve(record.fields.size());
    for (const auto& field : record.fields) {
-      assignments.push_back(parseMapAssignment(field));
+      assignments.push_back(parseMapAssignment(field, child_schema));
    }
 
-   auto child = convert_child(args.at("input"), tables);
    return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
 }
 

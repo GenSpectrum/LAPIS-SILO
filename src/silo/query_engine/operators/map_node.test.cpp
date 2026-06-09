@@ -71,6 +71,15 @@ const QueryTestScenario MAP_INT64_SCENARIO = {
    )
 };
 
+// A column reference assigns an existing column's value to a new column.
+const QueryTestScenario MAP_FIELD_REF_SCENARIO = {
+   .name = "MAP_FIELD_REF",
+   .query = "default.map({copied := int_value}).project({primaryKey, copied})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"copied", 1}}, {{"primaryKey", "id_1"}, {"copied", 2}}}
+   )
+};
+
 // All projected columns are produced by the map; none are passed through from
 // the child. The table scan must still emit one row per input record (a prior
 // bug narrowed the scan to zero fields and returned no rows).
@@ -89,6 +98,7 @@ QUERY_TEST(
       MAP_LITERALS_SCENARIO,
       MAP_OVERRIDE_SCENARIO,
       MAP_INT64_SCENARIO,
+      MAP_FIELD_REF_SCENARIO,
       MAP_ONLY_MAPPED_COLUMN_SCENARIO
    )
 );

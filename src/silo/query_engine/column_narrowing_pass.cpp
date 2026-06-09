@@ -109,8 +109,10 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::ZstdDecompres
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node) {
    // A map keeps all of its child's columns and adds (or replaces) some via
-   // literal assignments. Literal assignments need nothing from the child, so
-   // only the required pass-through columns must still be provided by it.
+   // scalar assignments. The child must still provide the required pass-through
+   // columns, plus any column referenced by an assignment (e.g. `y := age`):
+   // the map projects every assignment, so a referenced column is needed even if
+   // the assigned output column is not required downstream.
    RequiredColumns child_required;
    for (const auto& required_column : required) {
       const bool produced_by_map =
@@ -119,6 +121,13 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
          });
       if (!produced_by_map) {
          child_required.push_back(required_column);
+      }
+   }
+   for (const auto& assignment : node.assignments) {
+      for (auto& referenced_column : assignment.expression->freeIUs()) {
+         if (std::ranges::find(child_required, referenced_column) == child_required.end()) {
+            child_required.push_back(std::move(referenced_column));
+         }
       }
    }
    if (child_required.empty()) {
