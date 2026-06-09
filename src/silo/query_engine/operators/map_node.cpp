@@ -9,6 +9,7 @@
 #include <arrow/datum.h>
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/query_engine/expressions/field_ref.h"
 #include "silo/query_engine/expressions/literal.h"
 
 namespace silo::query_engine::operators {
@@ -16,8 +17,8 @@ namespace silo::query_engine::operators {
 namespace {
 
 /// Translates a scalar expression into an Arrow compute expression for use in a
-/// projection. Only literals are currently supported; non-literal scalar expressions
-/// need to be evaluated against the column store first.
+/// projection. Literals and column references are supported; a boolean filter
+/// predicate would need to be evaluated against the column store first.
 arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
    const expressions::Expression& expression
 ) {
@@ -32,6 +33,9 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
    }
    if (const auto* literal = dynamic_cast<const expressions::BoolLiteral*>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
+   }
+   if (const auto* field_ref = dynamic_cast<const expressions::FieldRef*>(&expression)) {
+      return arrow::compute::field_ref(field_ref->column.name);
    }
    return arrow::Status::NotImplemented(
       "non-literal scalar expressions are not yet supported in map() assignments"

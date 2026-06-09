@@ -133,10 +133,10 @@ Sequence data columns use the naming convention `<sequenceName>` for aligned seq
 
 ### `map(expressions)`
 
-Adds columns to the table. `expressions` is a record of `name := value` assignments. For now only literal values are supported: integers, floats, strings (single-quoted), and booleans.
+Adds columns to the table. `expressions` is a record of `name := value` assignments. For now only field references and the following literal values are supported: integers, floats, strings (single-quoted), and booleans.
 
 ```
-default.map({x := 3, label := 'cohort A', active := true})
+default.map({x := 3, label := 'cohort A', active := true, copy := country})
 ```
 
 All input columns are passed through unchanged and the new columns are appended. An assignment whose name matches an existing column replaces that column in place.
@@ -144,7 +144,7 @@ All input columns are passed through unchanged and the new columns are appended.
 **Output:** one row per input row containing all input columns plus the assigned columns. Integer literals become `INT32` (or `INT64` when out of `INT32` range), floats become `FLOAT`, single-quoted literals become `STRING`, and `true`/`false` become `BOOL`.
 
 ```json
-{"primary_key": "key_31", "x": 3, "label": "cohort A", "active": true}
+{"primary_key": "key_31", "x": 3, "label": "cohort A", "active": true, "copy": "Switzerland"}
 ```
 
 ### `orderBy(fields)`
