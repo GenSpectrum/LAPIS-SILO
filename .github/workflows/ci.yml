@@ -59,50 +59,9 @@ jobs:
             exit 0
           fi
 
-          echo "Release PR branch: $BRANCH, version: $VERSION"
-
-          git fetch origin "$BRANCH"
-          git checkout "$BRANCH"
-          git fetch --tags
-
-          PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | head -1)
-          if [ -z "$PREV_TAG" ]; then
-            echo "No previous release tag found, skipping"
-            exit 0
-          fi
-
-          OLD_VER=$(git show "${PREV_TAG}:src/silo/common/serialization_version.txt" 2>/dev/null || echo "unknown")
-          NEW_VER=$(git show "origin/main:src/silo/common/serialization_version.txt" 2>/dev/null || echo "unknown")
-
-          if [ "$OLD_VER" = "$NEW_VER" ]; then
-            echo "Serialization version unchanged ($OLD_VER), skipping"
-            exit 0
-          fi
-
-          echo "Serialization version changed: $OLD_VER -> $NEW_VER"
-
-          # Insert note after the version heading for this release.
-          # Use awk to insert after the line matching the version heading.
-          ESCAPED_VERSION=$(echo "$VERSION" | sed 's/\./\\./g')
-          awk -v ver="$ESCAPED_VERSION" '
-            /^## \[/ && $0 ~ "^## \\[" ver "\\]" && !done {
-              print
-              print ""
-              print "### ⚠ Serialization Version Changed"
-              print ""
-              print "The serialization version changed in this release. Databases serialized with previous SILO versions are incompatible and need to be re-preprocessed."
-              done=1
-              next
-            }
-            {print}
-          ' CHANGELOG.md > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
-          git commit -m "chore: annotate changelog with serialization version change"
-          git push origin "$BRANCH"
+          ./.github/scripts/annotate-changelog-serialization-version.sh \
+            --branch="$BRANCH" \
+            --version="$VERSION"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -118,37 +77,8 @@ jobs:
           github.event_name == 'push'
           && steps.release.outputs.release_created == 'true'
         run: |
-          set -euo pipefail
-
-          TAG="${{ steps.release.outputs.tag_name }}"
-          echo "Release tag: $TAG"
-
-          git fetch --tags
-
-          # Find the previous release tag (second newest v* tag)
-          PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | sed -n '2p')
-          if [ -z "$PREV_TAG" ]; then
-            echo "No previous release tag found, skipping"
-            exit 0
-          fi
-
-          echo "Previous tag: $PREV_TAG"
-
-          OLD_VER=$(git show "${PREV_TAG}:src/silo/common/serialization_version.txt" 2>/dev/null || echo "unknown")
-          NEW_VER=$(git show "${TAG}:src/silo/common/serialization_version.txt" 2>/dev/null || echo "unknown")
-
-          if [ "$OLD_VER" = "$NEW_VER" ]; then
-            echo "Serialization version unchanged ($OLD_VER), skipping"
-            exit 0
-          fi
-
-          echo "Serialization version changed: $OLD_VER -> $NEW_VER"
-
-          BODY=$(gh release view "$TAG" --json body -q .body)
-          NOTE=$'\n---\n\n### ⚠ Serialization Version Changed\n\nThe serialization version changed in this release. Databases serialized with previous SILO versions are incompatible and need to be re-preprocessed.'
-          gh release edit "$TAG" --notes "${BODY}${NOTE}"
-
-          echo "Annotated GitHub release $TAG with serialization version note"
+          ./.github/scripts/annotate-release-serialization-version.sh \
+            --tag="${{ steps.release.outputs.tag_name }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
