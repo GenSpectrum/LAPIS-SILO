@@ -2,8 +2,6 @@
 
 #include <filesystem>
 
-#include <spdlog/spdlog.h>
-
 #include "config/config_interface.h"
 #include "silo/config/config_defaults.h"
 #include "silo/preprocessing/preprocessing_exception.h"
@@ -44,16 +42,6 @@ ConfigKeyPath ndjsonInputFilenameOptionKey() {
 }
 ConfigKeyPath withoutUnalignedSequencesOptionKey() {
    return YamlFile::stringToConfigKeyPath("withoutUnalignedSequences");
-}
-// DEPRECATED: TODO(#737) fully remove them after the next major release
-ConfigKeyPath intermediateResultsDirectoryOptionKey() {
-   return YamlFile::stringToConfigKeyPath("intermediateResultsDirectory");
-}
-ConfigKeyPath preprocessingDatabaseLocationOptionKey() {
-   return YamlFile::stringToConfigKeyPath("preprocessingDatabaseLocation");
-}
-ConfigKeyPath duckdbMemoryLimitInGTimeOptionKey() {
-   return YamlFile::stringToConfigKeyPath("duckdbMemoryLimitInG");
 }
 }  // namespace
 
@@ -117,16 +105,6 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             withoutUnalignedSequencesOptionKey(),
             ConfigValue::fromBool(false),
             "Whether unaligned sequences should be omitted for each aligned nucleotide sequence."
-         ),
-         // DEPRECATED: TODO(#737) fully remove after next major release
-         ConfigAttributeSpecification::createWithoutDefault(
-            intermediateResultsDirectoryOptionKey(), ConfigValueType::PATH, "DEPRECATED."
-         ),
-         ConfigAttributeSpecification::createWithoutDefault(
-            preprocessingDatabaseLocationOptionKey(), ConfigValueType::PATH, "DEPRECATED."
-         ),
-         ConfigAttributeSpecification::createWithoutDefault(
-            duckdbMemoryLimitInGTimeOptionKey(), ConfigValueType::UINT32, "DEPRECATED."
          )
       }
    };
@@ -170,24 +148,6 @@ void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_s
    }
    if (auto var = config_source.getPath(ndjsonInputFilenameOptionKey())) {
       input_file = var.value();
-   }
-   if (auto var = config_source.getPath(intermediateResultsDirectoryOptionKey())) {
-      SPDLOG_WARN(
-         "The config value {} is deprecated. This will lead to errors in future versions.",
-         YamlFile::configKeyPathToString(intermediateResultsDirectoryOptionKey())
-      );
-   }
-   if (auto var = config_source.getPath(preprocessingDatabaseLocationOptionKey())) {
-      SPDLOG_WARN(
-         "The config value {} is deprecated. This will lead to errors in future versions.",
-         YamlFile::configKeyPathToString(preprocessingDatabaseLocationOptionKey())
-      );
-   }
-   if (auto var = config_source.getUint32(duckdbMemoryLimitInGTimeOptionKey())) {
-      SPDLOG_WARN(
-         "The config value {} is deprecated. This will lead to errors in future versions.",
-         YamlFile::configKeyPathToString(duckdbMemoryLimitInGTimeOptionKey())
-      );
    }
 }
 
