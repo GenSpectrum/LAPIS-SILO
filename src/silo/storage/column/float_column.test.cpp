@@ -14,6 +14,7 @@ TEST(FloatColumn, doesNotErrorOnValidInputs) {
    builder.insertNull();
    SILO_ASSERT(column.appendChunk(builder.finalize()).has_value());
    ASSERT_EQ(column.numValues(), 2);
+   ASSERT_FALSE(column.isNull(0));
    ASSERT_EQ(column.getValue(0), 0.1);
-   ASSERT_TRUE(std::isnan(column.getValue(1)));
+   ASSERT_TRUE(column.isNull(1));
 }

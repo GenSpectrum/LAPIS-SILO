@@ -10,6 +10,7 @@
 #include <roaring/roaring.hh>
 
 #include "silo/schema/database_schema.h"
+#include "silo/storage/column/chunked_value_buffer.h"
 #include "silo/storage/column/column.h"
 #include "silo/storage/column/column_metadata.h"
 
@@ -27,7 +28,7 @@ class IntColumn {
    using value_type = int32_t;
 
   private:
-   std::vector<int32_t> values;
+   ChunkedValueBuffer<int32_t> values;
 
   public:
    roaring::Roaring null_bitmap;
@@ -43,7 +44,7 @@ class IntColumn {
       return values.at(row_id);
    }
 
-   [[nodiscard]] size_t numValues() const { return values.size(); }
+   [[nodiscard]] size_t numValues() const { return values.numValues(); }
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 

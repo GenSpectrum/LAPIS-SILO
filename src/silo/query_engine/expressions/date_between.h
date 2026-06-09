@@ -20,10 +20,7 @@ class DateBetween : public Expression {
    std::optional<silo::common::Date32> date_to;
 
    [[nodiscard]] std::vector<silo::query_engine::filter::operators::RangeSelection::Range>
-   computeRangesOfSortedColumn(
-      const silo::storage::column::Date32Column& date_column,
-      const std::vector<size_t>& chunk_sizes
-   ) const;
+   computeRangesOfSortedColumn(const silo::storage::column::Date32Column& date_column) const;
 
   public:
    explicit DateBetween(
