@@ -377,12 +377,17 @@ TEST(AstToQueryMap, emptyBracesAreNotARecordLiteral) {
    );
 }
 
-TEST(AstToQueryMap, fieldReferenceRejectedForNow) {
+TEST(AstToQueryMap, fieldReferenceResolvesToColumn) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_NO_THROW((void)parseAndConvertToQueryTree("default.map({x := id})", tables));
+}
+
+TEST(AstToQueryMap, fieldReferenceToUnknownColumnThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.map({x := id})", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("default.map({x := nope})", tables); },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("map() field 'x' must be assigned a literal value")
+         ::testing::HasSubstr("map() field 'x' references unknown column 'nope'")
       )
    );
 }

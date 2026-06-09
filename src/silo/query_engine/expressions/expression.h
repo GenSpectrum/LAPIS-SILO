@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/schema/database_schema.h"
@@ -27,6 +28,12 @@ class Expression {
    [[nodiscard]] virtual schema::ColumnType type() const { return schema::ColumnType::BOOL; }
 
    [[nodiscard]] virtual std::string toString() const = 0;
+
+   /// The columns ("identifiable units") this expression references and that an
+   /// upstream node must therefore provide. Literals reference none; a column
+   /// reference yields that column. Used by column narrowing to keep the child
+   /// columns a scalar expression depends on alive.
+   [[nodiscard]] virtual std::vector<schema::ColumnIdentifier> freeIUs() const { return {}; }
 
    [[nodiscard]] virtual std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
