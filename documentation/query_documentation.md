@@ -102,8 +102,8 @@ Aggregates rows, producing counts or other aggregate values. `aggregates` is a r
 Currently supported aggregate function: `count()`.
 
 ```
-default.groupBy({count:=count()})
-default.groupBy({count:=count()}, {pango_lineage})
+default.groupBy(aggregates:={count:=count()})
+default.groupBy(aggregates:={count:=count()}, columns:={pango_lineage})
 default.groupBy({count:=count()}, {country, pango_lineage})
 ```
 
