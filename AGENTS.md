@@ -25,7 +25,7 @@ make format                        # Format C++ code (requires clang-format)
 make ci                            # Format + run all tests
 ```
 
-CMake auto-scans `src/` directories. Adding/removing `.cpp` or `.h` files requires no CMakeLists.txt changes, but does require a clean rebuild (`make full-clean`).
+CMake auto-scans `src/` directories. The Makefile maintains `.src_file_list` to retrigger CMake when files are added/removed, so no CMakeLists.txt changes (or clean rebuild) are required.
 
 ## Code Style
 
@@ -37,7 +37,7 @@ CMake auto-scans `src/` directories. Adding/removing `.cpp` or `.h` files requir
 - **Variables/Members:** `lower_case`
 - **Constants/Enums:** `UPPER_CASE`
 
-### Formatting (clang-format 17)
+### Formatting (clang-format 19)
 - 3-space indent, 100-char column limit, Chromium brace style, `#pragma once`
 
 ### Include order
@@ -64,7 +64,7 @@ Runtime level controlled by `SPDLOG_LEVEL` env var (`trace`, `debug`, `info`, `w
 
 ## Commit Messages
 
-[Conventional Commits](https://www.conventionalcommits.org/). Must reference an issue.
+[Conventional Commits](https://www.conventionalcommits.org/). Should reference an issue or PR when possible.
 
 ```
 feat: add unionAll operator

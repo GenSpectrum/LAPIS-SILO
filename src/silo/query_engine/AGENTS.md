@@ -14,8 +14,8 @@ SaneQL string
 ## Key Concepts
 
 - **QueryNode** (`operators/query_node.h`): Base class for all plan nodes.
-- **Optimization passes** run sequentially on the QueryNode tree before `toQueryPlan()`:
-- **FunctionRegistry** (`saneql/ast_to_query.cpp`): Maps SaneQL function names to handlers that produce QueryNode trees.
+- **Optimization passes** run sequentially on the QueryNode tree before `toQueryPlan()`.
+- **FunctionRegistry**: Maps SaneQL function names to handlers that produce QueryNode trees.
 
 ## Arrow Acero Lifecycle
 
