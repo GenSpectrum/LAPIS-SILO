@@ -31,6 +31,12 @@ std::string StringInSet::toString() const {
    return fmt::format("{} IN [{}]", column_name, fmt::join(sorted_values, ","));
 }
 
+bool StringInSet::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const StringInSet*>(&other);
+   return other_casted != nullptr && column_name == other_casted->column_name &&
+          values == other_casted->values;
+}
+
 std::unique_ptr<Expression> StringInSet::rewrite(
    const storage::Table& table,
    AmbiguityMode /*mode*/

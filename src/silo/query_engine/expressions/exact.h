@@ -15,6 +15,7 @@ class Exact : public Expression {
    explicit Exact(std::unique_ptr<Expression> child);
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

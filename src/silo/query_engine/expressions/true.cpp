@@ -14,6 +14,10 @@ std::string True::toString() const {
    return "True";
 }
 
+bool True::operator==(const Expression& other) const {
+   return dynamic_cast<const True*>(&other) != nullptr;
+}
+
 std::unique_ptr<Expression> True::rewrite(
    const storage::Table& /*table*/,
    Expression::AmbiguityMode /*mode*/

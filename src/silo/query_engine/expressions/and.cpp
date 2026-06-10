@@ -138,6 +138,11 @@ std::tuple<OperatorVector, OperatorVector, filter::operators::PredicateVector> A
    };
 }
 
+bool And::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const And*>(&other);
+   return other_casted != nullptr && expressionVectorsEqual(children, other_casted->children);
+}
+
 std::unique_ptr<Expression> And::rewrite(const storage::Table& table, AmbiguityMode mode) const {
    ExpressionVector rewritten_children;
    rewritten_children.reserve(children.size());

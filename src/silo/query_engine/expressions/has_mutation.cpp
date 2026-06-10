@@ -30,6 +30,13 @@ std::string HasMutation<SymbolType>::toString() const {
 }
 
 template <typename SymbolType>
+bool HasMutation<SymbolType>::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const HasMutation*>(&other);
+   return other_casted != nullptr && sequence_name == other_casted->sequence_name &&
+          position_idx == other_casted->position_idx;
+}
+
+template <typename SymbolType>
 std::unique_ptr<Expression> HasMutation<SymbolType>::rewrite(
    const storage::Table& table,
    AmbiguityMode mode

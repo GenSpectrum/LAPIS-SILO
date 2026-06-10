@@ -20,6 +20,11 @@ std::string Exact::toString() const {
    return fmt::format("Exact ({})", child->toString());
 }
 
+bool Exact::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const Exact*>(&other);
+   return other_casted != nullptr && *child == *other_casted->child;
+}
+
 std::unique_ptr<Expression> Exact::rewrite(
    const storage::Table& table,
    AmbiguityMode /*mode*/

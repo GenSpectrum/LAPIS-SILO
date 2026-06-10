@@ -14,6 +14,10 @@ std::string False::toString() const {
    return "False";
 }
 
+bool False::operator==(const Expression& other) const {
+   return dynamic_cast<const False*>(&other) != nullptr;
+}
+
 std::unique_ptr<Expression> False::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/

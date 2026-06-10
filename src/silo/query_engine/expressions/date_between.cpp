@@ -36,6 +36,12 @@ std::string DateBetween::toString() const {
    return res;
 }
 
+bool DateBetween::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const DateBetween*>(&other);
+   return other_casted != nullptr && column_name == other_casted->column_name &&
+          date_from == other_casted->date_from && date_to == other_casted->date_to;
+}
+
 std::unique_ptr<Expression> DateBetween::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/

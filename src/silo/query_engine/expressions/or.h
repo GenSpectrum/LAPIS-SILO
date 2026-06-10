@@ -15,6 +15,7 @@ class Or : public Expression {
    explicit Or(ExpressionVector&& children);
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

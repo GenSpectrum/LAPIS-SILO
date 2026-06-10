@@ -188,6 +188,13 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
 }
 
 template <typename SymbolType>
+bool MutationProfile<SymbolType>::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const MutationProfile*>(&other);
+   return other_casted != nullptr && sequence_name == other_casted->sequence_name &&
+          distance == other_casted->distance && input == other_casted->input;
+}
+
+template <typename SymbolType>
 std::unique_ptr<Expression> MutationProfile<SymbolType>::rewrite(
    const storage::Table& table,
    AmbiguityMode /*mode*/

@@ -158,6 +158,11 @@ ExpressionVector Or::mergeStringInSetExpressions(ExpressionVector children) {
    return new_children;
 }
 
+bool Or::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const Or*>(&other);
+   return other_casted != nullptr && expressionVectorsEqual(children, other_casted->children);
+}
+
 std::unique_ptr<Expression> Or::rewrite(const storage::Table& table, Expression::AmbiguityMode mode)
    const {
    std::vector<const Expression*> collected_children = collectChildren(children);

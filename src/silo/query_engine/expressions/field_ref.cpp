@@ -21,6 +21,11 @@ std::vector<schema::ColumnIdentifier> FieldRef::freeIUs() const {
    return {column};
 }
 
+bool FieldRef::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const FieldRef*>(&other);
+   return other_casted != nullptr && column == other_casted->column;
+}
+
 std::unique_ptr<Expression> FieldRef::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/

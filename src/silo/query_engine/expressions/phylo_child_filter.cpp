@@ -51,6 +51,12 @@ std::unique_ptr<filter::operators::Operator> createMatchingBitmap(
 
 }  // namespace
 
+bool PhyloChildFilter::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const PhyloChildFilter*>(&other);
+   return other_casted != nullptr && column_name == other_casted->column_name &&
+          internal_node == other_casted->internal_node;
+}
+
 std::unique_ptr<Expression> PhyloChildFilter::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/

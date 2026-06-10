@@ -234,6 +234,13 @@ std::unique_ptr<Expression> NOf::rewriteToNonExact(
    return std::make_unique<And>(std::move(and_children));
 }
 
+bool NOf::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const NOf*>(&other);
+   return other_casted != nullptr && number_of_matchers == other_casted->number_of_matchers &&
+          match_exactly == other_casted->match_exactly &&
+          expressionVectorsEqual(children, other_casted->children);
+}
+
 std::unique_ptr<Expression> NOf::rewrite(const storage::Table& table, AmbiguityMode mode) const {
    // We cannot easily map ambiguity modes through an exact NOf expression -> rewrite without exact
    if (mode != NONE && match_exactly && std::cmp_less(number_of_matchers, children.size())) {

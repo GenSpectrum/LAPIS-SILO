@@ -20,6 +20,7 @@ class HasMutation : public Expression {
    explicit HasMutation(std::optional<std::string> sequence_name, uint32_t position_idx);
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

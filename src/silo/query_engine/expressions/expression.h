@@ -29,6 +29,11 @@ class Expression {
 
    [[nodiscard]] virtual std::string toString() const = 0;
 
+   /// Structural equality. Two expressions are equal iff they are the same concrete
+   /// type and all their operands are equal. Composite expressions compare their
+   /// children positionally (order-sensitive).
+   [[nodiscard]] virtual bool operator==(const Expression& other) const = 0;
+
    /// The columns ("identifiable units") this expression references and that an
    /// upstream node must therefore provide. Literals reference none; a column
    /// reference yields that column. Used by column narrowing to keep the child
@@ -58,5 +63,9 @@ void appendVectorToVector(
 }
 
 using ExpressionVector = std::vector<std::unique_ptr<Expression>>;
+
+/// Positional (order-sensitive) equality of two expression lists: equal length and
+/// pairwise-equal children.
+[[nodiscard]] bool expressionVectorsEqual(const ExpressionVector& lhs, const ExpressionVector& rhs);
 
 }  // namespace silo::query_engine::expressions

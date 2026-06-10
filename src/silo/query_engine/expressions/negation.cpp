@@ -19,6 +19,11 @@ std::string Negation::toString() const {
    return "!(" + child->toString() + ")";
 }
 
+bool Negation::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const Negation*>(&other);
+   return other_casted != nullptr && *child == *other_casted->child;
+}
+
 std::unique_ptr<Expression> Negation::rewrite(const storage::Table& table, AmbiguityMode mode)
    const {
    return std::make_unique<Negation>(child->rewrite(table, invertMode(mode)));

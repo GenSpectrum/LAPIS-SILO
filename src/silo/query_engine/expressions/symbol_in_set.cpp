@@ -194,6 +194,13 @@ std::unique_ptr<filter::operators::Operator> compileOnlyMutations(
 }  // namespace
 
 template <typename SymbolType>
+bool SymbolInSet<SymbolType>::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const SymbolInSet*>(&other);
+   return other_casted != nullptr && sequence_name == other_casted->sequence_name &&
+          position_idx == other_casted->position_idx && symbols == other_casted->symbols;
+}
+
+template <typename SymbolType>
 std::unique_ptr<Expression> SymbolInSet<SymbolType>::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/

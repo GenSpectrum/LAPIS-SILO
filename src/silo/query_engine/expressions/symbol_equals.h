@@ -26,6 +26,8 @@ class SymbolOrDot {
    ) const;
 
    [[nodiscard]] char asChar() const;
+
+   bool operator==(const SymbolOrDot& other) const = default;
 };
 
 template <typename SymbolType>
@@ -42,6 +44,7 @@ class SymbolEquals : public Expression {
    );
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

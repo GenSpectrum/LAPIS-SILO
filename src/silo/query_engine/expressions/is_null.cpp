@@ -20,6 +20,11 @@ std::string IsNull::toString() const {
    return fmt::format("{} IS NULL", column_name);
 }
 
+bool IsNull::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const IsNull*>(&other);
+   return other_casted != nullptr && column_name == other_casted->column_name;
+}
+
 std::unique_ptr<Expression> IsNull::rewrite(
    const storage::Table& /*table*/,
    Expression::AmbiguityMode /*mode*/

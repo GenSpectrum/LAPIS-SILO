@@ -20,6 +20,7 @@ class IntEquals : public Expression {
    explicit IntEquals(std::string column_name, std::optional<int32_t> value);
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

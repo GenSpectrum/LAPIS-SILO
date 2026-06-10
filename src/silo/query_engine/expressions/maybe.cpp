@@ -20,6 +20,11 @@ std::string Maybe::toString() const {
    return "Maybe (" + child->toString() + ")";
 }
 
+bool Maybe::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const Maybe*>(&other);
+   return other_casted != nullptr && *child == *other_casted->child;
+}
+
 std::unique_ptr<Expression> Maybe::rewrite(
    const storage::Table& table,
    AmbiguityMode /*mode*/

@@ -32,6 +32,12 @@ std::string FloatBetween::toString() const {
    return "[FloatBetween " + from_string + " - " + to_string + "]";
 }
 
+bool FloatBetween::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const FloatBetween*>(&other);
+   return other_casted != nullptr && column_name == other_casted->column_name &&
+          from == other_casted->from && to == other_casted->to;
+}
+
 std::unique_ptr<Expression> FloatBetween::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/

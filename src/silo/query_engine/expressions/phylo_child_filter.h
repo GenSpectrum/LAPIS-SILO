@@ -16,6 +16,7 @@ class PhyloChildFilter : public Expression {
    explicit PhyloChildFilter(std::string column_name, std::string internal_node);
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

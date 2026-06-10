@@ -27,6 +27,12 @@ std::string StringEquals::toString() const {
    return fmt::format("{} IS NULL", column_name);
 }
 
+bool StringEquals::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const StringEquals*>(&other);
+   return other_casted != nullptr && column_name == other_casted->column_name &&
+          value == other_casted->value;
+}
+
 std::unique_ptr<Expression> StringEquals::rewrite(
    const storage::Table& table,
    AmbiguityMode /*mode*/

@@ -24,6 +24,7 @@ class Int64Literal : public Expression {
    [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::INT64; }
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
@@ -43,6 +44,7 @@ class FloatLiteral : public Expression {
    [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::FLOAT; }
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
@@ -62,6 +64,7 @@ class StringLiteral : public Expression {
    [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::STRING; }
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
@@ -81,6 +84,7 @@ class BoolLiteral : public Expression {
    [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::BOOL; }
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

@@ -22,18 +22,26 @@ class MutationProfile : public Expression {
    struct Mutation {
       uint32_t position_idx;  // 0-indexed
       typename SymbolType::Symbol symbol;
+
+      bool operator==(const Mutation& other) const = default;
    };
 
    struct QuerySequenceInput {
       std::string sequence;
+
+      bool operator==(const QuerySequenceInput& other) const = default;
    };
 
    struct SequenceIdInput {
       std::string id;
+
+      bool operator==(const SequenceIdInput& other) const = default;
    };
 
    struct MutationsInput {
       std::vector<Mutation> mutations;
+
+      bool operator==(const MutationsInput& other) const = default;
    };
 
    using ProfileInput = std::variant<QuerySequenceInput, SequenceIdInput, MutationsInput>;
@@ -64,6 +72,7 @@ class MutationProfile : public Expression {
    );
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

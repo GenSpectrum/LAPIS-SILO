@@ -28,6 +28,11 @@ std::string Int64Literal::toString() const {
    return fmt::format("{}", value);
 }
 
+bool Int64Literal::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const Int64Literal*>(&other);
+   return other_casted != nullptr && value == other_casted->value;
+}
+
 std::unique_ptr<Expression> Int64Literal::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
@@ -45,6 +50,11 @@ FloatLiteral::FloatLiteral(double value)
 
 std::string FloatLiteral::toString() const {
    return fmt::format("{}", value);
+}
+
+bool FloatLiteral::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const FloatLiteral*>(&other);
+   return other_casted != nullptr && value == other_casted->value;
 }
 
 std::unique_ptr<Expression> FloatLiteral::rewrite(
@@ -66,6 +76,11 @@ std::string StringLiteral::toString() const {
    return fmt::format("'{}'", value);
 }
 
+bool StringLiteral::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const StringLiteral*>(&other);
+   return other_casted != nullptr && value == other_casted->value;
+}
+
 std::unique_ptr<Expression> StringLiteral::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
@@ -83,6 +98,11 @@ BoolLiteral::BoolLiteral(bool value)
 
 std::string BoolLiteral::toString() const {
    return value ? "true" : "false";
+}
+
+bool BoolLiteral::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const BoolLiteral*>(&other);
+   return other_casted != nullptr && value == other_casted->value;
 }
 
 std::unique_ptr<Expression> BoolLiteral::rewrite(

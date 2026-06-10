@@ -23,6 +23,7 @@ class FieldRef : public Expression {
    [[nodiscard]] schema::ColumnType type() const override { return column.type; }
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
 

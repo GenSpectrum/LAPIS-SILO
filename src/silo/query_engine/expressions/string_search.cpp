@@ -44,6 +44,19 @@ std::unique_ptr<filter::operators::Operator> createMatchingBitmap(
 
 }  // namespace
 
+bool StringSearch::operator==(const Expression& other) const {
+   const auto* other_casted = dynamic_cast<const StringSearch*>(&other);
+   if (other_casted == nullptr || column_name != other_casted->column_name) {
+      return false;
+   }
+   const bool lhs_has_pattern = search_expression != nullptr;
+   const bool rhs_has_pattern = other_casted->search_expression != nullptr;
+   if (!lhs_has_pattern || !rhs_has_pattern) {
+      return lhs_has_pattern == rhs_has_pattern;
+   }
+   return search_expression->pattern() == other_casted->search_expression->pattern();
+}
+
 std::unique_ptr<Expression> StringSearch::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/

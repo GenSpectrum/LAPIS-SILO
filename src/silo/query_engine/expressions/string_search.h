@@ -20,6 +20,7 @@ class StringSearch : public Expression {
    explicit StringSearch(std::string column_name, std::unique_ptr<re2::RE2> search_expression);
 
    [[nodiscard]] std::string toString() const override;
+   [[nodiscard]] bool operator==(const Expression& other) const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
