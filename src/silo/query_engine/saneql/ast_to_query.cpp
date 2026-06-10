@@ -683,12 +683,21 @@ GroupByArgs parseGroupBySpecs(
 }
 
 std::vector<std::string> names(const std::vector<schema::ColumnIdentifier>& schema) {
-   std::vector<std::string> names;
-   names.reserve(schema.size());
+   std::vector<std::string> result;
+   result.reserve(schema.size());
    for (const auto& col : schema) {
-      names.push_back(col.name);
+      result.push_back(col.name);
    }
-   return names;
+   return result;
+}
+
+std::vector<std::string> namesWithTypes(const std::vector<schema::ColumnIdentifier>& schema) {
+   std::vector<std::string> result;
+   result.reserve(schema.size());
+   for (const auto& col : schema) {
+      result.push_back(fmt::format("{}:{}", col.name, schema::columnTypeToString(col.type)));
+   }
+   return result;
 }
 
 OrderByField parseOrderByField(
@@ -1118,8 +1127,8 @@ operators::QueryNodePtr handleUnionAll(
       left_schema == right_schema,
       "unionAll requires both inputs to have the same schema (same column names and types). "
       "Left schema: [{}], right schema: [{}].",
-      fmt::join(names(left_schema), ", "),
-      fmt::join(names(right_schema), ", ")
+      fmt::join(namesWithTypes(left_schema), ", "),
+      fmt::join(namesWithTypes(right_schema), ", ")
    );
 
    std::vector<operators::QueryNodePtr> children;

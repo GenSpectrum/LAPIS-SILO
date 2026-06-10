@@ -119,7 +119,20 @@ const QueryTestScenario UNION_ALL_SCHEMA_MISMATCH_SCENARIO = {
    .expected_error_message =
       "unionAll requires both inputs to have the same schema "
       "(same column names and types). "
-      "Left schema: [primaryKey], right schema: [country]."
+      "Left schema: [primaryKey:STRING], right schema: [country:STRING]."
+};
+
+// Downstream filter above unionAll should be rejected (not silently dropped)
+const QueryTestScenario UNION_ALL_DOWNSTREAM_FILTER_SCENARIO = {
+   .name = "UNION_ALL_DOWNSTREAM_FILTER",
+   .query = R"(unionAll(
+      default.project({primaryKey, country}),
+      default.project({primaryKey, country})
+   ).filter(country='CH'))",
+   .expected_query_result = {},
+   .expected_error_message =
+      "filter above unionAll is not supported. "
+      "Apply the filter inside each child of the unionAll instead."
 };
 }  // namespace
 
@@ -131,6 +144,7 @@ QUERY_TEST(
       UNION_ALL_DUPLICATES_SCENARIO,
       UNION_ALL_WITH_GROUPBY_SCENARIO,
       UNION_ALL_EMPTY_CHILD_SCENARIO,
-      UNION_ALL_SCHEMA_MISMATCH_SCENARIO
+      UNION_ALL_SCHEMA_MISMATCH_SCENARIO,
+      UNION_ALL_DOWNSTREAM_FILTER_SCENARIO
    )
 );
