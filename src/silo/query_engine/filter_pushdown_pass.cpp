@@ -15,6 +15,7 @@
 #include "silo/query_engine/operators/phylo_subtree_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
+#include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/zstd_decompress_node.h"
 
 namespace silo::query_engine {
@@ -157,6 +158,17 @@ operators::QueryNodePtr FilterPushdownPass::operator()(
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnresolvedPhyloSubtreeNode& node
 ) {
    applyToNode(node.child, *this);
+   return nullptr;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& node) {
+   // Filters cannot be pushed across a union all boundary.
+   // Each child is optimized independently with a fresh pass.
+   for (auto& child : node.children) {
+      FilterPushdownPass child_pass;
+      applyToNode(child, child_pass);
+   }
    return nullptr;
 }
 

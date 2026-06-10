@@ -9,6 +9,7 @@
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
+#include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
@@ -193,6 +194,16 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedPhyloSubtreeNode& node
 ) {
    applyToChild(node.child, *this);
+   return nullptr;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnionAllNode& node) {
+   // Narrow columns in each child independently using the same required set.
+   for (auto& child : node.children) {
+      ColumnNarrowingPass child_pass(required);
+      applyToChild(child, child_pass);
+   }
    return nullptr;
 }
 

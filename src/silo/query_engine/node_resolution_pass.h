@@ -18,6 +18,7 @@ template <typename SymbolType>
 class UnresolvedMutationsNode;
 template <typename SymbolType>
 class UnresolvedInsertionsNode;
+class UnionAllNode;
 class UnresolvedMostRecentCommonAncestorNode;
 class UnresolvedPhyloSubtreeNode;
 class ZstdDecompressNode;
@@ -48,6 +49,7 @@ class NodeResolutionPass {
    operators::QueryNodePtr operator()(operators::UnresolvedInsertionsNode<SymbolType>& node);
    operators::QueryNodePtr operator()(operators::UnresolvedMostRecentCommonAncestorNode& node);
    operators::QueryNodePtr operator()(operators::UnresolvedPhyloSubtreeNode& node);
+   operators::QueryNodePtr operator()(operators::UnionAllNode& node);
 
    // Post-resolution nodes are leaves that don't participate in this pass.
    template <typename T>

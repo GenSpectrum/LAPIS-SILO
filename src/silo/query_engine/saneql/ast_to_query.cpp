@@ -52,6 +52,7 @@
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
+#include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
 #include "silo/query_engine/operators/zstd_decompress_node.h"
 #include "silo/query_engine/order_by_field.h"
@@ -1099,6 +1100,31 @@ operators::QueryNodePtr handlePhyloSubtree(
    );
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr handleUnionAll(
+   const BoundArguments& args,
+   const Tables& tables,
+   const ChildConverter& convert_child
+) {
+   auto left = convert_child(args.at("left"), tables);
+   auto right = convert_child(args.at("right"), tables);
+
+   auto left_schema = left->getOutputSchema();
+   auto right_schema = right->getOutputSchema();
+   CHECK_SILO_QUERY(
+      left_schema == right_schema,
+      "unionAll requires both inputs to have the same schema (same column names and types). "
+      "Left schema: [{}], right schema: [{}].",
+      fmt::join(names(left_schema), ", "),
+      fmt::join(names(right_schema), ", ")
+   );
+
+   std::vector<operators::QueryNodePtr> children;
+   children.push_back(std::move(left));
+   children.push_back(std::move(right));
+   return std::make_unique<operators::UnionAllNode>(std::move(children));
+}
+
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -1218,6 +1244,8 @@ FunctionRegistry::FunctionRegistry() {
         named("contractUnaryNodes", false)}},
       handlePhyloSubtree
    );
+
+   registerFunction("unionAll", {{pos("left"), pos("right")}}, handleUnionAll);
 }
 
 FunctionRegistry& FunctionRegistry::instance() {
