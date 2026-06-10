@@ -8,6 +8,8 @@
 #include <arrow/util/async_generator.h>
 #include <nlohmann/json.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include "silo/common/panic.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 
@@ -19,7 +21,7 @@ namespace {
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<std::vector<arrow::ExecBatch>> drainChildPlan(PartialArrowPlan& child_plan) {
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> generator;
-   arrow::acero::BackpressureMonitor* backpressure_monitor;
+   arrow::acero::BackpressureMonitor* backpressure_monitor = nullptr;
    const arrow::acero::SinkNodeOptions sink_options{
       &generator, arrow::acero::BackpressureOptions{}, &backpressure_monitor, true
    };
@@ -38,8 +40,13 @@ arrow::Result<std::vector<arrow::ExecBatch>> drainChildPlan(PartialArrowPlan& ch
       auto future = generator();
       auto result = future.result();
       if (!result.ok()) {
-         // The plan may report Cancelled when torn down after all data was produced.
+         // The plan may report Cancelled when torn down after all data was produced
+         // due to Arrow Acero's internal threading. This is expected and not an error.
          if (result.status().IsCancelled()) {
+            SPDLOG_WARN(
+               "UnionAll child plan generator returned Cancelled after {} batches",
+               batches.size()
+            );
             break;
          }
          return result.status();
@@ -97,7 +104,7 @@ arrow::Result<arrow::acero::ExecNode*> makeUnionSource(
 
 UnionAllNode::UnionAllNode(std::vector<QueryNodePtr> children)
     : children(std::move(children)) {
-   SILO_ASSERT(this->children.size() >= 2);
+   SILO_ASSERT(this->children.size() == 2);
 }
 
 std::vector<schema::ColumnIdentifier> UnionAllNode::getOutputSchema() const {
@@ -108,6 +115,9 @@ arrow::Result<PartialArrowPlan> UnionAllNode::toQueryPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
    const config::QueryOptions& query_options
 ) const {
+   // NOTE: This eagerly materializes ALL child batches into memory before producing output.
+   // For large datasets both child results are buffered simultaneously. A future optimization
+   // could stream batches lazily, draining the second child only after the first is consumed.
    auto all_batches = std::make_shared<std::vector<std::vector<arrow::ExecBatch>>>();
    all_batches->reserve(children.size());
 

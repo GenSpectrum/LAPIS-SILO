@@ -1109,6 +1109,9 @@ operators::QueryNodePtr handleUnionAll(
    auto left = convert_child(args.at("left"), tables);
    auto right = convert_child(args.at("right"), tables);
 
+   // Schema matching is name-based (not positional): both children must produce
+   // the same columns in the same order with the same types. This is stricter than
+   // SQL's positional UNION ALL, but avoids subtle bugs from column reordering.
    auto left_schema = left->getOutputSchema();
    auto right_schema = right->getOutputSchema();
    CHECK_SILO_QUERY(

@@ -7,11 +7,10 @@ using silo::ReferenceGenomes;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
-nlohmann::json createData(const std::string& primaryKey, const std::string& country, int value) {
+nlohmann::json createData(const std::string& primaryKey, const std::string& country) {
    return {
       {"primaryKey", primaryKey},
       {"country", country},
-      {"int_value", value},
       {"segment1", nullptr},
       {"gene1", nullptr},
       {"unaligned_segment1", nullptr}
@@ -19,10 +18,10 @@ nlohmann::json createData(const std::string& primaryKey, const std::string& coun
 }
 
 const std::vector<nlohmann::json> DATA = {
-   createData("id_0", "CH", 10),
-   createData("id_1", "DE", 20),
-   createData("id_2", "CH", 30),
-   createData("id_3", "DE", 40),
+   createData("id_0", "CH"),
+   createData("id_1", "DE"),
+   createData("id_2", "CH"),
+   createData("id_3", "DE"),
 };
 
 const auto DATABASE_CONFIG =
@@ -35,8 +34,6 @@ schema:
       type: "string"
     - name: "country"
       type: "string"
-    - name: "int_value"
-      type: "int"
   primaryKey: "primaryKey"
 )";
 
@@ -98,6 +95,19 @@ const QueryTestScenario UNION_ALL_WITH_GROUPBY_SCENARIO = {
    )
 };
 
+// UnionAll where one child produces empty results
+const QueryTestScenario UNION_ALL_EMPTY_CHILD_SCENARIO = {
+   .name = "UNION_ALL_EMPTY_CHILD",
+   .query = R"(unionAll(
+      default.filter(country='CH').project({primaryKey, country}),
+      default.filter(country='XX').project({primaryKey, country})
+   ))",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"country", "CH"}},
+       {{"primaryKey", "id_2"}, {"country", "CH"}}}
+   )
+};
+
 // UnionAll with schema mismatch should error
 const QueryTestScenario UNION_ALL_SCHEMA_MISMATCH_SCENARIO = {
    .name = "UNION_ALL_SCHEMA_MISMATCH",
@@ -112,6 +122,9 @@ const QueryTestScenario UNION_ALL_SCHEMA_MISMATCH_SCENARIO = {
       "Left schema: [primaryKey], right schema: [country]."
 };
 
+// TODO(#1221): Add multi-table test once the QUERY_TEST fixture supports multiple tables.
+// That is the primary use case for unionAll (see issue description).
+
 }  // namespace
 
 QUERY_TEST(
@@ -121,6 +134,7 @@ QUERY_TEST(
       UNION_ALL_BASIC_SCENARIO,
       UNION_ALL_DUPLICATES_SCENARIO,
       UNION_ALL_WITH_GROUPBY_SCENARIO,
+      UNION_ALL_EMPTY_CHILD_SCENARIO,
       UNION_ALL_SCHEMA_MISMATCH_SCENARIO
    )
 );
