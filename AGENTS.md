@@ -7,9 +7,6 @@ C++23 high-performance genomic sequence indexing engine. Uses Arrow Acero for qu
 ## Build & Test
 
 ```bash
-# Initial setup (once)
-conan profile detect && conan profile show --context build > conanprofile
-
 # Build
 make build/Debug/silo              # Debug build (includes clang-tidy + ASAN)
 make build/Release/silo            # Release build (includes mimalloc on Linux)
