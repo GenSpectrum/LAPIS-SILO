@@ -121,10 +121,6 @@ const QueryTestScenario UNION_ALL_SCHEMA_MISMATCH_SCENARIO = {
       "(same column names and types). "
       "Left schema: [primaryKey], right schema: [country]."
 };
-
-// TODO(#1221): Add multi-table test once the QUERY_TEST fixture supports multiple tables.
-// That is the primary use case for unionAll (see issue description).
-
 }  // namespace
 
 QUERY_TEST(
