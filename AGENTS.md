@@ -8,7 +8,7 @@ C++23 high-performance genomic sequence indexing engine. Uses Arrow Acero for qu
 
 ```bash
 # Build
-make build/Debug/silo              # Debug build (includes clang-tidy + ASAN)
+make build/Debug/silo              # Debug build (includes ASAN)
 make build/Release/silo            # Release build (includes mimalloc on Linux)
 
 # Test
