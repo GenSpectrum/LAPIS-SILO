@@ -197,7 +197,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedPhy
    return nullptr;
 }
 
-// NOLINTNEXTLINE(misc-no-recursion)
+// NOLINTNEXTLINE(misc-no-recursion,readability-make-member-function-const)
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnionAllNode& node) {
    // Narrow columns in each child independently using the same required set.
    for (auto& child : node.children) {
