@@ -20,6 +20,8 @@ class IntEquals : public Expression {
    explicit IntEquals(std::string column_name, std::optional<int32_t> value);
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::INT_EQUALS;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

@@ -19,6 +19,8 @@ class DateEquals : public Expression {
    explicit DateEquals(std::string column_name, std::optional<silo::common::Date32> value);
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::DATE_EQUALS;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

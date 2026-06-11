@@ -10,7 +10,7 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/expressions/true.h"
+#include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_metadata.h"
@@ -64,7 +64,9 @@ std::shared_ptr<silo::storage::Table> dummyTable() {
 // list matters because ZstdDecompressNode reads it through child->getOutputSchema().
 operators::QueryNodePtr makeScan(std::vector<ColumnIdentifier> fields) {
    return std::make_unique<operators::TableScanNode>(
-      dummyTable(), std::make_unique<silo::query_engine::expressions::True>(), std::move(fields)
+      dummyTable(),
+      std::make_unique<silo::query_engine::expressions::BoolLiteral>(true),
+      std::move(fields)
    );
 }
 

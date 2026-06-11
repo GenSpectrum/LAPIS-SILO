@@ -16,6 +16,8 @@ class PhyloChildFilter : public Expression {
    explicit PhyloChildFilter(std::string column_name, std::string internal_node);
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::PHYLO_CHILD_FILTER;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

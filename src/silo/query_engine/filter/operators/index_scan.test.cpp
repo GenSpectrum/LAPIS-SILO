@@ -3,12 +3,10 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-#include "silo/query_engine/expressions/false.h"
-#include "silo/query_engine/expressions/true.h"
+#include "silo/query_engine/expressions/literal.h"
 
 using silo::query_engine::CopyOnWriteBitmap;
-using silo::query_engine::expressions::False;
-using silo::query_engine::expressions::True;
+using silo::query_engine::expressions::BoolLiteral;
 using silo::query_engine::filter::operators::IndexScan;
 
 TEST(OperatorIndexScan, evaluateShouldReturnCorrectValues) {
@@ -27,12 +25,16 @@ TEST(OperatorIndexScan, correctTypeInfo) {
 
 TEST(OperatorIndexScan, correctLogicalEquivalent) {
    const roaring::Roaring test_bitmap({1, 2, 3, 4, 5});
-   const IndexScan under_test(std::make_unique<True>(), CopyOnWriteBitmap{&test_bitmap}, 5);
+   const IndexScan under_test(
+      std::make_unique<BoolLiteral>(true), CopyOnWriteBitmap{&test_bitmap}, 5
+   );
 
-   ASSERT_EQ(under_test.toString(), "IndexScan(Logical Equivalent: True, Cardinality: 5)");
+   ASSERT_EQ(under_test.toString(), "IndexScan(Logical Equivalent: true, Cardinality: 5)");
 
    const roaring::Roaring test_bitmap2({});
-   const IndexScan under_test2(std::make_unique<False>(), CopyOnWriteBitmap{&test_bitmap}, 5);
+   const IndexScan under_test2(
+      std::make_unique<BoolLiteral>(false), CopyOnWriteBitmap{&test_bitmap}, 5
+   );
 
-   ASSERT_EQ(under_test2.toString(), "IndexScan(Logical Equivalent: False, Cardinality: 5)");
+   ASSERT_EQ(under_test2.toString(), "IndexScan(Logical Equivalent: false, Cardinality: 5)");
 }

@@ -17,6 +17,8 @@ class StringEquals : public Expression {
    explicit StringEquals(std::string column_name, std::optional<std::string> value);
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::STRING_EQUALS;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

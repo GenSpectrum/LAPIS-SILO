@@ -6,10 +6,9 @@
 
 #include "silo/common/string_utils.h"
 #include "silo/query_engine/expressions/expression.h"
-#include "silo/query_engine/expressions/false.h"
+#include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/expressions/string_in_set.h"
 #include "silo/query_engine/expressions/symbol_in_set.h"
-#include "silo/query_engine/expressions/true.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/full.h"
@@ -42,8 +41,7 @@ std::vector<const Expression*> Or::collectChildren(const ExpressionVector& child
    while (!queue.empty()) {
       const auto* current = queue.back();
       queue.pop_back();
-      if (dynamic_cast<const Or*>(current) != nullptr) {
-         const Or* or_child = dynamic_cast<const Or*>(current);
+      if (const auto* or_child = dynCast<Or>(current)) {
          for (const auto& child : or_child->children) {
             queue.push_back(child.get());
          }
@@ -59,18 +57,17 @@ ExpressionVector Or::algebraicSimplification(ExpressionVector unprocessed_child_
    while (!unprocessed_child_expressions.empty()) {
       auto child = std::move(unprocessed_child_expressions.back());
       unprocessed_child_expressions.pop_back();
-      if (dynamic_cast<False*>(child.get()) != nullptr) {
-         SPDLOG_TRACE("Skipping 'False' child");
+      if (const auto* bool_literal = dynCast<BoolLiteral>(child.get())) {
+         if (bool_literal->value) {
+            SPDLOG_TRACE("Shortcutting because found constant-true child");
+            ExpressionVector singleton_true;
+            singleton_true.emplace_back(std::make_unique<BoolLiteral>(true));
+            return singleton_true;
+         }
+         SPDLOG_TRACE("Skipping constant-false child");
          continue;
       }
-      if (dynamic_cast<True*>(child.get()) != nullptr) {
-         SPDLOG_TRACE("Shortcutting because found 'True' child");
-         ExpressionVector singleton_true;
-         singleton_true.emplace_back(std::make_unique<True>());
-         return singleton_true;
-      }
-      if (dynamic_cast<Or*>(child.get()) != nullptr) {
-         auto* or_child = dynamic_cast<Or*>(child.get());
+      if (auto* or_child = dynCast<Or>(child.get())) {
          appendVectorToVector(or_child->children, unprocessed_child_expressions);
       } else {
          non_trivial_children.push_back(std::move(child));
@@ -86,8 +83,7 @@ ExpressionVector Or::rewriteSymbolInSetExpressions(ExpressionVector children) {
    using Symbols = std::vector<typename SymbolType::Symbol>;
    std::map<SequenceNameAndPosition, Symbols> symbol_in_set_children;
    for (auto& child : children) {
-      if (auto symbol_in_set_child = dynamic_cast<SymbolInSet<SymbolType>*>(child.get());
-          symbol_in_set_child != nullptr) {
+      if (auto* symbol_in_set_child = dynCast<SymbolInSet<SymbolType>>(child.get())) {
          std::vector<typename SymbolType::Symbol>& symbols_so_far = symbol_in_set_children[{
             symbol_in_set_child->sequence_name, symbol_in_set_child->position_idx
          }];
@@ -128,8 +124,7 @@ ExpressionVector Or::mergeStringInSetExpressions(ExpressionVector children) {
    using Strings = std::unordered_set<std::string>;
    std::map<Column, Strings> new_string_in_set_children;
    for (auto& child : children) {
-      if (auto* string_in_set_child = dynamic_cast<StringInSet*>(child.get());
-          string_in_set_child != nullptr) {
+      if (auto* string_in_set_child = dynCast<StringInSet>(child.get())) {
          if (auto iter = new_string_in_set_children.find(string_in_set_child->column_name);
              iter != new_string_in_set_children.end()) {
             auto& new_string_in_set_child_for_column = iter->second;

@@ -26,6 +26,8 @@ class IntBetween : public Expression {
    );
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::INT_BETWEEN;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

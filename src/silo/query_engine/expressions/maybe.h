@@ -17,6 +17,8 @@ class Maybe : public Expression {
    explicit Maybe(std::unique_ptr<Expression> child);
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::MAYBE;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

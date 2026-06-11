@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/query_engine/expressions/true.h"
+#include "silo/query_engine/expressions/literal.h"
 #include "silo/test/query_fixture.test.h"
 
 namespace silo::query_engine::expressions {
@@ -12,32 +12,32 @@ namespace silo::query_engine::expressions {
 
 TEST(NOfToString, shouldFormatAtLeastN) {
    ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
+   children.emplace_back(std::make_unique<BoolLiteral>(true));
+   children.emplace_back(std::make_unique<BoolLiteral>(true));
+   children.emplace_back(std::make_unique<BoolLiteral>(true));
 
    const NOf nof(std::move(children), 2, false);
 
-   EXPECT_EQ(nof.toString(), "[2-of:True, True, True]");
+   EXPECT_EQ(nof.toString(), "[2-of:true, true, true]");
 }
 
 TEST(NOfToString, shouldFormatExactlyN) {
    ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
+   children.emplace_back(std::make_unique<BoolLiteral>(true));
+   children.emplace_back(std::make_unique<BoolLiteral>(true));
 
    const NOf nof(std::move(children), 1, true);
 
-   EXPECT_EQ(nof.toString(), "[exactly-1-of:True, True]");
+   EXPECT_EQ(nof.toString(), "[exactly-1-of:true, true]");
 }
 
 TEST(NOfToString, shouldHandleSingleChild) {
    ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
+   children.emplace_back(std::make_unique<BoolLiteral>(true));
 
    const NOf nof(std::move(children), 1, false);
 
-   EXPECT_EQ(nof.toString(), "[1-of:True]");
+   EXPECT_EQ(nof.toString(), "[1-of:true]");
 }
 
 TEST(NOfToString, shouldHandleEmptyChildren) {
