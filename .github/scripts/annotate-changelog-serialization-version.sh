@@ -2,12 +2,10 @@
 
 set -euo pipefail
 
-# Annotate CHANGELOG.md with a serialization version change note.
+# Check whether the serialization version changed since the last release,
+# and if so, annotate CHANGELOG.md on the release branch and commit+push.
 #
-# Compares the serialization version file between the latest release tag
-# and origin/main. If it changed, inserts a warning section into the
-# CHANGELOG.md entry for the given release version and commits+pushes
-# the change.
+# Delegates the actual changelog modification to insert-serialization-version-note.sh.
 #
 # Usage:
 #   ./annotate-changelog-serialization-version.sh --branch=<release-branch> --version=<release-version>
@@ -15,6 +13,8 @@ set -euo pipefail
 # Environment:
 #   SERIALIZATION_VERSION_FILE  path inside the repo (default: src/silo/common/serialization_version.txt)
 #   DRY_RUN                     if "true", skip commit+push (useful for local testing)
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 SERIALIZATION_VERSION_FILE="${SERIALIZATION_VERSION_FILE:-src/silo/common/serialization_version.txt}"
 DRY_RUN="${DRY_RUN:-false}"
@@ -59,26 +59,7 @@ fi
 
 echo "Serialization version changed: $OLD_VER -> $NEW_VER"
 
-# Guard: skip if note already present in CHANGELOG.md for this version
-if grep -q "### ⚠ Serialization Version Changed" CHANGELOG.md; then
-  echo "Serialization version note already present in CHANGELOG.md, skipping"
-  exit 0
-fi
-
-# Insert note after the version heading for this release.
-ESCAPED_VERSION="${VERSION//./\\.}"
-awk -v ver="$ESCAPED_VERSION" '
-  /^## \[/ && $0 ~ "^## \\[" ver "\\]" && !done {
-    print
-    print ""
-    print "### ⚠ Serialization Version Changed"
-    print ""
-    print "The serialization version changed in this release. Databases serialized with previous SILO versions are incompatible and need to be re-preprocessed."
-    done=1
-    next
-  }
-  {print}
-' CHANGELOG.md > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
+"${SCRIPT_DIR}/insert-serialization-version-note.sh" --version="$VERSION"
 
 if [ "$DRY_RUN" = "true" ]; then
   echo "DRY_RUN: would commit and push CHANGELOG.md changes"
