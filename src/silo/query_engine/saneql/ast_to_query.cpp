@@ -1118,7 +1118,7 @@ operators::QueryNodePtr handleUnionAll(
    auto left = convert_child(args.at("left"), tables);
    auto right = convert_child(args.at("right"), tables);
 
-   // both children must have the same set of columns (same names and types).
+   // Both children must have the same set of columns (same names and types).
    auto left_schema = left->getOutputSchema();
    auto right_schema = right->getOutputSchema();
    auto left_sorted = left_schema;

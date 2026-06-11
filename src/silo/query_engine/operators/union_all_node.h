@@ -12,8 +12,8 @@
 
 namespace silo::query_engine::operators {
 
-/// Concatenates the output of multiple child pipelines (UNION ALL semantics).
-/// All children must produce compatible output schemas (same column names and types).
+/// Concatenates the output of two child pipelines (UNION ALL semantics).
+/// Both children must produce compatible output schemas (same column names and types).
 class UnionAllNode final : public QueryNode {
   public:
    std::vector<QueryNodePtr> children;
