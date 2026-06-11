@@ -1,5 +1,8 @@
 # Query Engine
 
+Contains code for public query API.
+IMPORTANT: Changes here may require updates to query docs: `documentation/query_documentation.md`.
+
 ## Pipeline
 
 ```

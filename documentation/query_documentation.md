@@ -20,10 +20,11 @@ The table name is `default` for now.
 
 Every operator takes a table as input and produces a table as output. Internally these tables are Apache Arrow record batches; externally they are streamed as NDJSON or Arrow IPC. The **response schema** — which fields are returned and their types — is always the output schema of the **last operator** in the pipeline.
 
-Operators fall into two categories:
+Operators fall into three categories:
 
 - **Schema-preserving** (`filter`, `orderBy`, `limit`, `offset`, `randomize`): pass all input columns through unchanged. They select or reorder rows but do not add, remove, or rename fields.
 - **Schema-defining** (`groupBy`, `project`, `map`, `mutations`, `aminoAcidMutations`, `insertions`, `aminoAcidInsertions`, `mostRecentCommonAncestor`, `phyloSubtree`): produce a changed output schema. Each operator's section below documents its output fields.
+- **Combining** (`unionAll`): takes two pipelines and concatenates their output. The output schema matches the children's schema.
 
 Simple example — count all sequences from Switzerland:
 
@@ -288,6 +289,47 @@ default.filter(pango_lineage = 'B.1.1.7').phyloSubtree('usherTree')
 ```json
 {"subtreeNewick": "((key_83:0.00027051)NODE_0000077:3.291e-05,(...)NODE_0000079:1e-06)NODE_0000076;", "missingNodeCount": 0}
 ```
+
+### `unionAll(left, right)`
+
+Concatenates the output of two pipelines. Unlike the other operators, `unionAll` is a **standalone function** — it is not chained on a single pipeline but takes two pipeline expressions as arguments.
+
+Both inputs must have the same schema (same column names and types). Column order does not matter — the right child is automatically reordered to match the left child's column order.
+
+All rows from both inputs are included — duplicates are preserved (UNION ALL, not UNION).
+
+```
+unionAll(
+  default.filter(division='Aargau').project({division}),
+  default.filter(division='Bern').project({division})
+)
+```
+
+The result can be piped into downstream operators:
+
+```
+unionAll(
+  default.filter(division='Aargau').project({division}),
+  default.filter(division='Bern').project({division})
+).groupBy({count:=count()}, {division})
+ .orderBy({asc(division)})
+```
+
+`unionAll` calls can be nested:
+
+```
+unionAll(
+  unionAll(pipelineA, pipelineB),
+  unionAll(pipelineC, pipelineD)
+)
+```
+
+**Restrictions:**
+
+- `.filter(...)` above a `unionAll` is not supported. Apply filters inside each child pipeline instead.
+- `mutations()`, `aminoAcidMutations()`, `insertions()`, and similar operators that require a table scan cannot be applied to the result of a `unionAll`. They can however be used inside each child.
+
+**Output:** all rows from the left input followed by all rows from the right input, with the left input's column order.
 
 ---
 
@@ -566,4 +608,14 @@ default
   .filter(aminoAcidInsertionContains(position:=214, value:='.*PE', sequenceName:='S'))
   .aminoAcidInsertions()
   .orderBy({insertedSymbols, position})
+```
+
+### Combine two filtered groups with unionAll
+
+```
+unionAll(
+  default.filter(division='Aargau').project({division}),
+  default.filter(division='Bern').project({division})
+).groupBy({count:=count()}, {division})
+ .orderBy({asc(division)})
 ```
