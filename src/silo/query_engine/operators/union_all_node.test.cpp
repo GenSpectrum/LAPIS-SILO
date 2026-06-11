@@ -153,6 +153,31 @@ const QueryTestScenario UNION_ALL_DIFFERENT_COLUMN_ORDER_SCENARIO = {
    )
 };
 
+// Nested unionAll: unionAll of two unionAlls
+const QueryTestScenario UNION_ALL_NESTED_SCENARIO = {
+   .name = "UNION_ALL_NESTED",
+   .query = R"(unionAll(
+      unionAll(
+         default.filter(country='CH').project({primaryKey}),
+         default.filter(country='DE').project({primaryKey})
+      ),
+      unionAll(
+         default.filter(country='CH').project({primaryKey}),
+         default.filter(country='DE').project({primaryKey})
+      )
+   ))",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}},
+       {{"primaryKey", "id_2"}},
+       {{"primaryKey", "id_1"}},
+       {{"primaryKey", "id_3"}},
+       {{"primaryKey", "id_0"}},
+       {{"primaryKey", "id_2"}},
+       {{"primaryKey", "id_1"}},
+       {{"primaryKey", "id_3"}}}
+   )
+};
+
 // Downstream filter above unionAll should be rejected (not silently dropped)
 const QueryTestScenario UNION_ALL_DOWNSTREAM_FILTER_SCENARIO = {
    .name = "UNION_ALL_DOWNSTREAM_FILTER",
@@ -178,6 +203,7 @@ QUERY_TEST(
       UNION_ALL_SCHEMA_MISMATCH_SCENARIO,
       UNION_ALL_TYPE_MISMATCH_SCENARIO,
       UNION_ALL_DIFFERENT_COLUMN_ORDER_SCENARIO,
+      UNION_ALL_NESTED_SCENARIO,
       UNION_ALL_DOWNSTREAM_FILTER_SCENARIO
    )
 );
