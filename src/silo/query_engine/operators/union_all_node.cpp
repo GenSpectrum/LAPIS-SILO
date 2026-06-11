@@ -68,42 +68,43 @@ struct StreamState {
 
 /// Pull the next batch from the streaming union.
 /// Starts child plans on demand, drains them one at a time, then advances.
-// NOLINTNEXTLINE(misc-no-recursion)
 arrow::Future<std::optional<arrow::ExecBatch>> pullNext(const std::shared_ptr<StreamState>& state) {
-   if (state->child_idx >= state->child_plans.size()) {
-      return arrow::Future{std::optional<arrow::ExecBatch>{std::nullopt}};
-   }
-
-   if (!state->generator_active) {
-      auto status = state->startCurrentChild();
-      if (!status.ok()) {
-         return arrow::Future{arrow::Result<std::optional<arrow::ExecBatch>>{status}};
+   while (true) {
+      if (state->child_idx >= state->child_plans.size()) {
+         return arrow::Future{std::optional<arrow::ExecBatch>{std::nullopt}};
       }
-   }
 
-   auto future = state->current_generator();
-   auto result = future.result();
+      if (!state->generator_active) {
+         auto status = state->startCurrentChild();
+         if (!status.ok()) {
+            return arrow::Future{arrow::Result<std::optional<arrow::ExecBatch>>{status}};
+         }
+      }
 
-   if (!result.ok()) {
-      if (result.status().IsCancelled()) {
-         SPDLOG_WARN(
-            "UnionAll: child {} generator returned Cancelled, advancing to next child",
-            state->child_idx
-         );
+      auto future = state->current_generator();
+      auto result = future.result();
+
+      if (!result.ok()) {
+         if (result.status().IsCancelled()) {
+            SPDLOG_WARN(
+               "UnionAll: child {} generator returned Cancelled, advancing to next child",
+               state->child_idx
+            );
+            state->stopCurrentChild();
+            ++state->child_idx;
+            continue;
+         }
+         return arrow::Future{arrow::Result<std::optional<arrow::ExecBatch>>{result.status()}};
+      }
+
+      if (!result->has_value()) {
          state->stopCurrentChild();
          ++state->child_idx;
-         return pullNext(state);
+         continue;
       }
-      return arrow::Future{arrow::Result<std::optional<arrow::ExecBatch>>{result.status()}};
-   }
 
-   if (!result->has_value()) {
-      state->stopCurrentChild();
-      ++state->child_idx;
-      return pullNext(state);
+      return arrow::Future{std::move(result.ValueUnsafe())};
    }
-
-   return arrow::Future{std::move(result.ValueUnsafe())};
 }
 
 }  // namespace
