@@ -191,8 +191,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr ColumnNarrowingPass::operator()(
-   operators::UnresolvedPhyloSubtreeNode& node
+operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedPhyloSubtreeNode& node
 ) {
    applyToChild(node.child, *this);
    return nullptr;
@@ -208,17 +207,13 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnionAllNode&
    return nullptr;
 }
 
-template operators::QueryNodePtr ColumnNarrowingPass::operator()(
-   operators::UnresolvedMutationsNode<silo::Nucleotide>&
-);
-template operators::QueryNodePtr ColumnNarrowingPass::operator()(
-   operators::UnresolvedMutationsNode<silo::AminoAcid>&
-);
-template operators::QueryNodePtr ColumnNarrowingPass::operator()(
-   operators::UnresolvedInsertionsNode<silo::Nucleotide>&
-);
-template operators::QueryNodePtr ColumnNarrowingPass::operator()(
-   operators::UnresolvedInsertionsNode<silo::AminoAcid>&
-);
+template operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedMutationsNode<
+                                                                 silo::Nucleotide>&);
+template operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedMutationsNode<
+                                                                 silo::AminoAcid>&);
+template operators::QueryNodePtr ColumnNarrowingPass::
+operator()(operators::UnresolvedInsertionsNode<silo::Nucleotide>&);
+template operators::QueryNodePtr ColumnNarrowingPass::
+operator()(operators::UnresolvedInsertionsNode<silo::AminoAcid>&);
 
 }  // namespace silo::query_engine

@@ -1304,12 +1304,8 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
 
    auto insertion_contains_sig =
       FunctionSignature{{named("position"), named("value"), named("sequenceName", false)}};
-   registerFunction(
-      "insertionContains", insertion_contains_sig, handleInsertionContains<Nucleotide>
-   );
-   registerFunction(
-      "aminoAcidInsertionContains", insertion_contains_sig, handleInsertionContains<AminoAcid>
-   );
+   registerFunction("insertionContains", insertion_contains_sig, handleInsertionContains<Nucleotide>);
+   registerFunction("aminoAcidInsertionContains", insertion_contains_sig, handleInsertionContains<AminoAcid>);
 
    registerFunction("exact", {{pos("child")}}, handleExact);
    registerFunction("maybe", {{pos("child")}}, handleMaybe);
@@ -1325,12 +1321,8 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
       named("sequenceId", false),
       named("mutations", false),
    }};
-   registerFunction(
-      "nucleotideMutationProfile", mutation_profile_sig, handleMutationProfile<Nucleotide>
-   );
-   registerFunction(
-      "aminoAcidMutationProfile", mutation_profile_sig, handleMutationProfile<AminoAcid>
-   );
+   registerFunction("nucleotideMutationProfile", mutation_profile_sig, handleMutationProfile<Nucleotide>);
+   registerFunction("aminoAcidMutationProfile", mutation_profile_sig, handleMutationProfile<AminoAcid>);
 }
 
 ScalarFunctionRegistry& ScalarFunctionRegistry::instance() {

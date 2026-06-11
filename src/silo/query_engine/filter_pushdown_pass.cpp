@@ -86,8 +86,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::PhyloSubtreeNo
    node.filter = std::make_unique<expressions::And>(std::move(current_filters));
    return nullptr;
 }
-operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::MostRecentCommonAncestorNode& node
+operators::QueryNodePtr FilterPushdownPass::operator()(operators::MostRecentCommonAncestorNode& node
 ) {
    current_filters.push_back(std::move(node.filter));
    node.filter = std::make_unique<expressions::And>(std::move(current_filters));
@@ -157,8 +156,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::UnresolvedPhyloSubtreeNode& node
+operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnresolvedPhyloSubtreeNode& node
 ) {
    applyToNode(node.child, *this);
    return nullptr;
@@ -182,17 +180,13 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& 
    return nullptr;
 }
 
-template operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::UnresolvedMutationsNode<silo::Nucleotide>&
-);
-template operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::UnresolvedMutationsNode<silo::AminoAcid>&
-);
-template operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::UnresolvedInsertionsNode<silo::Nucleotide>&
-);
-template operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::UnresolvedInsertionsNode<silo::AminoAcid>&
-);
+template operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnresolvedMutationsNode<
+                                                                silo::Nucleotide>&);
+template operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnresolvedMutationsNode<
+                                                                silo::AminoAcid>&);
+template operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnresolvedInsertionsNode<
+                                                                silo::Nucleotide>&);
+template operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnresolvedInsertionsNode<
+                                                                silo::AminoAcid>&);
 
 }  // namespace silo::query_engine
