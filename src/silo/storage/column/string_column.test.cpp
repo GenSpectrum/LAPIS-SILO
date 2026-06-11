@@ -123,6 +123,56 @@ TEST(StringColumn, rawInsertedValuesWithPhyloTreeRequeried) {
    EXPECT_EQ(tree_node_id_not_in_tree, std::nullopt);
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(StringColumn, duplicatePhyloLeafLeavesColumnUnmodified) {
+   auto phylo_tree = silo::common::PhyloTree::fromNewickString(
+      "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
+   );
+   StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
+   StringColumn under_test(&metadata);
+
+   // First append a valid leaf so we have committed state that must survive the failed append.
+   SILO_ASSERT(appendStringValues(under_test, {"CHILD2"}).has_value());
+
+   // A buffer that re-uses CHILD2 (already committed) with a null in between must fail, and must
+   // not leave the null in null_bitmap or grow the column.
+   StringColumn::Builder builder;
+   builder.insert("CHILD3");
+   builder.insertNull();
+   builder.insert("CHILD2");
+   auto result = under_test.appendChunk(builder.finalize());
+
+   ASSERT_FALSE(result.has_value());
+   EXPECT_EQ(result.error(), "Node 'CHILD2' already exists in the phylogenetic tree.");
+   EXPECT_EQ(under_test.numValues(), 1);
+   EXPECT_TRUE(under_test.null_bitmap.isEmpty());
+   // CHILD3 must not have been bound, since the whole buffer was rejected.
+   EXPECT_EQ(
+      metadata.phylo_tree->nodes.at(silo::common::TreeNodeId{"CHILD3"})->row_index, std::nullopt
+   );
+   EXPECT_EQ(metadata.phylo_tree->nodes.at(silo::common::TreeNodeId{"CHILD2"})->row_index, 0);
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(StringColumn, duplicatePhyloLeafWithinSingleBufferIsRejected) {
+   auto phylo_tree = silo::common::PhyloTree::fromNewickString(
+      "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
+   );
+   StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
+   StringColumn under_test(&metadata);
+
+   // The same leaf appears twice within one buffer; rowIndexExists() cannot catch this, so the
+   // in-buffer claim tracking must.
+   auto result = appendStringValues(under_test, {"CHILD2", "CHILD2"});
+
+   ASSERT_FALSE(result.has_value());
+   EXPECT_EQ(under_test.numValues(), 0);
+   EXPECT_EQ(
+      metadata.phylo_tree->nodes.at(silo::common::TreeNodeId{"CHILD2"})->row_index, std::nullopt
+   );
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumn, rawInsertedValuesRequeryLongValue) {
    StringColumnMetadata column("string_column");
    StringColumn under_test{&column};
@@ -138,12 +188,7 @@ TEST(StringColumn, rawInsertedValuesRequeryLongValue) {
    )
                   .has_value());
 
-   const silo::SiloString somehow_acquired_element_representation = under_test.getValue(4);
-
-   EXPECT_EQ(
-      under_test.lookupValue(somehow_acquired_element_representation),
-      "some string that is a little longer 1"
-   );
+   EXPECT_EQ(under_test.getValueString(4), "some string that is a little longer 1");
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -176,6 +221,32 @@ TEST(StringColumn, compareAcrossColumns) {
    EXPECT_EQ(column_1.getValueString(0), column_1.getValueString(5));
    EXPECT_EQ(column_1.getValueString(5), column_2.getValueString(2));
    EXPECT_EQ(column_1.getValueString(4), column_2.getValueString(4));
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(StringColumn, valuesSpanningMultipleAppendedChunks) {
+   StringColumnMetadata metadata{"string_column"};
+   StringColumn under_test(&metadata);
+
+   // Each appendChunk starts a fresh, immutable chunk. Row ids continue across chunk boundaries and
+   // both short (in-place) and long (suffix in variable data) values must resolve to their own
+   // chunk's registries.
+   SILO_ASSERT(
+      appendStringValues(under_test, {"short a", "a long value that spills over 1"}).has_value()
+   );
+   SILO_ASSERT(
+      appendStringValues(under_test, {"short b", "a long value that spills over 2", "short c"})
+         .has_value()
+   );
+   SILO_ASSERT(appendStringValues(under_test, {"a long value that spills over 3"}).has_value());
+
+   EXPECT_EQ(under_test.numValues(), 6);
+   EXPECT_EQ(under_test.getValueString(0), "short a");
+   EXPECT_EQ(under_test.getValueString(1), "a long value that spills over 1");
+   EXPECT_EQ(under_test.getValueString(2), "short b");
+   EXPECT_EQ(under_test.getValueString(3), "a long value that spills over 2");
+   EXPECT_EQ(under_test.getValueString(4), "short c");
+   EXPECT_EQ(under_test.getValueString(5), "a long value that spills over 3");
 }
 
 TEST(StringColumn, manyLongValues) {

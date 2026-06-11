@@ -8,9 +8,11 @@
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_free.hpp>
+#include <boost/serialization/string.hpp>
 #include <roaring/roaring.hh>
 
 #include "silo/schema/database_schema.h"
+#include "silo/storage/column/chunked_value_buffer.h"
 #include "silo/storage/column/column.h"
 #include "silo/storage/column/column_metadata.h"
 #include "silo/zstd/zstd_compressor.h"
@@ -43,7 +45,7 @@ class ZstdCompressedStringColumn {
    using value_type = std::string_view;
 
   private:
-   std::vector<std::string> values;
+   ChunkedValueBuffer<std::string> values;
 
   public:
    roaring::Roaring null_bitmap;
@@ -55,7 +57,7 @@ class ZstdCompressedStringColumn {
 
    [[nodiscard]] bool isNull(size_t row_id) const;
 
-   [[nodiscard]] size_t numValues() const { return values.size(); }
+   [[nodiscard]] size_t numValues() const { return values.numValues(); }
 
    [[nodiscard]] std::optional<std::string> getDecompressed(size_t row_id) const;
 
