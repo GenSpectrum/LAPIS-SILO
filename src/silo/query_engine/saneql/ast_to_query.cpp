@@ -49,10 +49,10 @@
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
+#include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
-#include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
 #include "silo/query_engine/operators/zstd_decompress_node.h"
 #include "silo/query_engine/order_by_field.h"
@@ -1304,8 +1304,12 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
 
    auto insertion_contains_sig =
       FunctionSignature{{named("position"), named("value"), named("sequenceName", false)}};
-   registerFunction("insertionContains", insertion_contains_sig, handleInsertionContains<Nucleotide>);
-   registerFunction("aminoAcidInsertionContains", insertion_contains_sig, handleInsertionContains<AminoAcid>);
+   registerFunction(
+      "insertionContains", insertion_contains_sig, handleInsertionContains<Nucleotide>
+   );
+   registerFunction(
+      "aminoAcidInsertionContains", insertion_contains_sig, handleInsertionContains<AminoAcid>
+   );
 
    registerFunction("exact", {{pos("child")}}, handleExact);
    registerFunction("maybe", {{pos("child")}}, handleMaybe);
@@ -1321,8 +1325,12 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
       named("sequenceId", false),
       named("mutations", false),
    }};
-   registerFunction("nucleotideMutationProfile", mutation_profile_sig, handleMutationProfile<Nucleotide>);
-   registerFunction("aminoAcidMutationProfile", mutation_profile_sig, handleMutationProfile<AminoAcid>);
+   registerFunction(
+      "nucleotideMutationProfile", mutation_profile_sig, handleMutationProfile<Nucleotide>
+   );
+   registerFunction(
+      "aminoAcidMutationProfile", mutation_profile_sig, handleMutationProfile<AminoAcid>
+   );
 }
 
 ScalarFunctionRegistry& ScalarFunctionRegistry::instance() {

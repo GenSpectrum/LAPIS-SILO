@@ -8,8 +8,8 @@
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
-#include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
+#include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
@@ -191,7 +191,8 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedPhyloSubtreeNode& node
+operators::QueryNodePtr ColumnNarrowingPass::operator()(
+   operators::UnresolvedPhyloSubtreeNode& node
 ) {
    applyToChild(node.child, *this);
    return nullptr;
@@ -207,13 +208,17 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnionAllNode&
    return nullptr;
 }
 
-template operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedMutationsNode<
-                                                                 silo::Nucleotide>&);
-template operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedMutationsNode<
-                                                                 silo::AminoAcid>&);
-template operators::QueryNodePtr ColumnNarrowingPass::
-operator()(operators::UnresolvedInsertionsNode<silo::Nucleotide>&);
-template operators::QueryNodePtr ColumnNarrowingPass::
-operator()(operators::UnresolvedInsertionsNode<silo::AminoAcid>&);
+template operators::QueryNodePtr ColumnNarrowingPass::operator()(
+   operators::UnresolvedMutationsNode<silo::Nucleotide>&
+);
+template operators::QueryNodePtr ColumnNarrowingPass::operator()(
+   operators::UnresolvedMutationsNode<silo::AminoAcid>&
+);
+template operators::QueryNodePtr ColumnNarrowingPass::operator()(
+   operators::UnresolvedInsertionsNode<silo::Nucleotide>&
+);
+template operators::QueryNodePtr ColumnNarrowingPass::operator()(
+   operators::UnresolvedInsertionsNode<silo::AminoAcid>&
+);
 
 }  // namespace silo::query_engine

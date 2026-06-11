@@ -178,8 +178,10 @@ operators::QueryNodePtr NodeResolutionPass::operator()(operators::AggregateNode&
    applyToNode(node.child, *this);
 
    // Full aggregations (COUNT(*) and only a filter below can be optimized)
-   if (node.group_by_fields.empty() && node.aggregates.size() == 1 &&
-       node.aggregates[0].function == operators::AggregateFunction::COUNT) {
+   if (
+      node.group_by_fields.empty() && node.aggregates.size() == 1 &&
+      node.aggregates[0].function == operators::AggregateFunction::COUNT
+   ) {
       auto scan = getTableScanOrNone(*node.child);
       if (scan.has_value()) {
          return std::make_unique<operators::CountFilterNode>(
@@ -191,7 +193,8 @@ operators::QueryNodePtr NodeResolutionPass::operator()(operators::AggregateNode&
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedPhyloSubtreeNode& node
+operators::QueryNodePtr NodeResolutionPass::operator()(
+   operators::UnresolvedPhyloSubtreeNode& node
 ) {
    auto scan = getTableScanOrNone(*node.child);
    CHECK_SILO_QUERY(scan.has_value(), "phyloSubtree() must be applied to a table scan");
@@ -227,13 +230,17 @@ operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnionAllNode& 
    return nullptr;
 }
 
-template operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedMutationsNode<
-                                                                silo::Nucleotide>&);
-template operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedMutationsNode<
-                                                                silo::AminoAcid>&);
-template operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedInsertionsNode<
-                                                                silo::Nucleotide>&);
-template operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedInsertionsNode<
-                                                                silo::AminoAcid>&);
+template operators::QueryNodePtr NodeResolutionPass::operator()(
+   operators::UnresolvedMutationsNode<silo::Nucleotide>&
+);
+template operators::QueryNodePtr NodeResolutionPass::operator()(
+   operators::UnresolvedMutationsNode<silo::AminoAcid>&
+);
+template operators::QueryNodePtr NodeResolutionPass::operator()(
+   operators::UnresolvedInsertionsNode<silo::Nucleotide>&
+);
+template operators::QueryNodePtr NodeResolutionPass::operator()(
+   operators::UnresolvedInsertionsNode<silo::AminoAcid>&
+);
 
 }  // namespace silo::query_engine

@@ -89,10 +89,8 @@ const QueryTestScenario UNION_ALL_WITH_GROUPBY_SCENARIO = {
       default.filter(country='CH').project({country}),
       default.filter(country='DE').project({country})
    ).groupBy({count := count()}, {country}).orderBy({asc(country)}))",
-   .expected_query_result = nlohmann::json(
-      {{{"country", "CH"}, {"count", 2}},
-       {{"country", "DE"}, {"count", 2}}}
-   )
+   .expected_query_result =
+      nlohmann::json({{{"country", "CH"}, {"count", 2}}, {{"country", "DE"}, {"count", 2}}})
 };
 
 // UnionAll where one child produces empty results
@@ -103,8 +101,7 @@ const QueryTestScenario UNION_ALL_EMPTY_CHILD_SCENARIO = {
       default.filter(country='XX').project({primaryKey, country})
    ))",
    .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"country", "CH"}},
-       {{"primaryKey", "id_2"}, {"country", "CH"}}}
+      {{{"primaryKey", "id_0"}, {"country", "CH"}}, {{"primaryKey", "id_2"}, {"country", "CH"}}}
    )
 };
 
@@ -195,8 +192,7 @@ const QueryTestScenario UNION_ALL_OF_MUTATIONS_SCENARIO = {
       default.filter(country='DE').mutations(minProportion:=0.0, fields:={mutation, proportion})
    ))",
    .expected_query_result = nlohmann::json(
-      {{{"mutation", "A1T"}, {"proportion", 1.0}},
-       {{"mutation", "A1T"}, {"proportion", 1.0}}}
+      {{{"mutation", "A1T"}, {"proportion", 1.0}}, {{"mutation", "A1T"}, {"proportion", 1.0}}}
    )
 };
 

@@ -6,8 +6,8 @@
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
 #include <arrow/util/async_generator.h>
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #include "silo/common/panic.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
@@ -71,17 +71,13 @@ struct StreamState {
 // NOLINTNEXTLINE(misc-no-recursion)
 arrow::Future<std::optional<arrow::ExecBatch>> pullNext(const std::shared_ptr<StreamState>& state) {
    if (state->child_idx >= state->child_plans.size()) {
-      return arrow::Future{
-         std::optional<arrow::ExecBatch>{std::nullopt}
-      };
+      return arrow::Future{std::optional<arrow::ExecBatch>{std::nullopt}};
    }
 
    if (!state->generator_active) {
       auto status = state->startCurrentChild();
       if (!status.ok()) {
-         return arrow::Future{
-            arrow::Result<std::optional<arrow::ExecBatch>>{status}
-         };
+         return arrow::Future{arrow::Result<std::optional<arrow::ExecBatch>>{status}};
       }
    }
 
@@ -98,9 +94,7 @@ arrow::Future<std::optional<arrow::ExecBatch>> pullNext(const std::shared_ptr<St
          ++state->child_idx;
          return pullNext(state);
       }
-      return arrow::Future{
-         arrow::Result<std::optional<arrow::ExecBatch>>{result.status()}
-      };
+      return arrow::Future{arrow::Result<std::optional<arrow::ExecBatch>>{result.status()}};
    }
 
    if (!result->has_value()) {
@@ -137,8 +131,9 @@ arrow::Result<PartialArrowPlan> UnionAllNode::toQueryPlan(
       state->child_plans.push_back(std::move(child_plan));
    }
 
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [state]() { return pullNext(state); };
+   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer = [state]() {
+      return pullNext(state);
+   };
 
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
@@ -148,8 +143,7 @@ arrow::Result<PartialArrowPlan> UnionAllNode::toQueryPlan(
       arrow::Ordering::Implicit()
    };
    ARROW_ASSIGN_OR_RAISE(
-      auto source_node,
-      arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, source_options)
+      auto source_node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, source_options)
    );
 
    return PartialArrowPlan{.top_node = source_node, .plan = arrow_plan};
