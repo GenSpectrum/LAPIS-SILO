@@ -683,12 +683,12 @@ GroupByArgs parseGroupBySpecs(
 }
 
 std::vector<std::string> names(const std::vector<schema::ColumnIdentifier>& schema) {
-   std::vector<std::string> result;
-   result.reserve(schema.size());
+   std::vector<std::string> names;
+   names.reserve(schema.size());
    for (const auto& col : schema) {
-      result.push_back(col.name);
+      names.push_back(col.name);
    }
-   return result;
+   return names;
 }
 
 std::vector<std::string> namesWithTypes(const std::vector<schema::ColumnIdentifier>& schema) {
