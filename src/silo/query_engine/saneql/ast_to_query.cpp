@@ -852,69 +852,68 @@ namespace {
 
 using operators::MapNode;
 
-/// Parses a single `name := value` assignment of a map() record. The assigned
-/// value may be a literal (int, float, string, bool) or a reference to an
-/// existing column of the input (resolved against `child_schema`).
-MapNode::Assignment parseMapAssignment(
-   const ast::RecordField& field,
-   const std::vector<schema::ColumnIdentifier>& child_schema
+/// Converts a saneql expression into a SILO scalar Expression: a value-producing
+/// expression (as opposed to convertToFilter, which yields a boolean predicate).
+/// Supported forms are literals (int, float, string, bool) and references to an
+/// existing column of `schema` (resolved to that column's type). `error_context`
+/// prefixes diagnostics so callers can describe where the expression appears
+/// (e.g. "map() field 'x'").
+std::unique_ptr<expressions::Expression> convertToScalar(
+   const ast::Expression& ast,
+   const std::vector<schema::ColumnIdentifier>& schema,
+   std::string_view error_context
 ) {
-   const auto& [value, location] = *field.value;
+   const auto& [value, location] = ast;
 
    if (std::holds_alternative<ast::Identifier>(value)) {
       const auto& name = std::get<ast::Identifier>(value).name;
-      auto found =
-         std::ranges::find_if(child_schema, [&](const auto& col) { return col.name == name; });
+      auto found = std::ranges::find_if(schema, [&](const auto& col) { return col.name == name; });
       CHECK_SILO_QUERY(
-         found != child_schema.end(),
-         "map() field '{}' references unknown column '{}' at {}:{}",
-         field.name,
+         found != schema.end(),
+         "{} references unknown column '{}' at {}:{}",
+         error_context,
          name,
          location.line,
          location.column
       );
-      return {
-         .output_column = {.name = field.name, .type = found->type},
-         .expression = std::make_unique<expressions::FieldRef>(*found)
-      };
+      return std::make_unique<expressions::FieldRef>(*found);
    }
-
    if (std::holds_alternative<ast::IntLiteral>(value)) {
-      const int64_t int_value = std::get<ast::IntLiteral>(value).value;
-      return {
-         .output_column = {.name = field.name, .type = schema::ColumnType::INT64},
-         .expression = std::make_unique<expressions::Int64Literal>(int_value)
-      };
+      return std::make_unique<expressions::Int64Literal>(std::get<ast::IntLiteral>(value).value);
    }
    if (std::holds_alternative<ast::FloatLiteral>(value)) {
-      const double float_value = std::get<ast::FloatLiteral>(value).value;
-      return {
-         .output_column = {.name = field.name, .type = schema::ColumnType::FLOAT},
-         .expression = std::make_unique<expressions::FloatLiteral>(float_value)
-      };
+      return std::make_unique<expressions::FloatLiteral>(std::get<ast::FloatLiteral>(value).value);
    }
    if (std::holds_alternative<ast::StringLiteral>(value)) {
-      std::string string_value = std::get<ast::StringLiteral>(value).value;
-      return {
-         .output_column = {.name = field.name, .type = schema::ColumnType::STRING},
-         .expression = std::make_unique<expressions::StringLiteral>(std::move(string_value))
-      };
+      return std::make_unique<expressions::StringLiteral>(std::get<ast::StringLiteral>(value).value
+      );
    }
    if (std::holds_alternative<ast::BoolLiteral>(value)) {
-      const bool bool_value = std::get<ast::BoolLiteral>(value).value;
-      return {
-         .output_column = {.name = field.name, .type = schema::ColumnType::BOOL},
-         .expression = std::make_unique<expressions::BoolLiteral>(bool_value)
-      };
+      return std::make_unique<expressions::BoolLiteral>(std::get<ast::BoolLiteral>(value).value);
    }
 
    throw IllegalQueryException(
-      "map() field '{}' must be assigned a literal value (int, float, string, or bool) or a "
-      "column reference at {}:{}",
-      field.name,
+      "{} must be assigned a literal value (int, float, string, or bool) or a column reference at "
+      "{}:{}",
+      error_context,
       location.line,
       location.column
    );
+}
+
+/// Parses a single `name := value` assignment of a map() record. The assigned
+/// value may be any scalar expression (see convertToScalar); the output column's
+/// type is taken from that expression.
+MapNode::Assignment parseMapAssignment(
+   const ast::RecordField& field,
+   const std::vector<schema::ColumnIdentifier>& child_schema
+) {
+   auto expression =
+      convertToScalar(*field.value, child_schema, fmt::format("map() field '{}'", field.name));
+   return {
+      .output_column = {.name = field.name, .type = expression->type()},
+      .expression = std::move(expression)
+   };
 }
 
 }  // namespace
