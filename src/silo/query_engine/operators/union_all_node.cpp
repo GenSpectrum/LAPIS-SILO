@@ -7,7 +7,6 @@
 #include <arrow/acero/options.h>
 #include <arrow/util/async_generator.h>
 #include <nlohmann/json.hpp>
-
 #include <spdlog/spdlog.h>
 
 #include "silo/common/panic.h"
@@ -17,87 +16,100 @@ namespace silo::query_engine::operators {
 
 namespace {
 
-/// Execute a child plan to completion and collect all output batches.
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
-arrow::Result<std::vector<arrow::ExecBatch>> drainChildPlan(PartialArrowPlan& child_plan) {
-   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> generator;
-   arrow::acero::BackpressureMonitor* backpressure_monitor = nullptr;
-   const arrow::acero::SinkNodeOptions sink_options{
-      &generator, arrow::acero::BackpressureOptions{}, &backpressure_monitor, true
-   };
-   ARROW_ASSIGN_OR_RAISE(
-      auto sink_node,
-      arrow::acero::MakeExecNode("sink", child_plan.plan.get(), {child_plan.top_node}, sink_options)
-   );
-   (void)sink_node;
-   (void)backpressure_monitor;
+/// Mutable state for the streaming union producer.
+/// Owns the pre-built child plans and drains them lazily one at a time.
+struct StreamState {
+   std::vector<PartialArrowPlan> child_plans;
 
-   ARROW_RETURN_NOT_OK(child_plan.plan->Validate());
-   child_plan.plan->StartProducing();
+   size_t child_idx = 0;
+   std::shared_ptr<arrow::acero::ExecPlan> current_plan;
+   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> current_generator;
+   bool generator_active = false;
 
-   std::vector<arrow::ExecBatch> batches;
-   while (true) {
-      auto future = generator();
-      auto result = future.result();
-      if (!result.ok()) {
-         // The plan may report Cancelled when torn down after all data was produced
-         // due to Arrow Acero's internal threading. This is expected and not an error.
-         if (result.status().IsCancelled()) {
-            SPDLOG_WARN(
-               "UnionAll child plan generator returned Cancelled after {} batches",
-               batches.size()
-            );
-            break;
-         }
-         return result.status();
-      }
-      if (!result->has_value()) {
-         break;
-      }
-      batches.push_back(std::move(result->value()));
+   /// Attach a sink to the current child plan and start producing.
+   arrow::Status startCurrentChild() {
+      SILO_ASSERT(child_idx < child_plans.size());
+      SILO_ASSERT(!generator_active);
+
+      auto& partial = child_plans[child_idx];
+      current_plan = partial.plan;
+
+      arrow::acero::BackpressureMonitor* backpressure_monitor = nullptr;
+      const arrow::acero::SinkNodeOptions sink_options{
+         &current_generator, arrow::acero::BackpressureOptions{}, &backpressure_monitor, true
+      };
+      ARROW_ASSIGN_OR_RAISE(
+         auto sink_node,
+         arrow::acero::MakeExecNode("sink", current_plan.get(), {partial.top_node}, sink_options)
+      );
+      (void)sink_node;
+      (void)backpressure_monitor;
+
+      ARROW_RETURN_NOT_OK(current_plan->Validate());
+      current_plan->StartProducing();
+      generator_active = true;
+      return arrow::Status::OK();
    }
 
-   // Ensure the plan is fully wound down before returning.
-   auto finished_future = child_plan.plan->finished();
-   if (!finished_future.is_finished()) {
-      child_plan.plan->StopProducing();
-      finished_future.Wait();
-   }
-
-   return batches;
-}
-
-arrow::Result<arrow::acero::ExecNode*> makeUnionSource(
-   arrow::acero::ExecPlan* plan,
-   const std::vector<schema::ColumnIdentifier>& output_schema,
-   std::shared_ptr<std::vector<std::vector<arrow::ExecBatch>>> shared_batches
-) {
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [shared_batches = std::move(shared_batches), child_idx = size_t{0},
-       batch_idx = size_t{0}]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
-      while (child_idx < shared_batches->size()) {
-         auto& child_batches = (*shared_batches)[child_idx];
-         if (batch_idx < child_batches.size()) {
-            auto batch = std::move(child_batches[batch_idx]);
-            ++batch_idx;
-            return arrow::Future<std::optional<arrow::ExecBatch>>{
-               std::optional<arrow::ExecBatch>{std::move(batch)}
-            };
-         }
-         ++child_idx;
-         batch_idx = 0;
+   /// Tear down the current child plan.
+   void stopCurrentChild() {
+      if (!current_plan) {
+         return;
       }
-      return arrow::Future<std::optional<arrow::ExecBatch>>{
+      auto finished_future = current_plan->finished();
+      if (!finished_future.is_finished()) {
+         current_plan->StopProducing();
+         finished_future.Wait();
+      }
+      current_plan.reset();
+      generator_active = false;
+   }
+};
+
+/// Pull the next batch from the streaming union.
+/// Starts child plans on demand, drains them one at a time, then advances.
+// NOLINTNEXTLINE(misc-no-recursion)
+arrow::Future<std::optional<arrow::ExecBatch>> pullNext(const std::shared_ptr<StreamState>& state) {
+   if (state->child_idx >= state->child_plans.size()) {
+      return arrow::Future{
          std::optional<arrow::ExecBatch>{std::nullopt}
       };
-   };
+   }
 
-   const arrow::acero::SourceNodeOptions source_options{
-      exec_node::columnsToArrowSchema(output_schema),
-      std::move(producer),
-      arrow::Ordering::Implicit()
-   };
-   return arrow::acero::MakeExecNode("source", plan, {}, source_options);
+   if (!state->generator_active) {
+      auto status = state->startCurrentChild();
+      if (!status.ok()) {
+         return arrow::Future{
+            arrow::Result<std::optional<arrow::ExecBatch>>{status}
+         };
+      }
+   }
+
+   auto future = state->current_generator();
+   auto result = future.result();
+
+   if (!result.ok()) {
+      if (result.status().IsCancelled()) {
+         SPDLOG_WARN(
+            "UnionAll: child {} generator returned Cancelled, advancing to next child",
+            state->child_idx
+         );
+         state->stopCurrentChild();
+         ++state->child_idx;
+         return pullNext(state);
+      }
+      return arrow::Future{
+         arrow::Result<std::optional<arrow::ExecBatch>>{result.status()}
+      };
+   }
+
+   if (!result->has_value()) {
+      state->stopCurrentChild();
+      ++state->child_idx;
+      return pullNext(state);
+   }
+
+   return arrow::Future{std::move(result.ValueUnsafe())};
 }
 
 }  // namespace
@@ -115,23 +127,29 @@ arrow::Result<PartialArrowPlan> UnionAllNode::toQueryPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
    const config::QueryOptions& query_options
 ) const {
-   // NOTE: This eagerly materializes ALL child batches into memory before producing output.
-   // For large datasets both child results are buffered simultaneously. A future optimization
-   // could stream batches lazily, draining the second child only after the first is consumed.
-   auto all_batches = std::make_shared<std::vector<std::vector<arrow::ExecBatch>>>();
-   all_batches->reserve(children.size());
-
+   // Build child plans eagerly (cheap: creates Arrow nodes + compiles bitmap filters).
+   // Actual data production is deferred — each child is started and drained lazily
+   // by the streaming producer, so only one child's batches are in flight at a time.
+   auto state = std::make_shared<StreamState>();
+   state->child_plans.reserve(children.size());
    for (const auto& child : children) {
       ARROW_ASSIGN_OR_RAISE(auto child_plan, child->toQueryPlan(tables, query_options));
-      ARROW_ASSIGN_OR_RAISE(auto batches, drainChildPlan(child_plan));
-      all_batches->push_back(std::move(batches));
+      state->child_plans.push_back(std::move(child_plan));
    }
+
+   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
+      [state]() { return pullNext(state); };
 
    ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
 
+   const arrow::acero::SourceNodeOptions source_options{
+      exec_node::columnsToArrowSchema(getOutputSchema()),
+      std::move(producer),
+      arrow::Ordering::Implicit()
+   };
    ARROW_ASSIGN_OR_RAISE(
       auto source_node,
-      makeUnionSource(arrow_plan.get(), getOutputSchema(), std::move(all_batches))
+      arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, source_options)
    );
 
    return PartialArrowPlan{.top_node = source_node, .plan = arrow_plan};
