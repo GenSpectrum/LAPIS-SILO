@@ -122,6 +122,37 @@ const QueryTestScenario UNION_ALL_SCHEMA_MISMATCH_SCENARIO = {
       "Left schema: [primaryKey:STRING], right schema: [country:STRING]."
 };
 
+// Same column name but different types from map
+const QueryTestScenario UNION_ALL_TYPE_MISMATCH_SCENARIO = {
+   .name = "UNION_ALL_TYPE_MISMATCH",
+   .query = R"(unionAll(
+      default.map({x := 42}).project({primaryKey, x}),
+      default.map({x := 'hello'}).project({primaryKey, x})
+   ))",
+   .expected_query_result = {},
+   .expected_error_message =
+      "unionAll requires both inputs to have the same schema (same column names and types). "
+      "Left schema: [primaryKey:STRING, x:INT64], right schema: [primaryKey:STRING, x:STRING]."
+};
+
+const QueryTestScenario UNION_ALL_DIFFERENT_COLUMN_ORDER_SCENARIO = {
+   .name = "UNION_ALL_DIFFERENT_COLUMN_ORDER",
+   .query = R"(unionAll(
+      default.project({primaryKey, country}),
+      default.project({country, primaryKey})
+   ))",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"country", "CH"}},
+       {{"primaryKey", "id_1"}, {"country", "DE"}},
+       {{"primaryKey", "id_2"}, {"country", "CH"}},
+       {{"primaryKey", "id_3"}, {"country", "DE"}},
+       {{"primaryKey", "id_0"}, {"country", "CH"}},
+       {{"primaryKey", "id_1"}, {"country", "DE"}},
+       {{"primaryKey", "id_2"}, {"country", "CH"}},
+       {{"primaryKey", "id_3"}, {"country", "DE"}}}
+   )
+};
+
 // Downstream filter above unionAll should be rejected (not silently dropped)
 const QueryTestScenario UNION_ALL_DOWNSTREAM_FILTER_SCENARIO = {
    .name = "UNION_ALL_DOWNSTREAM_FILTER",
@@ -145,6 +176,8 @@ QUERY_TEST(
       UNION_ALL_WITH_GROUPBY_SCENARIO,
       UNION_ALL_EMPTY_CHILD_SCENARIO,
       UNION_ALL_SCHEMA_MISMATCH_SCENARIO,
+      UNION_ALL_TYPE_MISMATCH_SCENARIO,
+      UNION_ALL_DIFFERENT_COLUMN_ORDER_SCENARIO,
       UNION_ALL_DOWNSTREAM_FILTER_SCENARIO
    )
 );
