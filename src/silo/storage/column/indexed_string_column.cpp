@@ -57,16 +57,35 @@ std::optional<const roaring::Roaring*> IndexedStringColumn::filter(
 }
 
 std::expected<void, std::string> IndexedStringColumn::appendChunk(const Buffer& buffer) {
-   value_ids.reserve(value_ids.size() + buffer.size());
-   for (const auto& maybe_value : buffer) {
-      const size_t row_id = value_ids.size();
+   // Validate whole buffer before mutating anything
+   if (lineage_index.has_value() && !metadata->treat_unknown_lineages_as_null) {
+      for (const auto& maybe_value : buffer) {
+         if (maybe_value.has_value() && !metadata->dictionary.getId(*maybe_value).has_value()) {
+            return std::unexpected(fmt::format(
+               "The value '{}' is not a valid lineage value for column '{}'. "
+               "Is your lineage definition file outdated?",
+               *maybe_value,
+               metadata->column_name
+            ));
+         }
+      }
+   }
+
+   // Build this chunk's value ids in isolation so that previously appended chunks are never
+   // touched; the inverted index and lineage index are global and keep being updated by row id.
+   const size_t base = numValues();
+   std::vector<Idx> chunk;
+   chunk.reserve(buffer.size());
+   for (size_t i = 0; i < buffer.size(); ++i) {
+      const size_t row_id = base + i;
+      const auto& maybe_value = buffer[i];
       if (!maybe_value.has_value()) {
          null_bitmap.add(row_id);
          // We need to add something to the vector, so that the size of the vector remains equal to
          // row_id but we do not add our row_id to indexed_values[value_id]
          const Idx value_id = metadata->dictionary.getOrCreateId("");
          indexed_values.try_emplace(value_id);
-         value_ids.push_back(value_id);
+         chunk.push_back(value_id);
          continue;
       }
       const std::string_view value = *maybe_value;
@@ -75,21 +94,15 @@ std::expected<void, std::string> IndexedStringColumn::appendChunk(const Buffer& 
          const auto value_id = metadata->dictionary.getId(value);
          if (value_id.has_value()) {
             lineage_index.value().insert(row_id, value_id.value());
-         } else if (!metadata->treat_unknown_lineages_as_null) {
-            return std::unexpected(fmt::format(
-               "The value '{}' is not a valid lineage value for column '{}'. "
-               "Is your lineage definition file outdated?",
-               value,
-               metadata->column_name
-            ));
          }
       }
 
       const Idx value_id = metadata->dictionary.getOrCreateId(value);
 
       indexed_values[value_id].add(row_id);
-      value_ids.push_back(value_id);
+      chunk.push_back(value_id);
    }
+   value_ids.appendChunk(std::move(chunk));
    return {};
 }
 

@@ -178,7 +178,7 @@ bool CompareToValueSelection<StringColumn>::match(uint32_t row_id) const {
       return strongOrderingMatchesComparator(fast_compare.value(), comparator);
    }
 
-   auto row_value_string = column.lookupValue(row_value);
+   auto row_value_string = column.getValueString(row_id);
 
    // Slower fall-back if the prefix could not decide the match
    const std::strong_ordering strong_ordering = std::lexicographical_compare_three_way(
