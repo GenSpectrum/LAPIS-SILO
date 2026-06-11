@@ -16,6 +16,8 @@ class IsNull : public Expression {
    explicit IsNull(std::string column_name);
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::IS_NULL;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

@@ -17,6 +17,8 @@ class FloatEquals : public Expression {
    FloatEquals(std::string column_name, std::optional<double> value);
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::FLOAT_EQUALS;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

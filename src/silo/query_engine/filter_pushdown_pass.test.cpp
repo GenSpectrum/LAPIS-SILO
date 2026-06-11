@@ -7,7 +7,6 @@
 #include <gtest/gtest.h>
 
 #include "silo/query_engine/expressions/literal.h"
-#include "silo/query_engine/expressions/true.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
@@ -36,7 +35,7 @@ std::shared_ptr<silo::storage::Table> makeTable() {
 }
 
 std::unique_ptr<expressions::Expression> makeDummyFilter() {
-   return std::make_unique<expressions::True>();
+   return std::make_unique<expressions::BoolLiteral>(true);
 }
 
 // --- FilterNode(TableScanNode) ---
@@ -53,7 +52,7 @@ TEST(FilterPushdownPass, eliminatesFilterNodeAboveTableScan) {
    // The FilterNode is gone; result is the TableScanNode directly.
    EXPECT_EQ(result->kind(), operators::NodeKind::TABLE_SCAN);
    auto* table_scan = dynamic_cast<operators::TableScanNode*>(result.get());
-   EXPECT_EQ(table_scan->filter->toString(), "And(And(True & True))");
+   EXPECT_EQ(table_scan->filter->toString(), "And(And(true & true))");
 }
 
 // --- MapNode(FilterNode(TableScanNode)) ---
@@ -80,7 +79,7 @@ TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
    auto* map = dynamic_cast<operators::MapNode*>(result.get());
    ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
    auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
-   EXPECT_EQ(table_scan->filter->toString(), "And(And(True & True))");
+   EXPECT_EQ(table_scan->filter->toString(), "And(And(true & true))");
 }
 
 }  // namespace

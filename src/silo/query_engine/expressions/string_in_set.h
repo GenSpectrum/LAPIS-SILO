@@ -22,6 +22,8 @@ class StringInSet : public Expression {
    explicit StringInSet(std::string column_name, std::unordered_set<std::string> value);
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::STRING_IN_SET;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

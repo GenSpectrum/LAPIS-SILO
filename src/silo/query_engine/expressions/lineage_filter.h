@@ -23,6 +23,8 @@ class LineageFilter : public Expression {
    );
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::LINEAGE_FILTER;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

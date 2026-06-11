@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -20,7 +21,6 @@
 #include "silo/query_engine/query_parse_sequence_name.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/horizontal_coverage_index.h"
-#include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table.h"
 
 namespace silo::query_engine::expressions {

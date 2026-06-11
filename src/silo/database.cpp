@@ -27,7 +27,7 @@
 #include "silo/persistence/exception.h"
 #include "silo/query_engine/exec_node/arrow_ipc_sink.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/expressions/true.h"
+#include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
@@ -176,8 +176,8 @@ void Database::appendDataFromString(const std::string& table_name, std::string j
    silo::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
 }
 
+using silo::query_engine::expressions::BoolLiteral;
 using silo::query_engine::expressions::Expression;
-using silo::query_engine::expressions::True;
 
 void Database::printAllData(const std::string& table_name) const {
    auto table_iter = tables.find(schema::TableName{table_name});
@@ -189,7 +189,7 @@ void Database::printAllData(const std::string& table_name) const {
    std::vector<schema::ColumnIdentifier> all_columns = table->schema->getColumnIdentifiers();
 
    auto query_node = std::make_unique<query_engine::operators::TableScanNode>(
-      table, std::make_unique<True>(), std::move(all_columns)
+      table, std::make_unique<BoolLiteral>(true), std::move(all_columns)
    );
 
    auto query_plan = query_engine::Planner::planQuery(

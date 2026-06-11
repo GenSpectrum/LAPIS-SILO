@@ -23,9 +23,50 @@ class Expression {
    /// NONE does not specially consider ambiguous symbols
    enum AmbiguityMode : uint8_t { UPPER_BOUND, LOWER_BOUND, NONE };
 
+   // For clean type-checks
+   enum class Kind : uint8_t {
+      AND,
+      OR,
+      N_OF,
+      NEGATION,
+      MAYBE,
+      EXACT,
+      BOOL_EQUALS,
+      DATE_BETWEEN,
+      DATE_EQUALS,
+      FIELD_REF,
+      FLOAT_BETWEEN,
+      FLOAT_EQUALS,
+      INT_BETWEEN,
+      INT_EQUALS,
+      IS_NULL,
+      LINEAGE_FILTER,
+      PHYLO_CHILD_FILTER,
+      STRING_EQUALS,
+      STRING_IN_SET,
+      STRING_SEARCH,
+      INT64_LITERAL,
+      FLOAT_LITERAL,
+      STRING_LITERAL,
+      BOOL_LITERAL,
+      HAS_MUTATION_NUCLEOTIDE,
+      HAS_MUTATION_AMINO_ACID,
+      INSERTION_CONTAINS_NUCLEOTIDE,
+      INSERTION_CONTAINS_AMINO_ACID,
+      MUTATION_PROFILE_NUCLEOTIDE,
+      MUTATION_PROFILE_AMINO_ACID,
+      SYMBOL_EQUALS_NUCLEOTIDE,
+      SYMBOL_EQUALS_AMINO_ACID,
+      SYMBOL_IN_SET_NUCLEOTIDE,
+      SYMBOL_IN_SET_AMINO_ACID,
+   };
+
    /// The column type this expression evaluates to. All current expressions are
    /// boolean filter predicates; non-boolean scalar expressions may override this.
    [[nodiscard]] virtual schema::ColumnType type() const { return schema::ColumnType::BOOL; }
+
+   /// The concrete type of this expression, used by isA<>/dynCast<>.
+   [[nodiscard]] virtual Kind kind() const = 0;
 
    [[nodiscard]] virtual std::string toString() const = 0;
 
@@ -46,6 +87,22 @@ class Expression {
 };
 
 Expression::AmbiguityMode invertMode(Expression::AmbiguityMode mode);
+
+/// `To` must expose a `static constexpr Kind KIND` identifying its concrete type
+template <typename To, typename From>
+[[nodiscard]] bool isA(const From* expression) {
+   return expression != nullptr && expression->kind() == To::KIND;
+}
+
+template <typename To, typename From>
+[[nodiscard]] const To* dynCast(const From* expression) {
+   return isA<To>(expression) ? static_cast<const To*>(expression) : nullptr;
+}
+
+template <typename To, typename From>
+[[nodiscard]] To* dynCast(From* expression) {
+   return isA<To>(expression) ? static_cast<To*>(expression) : nullptr;
+}
 
 template <typename T>
 void appendVectorToVector(

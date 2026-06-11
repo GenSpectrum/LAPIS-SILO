@@ -33,6 +33,8 @@ class NOf : public Expression {
    explicit NOf(ExpressionVector&& children, int number_of_matchers, bool match_exactly);
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::N_OF;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

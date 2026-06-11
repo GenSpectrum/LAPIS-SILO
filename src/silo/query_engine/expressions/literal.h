@@ -13,7 +13,7 @@ namespace silo::query_engine::expressions {
 /// A scalar literal value, e.g. `x := 3`. Literals are scalar expressions whose
 /// value is known up front; their type() reflects the literal's column type.
 /// They are not filter predicates, so compile() is only meaningful for the
-/// boolean literal (which behaves like True/False).
+/// boolean literal, which compiles to a Full (true) or Empty (false) operator.
 
 class Int64Literal : public Expression {
   public:
@@ -22,6 +22,9 @@ class Int64Literal : public Expression {
    explicit Int64Literal(int64_t value);
 
    [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::INT64; }
+
+   static constexpr Kind KIND = Kind::INT64_LITERAL;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::string toString() const override;
 
@@ -42,6 +45,9 @@ class FloatLiteral : public Expression {
 
    [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::FLOAT; }
 
+   static constexpr Kind KIND = Kind::FLOAT_LITERAL;
+   [[nodiscard]] Kind kind() const override { return KIND; }
+
    [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
@@ -61,6 +67,9 @@ class StringLiteral : public Expression {
 
    [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::STRING; }
 
+   static constexpr Kind KIND = Kind::STRING_LITERAL;
+   [[nodiscard]] Kind kind() const override { return KIND; }
+
    [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
@@ -79,6 +88,9 @@ class BoolLiteral : public Expression {
    explicit BoolLiteral(bool value);
 
    [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::BOOL; }
+
+   static constexpr Kind KIND = Kind::BOOL_LITERAL;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::string toString() const override;
 

@@ -23,6 +23,8 @@ class FieldRef : public Expression {
    [[nodiscard]] schema::ColumnType type() const override { return column.type; }
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::FIELD_REF;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
 

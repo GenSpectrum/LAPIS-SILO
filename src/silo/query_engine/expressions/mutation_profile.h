@@ -9,10 +9,16 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include <type_traits>
+
 #include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table.h"
+
+namespace silo {
+class Nucleotide;
+}
 
 namespace silo::query_engine::expressions {
 
@@ -64,6 +70,10 @@ class MutationProfile : public Expression {
    );
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = std::is_same_v<SymbolType, Nucleotide>
+                                   ? Kind::MUTATION_PROFILE_NUCLEOTIDE
+                                   : Kind::MUTATION_PROFILE_AMINO_ACID;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

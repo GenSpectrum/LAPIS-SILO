@@ -21,7 +21,6 @@
 #include "silo/query_engine/expressions/date_equals.h"
 #include "silo/query_engine/expressions/exact.h"
 #include "silo/query_engine/expressions/expression.h"
-#include "silo/query_engine/expressions/false.h"
 #include "silo/query_engine/expressions/field_ref.h"
 #include "silo/query_engine/expressions/float_between.h"
 #include "silo/query_engine/expressions/float_equals.h"
@@ -42,7 +41,6 @@
 #include "silo/query_engine/expressions/string_in_set.h"
 #include "silo/query_engine/expressions/string_search.h"
 #include "silo/query_engine/expressions/symbol_equals.h"
-#include "silo/query_engine/expressions/true.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
@@ -570,10 +568,7 @@ std::unique_ptr<expressions::Expression> convertToFilter(const ast::Expression& 
          } else if constexpr (std::is_same_v<T, ast::UnaryNotExpr>) {
             return std::make_unique<expressions::Negation>(convertToFilter(*node.operand));
          } else if constexpr (std::is_same_v<T, ast::BoolLiteral>) {
-            if (node.value) {
-               return std::make_unique<expressions::True>();
-            }
-            return std::make_unique<expressions::False>();
+            return std::make_unique<expressions::BoolLiteral>(node.value);
          } else if constexpr (std::is_same_v<T, ast::FunctionCall>) {
             const auto* entry = ScalarFunctionRegistry::instance().findFunction(node.function_name);
             CHECK_SILO_QUERY(entry != nullptr, "unknown scalar function '{}'", node.function_name);
@@ -794,7 +789,7 @@ operators::QueryNodePtr buildScanNode(
    const auto table_schema = iter->second->schema;
    std::vector<schema::ColumnIdentifier> fields = iter->second->schema->getColumnIdentifiers();
    auto table_scan = std::make_unique<operators::TableScanNode>(
-      iter->second, std::make_unique<expressions::True>(), std::move(fields)
+      iter->second, std::make_unique<expressions::BoolLiteral>(true), std::move(fields)
    );
    return wrapWithDecompressIfNeeded(std::move(table_scan), table_schema);
 }

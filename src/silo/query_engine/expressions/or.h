@@ -15,6 +15,8 @@ class Or : public Expression {
    explicit Or(ExpressionVector&& children);
 
    [[nodiscard]] std::string toString() const override;
+   static constexpr Kind KIND = Kind::OR;
+   [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,

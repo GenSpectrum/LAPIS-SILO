@@ -14,10 +14,10 @@
 #include "silo/query_engine/expressions/or.h"
 #include "silo/query_engine/expressions/string_equals.h"
 #include "silo/query_engine/expressions/string_in_set.h"
-#include "silo/query_engine/expressions/true.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/query_node.h"
+#include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/planner.h"
 
@@ -30,7 +30,7 @@ using silo::query_engine::expressions::ExpressionVector;
 using silo::query_engine::expressions::Or;
 using silo::query_engine::expressions::StringEquals;
 using silo::query_engine::expressions::StringInSet;
-using silo::query_engine::expressions::True;
+using silo::query_engine::expressions::BoolLiteral;
 using silo::query_engine::operators::AggregateDefinition;
 using silo::query_engine::operators::AggregateFunction;
 using silo::query_engine::operators::AggregateNode;
@@ -137,7 +137,7 @@ void executeCountWithFilter(
    const auto& table_name = silo::schema::TableName::getDefault();
    auto table = database->tables.at(table_name);
    auto scan = std::make_unique<TableScanNode>(
-      table, std::make_unique<True>(), table->schema->getColumnIdentifiers()
+      table, std::make_unique<BoolLiteral>(true), table->schema->getColumnIdentifiers()
    );
    auto filter_node = std::make_unique<FilterNode>(std::move(scan), std::move(filter));
    std::vector<AggregateDefinition> aggregates{

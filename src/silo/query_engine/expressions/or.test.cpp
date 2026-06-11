@@ -4,11 +4,10 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/expressions/false.h"
+#include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/expressions/string_equals.h"
 #include "silo/query_engine/expressions/string_in_set.h"
 #include "silo/query_engine/expressions/symbol_in_set.h"
-#include "silo/query_engine/expressions/true.h"
 #include "silo/test/query_fixture.test.h"
 
 namespace silo::query_engine::expressions {
@@ -69,16 +68,16 @@ TEST(OrMergeStringInSet, shouldKeepSeparateStringInSetWithDifferentColumns) {
 
 TEST(OrMergeStringInSet, shouldPassThroughOtherExpressions) {
    ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
+   children.emplace_back(std::make_unique<BoolLiteral>(true));
    children.emplace_back(
       std::make_unique<StringInSet>("country", std::unordered_set<std::string>{"Switzerland"})
    );
-   children.emplace_back(std::make_unique<True>());
+   children.emplace_back(std::make_unique<BoolLiteral>(true));
 
    auto result = Or::mergeStringInSetExpressions(std::move(children));
 
    ASSERT_EQ(result.size(), 3);
-   EXPECT_EQ(countExpressionsOfType<True>(result), 2);
+   EXPECT_EQ(countExpressionsOfType<BoolLiteral>(result), 2);
    EXPECT_EQ(countExpressionsOfType<StringInSet>(result), 1);
 }
 
@@ -201,16 +200,16 @@ TEST(OrRewriteSymbolInSet, shouldKeepSeparateSymbolInSetWithDifferentSequenceNam
 
 TEST(OrRewriteSymbolInSet, shouldPassThroughOtherExpressions) {
    ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
+   children.emplace_back(std::make_unique<BoolLiteral>(true));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
       std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
    ));
-   children.emplace_back(std::make_unique<True>());
+   children.emplace_back(std::make_unique<BoolLiteral>(true));
 
    auto result = Or::rewriteSymbolInSetExpressions<Nucleotide>(std::move(children));
 
    ASSERT_EQ(result.size(), 3);
-   EXPECT_EQ(countExpressionsOfType<True>(result), 2);
+   EXPECT_EQ(countExpressionsOfType<BoolLiteral>(result), 2);
    EXPECT_EQ(countExpressionsOfType<SymbolInSet<Nucleotide>>(result), 1);
 }
 
@@ -283,12 +282,12 @@ TEST(OrRewriteSymbolInSet, shouldMergeOnlyMatchingPositionsAndSequences) {
 
 TEST(OrToString, shouldFormatChildrenCorrectly) {
    ExpressionVector children;
-   children.emplace_back(std::make_unique<True>());
-   children.emplace_back(std::make_unique<True>());
+   children.emplace_back(std::make_unique<BoolLiteral>(true));
+   children.emplace_back(std::make_unique<BoolLiteral>(true));
 
    const Or or_expression(std::move(children));
 
-   EXPECT_EQ(or_expression.toString(), "Or(True | True)");
+   EXPECT_EQ(or_expression.toString(), "Or(true | true)");
 }
 
 TEST(OrToString, shouldHandleNestedOr) {
@@ -297,20 +296,20 @@ TEST(OrToString, shouldHandleNestedOr) {
    );
 
    ExpressionVector inner_children;
-   inner_children.emplace_back(std::make_unique<True>());
-   inner_children.emplace_back(std::make_unique<True>());
+   inner_children.emplace_back(std::make_unique<BoolLiteral>(true));
+   inner_children.emplace_back(std::make_unique<BoolLiteral>(true));
 
    ExpressionVector outer_children;
    outer_children.emplace_back(std::make_unique<Or>(std::move(inner_children)));
-   outer_children.emplace_back(std::make_unique<True>());
+   outer_children.emplace_back(std::make_unique<BoolLiteral>(true));
 
    const Or outer_or(std::move(outer_children));
 
-   EXPECT_EQ(outer_or.toString(), "Or(Or(True | True) | True)");
+   EXPECT_EQ(outer_or.toString(), "Or(Or(true | true) | true)");
 
    auto rewritten_or = outer_or.rewrite(table, Or::AmbiguityMode::NONE);
 
-   EXPECT_EQ(rewritten_or->toString(), "True");
+   EXPECT_EQ(rewritten_or->toString(), "true");
 }
 
 using expressions::StringEquals;
@@ -357,7 +356,7 @@ TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
    );
 
    ExpressionVector innermost_children;
-   innermost_children.emplace_back(std::make_unique<False>());
+   innermost_children.emplace_back(std::make_unique<BoolLiteral>(false));
    innermost_children.emplace_back(std::make_unique<StringEquals>("key", "value_1"));
 
    ExpressionVector inner_children;
@@ -371,7 +370,7 @@ TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
    const Or outer_or(std::move(outer_children));
 
    EXPECT_EQ(
-      outer_or.toString(), "Or(Or(Or(False | key = 'value_1') | key = 'value_2') | key = 'value_3')"
+      outer_or.toString(), "Or(Or(Or(false | key = 'value_1') | key = 'value_2') | key = 'value_3')"
    );
 
    auto rewritten_or = outer_or.rewrite(table, Or::AmbiguityMode::NONE);
