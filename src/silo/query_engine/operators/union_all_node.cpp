@@ -53,13 +53,20 @@ struct StreamState {
 
    /// Tear down the current child plan.
    void stopCurrentChild() {
+      constexpr double GRACE_SHUTDOWN_SECONDS = 5.0;
       if (!current_plan) {
          return;
       }
       auto finished_future = current_plan->finished();
       if (!finished_future.is_finished()) {
          current_plan->StopProducing();
-         finished_future.Wait();
+         const bool drained = finished_future.Wait(GRACE_SHUTDOWN_SECONDS);
+         if (!drained) {
+            SPDLOG_WARN(
+               "UnionAll: child plan cleanup exceeded {} s grace; continuing.",
+               GRACE_SHUTDOWN_SECONDS
+            );
+         }
       }
       current_plan.reset();
       generator_active = false;
