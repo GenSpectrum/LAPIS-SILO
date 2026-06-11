@@ -11,7 +11,7 @@ nlohmann::json createData(const std::string& primaryKey, const std::string& coun
    return {
       {"primaryKey", primaryKey},
       {"country", country},
-      {"segment1", nullptr},
+      {"segment1", {{"sequence", "T"}, {"insertions", nlohmann::json::array()}}},
       {"gene1", nullptr},
       {"unaligned_segment1", nullptr}
    };
@@ -178,6 +178,28 @@ const QueryTestScenario UNION_ALL_NESTED_SCENARIO = {
    )
 };
 
+const QueryTestScenario UNION_ALL_MUTATIONS_ON_UNION_SCENARIO = {
+   .name = "UNION_ALL_MUTATIONS_ON_UNION",
+   .query = R"(unionAll(
+      default.project({primaryKey}),
+      default.project({primaryKey})
+   ).mutations(minProportion:=0.0))",
+   .expected_query_result = {},
+   .expected_error_message = "mutations() must be applied to a table scan"
+};
+
+const QueryTestScenario UNION_ALL_OF_MUTATIONS_SCENARIO = {
+   .name = "UNION_ALL_OF_MUTATIONS",
+   .query = R"(unionAll(
+      default.filter(country='CH').mutations(minProportion:=0.0, fields:={mutation, proportion}),
+      default.filter(country='DE').mutations(minProportion:=0.0, fields:={mutation, proportion})
+   ))",
+   .expected_query_result = nlohmann::json(
+      {{{"mutation", "A1T"}, {"proportion", 1.0}},
+       {{"mutation", "A1T"}, {"proportion", 1.0}}}
+   )
+};
+
 // Downstream filter above unionAll should be rejected (not silently dropped)
 const QueryTestScenario UNION_ALL_DOWNSTREAM_FILTER_SCENARIO = {
    .name = "UNION_ALL_DOWNSTREAM_FILTER",
@@ -204,6 +226,8 @@ QUERY_TEST(
       UNION_ALL_TYPE_MISMATCH_SCENARIO,
       UNION_ALL_DIFFERENT_COLUMN_ORDER_SCENARIO,
       UNION_ALL_NESTED_SCENARIO,
+      UNION_ALL_MUTATIONS_ON_UNION_SCENARIO,
+      UNION_ALL_OF_MUTATIONS_SCENARIO,
       UNION_ALL_DOWNSTREAM_FILTER_SCENARIO
    )
 );

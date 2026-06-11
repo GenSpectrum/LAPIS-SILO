@@ -163,7 +163,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnresolvedPhyl
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& node) const {
+operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& node) {
    // Filters cannot be pushed across a union all boundary.
    // If a FilterNode above was already absorbed into current_filters, reject the query.
    // Users must apply filters inside each child of the unionAll instead.

@@ -60,7 +60,7 @@ class FilterPushdownPass {
    operators::QueryNodePtr operator()(operators::UnresolvedInsertionsNode<SymbolType>& node);
    operators::QueryNodePtr operator()(operators::UnresolvedPhyloSubtreeNode& node);
    operators::QueryNodePtr operator()(operators::UnresolvedMostRecentCommonAncestorNode& node);
-   operators::QueryNodePtr operator()(operators::UnionAllNode& node) const;
+   operators::QueryNodePtr operator()(operators::UnionAllNode& node);
 
    // All other nodes (TableScanNode, MutationsNode, etc.) are leaves here.
    template <typename T>
