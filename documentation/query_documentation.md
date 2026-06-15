@@ -292,7 +292,7 @@ default.filter(pango_lineage = 'B.1.1.7').phyloSubtree('usherTree')
 
 ### `unionAll(left, right)`
 
-Concatenates the output of two pipelines. Unlike the other operators, `unionAll` is a **standalone function** — it is not chained on a single pipeline but takes two pipeline expressions as arguments.
+Concatenates the output of two pipelines. `unionAll` can be called as a standalone function or with piped syntax:
 
 Both inputs must have the same schema (same column names and types). Column order does not matter — the right child is automatically reordered to match the left child's column order.
 
@@ -303,6 +303,19 @@ unionAll(
   default.filter(division='Aargau').project({division}),
   default.filter(division='Bern').project({division})
 )
+```
+
+Or equivalently using piped syntax:
+
+```
+default.filter(division='Aargau').project({division})
+  .unionAll(default.filter(division='Bern').project({division}))
+```
+
+Named arguments are also supported:
+
+```
+unionAll(left := <pipeline1>, right := <pipeline2>)
 ```
 
 The result can be piped into downstream operators:
