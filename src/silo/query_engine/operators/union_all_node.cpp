@@ -27,6 +27,8 @@ struct StreamState {
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> current_generator;
    bool generator_active = false;
 
+   ~StreamState() { stopCurrentChild(); }
+
    /// Attach a sink to the current child plan and start producing.
    arrow::Status startCurrentChild() {
       SILO_ASSERT(child_idx < child_plans.size());
