@@ -116,13 +116,12 @@ arrow::Future<std::optional<arrow::ExecBatch>> pullNext(const std::shared_ptr<St
 
 }  // namespace
 
-UnionAllNode::UnionAllNode(std::vector<QueryNodePtr> children)
-    : children(std::move(children)) {
-   SILO_ASSERT(this->children.size() == 2);
-}
+UnionAllNode::UnionAllNode(QueryNodePtr left, QueryNodePtr right)
+    : left(std::move(left)),
+      right(std::move(right)) {}
 
 std::vector<schema::ColumnIdentifier> UnionAllNode::getOutputSchema() const {
-   return children.front()->getOutputSchema();
+   return left->getOutputSchema();
 }
 
 arrow::Result<PartialArrowPlan> UnionAllNode::toQueryPlan(
@@ -133,13 +132,13 @@ arrow::Result<PartialArrowPlan> UnionAllNode::toQueryPlan(
    // Actual data production is deferred — each child is started and drained lazily
    // by the streaming producer, so only one child's batches are in flight at a time.
    auto state = std::make_shared<StreamState>();
-   state->child_plans.reserve(children.size());
-   for (const auto& child : children) {
-      ARROW_ASSIGN_OR_RAISE(auto child_plan, child->toQueryPlan(tables, query_options));
-      state->child_plans.push_back(std::move(child_plan));
-   }
+   state->child_plans.reserve(2);
+   ARROW_ASSIGN_OR_RAISE(auto left_plan, left->toQueryPlan(tables, query_options));
+   state->child_plans.push_back(std::move(left_plan));
+   ARROW_ASSIGN_OR_RAISE(auto right_plan, right->toQueryPlan(tables, query_options));
+   state->child_plans.push_back(std::move(right_plan));
 
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer = [state]() {
+   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer = [state] {
       return pullNext(state);
    };
 
@@ -158,13 +157,10 @@ arrow::Result<PartialArrowPlan> UnionAllNode::toQueryPlan(
 }
 
 nlohmann::json UnionAllNode::toJson() const {
-   nlohmann::json children_json = nlohmann::json::array();
-   for (const auto& child : children) {
-      children_json.push_back(child->toJson());
-   }
    return {
       {"type", nodeKindToString(kind())},
-      {"children", std::move(children_json)},
+      {"left", left->toJson()},
+      {"right", right->toJson()},
    };
 }
 

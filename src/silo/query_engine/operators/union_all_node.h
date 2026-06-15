@@ -2,7 +2,6 @@
 
 #include <map>
 #include <memory>
-#include <vector>
 
 #include <arrow/result.h>
 
@@ -16,9 +15,10 @@ namespace silo::query_engine::operators {
 /// Both children must produce compatible output schemas (same column names and types).
 class UnionAllNode final : public QueryNode {
   public:
-   std::vector<QueryNodePtr> children;
+   QueryNodePtr left;
+   QueryNodePtr right;
 
-   explicit UnionAllNode(std::vector<QueryNodePtr> children);
+   UnionAllNode(QueryNodePtr left, QueryNodePtr right);
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override;
 

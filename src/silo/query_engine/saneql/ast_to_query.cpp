@@ -1138,10 +1138,7 @@ operators::QueryNodePtr handleUnionAll(
       right = std::make_unique<operators::ProjectNode>(std::move(right), left_schema);
    }
 
-   std::vector<operators::QueryNodePtr> children;
-   children.push_back(std::move(left));
-   children.push_back(std::move(right));
-   return std::make_unique<operators::UnionAllNode>(std::move(children));
+   return std::make_unique<operators::UnionAllNode>(std::move(left), std::move(right));
 }
 
 }  // namespace

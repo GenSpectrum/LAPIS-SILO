@@ -173,10 +173,10 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& 
       "Apply the filter inside each child of the unionAll instead."
    );
    // Each child is optimized independently with a fresh pass.
-   for (auto& child : node.children) {
-      FilterPushdownPass child_pass;
-      applyToNode(child, child_pass);
-   }
+   FilterPushdownPass left_pass;
+   applyToNode(node.left, left_pass);
+   FilterPushdownPass right_pass;
+   applyToNode(node.right, right_pass);
    return nullptr;
 }
 

@@ -200,10 +200,10 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedPhy
 // NOLINTNEXTLINE(misc-no-recursion,readability-make-member-function-const)
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnionAllNode& node) {
    // Narrow columns in each child independently using the same required set.
-   for (auto& child : node.children) {
-      ColumnNarrowingPass child_pass(required);
-      applyToChild(child, child_pass);
-   }
+   ColumnNarrowingPass left_pass(required);
+   applyToChild(node.left, left_pass);
+   ColumnNarrowingPass right_pass(required);
+   applyToChild(node.right, right_pass);
    return nullptr;
 }
 

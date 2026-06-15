@@ -221,9 +221,8 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnionAllNode& node) {
-   for (auto& child : node.children) {
-      applyToNode(child, *this);
-   }
+   applyToNode(node.left, *this);
+   applyToNode(node.right, *this);
    return nullptr;
 }
 
