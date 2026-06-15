@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/panic.h"
+#include "silo/common/size_constants.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 
 namespace silo::query_engine::operators {
@@ -36,7 +37,13 @@ struct StreamState {
 
       arrow::acero::BackpressureMonitor* backpressure_monitor = nullptr;
       const arrow::acero::SinkNodeOptions sink_options{
-         &current_generator, arrow::acero::BackpressureOptions{}, &backpressure_monitor, true
+         &current_generator,
+         arrow::acero::BackpressureOptions{
+            /*.resume_if_below =*/silo::common::S_16_KB,
+            /*.pause_if_above =*/silo::common::S_64_MB
+         },
+         &backpressure_monitor,
+         true
       };
       ARROW_ASSIGN_OR_RAISE(
          auto sink_node,
@@ -75,6 +82,9 @@ struct StreamState {
 
 /// Pull the next batch from the streaming union.
 /// Starts child plans on demand, drains them one at a time, then advances.
+/// Note: blocks synchronously on the child generator. This is intentional — the child
+/// plan runs on the same shared Arrow thread pool, so async continuations would deadlock.
+/// This matches the pattern used by QueryPlan::executeAndWriteImpl.
 arrow::Future<std::optional<arrow::ExecBatch>> pullNext(const std::shared_ptr<StreamState>& state) {
    while (true) {
       if (state->child_idx >= state->child_plans.size()) {
@@ -92,15 +102,8 @@ arrow::Future<std::optional<arrow::ExecBatch>> pullNext(const std::shared_ptr<St
       auto result = future.result();
 
       if (!result.ok()) {
-         if (result.status().IsCancelled()) {
-            SPDLOG_WARN(
-               "UnionAll: child {} generator returned Cancelled, advancing to next child",
-               state->child_idx
-            );
-            state->stopCurrentChild();
-            ++state->child_idx;
-            continue;
-         }
+         // Propagate all errors (including Cancelled) to the caller.
+         state->stopCurrentChild();
          return arrow::Future{arrow::Result<std::optional<arrow::ExecBatch>>{result.status()}};
       }
 
