@@ -247,9 +247,7 @@ const QueryTestScenario UNION_ALL_COMBINED_FILTERS_SCENARIO = {
       default.filter(country='CH').project({primaryKey, country}),
       default.filter(country='DE').project({primaryKey, country})
    ).filter(primaryKey='id_0'))",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"country", "CH"}}}
-   )
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}, {"country", "CH"}}})
 };
 }  // namespace
 
