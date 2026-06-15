@@ -16,6 +16,10 @@ class FloatEquals : public Expression {
   public:
    FloatEquals(std::string column_name, std::optional<double> value);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<FloatEquals>(column_name, value);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::FLOAT_EQUALS;
    [[nodiscard]] Kind kind() const override { return KIND; }

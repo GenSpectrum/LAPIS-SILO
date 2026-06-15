@@ -19,6 +19,10 @@ class IntEquals : public Expression {
   public:
    explicit IntEquals(std::string column_name, std::optional<int32_t> value);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<IntEquals>(column_name, value);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::INT_EQUALS;
    [[nodiscard]] Kind kind() const override { return KIND; }

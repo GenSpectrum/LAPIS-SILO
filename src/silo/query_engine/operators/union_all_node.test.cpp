@@ -226,17 +226,19 @@ const QueryTestScenario UNION_ALL_NAMED_ARGS_SCENARIO = {
    )
 };
 
-// Downstream filter above unionAll should be rejected (not silently dropped)
+// Filter above unionAll is pushed into both children
 const QueryTestScenario UNION_ALL_DOWNSTREAM_FILTER_SCENARIO = {
    .name = "UNION_ALL_DOWNSTREAM_FILTER",
    .query = R"(unionAll(
       default.project({primaryKey, country}),
       default.project({primaryKey, country})
    ).filter(country='CH'))",
-   .expected_query_result = {},
-   .expected_error_message =
-      "filter above unionAll is not supported. "
-      "Apply the filter inside each child of the unionAll instead."
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"country", "CH"}},
+       {{"primaryKey", "id_2"}, {"country", "CH"}},
+       {{"primaryKey", "id_0"}, {"country", "CH"}},
+       {{"primaryKey", "id_2"}, {"country", "CH"}}}
+   )
 };
 }  // namespace
 

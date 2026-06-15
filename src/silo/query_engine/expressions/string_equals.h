@@ -16,6 +16,10 @@ class StringEquals : public Expression {
   public:
    explicit StringEquals(std::string column_name, std::optional<std::string> value);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<StringEquals>(column_name, value);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::STRING_EQUALS;
    [[nodiscard]] Kind kind() const override { return KIND; }

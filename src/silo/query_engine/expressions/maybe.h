@@ -16,6 +16,10 @@ class Maybe : public Expression {
   public:
    explicit Maybe(std::unique_ptr<Expression> child);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<Maybe>(child->clone());
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::MAYBE;
    [[nodiscard]] Kind kind() const override { return KIND; }

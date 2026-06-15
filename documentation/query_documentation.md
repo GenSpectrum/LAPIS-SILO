@@ -326,8 +326,25 @@ unionAll(
 
 **Restrictions:**
 
-- `.filter(...)` above a `unionAll` is not supported. Apply filters inside each child pipeline instead.
 - `mutations()`, `aminoAcidMutations()`, `insertions()`, and similar operators that require a table scan cannot be applied to the result of a `unionAll`. They can however be used inside each child.
+
+Filters above a `unionAll` are automatically pushed into both children:
+
+```
+unionAll(
+  default.project({primaryKey, country}),
+  default.project({primaryKey, country})
+).filter(country='CH')
+```
+
+is equivalent to:
+
+```
+unionAll(
+  default.filter(country='CH').project({primaryKey, country}),
+  default.filter(country='CH').project({primaryKey, country})
+)
+```
 
 **Output:** all rows from the left input followed by all rows from the right input, with the left input's column order.
 

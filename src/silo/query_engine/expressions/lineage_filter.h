@@ -22,6 +22,10 @@ class LineageFilter : public Expression {
       std::optional<silo::common::RecombinantEdgeFollowingMode> sublineage_mode
    );
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<LineageFilter>(column_name, lineage, sublineage_mode);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::LINEAGE_FILTER;
    [[nodiscard]] Kind kind() const override { return KIND; }

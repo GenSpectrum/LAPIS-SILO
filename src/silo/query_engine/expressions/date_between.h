@@ -29,6 +29,10 @@ class DateBetween : public Expression {
       std::optional<silo::common::Date32> date_to
    );
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<DateBetween>(column_name, date_from, date_to);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::DATE_BETWEEN;
    [[nodiscard]] Kind kind() const override { return KIND; }

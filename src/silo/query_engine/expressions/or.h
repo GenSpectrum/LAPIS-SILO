@@ -14,6 +14,15 @@ class Or : public Expression {
   public:
    explicit Or(ExpressionVector&& children);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      ExpressionVector cloned;
+      cloned.reserve(children.size());
+      for (const auto& child : children) {
+         cloned.push_back(child->clone());
+      }
+      return std::make_unique<Or>(std::move(cloned));
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::OR;
    [[nodiscard]] Kind kind() const override { return KIND; }

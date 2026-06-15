@@ -19,6 +19,12 @@ class StringSearch : public Expression {
   public:
    explicit StringSearch(std::string column_name, std::unique_ptr<re2::RE2> search_expression);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<StringSearch>(
+         column_name, std::make_unique<re2::RE2>(search_expression->pattern())
+      );
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::STRING_SEARCH;
    [[nodiscard]] Kind kind() const override { return KIND; }

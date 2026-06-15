@@ -25,6 +25,10 @@ class HasMutation : public Expression {
   public:
    explicit HasMutation(std::optional<std::string> sequence_name, uint32_t position_idx);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<HasMutation>(sequence_name, position_idx);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = std::is_same_v<SymbolType, Nucleotide>
                                    ? Kind::HAS_MUTATION_NUCLEOTIDE

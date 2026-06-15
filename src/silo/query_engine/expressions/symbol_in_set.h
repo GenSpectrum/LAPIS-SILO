@@ -33,6 +33,10 @@ class SymbolInSet : public Expression {
       std::vector<typename SymbolType::Symbol> symbols
    );
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<SymbolInSet>(sequence_name, position_idx, symbols);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = std::is_same_v<SymbolType, Nucleotide>
                                    ? Kind::SYMBOL_IN_SET_NUCLEOTIDE

@@ -15,6 +15,10 @@ class PhyloChildFilter : public Expression {
   public:
    explicit PhyloChildFilter(std::string column_name, std::string internal_node);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<PhyloChildFilter>(column_name, internal_node);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::PHYLO_CHILD_FILTER;
    [[nodiscard]] Kind kind() const override { return KIND; }

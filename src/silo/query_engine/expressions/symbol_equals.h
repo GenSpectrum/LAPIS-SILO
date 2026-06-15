@@ -47,6 +47,10 @@ class SymbolEquals : public Expression {
       SymbolOrDot<SymbolType> value
    );
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<SymbolEquals>(sequence_name, position_idx, value);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = std::is_same_v<SymbolType, Nucleotide>
                                    ? Kind::SYMBOL_EQUALS_NUCLEOTIDE

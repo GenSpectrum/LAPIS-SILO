@@ -3,7 +3,6 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/expressions/and.h"
-#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
@@ -164,18 +163,15 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnresolvedPhyl
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& node) {
-   // Filters cannot be pushed across a union all boundary.
-   // If a FilterNode above was already absorbed into current_filters, reject the query.
-   // Users must apply filters inside each child of the unionAll instead.
-   CHECK_SILO_QUERY(
-      current_filters.empty(),
-      "filter above unionAll is not supported. "
-      "Apply the filter inside each child of the unionAll instead."
-   );
-   // Each child is optimized independently with a fresh pass.
-   FilterPushdownPass left_pass;
-   applyToNode(node.left, left_pass);
+   // Push parent filters into both children. Clone for right, move originals into left.
    FilterPushdownPass right_pass;
+   for (const auto& filter : current_filters) {
+      right_pass.current_filters.push_back(filter->clone());
+   }
+   FilterPushdownPass left_pass;
+   left_pass.current_filters = std::move(current_filters);
+
+   applyToNode(node.left, left_pass);
    applyToNode(node.right, right_pass);
    return nullptr;
 }

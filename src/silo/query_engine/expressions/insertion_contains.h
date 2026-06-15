@@ -30,6 +30,10 @@ class InsertionContains : public Expression {
       std::string value
    );
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<InsertionContains>(sequence_name, position_idx, value);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = std::is_same_v<SymbolType, Nucleotide>
                                    ? Kind::INSERTION_CONTAINS_NUCLEOTIDE

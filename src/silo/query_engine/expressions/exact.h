@@ -14,6 +14,10 @@ class Exact : public Expression {
   public:
    explicit Exact(std::unique_ptr<Expression> child);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<Exact>(child->clone());
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::EXACT;
    [[nodiscard]] Kind kind() const override { return KIND; }

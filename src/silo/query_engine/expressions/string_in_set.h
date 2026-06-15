@@ -21,6 +21,10 @@ class StringInSet : public Expression {
   public:
    explicit StringInSet(std::string column_name, std::unordered_set<std::string> value);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<StringInSet>(column_name, values);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::STRING_IN_SET;
    [[nodiscard]] Kind kind() const override { return KIND; }
