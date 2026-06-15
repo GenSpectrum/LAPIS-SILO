@@ -196,6 +196,36 @@ const QueryTestScenario UNION_ALL_OF_MUTATIONS_SCENARIO = {
    )
 };
 
+// Piped syntax: left.unionAll(right) instead of unionAll(left, right)
+const QueryTestScenario UNION_ALL_PIPED_SYNTAX_SCENARIO = {
+   .name = "UNION_ALL_PIPED_SYNTAX",
+   .query = R"(
+      default.filter(country='CH').project({primaryKey, country})
+         .unionAll(default.filter(country='DE').project({primaryKey, country}))
+   )",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"country", "CH"}},
+       {{"primaryKey", "id_2"}, {"country", "CH"}},
+       {{"primaryKey", "id_1"}, {"country", "DE"}},
+       {{"primaryKey", "id_3"}, {"country", "DE"}}}
+   )
+};
+
+// Named arguments: unionAll(left:=..., right:=...)
+const QueryTestScenario UNION_ALL_NAMED_ARGS_SCENARIO = {
+   .name = "UNION_ALL_NAMED_ARGS",
+   .query = R"(unionAll(
+      left:=default.filter(country='CH').project({primaryKey, country}),
+      right:=default.filter(country='DE').project({primaryKey, country})
+   ))",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"country", "CH"}},
+       {{"primaryKey", "id_2"}, {"country", "CH"}},
+       {{"primaryKey", "id_1"}, {"country", "DE"}},
+       {{"primaryKey", "id_3"}, {"country", "DE"}}}
+   )
+};
+
 // Downstream filter above unionAll should be rejected (not silently dropped)
 const QueryTestScenario UNION_ALL_DOWNSTREAM_FILTER_SCENARIO = {
    .name = "UNION_ALL_DOWNSTREAM_FILTER",
@@ -224,6 +254,8 @@ QUERY_TEST(
       UNION_ALL_NESTED_SCENARIO,
       UNION_ALL_MUTATIONS_ON_UNION_SCENARIO,
       UNION_ALL_OF_MUTATIONS_SCENARIO,
+      UNION_ALL_PIPED_SYNTAX_SCENARIO,
+      UNION_ALL_NAMED_ARGS_SCENARIO,
       UNION_ALL_DOWNSTREAM_FILTER_SCENARIO
    )
 );
