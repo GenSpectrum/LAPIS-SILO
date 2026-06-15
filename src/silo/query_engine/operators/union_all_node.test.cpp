@@ -240,6 +240,17 @@ const QueryTestScenario UNION_ALL_DOWNSTREAM_FILTER_SCENARIO = {
        {{"primaryKey", "id_2"}, {"country", "CH"}}}
    )
 };
+// Filter on child AND filter above unionAll both apply
+const QueryTestScenario UNION_ALL_COMBINED_FILTERS_SCENARIO = {
+   .name = "UNION_ALL_COMBINED_FILTERS",
+   .query = R"(unionAll(
+      default.filter(country='CH').project({primaryKey, country}),
+      default.filter(country='DE').project({primaryKey, country})
+   ).filter(primaryKey='id_0'))",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"country", "CH"}}}
+   )
+};
 }  // namespace
 
 QUERY_TEST(
@@ -258,6 +269,7 @@ QUERY_TEST(
       UNION_ALL_OF_MUTATIONS_SCENARIO,
       UNION_ALL_PIPED_SYNTAX_SCENARIO,
       UNION_ALL_NAMED_ARGS_SCENARIO,
-      UNION_ALL_DOWNSTREAM_FILTER_SCENARIO
+      UNION_ALL_DOWNSTREAM_FILTER_SCENARIO,
+      UNION_ALL_COMBINED_FILTERS_SCENARIO
    )
 );
