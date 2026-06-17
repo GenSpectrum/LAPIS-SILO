@@ -38,8 +38,9 @@ echo "Release tag: $TAG"
 
 git fetch --tags
 
-# Find the previous release tag (second newest v* tag)
-PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | sed -n '2p')
+# Find the release tag immediately before $TAG in version order.
+# Tags are listed newest-first; the tag after $TAG in this list is its predecessor.
+PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | sed -n "/^${TAG}$/{ n; p; q; }")
 if [ -z "$PREV_TAG" ]; then
   echo "No previous release tag found, skipping"
   exit 0
@@ -61,7 +62,7 @@ if [ "$DRY_RUN" = "true" ]; then
   exit 0
 fi
 
-BODY=$(gh release view "$TAG" --json body -q .body)
+BODY=$(gh release view "$TAG" --json body -q '.body // ""')
 NEW_BODY=$(echo "$BODY" | "${SCRIPT_DIR}/insert-serialization-version-note.sh" --version="$VERSION")
 
 if [ "$BODY" = "$NEW_BODY" ]; then

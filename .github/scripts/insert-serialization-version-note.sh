@@ -29,24 +29,41 @@ fi
 
 INPUT=$(cat)
 
-# Guard: if note already present, pass through unchanged
-if echo "$INPUT" | grep -q "### ⚠ Serialization Version Changed"; then
-  echo "Serialization version note already present, skipping" >&2
-  echo "$INPUT"
-  exit 0
-fi
-
-# Insert note after the version heading
+# Insert note after the version heading, scoped to that version's section.
+# Idempotent: if the note already exists within the section, passes through unchanged.
 ESCAPED_VERSION="${VERSION//./\\.}"
 echo "$INPUT" | awk -v ver="$ESCAPED_VERSION" '
-  /^## \[/ && $0 ~ "^## \\[" ver "\\]" && !done {
+  # Match the target version heading
+  /^## \[/ && $0 ~ "^## \\[" ver "\\]" && !found_version {
+    found_version=1
+    in_section=1
+    version_line=NR
     print
-    print ""
-    print "### ⚠ Serialization Version Changed"
-    print ""
-    print "The serialization version changed in this release. Databases serialized with previous SILO versions are incompatible and need to be re-preprocessed."
-    done=1
     next
   }
-  {print}
+  # Detect next version heading (end of target section)
+  in_section && /^## \[/ {
+    in_section=0
+  }
+  # If we find the note already in the section, mark as duplicate
+  in_section && /^### ⚠ Serialization Version Changed/ {
+    already_present=1
+  }
+  {lines[NR]=$0}
+  END {
+    if (already_present || !found_version) {
+      # Pass through unchanged
+      for (i=1; i<=NR; i++) print lines[i]
+    } else {
+      for (i=1; i<=NR; i++) {
+        print lines[i]
+        if (i == version_line) {
+          print ""
+          print "### ⚠ Serialization Version Changed"
+          print ""
+          print "The serialization version changed in this release. Databases serialized with previous SILO versions are incompatible and need to be re-preprocessed."
+        }
+      }
+    }
+  }
 '
