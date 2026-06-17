@@ -5,7 +5,7 @@ set -euo pipefail
 # Check whether the serialization version changed since the last release,
 # and if so, annotate CHANGELOG.md on the release branch and commit+push.
 #
-# Delegates the actual changelog modification to insert-serialization-version-note.sh.
+# Delegates the actual text modification to insert-serialization-version-note.sh.
 #
 # Usage:
 #   ./annotate-changelog-serialization-version.sh --branch=<release-branch> --version=<release-version>
@@ -59,7 +59,8 @@ fi
 
 echo "Serialization version changed: $OLD_VER -> $NEW_VER"
 
-"${SCRIPT_DIR}/insert-serialization-version-note.sh" --version="$VERSION"
+"${SCRIPT_DIR}/insert-serialization-version-note.sh" --version="$VERSION" \
+  < CHANGELOG.md > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
 
 if [ "$DRY_RUN" = "true" ]; then
   echo "DRY_RUN: would commit and push CHANGELOG.md changes"

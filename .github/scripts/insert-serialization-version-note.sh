@@ -2,46 +2,43 @@
 
 set -euo pipefail
 
-# Insert a "Serialization Version Changed" note into a CHANGELOG.md file.
+# Insert a "Serialization Version Changed" note into release markdown.
 #
-# Pure text transformation — no git, no network. Modifies the file in place.
-# Idempotent: exits successfully without changes if the note already exists.
+# Pure stdin/stdout text transformation — no git, no network, no files.
+# Idempotent: passes input through unchanged if the note already exists.
 #
 # Usage:
-#   ./insert-serialization-version-note.sh --version=<release-version> --changelog=<path>
+#   cat CHANGELOG.md | ./insert-serialization-version-note.sh --version=<X.Y.Z>
+#   gh release view ... | ./insert-serialization-version-note.sh --version=<X.Y.Z>
 #
-# The note is inserted directly after the "## [<version>]" heading.
+# The note is inserted directly after the "## [<version>]" heading line.
 
 VERSION=""
-CHANGELOG="CHANGELOG.md"
 
 for arg in "$@"; do
   case "$arg" in
     --version=*) VERSION="${arg#--version=}" ;;
-    --changelog=*) CHANGELOG="${arg#--changelog=}" ;;
-    *) echo "Unknown argument: $arg"; exit 1 ;;
+    *) echo "Unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
 
 if [ -z "$VERSION" ]; then
-  echo "Usage: $0 --version=<release-version> [--changelog=<path>]"
+  echo "Usage: $0 --version=<release-version>" >&2
   exit 1
 fi
 
-if [ ! -f "$CHANGELOG" ]; then
-  echo "Changelog file not found: $CHANGELOG"
-  exit 1
-fi
+INPUT=$(cat)
 
-# Guard: skip if note already present
-if grep -q "### ⚠ Serialization Version Changed" "$CHANGELOG"; then
-  echo "Serialization version note already present in $CHANGELOG, skipping"
+# Guard: if note already present, pass through unchanged
+if echo "$INPUT" | grep -q "### ⚠ Serialization Version Changed"; then
+  echo "Serialization version note already present, skipping" >&2
+  echo "$INPUT"
   exit 0
 fi
 
-# Insert note after the version heading for this release.
+# Insert note after the version heading
 ESCAPED_VERSION="${VERSION//./\\.}"
-awk -v ver="$ESCAPED_VERSION" '
+echo "$INPUT" | awk -v ver="$ESCAPED_VERSION" '
   /^## \[/ && $0 ~ "^## \\[" ver "\\]" && !done {
     print
     print ""
@@ -52,6 +49,4 @@ awk -v ver="$ESCAPED_VERSION" '
     next
   }
   {print}
-' "$CHANGELOG" > "${CHANGELOG}.tmp" && mv "${CHANGELOG}.tmp" "$CHANGELOG"
-
-echo "Inserted serialization version note into $CHANGELOG for version $VERSION"
+'
