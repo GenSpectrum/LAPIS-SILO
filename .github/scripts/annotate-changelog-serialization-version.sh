@@ -16,7 +16,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-SERIALIZATION_VERSION_FILE="${SERIALIZATION_VERSION_FILE:-src/silo/common/serialization_version.txt}"
 DRY_RUN="${DRY_RUN:-false}"
 
 BRANCH=""
@@ -49,15 +48,9 @@ fi
 
 echo "Previous tag: $PREV_TAG"
 
-OLD_VER=$(git show "${PREV_TAG}:${SERIALIZATION_VERSION_FILE}" 2>/dev/null || echo "unknown")
-NEW_VER=$(git show "origin/main:${SERIALIZATION_VERSION_FILE}" 2>/dev/null || echo "unknown")
-
-if [ "$OLD_VER" = "$NEW_VER" ]; then
-  echo "Serialization version unchanged ($OLD_VER), skipping"
+if ! "${SCRIPT_DIR}/detect-serialization-version-change.sh" --old-ref="$PREV_TAG" --new-ref="origin/main"; then
   exit 0
 fi
-
-echo "Serialization version changed: $OLD_VER -> $NEW_VER"
 
 "${SCRIPT_DIR}/insert-serialization-version-note.sh" --version="$VERSION" \
   < CHANGELOG.md > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
