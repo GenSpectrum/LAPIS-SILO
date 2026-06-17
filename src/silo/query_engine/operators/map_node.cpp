@@ -9,6 +9,7 @@
 #include <arrow/datum.h>
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/query_engine/expressions/at.h"
 #include "silo/query_engine/expressions/field_ref.h"
 #include "silo/query_engine/expressions/literal.h"
 
@@ -37,8 +38,21 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
    if (const auto* field_ref = dynamic_cast<const expressions::FieldRef*>(&expression)) {
       return arrow::compute::field_ref(field_ref->column.name);
    }
+   if (const auto* at_function = dynamic_cast<const expressions::At*>(&expression)) {
+      // `at` is 1-indexed; utf8_slice_codeunits takes a 0-indexed, half-open
+      // [start, stop) range of code units, so extract the single character at
+      // position-1.
+      const int64_t start = static_cast<int64_t>(at_function->position) - 1;
+      const auto stop = static_cast<int64_t>(at_function->position);
+      return arrow::compute::call(
+         "utf8_slice_codeunits",
+         {arrow::compute::field_ref(at_function->input_column.name)},
+         arrow::compute::SliceOptions(start, stop)
+      );
+   }
    return arrow::Status::NotImplemented(
-      "non-literal scalar expressions are not yet supported in map() assignments"
+      "unsupported scalar expression in map() assignments (supported: literals, column references, "
+      "and at())"
    );
 }
 

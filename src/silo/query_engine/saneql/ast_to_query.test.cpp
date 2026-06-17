@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <string_view>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -22,8 +23,11 @@ namespace ast = silo::query_engine::saneql::ast;
 
 namespace {
 
-auto parseFilter(std::string_view query) {
-   return convertToFilter(*Parser(query).parse());
+auto parseFilter(
+   std::string_view query,
+   const std::vector<silo::schema::ColumnIdentifier>& schema = {}
+) {
+   return convertToFilter(*Parser(query).parse(), schema);
 }
 
 using Tables = std::map<silo::schema::TableName, std::shared_ptr<silo::storage::Table>>;
@@ -296,7 +300,7 @@ TEST(AstToQueryBinaryExpr, unhandledBinaryOpThrows) {
       {}
    );
    EXPECT_THAT(
-      [&]() { (void)convertToFilter(*expr); },
+      [&]() { (void)convertToFilter(*expr, {}); },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("unhandled binary operator"))
    );
 }
@@ -397,7 +401,32 @@ TEST(AstToQueryMap, unsupportedValueThrows) {
    EXPECT_THAT(
       [&tables]() { (void)parseAndConvertToQueryTree("default.map({x := count()})", tables); },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("map() field 'x' must be assigned a literal value")
+         ::testing::HasSubstr("map() field 'x' references unknown scalar function 'count'")
+      )
+   );
+}
+
+TEST(AstToQueryMap, atResolvesToCharacterOfColumn) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_NO_THROW((void)parseAndConvertToQueryTree("default.map({c := id.at(2)})", tables));
+}
+
+TEST(AstToQueryMap, atOnUnknownColumnThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() { (void)parseAndConvertToQueryTree("default.map({c := nope.at(2)})", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("at(): the field nope is not found in the current context")
+      )
+   );
+}
+
+TEST(AstToQueryMap, atWithPositionZeroThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() { (void)parseAndConvertToQueryTree("default.map({c := id.at(0)})", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("at(): the field 'position' is 1-indexed. Value of 0 not allowed.")
       )
    );
 }

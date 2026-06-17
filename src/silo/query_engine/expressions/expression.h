@@ -27,6 +27,7 @@ class Expression {
    enum class Kind : uint8_t {
       AND,
       OR,
+      AT,
       N_OF,
       NEGATION,
       MAYBE,

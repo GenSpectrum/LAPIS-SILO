@@ -264,7 +264,8 @@ roaring::Roaring Database::getFilteredBitmap(
 
    query_engine::saneql::Parser parser(filter);
    auto ast = parser.parse();
-   auto filter_expression = query_engine::saneql::convertToFilter(*ast);
+   auto filter_expression =
+      query_engine::saneql::convertToFilter(*ast, table->schema->getColumnIdentifiers());
 
    auto rewritten_filter_expression =
       filter_expression->rewrite(*table, Expression::AmbiguityMode::NONE);
