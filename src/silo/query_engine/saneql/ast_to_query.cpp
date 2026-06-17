@@ -16,6 +16,7 @@
 #include "silo/common/lineage_tree.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/expressions/and.h"
+#include "silo/query_engine/expressions/at.h"
 #include "silo/query_engine/expressions/bool_equals.h"
 #include "silo/query_engine/expressions/date_between.h"
 #include "silo/query_engine/expressions/date_equals.h"
@@ -64,7 +65,10 @@ namespace silo::query_engine::saneql {
 
 namespace {
 
-FilterPtr convertEqualsToFilter(const std::string& column_name, const ast::Expression& value_expr) {
+ScalarExpressionPtr convertEqualsToFilter(
+   const std::string& column_name,
+   const ast::Expression& value_expr
+) {
    if (isNullLiteral(value_expr)) {
       return std::make_unique<expressions::IsNull>(column_name);
    }
@@ -96,7 +100,7 @@ FilterPtr convertEqualsToFilter(const std::string& column_name, const ast::Expre
    );
 }
 
-FilterPtr convertIntComparison(
+ScalarExpressionPtr convertIntComparison(
    const std::string& column_name,
    ast::BinaryOp binary_op,
    uint32_t value
@@ -115,7 +119,7 @@ FilterPtr convertIntComparison(
    }
 }
 
-FilterPtr convertFloatComparison(
+ScalarExpressionPtr convertFloatComparison(
    const std::string& column_name,
    ast::BinaryOp binary_op,
    double value
@@ -134,7 +138,7 @@ FilterPtr convertFloatComparison(
    }
 }
 
-FilterPtr convertDateComparison(
+ScalarExpressionPtr convertDateComparison(
    const std::string& column_name,
    ast::BinaryOp binary_op,
    const ast::Expression& value_expr
@@ -154,7 +158,7 @@ FilterPtr convertDateComparison(
    }
 }
 
-FilterPtr convertComparisonToFilter(
+ScalarExpressionPtr convertComparisonToFilter(
    const std::string& column_name,
    ast::BinaryOp binary_op,
    const ast::Expression& value_expr
@@ -177,18 +181,21 @@ FilterPtr convertComparisonToFilter(
    );
 }
 
-FilterPtr convertBinaryExprToFilter(const ast::BinaryExpr& bin_expr) {
+ScalarExpressionPtr convertBinaryExprToFilter(
+   const ast::BinaryExpr& bin_expr,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
    switch (bin_expr.op) {
       case ast::BinaryOp::AND: {
          expressions::ExpressionVector children;
-         children.push_back(convertToFilter(*bin_expr.left));
-         children.push_back(convertToFilter(*bin_expr.right));
+         children.push_back(convertToFilter(*bin_expr.left, schema));
+         children.push_back(convertToFilter(*bin_expr.right, schema));
          return std::make_unique<expressions::And>(std::move(children));
       }
       case ast::BinaryOp::OR: {
          expressions::ExpressionVector children;
-         children.push_back(convertToFilter(*bin_expr.left));
-         children.push_back(convertToFilter(*bin_expr.right));
+         children.push_back(convertToFilter(*bin_expr.left, schema));
+         children.push_back(convertToFilter(*bin_expr.right, schema));
          return std::make_unique<expressions::Or>(std::move(children));
       }
       case ast::BinaryOp::EQUALS: {
@@ -243,7 +250,10 @@ FilterPtr convertBinaryExprToFilter(const ast::BinaryExpr& bin_expr) {
 // Scalar function handlers (registered in ScalarFunctionRegistry)
 // ========================================================================
 
-FilterPtr handleBetween(const BoundArguments& args) {
+ScalarExpressionPtr handleBetween(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& /*schema*/
+) {
    auto column_name = extractIdentifierName(args.at("column"));
    const auto& from_expr = args.at("from");
    const auto& to_expr = args.at("to");
@@ -283,7 +293,10 @@ FilterPtr handleBetween(const BoundArguments& args) {
    );
 }
 
-FilterPtr handleIn(const BoundArguments& args) {
+ScalarExpressionPtr handleIn(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& /*schema*/
+) {
    auto column_name = extractIdentifierName(args.at("column"));
    const auto& set_expr = args.at("values");
    CHECK_SILO_QUERY(
@@ -300,17 +313,26 @@ FilterPtr handleIn(const BoundArguments& args) {
    return std::make_unique<expressions::StringInSet>(column_name, std::move(values));
 }
 
-FilterPtr handleIsNull(const BoundArguments& args) {
+ScalarExpressionPtr handleIsNull(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& /*schema*/
+) {
    return std::make_unique<expressions::IsNull>(extractIdentifierName(args.at("column")));
 }
 
-FilterPtr handleIsNotNull(const BoundArguments& args) {
+ScalarExpressionPtr handleIsNotNull(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& /*schema*/
+) {
    return std::make_unique<expressions::Negation>(
       std::make_unique<expressions::IsNull>(extractIdentifierName(args.at("column")))
    );
 }
 
-FilterPtr handleLineage(const BoundArguments& args) {
+ScalarExpressionPtr handleLineage(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& /*schema*/
+) {
    auto column_name = extractIdentifierName(args.at("column"));
    const auto& value_expr = args.at("value");
    std::optional<std::string> lineage_value;
@@ -344,13 +366,19 @@ FilterPtr handleLineage(const BoundArguments& args) {
    return std::make_unique<expressions::LineageFilter>(column_name, lineage_value, sublineage_mode);
 }
 
-FilterPtr handlePhyloDescendantOf(const BoundArguments& args) {
+ScalarExpressionPtr handlePhyloDescendantOf(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& /*schema*/
+) {
    return std::make_unique<expressions::PhyloChildFilter>(
       extractIdentifierName(args.at("column")), extractStringLiteral(args.at("node"))
    );
 }
 
-FilterPtr handleLike(const BoundArguments& args) {
+ScalarExpressionPtr handleLike(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& /*schema*/
+) {
    auto column_name = extractIdentifierName(args.at("column"));
    auto pattern = extractStringLiteral(args.at("pattern"));
    auto regex = std::make_unique<re2::RE2>(pattern);
@@ -364,7 +392,10 @@ FilterPtr handleLike(const BoundArguments& args) {
 }
 
 template <typename SymbolType>
-FilterPtr handleSymbolEquals(const BoundArguments& args) {
+ScalarExpressionPtr handleSymbolEquals(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& /*schema*/
+) {
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_SILO_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
    const uint32_t position_idx = position - 1;
@@ -389,7 +420,10 @@ FilterPtr handleSymbolEquals(const BoundArguments& args) {
 }
 
 template <typename SymbolType>
-FilterPtr handleHasMutation(const BoundArguments& args) {
+ScalarExpressionPtr handleHasMutation(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& /*schema*/
+) {
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_SILO_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
    auto sequence_name = args.getOptionalString("sequenceName");
@@ -399,7 +433,10 @@ FilterPtr handleHasMutation(const BoundArguments& args) {
 }
 
 template <typename SymbolType>
-FilterPtr handleInsertionContains(const BoundArguments& args) {
+ScalarExpressionPtr handleInsertionContains(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& /*schema*/
+) {
    auto position = extractUint32Literal(args.at("position"));
    auto value = extractStringLiteral(args.at("value"));
    CHECK_SILO_QUERY(
@@ -412,16 +449,47 @@ FilterPtr handleInsertionContains(const BoundArguments& args) {
    );
 }
 
-FilterPtr handleExact(const BoundArguments& args) {
-   return std::make_unique<expressions::Exact>(convertToFilter(args.at("child")));
-}
-
-FilterPtr handleMaybe(const BoundArguments& args) {
-   return std::make_unique<expressions::Maybe>(convertToFilter(args.at("child")));
+ScalarExpressionPtr handleAt(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   auto input_column = extractIdentifierName(args.at("input"));
+   const uint32_t position = extractUint32Literal(args.at("position"));
+   CHECK_SILO_QUERY(
+      position > 0, "at(): the field 'position' is 1-indexed. Value of 0 not allowed."
+   );
+   // Resolve the referenced column against the available schema so the At carries the
+   // column's actual {name, type}. If it is unknown the column is kept with a
+   // placeholder type; the caller reports the (contextual) unknown-column error.
+   const auto found =
+      std::ranges::find_if(schema, [&](const auto& col) { return col.name == input_column; });
+   CHECK_SILO_QUERY(
+      found != schema.end(), "at(): the field {} is not found in the current context", input_column
+   );
+   return std::make_unique<expressions::At>(*found, position);
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-FilterPtr handleNOf(const BoundArguments& args) {
+ScalarExpressionPtr handleExact(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   return std::make_unique<expressions::Exact>(convertToFilter(args.at("child"), schema));
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+ScalarExpressionPtr handleMaybe(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   return std::make_unique<expressions::Maybe>(convertToFilter(args.at("child"), schema));
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+ScalarExpressionPtr handleNOf(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
    const int32_t number_of_matchers = extractInt32Literal(args.at("count"));
    bool match_exactly = false;
    if (const auto* expr = args.get("matchExactly")) {
@@ -430,7 +498,7 @@ FilterPtr handleNOf(const BoundArguments& args) {
    const auto& children_set = extractSetLiteral(args.at("children"));
    expressions::ExpressionVector children;
    for (const auto& child_expr : children_set.elements) {
-      children.push_back(convertToFilter(*child_expr));
+      children.push_back(convertToFilter(*child_expr, schema));
    }
    return std::make_unique<expressions::NOf>(
       std::move(children), number_of_matchers, match_exactly
@@ -510,7 +578,10 @@ std::vector<typename expressions::MutationProfile<SymbolType>::Mutation> parseMu
 }
 
 template <typename SymbolType>
-FilterPtr handleMutationProfile(const BoundArguments& args) {
+ScalarExpressionPtr handleMutationProfile(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& /*schema*/
+) {
    const uint32_t distance = extractUint32Literal(args.at("distance"));
    auto sequence_name = args.getOptionalString("sequenceName");
 
@@ -559,15 +630,18 @@ FilterPtr handleMutationProfile(const BoundArguments& args) {
 
 }  // namespace
 
-std::unique_ptr<expressions::Expression> convertToFilter(const ast::Expression& ast) {
+std::unique_ptr<expressions::Expression> convertToFilter(
+   const ast::Expression& ast,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
    return std::visit(
-      [&](const auto& node) -> FilterPtr {
+      [&](const auto& node) -> ScalarExpressionPtr {
          using T = std::decay_t<decltype(node)>;
 
          if constexpr (std::is_same_v<T, ast::BinaryExpr>) {
-            return convertBinaryExprToFilter(node);
+            return convertBinaryExprToFilter(node, schema);
          } else if constexpr (std::is_same_v<T, ast::UnaryNotExpr>) {
-            return std::make_unique<expressions::Negation>(convertToFilter(*node.operand));
+            return std::make_unique<expressions::Negation>(convertToFilter(*node.operand, schema));
          } else if constexpr (std::is_same_v<T, ast::BoolLiteral>) {
             return std::make_unique<expressions::BoolLiteral>(node.value);
          } else if constexpr (std::is_same_v<T, ast::FunctionCall>) {
@@ -576,7 +650,20 @@ std::unique_ptr<expressions::Expression> convertToFilter(const ast::Expression& 
             auto bound = bindArguments(
                node.function_name, entry->signature, node.positional_arguments, node.named_arguments
             );
-            return entry->handler(bound);
+            auto expression = entry->handler(bound, schema);
+            // The registry also holds value-producing scalar functions (e.g. `at`),
+            // which are not filter predicates. Reject them here rather than letting a
+            // non-boolean expression reach compile().
+            CHECK_SILO_QUERY(
+               expression->type() == schema::ColumnType::BOOL,
+               "scalar function '{}' produces a {} value and cannot be used as a filter "
+               "predicate at {}:{}",
+               node.function_name,
+               schema::columnTypeToString(expression->type()),
+               ast.location.line,
+               ast.location.column
+            );
+            return expression;
          } else {
             throw IllegalQueryException(
                "unsupported expression type in filter context at {}:{}",
@@ -811,7 +898,7 @@ operators::QueryNodePtr handleFilter(
    const ChildConverter& convert_child
 ) {
    auto child = convert_child(args.at("input"), tables);
-   auto filter_expr = convertToFilter(args.at("predicate"));
+   auto filter_expr = convertToFilter(args.at("predicate"), child->getOutputSchema());
    return std::make_unique<operators::FilterNode>(std::move(child), std::move(filter_expr));
 }
 
@@ -862,11 +949,52 @@ namespace {
 
 using operators::MapNode;
 
+/// Builds a scalar Expression from a function call (e.g. `seq.at(3)`) appearing in
+/// a scalar position. The handler resolves referenced columns against `schema`;
+/// this additionally validates that every referenced column exists so a missing
+/// column produces a diagnostic with the call's context and location.
+std::unique_ptr<expressions::Expression> convertScalarFunctionCall(
+   const ast::FunctionCall& call,
+   const SourceLocation& location,
+   const std::vector<schema::ColumnIdentifier>& schema,
+   std::string_view error_context
+) {
+   const auto* entry = ScalarFunctionRegistry::instance().findFunction(call.function_name);
+   CHECK_SILO_QUERY(
+      entry != nullptr,
+      "{} references unknown scalar function '{}' at {}:{}",
+      error_context,
+      call.function_name,
+      location.line,
+      location.column
+   );
+   auto bound = bindArguments(
+      call.function_name, entry->signature, call.positional_arguments, call.named_arguments
+   );
+   auto expression = entry->handler(bound, schema);
+   // Validate that every referenced column actually exists, mirroring the check for
+   // a bare column reference.
+   for (const auto& referenced : expression->freeIUs()) {
+      const bool exists =
+         std::ranges::any_of(schema, [&](const auto& col) { return col.name == referenced.name; });
+      CHECK_SILO_QUERY(
+         exists,
+         "{} references unknown column '{}' at {}:{}",
+         error_context,
+         referenced.name,
+         location.line,
+         location.column
+      );
+   }
+   return expression;
+}
+
 /// Converts a saneql expression into a SILO scalar Expression: a value-producing
 /// expression (as opposed to convertToFilter, which yields a boolean predicate).
-/// Supported forms are literals (int, float, string, bool) and references to an
-/// existing column of `schema` (resolved to that column's type). `error_context`
-/// prefixes diagnostics so callers can describe where the expression appears
+/// Supported forms are literals (int, float, string, bool), references to an
+/// existing column of `schema` (resolved to that column's type), and scalar
+/// function calls (see convertScalarFunctionCall). `error_context` prefixes
+/// diagnostics so callers can describe where the expression appears
 /// (e.g. "map() field 'x'").
 std::unique_ptr<expressions::Expression> convertToScalar(
    const ast::Expression& ast,
@@ -901,9 +1029,15 @@ std::unique_ptr<expressions::Expression> convertToScalar(
    if (std::holds_alternative<ast::BoolLiteral>(value)) {
       return std::make_unique<expressions::BoolLiteral>(std::get<ast::BoolLiteral>(value).value);
    }
+   if (std::holds_alternative<ast::FunctionCall>(value)) {
+      return convertScalarFunctionCall(
+         std::get<ast::FunctionCall>(value), location, schema, error_context
+      );
+   }
 
    throw IllegalQueryException(
-      "{} must be assigned a literal value (int, float, string, or bool) or a column reference at "
+      "{} must be assigned a literal value (int, float, string, or bool), a column reference, or a "
+      "scalar function call at "
       "{}:{}",
       error_context,
       location.line,
@@ -1280,6 +1414,8 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
    registerFunction("phyloDescendantOf", {{pos("column"), pos("node")}}, handlePhyloDescendantOf);
 
    registerFunction("like", {{pos("column"), pos("pattern")}}, handleLike);
+
+   registerFunction("at", {{pos("input"), pos("position")}}, handleAt);
 
    auto symbol_equals_sig =
       FunctionSignature{{named("position"), named("symbol"), named("sequenceName", false)}};
