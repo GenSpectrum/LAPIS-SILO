@@ -84,7 +84,8 @@ std::vector<schema::ColumnIdentifier> MostRecentCommonAncestorNode::getOutputSch
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-arrow::Result<PartialArrowPlan> MostRecentCommonAncestorNode::toQueryPlan(
+arrow::Result<arrow::acero::ExecNode*> MostRecentCommonAncestorNode::addToExecPlan(
+   arrow::acero::ExecPlan& plan,
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
@@ -169,18 +170,12 @@ arrow::Result<PartialArrowPlan> MostRecentCommonAncestorNode::toQueryPlan(
       return arrow::Future{result};
    };
 
-   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
-
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(output_fields),
       std::move(producer),
       arrow::Ordering::Implicit()
    };
-   ARROW_ASSIGN_OR_RAISE(
-      auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
-   );
-
-   return PartialArrowPlan{.top_node = node, .plan = arrow_plan};
+   return arrow::acero::MakeExecNode("source", &plan, {}, options);
 }
 
 nlohmann::json MostRecentCommonAncestorNode::toJson() const {

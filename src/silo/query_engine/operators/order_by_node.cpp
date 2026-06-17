@@ -43,34 +43,38 @@ uint64_t hash64(uint64_t value, uint64_t seed) {
    return value;
 }
 
-arrow::Result<arrow::acero::ExecNode*> removeRandomizeColumn(const PartialArrowPlan& plan) {
+arrow::Result<arrow::acero::ExecNode*> removeRandomizeColumn(
+   arrow::acero::ExecPlan& plan,
+   arrow::acero::ExecNode* top_node
+) {
    std::vector<arrow::Expression> field_refs;
-   for (const auto& field : plan.top_node->output_schema()->fields()) {
+   for (const auto& field : top_node->output_schema()->fields()) {
       if (field->name() != RANDOMIZE_HASH_FIELD_NAME) {
          field_refs.push_back(arrow::compute::field_ref(field->name()));
       }
    }
    auto options = arrow::acero::ProjectNodeOptions(field_refs);
-   return arrow::acero::MakeExecNode("project", plan.plan.get(), {plan.top_node}, options);
+   return arrow::acero::MakeExecNode("project", &plan, {top_node}, options);
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<arrow::acero::ExecNode*> addRandomizeColumn(
-   PartialArrowPlan plan,
+   arrow::acero::ExecPlan& plan,
+   arrow::acero::ExecNode* top_node,
    size_t randomize_seed
 ) {
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> sequenced_batches;
    std::shared_ptr<arrow::Schema> schema_of_sequence_batches;
    ARROW_ASSIGN_OR_RAISE(
-      plan.top_node,
+      top_node,
       arrow::acero::MakeExecNode(
          "sink",
-         plan.plan.get(),
-         {plan.top_node},
+         &plan,
+         {top_node},
          arrow::acero::SinkNodeOptions{&sequenced_batches, &schema_of_sequence_batches}
       )
    );
-   plan.top_node->SetLabel("input to randomize column projection");
+   top_node->SetLabel("input to randomize column projection");
    auto output_schema_fields = schema_of_sequence_batches->fields();
    output_schema_fields.emplace_back(
       std::make_shared<arrow::Field>(RANDOMIZE_HASH_FIELD_NAME, arrow::uint64())
@@ -115,40 +119,38 @@ arrow::Result<arrow::acero::ExecNode*> addRandomizeColumn(
       );
    };
    ARROW_ASSIGN_OR_RAISE(
-      plan.top_node,
+      top_node,
       arrow::acero::MakeExecNode(
          "source",
-         plan.plan.get(),
+         &plan,
          {},
          arrow::acero::SourceNodeOptions{output_schema, std::move(sequenced_batches_with_hash_id)}
       )
    );
-   plan.top_node->SetLabel("output of randomize column projection");
-   return plan.top_node;
+   top_node->SetLabel("output of randomize column projection");
+   return top_node;
 }
 
 arrow::Result<arrow::acero::ExecNode*> addSortNode(
-   PartialArrowPlan plan,
+   arrow::acero::ExecPlan& plan,
+   arrow::acero::ExecNode* top_node,
    const std::vector<schema::ColumnIdentifier>& output_fields,
    const arrow::Ordering& ordering
 ) {
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> generator;
    ARROW_ASSIGN_OR_RAISE(
-      plan.top_node,
+      top_node,
       arrow::acero::MakeExecNode(
          "order_by_sink",
-         plan.plan.get(),
-         {plan.top_node},
+         &plan,
+         {top_node},
          arrow::acero::OrderBySinkNodeOptions{arrow::SortOptions{ordering}, &generator}
       )
    );
-   plan.top_node->SetLabel("order by");
+   top_node->SetLabel("order by");
    auto schema = exec_node::columnsToArrowSchema(output_fields);
    return arrow::acero::MakeExecNode(
-      "source",
-      plan.plan.get(),
-      {},
-      arrow::acero::SourceNodeOptions{schema, std::move(generator), ordering}
+      "source", &plan, {}, arrow::acero::SourceNodeOptions{schema, std::move(generator), ordering}
    );
 }
 
@@ -168,7 +170,8 @@ std::vector<schema::ColumnIdentifier> OrderByNode::getOutputSchema() const {
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-arrow::Result<PartialArrowPlan> OrderByNode::toQueryPlan(
+arrow::Result<arrow::acero::ExecNode*> OrderByNode::addToExecPlan(
+   arrow::acero::ExecPlan& plan,
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
    const config::QueryOptions& query_options
 ) const {
@@ -180,7 +183,7 @@ arrow::Result<PartialArrowPlan> OrderByNode::toQueryPlan(
       field_names.push_back(identifier.name);
    }
 
-   ARROW_ASSIGN_OR_RAISE(auto plan, child->toQueryPlan(tables, query_options));
+   ARROW_ASSIGN_OR_RAISE(auto* top_node, child->addToExecPlan(plan, tables, query_options));
 
    using arrow::compute::NullPlacement;
    using arrow::compute::SortOrder;
@@ -195,7 +198,7 @@ arrow::Result<PartialArrowPlan> OrderByNode::toQueryPlan(
    }
 
    if (sort_keys.empty()) {
-      return plan;
+      return top_node;
    }
 
    auto first_sort_key = sort_keys.at(0);
@@ -205,16 +208,16 @@ arrow::Result<PartialArrowPlan> OrderByNode::toQueryPlan(
    const arrow::Ordering ordering{sort_keys, null_placement};
 
    if (randomize_seed.has_value()) {
-      ARROW_ASSIGN_OR_RAISE(plan.top_node, addRandomizeColumn(plan, randomize_seed.value()));
+      ARROW_ASSIGN_OR_RAISE(top_node, addRandomizeColumn(plan, top_node, randomize_seed.value()));
    }
 
-   ARROW_ASSIGN_OR_RAISE(plan.top_node, addSortNode(plan, getOutputSchema(), ordering));
+   ARROW_ASSIGN_OR_RAISE(top_node, addSortNode(plan, top_node, getOutputSchema(), ordering));
 
    if (randomize_seed.has_value()) {
-      ARROW_ASSIGN_OR_RAISE(plan.top_node, removeRandomizeColumn(plan));
+      ARROW_ASSIGN_OR_RAISE(top_node, removeRandomizeColumn(plan, top_node));
    }
 
-   return plan;
+   return top_node;
 }
 
 nlohmann::json OrderByNode::toJson() const {

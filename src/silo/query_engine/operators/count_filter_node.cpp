@@ -32,7 +32,8 @@ std::vector<schema::ColumnIdentifier> CountFilterNode::getOutputSchema() const {
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-arrow::Result<PartialArrowPlan> CountFilterNode::toQueryPlan(
+arrow::Result<arrow::acero::ExecNode*> CountFilterNode::addToExecPlan(
+   arrow::acero::ExecPlan& plan,
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
@@ -59,8 +60,6 @@ arrow::Result<PartialArrowPlan> CountFilterNode::toQueryPlan(
       return arrow::Future{result};
    };
 
-   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
-
    const std::vector<schema::ColumnIdentifier> output_schema = getOutputSchema();
 
    const arrow::acero::SourceNodeOptions options{
@@ -68,11 +67,7 @@ arrow::Result<PartialArrowPlan> CountFilterNode::toQueryPlan(
       std::move(producer),
       arrow::Ordering::Implicit()
    };
-   ARROW_ASSIGN_OR_RAISE(
-      auto node, arrow::acero::MakeExecNode("source", arrow_plan.get(), {}, options)
-   );
-
-   return PartialArrowPlan{.top_node = node, .plan = arrow_plan};
+   return arrow::acero::MakeExecNode("source", &plan, {}, options);
 }
 
 nlohmann::json CountFilterNode::toJson() const {

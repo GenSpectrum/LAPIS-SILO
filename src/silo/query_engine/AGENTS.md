@@ -10,19 +10,19 @@ SaneQL string
   → Parser (saneql/parser.cpp) → AST (saneql/ast.h)
   → ast_to_query.cpp → QueryNode tree (operators/*.h)
   → ColumnNarrowingPass → FilterPushdownPass → NodeResolutionPass
-  → toQueryPlan() → Arrow Acero ExecPlan (PartialArrowPlan)
+  → addToExecPlan() → Arrow Acero ExecPlan (single shared plan)
   → QueryPlan execution → send result
 ```
 
 ## Key Concepts
 
 - **QueryNode** (`operators/query_node.h`): Base class for all plan nodes.
-- **Optimization passes** run sequentially on the QueryNode tree before `toQueryPlan()`.
+- **Optimization passes** run sequentially on the QueryNode tree before `addToExecPlan()`.
 - **FunctionRegistry**: Maps SaneQL function names to handlers that produce QueryNode trees.
 
 ## Arrow Acero Lifecycle
 
-- Each `toQueryPlan()` creates its own `ExecPlan` via `ExecPlan::Make()` which uses a **global shared thread pool** (`threaded_exec_context()`).
+- The planner creates a single `ExecPlan` via `ExecPlan::Make()` and passes it to the root node's `addToExecPlan()`. All nodes add their exec nodes to this shared plan.
 - `SinkNodeOptions` takes a pointer to an `AsyncGenerator` that is populated when the plan runs.
 - After `StartProducing()`, drain the generator until it returns `nullopt`.
 - `StopProducing()` sets a cancelled flag; `plan->finished()` may then resolve with `Cancelled` status — this is normal, not an error.

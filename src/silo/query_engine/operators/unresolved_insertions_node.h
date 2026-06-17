@@ -35,7 +35,8 @@ class UnresolvedInsertionsNode final : public QueryNode {
       };
    }
 
-   [[nodiscard]] arrow::Result<PartialArrowPlan> toQueryPlan(
+   [[nodiscard]] arrow::Result<arrow::acero::ExecNode*> addToExecPlan(
+      arrow::acero::ExecPlan& /*plan*/,
       const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
       const config::QueryOptions& /*query_options*/
    ) const override {

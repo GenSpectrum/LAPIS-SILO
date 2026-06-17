@@ -63,11 +63,12 @@ std::vector<schema::ColumnIdentifier> MapNode::getOutputSchema() const {
    return output;
 }
 
-arrow::Result<PartialArrowPlan> MapNode::toQueryPlan(
+arrow::Result<arrow::acero::ExecNode*> MapNode::addToExecPlan(
+   arrow::acero::ExecPlan& plan,
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
    const config::QueryOptions& query_options
 ) const {
-   ARROW_ASSIGN_OR_RAISE(auto plan, child->toQueryPlan(tables, query_options));
+   ARROW_ASSIGN_OR_RAISE(auto* child_node, child->addToExecPlan(plan, tables, query_options));
 
    // Map output column names to the assignment that produces them.
    std::map<std::string, const Assignment*> assignment_by_name;
@@ -95,11 +96,7 @@ arrow::Result<PartialArrowPlan> MapNode::toQueryPlan(
    }
 
    const arrow::acero::ProjectNodeOptions options{std::move(expressions), std::move(names)};
-   ARROW_ASSIGN_OR_RAISE(
-      plan.top_node,
-      arrow::acero::MakeExecNode("project", plan.plan.get(), {plan.top_node}, options)
-   );
-   return plan;
+   return arrow::acero::MakeExecNode("project", &plan, {child_node}, options);
 }
 
 nlohmann::json MapNode::toJson() const {

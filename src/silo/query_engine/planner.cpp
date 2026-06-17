@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include <arrow/acero/exec_plan.h>
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
@@ -23,10 +24,9 @@ arrow::Result<QueryPlan> planQueryOrError(
    const config::QueryOptions& query_options,
    std::string_view request_id
 ) {
-   ARROW_ASSIGN_OR_RAISE(auto partial_query_plan, node.toQueryPlan(tables, query_options));
-   return QueryPlan::makeQueryPlan(
-      partial_query_plan.plan, partial_query_plan.top_node, request_id
-   );
+   ARROW_ASSIGN_OR_RAISE(auto arrow_plan, arrow::acero::ExecPlan::Make());
+   ARROW_ASSIGN_OR_RAISE(auto* top_node, node.addToExecPlan(*arrow_plan, tables, query_options));
+   return QueryPlan::makeQueryPlan(std::move(arrow_plan), top_node, request_id);
 }
 
 }  // namespace

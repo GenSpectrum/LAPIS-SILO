@@ -40,16 +40,14 @@ enum class NodeKind : uint8_t {
    UNION_ALL,
 };
 
-struct PartialArrowPlan {
-   arrow::acero::ExecNode* top_node;
-   std::shared_ptr<arrow::acero::ExecPlan> plan;
-};
-
 class QueryNode {
   public:
    virtual ~QueryNode() = default;
 
-   [[nodiscard]] virtual arrow::Result<PartialArrowPlan> toQueryPlan(
+   /// Add this node's exec nodes to an existing Arrow ExecPlan.
+   /// Returns the top ExecNode* within that plan.
+   [[nodiscard]] virtual arrow::Result<arrow::acero::ExecNode*> addToExecPlan(
+      arrow::acero::ExecPlan& plan,
       const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
       const config::QueryOptions& query_options
    ) const = 0;
