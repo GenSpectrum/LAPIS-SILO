@@ -1,19 +1,20 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #include <boost/serialization/binary_object.hpp>
 
 namespace silo::storage::buffer {
 
-const size_t PAGE_SIZE = 16384;
+const size_t SILO_PAGE_SIZE = 16384;
 
 class Page {
   public:
    uint8_t* buffer;
 
    // On a failed allocation std::bad_alloc is thrown
-   Page() { buffer = new uint8_t[PAGE_SIZE]; }
+   Page() { buffer = new uint8_t[SILO_PAGE_SIZE]; }
 
    Page(Page&& other) noexcept
        : buffer(other.buffer) {
@@ -38,13 +39,13 @@ class Page {
       // clang-format off
       if(Archive::is_saving::value) {
          // Saving: write buffer contents to archive
-         archive & boost::serialization::make_binary_object(buffer, PAGE_SIZE);
+         archive & boost::serialization::make_binary_object(buffer, SILO_PAGE_SIZE);
       } else {
          // Loading: ensure buffer is allocated, then read from archive
          if(!buffer) {
-            buffer = reinterpret_cast<uint8_t*>(malloc(PAGE_SIZE));
+            buffer = new uint8_t[SILO_PAGE_SIZE];
          }
-         archive & boost::serialization::make_binary_object(buffer, PAGE_SIZE);
+         archive & boost::serialization::make_binary_object(buffer, SILO_PAGE_SIZE);
       }
       // clang-format on
    }

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+mkdir -p build/wasm
+
+cat > build/wasm/conanprofile-emscripten <<PROFILE
+[settings]
+os=Emscripten
+arch=wasm
+compiler=emcc
+compiler.version=$(emcc -dumpversion)
+compiler.libcxx=libc++
+compiler.cppstd=23
+build_type=Release
+
+[conf]
+tools.build:compiler_executables={"c":"emcc","cpp":"em++"}
+tools.build:cflags=["-pthread"]
+tools.build:cxxflags=["-pthread"]
+tools.build:exelinkflags=["-pthread"]
+tools.build:sharedlinkflags=["-pthread"]
+tools.cmake.cmaketoolchain:generator=Ninja
+PROFILE
