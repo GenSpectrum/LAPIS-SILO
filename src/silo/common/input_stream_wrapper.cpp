@@ -6,11 +6,14 @@
 
 #include <spdlog/spdlog.h>
 #include <boost/iostreams/detail/error.hpp>
-#include <boost/iostreams/filter/lzma.hpp>
 #include <boost/iostreams/filter/zstd.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
 #include "silo/preprocessing/preprocessing_exception.h"
+
+#ifndef __EMSCRIPTEN__
+#include <boost/iostreams/filter/lzma.hpp>
+#endif
 
 namespace {
 
@@ -31,10 +34,12 @@ InputStreamWrapper::InputStreamWrapper(const std::filesystem::path& file_path) {
       SPDLOG_INFO("Detected file-ending .zst for input file " + file_path.string());
       file_stream = std::ifstream(withZSTending(file_path), std::ios::binary);
       boost_input_stream->push(boost::iostreams::zstd_decompressor());
+#ifndef __EMSCRIPTEN__
    } else if (std::filesystem::is_regular_file(withXZending(file_path))) {
       SPDLOG_INFO("Detected file-ending .xz for input file " + file_path.string());
       file_stream = std::ifstream(withXZending(file_path), std::ios::binary);
       boost_input_stream->push(boost::iostreams::lzma_decompressor());
+#endif
    } else if (std::filesystem::is_regular_file(file_path)) {
       SPDLOG_INFO(
          "Detected file without specialized ending, processing raw: " + file_path.string()
