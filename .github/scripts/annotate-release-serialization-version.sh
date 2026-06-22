@@ -14,7 +14,8 @@ set -euo pipefail
 # Environment:
 #   SERIALIZATION_VERSION_FILE  path inside the repo (default: src/silo/common/serialization_version.txt)
 #   DRY_RUN                     if "true", print transformed body but skip gh release edit
-#   GITHUB_TOKEN                required for gh release view/edit (unless DRY_RUN)
+#   GH_TOKEN                    required for gh release view/edit (unless DRY_RUN)
+#                               (GITHUB_TOKEN also works as a fallback)
 
 SCRIPT_DIR="$(unset CDPATH; cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

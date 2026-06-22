@@ -85,7 +85,7 @@ jobs:
           ./.github/scripts/annotate-release-serialization-version.sh \
             --tag="${{ steps.release.outputs.tag_name }}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   dependencyImage:
     name: Build dependency image (${{ matrix.arch }})
