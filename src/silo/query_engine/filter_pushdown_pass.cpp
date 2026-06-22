@@ -3,37 +3,20 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/expressions/and.h"
-#include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
-#include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/insertions_node.h"
-#include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/mutations_node.h"
-#include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/phylo_subtree_node.h"
-#include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
-#include "silo/query_engine/operators/zstd_decompress_node.h"
 
 namespace silo::query_engine {
 
-namespace {
-
-// NOLINTNEXTLINE(misc-no-recursion)
-void applyToNode(operators::QueryNodePtr& node, FilterPushdownPass& pass) {
-   while (auto replacement = operators::visit(*node, pass)) {
-      node = std::move(replacement);
-   }
-}
-
-}  // namespace
-
 operators::QueryNodePtr FilterPushdownPass::run(operators::QueryNodePtr node) {
    FilterPushdownPass pass;
-   applyToNode(node, pass);
+   pass.propagateToChild(node);
    return node;
 }
 
@@ -41,7 +24,7 @@ operators::QueryNodePtr FilterPushdownPass::run(operators::QueryNodePtr node) {
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::FilterNode& node) {
    current_filters.push_back(std::move(node.filter));
    auto child = std::move(node.child);
-   applyToNode(child, *this);
+   propagateToChild(child);
    return child;
 }
 
@@ -94,37 +77,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::MostRecentComm
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::AggregateNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::OrderByNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::FetchNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::ProjectNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::MapNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::ZstdDecompressNode& node) {
-   applyToNode(node.child, *this);
+   propagateToChild(node.child);
    return nullptr;
 }
 
@@ -133,7 +86,7 @@ template <typename SymbolType>
 operators::QueryNodePtr FilterPushdownPass::operator()(
    operators::UnresolvedMutationsNode<SymbolType>& node
 ) {
-   applyToNode(node.child, *this);
+   propagateToChild(node.child);
    return nullptr;
 }
 
@@ -142,7 +95,7 @@ template <typename SymbolType>
 operators::QueryNodePtr FilterPushdownPass::operator()(
    operators::UnresolvedInsertionsNode<SymbolType>& node
 ) {
-   applyToNode(node.child, *this);
+   propagateToChild(node.child);
    return nullptr;
 }
 
@@ -150,14 +103,14 @@ operators::QueryNodePtr FilterPushdownPass::operator()(
 operators::QueryNodePtr FilterPushdownPass::operator()(
    operators::UnresolvedMostRecentCommonAncestorNode& node
 ) {
-   applyToNode(node.child, *this);
+   propagateToChild(node.child);
    return nullptr;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnresolvedPhyloSubtreeNode& node
 ) {
-   applyToNode(node.child, *this);
+   propagateToChild(node.child);
    return nullptr;
 }
 
@@ -171,8 +124,8 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& 
    FilterPushdownPass left_pass;
    left_pass.current_filters = std::move(current_filters);
 
-   applyToNode(node.left, left_pass);
-   applyToNode(node.right, right_pass);
+   left_pass.propagateToChild(node.left);
+   right_pass.propagateToChild(node.right);
    return nullptr;
 }
 

@@ -1,15 +1,11 @@
 #pragma once
 
 #include "silo/query_engine/expressions/expression.h"
-#include "silo/query_engine/operators/query_node.h"
+#include "silo/query_engine/pipeline_pass_base.h"
 
 namespace silo::query_engine::operators {
 class AggregateNode;
-class FetchNode;
 class FilterNode;
-class MapNode;
-class OrderByNode;
-class ProjectNode;
 class TableScanNode;
 template <typename SymbolType>
 class MutationsNode;
@@ -24,7 +20,6 @@ class UnresolvedInsertionsNode;
 class UnresolvedPhyloSubtreeNode;
 class UnresolvedMostRecentCommonAncestorNode;
 class UnionAllNode;
-class ZstdDecompressNode;
 
 }  // namespace silo::query_engine::operators
 
@@ -32,19 +27,16 @@ namespace silo::query_engine {
 
 /// Optimization pass that eliminates FilterNodes by pushing their filter expression
 /// into the child node's filter field
-class FilterPushdownPass {
+class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    std::vector<std::unique_ptr<expressions::Expression>> current_filters;
 
   public:
+   using PipelinePassBase<FilterPushdownPass>::operator();
+
    static operators::QueryNodePtr run(operators::QueryNodePtr node);
 
    operators::QueryNodePtr operator()(operators::FilterNode& node);
    operators::QueryNodePtr operator()(operators::AggregateNode& node);
-   operators::QueryNodePtr operator()(operators::OrderByNode& node);
-   operators::QueryNodePtr operator()(operators::FetchNode& node);
-   operators::QueryNodePtr operator()(operators::ProjectNode& node);
-   operators::QueryNodePtr operator()(operators::MapNode& node);
-   operators::QueryNodePtr operator()(operators::ZstdDecompressNode& node);
 
    operators::QueryNodePtr operator()(operators::TableScanNode& node);
    operators::QueryNodePtr operator()(operators::MutationsNode<Nucleotide>& node);
@@ -62,7 +54,7 @@ class FilterPushdownPass {
    operators::QueryNodePtr operator()(operators::UnresolvedMostRecentCommonAncestorNode& node);
    operators::QueryNodePtr operator()(operators::UnionAllNode& node);
 
-   // All other nodes (TableScanNode, MutationsNode, etc.) are leaves here.
+   // All other nodes are leaves here.
    template <typename T>
    operators::QueryNodePtr operator()(T& /*node*/) {
       return nullptr;

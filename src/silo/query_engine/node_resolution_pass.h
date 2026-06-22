@@ -3,16 +3,12 @@
 #include <map>
 #include <memory>
 
-#include "silo/query_engine/operators/query_node.h"
+#include "silo/query_engine/pipeline_pass_base.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
 namespace silo::query_engine::operators {
 class AggregateNode;
-class ProjectNode;
-class MapNode;
-class OrderByNode;
-class FetchNode;
 class FilterNode;
 template <typename SymbolType>
 class UnresolvedMutationsNode;
@@ -21,7 +17,6 @@ class UnresolvedInsertionsNode;
 class UnionAllNode;
 class UnresolvedMostRecentCommonAncestorNode;
 class UnresolvedPhyloSubtreeNode;
-class ZstdDecompressNode;
 }  // namespace silo::query_engine::operators
 
 namespace silo::query_engine {
@@ -32,17 +27,14 @@ namespace silo::query_engine {
 /// - UnresolvedPhyloSubtreeNode → PhyloSubtreeNode
 /// - UnresolvedMostRecentCommonAncestorNode → MostRecentCommonAncestorNode
 /// - AggregateNode(COUNT(*), TableScanNode) → CountFilterNode
-class NodeResolutionPass {
+class NodeResolutionPass : public PipelinePassBase<NodeResolutionPass> {
   public:
+   using PipelinePassBase<NodeResolutionPass>::operator();
+
    static operators::QueryNodePtr run(operators::QueryNodePtr node);
 
    operators::QueryNodePtr operator()(operators::FilterNode& node);
    operators::QueryNodePtr operator()(operators::AggregateNode& node);
-   operators::QueryNodePtr operator()(operators::ProjectNode& node);
-   operators::QueryNodePtr operator()(operators::MapNode& node);
-   operators::QueryNodePtr operator()(operators::OrderByNode& node);
-   operators::QueryNodePtr operator()(operators::FetchNode& node);
-   operators::QueryNodePtr operator()(operators::ZstdDecompressNode& node);
    template <typename SymbolType>
    operators::QueryNodePtr operator()(operators::UnresolvedMutationsNode<SymbolType>& node);
    template <typename SymbolType>
