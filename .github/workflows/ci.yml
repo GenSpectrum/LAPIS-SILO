@@ -59,8 +59,10 @@ jobs:
             exit 0
           fi
 
+          git fetch origin "$BRANCH"
+          git checkout -B "$BRANCH" "origin/$BRANCH"
+
           ./.github/scripts/annotate-changelog-serialization-version.sh \
-            --branch="$BRANCH" \
             --version="$VERSION"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -3,41 +3,38 @@
 set -euo pipefail
 
 # Check whether the serialization version changed since the last release,
-# and if so, annotate CHANGELOG.md on the release branch and commit+push.
+# and if so, annotate CHANGELOG.md and commit+push to the release branch.
 #
 # Delegates the actual text modification to insert-serialization-version-note.sh.
+# Commits and pushes to the currently checked-out branch (HEAD).
 #
 # Usage:
-#   ./annotate-changelog-serialization-version.sh --branch=<release-branch> --version=<release-version>
+#   ./annotate-changelog-serialization-version.sh --version=<release-version>
 #
 # Environment:
 #   SERIALIZATION_VERSION_FILE  path inside the repo (default: src/silo/common/serialization_version.txt)
 #   DRY_RUN                     if "true", skip commit+push (useful for local testing)
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(unset CDPATH; cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 DRY_RUN="${DRY_RUN:-false}"
 
-BRANCH=""
 VERSION=""
 
 for arg in "$@"; do
   case "$arg" in
-    --branch=*) BRANCH="${arg#--branch=}" ;;
     --version=*) VERSION="${arg#--version=}" ;;
     *) echo "Unknown argument: $arg"; exit 1 ;;
   esac
 done
 
-if [ -z "$BRANCH" ] || [ -z "$VERSION" ]; then
-  echo "Usage: $0 --branch=<release-branch> --version=<release-version>"
+if [ -z "$VERSION" ]; then
+  echo "Usage: $0 --version=<release-version>"
   exit 1
 fi
 
-echo "Release PR branch: $BRANCH, version: $VERSION"
+echo "Release version: $VERSION"
 
-git fetch origin "$BRANCH"
-git checkout -B "$BRANCH" "origin/$BRANCH"
 git fetch --tags
 
 PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | head -1)
@@ -65,4 +62,4 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git add CHANGELOG.md
 git diff --cached --quiet && { echo "No changes to commit"; exit 0; }
 git commit -m "chore: annotate changelog with serialization version change"
-git push origin "$BRANCH"
+git push origin HEAD
