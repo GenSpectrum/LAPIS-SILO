@@ -35,8 +35,14 @@ if [ -z "$OLD_REF" ] || [ -z "$NEW_REF" ]; then
   exit 1
 fi
 
-OLD_VER=$(git show "${OLD_REF}:${SERIALIZATION_VERSION_FILE}" 2>/dev/null || echo "unknown")
-NEW_VER=$(git show "${NEW_REF}:${SERIALIZATION_VERSION_FILE}" 2>/dev/null || echo "unknown")
+OLD_VER=$(git show "${OLD_REF}:${SERIALIZATION_VERSION_FILE}" 2>/dev/null) || {
+  echo "Serialization version file not found at ref $OLD_REF, skipping"
+  exit 1
+}
+NEW_VER=$(git show "${NEW_REF}:${SERIALIZATION_VERSION_FILE}" 2>/dev/null) || {
+  echo "Serialization version file not found at ref $NEW_REF, skipping"
+  exit 1
+}
 
 if [ "$OLD_VER" = "$NEW_VER" ]; then
   echo "Serialization version unchanged ($OLD_VER)"

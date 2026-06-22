@@ -40,7 +40,7 @@ git fetch --tags
 
 # Find the release tag immediately before $TAG in version order.
 # Tags are listed newest-first; the tag after $TAG in this list is its predecessor.
-PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | sed -n "/^${TAG}$/{ n; p; q; }")
+PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | awk -v tag="$TAG" 'found { print; exit } $0 == tag { found=1 }')
 if [ -z "$PREV_TAG" ]; then
   echo "No previous release tag found, skipping"
   exit 0

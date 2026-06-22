@@ -51,8 +51,8 @@ jobs:
           set -euo pipefail
 
           PR_JSON='${{ steps.release.outputs.pr }}'
-          BRANCH=$(echo "$PR_JSON" | jq -r '.headBranchName')
-          VERSION=$(echo "$PR_JSON" | jq -r '.title' | grep -oP '\d+\.\d+\.\d+')
+          BRANCH=$(echo "$PR_JSON" | jq -r '.headBranchName // empty')
+          VERSION=$(echo "$PR_JSON" | jq -r '.title // empty' | grep -oP '\d+\.\d+\.\d+' || true)
 
           if [ -z "$BRANCH" ] || [ -z "$VERSION" ]; then
             echo "Could not determine branch ($BRANCH) or version ($VERSION), skipping"

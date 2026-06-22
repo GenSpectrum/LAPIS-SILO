@@ -33,17 +33,16 @@ INPUT=$(cat)
 # Idempotent: if the note already exists within the section, passes through unchanged.
 ESCAPED_VERSION="${VERSION//./\\.}"
 echo "$INPUT" | awk -v ver="$ESCAPED_VERSION" '
+  # Detect next version heading (end of target section) — must run before
+  # the start-section check so the heading line does not immediately close itself.
+  in_section && /^## \[/ {
+    in_section=0
+  }
   # Match the target version heading
   /^## \[/ && $0 ~ "^## \\[" ver "\\]" && !found_version {
     found_version=1
     in_section=1
     version_line=NR
-    print
-    next
-  }
-  # Detect next version heading (end of target section)
-  in_section && /^## \[/ {
-    in_section=0
   }
   # If we find the note already in the section, mark as duplicate
   in_section && /^### ⚠ Serialization Version Changed/ {
