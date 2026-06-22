@@ -44,8 +44,8 @@ class QueryNode {
   public:
    virtual ~QueryNode() = default;
 
-   /// Add this node's exec nodes to an existing Arrow ExecPlan.
-   /// Returns the top ExecNode* within that plan.
+   /// Translate this node (including its sub-nodes) to `arrow::acero` nodes and add them to an
+   /// existing `ExecPlan`. Returns the top `ExecNode*` within that plan.
    [[nodiscard]] virtual arrow::Result<arrow::acero::ExecNode*> addToExecPlan(
       arrow::acero::ExecPlan& plan,
       const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
