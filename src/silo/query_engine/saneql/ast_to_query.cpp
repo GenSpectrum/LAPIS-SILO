@@ -1118,25 +1118,16 @@ operators::QueryNodePtr handleUnionAll(
    auto left = convert_child(args.at("left"), tables);
    auto right = convert_child(args.at("right"), tables);
 
-   // Both children must have the same set of columns (same names and types).
    auto left_schema = left->getOutputSchema();
    auto right_schema = right->getOutputSchema();
-   auto left_sorted = left_schema;
-   auto right_sorted = right_schema;
-   std::ranges::sort(left_sorted, {}, &schema::ColumnIdentifier::name);
-   std::ranges::sort(right_sorted, {}, &schema::ColumnIdentifier::name);
    CHECK_SILO_QUERY(
-      left_sorted == right_sorted,
-      "unionAll requires both inputs to have the same schema (same column names and types). "
+      left_schema == right_schema,
+      "unionAll requires both inputs to have the same schema "
+      "(same column names, types, and order). "
       "Left schema: [{}], right schema: [{}].",
-      fmt::join(namesWithTypes(left_sorted), ", "),
-      fmt::join(namesWithTypes(right_sorted), ", ")
+      fmt::join(namesWithTypes(left_schema), ", "),
+      fmt::join(namesWithTypes(right_schema), ", ")
    );
-
-   // If the right child has different column order, wrap it in a ProjectNode to reorder columns
-   if (left_schema != right_schema) {
-      right = std::make_unique<operators::ProjectNode>(std::move(right), left_schema);
-   }
 
    return std::make_unique<operators::UnionAllNode>(std::move(left), std::move(right));
 }

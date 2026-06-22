@@ -115,7 +115,7 @@ const QueryTestScenario UNION_ALL_SCHEMA_MISMATCH_SCENARIO = {
    .expected_query_result = {},
    .expected_error_message =
       "unionAll requires both inputs to have the same schema "
-      "(same column names and types). "
+      "(same column names, types, and order). "
       "Left schema: [primaryKey:STRING], right schema: [country:STRING]."
 };
 
@@ -128,7 +128,8 @@ const QueryTestScenario UNION_ALL_TYPE_MISMATCH_SCENARIO = {
    ))",
    .expected_query_result = {},
    .expected_error_message =
-      "unionAll requires both inputs to have the same schema (same column names and types). "
+      "unionAll requires both inputs to have the same schema "
+      "(same column names, types, and order). "
       "Left schema: [primaryKey:STRING, x:INT64], right schema: [primaryKey:STRING, x:STRING]."
 };
 
@@ -137,17 +138,13 @@ const QueryTestScenario UNION_ALL_DIFFERENT_COLUMN_ORDER_SCENARIO = {
    .query = R"(unionAll(
       default.project({primaryKey, country}),
       default.project({country, primaryKey})
-   ).orderBy({asc(primaryKey)}))",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"country", "CH"}},
-       {{"primaryKey", "id_0"}, {"country", "CH"}},
-       {{"primaryKey", "id_1"}, {"country", "DE"}},
-       {{"primaryKey", "id_1"}, {"country", "DE"}},
-       {{"primaryKey", "id_2"}, {"country", "CH"}},
-       {{"primaryKey", "id_2"}, {"country", "CH"}},
-       {{"primaryKey", "id_3"}, {"country", "DE"}},
-       {{"primaryKey", "id_3"}, {"country", "DE"}}}
-   )
+   ))",
+   .expected_query_result = {},
+   .expected_error_message =
+      "unionAll requires both inputs to have the same schema "
+      "(same column names, types, and order). "
+      "Left schema: [primaryKey:STRING, country:STRING], "
+      "right schema: [country:STRING, primaryKey:STRING]."
 };
 
 // Nested unionAll: unionAll of two unionAlls

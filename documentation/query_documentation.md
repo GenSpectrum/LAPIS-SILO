@@ -288,7 +288,7 @@ default.filter(pango_lineage = 'B.1.1.7').phyloSubtree('usherTree')
 
 Concatenates the output of two pipelines. `unionAll` can be called as a standalone function or with piped syntax:
 
-Both inputs must have the same schema (same column names and types). Column order does not matter — the right child is automatically reordered to match the left child's column order.
+Both inputs must have the same schema (same column names, types, and order).
 
 All rows from both inputs are included — duplicates are preserved (UNION ALL, not UNION).
 
@@ -353,7 +353,7 @@ unionAll(
 )
 ```
 
-**Output:** all rows from the left input followed by all rows from the right input, with the left input's column order.
+**Output:** all rows from both inputs. The order of rows is not guaranteed.
 
 ---
 
