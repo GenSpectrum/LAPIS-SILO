@@ -15,9 +15,6 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/lineage_tree.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/storage/column/column_type_visitor.h"
-#include "silo/storage/column/sequence_column.h"
-#include "silo/storage/column/zstd_compressed_string_column.h"
 #include "silo/query_engine/expressions/and.h"
 #include "silo/query_engine/expressions/bool_equals.h"
 #include "silo/query_engine/expressions/date_between.h"
@@ -44,6 +41,7 @@
 #include "silo/query_engine/expressions/string_in_set.h"
 #include "silo/query_engine/expressions/string_search.h"
 #include "silo/query_engine/expressions/symbol_equals.h"
+#include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
@@ -57,11 +55,13 @@
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
-#include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 #include "silo/query_engine/order_by_field.h"
 #include "silo/query_engine/saneql/ast.h"
 #include "silo/query_engine/saneql/function_registry.h"
 #include "silo/query_engine/saneql/parser.h"
+#include "silo/storage/column/column_type_visitor.h"
+#include "silo/storage/column/sequence_column.h"
+#include "silo/storage/column/zstd_compressed_string_column.h"
 
 namespace silo::query_engine::saneql {
 
