@@ -27,12 +27,11 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
-INPUT=$(cat)
-
 # Insert note after the version heading, scoped to that version's section.
 # Idempotent: if the note already exists within the section, passes through unchanged.
+# awk reads stdin directly (not via a shell variable) to preserve trailing newlines.
 ESCAPED_VERSION="${VERSION//./\\.}"
-echo "$INPUT" | awk -v ver="$ESCAPED_VERSION" '
+awk -v ver="$ESCAPED_VERSION" '
   # Detect next version heading (end of target section) — must run before
   # the start-section check so the heading line does not immediately close itself.
   in_section && /^## \[/ {
