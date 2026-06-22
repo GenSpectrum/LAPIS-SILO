@@ -46,70 +46,78 @@ class PipelinePassBase {
    friend Derived;
 
   public:
-   /// Repeatedly visit `node` (replacing it while a replacement is produced), then
-   /// recurse into children via the per-operator handlers.
-   // NOLINTNEXTLINE(misc-no-recursion)
-   static void applyToNode(operators::QueryNodePtr& node, Derived& pass) {
-      while (auto replacement = operators::visit(*node, pass)) {
-         node = std::move(replacement);
-      }
-   }
-
    static operators::QueryNodePtr run(operators::QueryNodePtr node) {
       Derived pass;
-      applyToNode(node, pass);
+      pass.propagateToChild(node);
       return node;
    }
 
    // Default propagation for single-child pipeline operators.
    // NOLINTNEXTLINE(misc-no-recursion)
-   operators::QueryNodePtr operator()(operators::FilterNode& node) { return propagate(node.child); }
+   operators::QueryNodePtr operator()(operators::FilterNode& node) {
+      propagateToChild(node.child);
+      return nullptr;
+   }
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::AggregateNode& node) {
-      return propagate(node.child);
+      propagateToChild(node.child);
+      return nullptr;
    }
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::ProjectNode& node) {
-      return propagate(node.child);
+      propagateToChild(node.child);
+      return nullptr;
    }
    // NOLINTNEXTLINE(misc-no-recursion)
-   operators::QueryNodePtr operator()(operators::MapNode& node) { return propagate(node.child); }
+   operators::QueryNodePtr operator()(operators::MapNode& node) {
+      propagateToChild(node.child);
+      return nullptr;
+   }
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::OrderByNode& node) {
-      return propagate(node.child);
+      propagateToChild(node.child);
+      return nullptr;
    }
    // NOLINTNEXTLINE(misc-no-recursion)
-   operators::QueryNodePtr operator()(operators::FetchNode& node) { return propagate(node.child); }
+   operators::QueryNodePtr operator()(operators::FetchNode& node) {
+      propagateToChild(node.child);
+      return nullptr;
+   }
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::ZstdDecompressNode& node) {
-      return propagate(node.child);
+      propagateToChild(node.child);
+      return nullptr;
    }
 
    // Default propagation for unresolved placeholder operators (also single-child).
    template <typename SymbolType>
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::UnresolvedMutationsNode<SymbolType>& node) {
-      return propagate(node.child);
+      propagateToChild(node.child);
+      return nullptr;
    }
    template <typename SymbolType>
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::UnresolvedInsertionsNode<SymbolType>& node) {
-      return propagate(node.child);
+      propagateToChild(node.child);
+      return nullptr;
    }
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::UnresolvedMostRecentCommonAncestorNode& node) {
-      return propagate(node.child);
+      propagateToChild(node.child);
+      return nullptr;
    }
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::UnresolvedPhyloSubtreeNode& node) {
-      return propagate(node.child);
+      propagateToChild(node.child);
+      return nullptr;
    }
 
    // Default propagation for the two-child UnionAll operator.
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::UnionAllNode& node) {
-      applyToNode(node.left, self());
-      applyToNode(node.right, self());
+      propagateToChild(node.left);
+      propagateToChild(node.right);
       return nullptr;
    }
 
@@ -120,12 +128,14 @@ class PipelinePassBase {
    }
 
   protected:
-   Derived& self() { return static_cast<Derived&>(*this); }
-
+   /// Repeatedly visit `child` with this pass, replacing it each time a non-null
+   /// replacement is returned, until the pass returns nullptr.
    // NOLINTNEXTLINE(misc-no-recursion)
-   operators::QueryNodePtr propagate(operators::QueryNodePtr& child) {
-      applyToNode(child, self());
-      return nullptr;
+   void propagateToChild(operators::QueryNodePtr& child) {
+      auto& derived = static_cast<Derived&>(*this);
+      while (auto replacement = operators::visit(*child, derived)) {
+         child = std::move(replacement);
+      }
    }
 };
 

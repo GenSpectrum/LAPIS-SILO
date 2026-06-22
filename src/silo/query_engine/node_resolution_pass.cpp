@@ -119,7 +119,7 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr NodeResolutionPass::operator()(operators::AggregateNode& node) {
-   applyToNode(node.child, *this);  // NOLINT(*-static-accessed-through-instance)
+   propagateToChild(node.child);
 
    // Full aggregations (COUNT(*) and only a filter below can be optimized)
    if (node.group_by_fields.empty() && node.aggregates.size() == 1 &&

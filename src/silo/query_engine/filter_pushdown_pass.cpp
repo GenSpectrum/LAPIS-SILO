@@ -17,7 +17,7 @@ namespace silo::query_engine {
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::FilterNode& node) {
    current_filters.push_back(std::move(node.filter));
    auto child = std::move(node.child);
-   applyToNode(child, *this);  // NOLINT(*-static-accessed-through-instance)
+   propagateToChild(child);
    return child;
 }
 
@@ -78,8 +78,8 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& 
    FilterPushdownPass left_pass;
    left_pass.current_filters = std::move(current_filters);
 
-   applyToNode(node.left, left_pass);
-   applyToNode(node.right, right_pass);
+   left_pass.propagateToChild(node.left);
+   right_pass.propagateToChild(node.right);
    return nullptr;
 }
 
