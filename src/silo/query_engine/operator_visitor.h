@@ -15,6 +15,7 @@
 #include "silo/query_engine/operators/phylo_subtree_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
+#include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
@@ -77,6 +78,8 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
          return std::forward<Func>(func)(static_cast<CountFilterNode&>(node));
       case NodeKind::ZSTD_DECOMPRESS:
          return std::forward<Func>(func)(static_cast<ZstdDecompressNode&>(node));
+      case NodeKind::UNION_ALL:
+         return std::forward<Func>(func)(static_cast<UnionAllNode&>(node));
    }
    SILO_UNREACHABLE();
 }

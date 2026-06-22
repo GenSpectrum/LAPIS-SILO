@@ -49,6 +49,7 @@
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
+#include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
@@ -690,6 +691,15 @@ std::vector<std::string> names(const std::vector<schema::ColumnIdentifier>& sche
    return names;
 }
 
+std::vector<std::string> namesWithTypes(const std::vector<schema::ColumnIdentifier>& schema) {
+   std::vector<std::string> result;
+   result.reserve(schema.size());
+   for (const auto& col : schema) {
+      result.push_back(fmt::format("{}:{}", col.name, schema::columnTypeToString(col.type)));
+   }
+   return result;
+}
+
 OrderByField parseOrderByField(
    const ast::Expression& expression,
    const std::vector<schema::ColumnIdentifier>& child_schema
@@ -1099,6 +1109,29 @@ operators::QueryNodePtr handlePhyloSubtree(
    );
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr handleUnionAll(
+   const BoundArguments& args,
+   const Tables& tables,
+   const ChildConverter& convert_child
+) {
+   auto left = convert_child(args.at("left"), tables);
+   auto right = convert_child(args.at("right"), tables);
+
+   auto left_schema = left->getOutputSchema();
+   auto right_schema = right->getOutputSchema();
+   CHECK_SILO_QUERY(
+      left_schema == right_schema,
+      "unionAll requires both inputs to have the same schema "
+      "(same column names, types, and order). "
+      "Left schema: [{}], right schema: [{}].",
+      fmt::join(namesWithTypes(left_schema), ", "),
+      fmt::join(namesWithTypes(right_schema), ", ")
+   );
+
+   return std::make_unique<operators::UnionAllNode>(std::move(left), std::move(right));
+}
+
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -1218,6 +1251,8 @@ FunctionRegistry::FunctionRegistry() {
         named("contractUnaryNodes", false)}},
       handlePhyloSubtree
    );
+
+   registerFunction("unionAll", {{pos("left"), pos("right")}}, handleUnionAll);
 }
 
 FunctionRegistry& FunctionRegistry::instance() {

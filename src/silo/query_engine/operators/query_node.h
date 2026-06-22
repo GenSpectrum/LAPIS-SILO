@@ -37,18 +37,17 @@ enum class NodeKind : uint8_t {
    TABLE_SCAN,
    COUNT_FILTER,
    ZSTD_DECOMPRESS,
-};
-
-struct PartialArrowPlan {
-   arrow::acero::ExecNode* top_node;
-   std::shared_ptr<arrow::acero::ExecPlan> plan;
+   UNION_ALL,
 };
 
 class QueryNode {
   public:
    virtual ~QueryNode() = default;
 
-   [[nodiscard]] virtual arrow::Result<PartialArrowPlan> toQueryPlan(
+   /// Translate this node (including its sub-nodes) to `arrow::acero` nodes and add them to an
+   /// existing `ExecPlan`. Returns the top `ExecNode*` within that plan.
+   [[nodiscard]] virtual arrow::Result<arrow::acero::ExecNode*> addToExecPlan(
+      arrow::acero::ExecPlan& plan,
       const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
       const config::QueryOptions& query_options
    ) const = 0;

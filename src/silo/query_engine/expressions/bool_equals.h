@@ -16,6 +16,10 @@ struct BoolEquals : public Expression {
   public:
    explicit BoolEquals(std::string column_name, std::optional<bool> value);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<BoolEquals>(column_name, value);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::BOOL_EQUALS;
    [[nodiscard]] Kind kind() const override { return KIND; }

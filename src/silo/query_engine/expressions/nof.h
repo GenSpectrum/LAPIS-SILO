@@ -32,6 +32,15 @@ class NOf : public Expression {
   public:
    explicit NOf(ExpressionVector&& children, int number_of_matchers, bool match_exactly);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      ExpressionVector cloned;
+      cloned.reserve(children.size());
+      for (const auto& child : children) {
+         cloned.push_back(child->clone());
+      }
+      return std::make_unique<NOf>(std::move(cloned), number_of_matchers, match_exactly);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::N_OF;
    [[nodiscard]] Kind kind() const override { return KIND; }

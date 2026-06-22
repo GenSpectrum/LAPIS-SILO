@@ -4,6 +4,8 @@ C++23 high-performance genomic sequence indexing engine. Uses Arrow Acero for qu
 
 **Key Technologies:** C++23, CMake, Conan, GTest, spdlog, Arrow Acero, Boost, simdjson
 
+Documentation (for devs and users) in `documentation/`.
+
 ## Build & Test
 
 ```bash

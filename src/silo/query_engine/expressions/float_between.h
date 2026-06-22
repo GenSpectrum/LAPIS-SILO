@@ -22,6 +22,10 @@ class FloatBetween : public Expression {
       std::optional<double> to
    );
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<FloatBetween>(column_name, from, to);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::FLOAT_BETWEEN;
    [[nodiscard]] Kind kind() const override { return KIND; }

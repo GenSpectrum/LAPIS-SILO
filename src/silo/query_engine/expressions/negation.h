@@ -19,6 +19,10 @@ class Negation : public Expression {
   public:
    explicit Negation(std::unique_ptr<Expression> child);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<Negation>(child->clone());
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::NEGATION;
    [[nodiscard]] Kind kind() const override { return KIND; }

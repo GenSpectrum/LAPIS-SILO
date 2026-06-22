@@ -134,12 +134,13 @@ std::vector<ColumnIdentifier> ZstdDecompressNode::getOutputSchema() const {
    return output;
 }
 
-arrow::Result<PartialArrowPlan> ZstdDecompressNode::toQueryPlan(
+arrow::Result<arrow::acero::ExecNode*> ZstdDecompressNode::addToExecPlan(
+   arrow::acero::ExecPlan& plan,
    const std::map<TableName, std::shared_ptr<storage::Table>>& tables,
    const config::QueryOptions& query_options
 ) const {
-   ARROW_ASSIGN_OR_RAISE(auto plan, child->toQueryPlan(tables, query_options));
-   const auto& input_ordering = plan.top_node->ordering();
+   ARROW_ASSIGN_OR_RAISE(auto* top_node, child->addToExecPlan(plan, tables, query_options));
+   const auto& input_ordering = top_node->ordering();
 
    size_t sum_of_reference_genome_sizes = 0;
 
@@ -165,23 +166,20 @@ arrow::Result<PartialArrowPlan> ZstdDecompressNode::toQueryPlan(
    arrow::acero::BackpressureMonitor* backpressure_monitor;
    std::shared_ptr<arrow::Schema> schema_of_sequence_batches;
    ARROW_ASSIGN_OR_RAISE(
-      plan.top_node,
+      top_node,
       arrow::acero::MakeExecNode(
          "sink",
-         plan.plan.get(),
-         {plan.top_node},
+         &plan,
+         {top_node},
          arrow::acero::SinkNodeOptions{
             &batch_generator,
             &schema_of_sequence_batches,
-            arrow::acero::BackpressureOptions{
-               /*.resume_if_below =*/silo::common::S_16_KB,
-               /*.pause_if_above =*/silo::common::S_64_MB
-            },
+            arrow::acero::BackpressureOptions{silo::common::S_16_KB, silo::common::S_64_MB},
             &backpressure_monitor
          }
       )
    );
-   plan.top_node->SetLabel(
+   top_node->SetLabel(
       "additional sink node to help backpressure application before zstd decompression"
    );
 
@@ -193,10 +191,10 @@ arrow::Result<PartialArrowPlan> ZstdDecompressNode::toQueryPlan(
    constexpr std::chrono::milliseconds TARGET_BATCH_RATE{667};
 
    ARROW_ASSIGN_OR_RAISE(
-      plan.top_node,
+      top_node,
       arrow::acero::MakeExecNode(
          "source",
-         plan.plan.get(),
+         &plan,
          {},
          arrow::acero::SourceNodeOptions{
             schema_of_sequence_batches,
@@ -207,19 +205,12 @@ arrow::Result<PartialArrowPlan> ZstdDecompressNode::toQueryPlan(
          }
       )
    );
-   plan.top_node->SetLabel(
+   top_node->SetLabel(
       "additional source node to help backpressure application before zstd decompression"
    );
 
    const arrow::acero::ProjectNodeOptions project_options{column_expressions, column_names};
-   ARROW_ASSIGN_OR_RAISE(
-      plan.top_node,
-      arrow::acero::MakeExecNode(
-         std::string{"project"}, plan.plan.get(), {plan.top_node}, project_options
-      )
-   );
-
-   return plan;
+   return arrow::acero::MakeExecNode(std::string{"project"}, &plan, {top_node}, project_options);
 }
 
 nlohmann::json ZstdDecompressNode::toJson() const {

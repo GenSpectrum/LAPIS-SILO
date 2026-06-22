@@ -112,25 +112,19 @@ std::vector<schema::ColumnIdentifier> AggregateNode::getOutputSchema() const {
    return output_fields;
 }
 
-arrow::Result<PartialArrowPlan> AggregateNode::toQueryPlan(
+arrow::Result<arrow::acero::ExecNode*> AggregateNode::addToExecPlan(
+   arrow::acero::ExecPlan& plan,
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
    const config::QueryOptions& query_options
 ) const {
-   ARROW_ASSIGN_OR_RAISE(auto plan, child->toQueryPlan(tables, query_options));
+   ARROW_ASSIGN_OR_RAISE(auto* child_node, child->addToExecPlan(plan, tables, query_options));
 
-   auto input_schema = plan.top_node->output_schema();
+   auto input_schema = child_node->output_schema();
 
    const arrow::acero::AggregateNodeOptions aggregate_node_options =
       buildAggregateOptions(group_by_fields, aggregates, *input_schema);
 
-   ARROW_ASSIGN_OR_RAISE(
-      plan.top_node,
-      arrow::acero::MakeExecNode(
-         "aggregate", plan.plan.get(), {plan.top_node}, aggregate_node_options
-      )
-   );
-
-   return plan;
+   return arrow::acero::MakeExecNode("aggregate", &plan, {child_node}, aggregate_node_options);
 }
 
 nlohmann::json AggregateNode::toJson() const {

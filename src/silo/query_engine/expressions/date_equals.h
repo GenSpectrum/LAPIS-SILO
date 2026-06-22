@@ -18,6 +18,10 @@ class DateEquals : public Expression {
   public:
    explicit DateEquals(std::string column_name, std::optional<silo::common::Date32> value);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<DateEquals>(column_name, value);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::DATE_EQUALS;
    [[nodiscard]] Kind kind() const override { return KIND; }

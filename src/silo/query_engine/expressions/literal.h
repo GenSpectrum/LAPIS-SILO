@@ -26,6 +26,10 @@ class Int64Literal : public Expression {
    static constexpr Kind KIND = Kind::INT64_LITERAL;
    [[nodiscard]] Kind kind() const override { return KIND; }
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<Int64Literal>(value);
+   }
+
    [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
@@ -47,6 +51,10 @@ class FloatLiteral : public Expression {
 
    static constexpr Kind KIND = Kind::FLOAT_LITERAL;
    [[nodiscard]] Kind kind() const override { return KIND; }
+
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<FloatLiteral>(value);
+   }
 
    [[nodiscard]] std::string toString() const override;
 
@@ -70,6 +78,10 @@ class StringLiteral : public Expression {
    static constexpr Kind KIND = Kind::STRING_LITERAL;
    [[nodiscard]] Kind kind() const override { return KIND; }
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<StringLiteral>(value);
+   }
+
    [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
@@ -91,6 +103,10 @@ class BoolLiteral : public Expression {
 
    static constexpr Kind KIND = Kind::BOOL_LITERAL;
    [[nodiscard]] Kind kind() const override { return KIND; }
+
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<BoolLiteral>(value);
+   }
 
    [[nodiscard]] std::string toString() const override;
 

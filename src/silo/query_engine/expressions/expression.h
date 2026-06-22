@@ -81,6 +81,8 @@ class Expression {
       AmbiguityMode mode
    ) const = 0;
 
+   [[nodiscard]] virtual std::unique_ptr<Expression> clone() const = 0;
+
    [[nodiscard]] virtual std::unique_ptr<filter::operators::Operator> compile(
       const storage::Table& table
    ) const = 0;

@@ -4,6 +4,7 @@
 #include <memory>
 #include <stdexcept>
 
+#include <arrow/acero/exec_plan.h>
 #include <arrow/result.h>
 #include <arrow/status.h>
 #include <gmock/gmock.h>
@@ -26,7 +27,8 @@ class ErrorQueryNode final : public operators::QueryNode {
       return {};
    }
 
-   [[nodiscard]] arrow::Result<operators::PartialArrowPlan> toQueryPlan(
+   [[nodiscard]] arrow::Result<arrow::acero::ExecNode*> addToExecPlan(
+      arrow::acero::ExecPlan& /*plan*/,
       const std::map<silo::schema::TableName, std::shared_ptr<silo::storage::Table>>& /*tables*/,
       const silo::config::QueryOptions& /*query_options*/
    ) const override {

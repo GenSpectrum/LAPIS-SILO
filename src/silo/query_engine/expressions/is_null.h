@@ -15,6 +15,10 @@ class IsNull : public Expression {
   public:
    explicit IsNull(std::string column_name);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<IsNull>(column_name);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::IS_NULL;
    [[nodiscard]] Kind kind() const override { return KIND; }

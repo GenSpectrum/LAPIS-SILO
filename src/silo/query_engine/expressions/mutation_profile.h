@@ -69,6 +69,10 @@ class MutationProfile : public Expression {
       ProfileInput input
    );
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<MutationProfile>(sequence_name, distance, input);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = std::is_same_v<SymbolType, Nucleotide>
                                    ? Kind::MUTATION_PROFILE_NUCLEOTIDE

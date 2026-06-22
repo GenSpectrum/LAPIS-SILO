@@ -23,6 +23,15 @@ class And : public Expression {
   public:
    explicit And(ExpressionVector&& children);
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      ExpressionVector cloned;
+      cloned.reserve(children.size());
+      for (const auto& child : children) {
+         cloned.push_back(child->clone());
+      }
+      return std::make_unique<And>(std::move(cloned));
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::AND;
    [[nodiscard]] Kind kind() const override { return KIND; }

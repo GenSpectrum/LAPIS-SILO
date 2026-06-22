@@ -23,6 +23,7 @@ template <typename SymbolType>
 class UnresolvedInsertionsNode;
 class UnresolvedPhyloSubtreeNode;
 class UnresolvedMostRecentCommonAncestorNode;
+class UnionAllNode;
 class ZstdDecompressNode;
 
 }  // namespace silo::query_engine::operators
@@ -59,6 +60,7 @@ class FilterPushdownPass {
    operators::QueryNodePtr operator()(operators::UnresolvedInsertionsNode<SymbolType>& node);
    operators::QueryNodePtr operator()(operators::UnresolvedPhyloSubtreeNode& node);
    operators::QueryNodePtr operator()(operators::UnresolvedMostRecentCommonAncestorNode& node);
+   operators::QueryNodePtr operator()(operators::UnionAllNode& node);
 
    // All other nodes (TableScanNode, MutationsNode, etc.) are leaves here.
    template <typename T>

@@ -14,7 +14,8 @@ std::vector<schema::ColumnIdentifier> FilterNode::getOutputSchema() const {
    return child->getOutputSchema();
 }
 
-arrow::Result<PartialArrowPlan> FilterNode::toQueryPlan(
+arrow::Result<arrow::acero::ExecNode*> FilterNode::addToExecPlan(
+   arrow::acero::ExecPlan& /*plan*/,
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {

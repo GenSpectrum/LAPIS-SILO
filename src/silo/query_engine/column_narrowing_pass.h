@@ -18,6 +18,7 @@ template <typename SymbolType>
 class UnresolvedMutationsNode;
 template <typename SymbolType>
 class UnresolvedInsertionsNode;
+class UnionAllNode;
 class UnresolvedMostRecentCommonAncestorNode;
 class UnresolvedPhyloSubtreeNode;
 }  // namespace silo::query_engine::operators
@@ -47,6 +48,7 @@ class ColumnNarrowingPass {
    operators::QueryNodePtr operator()(operators::UnresolvedInsertionsNode<SymbolType>& node);
    operators::QueryNodePtr operator()(operators::UnresolvedMostRecentCommonAncestorNode& node);
    operators::QueryNodePtr operator()(operators::UnresolvedPhyloSubtreeNode& node);
+   operators::QueryNodePtr operator()(operators::UnionAllNode& node);
 
    // Post-pushdown nodes are leaves that don't participate in column narrowing.
    template <typename T>

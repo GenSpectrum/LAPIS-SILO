@@ -25,6 +25,10 @@ class IntBetween : public Expression {
       std::optional<int32_t> to
    );
 
+   [[nodiscard]] std::unique_ptr<Expression> clone() const override {
+      return std::make_unique<IntBetween>(column_name, from, to);
+   }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::INT_BETWEEN;
    [[nodiscard]] Kind kind() const override { return KIND; }

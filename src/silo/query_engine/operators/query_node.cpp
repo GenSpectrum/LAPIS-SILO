@@ -54,6 +54,8 @@ std::string_view nodeKindToString(NodeKind kind) {
          return "ZstdDecompress";
       case NodeKind::MAP:
          return "Map";
+      case NodeKind::UNION_ALL:
+         return "UnionAll";
    }
    SILO_UNREACHABLE();
 }
