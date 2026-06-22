@@ -20,12 +20,6 @@ The table name is `default` for now.
 
 Every operator takes a table as input and produces a table as output. Internally these tables are Apache Arrow record batches; externally they are streamed as NDJSON or Arrow IPC. The **response schema** — which fields are returned and their types — is always the output schema of the **last operator** in the pipeline.
 
-Operators fall into three categories:
-
-- **Schema-preserving** (`filter`, `orderBy`, `limit`, `offset`, `randomize`): pass all input columns through unchanged. They select or reorder rows but do not add, remove, or rename fields.
-- **Schema-defining** (`groupBy`, `project`, `map`, `mutations`, `aminoAcidMutations`, `insertions`, `aminoAcidInsertions`, `mostRecentCommonAncestor`, `phyloSubtree`): produce a changed output schema. Each operator's section below documents its output fields.
-- **Combining** (`unionAll`): takes two pipelines and concatenates their output. The output schema matches the children's schema.
-
 Simple example — count all sequences from Switzerland:
 
 ```
