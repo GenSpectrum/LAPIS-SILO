@@ -1,6 +1,9 @@
 #include "silo/query_engine/operators/map_node.h"
 
 #include <algorithm>
+#include <chrono>
+#include <cstddef>
+#include <optional>
 #include <string>
 
 #include <arrow/acero/exec_plan.h>
@@ -9,8 +12,12 @@
 #include <arrow/datum.h>
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/common/size_constants.h"
+#include "silo/query_engine/exec_node/throttled_batch_reslicer.h"
+#include "silo/query_engine/exec_node/zstd_decompress_expression.h"
 #include "silo/query_engine/expressions/field_ref.h"
 #include "silo/query_engine/expressions/literal.h"
+#include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 
 namespace silo::query_engine::operators {
 
@@ -36,6 +43,12 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
    }
    if (const auto* field_ref = dynamic_cast<const expressions::FieldRef*>(&expression)) {
       return arrow::compute::field_ref(field_ref->column.name);
+   }
+   if (const auto* zstd =
+          dynamic_cast<const expressions::ZstdDecompressScalar*>(&expression)) {
+      return exec_node::ZstdDecompressExpression::make(
+         arrow::compute::field_ref(zstd->input_column.name), zstd->dictionary_string
+      );
    }
    return arrow::Status::NotImplemented(
       "non-literal scalar expressions are not yet supported in map() assignments"
@@ -68,7 +81,66 @@ arrow::Result<arrow::acero::ExecNode*> MapNode::addToExecPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
    const config::QueryOptions& query_options
 ) const {
-   ARROW_ASSIGN_OR_RAISE(auto* child_node, child->addToExecPlan(plan, tables, query_options));
+   ARROW_ASSIGN_OR_RAISE(auto* current_node, child->addToExecPlan(plan, tables, query_options));
+
+   // When any assignment uses zstd decompression, insert a backpressure sink/source pair
+   // before the projection so that Arrow can throttle the upstream scan appropriately.
+   size_t sum_of_reference_genome_sizes = 0;
+   for (const auto& assignment : assignments) {
+      if (const auto* zstd =
+             dynamic_cast<const expressions::ZstdDecompressScalar*>(assignment.expression.get())) {
+         sum_of_reference_genome_sizes += zstd->dictionary_string.size();
+      }
+   }
+
+   if (sum_of_reference_genome_sizes > 0) {
+      const auto& input_ordering = current_node->ordering();
+
+      arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> batch_generator;
+      arrow::acero::BackpressureMonitor* backpressure_monitor;
+      std::shared_ptr<arrow::Schema> schema_of_sequence_batches;
+      ARROW_ASSIGN_OR_RAISE(
+         current_node,
+         arrow::acero::MakeExecNode(
+            "sink",
+            &plan,
+            {current_node},
+            arrow::acero::SinkNodeOptions{
+               &batch_generator,
+               &schema_of_sequence_batches,
+               arrow::acero::BackpressureOptions{silo::common::S_16_KB, silo::common::S_64_MB},
+               &backpressure_monitor
+            }
+         )
+      );
+      current_node->SetLabel(
+         "additional sink node to help backpressure application before zstd decompression"
+      );
+
+      const auto maximum_batch_size = static_cast<int64_t>(
+         std::max(silo::common::S_64_MB / sum_of_reference_genome_sizes, 1UL)
+      );
+      constexpr std::chrono::milliseconds TARGET_BATCH_RATE{667};
+
+      ARROW_ASSIGN_OR_RAISE(
+         current_node,
+         arrow::acero::MakeExecNode(
+            "source",
+            &plan,
+            {},
+            arrow::acero::SourceNodeOptions{
+               schema_of_sequence_batches,
+               silo::query_engine::exec_node::ThrottledBatchReslicer{
+                  batch_generator, maximum_batch_size, TARGET_BATCH_RATE, backpressure_monitor
+               },
+               input_ordering
+            }
+         )
+      );
+      current_node->SetLabel(
+         "additional source node to help backpressure application before zstd decompression"
+      );
+   }
 
    // Map output column names to the assignment that produces them.
    std::map<std::string, const Assignment*> assignment_by_name;
@@ -96,7 +168,7 @@ arrow::Result<arrow::acero::ExecNode*> MapNode::addToExecPlan(
    }
 
    const arrow::acero::ProjectNodeOptions options{std::move(expressions), std::move(names)};
-   return arrow::acero::MakeExecNode("project", &plan, {child_node}, options);
+   return arrow::acero::MakeExecNode("project", &plan, {current_node}, options);
 }
 
 nlohmann::json MapNode::toJson() const {

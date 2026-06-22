@@ -21,7 +21,6 @@
 #include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
-#include "silo/query_engine/operators/zstd_decompress_node.h"
 
 namespace silo::query_engine {
 
@@ -73,11 +72,6 @@ operators::QueryNodePtr NodeResolutionPass::operator()(operators::OrderByNode& n
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr NodeResolutionPass::operator()(operators::FetchNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr NodeResolutionPass::operator()(operators::ZstdDecompressNode& node) {
    applyToNode(node.child, *this);
    return nullptr;
 }

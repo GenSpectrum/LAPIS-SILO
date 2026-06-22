@@ -24,7 +24,6 @@ class UnresolvedInsertionsNode;
 class UnresolvedPhyloSubtreeNode;
 class UnresolvedMostRecentCommonAncestorNode;
 class UnionAllNode;
-class ZstdDecompressNode;
 
 }  // namespace silo::query_engine::operators
 
@@ -44,7 +43,6 @@ class FilterPushdownPass {
    operators::QueryNodePtr operator()(operators::FetchNode& node);
    operators::QueryNodePtr operator()(operators::ProjectNode& node);
    operators::QueryNodePtr operator()(operators::MapNode& node);
-   operators::QueryNodePtr operator()(operators::ZstdDecompressNode& node);
 
    operators::QueryNodePtr operator()(operators::TableScanNode& node);
    operators::QueryNodePtr operator()(operators::MutationsNode<Nucleotide>& node);

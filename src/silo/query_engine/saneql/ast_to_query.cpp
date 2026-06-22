@@ -15,6 +15,9 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/lineage_tree.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/storage/column/column_type_visitor.h"
+#include "silo/storage/column/sequence_column.h"
+#include "silo/storage/column/zstd_compressed_string_column.h"
 #include "silo/query_engine/expressions/and.h"
 #include "silo/query_engine/expressions/bool_equals.h"
 #include "silo/query_engine/expressions/date_between.h"
@@ -54,7 +57,7 @@
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
-#include "silo/query_engine/operators/zstd_decompress_node.h"
+#include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 #include "silo/query_engine/order_by_field.h"
 #include "silo/query_engine/saneql/ast.h"
 #include "silo/query_engine/saneql/function_registry.h"
@@ -769,21 +772,94 @@ std::vector<OrderByField> parseOrderByFields(
 
 namespace {
 
+/// Visitor that extracts the reference sequence / dictionary string for a sequence column.
+/// Returns std::nullopt for column types that do not require decompression.
+class ColumnToReferenceSequenceVisitor {
+  public:
+   template <silo::storage::column::Column ColumnType>
+   std::optional<std::string> operator()(
+      const schema::TableSchema& /*table_schema*/,
+      const schema::ColumnIdentifier& /*column_identifier*/
+   ) {
+      return std::nullopt;
+   }
+};
+
+template <>
+std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
+)<storage::column::SequenceColumn<silo::Nucleotide>>(
+   const schema::TableSchema& table_schema,
+   const schema::ColumnIdentifier& column_identifier
+) {
+   auto* metadata =
+      table_schema
+         .getColumnMetadata<storage::column::SequenceColumn<silo::Nucleotide>>(
+            column_identifier.name
+         )
+         .value();
+   std::string reference;
+   std::ranges::transform(
+      metadata->reference_sequence, std::back_inserter(reference), silo::Nucleotide::symbolToChar
+   );
+   return reference;
+}
+
+template <>
+std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
+)<storage::column::SequenceColumn<silo::AminoAcid>>(
+   const schema::TableSchema& table_schema,
+   const schema::ColumnIdentifier& column_identifier
+) {
+   auto* metadata =
+      table_schema
+         .getColumnMetadata<storage::column::SequenceColumn<silo::AminoAcid>>(column_identifier.name
+         )
+         .value();
+   std::string reference;
+   std::ranges::transform(
+      metadata->reference_sequence, std::back_inserter(reference), silo::AminoAcid::symbolToChar
+   );
+   return reference;
+}
+
+template <>
+std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
+)<storage::column::ZstdCompressedStringColumn>(
+   const schema::TableSchema& table_schema,
+   const schema::ColumnIdentifier& column_identifier
+) {
+   auto* metadata =
+      table_schema
+         .getColumnMetadata<storage::column::ZstdCompressedStringColumn>(column_identifier.name)
+         .value();
+   return metadata->dictionary_string;
+}
+
 operators::QueryNodePtr wrapWithDecompressIfNeeded(
    operators::QueryNodePtr node,
    const std::shared_ptr<schema::TableSchema>& table_schema
 ) {
-   std::map<schema::ColumnIdentifier, std::shared_ptr<schema::TableSchema>> table_schemas;
+   std::vector<operators::MapNode::Assignment> assignments;
    for (const auto& col : node->getOutputSchema()) {
-      if (schema::isSequenceColumn(col.type)) {
-         table_schemas.emplace(col, table_schema);
+      if (!schema::isSequenceColumn(col.type)) {
+         continue;
+      }
+      auto reference = storage::column::visit(
+         col.type, ColumnToReferenceSequenceVisitor{}, *table_schema, col
+      );
+      if (reference.has_value()) {
+         assignments.push_back(
+            {.output_column = {.name = col.name, .type = schema::ColumnType::STRING},
+             .expression = std::make_unique<expressions::ZstdDecompressScalar>(
+                col, std::move(reference).value()
+             )}
+         );
       }
    }
-   auto mapping = operators::buildDecompressColumnMapping(node->getOutputSchema(), table_schemas);
-   if (mapping.empty()) {
+   if (assignments.empty()) {
       return node;
    }
-   return std::make_unique<operators::ZstdDecompressNode>(std::move(node), std::move(mapping));
+   return std::make_unique<operators::MapNode>(std::move(node), std::move(assignments));
 }
 
 }  // namespace

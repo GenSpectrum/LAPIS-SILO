@@ -20,7 +20,6 @@
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
-#include "silo/query_engine/operators/zstd_decompress_node.h"
 
 namespace silo::query_engine::operators {
 
@@ -76,8 +75,6 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
          return std::forward<Func>(func)(static_cast<TableScanNode&>(node));
       case NodeKind::COUNT_FILTER:
          return std::forward<Func>(func)(static_cast<CountFilterNode&>(node));
-      case NodeKind::ZSTD_DECOMPRESS:
-         return std::forward<Func>(func)(static_cast<ZstdDecompressNode&>(node));
       case NodeKind::UNION_ALL:
          return std::forward<Func>(func)(static_cast<UnionAllNode&>(node));
    }

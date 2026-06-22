@@ -13,7 +13,6 @@
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
-#include "silo/query_engine/operators/zstd_decompress_node.h"
 
 namespace silo::query_engine {
 
@@ -82,62 +81,49 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::ProjectNode& 
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::ZstdDecompressNode& node) {
-   RequiredColumns child_required;
-   std::vector<operators::ZstdDecompressNode::ColumnMapping> new_column_mapping;
-   for (const auto& req : required) {
-      auto it = std::ranges::find_if(node.column_mapping, [&](const auto& mapping) {
-         return mapping.output == req;
-      });
-      if (it != node.column_mapping.end()) {
-         child_required.push_back(it->input);
-         new_column_mapping.push_back(std::move(*it));
-         node.column_mapping.erase(it);
-      } else {
-         child_required.push_back(req);
-      }
-   }
-   required = std::move(child_required);
-   applyToChild(node.child, *this);
-
-   if (new_column_mapping.empty()) {
-      return std::move(node.child);
-   }
-   node.column_mapping = new_column_mapping;
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node) {
-   // A map keeps all of its child's columns and adds (or replaces) some via
-   // scalar assignments. The child must still provide the required pass-through
-   // columns, plus any column referenced by an assignment (e.g. `y := age`):
-   // the map projects every assignment, so a referenced column is needed even if
-   // the assigned output column is not required downstream.
+   // A MapNode keeps all of its child's columns and adds (or replaces) some via
+   // scalar assignments. We only keep assignments that produce required output columns;
+   // the child must provide the referenced columns for those assignments plus any
+   // required pass-through columns.
    RequiredColumns child_required;
+   std::vector<operators::MapNode::Assignment> kept_assignments;
+
    for (const auto& required_column : required) {
-      const bool produced_by_map =
-         std::ranges::any_of(node.assignments, [&](const auto& assignment) {
-            return assignment.output_column.name == required_column.name;
-         });
-      if (!produced_by_map) {
-         child_required.push_back(required_column);
-      }
-   }
-   for (const auto& assignment : node.assignments) {
-      for (auto& referenced_column : assignment.expression->freeIUs()) {
-         if (std::ranges::find(child_required, referenced_column) == child_required.end()) {
-            child_required.push_back(std::move(referenced_column));
+      auto it = std::ranges::find_if(node.assignments, [&](const auto& assignment) {
+         return assignment.output_column.name == required_column.name;
+      });
+      if (it != node.assignments.end()) {
+         // This assignment produces the required column — keep it and add its inputs.
+         for (const auto& referenced_column : it->expression->freeIUs()) {
+            if (std::ranges::find(child_required, referenced_column) == child_required.end()) {
+               child_required.push_back(referenced_column);
+            }
+         }
+         kept_assignments.push_back(std::move(*it));
+         node.assignments.erase(it);
+      } else {
+         // Pass-through column: the child must provide it directly.
+         if (std::ranges::find(child_required, required_column) == child_required.end()) {
+            child_required.push_back(required_column);
          }
       }
    }
+   node.assignments = std::move(kept_assignments);
+
    if (child_required.empty()) {
+      // Even when all output columns are produced by assignments, the child must
+      // emit at least one field so that row identity is preserved.
       auto child_schema = node.child->getOutputSchema();
       SILO_ASSERT(!child_schema.empty());
       child_required.push_back(child_schema.front());
    }
    required = std::move(child_required);
    applyToChild(node.child, *this);
+
+   if (node.assignments.empty()) {
+      return std::move(node.child);
+   }
    return nullptr;
 }
 

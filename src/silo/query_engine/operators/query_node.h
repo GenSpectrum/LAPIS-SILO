@@ -36,7 +36,6 @@ enum class NodeKind : uint8_t {
    PHYLO_SUBTREE,
    TABLE_SCAN,
    COUNT_FILTER,
-   ZSTD_DECOMPRESS,
    UNION_ALL,
 };
 

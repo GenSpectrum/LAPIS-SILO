@@ -21,7 +21,6 @@ class UnresolvedInsertionsNode;
 class UnionAllNode;
 class UnresolvedMostRecentCommonAncestorNode;
 class UnresolvedPhyloSubtreeNode;
-class ZstdDecompressNode;
 }  // namespace silo::query_engine::operators
 
 namespace silo::query_engine {
@@ -42,7 +41,6 @@ class NodeResolutionPass {
    operators::QueryNodePtr operator()(operators::MapNode& node);
    operators::QueryNodePtr operator()(operators::OrderByNode& node);
    operators::QueryNodePtr operator()(operators::FetchNode& node);
-   operators::QueryNodePtr operator()(operators::ZstdDecompressNode& node);
    template <typename SymbolType>
    operators::QueryNodePtr operator()(operators::UnresolvedMutationsNode<SymbolType>& node);
    template <typename SymbolType>

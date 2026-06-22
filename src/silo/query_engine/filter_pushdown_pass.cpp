@@ -16,7 +16,6 @@
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
-#include "silo/query_engine/operators/zstd_decompress_node.h"
 
 namespace silo::query_engine {
 
@@ -118,12 +117,6 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::ProjectNode& n
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::MapNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::ZstdDecompressNode& node) {
    applyToNode(node.child, *this);
    return nullptr;
 }
