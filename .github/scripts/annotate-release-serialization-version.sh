@@ -16,7 +16,7 @@ set -euo pipefail
 #   DRY_RUN                     if "true", print transformed body but skip gh release edit
 #   GITHUB_TOKEN                required for gh release view/edit (unless DRY_RUN)
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(unset CDPATH; cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 DRY_RUN="${DRY_RUN:-false}"
 
@@ -25,12 +25,12 @@ TAG=""
 for arg in "$@"; do
   case "$arg" in
     --tag=*) TAG="${arg#--tag=}" ;;
-    *) echo "Unknown argument: $arg"; exit 1 ;;
+    *) echo "Unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
 
 if [ -z "$TAG" ]; then
-  echo "Usage: $0 --tag=<release-tag>"
+  echo "Usage: $0 --tag=<release-tag>" >&2
   exit 1
 fi
 
@@ -63,7 +63,8 @@ if [ "$DRY_RUN" = "true" ]; then
 fi
 
 BODY=$(gh release view "$TAG" --json body -q '.body // ""')
-NEW_BODY=$(echo "$BODY" | "${SCRIPT_DIR}/insert-serialization-version-note.sh" --version="$VERSION")
+# printf '%s' (not echo) avoids adding a spurious trailing newline to the piped body.
+NEW_BODY=$(printf '%s' "$BODY" | "${SCRIPT_DIR}/insert-serialization-version-note.sh" --version="$VERSION")
 
 if [ "$BODY" = "$NEW_BODY" ]; then
   echo "Release body unchanged (note already present or heading not found), skipping"

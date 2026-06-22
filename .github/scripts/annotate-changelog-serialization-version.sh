@@ -24,12 +24,12 @@ VERSION=""
 for arg in "$@"; do
   case "$arg" in
     --version=*) VERSION="${arg#--version=}" ;;
-    *) echo "Unknown argument: $arg"; exit 1 ;;
+    *) echo "Unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
 
 if [ -z "$VERSION" ]; then
-  echo "Usage: $0 --version=<release-version>"
+  echo "Usage: $0 --version=<release-version>" >&2
   exit 1
 fi
 
