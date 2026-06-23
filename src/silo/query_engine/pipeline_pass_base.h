@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
