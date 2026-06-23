@@ -798,11 +798,7 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator()<Sequence
 ) {
    auto* metadata =
       table_schema.getColumnMetadata<SequenceColumn<Nucleotide>>(column_identifier.name).value();
-   std::string reference;
-   std::ranges::transform(
-      metadata->reference_sequence, std::back_inserter(reference), Nucleotide::symbolToChar
-   );
-   return reference;
+   return Nucleotide::sequenceToString(metadata->reference_sequence);
 }
 
 template <>
@@ -812,11 +808,7 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator()<Sequence
 ) {
    auto* metadata =
       table_schema.getColumnMetadata<SequenceColumn<AminoAcid>>(column_identifier.name).value();
-   std::string reference;
-   std::ranges::transform(
-      metadata->reference_sequence, std::back_inserter(reference), AminoAcid::symbolToChar
-   );
-   return reference;
+   return AminoAcid::sequenceToString(metadata->reference_sequence);
 }
 
 template <>
