@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstddef>
 #include <utility>
+
+#include <spdlog/spdlog.h>
 
 #include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
@@ -28,11 +31,13 @@ namespace silo::query_engine {
 /// pass.
 ///
 /// A derived pass overrides only the operators that need custom behaviour. It must
-/// pull the defaults into its own scope so they are not hidden by its overrides:
+/// pull the defaults into its own scope so they are not hidden by its overrides, and
+/// expose a `static constexpr std::string_view NAME` used for log messages:
 ///
 /// ```cpp
 /// class MyPass : public PipelinePassBase<MyPass> {
 ///   public:
+///    static constexpr std::string_view NAME = "MyPass";
 ///    using PipelinePassBase<MyPass>::operator();
 ///    operators::QueryNodePtr operator()(operators::FilterNode& node);  // custom
 /// };
@@ -135,10 +140,24 @@ class PipelinePassBase {
    /// Repeatedly visit `child` with this pass, replacing it each time a non-null
    /// replacement is returned, until the pass returns nullptr.
    // NOLINTNEXTLINE(misc-no-recursion)
-   void propagateToNode(operators::QueryNodePtr& child) {
+   void propagateToNode(operators::QueryNodePtr& node) {
+      static constexpr std::size_t MAX_ITERATIONS = 100;
       auto& derived = static_cast<Derived&>(*this);
-      while (auto replacement = operators::visit(*child, derived)) {
-         child = std::move(replacement);
+      std::size_t iterations = 0;
+      while (auto replacement = operators::visit(*node, derived)) {
+         node = std::move(replacement);
+         SPDLOG_TRACE("{} rewrote node to: {}", Derived::NAME, node->toJson().dump());
+
+         if (++iterations >= MAX_ITERATIONS) {
+            SPDLOG_WARN(
+               "{} aborted after {} iterations on a single node: cyclic optimization "
+               "behaviour detected. Last plan: {}",
+               Derived::NAME,
+               MAX_ITERATIONS,
+               node->toJson().dump()
+            );
+            break;
+         }
       }
    }
 };

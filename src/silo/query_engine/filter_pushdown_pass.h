@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 #include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/pipeline_pass_base.h"
@@ -24,6 +26,8 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    std::vector<std::unique_ptr<expressions::Expression>> current_filters;
 
   public:
+   static constexpr std::string_view NAME = "FilterPushdownPass";
+
    using PipelinePassBase<FilterPushdownPass>::operator();
 
    operators::QueryNodePtr operator()(operators::FilterNode& node);

@@ -19,9 +19,9 @@ namespace silo::query_engine {
 
 namespace {
 // NOLINTNEXTLINE(misc-no-recursion)
-void applyToNode(operators::QueryNodePtr& child, ColumnNarrowingPass& pass) {
-   if (auto new_child = operators::visit(*child, pass)) {
-      child = std::move(new_child);
+void applyToNode(operators::QueryNodePtr& node, ColumnNarrowingPass& pass) {
+   if (auto new_node = operators::visit(*node, pass)) {
+      node = std::move(new_node);
    }
 }
 }  // namespace
