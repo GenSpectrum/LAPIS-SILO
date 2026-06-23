@@ -63,6 +63,12 @@
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 
+using silo::AminoAcid;
+using silo::Nucleotide;
+using silo::storage::column::Column;
+using silo::storage::column::SequenceColumn;
+using silo::storage::column::ZstdCompressedStringColumn;
+
 namespace silo::query_engine::saneql {
 
 namespace {
@@ -776,7 +782,7 @@ namespace {
 /// Returns std::nullopt for column types that do not require decompression.
 class ColumnToReferenceSequenceVisitor {
   public:
-   template <silo::storage::column::Column ColumnType>
+   template <Column ColumnType>
    std::optional<std::string> operator()(
       const schema::TableSchema& /*table_schema*/,
       const schema::ColumnIdentifier& /*column_identifier*/
@@ -786,51 +792,40 @@ class ColumnToReferenceSequenceVisitor {
 };
 
 template <>
-std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
-)<storage::column::SequenceColumn<silo::Nucleotide>>(
+std::optional<std::string> ColumnToReferenceSequenceVisitor::operator()<SequenceColumn<Nucleotide>>(
    const schema::TableSchema& table_schema,
    const schema::ColumnIdentifier& column_identifier
 ) {
-   auto* metadata = table_schema
-                       .getColumnMetadata<storage::column::SequenceColumn<silo::Nucleotide>>(
-                          column_identifier.name
-                       )
-                       .value();
+   auto* metadata =
+      table_schema.getColumnMetadata<SequenceColumn<Nucleotide>>(column_identifier.name).value();
    std::string reference;
    std::ranges::transform(
-      metadata->reference_sequence, std::back_inserter(reference), silo::Nucleotide::symbolToChar
+      metadata->reference_sequence, std::back_inserter(reference), Nucleotide::symbolToChar
    );
    return reference;
 }
 
 template <>
-std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
-)<storage::column::SequenceColumn<silo::AminoAcid>>(
+std::optional<std::string> ColumnToReferenceSequenceVisitor::operator()<SequenceColumn<AminoAcid>>(
    const schema::TableSchema& table_schema,
    const schema::ColumnIdentifier& column_identifier
 ) {
    auto* metadata =
-      table_schema
-         .getColumnMetadata<storage::column::SequenceColumn<silo::AminoAcid>>(column_identifier.name
-         )
-         .value();
+      table_schema.getColumnMetadata<SequenceColumn<AminoAcid>>(column_identifier.name).value();
    std::string reference;
    std::ranges::transform(
-      metadata->reference_sequence, std::back_inserter(reference), silo::AminoAcid::symbolToChar
+      metadata->reference_sequence, std::back_inserter(reference), AminoAcid::symbolToChar
    );
    return reference;
 }
 
 template <>
-std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
-)<storage::column::ZstdCompressedStringColumn>(
+std::optional<std::string> ColumnToReferenceSequenceVisitor::operator()<ZstdCompressedStringColumn>(
    const schema::TableSchema& table_schema,
    const schema::ColumnIdentifier& column_identifier
 ) {
    auto* metadata =
-      table_schema
-         .getColumnMetadata<storage::column::ZstdCompressedStringColumn>(column_identifier.name)
-         .value();
+      table_schema.getColumnMetadata<ZstdCompressedStringColumn>(column_identifier.name).value();
    return metadata->dictionary_string;
 }
 
