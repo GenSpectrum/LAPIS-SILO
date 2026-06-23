@@ -1,12 +1,7 @@
 #pragma once
 
-#include <map>
-#include <memory>
-
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/pipeline_pass_base.h"
-#include "silo/schema/database_schema.h"
-#include "silo/storage/table.h"
 
 namespace silo::query_engine::operators {
 class AggregateNode;
