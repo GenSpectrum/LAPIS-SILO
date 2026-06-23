@@ -51,7 +51,7 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
       );
    }
    return arrow::Status::NotImplemented(
-      "non-literal scalar expressions are not yet supported in map() assignments"
+      "this scalar expression type is not yet supported in map() assignments"
    );
 }
 
@@ -83,15 +83,25 @@ arrow::Result<arrow::acero::ExecNode*> MapNode::addToExecPlan(
 ) const {
    ARROW_ASSIGN_OR_RAISE(auto* current_node, child->addToExecPlan(plan, tables, query_options));
 
-   // When any assignment uses zstd decompression, insert a backpressure sink/source pair
-   // before the projection so that Arrow can throttle the upstream scan appropriately.
-   // Decompression inflates each batch by (roughly) the reference/dictionary size, so we
-   // size the batches relative to the summed reference sizes to bound peak memory.
+   // Map output column names to the assignment that produces them. When the same output
+   // name is assigned more than once, the last assignment wins (consistent with
+   // getOutputSchema and the projection built below).
+   std::map<std::string, const Assignment*> assignment_by_name;
+   for (const auto& assignment : assignments) {
+      assignment_by_name[assignment.output_column.name] = &assignment;
+   }
+
+   // When any *effective* assignment uses zstd decompression, insert a backpressure
+   // sink/source pair before the projection so that Arrow can throttle the upstream scan
+   // appropriately. Decompression inflates each batch by (roughly) the reference/dictionary
+   // size, so we size the batches relative to the summed reference sizes to bound peak
+   // memory. Only the effective (last-wins) assignments are counted; dead earlier
+   // duplicates neither appear in the projection nor contribute to the batch sizing.
    bool has_decompression = false;
    size_t sum_of_reference_genome_sizes = 0;
-   for (const auto& assignment : assignments) {
+   for (const auto& [name, assignment] : assignment_by_name) {
       if (const auto* zstd =
-             dynamic_cast<const expressions::ZstdDecompressScalar*>(assignment.expression.get())) {
+             dynamic_cast<const expressions::ZstdDecompressScalar*>(assignment->expression.get())) {
          has_decompression = true;
          sum_of_reference_genome_sizes += zstd->dictionary_string.size();
       }
@@ -147,12 +157,6 @@ arrow::Result<arrow::acero::ExecNode*> MapNode::addToExecPlan(
       current_node->SetLabel(
          "additional source node to help backpressure application before zstd decompression"
       );
-   }
-
-   // Map output column names to the assignment that produces them.
-   std::map<std::string, const Assignment*> assignment_by_name;
-   for (const auto& assignment : assignments) {
-      assignment_by_name[assignment.output_column.name] = &assignment;
    }
 
    const auto output_schema = getOutputSchema();

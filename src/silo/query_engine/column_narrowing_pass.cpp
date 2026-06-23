@@ -1,8 +1,10 @@
 #include "silo/query_engine/column_narrowing_pass.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <iterator>
 #include <ranges>
+#include <vector>
 
 #include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
@@ -98,13 +100,18 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
    // decompression assignment requests its input column as a sequence type while a
    // pass-through of the same name would request it as STRING.
    RequiredColumns child_required;
-   std::vector<operators::MapNode::Assignment> kept_assignments;
 
    const auto already_required = [&](const schema::ColumnIdentifier& column) {
       return std::ranges::any_of(child_required, [&](const auto& existing) {
          return existing.name == column.name;
       });
    };
+
+   // Decide which assignments to keep by index, so that the surviving assignments can be
+   // emitted in their original relative order afterwards. Reordering them would change the
+   // order in which getOutputSchema appends newly-added columns and thus the output column
+   // order of the projection.
+   std::vector<bool> keep_assignment(node.assignments.size(), false);
 
    for (const auto& required_column : required) {
       // getOutputSchema/addToExecPlan apply assignments front-to-back, so for duplicate
@@ -123,16 +130,23 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
                child_required.push_back(referenced_column);
             }
          }
-         // Convert the reverse iterator to a forward iterator for erase: base() points one
-         // past the element, so step back one.
-         auto it = std::next(reverse_it).base();
-         kept_assignments.push_back(std::move(*it));
-         node.assignments.erase(it);
+         // Convert the reverse iterator to a forward iterator: base() points one past the
+         // element, so step back one to index the kept assignment.
+         const auto index = std::distance(node.assignments.begin(), std::next(reverse_it).base());
+         keep_assignment[index] = true;
       } else {
          // Pass-through column: the child must provide it directly.
          if (!already_required(required_column)) {
             child_required.push_back(required_column);
          }
+      }
+   }
+
+   // Keep the surviving assignments in their original relative order.
+   std::vector<operators::MapNode::Assignment> kept_assignments;
+   for (size_t index = 0; index < node.assignments.size(); ++index) {
+      if (keep_assignment[index]) {
+         kept_assignments.push_back(std::move(node.assignments[index]));
       }
    }
    node.assignments = std::move(kept_assignments);

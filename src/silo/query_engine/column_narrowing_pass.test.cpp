@@ -373,6 +373,41 @@ TEST(ColumnNarrowingPassMap, keepsLastAssignmentForDuplicateOutputName) {
    EXPECT_THAT(scanSchema(leafScan(*node)), ::testing::ElementsAre(nuc_b));
 }
 
+// Surviving assignments must keep their original relative order, even when the required
+// columns are requested in a different order. getOutputSchema appends newly-added columns
+// (not present in the child) in assignment-vector order, so reordering would change the
+// projection's output column order.
+TEST(ColumnNarrowingPassMap, preservesAssignmentOrderForAddedColumns) {
+   auto id_col = col("id");
+   auto scan = makeScan({id_col});
+
+   // Two assignments add new columns "x" then "y" (neither is in the child schema).
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = col("x"),
+       .expression = std::make_unique<silo::query_engine::expressions::Int64Literal>(1)}
+   );
+   assignments.push_back(
+      {.output_column = col("y"),
+       .expression = std::make_unique<silo::query_engine::expressions::Int64Literal>(2)}
+   );
+   operators::QueryNodePtr node =
+      std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
+
+   // Required columns are listed in the opposite order ("y" before "x").
+   silo::query_engine::ColumnNarrowingPass pass({col("y"), col("x")});
+   if (auto new_node = operators::visit(*node, pass)) {
+      node = std::move(new_node);
+   }
+
+   // Both assignments survive in their original order, so getOutputSchema appends x then y.
+   auto* map = dynamic_cast<operators::MapNode*>(node.get());
+   ASSERT_NE(map, nullptr);
+   ASSERT_EQ(map->assignments.size(), 2);
+   EXPECT_EQ(map->assignments[0].output_column.name, "x");
+   EXPECT_EQ(map->assignments[1].output_column.name, "y");
+}
+
 // --- FetchNode -> TableScanNode ---
 
 TEST(ColumnNarrowingPassFetch, propagatesRequiredThroughFetch) {
