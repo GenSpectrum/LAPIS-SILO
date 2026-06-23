@@ -1,6 +1,8 @@
 #include "silo/query_engine/column_narrowing_pass.h"
 
 #include <algorithm>
+#include <iterator>
+#include <ranges>
 
 #include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
@@ -105,16 +107,25 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
    };
 
    for (const auto& required_column : required) {
-      auto it = std::ranges::find_if(node.assignments, [&](const auto& assignment) {
-         return assignment.output_column.name == required_column.name;
-      });
-      if (it != node.assignments.end()) {
+      // getOutputSchema/addToExecPlan apply assignments front-to-back, so for duplicate
+      // output names the *last* assignment wins. Match the last one to preserve that
+      // behavior; earlier duplicates are dead and dropped together with their inputs.
+      auto reverse_it = std::ranges::find_if(
+         std::ranges::reverse_view(node.assignments),
+         [&](const auto& assignment) {
+            return assignment.output_column.name == required_column.name;
+         }
+      );
+      if (reverse_it != node.assignments.rend()) {
          // This assignment produces the required column — keep it and add its inputs.
-         for (const auto& referenced_column : it->expression->freeIUs()) {
+         for (const auto& referenced_column : reverse_it->expression->freeIUs()) {
             if (!already_required(referenced_column)) {
                child_required.push_back(referenced_column);
             }
          }
+         // Convert the reverse iterator to a forward iterator for erase: base() points one
+         // past the element, so step back one.
+         auto it = std::next(reverse_it).base();
          kept_assignments.push_back(std::move(*it));
          node.assignments.erase(it);
       } else {
