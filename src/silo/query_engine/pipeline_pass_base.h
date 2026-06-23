@@ -141,23 +141,24 @@ class PipelinePassBase {
    /// replacement is returned, until the pass returns nullptr.
    // NOLINTNEXTLINE(misc-no-recursion)
    void propagateToNode(operators::QueryNodePtr& node) {
-      static constexpr std::size_t MAX_ITERATIONS = 100;
+      constexpr std::size_t MAX_ITERATIONS = 100;
+
       auto& derived = static_cast<Derived&>(*this);
       std::size_t iterations = 0;
       while (auto replacement = operators::visit(*node, derived)) {
-         node = std::move(replacement);
-         SPDLOG_TRACE("{} rewrote node to: {}", Derived::NAME, node->toJson().dump());
-
          if (++iterations >= MAX_ITERATIONS) {
             SPDLOG_WARN(
                "{} aborted after {} iterations on a single node: cyclic optimization "
-               "behaviour detected. Last plan: {}",
+               "behaviour detected. Last plan: {}, replacement: {}",
                Derived::NAME,
                MAX_ITERATIONS,
-               node->toJson().dump()
+               node->toJson().dump(),
+               replacement->toJson().dump()
             );
             break;
          }
+
+         node = std::move(replacement);
       }
    }
 };
