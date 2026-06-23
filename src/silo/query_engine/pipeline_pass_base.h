@@ -46,6 +46,9 @@ class PipelinePassBase {
    friend Derived;
 
   public:
+   /// Entry point: walks `node` with a fresh pass and returns the (possibly replaced)
+   /// root. Requires `Derived` to be default-constructible. A pass that needs
+   /// construction arguments (e.g. seeded state) must provide its own `run()` instead.
    static operators::QueryNodePtr run(operators::QueryNodePtr node) {
       Derived pass;
       pass.propagateToNode(node);
@@ -111,6 +114,9 @@ class PipelinePassBase {
       return nullptr;
    }
 
+   // Default propagation for the two-child UnionAll operator. Both branches are
+   // walked by the same pass instance, so this default is only correct for
+   // stateless passes. A stateful pass MUST override this.
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::UnionAllNode& node) {
       propagateToNode(node.left);
