@@ -19,9 +19,6 @@ ZstdDecompressScalar::ZstdDecompressScalar(
 )
     : input_column(std::move(input_column)),
       dictionary_string(std::move(dictionary_string)) {
-   // The dictionary (reference genome for sequence columns, trained dictionary for
-   // zstd-compressed-string columns) is required to decompress. An empty dictionary would
-   // later trip MapNode's batch-sizing assertion or make decompression fail; fail fast here.
    SILO_ASSERT(!this->dictionary_string.empty());
 }
 

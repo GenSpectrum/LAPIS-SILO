@@ -13,19 +13,12 @@ namespace silo::query_engine::expressions {
 /// A scalar expression that zstd-decompresses a single sequence-typed column into the
 /// STRING value it encodes. The output is a STRING-typed column with the same name as
 /// the input. Used to expand the compressed columns of a table scan on demand.
-///
-/// The dictionary used for decompression depends on the input column type:
-///  - SequenceColumn (nucleotide / amino acid): the reference genome serves as dictionary.
-///  - ZstdCompressedStringColumn: the column's own trained zstd dictionary.
-/// In both cases it is passed through `dictionary_string` and must be non-empty.
 class ZstdDecompressScalar : public Expression {
   public:
    /// The compressed input column produced by the child node.
-   schema::ColumnIdentifier input_column;
+   const schema::ColumnIdentifier input_column;
 
-   /// The zstd dictionary used for decompression (a reference genome for sequence columns,
-   /// or a trained dictionary for zstd-compressed-string columns). Must be non-empty.
-   std::string dictionary_string;
+   const std::string dictionary_string;
 
    ZstdDecompressScalar(schema::ColumnIdentifier input_column, std::string dictionary_string);
 
