@@ -19,12 +19,18 @@ namespace silo::query_engine {
 
 namespace {
 // NOLINTNEXTLINE(misc-no-recursion)
-void applyToChild(operators::QueryNodePtr& child, ColumnNarrowingPass& pass) {
+void applyToNode(operators::QueryNodePtr& child, ColumnNarrowingPass& pass) {
    if (auto new_child = operators::visit(*child, pass)) {
       child = std::move(new_child);
    }
 }
 }  // namespace
+
+operators::QueryNodePtr ColumnNarrowingPass::run(operators::QueryNodePtr node) {
+   ColumnNarrowingPass pass{node->getOutputSchema()};
+   applyToNode(node, pass);
+   return node;
+}
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static,misc-no-recursion)
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::TableScanNode& node) {
@@ -59,7 +65,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::AggregateNode
    } else {
       required = std::move(child_required);
    }
-   applyToChild(node.child, *this);
+   applyToNode(node.child, *this);
    return nullptr;
 }
 
@@ -74,7 +80,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::ProjectNode& 
    node.fields = narrowed_fields;
 
    required = node.fields;
-   applyToChild(node.child, *this);
+   applyToNode(node.child, *this);
    if (node.child->getOutputSchema() == node.fields) {
       return std::move(node.child);
    }
@@ -98,7 +104,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::ZstdDecompres
       }
    }
    required = std::move(child_required);
-   applyToChild(node.child, *this);
+   applyToNode(node.child, *this);
 
    if (new_column_mapping.empty()) {
       return std::move(node.child);
@@ -137,7 +143,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
       child_required.push_back(child_schema.front());
    }
    required = std::move(child_required);
-   applyToChild(node.child, *this);
+   applyToNode(node.child, *this);
    return nullptr;
 }
 
@@ -148,19 +154,19 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::OrderByNode& 
          required.push_back(field.field);
       }
    }
-   applyToChild(node.child, *this);
+   applyToNode(node.child, *this);
    return nullptr;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::FetchNode& node) {
-   applyToChild(node.child, *this);
+   applyToNode(node.child, *this);
    return nullptr;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::FilterNode& node) {
-   applyToChild(node.child, *this);
+   applyToNode(node.child, *this);
    return nullptr;
 }
 
@@ -169,7 +175,7 @@ template <typename SymbolType>
 operators::QueryNodePtr ColumnNarrowingPass::operator()(
    operators::UnresolvedMutationsNode<SymbolType>& node
 ) {
-   applyToChild(node.child, *this);
+   applyToNode(node.child, *this);
    return nullptr;
 }
 
@@ -178,7 +184,7 @@ template <typename SymbolType>
 operators::QueryNodePtr ColumnNarrowingPass::operator()(
    operators::UnresolvedInsertionsNode<SymbolType>& node
 ) {
-   applyToChild(node.child, *this);
+   applyToNode(node.child, *this);
    return nullptr;
 }
 
@@ -186,14 +192,14 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(
 operators::QueryNodePtr ColumnNarrowingPass::operator()(
    operators::UnresolvedMostRecentCommonAncestorNode& node
 ) {
-   applyToChild(node.child, *this);
+   applyToNode(node.child, *this);
    return nullptr;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedPhyloSubtreeNode& node
 ) {
-   applyToChild(node.child, *this);
+   applyToNode(node.child, *this);
    return nullptr;
 }
 
@@ -201,9 +207,9 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedPhy
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnionAllNode& node) {
    // Narrow columns in each child independently using the same required set.
    ColumnNarrowingPass left_pass(required);
-   applyToChild(node.left, left_pass);
+   applyToNode(node.left, left_pass);
    ColumnNarrowingPass right_pass(required);
-   applyToChild(node.right, right_pass);
+   applyToNode(node.right, right_pass);
    return nullptr;
 }
 

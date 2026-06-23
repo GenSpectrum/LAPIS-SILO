@@ -10,7 +10,6 @@
 #include "silo/query_engine/expressions/and.h"
 #include "silo/query_engine/filter_pushdown_pass.h"
 #include "silo/query_engine/node_resolution_pass.h"
-#include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/saneql/ast_to_query.h"
 #include "silo/schema/database_schema.h"
 
@@ -43,9 +42,7 @@ QueryPlan Planner::planQuery(
       }
    };
    log_plan("initial");
-   if (auto new_node = operators::visit(*node, ColumnNarrowingPass(node->getOutputSchema()))) {
-      node = std::move(new_node);
-   }
+   node = ColumnNarrowingPass::run(std::move(node));
    log_plan("after ColumnNarrowingPass");
    node = FilterPushdownPass::run(std::move(node));
    log_plan("after FilterPushdownPass");

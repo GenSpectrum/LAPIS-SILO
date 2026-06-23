@@ -52,7 +52,6 @@ class PipelinePassBase {
       return node;
    }
 
-   // Default propagation for single-child pipeline operators.
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::FilterNode& node) {
       propagateToChild(node.child);
@@ -89,7 +88,6 @@ class PipelinePassBase {
       return nullptr;
    }
 
-   // Default propagation for unresolved placeholder operators (also single-child).
    template <typename SymbolType>
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::UnresolvedMutationsNode<SymbolType>& node) {
@@ -113,7 +111,6 @@ class PipelinePassBase {
       return nullptr;
    }
 
-   // Default propagation for the two-child UnionAll operator.
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::UnionAllNode& node) {
       propagateToChild(node.left);
@@ -121,7 +118,6 @@ class PipelinePassBase {
       return nullptr;
    }
 
-   // Leaf nodes (TableScanNode, MutationsNode, etc.) terminate the walk.
    template <typename T>
    operators::QueryNodePtr operator()(T& /*node*/) {
       return nullptr;

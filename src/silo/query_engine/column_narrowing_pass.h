@@ -34,6 +34,10 @@ class ColumnNarrowingPass {
    explicit ColumnNarrowingPass(RequiredColumns required)
        : required(std::move(required)) {}
 
+   /// Runs the pass on `node`, seeding the required columns from the node's output
+   /// schema (the query result keeps exactly those columns).
+   static operators::QueryNodePtr run(operators::QueryNodePtr node);
+
    operators::QueryNodePtr operator()(operators::TableScanNode& node);
    operators::QueryNodePtr operator()(operators::AggregateNode& node);
    operators::QueryNodePtr operator()(operators::ProjectNode& node);
