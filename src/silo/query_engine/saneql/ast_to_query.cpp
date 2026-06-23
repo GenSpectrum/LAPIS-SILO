@@ -791,12 +791,11 @@ std::optional<std::string> ColumnToReferenceSequenceVisitor::operator(
    const schema::TableSchema& table_schema,
    const schema::ColumnIdentifier& column_identifier
 ) {
-   auto* metadata =
-      table_schema
-         .getColumnMetadata<storage::column::SequenceColumn<silo::Nucleotide>>(
-            column_identifier.name
-         )
-         .value();
+   auto* metadata = table_schema
+                       .getColumnMetadata<storage::column::SequenceColumn<silo::Nucleotide>>(
+                          column_identifier.name
+                       )
+                       .value();
    std::string reference;
    std::ranges::transform(
       metadata->reference_sequence, std::back_inserter(reference), silo::Nucleotide::symbolToChar
@@ -844,9 +843,8 @@ operators::QueryNodePtr wrapWithDecompressIfNeeded(
       if (!schema::isSequenceColumn(col.type)) {
          continue;
       }
-      auto reference = storage::column::visit(
-         col.type, ColumnToReferenceSequenceVisitor{}, *table_schema, col
-      );
+      auto reference =
+         storage::column::visit(col.type, ColumnToReferenceSequenceVisitor{}, *table_schema, col);
       if (reference.has_value()) {
          assignments.push_back(
             {.output_column = {.name = col.name, .type = schema::ColumnType::STRING},

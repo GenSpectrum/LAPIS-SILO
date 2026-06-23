@@ -12,6 +12,7 @@
 #include <arrow/datum.h>
 #include <nlohmann/json_fwd.hpp>
 
+#include "silo/common/panic.h"
 #include "silo/common/size_constants.h"
 #include "silo/query_engine/exec_node/throttled_batch_reslicer.h"
 #include "silo/query_engine/exec_node/zstd_decompress_expression.h"
@@ -44,8 +45,7 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
    if (const auto* field_ref = dynamic_cast<const expressions::FieldRef*>(&expression)) {
       return arrow::compute::field_ref(field_ref->column.name);
    }
-   if (const auto* zstd =
-          dynamic_cast<const expressions::ZstdDecompressScalar*>(&expression)) {
+   if (const auto* zstd = dynamic_cast<const expressions::ZstdDecompressScalar*>(&expression)) {
       return exec_node::ZstdDecompressExpression::make(
          arrow::compute::field_ref(zstd->input_column.name), zstd->dictionary_string
       );
@@ -85,15 +85,23 @@ arrow::Result<arrow::acero::ExecNode*> MapNode::addToExecPlan(
 
    // When any assignment uses zstd decompression, insert a backpressure sink/source pair
    // before the projection so that Arrow can throttle the upstream scan appropriately.
+   // Decompression inflates each batch by (roughly) the reference/dictionary size, so we
+   // size the batches relative to the summed reference sizes to bound peak memory.
+   bool has_decompression = false;
    size_t sum_of_reference_genome_sizes = 0;
    for (const auto& assignment : assignments) {
       if (const auto* zstd =
              dynamic_cast<const expressions::ZstdDecompressScalar*>(assignment.expression.get())) {
+         has_decompression = true;
          sum_of_reference_genome_sizes += zstd->dictionary_string.size();
       }
    }
 
-   if (sum_of_reference_genome_sizes > 0) {
+   if (has_decompression) {
+      // A decompression assignment must carry a non-empty reference/dictionary; otherwise
+      // batch sizing below would divide by zero and the column could not be decompressed.
+      SILO_ASSERT_GT(sum_of_reference_genome_sizes, 0U);
+
       const auto& input_ordering = current_node->ordering();
 
       arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> batch_generator;
@@ -117,9 +125,8 @@ arrow::Result<arrow::acero::ExecNode*> MapNode::addToExecPlan(
          "additional sink node to help backpressure application before zstd decompression"
       );
 
-      const auto maximum_batch_size = static_cast<int64_t>(
-         std::max(silo::common::S_64_MB / sum_of_reference_genome_sizes, 1UL)
-      );
+      const auto maximum_batch_size =
+         static_cast<int64_t>(std::max(silo::common::S_64_MB / sum_of_reference_genome_sizes, 1UL));
       constexpr std::chrono::milliseconds TARGET_BATCH_RATE{667};
 
       ARROW_ASSIGN_OR_RAISE(

@@ -7,17 +7,21 @@ using silo::ReferenceGenomes;
 using silo::test::QueryTestData;
 using silo::test::QueryTestScenario;
 
-nlohmann::json createData(const std::string& primaryKey, int value) {
+nlohmann::json createData(
+   const std::string& primaryKey,
+   int value,
+   const nlohmann::json& unaligned_segment1 = nullptr
+) {
    return {
       {"primaryKey", primaryKey},
       {"int_value", value},
       {"segment1", nullptr},
       {"gene1", nullptr},
-      {"unaligned_segment1", nullptr}
+      {"unaligned_segment1", unaligned_segment1}
    };
 }
 
-const std::vector<nlohmann::json> DATA = {createData("id_0", 1), createData("id_1", 2)};
+const std::vector<nlohmann::json> DATA = {createData("id_0", 1, "ACGT"), createData("id_1", 2)};
 
 const auto DATABASE_CONFIG =
    R"(
@@ -89,6 +93,42 @@ const QueryTestScenario MAP_ONLY_MAPPED_COLUMN_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"a", 1}}, {{"a", 1}}})
 };
 
+// A table scan that exposes a (compressed) sequence column is wrapped in a MapNode
+// holding a ZstdDecompressScalar assignment by wrapWithDecompressIfNeeded. This
+// exercises the decompression path (backpressure sink/source + ProjectNode) of
+// MapNode::addToExecPlan end-to-end.
+const QueryTestScenario DECOMPRESS_SEQUENCE_SCENARIO = {
+   .name = "DECOMPRESS_SEQUENCE",
+   .query = "default.project({primaryKey, unaligned_segment1}).orderBy({primaryKey})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}},
+       {{"primaryKey", "id_1"}, {"unaligned_segment1", nullptr}}}
+   )
+};
+
+// The decompression MapNode is pruned by ColumnNarrowingPass when the sequence column
+// is not required, so only the pass-through columns survive.
+const QueryTestScenario DECOMPRESS_PRUNED_WHEN_UNUSED_SCENARIO = {
+   .name = "DECOMPRESS_PRUNED_WHEN_UNUSED",
+   .query = "default.project({primaryKey, int_value}).orderBy({primaryKey})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"int_value", 1}}, {{"primaryKey", "id_1"}, {"int_value", 2}}}
+   )
+};
+
+// A user map() stacked on top of the implicit decompression MapNode: both the
+// decompressed sequence column and a mapped literal column flow through.
+const QueryTestScenario DECOMPRESS_WITH_USER_MAP_SCENARIO = {
+   .name = "DECOMPRESS_WITH_USER_MAP",
+   .query =
+      "default.map({tag := 7}).project({primaryKey, unaligned_segment1, "
+      "tag}).orderBy({primaryKey})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}, {"tag", 7}},
+       {{"primaryKey", "id_1"}, {"unaligned_segment1", nullptr}, {"tag", 7}}}
+   )
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -99,6 +139,9 @@ QUERY_TEST(
       MAP_OVERRIDE_SCENARIO,
       MAP_INT64_SCENARIO,
       MAP_FIELD_REF_SCENARIO,
-      MAP_ONLY_MAPPED_COLUMN_SCENARIO
+      MAP_ONLY_MAPPED_COLUMN_SCENARIO,
+      DECOMPRESS_SEQUENCE_SCENARIO,
+      DECOMPRESS_PRUNED_WHEN_UNUSED_SCENARIO,
+      DECOMPRESS_WITH_USER_MAP_SCENARIO
    )
 );

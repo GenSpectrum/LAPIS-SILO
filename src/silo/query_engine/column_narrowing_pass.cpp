@@ -1,5 +1,7 @@
 #include "silo/query_engine/column_narrowing_pass.h"
 
+#include <algorithm>
+
 #include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
@@ -86,8 +88,21 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
    // scalar assignments. We only keep assignments that produce required output columns;
    // the child must provide the referenced columns for those assignments plus any
    // required pass-through columns.
+   //
+   // Output columns are identified by name (MapNode::getOutputSchema and addToExecPlan
+   // both key assignments by name), so we match a required column to an assignment by
+   // name. The child likewise cannot expose two columns of the same name, so child
+   // requirements are deduplicated by name rather than by full ColumnIdentifier — a
+   // decompression assignment requests its input column as a sequence type while a
+   // pass-through of the same name would request it as STRING.
    RequiredColumns child_required;
    std::vector<operators::MapNode::Assignment> kept_assignments;
+
+   const auto already_required = [&](const schema::ColumnIdentifier& column) {
+      return std::ranges::any_of(child_required, [&](const auto& existing) {
+         return existing.name == column.name;
+      });
+   };
 
    for (const auto& required_column : required) {
       auto it = std::ranges::find_if(node.assignments, [&](const auto& assignment) {
@@ -96,7 +111,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
       if (it != node.assignments.end()) {
          // This assignment produces the required column — keep it and add its inputs.
          for (const auto& referenced_column : it->expression->freeIUs()) {
-            if (std::ranges::find(child_required, referenced_column) == child_required.end()) {
+            if (!already_required(referenced_column)) {
                child_required.push_back(referenced_column);
             }
          }
@@ -104,7 +119,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
          node.assignments.erase(it);
       } else {
          // Pass-through column: the child must provide it directly.
-         if (std::ranges::find(child_required, required_column) == child_required.end()) {
+         if (!already_required(required_column)) {
             child_required.push_back(required_column);
          }
       }

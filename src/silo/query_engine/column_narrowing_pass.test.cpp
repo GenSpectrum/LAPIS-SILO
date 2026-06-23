@@ -93,10 +93,19 @@ operators::TableScanNode& leafScan(operators::QueryNode& node) {
 operators::MapNode::Assignment decompressAssignment(const ColumnIdentifier& sequence_col) {
    return {
       .output_column = col(sequence_col.name),
-      .expression = std::make_unique<silo::query_engine::expressions::ZstdDecompressScalar>(
-         sequence_col, "A"
-      )
+      .expression =
+         std::make_unique<silo::query_engine::expressions::ZstdDecompressScalar>(sequence_col, "A")
    };
+}
+
+// Assignment holds a move-only expression, so it cannot be brace-initialized into a
+// vector (that would copy). This wraps a single assignment into a vector by moving.
+std::vector<operators::MapNode::Assignment> decompressAssignments(
+   const ColumnIdentifier& sequence_col
+) {
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(decompressAssignment(sequence_col));
+   return assignments;
 }
 
 // --- TableScanNode ---
@@ -263,9 +272,8 @@ TEST(ColumnNarrowingPassMap, keepsSequenceColumnInChildWhenRequired) {
    auto nuc_col = colWithType("nuc", ColumnType::NUCLEOTIDE_SEQUENCE);
    auto id_col = col("id");
    auto scan = makeScan({nuc_col, id_col});
-   operators::QueryNodePtr node = std::make_unique<operators::MapNode>(
-      std::move(scan), std::vector<operators::MapNode::Assignment>{decompressAssignment(nuc_col)}
-   );
+   operators::QueryNodePtr node =
+      std::make_unique<operators::MapNode>(std::move(scan), decompressAssignments(nuc_col));
 
    // The parent sees "nuc" as STRING (MapNode output schema).
    silo::query_engine::ColumnNarrowingPass pass({col("nuc")});
@@ -281,9 +289,8 @@ TEST(ColumnNarrowingPassMap, keepsSequenceColumnInChildWhenRequired) {
 TEST(ColumnNarrowingPassMap, doesNotEliminateNodeWhenSequenceColumnRequired) {
    auto nuc_col = colWithType("nuc", ColumnType::NUCLEOTIDE_SEQUENCE);
    auto scan = makeScan({nuc_col});
-   operators::QueryNodePtr node = std::make_unique<operators::MapNode>(
-      std::move(scan), std::vector<operators::MapNode::Assignment>{decompressAssignment(nuc_col)}
-   );
+   operators::QueryNodePtr node =
+      std::make_unique<operators::MapNode>(std::move(scan), decompressAssignments(nuc_col));
 
    silo::query_engine::ColumnNarrowingPass pass({col("nuc")});
    if (auto new_node = operators::visit(*node, pass)) {
@@ -318,9 +325,8 @@ TEST(ColumnNarrowingPassMap, eliminatesNodeWhenNoAssignmentIsRequired) {
    auto nuc_col = colWithType("nuc", ColumnType::NUCLEOTIDE_SEQUENCE);
    auto id_col = col("id");
    auto scan = makeScan({nuc_col, id_col});
-   operators::QueryNodePtr node = std::make_unique<operators::MapNode>(
-      std::move(scan), std::vector<operators::MapNode::Assignment>{decompressAssignment(nuc_col)}
-   );
+   operators::QueryNodePtr node =
+      std::make_unique<operators::MapNode>(std::move(scan), decompressAssignments(nuc_col));
 
    // Only "id" is required - the decompression assignment for "nuc" can be dropped.
    silo::query_engine::ColumnNarrowingPass pass({id_col});
