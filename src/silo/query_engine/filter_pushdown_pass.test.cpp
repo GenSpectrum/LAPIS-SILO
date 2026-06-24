@@ -9,7 +9,9 @@
 #include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/map_node.h"
+#include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
+#include "silo/query_engine/operators/union_all_node.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
@@ -38,6 +40,18 @@ std::unique_ptr<expressions::Expression> makeDummyFilter() {
    return std::make_unique<expressions::BoolLiteral>(true);
 }
 
+operators::QueryNodePtr makeScan() {
+   return std::make_unique<operators::TableScanNode>(
+      makeTable(), makeDummyFilter(), std::vector<silo::schema::ColumnIdentifier>{}
+   );
+}
+
+operators::QueryNodePtr makeFilteredScan(bool filter_value) {
+   return std::make_unique<operators::FilterNode>(
+      makeScan(), std::make_unique<expressions::BoolLiteral>(filter_value)
+   );
+}
+
 // --- FilterNode(TableScanNode) ---
 
 TEST(FilterPushdownPass, eliminatesFilterNodeAboveTableScan) {
@@ -53,6 +67,20 @@ TEST(FilterPushdownPass, eliminatesFilterNodeAboveTableScan) {
    EXPECT_EQ(result->kind(), operators::NodeKind::TABLE_SCAN);
    auto* table_scan = dynamic_cast<operators::TableScanNode*>(result.get());
    EXPECT_EQ(table_scan->filter->toString(), "And(And(true & true))");
+}
+
+// --- FilterNode(FilterNode(TableScanNode)) ---
+TEST(FilterPushdownPass, eliminatesStackedFilterNodesAboveTableScan) {
+   auto inner_filter = makeFilteredScan(false);
+   auto outer_filter =
+      std::make_unique<operators::FilterNode>(std::move(inner_filter), makeDummyFilter());
+
+   auto result = FilterPushdownPass::run(std::move(outer_filter));
+
+   // Both FilterNodes are gone; result is the TableScanNode with all three filters merged.
+   EXPECT_EQ(result->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(result.get());
+   EXPECT_EQ(table_scan->filter->toString(), "And(And(And(true & false & true)))");
 }
 
 // --- MapNode(FilterNode(TableScanNode)) ---
@@ -80,6 +108,58 @@ TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
    ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
    auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
    EXPECT_EQ(table_scan->filter->toString(), "And(And(true & true))");
+}
+
+// --- FilterNode(ProjectNode(MapNode(FilterNode(TableScanNode)))) ---
+TEST(FilterPushdownPass, pushesFilterThroughProjectAndMapIntoTableScan) {
+   auto inner_filter = makeFilteredScan(false);
+
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
+       .expression = std::make_unique<expressions::Int64Literal>(3)}
+   );
+   auto map_node =
+      std::make_unique<operators::MapNode>(std::move(inner_filter), std::move(assignments));
+   auto project_node = std::make_unique<operators::ProjectNode>(
+      std::move(map_node),
+      std::vector<silo::schema::ColumnIdentifier>{
+         {.name = "x", .type = silo::schema::ColumnType::INT64}
+      }
+   );
+   auto outer_filter =
+      std::make_unique<operators::FilterNode>(std::move(project_node), makeDummyFilter());
+
+   auto result = FilterPushdownPass::run(std::move(outer_filter));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::PROJECT);
+   auto* project = dynamic_cast<operators::ProjectNode*>(result.get());
+   ASSERT_EQ(project->child->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(project->child.get());
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
+   EXPECT_EQ(table_scan->filter->toString(), "And(And(And(true & false & true)))");
+}
+
+// --- FilterNode(UnionAllNode(FilterNode(TableScanNode), FilterNode(TableScanNode))) ---
+TEST(FilterPushdownPass, pushesFilterIntoBothUnionAllBranches) {
+   // left branch: Filter(false, Scan), right branch: Filter(true, Scan)
+   auto union_all = std::make_unique<operators::UnionAllNode>(
+      makeFilteredScan(false), makeFilteredScan(true)
+   );
+   auto filter_node = std::make_unique<operators::FilterNode>(std::move(union_all), makeDummyFilter());
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::UNION_ALL);
+   auto* union_node = dynamic_cast<operators::UnionAllNode*>(result.get());
+   ASSERT_EQ(union_node->left->kind(), operators::NodeKind::TABLE_SCAN);
+   ASSERT_EQ(union_node->right->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* left_scan = dynamic_cast<operators::TableScanNode*>(union_node->left.get());
+   auto* right_scan = dynamic_cast<operators::TableScanNode*>(union_node->right.get());
+   // outer filter (true) + branch filter (false/true) + scan filter (true)
+   EXPECT_EQ(left_scan->filter->toString(), "And(And(And(true & false & true)))");
+   EXPECT_EQ(right_scan->filter->toString(), "And(And(And(true & true & true)))");
 }
 
 }  // namespace
