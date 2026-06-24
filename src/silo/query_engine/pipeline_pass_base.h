@@ -48,11 +48,15 @@ class PipelinePassBase {
    friend Derived;
 
   public:
-   /// Entry point: walks `node` with a fresh pass and returns the (possibly replaced)
-   /// root. Requires `Derived` to be default-constructible. A pass that needs
-   /// construction arguments (e.g. seeded state) must provide its own `run()` instead.
+   /// Customization point for constructing the pass instance used by `run()`. The default
+   /// default-constructs `Derived`. A pass that needs to seed state from the root node (e.g.
+   /// from its output schema) overrides this instead of reimplementing `run()`.
+   static Derived makePass(const operators::QueryNodePtr& /*node*/) { return Derived{}; }
+
+   /// Entry point: walks `node` with a pass obtained from `makePass(node)` and returns the
+   /// (possibly replaced) root.
    static operators::QueryNodePtr run(operators::QueryNodePtr node) {
-      Derived pass;
+      Derived pass = Derived::makePass(node);
       pass.propagateToNode(node);
       return node;
    }
