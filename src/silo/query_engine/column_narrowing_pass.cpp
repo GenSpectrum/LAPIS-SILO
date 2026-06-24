@@ -123,14 +123,17 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
       );
       if (reversed_assignments_iterator != node.assignments.rend()) {
          // This assignment produces the required column — keep it and add its inputs.
-         for (const auto& referenced_column : reversed_assignments_iterator->expression->freeIUs()) {
+         for (const auto& referenced_column :
+              reversed_assignments_iterator->expression->freeIUs()) {
             if (!already_required(referenced_column)) {
                child_required.push_back(referenced_column);
             }
          }
          // Convert the reverse iterator to a forward iterator: base() points one past the
          // element, so step back one to index the kept assignment.
-         const auto index = std::distance(node.assignments.begin(), std::next(reversed_assignments_iterator).base());
+         const auto index = std::distance(
+            node.assignments.begin(), std::next(reversed_assignments_iterator).base()
+         );
          keep_assignment[index] = true;
       } else {
          // Pass-through column: the child must provide it directly.
