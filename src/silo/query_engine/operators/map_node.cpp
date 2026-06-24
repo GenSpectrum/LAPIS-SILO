@@ -16,6 +16,7 @@
 #include "silo/common/size_constants.h"
 #include "silo/query_engine/exec_node/throttled_batch_reslicer.h"
 #include "silo/query_engine/exec_node/zstd_decompress_expression.h"
+#include "silo/query_engine/expressions/at.h"
 #include "silo/query_engine/expressions/field_ref.h"
 #include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/expressions/zstd_decompress_scalar.h"
@@ -48,6 +49,18 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
    if (const auto* zstd = dynamic_cast<const expressions::ZstdDecompressScalar*>(&expression)) {
       return exec_node::ZstdDecompressExpression::make(
          arrow::compute::field_ref(zstd->input_column.name), zstd->dictionary_string
+      );
+   }
+   if (const auto* at_function = dynamic_cast<const expressions::At*>(&expression)) {
+      // `at` is 1-indexed; utf8_slice_codeunits takes a 0-indexed, half-open
+      // [start, stop) range of code units, so extract the single character at
+      // position-1.
+      const int64_t start = static_cast<int64_t>(at_function->position) - 1;
+      const auto stop = static_cast<int64_t>(at_function->position);
+      return arrow::compute::call(
+         "utf8_slice_codeunits",
+         {arrow::compute::field_ref(at_function->input_column.name)},
+         arrow::compute::SliceOptions(start, stop)
       );
    }
    return arrow::Status::NotImplemented(

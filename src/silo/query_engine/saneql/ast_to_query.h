@@ -27,6 +27,12 @@ operators::QueryNodePtr convertExpression(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables
 );
 
-std::unique_ptr<expressions::Expression> convertToFilter(const ast::Expression& ast);
+/// Converts a saneql expression into a boolean filter predicate. `schema` lists the
+/// columns available where the predicate appears (the input table or child node's
+/// output), used to resolve referenced columns to their full {name, type}.
+std::unique_ptr<expressions::Expression> convertToFilter(
+   const ast::Expression& ast,
+   const std::vector<schema::ColumnIdentifier>& schema
+);
 
 }  // namespace silo::query_engine::saneql

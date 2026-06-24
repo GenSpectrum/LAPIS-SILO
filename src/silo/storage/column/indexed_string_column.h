@@ -18,6 +18,7 @@
 #include "silo/common/lineage_tree.h"
 #include "silo/common/types.h"
 #include "silo/schema/database_schema.h"
+#include "silo/storage/column/chunked_value_buffer.h"
 #include "silo/storage/column/column.h"
 #include "silo/storage/column/column_metadata.h"
 #include "silo/storage/column/lineage_index.h"
@@ -75,7 +76,7 @@ class IndexedStringColumn {
    roaring::Roaring null_bitmap;
 
   private:
-   std::vector<Idx> value_ids;
+   ChunkedValueBuffer<Idx> value_ids;
    std::unordered_map<Idx, roaring::Roaring> indexed_values;
    std::optional<LineageIndex> lineage_index;
 
@@ -90,7 +91,7 @@ class IndexedStringColumn {
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
-   [[nodiscard]] size_t numValues() const { return value_ids.size(); }
+   [[nodiscard]] size_t numValues() const { return value_ids.numValues(); }
 
    [[nodiscard]] const silo::Idx& getValue(size_t row_id) const { return value_ids.at(row_id); }
 

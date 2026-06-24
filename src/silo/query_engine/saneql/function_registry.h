@@ -92,12 +92,12 @@ class FunctionRegistry {
 
 // --- Scalar function registry ---
 
-// Currently every scalar function produces a boolean filter predicate. As other
-// scalar expressions (e.g. for use in a MapNode) are added, the registry will be
-// extended to produce them as well.
-using FilterPtr = std::unique_ptr<query_engine::expressions::Expression>;
+using ScalarExpressionPtr = std::unique_ptr<expressions::Expression>;
 
-using ScalarFunctionHandler = std::function<FilterPtr(const BoundArguments& args)>;
+using ScalarFunctionHandler = std::function<ScalarExpressionPtr(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& schema
+)>;
 
 class ScalarFunctionRegistry {
   public:

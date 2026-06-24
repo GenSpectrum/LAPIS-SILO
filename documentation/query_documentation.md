@@ -128,10 +128,11 @@ Sequence data columns use the naming convention `<sequenceName>` for aligned seq
 
 ### `map(expressions)`
 
-Adds columns to the table. `expressions` is a record of `name := value` assignments. For now only field references and the following literal values are supported: integers, floats, strings (single-quoted), and booleans.
+Adds columns to the table. `expressions` is a record of `name := value` assignments. Each value may be a literal (integers, floats, single-quoted strings, or booleans), a field reference, or a call to a non-boolean [scalar function](#scalar-functions) such as [`at`](#atcolumn-position).
 
 ```
 default.map({x := 3, label := 'cohort A', active := true, copy := country})
+default.map({second_char := primary_key.at(2)})
 ```
 
 All input columns are passed through unchanged and the new columns are appended. An assignment whose name matches an existing column replaces that column in place.
@@ -359,7 +360,15 @@ unionAll(
 
 ## Scalar Functions
 
-These are used inside `.filter(...)` predicates. For now, only boolean scalar functions exist.
+Most scalar functions are boolean predicates used inside `.filter(...)`. Functions that return a non-boolean value (currently [`at`](#atcolumn-position)) cannot be used as a filter predicate and are instead used as `map()` assignments.
+
+### `at(column, position)`
+
+Extracts the single character of a string `column` at the 1-based `position`, returning it as a string. `position` must be greater than 0. If `position` is past the end of the value, the result is an empty string `""` (a `null` value yields `null`). This is not a boolean predicate, so it cannot be used in `.filter(...)`; use it inside [`map()`](#mapexpressions).
+
+```
+default.map({second_char := primary_key.at(2)})
+```
 
 ### `between(column, from, to)`
 

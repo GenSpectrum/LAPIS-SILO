@@ -17,15 +17,19 @@ ZstdCompressedStringColumn::ZstdCompressedStringColumn(
     : metadata(metadata) {}
 
 std::expected<void, std::string> ZstdCompressedStringColumn::appendChunk(const Buffer& buffer) {
-   values.reserve(values.size() + buffer.size());
-   for (const auto& value : buffer) {
+   const size_t base = numValues();
+   std::vector<std::string> chunk;
+   chunk.reserve(buffer.size());
+   for (size_t i = 0; i < buffer.size(); ++i) {
+      const auto& value = buffer[i];
       if (value.has_value()) {
-         values.emplace_back(metadata->compressor.compress(value->data(), value->size()));
+         chunk.emplace_back(metadata->compressor.compress(value->data(), value->size()));
       } else {
-         null_bitmap.add(values.size());
-         values.emplace_back();
+         null_bitmap.add(base + i);
+         chunk.emplace_back();
       }
    }
+   values.appendChunk(std::move(chunk));
    return {};
 }
 

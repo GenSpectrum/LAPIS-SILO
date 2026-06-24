@@ -1,13 +1,17 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
+#include <deque>
 #include <expected>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
+#include <boost/serialization/deque.hpp>
 #include <boost/serialization/split_free.hpp>
 
 #include "silo/common/bidirectional_string_map.h"
@@ -58,6 +62,41 @@ class StringColumnMetadata : public ColumnMetadata {
    StringColumnMetadata& operator=(StringColumnMetadata&& other) = delete;
 };
 
+/// One immutable slice of a StringColumn, produced by a single `appendChunk` call. The German
+/// string suffix ids stored in `fixed_string_data` reference offsets within this same chunk's
+/// `variable_string_data`, so the two registries are kept paired. A chunk is never mutated once it
+/// has been appended; deleting rows rewrites whole chunks rather than shifting data across them.
+class StringColumnChunk {
+   vector::GermanStringRegistry fixed_string_data;
+
+   // These pages contain the variable string suffixes. Strings that are shorter than 12 bytes are
+   // stored only in `fixed_string_data`
+   vector::VariableDataRegistry variable_string_data;
+
+  public:
+   /// Stores `value` and returns its row index within this chunk.
+   size_t insert(std::string_view value);
+
+   /// Stores an empty placeholder for a null value and returns its row index within this chunk.
+   size_t insertNull();
+
+   [[nodiscard]] size_t numValues() const;
+
+   [[nodiscard]] SiloString getValue(size_t row_in_chunk) const;
+
+   /// This includes an (re)allocation of the resulting string, one should generally
+   /// work with the SiloString and @getValue instead
+   [[nodiscard]] std::string lookupValue(SiloString string) const;
+
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
+      // clang-format off
+      archive & fixed_string_data;
+      archive & variable_string_data;
+      // clang-format on
+   }
+};
+
 class StringColumn {
   public:
    using Metadata = StringColumnMetadata;
@@ -73,11 +112,17 @@ class StringColumn {
    roaring::Roaring null_bitmap;
 
   private:
-   vector::GermanStringRegistry fixed_string_data;
+   /// One immutable chunk per `appendChunk` call. A row id is mapped to its chunk with a binary
+   /// search over `chunk_end_offsets`; `chunk_end_offsets.back()` is the total value count. A
+   /// `std::deque` is used because `StringColumnChunk` is move-only (its pages cannot be copied)
+   /// and the deque never relocates already-appended chunks.
+   std::deque<StringColumnChunk> chunks;
+   std::vector<size_t> chunk_end_offsets;
 
-   // These pages contain the variable string suffixes. Strings that are shorter than 12 bytes are
-   // stored only in `fixed_string_data`
-   vector::VariableDataRegistry variable_string_data;
+   [[nodiscard]] size_t chunkStart(size_t chunk_idx) const;
+
+   /// Resolves a global row id to its chunk index and the row's offset within that chunk.
+   [[nodiscard]] std::pair<size_t, size_t> locate(size_t row_id) const;
 
   public:
    explicit StringColumn(Metadata* metadata);
@@ -86,43 +131,13 @@ class StringColumn {
 
    [[nodiscard]] bool isNull(size_t row_id) const;
 
-   [[nodiscard]] SiloString getValue(size_t row_id) const { return fixed_string_data.get(row_id); }
+   [[nodiscard]] SiloString getValue(size_t row_id) const;
 
-   [[nodiscard]] std::string getValueString(size_t row_id) const {
-      auto german_string = getValue(row_id);
-      return lookupValue(german_string);
-   }
+   [[nodiscard]] std::string getValueString(size_t row_id) const;
 
-   [[nodiscard]] size_t numValues() const { return fixed_string_data.numValues(); }
+   [[nodiscard]] size_t numValues() const;
 
-   /// This includes an (re)allocation of the resulting string, one should generally
-   /// work with the SiloString and @lookupSuffix instead
-   [[nodiscard]] std::string lookupValue(SiloString string) const {
-      if (string.isInPlace()) {
-         auto string_view = string.getShortString();
-         return std::string{string_view};
-      }
-      std::string result;
-      result.reserve(string.length());
-      result += string.prefix();
-
-      auto suffix_id = string.suffixId();
-      const vector::VariableDataRegistry::DataList suffix_chunks =
-         variable_string_data.get(suffix_id);
-      const vector::VariableDataRegistry::DataList* current_chunk = &suffix_chunks;
-      while (current_chunk) {
-         result += current_chunk->data;
-         current_chunk = current_chunk->continuation.get();
-      }
-      return result;
-   }
-
-   [[nodiscard]] roaring::Roaring getDescendants(const TreeNodeId& parent) const {
-      if (!metadata->phylo_tree.has_value()) {
-         return {};
-      }
-      return metadata->phylo_tree->getDescendants(parent);
-   }
+   [[nodiscard]] roaring::Roaring getDescendants(const TreeNodeId& parent) const;
 
   private:
    friend class boost::serialization::access;
@@ -130,9 +145,18 @@ class StringColumn {
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
       archive & null_bitmap;
-      archive & fixed_string_data;
-      archive & variable_string_data;
+      archive & chunks;
       // clang-format on
+      // `chunk_end_offsets` is a derived index, not serialized; rebuild it from the loaded chunks.
+      if constexpr (Archive::is_loading::value) {
+         chunk_end_offsets.clear();
+         chunk_end_offsets.reserve(chunks.size());
+         size_t total = 0;
+         for (const auto& chunk : chunks) {
+            total += chunk.numValues();
+            chunk_end_offsets.push_back(total);
+         }
+      }
    }
 };
 
@@ -140,17 +164,13 @@ class StringColumnBuilder {
    StringColumn::Buffer buffer;
 
   public:
-   void insert(std::string_view value) { buffer.emplace_back(std::string{value}); }
+   void insert(std::string_view value);
 
-   void insertNull() { buffer.emplace_back(std::nullopt); }
+   void insertNull();
 
-   [[nodiscard]] size_t numValues() const { return buffer.size(); }
+   [[nodiscard]] size_t numValues() const;
 
-   [[nodiscard]] StringColumn::Buffer finalize() {
-      StringColumn::Buffer result = std::move(buffer);
-      buffer.clear();
-      return result;
-   }
+   [[nodiscard]] StringColumn::Buffer finalize();
 };
 
 }  // namespace silo::storage::column
