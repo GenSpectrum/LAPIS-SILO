@@ -64,7 +64,7 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
       );
    }
    return arrow::Status::NotImplemented(
-      "this scalar expression type is not yet supported in map() assignments"
+      "the scalar expression ", expression.toString(), " is not supported in map() assignments"
    );
 }
 
