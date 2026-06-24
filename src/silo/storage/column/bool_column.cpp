@@ -4,21 +4,27 @@
 
 #include <spdlog/spdlog.h>
 
+#include "silo/storage/column/row_id.h"
+
 namespace silo::storage::column {
 
 BoolColumn::BoolColumn(ColumnMetadata* metadata)
     : metadata(metadata) {}
 
 std::expected<void, std::string> BoolColumn::appendChunk(const Buffer& buffer) {
-   for (const auto& value : buffer) {
+   const uint32_t base = RowId::chunkStart(num_chunks);
+   for (size_t i = 0; i < buffer.size(); ++i) {
+      const uint32_t row_id = base + static_cast<uint32_t>(i);
+      const auto& value = buffer[i];
       if (!value.has_value()) {
-         null_bitmap.add(num_values++);
+         null_bitmap.add(row_id);
       } else if (*value) {
-         true_bitmap.add(num_values++);
+         true_bitmap.add(row_id);
       } else {
-         false_bitmap.add(num_values++);
+         false_bitmap.add(row_id);
       }
    }
+   num_chunks++;
    return {};
 }
 }  // namespace silo::storage::column

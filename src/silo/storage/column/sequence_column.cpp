@@ -98,25 +98,35 @@ SequenceColumn<SymbolType>::SequenceColumn(SequenceColumnMetadata<SymbolType>* m
 
 template <typename SymbolType>
 std::expected<void, std::string> SequenceColumn<SymbolType>::appendChunk(const Buffer& buffer) {
-   for (const auto& buffered : buffer) {
+   // Each ingestion chunk occupies its own 2^16-aligned block of the global row-id space: chunk `k`
+   // spans `[k << 16, (k << 16) + buffer.size())` (see `RowId`). Assigning sparse, chunk-aligned
+   // ids here keeps the sequence column's indexes consistent with the value columns and the shared
+   // `RowLayout`, which is what the query path addresses rows by.
+   for (size_t row_in_chunk = 0; row_in_chunk < buffer.size(); ++row_in_chunk) {
+      const RowId row_id(num_chunks, row_in_chunk);
+      const auto& buffered = buffer[row_in_chunk];
       if (buffered.is_null) {
-         appendNullValue();
+         appendNullValue(row_id);
       } else {
-         appendValue(buffered);
+         appendValue(row_id, buffered);
       }
    }
+   num_chunks++;
+   // The vertical index keys its roaring containers by the row id's high 16 bits (= the chunk id),
+   // so a chunk's mutations never share a container with another chunk's. Flushing the per-position
+   // mutation buffer at every chunk boundary therefore both keeps it bounded and is correct.
+   flushBuffer();
    return {};
 }
 
 template <typename SymbolType>
-void SequenceColumn<SymbolType>::appendValue(const BufferedSequence& buffered) {
-   const uint32_t sequence_idx = sequence_count;
+void SequenceColumn<SymbolType>::appendValue(RowId row_id, const BufferedSequence& buffered) {
    sequence_count++;
 
-   horizontal_coverage_index.insertCoverage(buffered.coverage);
+   horizontal_coverage_index.insertCoverage(row_id, buffered.coverage);
 
    for (const auto& [position_idx, symbol] : buffered.mutations.mutations) {
-      mutation_buffer.at(position_idx)[symbol].push_back(sequence_idx);
+      mutation_buffer.at(position_idx)[symbol].push_back(row_id.toGlobal());
    }
 
    for (const auto& insertion_and_position : buffered.insertions.insertions) {
@@ -128,26 +138,20 @@ void SequenceColumn<SymbolType>::appendValue(const BufferedSequence& buffered) {
             genome_length
          );
       }
-      insertion_index.addLazily(position, insertion, sequence_idx);
-   }
-
-   // Flush buffer every 1 << 16 = 65536 sequences
-   if ((sequence_count % (1 << 16)) == 0) {
-      flushBuffer();
+      insertion_index.addLazily(position, insertion, row_id.toGlobal());
    }
 }
 
 template <typename SymbolType>
-void SequenceColumn<SymbolType>::appendNullValue() {
-   const size_t row_id = sequence_count;
-   null_bitmap.add(row_id);
+void SequenceColumn<SymbolType>::appendNullValue(RowId row_id) {
+   null_bitmap.add(row_id.toGlobal());
    sequence_count += 1;
-   horizontal_coverage_index.insertNullSequence();
+   horizontal_coverage_index.insertNullSequence(row_id);
 }
 
 template <typename SymbolType>
-bool SequenceColumn<SymbolType>::isNull(size_t row_id) const {
-   return null_bitmap.contains(row_id);
+bool SequenceColumn<SymbolType>::isNull(RowId row_id) const {
+   return null_bitmap.contains(row_id.toGlobal());
 }
 
 template <typename SymbolType>

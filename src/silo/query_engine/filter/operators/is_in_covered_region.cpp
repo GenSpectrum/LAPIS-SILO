@@ -29,7 +29,7 @@ std::string IsInCoveredRegion::toString() const {
 }
 
 bool IsInCoveredRegion::isCovered(uint32_t row_id) const {
-   const auto& [start, end] = horizontal_coverage_index->start_end.at(row_id);
+   const auto [start, end] = horizontal_coverage_index->coverageRange(row_id);
    // Check whether `value` is covered -> value in [start, end) and not in row_bitmap
 
    // Is it outside the range?

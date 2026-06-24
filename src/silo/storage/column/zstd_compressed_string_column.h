@@ -55,13 +55,15 @@ class ZstdCompressedStringColumn {
 
    [[nodiscard]] std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
-   [[nodiscard]] bool isNull(size_t row_id) const;
+   [[nodiscard]] bool isNull(RowId row_id) const;
 
-   [[nodiscard]] size_t numValues() const { return values.numValues(); }
+   [[nodiscard]] size_t numChunks() const { return values.numChunks(); }
 
-   [[nodiscard]] std::optional<std::string> getDecompressed(size_t row_id) const;
+   [[nodiscard]] uint32_t chunkSize(uint16_t chunk_id) const { return values.chunkSize(chunk_id); }
 
-   [[nodiscard]] std::optional<std::string> getCompressed(size_t row_id) const;
+   [[nodiscard]] std::optional<std::string> getDecompressed(RowId row_id) const;
+
+   [[nodiscard]] std::optional<std::string> getCompressed(RowId row_id) const;
 
   private:
    friend class boost::serialization::access;

@@ -37,11 +37,13 @@ class FloatColumn {
 
    explicit FloatColumn(ColumnMetadata* metadata);
 
-   [[nodiscard]] size_t numValues() const { return values.numValues(); }
+   [[nodiscard]] size_t numChunks() const { return values.numChunks(); }
 
-   [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
+   [[nodiscard]] uint32_t chunkSize(uint16_t chunk_id) const { return values.chunkSize(chunk_id); }
 
-   [[nodiscard]] double getValue(size_t row_id) const { return values.at(row_id); }
+   [[nodiscard]] bool isNull(RowId row_id) const { return null_bitmap.contains(row_id.toGlobal()); }
+
+   [[nodiscard]] double getValue(RowId row_id) const { return values.at(row_id); }
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 

@@ -60,31 +60,13 @@ std::string StringColumnChunk::lookupValue(SiloString string) const {
 StringColumn::StringColumn(StringColumnMetadata* metadata)
     : metadata(metadata) {}
 
-size_t StringColumn::chunkStart(size_t chunk_idx) const {
-   return chunk_idx == 0 ? 0 : chunk_end_offsets[chunk_idx - 1];
+SiloString StringColumn::getValue(RowId row_id) const {
+   return chunks[row_id.chunk_id].getValue(row_id.row_in_chunk);
 }
 
-std::pair<size_t, size_t> StringColumn::locate(size_t row_id) const {
-   // The chunk containing `row_id` is the first whose (exclusive) end offset exceeds it.
-   const auto chunk_idx = static_cast<size_t>(
-      std::ranges::upper_bound(chunk_end_offsets, row_id) - chunk_end_offsets.begin()
-   );
-   return {chunk_idx, row_id - chunkStart(chunk_idx)};
-}
-
-SiloString StringColumn::getValue(size_t row_id) const {
-   const auto [chunk_idx, row_in_chunk] = locate(row_id);
-   return chunks[chunk_idx].getValue(row_in_chunk);
-}
-
-std::string StringColumn::getValueString(size_t row_id) const {
-   const auto [chunk_idx, row_in_chunk] = locate(row_id);
-   const auto& chunk = chunks[chunk_idx];
-   return chunk.lookupValue(chunk.getValue(row_in_chunk));
-}
-
-size_t StringColumn::numValues() const {
-   return chunk_end_offsets.empty() ? 0 : chunk_end_offsets.back();
+std::string StringColumn::getValueString(RowId row_id) const {
+   const auto& chunk = chunks[row_id.chunk_id];
+   return chunk.lookupValue(chunk.getValue(row_id.row_in_chunk));
 }
 
 roaring::Roaring StringColumn::getDescendants(const TreeNodeId& parent) const {
@@ -139,7 +121,7 @@ std::expected<void, std::string> StringColumn::appendChunk(const Buffer& buffer)
    // Build the chunk in isolation so that previously appended chunks are never touched.
    // `registerPhyloNodes` is the only fallible step and applies its tree mutations atomically, so
    // it runs before any change to `null_bitmap`/`chunks`; on failure the column stays unmodified.
-   const size_t base = numValues();
+   const uint32_t base = RowId::chunkStart(static_cast<uint16_t>(chunks.size()));
    if (auto result = registerPhyloNodes(buffer, base, metadata); !result.has_value()) {
       return result;
    }
@@ -153,13 +135,12 @@ std::expected<void, std::string> StringColumn::appendChunk(const Buffer& buffer)
          chunk.insertNull();
       }
    }
-   chunk_end_offsets.push_back(base + chunk.numValues());
    chunks.push_back(std::move(chunk));
    return {};
 }
 
-bool StringColumn::isNull(size_t row_id) const {
-   return null_bitmap.contains(row_id);
+bool StringColumn::isNull(RowId row_id) const {
+   return null_bitmap.contains(row_id.toGlobal());
 }
 
 void StringColumnBuilder::insert(std::string_view value) {

@@ -29,25 +29,33 @@ class HorizontalCoverageIndexTest : public ::testing::Test {
    // Coverage from the sequence and offset and hand it to insertCoverage.
    void insertSequenceCoverage(std::string_view sequence, size_t offset) {
       index->insertCoverage(
+         RowId::fromGlobal(current_global_row_id++),
          extractCoverageAndMutationsFromSequence<Nucleotide>(sequence, offset, REFERENCE)
             .value()
             .coverage
       );
    }
 
+   // Bridges the old per-sequence insertion API onto the new interface: derive the
+   // Coverage from the sequence and offset and hand it to insertCoverage.
+   void insertNullCoverage() {
+      index->insertNullSequence(RowId::fromGlobal(current_global_row_id++));
+   }
+
    std::unique_ptr<HorizontalCoverageIndex> index;
+   uint32_t current_global_row_id = 0;
 };
 
 TEST_F(HorizontalCoverageIndexTest, InsertMultipleNullSequences) {
    EXPECT_NO_THROW({
-      index->insertNullSequence();
-      index->insertNullSequence();
-      index->insertNullSequence();
+      index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 0});
+      index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 1});
+      index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 2});
    });
 }
 
 TEST_F(HorizontalCoverageIndexTest, NullSequenceIsUncoveredAtAllPositions) {
-   index->insertNullSequence();  // Sequence 0 is null
+   index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 0});  // Sequence 0 is null
 
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{});
    EXPECT_EQ(index->getCoverageBitmapForPositions<51>(0).at(50), roaring::Roaring{});
@@ -55,9 +63,9 @@ TEST_F(HorizontalCoverageIndexTest, NullSequenceIsUncoveredAtAllPositions) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, MultipleNullSequencesAllUncovered) {
-   index->insertNullSequence();  // Sequence 0
-   index->insertNullSequence();  // Sequence 1
-   index->insertNullSequence();  // Sequence 2
+   index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 0});  // Sequence 0
+   index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 1});  // Sequence 1
+   index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 2});  // Sequence 2
 
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{}));
    EXPECT_EQ(index->getCoverageBitmapForPositions<2>(50).at(0), (roaring::Roaring{}));
@@ -273,7 +281,7 @@ TEST_F(HorizontalCoverageIndexTest, InsertSequenceExtendingBeyondGenome) {
 // Mixed Null and Non-Null Sequences
 TEST_F(HorizontalCoverageIndexTest, MixedNullAndCoveredSequences) {
    insertSequenceCoverage("ACGT", 0);  // Sequence 0: covers 0-3
-   index->insertNullSequence();        // Sequence 1: null (uncovered everywhere)
+   insertNullCoverage();               // Sequence 1: null (uncovered everywhere)
    insertSequenceCoverage("TGCA", 0);  // Sequence 2: covers 0-3
 
    // At positions 0-3: sequences 0 and 2 are covered, sequence 1 is uncovered
@@ -287,10 +295,10 @@ TEST_F(HorizontalCoverageIndexTest, MixedNullAndCoveredSequences) {
 }
 
 TEST_F(HorizontalCoverageIndexTest, MultipleNullsWithCoverage) {
-   index->insertNullSequence();        // Sequence 0: null
-   index->insertNullSequence();        // Sequence 1: null
+   insertNullCoverage();               // Sequence 0: null
+   insertNullCoverage();               // Sequence 1: null
    insertSequenceCoverage("ACGT", 5);  // Sequence 2: covers 5-8
-   index->insertNullSequence();        // Sequence 3: null
+   insertNullCoverage();               // Sequence 3: null
 
    // At position 0: all nulls are uncovered, seq 2 is also uncovered
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{}));
@@ -302,7 +310,7 @@ TEST_F(HorizontalCoverageIndexTest, MultipleNullsWithCoverage) {
 
 TEST_F(HorizontalCoverageIndexTest, MixedNullCoverageAndNCharacters) {
    insertSequenceCoverage("ACNGT", 0);  // Sequence 0: N at position 2
-   index->insertNullSequence();         // Sequence 1: null everywhere
+   insertNullCoverage();                // Sequence 1: null everywhere
    insertSequenceCoverage("ACGGT", 0);  // Sequence 2: fully covered 0-4
 
    // Position 2: seq 0 has N (uncovered), seq 1 is null (uncovered), seq 2 has G (covered)

@@ -44,8 +44,9 @@ NodeValuesResult getNodeValuesFromTable(
    const auto& string_column = table.columns.string_columns.at(column_name);
 
    for (const uint32_t row_in_table : bitmap_filter.getConstReference()) {
-      if (!string_column.isNull(row_in_table)) {
-         auto value = string_column.getValueString(row_in_table);
+      const auto row_id = silo::storage::column::RowId::fromGlobal(row_in_table);
+      if (!string_column.isNull(row_id)) {
+         auto value = string_column.getValueString(row_id);
          all_tree_node_ids.insert(value);
       } else {
          ++num_empty;

@@ -84,15 +84,17 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
    return profile;
 }
 
+using storage::column::RowId;
+
 namespace {
 
 template <typename SymbolType>
 std::vector<typename SymbolType::Symbol> reconstructSequenceAtRow(
    const storage::column::SequenceColumn<SymbolType>& sequence_column,
-   uint32_t row_id
+   RowId row_id
 ) {
    roaring::Roaring single_row;
-   single_row.add(row_id);
+   single_row.add(row_id.toGlobal());
 
    std::vector<std::string> sequences = {sequence_column.local_reference_sequence_string};
    sequence_column.vertical_sequence_index.overwriteSymbolsInSequences(sequences, single_row);
@@ -124,11 +126,11 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
    const auto& seq_col =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
-   std::optional<uint32_t> found_row_id;
+   std::optional<RowId> found_row_id;
 
    if (primary_key_type == schema::ColumnType::STRING) {
       const auto& primary_key_column = table.columns.string_columns.at(primary_key_name);
-      for (const storage::column::RowId row_id : table.row_layout) {
+      for (const RowId row_id : table.row_layout) {
          if (primary_key_column.getValueString(row_id) == seq_id) {
             found_row_id = row_id;
             break;
@@ -138,7 +140,7 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
       const auto& primary_key_column = table.columns.indexed_string_columns.at(primary_key_name);
       const auto bitmap_opt = primary_key_column.filter(std::optional<std::string>(seq_id));
       if (bitmap_opt.has_value() && !bitmap_opt.value()->isEmpty()) {
-         found_row_id = bitmap_opt.value()->minimum();
+         found_row_id = RowId::fromGlobal(bitmap_opt.value()->minimum());
       }
    } else {
       throw IllegalQueryException(fmt::format(

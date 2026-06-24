@@ -10,6 +10,7 @@
 
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_metadata.h"
+#include "silo/storage/column/row_id.h"
 
 namespace silo::storage::column {
 
@@ -31,19 +32,38 @@ class BoolColumn {
    Metadata* metadata;
 
   private:
-   size_t num_values = 0;
+   /// Number of appended chunks. The bitmaps are keyed by global row id, and chunk `k` starts at
+   /// `k << 16`, so this counter is needed to place each new chunk in its own 2^16 block.
+   uint16_t num_chunks = 0;
 
   public:
    explicit BoolColumn(Metadata* metadata);
 
-   [[nodiscard]] size_t numValues() const { return num_values; }
+   [[nodiscard]] size_t numChunks() const { return num_chunks; }
 
-   [[nodiscard]] bool getValue(size_t row_id) const {
-      SILO_ASSERT(!null_bitmap.contains(row_id));
-      return true_bitmap.contains(row_id);
+   /// Number of rows in chunk `chunk_id`. Every row lands in exactly one of the three disjoint
+   /// bitmaps at its sparse global id, so the chunk's size is the combined cardinality within its
+   /// 2^16-aligned block. Derived on demand (the column stores no per-chunk sizes), which is fine
+   /// as this only exists to satisfy the `Column` concept and is not on any hot path.
+   [[nodiscard]] uint32_t chunkSize(uint16_t chunk_id) const {
+      const uint64_t base = RowId::chunkStart(chunk_id);
+      const auto last = static_cast<uint32_t>(base + 0xFFFF);
+      const auto count_in_block = [&](const roaring::Roaring& bitmap) -> uint64_t {
+         const uint64_t up_to_last = bitmap.rank(last);
+         const uint64_t before_base = base == 0 ? 0 : bitmap.rank(static_cast<uint32_t>(base - 1));
+         return up_to_last - before_base;
+      };
+      return static_cast<uint32_t>(
+         count_in_block(true_bitmap) + count_in_block(false_bitmap) + count_in_block(null_bitmap)
+      );
    }
 
-   [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
+   [[nodiscard]] bool getValue(RowId row_id) const {
+      SILO_ASSERT(!null_bitmap.contains(row_id.toGlobal()));
+      return true_bitmap.contains(row_id.toGlobal());
+   }
+
+   [[nodiscard]] bool isNull(RowId row_id) const { return null_bitmap.contains(row_id.toGlobal()); }
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
@@ -55,7 +75,7 @@ class BoolColumn {
       archive & true_bitmap;
       archive & false_bitmap;
       archive & null_bitmap;
-      archive & num_values;
+      archive & num_chunks;
       // clang-format on
    }
 };

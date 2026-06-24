@@ -27,7 +27,12 @@ concept Column = requires(T column) {
 
    typename T::value_type;
 
-   { column.numValues() } -> std::convertible_to<std::size_t>;
+   // A column stores its values as the immutable chunks in which they were ingested. Iterating the
+   // rows themselves is the table's job (it owns the shared `RowLayout`); a column only reports how
+   // many chunks it holds so the table can check every column was appended to in lockstep.
+   { column.numChunks() } -> std::convertible_to<std::size_t>;
+
+   { column.chunkSize(static_cast<uint32_t>(0)) } -> std::convertible_to<uint32_t>;
 
    { T::TYPE } -> std::convertible_to<schema::ColumnType>;
 };

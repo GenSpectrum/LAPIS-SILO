@@ -27,18 +27,18 @@ std::unique_ptr<filter::operators::Operator> createMatchingBitmap(
    const RE2& search_expression,
    storage::column::RowLayout row_layout
 ) {
-   return std::make_unique<filter::operators::BitmapProducer>(
-      [&, row_layout]() {
-         roaring::Roaring result_bitmap;
-         for (const uint32_t row_idx : row_layout) {
-            const std::string full_string = string_column.getValueString(row_idx);
-            if (re2::RE2::PartialMatch(full_string, search_expression)) {
-               result_bitmap.add(row_idx);
-            }
+   auto producer = [&string_column, &search_expression, row_layout]() {
+      roaring::Roaring result_bitmap;
+      for (const auto row_id : row_layout) {
+         const std::string full_string = string_column.getValueString(row_id);
+         if (re2::RE2::PartialMatch(full_string, search_expression)) {
+            result_bitmap.add(row_id.toGlobal());
          }
-         return CopyOnWriteBitmap(std::move(result_bitmap));
-      },
-      row_layout
+      }
+      return CopyOnWriteBitmap(std::move(result_bitmap));
+   };
+   return std::make_unique<filter::operators::BitmapProducer>(
+      std::move(producer), std::move(row_layout)
    );
 }
 

@@ -73,11 +73,11 @@ std::expected<void, std::string> IndexedStringColumn::appendChunk(const Buffer& 
 
    // Build this chunk's value ids in isolation so that previously appended chunks are never
    // touched; the inverted index and lineage index are global and keep being updated by row id.
-   const size_t base = numValues();
+   const uint32_t base = RowId::chunkStart(static_cast<uint16_t>(value_ids.numChunks()));
    std::vector<Idx> chunk;
    chunk.reserve(buffer.size());
    for (size_t i = 0; i < buffer.size(); ++i) {
-      const size_t row_id = base + i;
+      const uint32_t row_id = base + static_cast<uint32_t>(i);
       const auto& maybe_value = buffer[i];
       if (!maybe_value.has_value()) {
          null_bitmap.add(row_id);
@@ -106,8 +106,8 @@ std::expected<void, std::string> IndexedStringColumn::appendChunk(const Buffer& 
    return {};
 }
 
-bool IndexedStringColumn::isNull(size_t row_id) const {
-   return null_bitmap.contains(row_id);
+bool IndexedStringColumn::isNull(RowId row_id) const {
+   return null_bitmap.contains(row_id.toGlobal());
 }
 
 std::optional<silo::Idx> IndexedStringColumn::getValueId(const std::string& value) const {

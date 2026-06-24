@@ -31,8 +31,9 @@ class Predicate {
    ) const {
       roaring::Roaring result;
       for (const storage::column::RowId row_id : row_layout) {
-         if (match(row_id)) {
-            result.add(row_id);
+         const uint32_t row = row_id.toGlobal();
+         if (match(row)) {
+            result.add(row);
          }
       }
       return result;
@@ -107,7 +108,8 @@ class CompareToValueSelection : public Predicate {
       );
    }
 
-   [[nodiscard]] bool match(uint32_t row_id) const override {
+   [[nodiscard]] bool match(uint32_t global_row_id) const override {
+      const storage::column::RowId row_id = storage::column::RowId::fromGlobal(global_row_id);
       if (column.isNull(row_id)) {
          return with_nulls;
       }

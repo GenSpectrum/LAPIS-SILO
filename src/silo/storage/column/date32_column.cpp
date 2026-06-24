@@ -12,7 +12,7 @@ bool Date32Column::isSorted() const {
 }
 
 std::expected<void, std::string> Date32Column::appendChunk(const Buffer& buffer) {
-   const size_t base = numValues();
+   const uint32_t base = RowId::chunkStart(static_cast<uint16_t>(values.numChunks()));
    std::vector<common::Date32> chunk;
    chunk.reserve(buffer.size());
    for (size_t i = 0; i < buffer.size(); ++i) {
@@ -23,7 +23,7 @@ std::expected<void, std::string> Date32Column::appendChunk(const Buffer& buffer)
          last_appended_value = buffer[i];
          chunk.push_back(*buffer[i]);
       } else {
-         null_bitmap.add(base + i);
+         null_bitmap.add(base + static_cast<uint32_t>(i));
          chunk.push_back(0);
          is_sorted = false;
       }

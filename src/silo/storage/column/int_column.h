@@ -37,14 +37,16 @@ class IntColumn {
 
    explicit IntColumn(Metadata* metadata);
 
-   [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
+   [[nodiscard]] bool isNull(RowId row_id) const { return null_bitmap.contains(row_id.toGlobal()); }
 
-   [[nodiscard]] int32_t getValue(size_t row_id) const {
-      SILO_ASSERT(!null_bitmap.contains(row_id));
+   [[nodiscard]] int32_t getValue(RowId row_id) const {
+      SILO_ASSERT(!null_bitmap.contains(row_id.toGlobal()));
       return values.at(row_id);
    }
 
-   [[nodiscard]] size_t numValues() const { return values.numValues(); }
+   [[nodiscard]] size_t numChunks() const { return values.numChunks(); }
+
+   [[nodiscard]] uint32_t chunkSize(uint16_t chunk_id) const { return values.chunkSize(chunk_id); }
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 

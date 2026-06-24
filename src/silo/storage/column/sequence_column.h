@@ -20,6 +20,7 @@
 #include "silo/storage/column/column_metadata.h"
 #include "silo/storage/column/horizontal_coverage_index.h"
 #include "silo/storage/column/insertion_index.h"
+#include "silo/storage/column/row_id.h"
 #include "silo/storage/column/vertical_sequence_index.h"
 #include "silo/zstd/zstd_decompressor.h"
 
@@ -90,6 +91,7 @@ class SequenceColumn {
       archive & sequence_column_info;
       archive & sequence_count;
       archive & null_bitmap;
+      archive & num_chunks;
       // clang-format on
    }
 
@@ -106,10 +108,20 @@ class SequenceColumn {
    SequenceColumnInfo sequence_column_info;
    roaring::Roaring null_bitmap;
    uint32_t sequence_count = 0;
+   /// Number of appended chunks; see `RowLayout`. Kept so the column satisfies the `Column` concept
+   /// and the table can check every column was appended to in lockstep.
+   uint16_t num_chunks = 0;
 
    explicit SequenceColumn(Metadata* metadata);
 
-   [[nodiscard]] size_t numValues() const { return sequence_count; }
+   [[nodiscard]] size_t numChunks() const { return num_chunks; }
+
+   /// Number of rows in ingestion chunk `chunk_id`. The shared `RowLayout` is the authoritative
+   /// source, but the sequence column tracks the same per-chunk sizes in its coverage index (every
+   /// row, null or not, contributes a coverage entry) so it satisfies the `Column` concept.
+   [[nodiscard]] uint32_t chunkSize(uint16_t chunk_id) const {
+      return horizontal_coverage_index.chunkSize(chunk_id);
+   }
 
    [[nodiscard]] std::vector<typename SymbolType::Symbol> getLocalReference() const {
       std::vector<typename SymbolType::Symbol> local_reference;
@@ -130,7 +142,7 @@ class SequenceColumn {
    /// assigning global row ids as it goes.
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
-   [[nodiscard]] bool isNull(size_t row_id) const;
+   [[nodiscard]] bool isNull(RowId row_id) const;
 
    void finalize();
 
@@ -138,11 +150,11 @@ class SequenceColumn {
    static constexpr size_t BUFFER_SIZE = 1024;
    std::vector<SymbolMap<SymbolType, std::vector<uint32_t>>> mutation_buffer;
 
-   // Population of a single pre-diffed row into the global structures: assigns
-   // the global row id and records its coverage, mutations and insertions.
-   void appendValue(const BufferedSequence& buffered);
+   // Population of a single pre-diffed row into the global structures at the given sparse global
+   // row id (`chunk_id << 16 | row_in_chunk`): records its coverage, mutations and insertions.
+   void appendValue(RowId row_id, const BufferedSequence& buffered);
 
-   void appendNullValue();
+   void appendNullValue(RowId row_id);
 
    void fillIndexes();
 

@@ -40,7 +40,8 @@ std::string StringInSet<ColumnType>::toString() const {
 
 template <Column ColumnType>
 bool StringInSet<ColumnType>::match(uint32_t row_id) const {
-   const bool in_set = values.contains(column->getValueString(row_id));
+   const bool in_set =
+      values.contains(column->getValueString(storage::column::RowId::fromGlobal(row_id)));
    return comparator == Comparator::IN ? in_set : !in_set;
 }
 
