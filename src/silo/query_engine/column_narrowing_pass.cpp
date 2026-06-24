@@ -114,25 +114,23 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
    std::vector<bool> keep_assignment(node.assignments.size(), false);
 
    for (const auto& required_column : required) {
-      // getOutputSchema/addToExecPlan apply assignments front-to-back, so for duplicate
-      // output names the *last* assignment wins. Match the last one to preserve that
-      // behavior; earlier duplicates are dead and dropped together with their inputs.
-      auto reverse_it = std::ranges::find_if(
+      // for duplicate output names the *last* assignment wins
+      auto reversed_assignments_iterator = std::ranges::find_if(
          std::ranges::reverse_view(node.assignments),
          [&](const auto& assignment) {
             return assignment.output_column.name == required_column.name;
          }
       );
-      if (reverse_it != node.assignments.rend()) {
+      if (reversed_assignments_iterator != node.assignments.rend()) {
          // This assignment produces the required column — keep it and add its inputs.
-         for (const auto& referenced_column : reverse_it->expression->freeIUs()) {
+         for (const auto& referenced_column : reversed_assignments_iterator->expression->freeIUs()) {
             if (!already_required(referenced_column)) {
                child_required.push_back(referenced_column);
             }
          }
          // Convert the reverse iterator to a forward iterator: base() points one past the
          // element, so step back one to index the kept assignment.
-         const auto index = std::distance(node.assignments.begin(), std::next(reverse_it).base());
+         const auto index = std::distance(node.assignments.begin(), std::next(reversed_assignments_iterator).base());
          keep_assignment[index] = true;
       } else {
          // Pass-through column: the child must provide it directly.
