@@ -367,7 +367,8 @@ TEST(ColumnNarrowingPassMap, keepsReferencedColumnAndPrunesOthers) {
 TEST(ColumnNarrowingPassUnionAll, narrowsBothBranchesIndependently) {
    auto left = makeScan({col("a"), col("b"), col("c")});
    auto right = makeScan({col("a"), col("b"), col("c")});
-   const auto union_all = std::make_unique<operators::UnionAllNode>(std::move(left), std::move(right));
+   const auto union_all =
+      std::make_unique<operators::UnionAllNode>(std::move(left), std::move(right));
 
    silo::query_engine::ColumnNarrowingPass pass({col("a")});
    pass(*union_all);
