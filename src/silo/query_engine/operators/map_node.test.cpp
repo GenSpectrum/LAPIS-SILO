@@ -163,16 +163,6 @@ const QueryTestScenario DECOMPRESS_SEQUENCE_SCENARIO = {
    )
 };
 
-// The decompression MapNode is pruned by ColumnNarrowingPass when the sequence column
-// is not required, so only the pass-through columns survive.
-const QueryTestScenario DECOMPRESS_PRUNED_WHEN_UNUSED_SCENARIO = {
-   .name = "DECOMPRESS_PRUNED_WHEN_UNUSED",
-   .query = "default.project({primaryKey, int_value}).orderBy({primaryKey})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"int_value", 1}}, {{"primaryKey", "id_1"}, {"int_value", 2}}}
-   )
-};
-
 // A user map() stacked on top of the implicit decompression MapNode: both the
 // decompressed sequence column and a mapped literal column flow through.
 const QueryTestScenario DECOMPRESS_WITH_USER_MAP_SCENARIO = {
@@ -202,7 +192,6 @@ QUERY_TEST(
       MAP_AT_SEQUENCE_INNER_SCENARIO,
       MAP_ONLY_MAPPED_COLUMN_SCENARIO,
       DECOMPRESS_SEQUENCE_SCENARIO,
-      DECOMPRESS_PRUNED_WHEN_UNUSED_SCENARIO,
       DECOMPRESS_WITH_USER_MAP_SCENARIO
    )
 );

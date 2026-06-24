@@ -118,6 +118,7 @@ arrow::Result<std::optional<arrow::acero::ExecNode*>> insertBackpressureForDecom
 
    const auto maximum_batch_size =
       static_cast<int64_t>(std::max(silo::common::S_64_MB / sum_of_reference_genome_sizes, 1UL));
+
    constexpr std::chrono::milliseconds TARGET_BATCH_RATE{667};
 
    ARROW_ASSIGN_OR_RAISE(
