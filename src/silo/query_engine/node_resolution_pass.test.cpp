@@ -12,6 +12,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/illegal_query_exception.h"
+#include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
@@ -71,6 +72,19 @@ std::vector<operators::MapNode::Assignment> makeMapAssignments() {
        .expression = std::make_unique<silo::query_engine::expressions::Int64Literal>(3)}
    );
    return assignments;
+}
+
+// COUNT(*) aggregate (no group-by, single COUNT) over the given child.
+operators::QueryNodePtr makeCountStarAggregate(operators::QueryNodePtr child) {
+   return std::make_unique<operators::AggregateNode>(
+      std::move(child),
+      std::vector<silo::schema::ColumnIdentifier>{},
+      std::vector<operators::AggregateDefinition>{
+         {.output_name = "count",
+          .function = operators::AggregateFunction::COUNT,
+          .source_column = std::nullopt}
+      }
+   );
 }
 
 // --- mutations() ---
@@ -195,6 +209,51 @@ TEST(NodeResolutionPassMap, propagatesChildErrorThroughMap) {
          ::testing::HasSubstr("insertions() must be applied to a table scan")
       )
    );
+}
+
+// --- happy-path resolutions (the replacement-returning handlers) ---
+TEST(NodeResolutionPassMutations, resolvesToMutationsNode) {
+   auto node = std::make_unique<operators::UnresolvedMutationsNode<Nucleotide>>(
+      makeTableScan(), std::vector<std::string>{}, 0.0, std::vector<std::string>{}
+   );
+
+   auto result = NodeResolutionPass::run(std::move(node));
+
+   EXPECT_EQ(result->kind(), operators::NodeKind::MUTATIONS_NUCLEOTIDE);
+}
+
+TEST(NodeResolutionPassInsertions, resolvesToInsertionsNode) {
+   auto node = std::make_unique<operators::UnresolvedInsertionsNode<Nucleotide>>(
+      makeTableScan(), std::vector<std::string>{}
+   );
+
+   auto result = NodeResolutionPass::run(std::move(node));
+
+   EXPECT_EQ(result->kind(), operators::NodeKind::INSERTIONS_NUCLEOTIDE);
+}
+
+// --- aggregate() COUNT(*) optimization ---
+
+// AggregateNode(COUNT(*), TableScan) is rewritten into a CountFilterNode.
+TEST(NodeResolutionPassAggregate, countStarOverTableScanBecomesCountFilter) {
+   auto aggregate = makeCountStarAggregate(makeTableScan());
+
+   auto result = NodeResolutionPass::run(std::move(aggregate));
+
+   EXPECT_EQ(result->kind(), operators::NodeKind::COUNT_FILTER);
+}
+
+// COUNT(*) over a non-scan child (here a FilterNode) is NOT optimizable: the AggregateNode is
+// kept in place (handler returns nullptr) and its child is still resolved/propagated.
+// In the full pipeline, the filter will thus be eliminated before resolving these nodes.
+TEST(NodeResolutionPassAggregate, countStarOverNonScanIsNotOptimized) {
+   auto aggregate = makeCountStarAggregate(makeNonScanChild());
+
+   auto result = NodeResolutionPass::run(std::move(aggregate));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::AGGREGATE);
+   auto* agg = dynamic_cast<operators::AggregateNode*>(result.get());
+   EXPECT_EQ(agg->child->kind(), operators::NodeKind::FILTER);
 }
 
 }  // namespace
