@@ -14,7 +14,9 @@
 #include <gtest/gtest.h>
 #include "silo/common/phylo_tree.h"
 #include "silo/common/tree_node_id.h"
+#include "silo/storage/column/row_id.h"
 
+using silo::storage::column::RowId;
 using silo::storage::column::StringColumn;
 using silo::storage::column::StringColumnMetadata;
 
@@ -48,12 +50,12 @@ TEST(StringColumn, rawInsertedValuesRequeried) {
    )
                   .has_value());
 
-   EXPECT_EQ(under_test.getValueString(0), "value 1");
-   EXPECT_EQ(under_test.getValueString(1), "value 2");
-   EXPECT_EQ(under_test.getValueString(2), "value 2");
-   EXPECT_EQ(under_test.getValueString(3), "value 3");
-   EXPECT_EQ(under_test.getValueString(4), "some string that is a little longer 1");
-   EXPECT_EQ(under_test.getValueString(5), "value 1");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 0)), "value 1");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 1)), "value 2");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 2)), "value 2");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 3)), "value 3");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 4)), "some string that is a little longer 1");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 5)), "value 1");
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -113,9 +115,9 @@ TEST(StringColumn, rawInsertedValuesWithPhyloTreeRequeried) {
    auto tree_node_id_not_in_tree = metadata.phylo_tree->getTreeNodeId("NOT_IN_TREE");
    auto tree_node_id_root = metadata.phylo_tree->getTreeNodeId("ROOT");
 
-   EXPECT_EQ(under_test.getValueString(0), "CHILD2");
-   EXPECT_EQ(under_test.getValueString(1), "CHILD3");
-   EXPECT_EQ(under_test.getValueString(2), "NOT_IN_TREE");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 0)), "CHILD2");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 1)), "CHILD3");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 2)), "NOT_IN_TREE");
    EXPECT_EQ(under_test.getDescendants(tree_node_id_child2.value()).cardinality(), 0);
    EXPECT_EQ(under_test.getDescendants(tree_node_id_child.value()).cardinality(), 2);
    EXPECT_EQ(under_test.getDescendants(tree_node_id_root.value()).cardinality(), 2);
@@ -143,8 +145,8 @@ TEST(StringColumn, duplicatePhyloLeafLeavesColumnUnmodified) {
    auto result = under_test.appendChunk(builder.finalize());
 
    ASSERT_FALSE(result.has_value());
-   EXPECT_EQ(result.error(), "Node 'CHILD2' already exists in the phylogenetic tree.");
-   EXPECT_EQ(under_test.numValues(), 1);
+   EXPECT_EQ(under_test.numChunks(), 1);
+   EXPECT_EQ(under_test.chunkSize(0), 1);
    EXPECT_TRUE(under_test.null_bitmap.isEmpty());
    // CHILD3 must not have been bound, since the whole buffer was rejected.
    EXPECT_EQ(
@@ -166,7 +168,7 @@ TEST(StringColumn, duplicatePhyloLeafWithinSingleBufferIsRejected) {
    auto result = appendStringValues(under_test, {"CHILD2", "CHILD2"});
 
    ASSERT_FALSE(result.has_value());
-   EXPECT_EQ(under_test.numValues(), 0);
+   EXPECT_EQ(under_test.numChunks(), 0);
    EXPECT_EQ(
       metadata.phylo_tree->nodes.at(silo::common::TreeNodeId{"CHILD2"})->row_index, std::nullopt
    );
@@ -188,7 +190,7 @@ TEST(StringColumn, rawInsertedValuesRequeryLongValue) {
    )
                   .has_value());
 
-   EXPECT_EQ(under_test.getValueString(4), "some string that is a little longer 1");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 4)), "some string that is a little longer 1");
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -218,9 +220,9 @@ TEST(StringColumn, compareAcrossColumns) {
    )
                   .has_value());
 
-   EXPECT_EQ(column_1.getValueString(0), column_1.getValueString(5));
-   EXPECT_EQ(column_1.getValueString(5), column_2.getValueString(2));
-   EXPECT_EQ(column_1.getValueString(4), column_2.getValueString(4));
+   EXPECT_EQ(column_1.getValueString(RowId(0, 0)), column_1.getValueString(RowId(0, 5)));
+   EXPECT_EQ(column_1.getValueString(RowId(0, 5)), column_2.getValueString(RowId(0, 2)));
+   EXPECT_EQ(column_1.getValueString(RowId(0, 4)), column_2.getValueString(RowId(0, 4)));
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -228,9 +230,9 @@ TEST(StringColumn, valuesSpanningMultipleAppendedChunks) {
    StringColumnMetadata metadata{"string_column"};
    StringColumn under_test(&metadata);
 
-   // Each appendChunk starts a fresh, immutable chunk. Row ids continue across chunk boundaries and
-   // both short (in-place) and long (suffix in variable data) values must resolve to their own
-   // chunk's registries.
+   // Each appendChunk starts a fresh, immutable chunk whose row ids begin at a fresh 2^16-aligned
+   // offset (chunk k starts at k << 16). Both short (in-place) and long (suffix in variable data)
+   // values must resolve to their own chunk's registries.
    SILO_ASSERT(
       appendStringValues(under_test, {"short a", "a long value that spills over 1"}).has_value()
    );
@@ -240,13 +242,16 @@ TEST(StringColumn, valuesSpanningMultipleAppendedChunks) {
    );
    SILO_ASSERT(appendStringValues(under_test, {"a long value that spills over 3"}).has_value());
 
-   EXPECT_EQ(under_test.numValues(), 6);
-   EXPECT_EQ(under_test.getValueString(0), "short a");
-   EXPECT_EQ(under_test.getValueString(1), "a long value that spills over 1");
-   EXPECT_EQ(under_test.getValueString(2), "short b");
-   EXPECT_EQ(under_test.getValueString(3), "a long value that spills over 2");
-   EXPECT_EQ(under_test.getValueString(4), "short c");
-   EXPECT_EQ(under_test.getValueString(5), "a long value that spills over 3");
+   EXPECT_EQ(under_test.numChunks(), 3);
+   EXPECT_EQ(under_test.chunkSize(0), 2);
+   EXPECT_EQ(under_test.chunkSize(1), 3);
+   EXPECT_EQ(under_test.chunkSize(2), 1);
+   EXPECT_EQ(under_test.getValueString(RowId(0, 0)), "short a");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 1)), "a long value that spills over 1");
+   EXPECT_EQ(under_test.getValueString(RowId(1, 0)), "short b");
+   EXPECT_EQ(under_test.getValueString(RowId(1, 1)), "a long value that spills over 2");
+   EXPECT_EQ(under_test.getValueString(RowId(1, 2)), "short c");
+   EXPECT_EQ(under_test.getValueString(RowId(2, 0)), "a long value that spills over 3");
 }
 
 TEST(StringColumn, manyLongValues) {
@@ -266,8 +271,8 @@ TEST(StringColumn, manyLongValues) {
    SILO_ASSERT(column.appendChunk(builder.finalize()).has_value());
 
    for (size_t i = 0; i < 50000; ++i) {
-      ASSERT_EQ(column.getValue(i).fastCompare(test_values.at(i)), std::nullopt);
-      ASSERT_EQ(column.getValueString(i), test_values.at(i));
+      ASSERT_EQ(column.getValue(RowId(0, i)).fastCompare(test_values.at(i)), std::nullopt);
+      ASSERT_EQ(column.getValueString(RowId(0, i)), test_values.at(i));
    }
 }
 
@@ -296,14 +301,15 @@ TEST(StringColumn, manyMixedValues) {
 
    for (size_t i = 0; i < 50001; ++i) {
       if (i % 2 == 1) {
-         ASSERT_TRUE(column.getValue(i).fastCompare(test_values.at(i)).has_value());
+         ASSERT_TRUE(column.getValue(RowId(0, i)).fastCompare(test_values.at(i)).has_value());
          ASSERT_EQ(
-            column.getValue(i).fastCompare(test_values.at(i)).value(), std::strong_ordering::equal
+            column.getValue(RowId(0, i)).fastCompare(test_values.at(i)).value(),
+            std::strong_ordering::equal
          );
-         ASSERT_EQ(column.getValueString(i), test_values.at(i));
+         ASSERT_EQ(column.getValueString(RowId(0, i)), test_values.at(i));
       } else {
-         ASSERT_EQ(column.getValue(i).fastCompare(test_values.at(i)), std::nullopt);
-         ASSERT_EQ(column.getValueString(i), test_values.at(i));
+         ASSERT_EQ(column.getValue(RowId(0, i)).fastCompare(test_values.at(i)), std::nullopt);
+         ASSERT_EQ(column.getValueString(RowId(0, i)), test_values.at(i));
       }
    }
 }

@@ -92,15 +92,17 @@ __attribute__((noinline)) void subtractCumulativeNsFromPositions(
 
 __attribute__((noinline)) void subtractStartAndEndNCounts(
    std::vector<uint32_t>& count_per_local_reference_position,
-   const std::vector<std::pair<uint32_t, uint32_t>>& start_end,
+   const storage::column::HorizontalCoverageIndex& coverage_index,
    size_t sequence_length
 ) {
    EVOBENCH_SCOPE("Mutations", "subtractStartAndEndNCounts");
    std::vector<size_t> cumulative_starts(sequence_length + 1);
    std::vector<size_t> cumulative_ends(sequence_length + 1);
-   for (const auto& [start, end] : start_end) {
-      cumulative_starts.at(start) += 1;
-      cumulative_ends.at(end) += 1;
+   for (const auto& chunk : coverage_index.start_end) {
+      for (const auto& [start, end] : chunk) {
+         cumulative_starts.at(start) += 1;
+         cumulative_ends.at(end) += 1;
+      }
    }
    subtractCumulativeNsFromPositions(
       count_per_local_reference_position, sequence_length, cumulative_starts, cumulative_ends
@@ -111,10 +113,10 @@ __attribute__((noinline)) void subtractFilteredNCounts(
    std::vector<uint32_t>& count_per_local_reference_position,
    const CopyOnWriteBitmap& filter,
    size_t sequence_length,
-   const std::map<uint32_t, roaring::Roaring>& horizontal_bitmaps,
-   const std::vector<std::pair<uint32_t, uint32_t>>& start_end
+   const storage::column::HorizontalCoverageIndex& coverage_index
 ) {
    EVOBENCH_SCOPE("Mutations", "subtractFilteredNCounts");
+   const auto& horizontal_bitmaps = coverage_index.horizontal_bitmaps;
    std::vector<size_t> cumulative_starts(sequence_length + 1);
    std::vector<size_t> cumulative_ends(sequence_length + 1);
    for (const uint32_t idx : filter.getConstReference()) {
@@ -125,7 +127,7 @@ __attribute__((noinline)) void subtractFilteredNCounts(
             count_per_local_reference_position[position_idx] -= 1;
          }
       }
-      auto [start, end] = start_end.at(idx);
+      auto [start, end] = coverage_index.coverageRange(idx);
       cumulative_starts.at(start) += 1;
       cumulative_ends.at(end) += 1;
    }
@@ -217,8 +219,7 @@ void addMutationCountsForMixedBitmaps(
       count_per_local_reference_position,
       bitmap_filter,
       sequence_length,
-      sequence_column.horizontal_coverage_index.horizontal_bitmaps,
-      sequence_column.horizontal_coverage_index.start_end
+      sequence_column.horizontal_coverage_index
    );
    countActualFilteredMutations(
       count_of_mutations_per_position,
@@ -248,9 +249,7 @@ void addMutationCountsForFullBitmaps(
       sequence_column.horizontal_coverage_index.horizontal_bitmaps
    );
    subtractStartAndEndNCounts(
-      count_per_local_reference_position,
-      sequence_column.horizontal_coverage_index.start_end,
-      sequence_length
+      count_per_local_reference_position, sequence_column.horizontal_coverage_index, sequence_length
    );
    countActualMutations(
       count_of_mutations_per_position,

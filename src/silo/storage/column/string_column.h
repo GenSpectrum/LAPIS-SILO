@@ -21,6 +21,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column.h"
 #include "silo/storage/column/column_metadata.h"
+#include "silo/storage/column/row_id.h"
 #include "silo/storage/vector/german_string_registry.h"
 #include "silo/storage/vector/variable_data_registry.h"
 
@@ -112,30 +113,28 @@ class StringColumn {
    roaring::Roaring null_bitmap;
 
   private:
-   /// One immutable chunk per `appendChunk` call. A row id is mapped to its chunk with a binary
-   /// search over `chunk_end_offsets`; `chunk_end_offsets.back()` is the total value count. A
-   /// `std::deque` is used because `StringColumnChunk` is move-only (its pages cannot be copied)
-   /// and the deque never relocates already-appended chunks.
+   /// One immutable chunk per `appendChunk` call. A row id is mapped to its chunk by splitting it
+   /// into a chunk id and a within-chunk index (see `RowId`): chunk `k` owns the global ids
+   /// `[k << 16, (k << 16) + chunk_size)`. A `std::deque` is used because `StringColumnChunk` is
+   /// move-only (its pages cannot be copied) and the deque never relocates already-appended chunks.
    std::deque<StringColumnChunk> chunks;
-   std::vector<size_t> chunk_end_offsets;
-
-   [[nodiscard]] size_t chunkStart(size_t chunk_idx) const;
-
-   /// Resolves a global row id to its chunk index and the row's offset within that chunk.
-   [[nodiscard]] std::pair<size_t, size_t> locate(size_t row_id) const;
 
   public:
    explicit StringColumn(Metadata* metadata);
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
-   [[nodiscard]] bool isNull(size_t row_id) const;
+   [[nodiscard]] bool isNull(RowId row_id) const;
 
-   [[nodiscard]] SiloString getValue(size_t row_id) const;
+   [[nodiscard]] SiloString getValue(RowId row_id) const;
 
-   [[nodiscard]] std::string getValueString(size_t row_id) const;
+   [[nodiscard]] std::string getValueString(RowId row_id) const;
 
-   [[nodiscard]] size_t numValues() const;
+   [[nodiscard]] size_t numChunks() const { return chunks.size(); }
+
+   [[nodiscard]] uint32_t chunkSize(size_t chunk_idx) const {
+      return chunks.at(chunk_idx).numValues();
+   }
 
    [[nodiscard]] roaring::Roaring getDescendants(const TreeNodeId& parent) const;
 
@@ -147,16 +146,6 @@ class StringColumn {
       archive & null_bitmap;
       archive & chunks;
       // clang-format on
-      // `chunk_end_offsets` is a derived index, not serialized; rebuild it from the loaded chunks.
-      if constexpr (Archive::is_loading::value) {
-         chunk_end_offsets.clear();
-         chunk_end_offsets.reserve(chunks.size());
-         size_t total = 0;
-         for (const auto& chunk : chunks) {
-            total += chunk.numValues();
-            chunk_end_offsets.push_back(total);
-         }
-      }
    }
 };
 

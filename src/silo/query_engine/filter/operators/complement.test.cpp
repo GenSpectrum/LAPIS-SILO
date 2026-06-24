@@ -32,7 +32,7 @@ TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenEmptyInput) {
 
 TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenEmptyDatabase) {
    const roaring::Roaring test_bitmap(roaring::Roaring({}));
-   const auto row_layout = RowLayout::of(0);
+   const auto row_layout = RowLayout::of();
 
    const Complement under_test(
       std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout

@@ -56,7 +56,7 @@ arrow::Status appendSequences(
 
    auto reconstructed_sequence_iterator = reconstructed_non_null_sequences.begin();
    for (auto row_id : row_ids) {
-      if (sequence_column.isNull(row_id)) {
+      if (sequence_column.isNull(storage::column::RowId::fromGlobal(row_id))) {
          ARROW_RETURN_NOT_OK(output_array.AppendNull());
       } else {
          auto& reconstructed_sequence = *reconstructed_sequence_iterator;
@@ -132,7 +132,7 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStr
    const auto& column =
       table.columns.getColumns<storage::column::ZstdCompressedStringColumn>().at(column_name);
    for (auto row_id : row_ids) {
-      auto value = column.getCompressed(row_id);
+      auto value = column.getCompressed(storage::column::RowId::fromGlobal(row_id));
       if (value.has_value()) {
          ARROW_RETURN_NOT_OK(array->Append(value.value()));
       } else {
@@ -153,7 +153,8 @@ arrow::Status ColumnEntryAppender::operator()(
    EVOBENCH_SCOPE("ColumnEntryAppender", columnTypeToString(Column::TYPE));
    auto& column = table.columns.getColumns<Column>().at(column_name);
    auto array = table_scan_node.getColumnTypeArrayBuilders<Column>().at(column_name);
-   for (auto row_id : row_ids) {
+   for (auto global_row_id : row_ids) {
+      const auto row_id = storage::column::RowId::fromGlobal(global_row_id);
       if (column.isNull(row_id)) {
          ARROW_RETURN_NOT_OK(array->AppendNull());
       } else {

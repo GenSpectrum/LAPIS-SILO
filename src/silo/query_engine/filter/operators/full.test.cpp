@@ -12,7 +12,7 @@ TEST(OperatorFull, containsCheckShouldReturnCorrectValues) {
 }
 
 TEST(OperatorFull, containsCheckShouldReturnCorrectValuesWhenEmptyDatabase) {
-   const Full under_test(RowLayout::of(0));
+   const Full under_test(RowLayout::of());
    ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring());
 }
 

@@ -72,6 +72,7 @@ void Table::validate() const {
 
 std::expected<void, std::string> Table::bulkInsert(ColumnGroupBuilder& block) {
    row_layout.appendChunk(static_cast<uint32_t>(block.numBufferedRows()));
+   sequence_count += block.numBufferedRows();
    for (const auto& column : columns.metadata) {
       auto result = column::visit(column.type, BulkInsertVisitor{}, columns, block, column.name);
       if (!result.has_value()) {
@@ -111,12 +112,12 @@ void Table::validatePrimaryKeyUnique() const {
 
 void Table::validateNucleotideSequences() const {
    for (const auto& [name, nuc_column] : columns.nuc_columns) {
-      if (nuc_column.sequence_count > row_layout.numRows()) {
+      if (nuc_column.sequence_count > sequence_count) {
          SILO_PANIC(
             "nuc_store {} ({}) has invalid size (expected {}).",
             name,
             nuc_column.sequence_count,
-            row_layout.numRows()
+            sequence_count
          );
       }
       if (nuc_column.metadata->reference_sequence.empty()) {
@@ -127,12 +128,12 @@ void Table::validateNucleotideSequences() const {
 
 void Table::validateAminoAcidSequences() const {
    for (const auto& [name, aa_column] : columns.aa_columns) {
-      if (aa_column.sequence_count > row_layout.numRows()) {
+      if (aa_column.sequence_count > sequence_count) {
          SILO_PANIC(
             "aa_store {} ({}) has invalid size (expected {}).",
             name,
             aa_column.sequence_count,
-            row_layout.numRows()
+            sequence_count
          );
       }
       if (aa_column.metadata->reference_sequence.empty()) {
@@ -147,11 +148,29 @@ void Table::validateColumnsHaveSize(
    const std::string& columnType
 ) const {
    for (const auto& col : columnsOfTheType) {
-      if (col.second.numValues() != row_layout.numRows()) {
+      // Every column is appended to in lockstep with the table's `RowLayout`, so each must hold
+      // exactly one chunk per layout chunk. The per-chunk row counts live in the layout itself.
+      if (col.second.numChunks() != row_layout.numChunks()) {
          throw preprocessing::PreprocessingException(
-            columnType + " " + col.first + " has invalid size " +
-            std::to_string(col.second.numValues())
+            "{} {} has invalid chunk count {} (expected {})",
+            columnType,
+            col.first,
+            col.second.numChunks(),
+            row_layout.numChunks()
          );
+      }
+      const uint16_t num_chunks = row_layout.numChunks();
+      for (uint16_t chunk_id = 0; chunk_id < num_chunks; ++chunk_id) {
+         if (col.second.chunkSize(chunk_id) != row_layout.chunkSize(chunk_id)) {
+            throw preprocessing::PreprocessingException(
+               "{} {} has invalid chunk (id={}) size {} (expected {})",
+               columnType,
+               col.first,
+               chunk_id,
+               col.second.chunkSize(chunk_id),
+               row_layout.chunkSize(chunk_id)
+            );
+         }
       }
    }
 }

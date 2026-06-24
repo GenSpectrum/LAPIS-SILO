@@ -5,6 +5,7 @@
 
 using silo::storage::column::ColumnMetadata;
 using silo::storage::column::FloatColumn;
+using silo::storage::column::RowId;
 
 TEST(FloatColumn, doesNotErrorOnValidInputs) {
    ColumnMetadata column_metadata("float_column1");
@@ -13,8 +14,9 @@ TEST(FloatColumn, doesNotErrorOnValidInputs) {
    builder.insert(0.1);
    builder.insertNull();
    SILO_ASSERT(column.appendChunk(builder.finalize()).has_value());
-   ASSERT_EQ(column.numValues(), 2);
-   ASSERT_FALSE(column.isNull(0));
-   ASSERT_EQ(column.getValue(0), 0.1);
-   ASSERT_TRUE(column.isNull(1));
+   ASSERT_EQ(column.numChunks(), 1);
+   ASSERT_EQ(column.chunkSize(0), 2);
+   ASSERT_FALSE(column.isNull(RowId(0, 0)));
+   ASSERT_EQ(column.getValue(RowId(0, 0)), 0.1);
+   ASSERT_TRUE(column.isNull(RowId(0, 1)));
 }

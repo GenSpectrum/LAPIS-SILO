@@ -13,6 +13,7 @@ using silo::common::RecombinantEdgeFollowingMode;
 using silo::preprocessing::LineageDefinitionFile;
 using silo::storage::column::IndexedStringColumn;
 using silo::storage::column::IndexedStringColumnMetadata;
+using silo::storage::column::RowId;
 
 namespace {
 // Buffers the values into a chunk and appends it to the column.
@@ -58,11 +59,11 @@ TEST(IndexedStringColumn, insertValuesToPartition) {
          .has_value()
    );
 
-   EXPECT_EQ(under_test.getValue(0), 0U);
-   EXPECT_EQ(under_test.getValue(1), 1U);
-   EXPECT_EQ(under_test.getValue(2), 1U);
-   EXPECT_EQ(under_test.getValue(3), 2U);
-   EXPECT_EQ(under_test.getValue(4), 0U);
+   EXPECT_EQ(under_test.getValue(RowId(0, 0)), 0U);
+   EXPECT_EQ(under_test.getValue(RowId(0, 1)), 1U);
+   EXPECT_EQ(under_test.getValue(RowId(0, 2)), 1U);
+   EXPECT_EQ(under_test.getValue(RowId(0, 3)), 2U);
+   EXPECT_EQ(under_test.getValue(RowId(0, 4)), 0U);
 
    EXPECT_EQ(under_test.lookupValue(0U), "value 1");
    EXPECT_EQ(under_test.lookupValue(1U), "value 2");
@@ -74,22 +75,32 @@ TEST(IndexedStringColumn, valuesSpanningMultipleAppendedChunks) {
    IndexedStringColumnMetadata column_metadata("some_column");
    IndexedStringColumn under_test{&column_metadata};
 
-   // Each appendChunk starts a fresh, immutable chunk of value ids while the inverted index keeps
-   // accumulating global row ids across chunk boundaries.
+   // Each appendChunk starts a fresh, immutable chunk of value ids whose global row ids begin at a
+   // fresh 2^16-aligned offset (chunk k starts at k << 16), while the inverted index accumulates
+   // those aligned global row ids across chunk boundaries.
    ASSERT_TRUE(appendIndexedValues(under_test, {"value 1", "value 2"}).has_value());
    ASSERT_TRUE(appendIndexedValues(under_test, {"value 2", "value 3"}).has_value());
    ASSERT_TRUE(appendIndexedValues(under_test, {"value 1"}).has_value());
 
-   ASSERT_EQ(under_test.numValues(), 5);
-   EXPECT_EQ(under_test.getValueString(0), "value 1");
-   EXPECT_EQ(under_test.getValueString(1), "value 2");
-   EXPECT_EQ(under_test.getValueString(2), "value 2");
-   EXPECT_EQ(under_test.getValueString(3), "value 3");
-   EXPECT_EQ(under_test.getValueString(4), "value 1");
+   ASSERT_EQ(under_test.numChunks(), 3);
+   ASSERT_EQ(under_test.chunkSize(0), 2);
+   ASSERT_EQ(under_test.chunkSize(1), 2);
+   ASSERT_EQ(under_test.chunkSize(2), 1);
+   EXPECT_EQ(under_test.getValueString(RowId(0, 0)), "value 1");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 1)), "value 2");
+   EXPECT_EQ(under_test.getValueString(RowId(1, 0)), "value 2");
+   EXPECT_EQ(under_test.getValueString(RowId(1, 1)), "value 3");
+   EXPECT_EQ(under_test.getValueString(RowId(2, 0)), "value 1");
 
-   ASSERT_EQ(*under_test.filter("value 1").value(), roaring::Roaring({0, 4}));
-   ASSERT_EQ(*under_test.filter("value 2").value(), roaring::Roaring({1, 2}));
-   ASSERT_EQ(*under_test.filter("value 3").value(), roaring::Roaring({3}));
+   ASSERT_EQ(
+      *under_test.filter("value 1").value(),
+      roaring::Roaring({RowId::chunkStart(0) + 0, RowId::chunkStart(2) + 0})
+   );
+   ASSERT_EQ(
+      *under_test.filter("value 2").value(),
+      roaring::Roaring({RowId::chunkStart(0) + 1, RowId::chunkStart(1) + 0})
+   );
+   ASSERT_EQ(*under_test.filter("value 3").value(), roaring::Roaring({RowId::chunkStart(1) + 1}));
 }
 
 TEST(IndexedStringColumn, addingLineageAndThenSublineageFiltersCorrectly) {
@@ -236,10 +247,11 @@ A.1:
    ASSERT_FALSE(failure.has_value());
 
    // The failed chunk must not have grown the column nor added any of its rows to the index.
-   ASSERT_EQ(under_test.numValues(), 3);
-   EXPECT_EQ(under_test.getValueString(0), "A");
-   EXPECT_EQ(under_test.getValueString(1), "A.1");
-   EXPECT_EQ(under_test.getValueString(2), "A");
+   ASSERT_EQ(under_test.numChunks(), 1);
+   ASSERT_EQ(under_test.chunkSize(0), 3);
+   EXPECT_EQ(under_test.getValueString(RowId(0, 0)), "A");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 1)), "A.1");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 2)), "A");
 
    EXPECT_EQ(*under_test.filter({"A"}).value(), roaring::Roaring({0, 2}));
    EXPECT_EQ(*under_test.filter({"A.1"}).value(), roaring::Roaring({1}));
@@ -255,9 +267,11 @@ A.1:
    // A subsequent valid chunk must continue numbering rows from where the successful chunk ended,
    // i.e. the failed chunk left no gaps in the row ids.
    ASSERT_TRUE(appendIndexedValues(under_test, {"A.1"}).has_value());
-   ASSERT_EQ(under_test.numValues(), 4);
-   EXPECT_EQ(under_test.getValueString(3), "A.1");
-   EXPECT_EQ(*under_test.filter({"A.1"}).value(), roaring::Roaring({1, 3}));
+   ASSERT_EQ(under_test.numChunks(), 2);
+   ASSERT_EQ(under_test.chunkSize(0), 3);
+   ASSERT_EQ(under_test.chunkSize(1), 1);
+   EXPECT_EQ(under_test.getValueString(RowId(1, 0)), "A.1");
+   EXPECT_EQ(*under_test.filter({"A.1"}).value(), roaring::Roaring({1, RowId(1, 0).toGlobal()}));
 }
 
 TEST(IndexedStringColumn, ignoringErrorWhenInsertingIncorrectLineagesIfSpecified) {

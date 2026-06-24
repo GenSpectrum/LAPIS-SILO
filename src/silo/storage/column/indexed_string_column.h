@@ -91,13 +91,17 @@ class IndexedStringColumn {
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
-   [[nodiscard]] size_t numValues() const { return value_ids.numValues(); }
+   [[nodiscard]] size_t numChunks() const { return value_ids.numChunks(); }
 
-   [[nodiscard]] const silo::Idx& getValue(size_t row_id) const { return value_ids.at(row_id); }
+   [[nodiscard]] uint32_t chunkSize(uint16_t chunk_id) const {
+      return value_ids.chunkSize(chunk_id);
+   }
 
-   [[nodiscard]] bool isNull(size_t row_id) const;
+   [[nodiscard]] const Idx& getValue(RowId row_id) const { return value_ids.at(row_id); }
 
-   [[nodiscard]] std::string getValueString(size_t row_id) const {
+   [[nodiscard]] bool isNull(RowId row_id) const;
+
+   [[nodiscard]] std::string getValueString(RowId row_id) const {
       return std::string{lookupValue(getValue(row_id))};
    }
 

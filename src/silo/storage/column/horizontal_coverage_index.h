@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <utility>
 #include <vector>
@@ -8,8 +9,8 @@
 #include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
-#include "silo/common/panic.h"
 #include "silo/roaring_util/bitmap_builder.h"
+#include "silo/storage/column/row_id.h"
 
 namespace silo {
 class Coverage;
@@ -19,43 +20,56 @@ namespace silo::storage::column {
 
 class HorizontalCoverageIndex {
   public:
+   /// Per-row N positions inside the covered region, keyed by sparse global row id (chunk `k` lives
+   /// at `k << 16`, see `RowId`). Only rows that actually carry such positions get an entry.
    std::map<uint32_t, roaring::Roaring> horizontal_bitmaps;
-   std::vector<std::pair<uint32_t, uint32_t>> start_end;
 
-   // Also store the [start, end) range of 2^16 size batches of sequences.
-   // This allows faster computations as many sequences can be skipped
-   // if we can be sure they have no coverage at given positions.
+   /// Per-chunk covered range of every row: `start_end[chunk_id][row_in_chunk]` is the `[start,
+   /// end)` of the row whose global id is `(chunk_id << 16) | row_in_chunk`. Stored chunk by chunk
+   /// (rather than as one flat dense vector) so it matches the 2^16-aligned `RowId` layout and the
+   /// gaps between partially-filled chunks cost nothing.
+   std::vector<std::vector<std::pair<uint32_t, uint32_t>>> start_end;
+
+   // Also store the [start, end) range of each 2^16-aligned chunk of sequences. This allows faster
+   // computations as whole chunks can be skipped if they cannot have coverage at a given position.
    std::vector<std::pair<uint32_t, uint32_t>> batch_start_ends;
 
-   void insertCoverage(const Coverage& coverage);
+   void insertCoverage(RowId row_id, const Coverage& coverage);
 
-   void insertNullSequence();
+   void insertNullSequence(RowId row_id);
+
+   [[nodiscard]] size_t numChunks() const { return start_end.size(); }
+
+   [[nodiscard]] uint32_t chunkSize(uint16_t chunk_id) const {
+      return static_cast<uint32_t>(start_end.at(chunk_id).size());
+   }
+
+   /// The covered `[start, end)` range of the row addressed by its sparse global row id.
+   [[nodiscard]] std::pair<uint32_t, uint32_t> coverageRange(uint32_t global_row_id) const {
+      const RowId row_id = RowId::fromGlobal(global_row_id);
+      return start_end.at(row_id.chunk_id).at(row_id.row_in_chunk);
+   }
 
    template <size_t BatchSize>
    [[nodiscard]] std::array<roaring::Roaring, BatchSize> getCoverageBitmapForPositions(
       uint32_t position
    ) const {
-      const size_t row_count = start_end.size();
-
       const uint32_t range_start = position;
       const uint32_t range_end = position + BatchSize;
 
       using roaring_util::BitmapBuilderByRange;
       std::array<BitmapBuilderByRange, BatchSize> result_builders;
 
-      for (uint32_t row_id_upper_bits = 0; row_id_upper_bits << 16 < row_count;
-           ++row_id_upper_bits) {
-         const uint32_t base_row_id = row_id_upper_bits << 16;
-         SILO_ASSERT(batch_start_ends.size() > row_id_upper_bits);
-         auto [batch_start, batch_end] = batch_start_ends.at(row_id_upper_bits);
+      for (size_t chunk_id = 0; chunk_id < start_end.size(); ++chunk_id) {
+         auto [batch_start, batch_end] = batch_start_ends.at(chunk_id);
          if (batch_end <= range_start || batch_start >= range_end) {
             continue;
          }
-         for (uint32_t row_id_lower_bits = 0;
-              row_id_lower_bits <= 0xFFFF && base_row_id + row_id_lower_bits < row_count;
-              ++row_id_lower_bits) {
-            const uint32_t row_id = base_row_id | row_id_lower_bits;
-            auto [coverage_start, coverage_end] = start_end.at(row_id);
+         const uint32_t base_row_id = static_cast<uint32_t>(chunk_id) << 16;
+         const auto& chunk = start_end[chunk_id];
+         for (size_t row_in_chunk = 0; row_in_chunk < chunk.size(); ++row_in_chunk) {
+            const uint32_t row_id = base_row_id | static_cast<uint32_t>(row_in_chunk);
+            auto [coverage_start, coverage_end] = chunk[row_in_chunk];
             for (uint32_t pos = std::max(range_start, coverage_start);
                  pos < std::min(range_end, coverage_end);
                  ++pos) {

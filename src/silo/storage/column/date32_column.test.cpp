@@ -3,6 +3,9 @@
 #include <gtest/gtest.h>
 
 #include "silo/common/date32.h"
+#include "silo/storage/column/row_id.h"
+
+using silo::storage::column::RowId;
 
 TEST(Date32Column, insertValues) {
    silo::storage::column::ColumnMetadata column_metadata{"test_column"};
@@ -19,10 +22,11 @@ TEST(Date32Column, insertValues) {
    }
    SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
 
-   ASSERT_EQ(under_test.numValues(), 5);
+   ASSERT_EQ(under_test.numChunks(), 1);
+   ASSERT_EQ(under_test.chunkSize(0), 5);
 
    for (size_t value_idx = 0; value_idx < values_to_add.size(); ++value_idx) {
-      auto value = silo::common::date32ToString(under_test.getValue(value_idx));
+      auto value = silo::common::date32ToString(under_test.getValue(RowId(0, value_idx)));
       ASSERT_EQ(value, values_to_add.at(value_idx));
    }
 }
@@ -35,8 +39,9 @@ TEST(Date32Column, insertNull) {
    builder.insertNull();
    SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
 
-   ASSERT_EQ(under_test.numValues(), 1);
-   ASSERT_TRUE(under_test.isNull(0));
+   ASSERT_EQ(under_test.numChunks(), 1);
+   ASSERT_EQ(under_test.chunkSize(0), 1);
+   ASSERT_TRUE(under_test.isNull(RowId(0, 0)));
 }
 
 TEST(Date32Column, parseInvalidDateReturnsError) {
@@ -66,6 +71,7 @@ silo::storage::column::Date32Column::Buffer chunkOf(const std::vector<std::strin
 }
 }  // namespace
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(Date32Column, staysSortedWhenChunkBoundaryIsGloballySorted) {
    silo::storage::column::ColumnMetadata column_metadata{"test_column"};
    silo::storage::column::Date32Column under_test(&column_metadata);
@@ -76,7 +82,10 @@ TEST(Date32Column, staysSortedWhenChunkBoundaryIsGloballySorted) {
    SILO_ASSERT(under_test.appendChunk(chunkOf({"2020-06-01", "2021-03-21"})).has_value());
    SILO_ASSERT(under_test.appendChunk(chunkOf({"2022-01-01", "2025-12-31"})).has_value());
 
-   ASSERT_EQ(under_test.numValues(), 6);
+   ASSERT_EQ(under_test.numChunks(), 3);
+   ASSERT_EQ(under_test.chunkSize(0), 2);
+   ASSERT_EQ(under_test.chunkSize(1), 2);
+   ASSERT_EQ(under_test.chunkSize(2), 2);
    ASSERT_TRUE(under_test.isSorted());
 }
 
@@ -90,7 +99,9 @@ TEST(Date32Column, notSortedWhenChunkBoundaryRegresses) {
    SILO_ASSERT(under_test.appendChunk(chunkOf({"2020-01-01", "2023-01-05"})).has_value());
    SILO_ASSERT(under_test.appendChunk(chunkOf({"2021-12-03", "2025-01-01"})).has_value());
 
-   ASSERT_EQ(under_test.numValues(), 4);
+   ASSERT_EQ(under_test.numChunks(), 2);
+   ASSERT_EQ(under_test.chunkSize(0), 2);
+   ASSERT_EQ(under_test.chunkSize(1), 2);
    ASSERT_FALSE(under_test.isSorted());
 }
 
@@ -99,20 +110,38 @@ TEST(Date32Column, nullBitmapRowIdsAreOffsetAcrossChunks) {
    silo::storage::column::ColumnMetadata column_metadata{"test_column"};
    silo::storage::column::Date32Column under_test(&column_metadata);
 
-   // Nulls appear in every chunk, including at the start of a chunk that is not the first one,
-   // so a missing per-chunk offset would land the null bitmap on the wrong global row ids.
-   SILO_ASSERT(under_test.appendChunk(chunkOf({"2020-01-01", ""})).has_value());      // rows 0,1
-   SILO_ASSERT(under_test.appendChunk(chunkOf({"", "2021-03-21", ""})).has_value());  // rows 2,3,4
-   SILO_ASSERT(under_test.appendChunk(chunkOf({"2022-01-01"})).has_value());          // row 5
+   // Nulls appear in every chunk, including at the start of a chunk that is not the first one. Each
+   // chunk's global row ids begin at a fresh 2^16-aligned offset (chunk k starts at k << 16), so a
+   // missing per-chunk offset would land the null bitmap on the wrong global row ids.
+   using silo::storage::column::RowId;
+   SILO_ASSERT(under_test.appendChunk(chunkOf({"2020-01-01", ""})).has_value());
+   SILO_ASSERT(under_test.appendChunk(chunkOf({"", "2021-03-21", ""})).has_value());
+   SILO_ASSERT(under_test.appendChunk(chunkOf({"2022-01-01"})).has_value());
 
-   ASSERT_EQ(under_test.numValues(), 6);
+   ASSERT_EQ(under_test.numChunks(), 3);
+   ASSERT_EQ(under_test.chunkSize(0), 2);
+   ASSERT_EQ(under_test.chunkSize(1), 3);
+   ASSERT_EQ(under_test.chunkSize(2), 1);
 
-   const std::vector<bool> expected_null{false, true, true, false, true, false};
-   for (size_t row_id = 0; row_id < expected_null.size(); ++row_id) {
-      ASSERT_EQ(under_test.isNull(row_id), expected_null[row_id]) << "row_id=" << row_id;
+   // {chunk_id, row_in_chunk} -> expected null state.
+   const std::vector<std::pair<RowId, bool>> expected_null{
+      {{.chunk_id = 0, .row_in_chunk = 0}, false},
+      {{.chunk_id = 0, .row_in_chunk = 1}, true},
+      {{.chunk_id = 1, .row_in_chunk = 0}, true},
+      {{.chunk_id = 1, .row_in_chunk = 1}, false},
+      {{.chunk_id = 1, .row_in_chunk = 2}, true},
+      {{.chunk_id = 2, .row_in_chunk = 0}, false},
+   };
+   for (const auto& [id, is_null] : expected_null) {
+      ASSERT_EQ(under_test.isNull(id), is_null) << "row_id=" << id.toGlobal();
    }
 
-   ASSERT_FALSE(under_test.isNull(0));
-   ASSERT_EQ(silo::common::date32ToString(under_test.getValue(3)), "2021-03-21");
-   ASSERT_EQ(silo::common::date32ToString(under_test.getValue(5)), "2022-01-01");
+   ASSERT_EQ(
+      silo::common::date32ToString(under_test.getValue(RowId{.chunk_id = 1, .row_in_chunk = 1})),
+      "2021-03-21"
+   );
+   ASSERT_EQ(
+      silo::common::date32ToString(under_test.getValue(RowId{.chunk_id = 2, .row_in_chunk = 0})),
+      "2022-01-01"
+   );
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <cstdint>
 #include <iterator>
 #include <vector>
 
@@ -9,6 +8,7 @@
 #include <boost/serialization/vector.hpp>
 
 #include "silo/common/panic.h"
+#include "silo/storage/column/row_id.h"
 
 namespace roaring {
 class Roaring;
@@ -16,11 +16,17 @@ class Roaring;
 
 namespace silo::storage::column {
 
-using RowId = uint32_t;
-
-/// The shared row layout of a table
+/// The shared per-chunk row layout of a table partition. Chunk `k` holds `chunkSize(k)` rows and
+/// occupies the 2^16 block of global ids `[k << 16, (k << 16) + chunkSize(k))` (see `RowId`). Every
+/// column of the partition is appended in lockstep through `Table::bulkInsert`, so a single
+/// `RowLayout` is the source of truth for iterating the partition's rows: columns themselves only
+/// offer `RowId`-addressed random access and never need to know how many rows exist.
+///
+/// Invariant: every chunk holds at least one row. Empty chunks are disallowed so that each chunk
+/// maps onto a non-empty 2^16 block and iteration never has to skip over a vacant chunk.
 class RowLayout {
-   uint32_t num_rows = 0;
+   std::vector<uint32_t> chunk_sizes;
+   size_t num_rows = 0;
 
   public:
    template <typename... ChunkSizes>
@@ -30,9 +36,21 @@ class RowLayout {
       return layout;
    }
 
-   void appendChunk(uint16_t chunk_size) { num_rows += chunk_size; }
+   /// Appends a chunk. `chunk_size` must be non-empty, see the class invariant.
+   void appendChunk(uint32_t chunk_size) {
+      SILO_ASSERT_GT(chunk_size, 0U);
+      SILO_ASSERT_LE(chunk_size, static_cast<uint32_t>(COLUMN_CHUNK_SIZE));
+      // TODO(#1329) increase row-limit
+      SILO_ASSERT_LT(chunk_sizes.size(), static_cast<size_t>(UINT16_MAX));
+      chunk_sizes.push_back(chunk_size);
+      num_rows += chunk_size;
+   }
 
-   /// The total number of rows across in the table
+   [[nodiscard]] size_t numChunks() const { return chunk_sizes.size(); }
+
+   [[nodiscard]] uint32_t chunkSize(uint16_t chunk_id) const { return chunk_sizes.at(chunk_id); }
+
+   /// The total number of rows across all chunks. Equals the partition's sequence count.
    [[nodiscard]] uint32_t numRows() const { return num_rows; }
 
    /// A bitmap of every valid global row id
@@ -40,12 +58,22 @@ class RowLayout {
 
    /// Replace `bitmap` with its complement within the universe of valid row ids: afterwards it
    /// contains exactly the valid row ids it did not contain before. `bitmap` is expected to be a
-   /// subset of the universe.
+   /// subset of the universe. Flips each chunk's populated range in place, so the 2^16-aligned gaps
+   /// between chunks are never spuriously filled.
    void complementInPlace(roaring::Roaring& bitmap) const;
 
-   /// Forward iterator yielding the `RowId` of every row in the table
+   /// Forward iterator yielding the `RowId` of every row in the partition
    class Iterator {
-      uint32_t row_id = 0;
+      const std::vector<uint32_t>* chunk_sizes = nullptr;
+      uint16_t chunk_id = 0;
+      uint16_t row_in_chunk = 0;
+
+      void skipEmptyChunks() {
+         while (chunk_id < chunk_sizes->size() && row_in_chunk >= (*chunk_sizes)[chunk_id]) {
+            ++chunk_id;
+            row_in_chunk = 0;
+         }
+      }
 
      public:
       using iterator_category = std::forward_iterator_tag;
@@ -56,31 +84,50 @@ class RowLayout {
 
       Iterator() = default;
 
-      explicit Iterator(uint32_t row_id)
-          : row_id(row_id) {}
+      Iterator(const std::vector<uint32_t>& chunk_sizes, uint16_t chunk_id)
+          : chunk_sizes(&chunk_sizes),
+            chunk_id(chunk_id) {
+         skipEmptyChunks();
+      }
 
-      RowId operator*() const { return row_id; }
+      RowId operator*() const { return RowId{.chunk_id = chunk_id, .row_in_chunk = row_in_chunk}; }
 
       Iterator& operator++() {
-         ++row_id;
+         SILO_ASSERT_LT(chunk_id, chunk_sizes->size());
+         if (row_in_chunk == UINT16_MAX || row_in_chunk == chunk_sizes->at(chunk_id) - 1) {
+            ++chunk_id;
+            row_in_chunk = 0;
+         } else {
+            ++row_in_chunk;
+         }
          return *this;
       }
 
-      bool operator==(const Iterator& other) const { return row_id == other.row_id; }
+      bool operator==(const Iterator& other) const {
+         return chunk_id == other.chunk_id && row_in_chunk == other.row_in_chunk;
+      }
 
       bool operator!=(const Iterator& other) const { return !(*this == other); }
    };
 
-   // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-   [[nodiscard]] Iterator begin() const { return Iterator{0}; }
+   [[nodiscard]] Iterator begin() const { return Iterator{chunk_sizes, 0}; }
 
-   [[nodiscard]] Iterator end() const { return Iterator{num_rows}; }
+   [[nodiscard]] Iterator end() const {
+      return Iterator{chunk_sizes, static_cast<uint16_t>(chunk_sizes.size())};
+   }
 
   private:
    friend class boost::serialization::access;
    template <class Archive>
    void serialize(Archive& archive, const uint32_t /* version */) {
-      archive & num_rows;
+      archive & chunk_sizes;
+      // `num_rows` is derived, not serialized; rebuild it from the loaded chunk sizes.
+      if constexpr (Archive::is_loading::value) {
+         num_rows = 0;
+         for (const uint32_t chunk_size : chunk_sizes) {
+            num_rows += chunk_size;
+         }
+      }
    }
 };
 

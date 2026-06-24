@@ -47,11 +47,13 @@ class Date32Column {
    /// The per-chunk value buffers. Used by `DateBetween` to binary search a sorted column.
    [[nodiscard]] const ChunkedValueBuffer<common::Date32>& getValueBuffer() const { return values; }
 
-   [[nodiscard]] size_t numValues() const { return values.numValues(); }
+   [[nodiscard]] size_t numChunks() const { return values.numChunks(); }
 
-   [[nodiscard]] bool isNull(size_t row_id) const { return null_bitmap.contains(row_id); }
+   [[nodiscard]] uint32_t chunkSize(uint16_t chunk_id) const { return values.chunkSize(chunk_id); }
 
-   [[nodiscard]] common::Date32 getValue(size_t row_id) const { return values.at(row_id); }
+   [[nodiscard]] bool isNull(RowId row_id) const { return null_bitmap.contains(row_id.toGlobal()); }
+
+   [[nodiscard]] common::Date32 getValue(RowId row_id) const { return values.at(row_id); }
 
   private:
    friend class boost::serialization::access;
@@ -62,8 +64,8 @@ class Date32Column {
       archive & values;
       archive & is_sorted;
       if constexpr (Archive::is_loading::value) {
-         if (numValues() > 0) {
-            last_appended_value = values.at(numValues() - 1);
+         if (values.numChunks() > 0) {
+            last_appended_value = values.lastValue();
          }
       }
       // clang-format on

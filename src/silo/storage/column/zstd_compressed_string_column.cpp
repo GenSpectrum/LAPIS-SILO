@@ -17,7 +17,7 @@ ZstdCompressedStringColumn::ZstdCompressedStringColumn(
     : metadata(metadata) {}
 
 std::expected<void, std::string> ZstdCompressedStringColumn::appendChunk(const Buffer& buffer) {
-   const size_t base = numValues();
+   const uint32_t base = RowId::chunkStart(static_cast<uint16_t>(values.numChunks()));
    std::vector<std::string> chunk;
    chunk.reserve(buffer.size());
    for (size_t i = 0; i < buffer.size(); ++i) {
@@ -25,7 +25,7 @@ std::expected<void, std::string> ZstdCompressedStringColumn::appendChunk(const B
       if (value.has_value()) {
          chunk.emplace_back(metadata->compressor.compress(value->data(), value->size()));
       } else {
-         null_bitmap.add(base + i);
+         null_bitmap.add(base + static_cast<uint32_t>(i));
          chunk.emplace_back();
       }
    }
@@ -33,11 +33,11 @@ std::expected<void, std::string> ZstdCompressedStringColumn::appendChunk(const B
    return {};
 }
 
-bool ZstdCompressedStringColumn::isNull(size_t row_id) const {
-   return null_bitmap.contains(row_id);
+bool ZstdCompressedStringColumn::isNull(RowId row_id) const {
+   return null_bitmap.contains(row_id.toGlobal());
 }
 
-std::optional<std::string> ZstdCompressedStringColumn::getDecompressed(size_t row_id) const {
+std::optional<std::string> ZstdCompressedStringColumn::getDecompressed(RowId row_id) const {
    const auto value = values.at(row_id);
    if (value.empty()) {
       return std::nullopt;
@@ -47,7 +47,7 @@ std::optional<std::string> ZstdCompressedStringColumn::getDecompressed(size_t ro
    return result_buffer;
 }
 
-std::optional<std::string> ZstdCompressedStringColumn::getCompressed(size_t row_id) const {
+std::optional<std::string> ZstdCompressedStringColumn::getCompressed(RowId row_id) const {
    auto value = values.at(row_id);
    if (value.empty()) {
       return std::nullopt;

@@ -30,7 +30,7 @@ Selection::Selection(
     : child_operator(std::move(child_operator)),
       predicates(std::move(predicates)),
       row_layout(std::move(row_layout)) {
-   const auto row_count = static_cast<uint32_t>(this->row_layout.numRows());
+   const auto row_count = this->row_layout.numRows();
    std::ranges::sort(this->predicates, [row_count](const auto& left, const auto& right) {
       return left->estimateSelectivity(row_count) < right->estimateSelectivity(row_count);
    });
@@ -134,8 +134,9 @@ CopyOnWriteBitmap Selection::evaluate() const {
    }
    roaring::Roaring result;
    for (const storage::column::RowId row_id : row_layout) {
-      if (matchesPredicates(predicates, row_id)) {
-         result.add(row_id);
+      const uint32_t row = row_id.toGlobal();
+      if (matchesPredicates(predicates, row)) {
+         result.add(row);
       }
    }
    return CopyOnWriteBitmap{std::move(result)};
@@ -172,7 +173,8 @@ bool strongOrderingMatchesComparator(std::strong_ordering strong_ordering, Compa
 }  // namespace
 
 template <>
-bool CompareToValueSelection<StringColumn>::match(uint32_t row_id) const {
+bool CompareToValueSelection<StringColumn>::match(uint32_t global_row_id) const {
+   const storage::column::RowId row_id = storage::column::RowId::fromGlobal(global_row_id);
    if (column.isNull(row_id)) {
       return with_nulls;
    }

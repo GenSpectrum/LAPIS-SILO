@@ -1,5 +1,6 @@
 #include "silo/query_engine/expressions/date_between.h"
 
+#include <cstdint>
 #include <limits>
 #include <map>
 #include <utility>
@@ -7,9 +8,11 @@
 #include <fmt/format.h>
 
 #include "silo/common/date32.h"
+#include "silo/common/panic.h"
 #include "silo/query_engine/filter/operators/range_selection.h"
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/illegal_query_exception.h"
+#include "silo/storage/column/column.h"
 #include "silo/storage/column/date32_column.h"
 
 using silo::common::Date32;
@@ -82,6 +85,8 @@ std::unique_ptr<Operator> DateBetween::compile(const storage::Table& table) cons
    return std::make_unique<Selection>(std::move(predicates), table.row_layout);
 }
 
+using storage::column::RowId;
+
 std::vector<RangeSelection::Range> DateBetween::computeRangesOfSortedColumn(
    const Date32Column& date_column
 ) const {
@@ -93,17 +98,33 @@ std::vector<RangeSelection::Range> DateBetween::computeRangesOfSortedColumn(
    // binary search within every chunk's value buffer and emit one range per chunk, shifted by the
    // chunk's global row offset.
    const auto& value_buffer = date_column.getValueBuffer();
-   uint32_t global_offset = 0;
+   SILO_ASSERT(value_buffer.numChunks() <= UINT16_MAX);
    for (size_t chunk_idx = 0; chunk_idx < value_buffer.numChunks(); ++chunk_idx) {
       const auto& chunk = value_buffer.chunk(chunk_idx);
       const auto* begin = chunk.data();
       const auto* end = begin + chunk.size();
       const auto* lower = std::lower_bound(begin, end, from);
       const auto* upper = date_to.has_value() ? std::upper_bound(begin, end, date_to.value()) : end;
-      const auto lower_index = global_offset + static_cast<uint32_t>(lower - begin);
-      const auto upper_index = global_offset + static_cast<uint32_t>(upper - begin);
-      ranges.emplace_back(lower_index, upper_index);
-      global_offset += static_cast<uint32_t>(chunk.size());
+
+      const auto lower_index = lower - begin;
+      const auto upper_index = upper - begin;
+
+      const auto chunk_size = value_buffer.chunkSize(static_cast<uint16_t>(chunk_idx));
+      const RowId start_row =
+         (lower_index == chunk_size)
+            ? RowId{.chunk_id = static_cast<uint16_t>(chunk_idx + 1), .row_in_chunk = 0}
+            : RowId{
+                 .chunk_id = static_cast<uint16_t>(chunk_idx),
+                 .row_in_chunk = static_cast<uint16_t>(lower_index)
+              };
+      const RowId end_row =
+         (upper_index == chunk_size)
+            ? RowId{.chunk_id = static_cast<uint16_t>(chunk_idx + 1), .row_in_chunk = 0}
+            : RowId{
+                 .chunk_id = static_cast<uint16_t>(chunk_idx),
+                 .row_in_chunk = static_cast<uint16_t>(upper_index)
+              };
+      ranges.emplace_back(start_row, end_row);
    }
    return ranges;
 }
