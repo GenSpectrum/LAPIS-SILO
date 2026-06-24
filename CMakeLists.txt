@@ -11,12 +11,6 @@ set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -D SILO_DEBUG_ASSERTIONS=1")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D SILO_DEBUG_ASSERTIONS=0")
 
-# Work-around only for MacOS
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -D SILO_DEBUG_ASSERTIONS=1")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D SILO_DEBUG_ASSERTIONS=0")
-endif ()
-
 set(CMAKE_CXX_STANDARD 23)
 
 # For find_package calls in Module mode (looking for the Find<lib>.cmake files)
@@ -58,7 +52,7 @@ add_compile_definitions(SIMDJSON_EXCEPTIONS=0)
 # Dependencies
 # ---------------------------------------------------------------------------
 
-find_package(Arrow REQUIRED COMPONENTS Acero XYZ)
+find_package(Arrow REQUIRED COMPONENTS Acero)
 find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
 find_package(FastFloat REQUIRED)
 find_package(LibLZMA REQUIRED)
@@ -76,14 +70,9 @@ find_package(zstd REQUIRED)
 # Version
 # ---------------------------------------------------------------------------
 
-execute_process(
-        COMMAND cat release_version.txt
-        OUTPUT_VARIABLE VERSION
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        RESULT_VARIABLE VERSION_AVAILABLE
-)
-if (VERSION_AVAILABLE EQUAL 0)
+if (EXISTS "${CMAKE_SOURCE_DIR}/release_version.txt")
+    file(READ "${CMAKE_SOURCE_DIR}/release_version.txt" VERSION)
+    string(STRIP "${VERSION}" VERSION)
     message(STATUS "Detected version from release_version.txt: ${VERSION}")
     add_compile_definitions(SILO_RELEASE_VERSION="${VERSION}")
 else ()
@@ -139,7 +128,6 @@ target_link_libraries(
         ArrowAcero::arrow_acero_static
         ${Boost_LIBRARIES}
         ${FastFloat_LIBRARIES}
-        ${duckdb_LIBRARIES}
         nlohmann_json::nlohmann_json
         ${roaring_LIBRARIES}
         ${spdlog_LIBRARIES}
