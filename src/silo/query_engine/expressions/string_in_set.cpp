@@ -64,7 +64,7 @@ std::unique_ptr<filter::operators::Operator> StringInSet::compile(const storage:
       std::make_unique<filter::operators::StringInSet<StringColumn>>(
          &string_column, filter::operators::StringInSet<StringColumn>::Comparator::IN, values
       ),
-      table.sequence_count
+      table.row_layout
    );
 }
 

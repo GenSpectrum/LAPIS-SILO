@@ -9,6 +9,7 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/query_engine/copy_on_write_bitmap.h"
+#include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
 namespace silo::query_engine::filter::operators {
@@ -18,9 +19,9 @@ RangeSelection::Range::Range(uint32_t start, uint32_t end)
     : start(start),
       end(end) {}
 
-RangeSelection::RangeSelection(std::vector<Range>&& ranges, uint32_t row_count)
+RangeSelection::RangeSelection(std::vector<Range>&& ranges, storage::column::RowLayout row_layout)
     : ranges(std::move(ranges)),
-      row_count(row_count) {}
+      row_layout(std::move(row_layout)) {}
 
 RangeSelection::~RangeSelection() noexcept = default;
 
@@ -51,7 +52,7 @@ CopyOnWriteBitmap RangeSelection::evaluate() const {
 
 std::unique_ptr<Operator> RangeSelection::negate(std::unique_ptr<RangeSelection>&& range_selection
 ) {
-   const uint32_t row_count = range_selection->row_count;
+   const uint32_t row_count = range_selection->row_layout.numRows();
    std::vector<Range> new_ranges;
    uint32_t last_to = 0;
    for (const auto& current : range_selection->ranges) {
@@ -63,7 +64,9 @@ std::unique_ptr<Operator> RangeSelection::negate(std::unique_ptr<RangeSelection>
    if (last_to != row_count) {
       new_ranges.emplace_back(last_to, row_count);
    }
-   return std::make_unique<RangeSelection>(std::move(new_ranges), row_count);
+   return std::make_unique<RangeSelection>(
+      std::move(new_ranges), std::move(range_selection->row_layout)
+   );
 }
 
 }  // namespace silo::query_engine::filter::operators

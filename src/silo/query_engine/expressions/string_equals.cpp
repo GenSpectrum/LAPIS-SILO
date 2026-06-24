@@ -67,10 +67,10 @@ std::unique_ptr<filter::operators::Operator> StringEquals::compile(const storage
    const auto bitmap = string_column.filter(value);
 
    if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
-      return std::make_unique<filter::operators::Empty>(table.sequence_count);
+      return std::make_unique<filter::operators::Empty>(table.row_layout);
    }
    return std::make_unique<filter::operators::IndexScan>(
-      CopyOnWriteBitmap{bitmap.value()}, table.sequence_count
+      CopyOnWriteBitmap{bitmap.value()}, table.row_layout
    );
 }
 

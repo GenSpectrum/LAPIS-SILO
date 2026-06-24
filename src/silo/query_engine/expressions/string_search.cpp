@@ -25,12 +25,12 @@ template <typename GenericStringColumn>
 std::unique_ptr<filter::operators::Operator> createMatchingBitmap(
    const GenericStringColumn& string_column,
    const RE2& search_expression,
-   size_t row_count
+   storage::column::RowLayout row_layout
 ) {
    return std::make_unique<filter::operators::BitmapProducer>(
-      [&, row_count]() {
+      [&, row_layout]() {
          roaring::Roaring result_bitmap;
-         for (size_t row_idx = 0; row_idx < row_count; ++row_idx) {
+         for (const uint32_t row_idx : row_layout) {
             const std::string full_string = string_column.getValueString(row_idx);
             if (re2::RE2::PartialMatch(full_string, search_expression)) {
                result_bitmap.add(row_idx);
@@ -38,7 +38,7 @@ std::unique_ptr<filter::operators::Operator> createMatchingBitmap(
          }
          return CopyOnWriteBitmap(std::move(result_bitmap));
       },
-      row_count
+      row_layout
    );
 }
 
@@ -64,11 +64,11 @@ std::unique_ptr<filter::operators::Operator> StringSearch::compile(const storage
 
    if (table.columns.indexed_string_columns.contains(column_name)) {
       const auto& string_column = table.columns.indexed_string_columns.at(column_name);
-      return createMatchingBitmap(string_column, *search_expression, table.sequence_count);
+      return createMatchingBitmap(string_column, *search_expression, table.row_layout);
    }
    SILO_ASSERT(table.columns.string_columns.contains(column_name));
    const auto& string_column = table.columns.string_columns.at(column_name);
-   return createMatchingBitmap(string_column, *search_expression, table.sequence_count);
+   return createMatchingBitmap(string_column, *search_expression, table.row_layout);
 }
 
 }  // namespace silo::query_engine::expressions

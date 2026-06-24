@@ -50,12 +50,12 @@ bool IsInCoveredRegion::match(uint32_t row_id) const {
    return isCovered(row_id) == (comparator == Comparator::IS_COVERED);
 }
 
-roaring::Roaring IsInCoveredRegion::makeBitmap(uint32_t row_count) const {
+roaring::Roaring IsInCoveredRegion::makeBitmap(const storage::column::RowLayout& row_layout) const {
    EVOBENCH_SCOPE("IsInCoveredRegion", "makeBitmap");
    auto coverage_bitmap =
       horizontal_coverage_index->getCoverageBitmapForPositions<1>(position_idx).at(0);
    if (comparator == Comparator::IS_NOT_COVERED) {
-      coverage_bitmap.flip(0, row_count);
+      row_layout.complementInPlace(coverage_bitmap);
       return coverage_bitmap;
    }
    return coverage_bitmap;

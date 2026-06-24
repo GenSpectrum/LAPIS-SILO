@@ -52,11 +52,11 @@ std::unique_ptr<filter::operators::Operator> IntEquals::compile(const storage::T
          std::make_unique<filter::operators::CompareToValueSelection<IntColumn>>(
             int_column, filter::operators::Comparator::EQUALS, value.value()
          ),
-         table.sequence_count
+         table.row_layout
       );
    }
    return std::make_unique<filter::operators::IndexScan>(
-      CopyOnWriteBitmap{&int_column.null_bitmap}, table.sequence_count
+      CopyOnWriteBitmap{&int_column.null_bitmap}, table.row_layout
    );
 }
 

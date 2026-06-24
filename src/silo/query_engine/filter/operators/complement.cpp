@@ -12,9 +12,9 @@
 
 namespace silo::query_engine::filter::operators {
 
-Complement::Complement(std::unique_ptr<Operator> child, uint32_t row_count)
+Complement::Complement(std::unique_ptr<Operator> child, storage::column::RowLayout row_layout)
     : child(std::move(child)),
-      row_count(row_count) {}
+      row_layout(std::move(row_layout)) {}
 
 Complement::~Complement() noexcept = default;
 
@@ -22,7 +22,7 @@ using operators::OperatorVector;
 
 std::unique_ptr<Complement> Complement::fromDeMorgan(
    OperatorVector disjunction,
-   uint32_t row_count
+   storage::column::RowLayout row_layout
 ) {
    OperatorVector non_negated_child_operators;
    OperatorVector negated_child_operators;
@@ -35,9 +35,9 @@ std::unique_ptr<Complement> Complement::fromDeMorgan(
    }
    // Now swap negated children and non-negated ones
    auto intersection = std::make_unique<operators::Intersection>(
-      std::move(negated_child_operators), std::move(non_negated_child_operators), row_count
+      std::move(negated_child_operators), std::move(non_negated_child_operators), row_layout
    );
-   return std::make_unique<Complement>(std::move(intersection), row_count);
+   return std::make_unique<Complement>(std::move(intersection), std::move(row_layout));
 }
 
 std::string Complement::toString() const {
@@ -51,7 +51,7 @@ Type Complement::type() const {
 CopyOnWriteBitmap Complement::evaluate() const {
    EVOBENCH_SCOPE("Complement", "evaluate");
    auto result = child->evaluate();
-   result.getMutable().flip(0, row_count);
+   row_layout.complementInPlace(result.getMutable());
    return result;
 }
 

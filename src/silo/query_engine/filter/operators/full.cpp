@@ -1,7 +1,7 @@
 #include "silo/query_engine/filter/operators/full.h"
 
-#include <roaring/roaring.hh>
 #include <string>
+#include <utility>
 
 #include "evobench/evobench.hpp"
 #include "silo/query_engine/copy_on_write_bitmap.h"
@@ -10,8 +10,8 @@
 
 namespace silo::query_engine::filter::operators {
 
-Full::Full(uint32_t row_count)
-    : row_count(row_count) {}
+Full::Full(storage::column::RowLayout row_layout)
+    : row_layout(std::move(row_layout)) {}
 
 Full::~Full() noexcept = default;
 
@@ -25,13 +25,11 @@ Type Full::type() const {
 
 CopyOnWriteBitmap Full::evaluate() const {
    EVOBENCH_SCOPE("Full", "evaluate");
-   roaring::Roaring result;
-   result.addRange(0, row_count);
-   return CopyOnWriteBitmap{std::move(result)};
+   return CopyOnWriteBitmap{row_layout.fullBitmap()};
 }
 
 std::unique_ptr<Operator> Full::negate(std::unique_ptr<Full>&& full) {
-   return std::make_unique<Empty>(full->row_count);
+   return std::make_unique<Empty>(std::move(full->row_layout));
 }
 
 }  // namespace silo::query_engine::filter::operators

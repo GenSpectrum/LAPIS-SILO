@@ -18,11 +18,11 @@ namespace silo::query_engine::filter::operators {
 Intersection::Intersection(
    OperatorVector&& children,
    OperatorVector&& negated_children,
-   uint32_t row_count
+   storage::column::RowLayout row_layout
 )
     : children(std::move(children)),
       negated_children(std::move(negated_children)),
-      row_count(row_count) {
+      row_layout(std::move(row_layout)) {
    if (this->children.empty()) {
       SPDLOG_ERROR(
          "Compilation bug: Intersection without non-negated children is not allowed. "
@@ -125,8 +125,8 @@ CopyOnWriteBitmap Intersection::evaluate() const {
 }
 
 std::unique_ptr<Operator> Intersection::negate(std::unique_ptr<Intersection>&& intersection) {
-   const uint32_t row_count = intersection->row_count;
-   return std::make_unique<Complement>(std::move(intersection), row_count);
+   auto row_layout = intersection->row_layout;
+   return std::make_unique<Complement>(std::move(intersection), std::move(row_layout));
 }
 
 }  // namespace silo::query_engine::filter::operators

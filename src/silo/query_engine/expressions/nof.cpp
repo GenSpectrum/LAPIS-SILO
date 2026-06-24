@@ -27,58 +27,57 @@ using Complement = silo::query_engine::filter::operators::Complement;
 using Intersection = silo::query_engine::filter::operators::Intersection;
 using Union = silo::query_engine::filter::operators::Union;
 using Threshold = silo::query_engine::filter::operators::Threshold;
+using RowLayout = silo::storage::column::RowLayout;
 
 std::unique_ptr<Operator> handleTrivialCases(
    const int updated_number_of_matchers,
    OperatorVector& non_negated_child_operators,
    OperatorVector& negated_child_operators,
    bool match_exactly,
-   uint32_t sequence_count
+   const RowLayout& row_layout
 ) {
    const int child_operator_count =
       static_cast<int>(non_negated_child_operators.size() + negated_child_operators.size());
 
    if (updated_number_of_matchers > child_operator_count) {
-      return std::make_unique<Empty>(sequence_count);
+      return std::make_unique<Empty>(row_layout);
    }
    if (updated_number_of_matchers < 0) {
       if (match_exactly) {
-         return std::make_unique<Empty>(sequence_count);
+         return std::make_unique<Empty>(row_layout);
       }
-      return std::make_unique<Full>(sequence_count);
+      return std::make_unique<Full>(row_layout);
    }
    if (updated_number_of_matchers == 0) {
       if (!match_exactly) {
-         return std::make_unique<Full>(sequence_count);
+         return std::make_unique<Full>(row_layout);
       }
       /// Now we want to match exactly none
       if (child_operator_count == 0) {
-         return std::make_unique<Full>(sequence_count);
+         return std::make_unique<Full>(row_layout);
       }
       if (child_operator_count == 1) {
          if (non_negated_child_operators.empty()) {
             return std::move(negated_child_operators[0]);
          }
-         return std::make_unique<Complement>(
-            std::move(non_negated_child_operators[0]), sequence_count
-         );
+         return std::make_unique<Complement>(std::move(non_negated_child_operators[0]), row_layout);
       }
       /// To negate entire result Not(Union) => Intersection(Not(Non-negated),Not(Negated))
       /// equiv: Intersection(Negated, Non-Negated) or Not(Union(Non-negated)), if negated empty
       if (negated_child_operators.empty()) {
          auto union_ret =
-            std::make_unique<Union>(std::move(non_negated_child_operators), sequence_count);
-         return std::make_unique<Complement>(std::move(union_ret), sequence_count);
+            std::make_unique<Union>(std::move(non_negated_child_operators), row_layout);
+         return std::make_unique<Complement>(std::move(union_ret), row_layout);
       }
       return std::make_unique<Intersection>(
-         std::move(negated_child_operators), std::move(non_negated_child_operators), sequence_count
+         std::move(negated_child_operators), std::move(non_negated_child_operators), row_layout
       );
    }
    if (updated_number_of_matchers == 1 && child_operator_count == 1) {
       if (negated_child_operators.empty()) {
          return std::move(non_negated_child_operators[0]);
       }
-      return std::make_unique<Complement>(std::move(negated_child_operators[0]), sequence_count);
+      return std::make_unique<Complement>(std::move(negated_child_operators[0]), row_layout);
    }
    return nullptr;
 }
@@ -86,31 +85,31 @@ std::unique_ptr<Operator> handleTrivialCases(
 std::unique_ptr<Operator> handleAndCase(
    OperatorVector& non_negated_child_operators,
    OperatorVector& negated_child_operators,
-   uint32_t sequence_count
+   const RowLayout& row_layout
 ) {
    if (non_negated_child_operators.empty()) {
       std::unique_ptr<Union> union_ret =
-         std::make_unique<Union>(std::move(negated_child_operators), sequence_count);
-      return std::make_unique<Complement>(std::move(union_ret), sequence_count);
+         std::make_unique<Union>(std::move(negated_child_operators), row_layout);
+      return std::make_unique<Complement>(std::move(union_ret), row_layout);
    }
    return std::make_unique<Intersection>(
-      std::move(non_negated_child_operators), std::move(negated_child_operators), sequence_count
+      std::move(non_negated_child_operators), std::move(negated_child_operators), row_layout
    );
 }
 
 std::unique_ptr<Operator> handleOrCase(
    OperatorVector& non_negated_child_operators,
    OperatorVector& negated_child_operators,
-   uint32_t sequence_count
+   const RowLayout& row_layout
 ) {
    if (negated_child_operators.empty()) {
-      return std::make_unique<Union>(std::move(non_negated_child_operators), sequence_count);
+      return std::make_unique<Union>(std::move(non_negated_child_operators), row_layout);
    }
    /// De'Morgan if at least one negated
    std::unique_ptr<Intersection> intersection_ret = std::make_unique<Intersection>(
-      std::move(negated_child_operators), std::move(non_negated_child_operators), sequence_count
+      std::move(negated_child_operators), std::move(non_negated_child_operators), row_layout
    );
-   return std::make_unique<Complement>(std::move(intersection_ret), sequence_count);
+   return std::make_unique<Complement>(std::move(intersection_ret), row_layout);
 }
 
 std::unique_ptr<Operator> toOperator(
@@ -118,14 +117,14 @@ std::unique_ptr<Operator> toOperator(
    OperatorVector&& non_negated_child_operators,
    OperatorVector&& negated_child_operators,
    bool match_exactly,
-   uint32_t sequence_count
+   const RowLayout& row_layout
 ) {
    auto tmp = handleTrivialCases(
       updated_number_of_matchers,
       non_negated_child_operators,
       negated_child_operators,
       match_exactly,
-      sequence_count
+      row_layout
    );
    if (tmp) {
       return tmp;
@@ -135,17 +134,17 @@ std::unique_ptr<Operator> toOperator(
       static_cast<int>(non_negated_child_operators.size() + negated_child_operators.size());
 
    if (updated_number_of_matchers == child_operator_count) {
-      return handleAndCase(non_negated_child_operators, negated_child_operators, sequence_count);
+      return handleAndCase(non_negated_child_operators, negated_child_operators, row_layout);
    }
    if (updated_number_of_matchers == 1 && !match_exactly) {
-      return handleOrCase(non_negated_child_operators, negated_child_operators, sequence_count);
+      return handleOrCase(non_negated_child_operators, negated_child_operators, row_layout);
    }
    return std::make_unique<Threshold>(
       std::move(non_negated_child_operators),
       std::move(negated_child_operators),
       updated_number_of_matchers,
       match_exactly,
-      sequence_count
+      row_layout
    );
 }
 
@@ -249,9 +248,9 @@ std::unique_ptr<filter::operators::Operator> NOf::compile(const storage::Table& 
 
    if (updated_number_of_matchers < 0) {
       if (match_exactly) {
-         return std::make_unique<filter::operators::Empty>(table.sequence_count);
+         return std::make_unique<filter::operators::Empty>(table.row_layout);
       }
-      return std::make_unique<filter::operators::Full>(table.sequence_count);
+      return std::make_unique<filter::operators::Full>(table.row_layout);
    }
 
    return toOperator(
@@ -259,7 +258,7 @@ std::unique_ptr<filter::operators::Operator> NOf::compile(const storage::Table& 
       std::move(non_negated_child_operators),
       std::move(negated_child_operators),
       match_exactly,
-      table.sequence_count
+      table.row_layout
    );
 }
 

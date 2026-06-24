@@ -287,7 +287,7 @@ void addTableStatisticsToDatabaseInfo(DatabaseInfo& database_info, const storage
       database_info.vertical_bitmaps_size += info.vertical_bitmaps_size;
       database_info.horizontal_bitmaps_size += info.horizontal_bitmaps_size;
    }
-   database_info.sequence_count += table.sequence_count;
+   database_info.sequence_count += table.row_layout.numRows();
 }
 
 }  // namespace

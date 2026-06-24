@@ -185,7 +185,7 @@ std::unique_ptr<filter::operators::Operator> Or::compile(const storage::Table& t
          continue;
       }
       if (child->type() == filter::operators::FULL) {
-         return std::make_unique<filter::operators::Full>(table.sequence_count);
+         return std::make_unique<filter::operators::Full>(table.row_layout);
       }
       if (child->type() == filter::operators::UNION) {
          auto* or_child = dynamic_cast<filter::operators::Union*>(child.get());
@@ -201,7 +201,7 @@ std::unique_ptr<filter::operators::Operator> Or::compile(const storage::Table& t
       }
    }
    if (filtered_child_operators.empty()) {
-      return std::make_unique<filter::operators::Empty>(table.sequence_count);
+      return std::make_unique<filter::operators::Empty>(table.row_layout);
    }
    if (filtered_child_operators.size() == 1) {
       return std::move(filtered_child_operators[0]);
@@ -211,11 +211,11 @@ std::unique_ptr<filter::operators::Operator> Or::compile(const storage::Table& t
           return child->type() == filter::operators::COMPLEMENT;
        })) {
       return filter::operators::Complement::fromDeMorgan(
-         std::move(filtered_child_operators), table.sequence_count
+         std::move(filtered_child_operators), table.row_layout
       );
    }
    return std::make_unique<filter::operators::Union>(
-      std::move(filtered_child_operators), table.sequence_count
+      std::move(filtered_child_operators), table.row_layout
    );
 }
 

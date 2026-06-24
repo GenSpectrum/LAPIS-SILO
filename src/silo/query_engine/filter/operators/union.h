@@ -1,11 +1,11 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 #include <string>
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/storage/column/row_layout.h"
 
 namespace silo::query_engine::expressions {
 // Forward declaration for friend class access. Include would introduce cyclic dependency
@@ -20,10 +20,10 @@ class Union : public Operator {
    friend class silo::query_engine::expressions::NOf;
 
    OperatorVector children;
-   uint32_t row_count;
+   storage::column::RowLayout row_layout;
 
   public:
-   explicit Union(OperatorVector&& children, uint32_t row_count);
+   explicit Union(OperatorVector&& children, storage::column::RowLayout row_layout);
 
    ~Union() noexcept override;
 

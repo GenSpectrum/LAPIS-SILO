@@ -55,11 +55,11 @@ std::unique_ptr<filter::operators::Operator> DateEquals::compile(const storage::
          std::make_unique<filter::operators::CompareToValueSelection<Date32Column>>(
             date_column, filter::operators::Comparator::EQUALS, value.value()
          ),
-         table.sequence_count
+         table.row_layout
       );
    }
    return std::make_unique<filter::operators::IndexScan>(
-      CopyOnWriteBitmap{&date_column.null_bitmap}, table.sequence_count
+      CopyOnWriteBitmap{&date_column.null_bitmap}, table.row_layout
    );
 }
 
