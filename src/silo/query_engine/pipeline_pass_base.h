@@ -1,9 +1,6 @@
 #pragma once
 
-#include <cstddef>
 #include <utility>
-
-#include <spdlog/spdlog.h>
 
 #include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
@@ -31,13 +28,11 @@ namespace silo::query_engine {
 /// pass.
 ///
 /// A derived pass overrides only the operators that need custom behaviour. It must
-/// pull the defaults into its own scope so they are not hidden by its overrides, and
-/// expose a `static constexpr std::string_view NAME` used for log messages:
+/// pull the defaults into its own scope so they are not hidden by its overrides:
 ///
 /// ```cpp
 /// class MyPass : public PipelinePassBase<MyPass> {
 ///   public:
-///    static constexpr std::string_view NAME = "MyPass";
 ///    using PipelinePassBase<MyPass>::operator();
 ///    operators::QueryNodePtr operator()(operators::FilterNode& node);  // custom
 /// };
@@ -137,27 +132,13 @@ class PipelinePassBase {
    }
 
   protected:
-   /// Repeatedly visit `child` with this pass, replacing it each time a non-null
-   /// replacement is returned, until the pass returns nullptr.
+   /// Visit `node` with this pass once, replacing it if the pass returns a non-null
+   /// replacement. Handlers are responsible for recursing into their own children
+   /// before returning a replacement, so a single visit per node is sufficient.
    // NOLINTNEXTLINE(misc-no-recursion)
    void propagateToNode(operators::QueryNodePtr& node) {
-      constexpr std::size_t MAX_ITERATIONS = 100;
-
       auto& derived = static_cast<Derived&>(*this);
-      std::size_t iterations = 0;
-      while (auto replacement = operators::visit(*node, derived)) {
-         if (++iterations >= MAX_ITERATIONS) {
-            SPDLOG_WARN(
-               "{} aborted after {} iterations on a single node: cyclic optimization "
-               "behaviour detected. Last plan: {}, replacement: {}",
-               Derived::NAME,
-               MAX_ITERATIONS,
-               node->toJson().dump(),
-               replacement->toJson().dump()
-            );
-            break;
-         }
-
+      if (auto replacement = operators::visit(*node, derived)) {
          node = std::move(replacement);
       }
    }

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string_view>
-
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/pipeline_pass_base.h"
 
@@ -25,8 +23,6 @@ namespace silo::query_engine {
 /// - AggregateNode(COUNT(*), TableScanNode) → CountFilterNode
 class NodeResolutionPass : public PipelinePassBase<NodeResolutionPass> {
   public:
-   static constexpr std::string_view NAME = "NodeResolutionPass";
-
    using PipelinePassBase<NodeResolutionPass>::operator();
 
    operators::QueryNodePtr operator()(operators::AggregateNode& node);

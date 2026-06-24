@@ -66,7 +66,7 @@ TEST(FilterPushdownPass, eliminatesFilterNodeAboveTableScan) {
    // The FilterNode is gone; result is the TableScanNode directly.
    EXPECT_EQ(result->kind(), operators::NodeKind::TABLE_SCAN);
    auto* table_scan = dynamic_cast<operators::TableScanNode*>(result.get());
-   EXPECT_EQ(table_scan->filter->toString(), "And(And(true & true))");
+   EXPECT_EQ(table_scan->filter->toString(), "And(true & true)");
 }
 
 // --- FilterNode(FilterNode(TableScanNode)) ---
@@ -80,7 +80,7 @@ TEST(FilterPushdownPass, eliminatesStackedFilterNodesAboveTableScan) {
    // Both FilterNodes are gone; result is the TableScanNode with all three filters merged.
    EXPECT_EQ(result->kind(), operators::NodeKind::TABLE_SCAN);
    auto* table_scan = dynamic_cast<operators::TableScanNode*>(result.get());
-   EXPECT_EQ(table_scan->filter->toString(), "And(And(And(true & false & true)))");
+   EXPECT_EQ(table_scan->filter->toString(), "And(true & false & true)");
 }
 
 // --- MapNode(FilterNode(TableScanNode)) ---
@@ -107,7 +107,7 @@ TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
    auto* map = dynamic_cast<operators::MapNode*>(result.get());
    ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
    auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
-   EXPECT_EQ(table_scan->filter->toString(), "And(And(true & true))");
+   EXPECT_EQ(table_scan->filter->toString(), "And(true & true)");
 }
 
 // --- FilterNode(ProjectNode(MapNode(FilterNode(TableScanNode)))) ---
@@ -138,16 +138,16 @@ TEST(FilterPushdownPass, pushesFilterThroughProjectAndMapIntoTableScan) {
    auto* map = dynamic_cast<operators::MapNode*>(project->child.get());
    ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
    auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
-   EXPECT_EQ(table_scan->filter->toString(), "And(And(And(true & false & true)))");
+   EXPECT_EQ(table_scan->filter->toString(), "And(true & false & true)");
 }
 
 // --- FilterNode(UnionAllNode(FilterNode(TableScanNode), FilterNode(TableScanNode))) ---
 TEST(FilterPushdownPass, pushesFilterIntoBothUnionAllBranches) {
    // left branch: Filter(false, Scan), right branch: Filter(true, Scan)
-   auto union_all = std::make_unique<operators::UnionAllNode>(
-      makeFilteredScan(false), makeFilteredScan(true)
-   );
-   auto filter_node = std::make_unique<operators::FilterNode>(std::move(union_all), makeDummyFilter());
+   auto union_all =
+      std::make_unique<operators::UnionAllNode>(makeFilteredScan(false), makeFilteredScan(true));
+   auto filter_node =
+      std::make_unique<operators::FilterNode>(std::move(union_all), makeDummyFilter());
 
    auto result = FilterPushdownPass::run(std::move(filter_node));
 
@@ -158,8 +158,8 @@ TEST(FilterPushdownPass, pushesFilterIntoBothUnionAllBranches) {
    auto* left_scan = dynamic_cast<operators::TableScanNode*>(union_node->left.get());
    auto* right_scan = dynamic_cast<operators::TableScanNode*>(union_node->right.get());
    // outer filter (true) + branch filter (false/true) + scan filter (true)
-   EXPECT_EQ(left_scan->filter->toString(), "And(And(And(true & false & true)))");
-   EXPECT_EQ(right_scan->filter->toString(), "And(And(And(true & true & true)))");
+   EXPECT_EQ(left_scan->filter->toString(), "And(true & false & true)");
+   EXPECT_EQ(right_scan->filter->toString(), "And(true & true & true)");
 }
 
 }  // namespace
