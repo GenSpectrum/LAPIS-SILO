@@ -39,7 +39,7 @@ std::unique_ptr<filter::operators::Operator> IsNull::compile(const storage::Tabl
    return silo::storage::column::visit(target_column.type, [&]<storage::column::Column Column>() {
       const auto& column = table.columns.getColumns<Column>().at(column_name);
       return std::make_unique<filter::operators::IndexScan>(
-         CopyOnWriteBitmap{&column.null_bitmap}, table.sequence_count
+         CopyOnWriteBitmap{&column.null_bitmap}, table.row_layout
       );
    });
 }

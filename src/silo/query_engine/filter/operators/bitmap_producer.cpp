@@ -9,9 +9,12 @@
 
 namespace silo::query_engine::filter::operators {
 
-BitmapProducer::BitmapProducer(std::function<CopyOnWriteBitmap()> producer, uint32_t row_count)
+BitmapProducer::BitmapProducer(
+   std::function<CopyOnWriteBitmap()> producer,
+   storage::column::RowLayout row_layout
+)
     : producer(std::move(producer)),
-      row_count(row_count) {}
+      row_layout(std::move(row_layout)) {}
 
 BitmapProducer::~BitmapProducer() noexcept = default;
 
@@ -30,7 +33,8 @@ CopyOnWriteBitmap BitmapProducer::evaluate() const {
 
 std::unique_ptr<Operator> BitmapProducer::negate(std::unique_ptr<BitmapProducer>&& bitmap_producer
 ) {
-   return std::make_unique<Complement>(std::move(bitmap_producer), bitmap_producer->row_count);
+   auto row_layout = bitmap_producer->row_layout;
+   return std::make_unique<Complement>(std::move(bitmap_producer), std::move(row_layout));
 }
 
 }  // namespace silo::query_engine::filter::operators

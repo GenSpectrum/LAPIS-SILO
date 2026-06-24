@@ -89,14 +89,14 @@ std::vector<typename SymbolType::Symbol> negateSymbols(
 std::unique_ptr<filter::operators::Operator> makeDifference(
    std::unique_ptr<filter::operators::Operator> left,
    std::unique_ptr<filter::operators::Operator> right,
-   uint32_t row_count
+   const storage::column::RowLayout& row_layout
 ) {
    filter::operators::OperatorVector non_negated_operators;
    non_negated_operators.push_back(std::move(left));
    filter::operators::OperatorVector negated_operators;
    negated_operators.push_back(std::move(right));
    return std::make_unique<filter::operators::Intersection>(
-      std::move(non_negated_operators), std::move(negated_operators), row_count
+      std::move(non_negated_operators), std::move(negated_operators), row_layout
    );
 }
 
@@ -104,7 +104,8 @@ template <typename SymbolType>
 std::unique_ptr<filter::operators::Operator> compileWithMissingSymbolAndReference(
    const SequenceColumn<SymbolType>& sequence_column,
    uint32_t position_idx,
-   const std::vector<typename SymbolType::Symbol>& symbols
+   const std::vector<typename SymbolType::Symbol>& symbols,
+   const storage::column::RowLayout& row_layout
 ) {
    // as the missing symbol and the reference symbol are included, we can just negate the other
    // symbols
@@ -114,9 +115,9 @@ std::unique_ptr<filter::operators::Operator> compileWithMissingSymbolAndReferenc
    );
    return std::make_unique<filter::operators::Complement>(
       std::make_unique<filter::operators::IndexScan>(
-         CopyOnWriteBitmap{std::move(bitmap)}, sequence_column.sequence_count
+         CopyOnWriteBitmap{std::move(bitmap)}, row_layout
       ),
-      sequence_column.sequence_count
+      row_layout
    );
 }
 
@@ -124,7 +125,8 @@ template <typename SymbolType>
 std::unique_ptr<filter::operators::Operator> compileWithMissingSymbol(
    const SequenceColumn<SymbolType>& sequence_column,
    uint32_t position_idx,
-   const std::vector<typename SymbolType::Symbol>& symbols
+   const std::vector<typename SymbolType::Symbol>& symbols,
+   const storage::column::RowLayout& row_layout
 ) {
    // The missing symbol is included, so we start with the sequences with no coverage at this
    // position and then add the sequences with the mutation symbols
@@ -138,21 +140,20 @@ std::unique_ptr<filter::operators::Operator> compileWithMissingSymbol(
          position_idx,
          filter::operators::IsInCoveredRegion::Comparator::IS_NOT_COVERED
       ),
-      sequence_column.sequence_count
+      row_layout
    ));
    operators_for_union.push_back(std::make_unique<filter::operators::IndexScan>(
-      CopyOnWriteBitmap{std::move(bitmap)}, sequence_column.sequence_count
+      CopyOnWriteBitmap{std::move(bitmap)}, row_layout
    ));
-   return std::make_unique<filter::operators::Union>(
-      std::move(operators_for_union), sequence_column.sequence_count
-   );
+   return std::make_unique<filter::operators::Union>(std::move(operators_for_union), row_layout);
 }
 
 template <typename SymbolType>
 std::unique_ptr<filter::operators::Operator> compileWithReference(
    const SequenceColumn<SymbolType>& sequence_column,
    uint32_t position_idx,
-   const std::vector<typename SymbolType::Symbol>& symbols
+   const std::vector<typename SymbolType::Symbol>& symbols,
+   const storage::column::RowLayout& row_layout
 ) {
    // The reference symbol is included, so we start with the sequences with coverage at this
    // position and then remove the sequences with the negated mutation symbols
@@ -168,12 +169,12 @@ std::unique_ptr<filter::operators::Operator> compileWithReference(
             position_idx,
             filter::operators::IsInCoveredRegion::Comparator::IS_COVERED
          ),
-         sequence_column.sequence_count
+         row_layout
       ),
       std::make_unique<filter::operators::IndexScan>(
-         CopyOnWriteBitmap{std::move(bitmap)}, sequence_column.sequence_count
+         CopyOnWriteBitmap{std::move(bitmap)}, row_layout
       ),
-      sequence_column.sequence_count
+      row_layout
    );
 }
 
@@ -181,13 +182,14 @@ template <typename SymbolType>
 std::unique_ptr<filter::operators::Operator> compileOnlyMutations(
    const SequenceColumn<SymbolType>& sequence_column,
    uint32_t position_idx,
-   const std::vector<typename SymbolType::Symbol>& symbols
+   const std::vector<typename SymbolType::Symbol>& symbols,
+   const storage::column::RowLayout& row_layout
 ) {
    // All our results are fully included in the vertical sequence index
    auto bitmap =
       sequence_column.vertical_sequence_index.getMatchingContainersAsBitmap(position_idx, symbols);
    return std::make_unique<filter::operators::IndexScan>(
-      CopyOnWriteBitmap{std::move(bitmap)}, sequence_column.sequence_count
+      CopyOnWriteBitmap{std::move(bitmap)}, row_layout
    );
 }
 
@@ -238,15 +240,17 @@ std::unique_ptr<filter::operators::Operator> SymbolInSet<SymbolType>::compile(
       std::find(symbols.begin(), symbols.end(), SymbolType::SYMBOL_MISSING) != symbols.end();
 
    if (includes_reference && includes_missing_symbol) {
-      return compileWithMissingSymbolAndReference(sequence_column, position_idx, symbols);
+      return compileWithMissingSymbolAndReference(
+         sequence_column, position_idx, symbols, table.row_layout
+      );
    }
    if (includes_missing_symbol) {
-      return compileWithMissingSymbol(sequence_column, position_idx, symbols);
+      return compileWithMissingSymbol(sequence_column, position_idx, symbols, table.row_layout);
    }
    if (includes_reference) {
-      return compileWithReference(sequence_column, position_idx, symbols);
+      return compileWithReference(sequence_column, position_idx, symbols, table.row_layout);
    }
-   return compileOnlyMutations(sequence_column, position_idx, symbols);
+   return compileOnlyMutations(sequence_column, position_idx, symbols, table.row_layout);
 }
 
 template class SymbolInSet<AminoAcid>;

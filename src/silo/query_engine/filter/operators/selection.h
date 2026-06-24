@@ -10,6 +10,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column.h"
+#include "silo/storage/column/row_layout.h"
 #include "silo/storage/column/string_column.h"
 
 namespace silo::query_engine::expressions {
@@ -26,11 +27,12 @@ class Predicate {
    [[nodiscard]] virtual bool match(uint32_t row_id) const = 0;
    // Often there are faster ways to generate the results, than calling match on each row.
    // Optimise that case by overriding this method
-   [[nodiscard]] virtual roaring::Roaring makeBitmap(uint32_t row_count) const {
+   [[nodiscard]] virtual roaring::Roaring makeBitmap(const storage::column::RowLayout& row_layout
+   ) const {
       roaring::Roaring result;
-      for (size_t i = 0; i < row_count; ++i) {
-         if (match(i)) {
-            result.add(i);
+      for (const storage::column::RowId row_id : row_layout) {
+         if (match(row_id)) {
+            result.add(row_id);
          }
       }
       return result;
@@ -170,30 +172,33 @@ class Selection : public Operator {
   private:
    std::optional<std::unique_ptr<Operator>> child_operator;
    std::vector<std::unique_ptr<Predicate>> predicates;
-   uint32_t row_count;
+   storage::column::RowLayout row_layout;
 
    Selection(
       std::optional<std::unique_ptr<Operator>> child_operator,
       std::vector<std::unique_ptr<Predicate>>&& predicates,
-      uint32_t row_count
+      storage::column::RowLayout row_layout
    );
 
   public:
    Selection(
       std::unique_ptr<Operator>&& child_operator,
       std::vector<std::unique_ptr<Predicate>>&& predicates,
-      uint32_t row_count
+      storage::column::RowLayout row_layout
    );
 
    Selection(
       std::unique_ptr<Operator>&& child_operator,
       std::unique_ptr<Predicate> predicate,
-      uint32_t row_count
+      storage::column::RowLayout row_layout
    );
 
-   Selection(std::vector<std::unique_ptr<Predicate>>&& predicates, uint32_t row_count);
+   Selection(
+      std::vector<std::unique_ptr<Predicate>>&& predicates,
+      storage::column::RowLayout row_layout
+   );
 
-   Selection(std::unique_ptr<Predicate> predicate, uint32_t row_count);
+   Selection(std::unique_ptr<Predicate> predicate, storage::column::RowLayout row_layout);
 
    ~Selection() noexcept override;
 

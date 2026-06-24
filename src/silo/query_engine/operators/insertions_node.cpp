@@ -68,7 +68,7 @@ arrow::Status addAggregatedInsertionsToInsertionCounts(
    if (bitmap_cardinality == 0) {
       return arrow::Status::OK();
    }
-   if (bitmap_cardinality == table.sequence_count) {
+   if (bitmap_cardinality == table.row_layout.numRows()) {
       for (const auto& [position, insertions_at_position] :
            sequence_column.insertion_index.getInsertionPositions()) {
          for (const auto& insertion : insertions_at_position.insertions) {

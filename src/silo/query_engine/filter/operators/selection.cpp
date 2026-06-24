@@ -25,12 +25,13 @@ using storage::column::StringColumn;
 Selection::Selection(
    std::optional<std::unique_ptr<Operator>> child_operator,
    std::vector<std::unique_ptr<Predicate>>&& predicates,
-   uint32_t row_count
+   storage::column::RowLayout row_layout
 )
     : child_operator(std::move(child_operator)),
       predicates(std::move(predicates)),
-      row_count(row_count) {
-   std::ranges::sort(this->predicates, [&row_count](const auto& left, const auto& right) {
+      row_layout(std::move(row_layout)) {
+   const auto row_count = static_cast<uint32_t>(this->row_layout.numRows());
+   std::ranges::sort(this->predicates, [row_count](const auto& left, const auto& right) {
       return left->estimateSelectivity(row_count) < right->estimateSelectivity(row_count);
    });
 }
@@ -38,29 +39,32 @@ Selection::Selection(
 Selection::Selection(
    std::unique_ptr<Operator>&& child_operator,
    std::vector<std::unique_ptr<Predicate>>&& predicates,
-   uint32_t row_count
+   storage::column::RowLayout row_layout
 )
     : Selection(
          std::optional<std::unique_ptr<Operator>>{std::move(child_operator)},
          std::move(predicates),
-         row_count
+         std::move(row_layout)
       ) {}
 
 Selection::Selection(
    std::unique_ptr<Operator>&& child_operator,
    std::unique_ptr<Predicate> predicate,
-   uint32_t row_count
+   storage::column::RowLayout row_layout
 )
     : child_operator(std::move(child_operator)),
-      row_count(row_count) {
+      row_layout(std::move(row_layout)) {
    predicates.emplace_back(std::move(predicate));
 }
 
-Selection::Selection(std::vector<std::unique_ptr<Predicate>>&& predicates, uint32_t row_count)
-    : Selection(std::nullopt, std::move(predicates), row_count) {}
+Selection::Selection(
+   std::vector<std::unique_ptr<Predicate>>&& predicates,
+   storage::column::RowLayout row_layout
+)
+    : Selection(std::nullopt, std::move(predicates), std::move(row_layout)) {}
 
-Selection::Selection(std::unique_ptr<Predicate> predicate, uint32_t row_count)
-    : row_count(row_count) {
+Selection::Selection(std::unique_ptr<Predicate> predicate, storage::column::RowLayout row_layout)
+    : row_layout(std::move(row_layout)) {
    predicates.emplace_back(std::move(predicate));
 }
 
@@ -97,9 +101,9 @@ CopyOnWriteBitmap Selection::evaluate() const {
    if (child_operator.has_value()) {
       CopyOnWriteBitmap child_result = (*child_operator)->evaluate();
       // Do not iterate over bitmap, if child result is larger than 10%
-      if (child_result.getConstReference().cardinality() > row_count / 10) {
+      if (child_result.getConstReference().cardinality() > row_layout.numRows() / 10) {
          SILO_ASSERT(!predicates.empty());
-         auto most_selective_predicate_bitmap = predicates.front()->makeBitmap(row_count);
+         auto most_selective_predicate_bitmap = predicates.front()->makeBitmap(row_layout);
          child_result.getMutable() &= most_selective_predicate_bitmap;
 
          if (predicates.size() == 1) {
@@ -129,20 +133,22 @@ CopyOnWriteBitmap Selection::evaluate() const {
       return CopyOnWriteBitmap{std::move(result)};
    }
    roaring::Roaring result;
-   for (uint32_t row = 0; row < row_count; ++row) {
-      if (matchesPredicates(predicates, row)) {
-         result.add(row);
+   for (const storage::column::RowId row_id : row_layout) {
+      if (matchesPredicates(predicates, row_id)) {
+         result.add(row_id);
       }
    }
    return CopyOnWriteBitmap{std::move(result)};
 }
 
 std::unique_ptr<Operator> Selection::negate(std::unique_ptr<Selection>&& selection) {
-   const uint32_t row_count = selection->row_count;
+   auto row_layout = selection->row_layout;
    if (selection->child_operator == std::nullopt && selection->predicates.size() == 1) {
-      return std::make_unique<Selection>(selection->predicates.at(0)->negate(), row_count);
+      return std::make_unique<Selection>(
+         selection->predicates.at(0)->negate(), std::move(row_layout)
+      );
    }
-   return std::make_unique<Complement>(std::move(selection), row_count);
+   return std::make_unique<Complement>(std::move(selection), std::move(row_layout));
 }
 
 namespace {

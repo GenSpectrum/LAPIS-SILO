@@ -25,7 +25,7 @@ namespace {
 std::unique_ptr<filter::operators::Operator> createMatchingBitmap(
    const storage::column::StringColumn& string_column,
    const std::string& internal_node,
-   size_t row_count
+   storage::column::RowLayout row_layout
 ) {
    CHECK_SILO_QUERY(
       string_column.metadata->phylo_tree.has_value(),
@@ -45,7 +45,7 @@ std::unique_ptr<filter::operators::Operator> createMatchingBitmap(
          roaring::Roaring result_bitmap = string_column.getDescendants(internal_tree_node.value());
          return CopyOnWriteBitmap(std::move(result_bitmap));
       },
-      row_count
+      std::move(row_layout)
    );
 }
 
@@ -73,7 +73,7 @@ std::unique_ptr<filter::operators::Operator> PhyloChildFilter::compile(const sto
 
    SILO_ASSERT(table.columns.string_columns.contains(column_name));
    const auto& string_column = table.columns.string_columns.at(column_name);
-   return createMatchingBitmap(string_column, internal_node, table.sequence_count);
+   return createMatchingBitmap(string_column, internal_node, table.row_layout);
 }
 
 }  // namespace silo::query_engine::expressions

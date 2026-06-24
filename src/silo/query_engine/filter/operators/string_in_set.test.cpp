@@ -13,6 +13,7 @@ using silo::query_engine::filter::operators::Selection;
 using silo::query_engine::filter::operators::StringInSet;
 using silo::storage::column::IndexedStringColumn;
 using silo::storage::column::IndexedStringColumnMetadata;
+using silo::storage::column::RowLayout;
 using silo::storage::column::StringColumn;
 using silo::storage::column::StringColumnMetadata;
 
@@ -50,7 +51,7 @@ TEST(OperatorStringInSet, matchReturnsCorrectValuesForStringColumn) {
       {"Switzerland", "Germany", "USA", "Switzerland", "France", "Germany"}
    };
    auto [metadata, test_column] = makeTestStringColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<StringInSet<StringColumn>>(
@@ -58,7 +59,7 @@ TEST(OperatorStringInSet, matchReturnsCorrectValuesForStringColumn) {
          StringInSet<StringColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Switzerland", "Germany"}
       ),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 3, 5}));
@@ -69,7 +70,7 @@ TEST(OperatorStringInSet, matchReturnsCorrectValuesForIndexedStringColumn) {
       {"Switzerland", "Germany", "USA", "Switzerland", "France", "Germany"}
    };
    auto [metadata, test_column] = makeTestIndexedStringColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<StringInSet<IndexedStringColumn>>(
@@ -77,7 +78,7 @@ TEST(OperatorStringInSet, matchReturnsCorrectValuesForIndexedStringColumn) {
          StringInSet<IndexedStringColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Switzerland", "Germany"}
       ),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 3, 5}));
@@ -88,7 +89,7 @@ TEST(OperatorStringInSet, matchReturnsEmptyForNoMatches) {
       {"Switzerland", "Germany", "USA", "Switzerland", "France", "Germany"}
    };
    auto [metadata, test_column] = makeTestStringColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<StringInSet<StringColumn>>(
@@ -96,7 +97,7 @@ TEST(OperatorStringInSet, matchReturnsEmptyForNoMatches) {
          StringInSet<StringColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Japan", "China"}
       ),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring());
@@ -107,13 +108,13 @@ TEST(OperatorStringInSet, matchReturnsEmptyForEmptySet) {
       {"Switzerland", "Germany", "USA", "Switzerland", "France", "Germany"}
    };
    auto [metadata, test_column] = makeTestStringColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<StringInSet<StringColumn>>(
          &test_column, StringInSet<StringColumn>::Comparator::IN, std::unordered_set<std::string>{}
       ),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring());
@@ -124,7 +125,7 @@ TEST(OperatorStringInSet, negationWorksCorrectly) {
       {"Switzerland", "Germany", "USA", "Switzerland", "France", "Germany"}
    };
    auto [metadata, test_column] = makeTestStringColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<StringInSet<StringColumn>>(
@@ -132,7 +133,7 @@ TEST(OperatorStringInSet, negationWorksCorrectly) {
          StringInSet<StringColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Switzerland", "Germany"}
       ),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 3, 5}));
@@ -146,7 +147,7 @@ TEST(OperatorStringInSet, notInComparatorWorksCorrectly) {
       {"Switzerland", "Germany", "USA", "Switzerland", "France", "Germany"}
    };
    auto [metadata, test_column] = makeTestStringColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<StringInSet<StringColumn>>(
@@ -154,7 +155,7 @@ TEST(OperatorStringInSet, notInComparatorWorksCorrectly) {
          StringInSet<StringColumn>::Comparator::NOT_IN,
          std::unordered_set<std::string>{"Switzerland", "Germany"}
       ),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({2, 4}));
@@ -201,7 +202,7 @@ TEST(OperatorStringInSet, copyCreatesIndependentCopy) {
 TEST(OperatorStringInSet, matchSingleValue) {
    const std::vector<std::string> values{"Apple", "Banana", "Cherry", "Apple", "Date"};
    auto [metadata, test_column] = makeTestStringColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<StringInSet<StringColumn>>(
@@ -209,7 +210,7 @@ TEST(OperatorStringInSet, matchSingleValue) {
          StringInSet<StringColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Apple"}
       ),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 3}));
@@ -218,7 +219,7 @@ TEST(OperatorStringInSet, matchSingleValue) {
 TEST(OperatorStringInSet, returnsCorrectTypeInfo) {
    const std::vector<std::string> values{"Switzerland"};
    auto [metadata, test_column] = makeTestStringColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    const Selection under_test(
       std::make_unique<StringInSet<StringColumn>>(
@@ -226,7 +227,7 @@ TEST(OperatorStringInSet, returnsCorrectTypeInfo) {
          StringInSet<StringColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Switzerland"}
       ),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::SELECTION);

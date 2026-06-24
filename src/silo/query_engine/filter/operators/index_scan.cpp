@@ -13,18 +13,18 @@
 
 namespace silo::query_engine::filter::operators {
 
-IndexScan::IndexScan(CopyOnWriteBitmap bitmap, uint32_t row_count)
+IndexScan::IndexScan(CopyOnWriteBitmap bitmap, storage::column::RowLayout row_layout)
     : bitmap(std::move(bitmap)),
-      row_count(row_count) {}
+      row_layout(std::move(row_layout)) {}
 
 IndexScan::IndexScan(
    std::unique_ptr<expressions::Expression>&& logical_equivalent,
    CopyOnWriteBitmap bitmap,
-   uint32_t row_count
+   storage::column::RowLayout row_layout
 )
     : logical_equivalent(std::move(logical_equivalent)),
       bitmap(std::move(bitmap)),
-      row_count(row_count) {}
+      row_layout(std::move(row_layout)) {}
 
 IndexScan::~IndexScan() noexcept = default;
 
@@ -45,8 +45,8 @@ CopyOnWriteBitmap IndexScan::evaluate() const {
    return bitmap;
 }
 std::unique_ptr<Operator> IndexScan::negate(std::unique_ptr<IndexScan>&& index_scan) {
-   const uint32_t row_count = index_scan->row_count;
-   return std::make_unique<Complement>(std::move(index_scan), row_count);
+   auto row_layout = index_scan->row_layout;
+   return std::make_unique<Complement>(std::move(index_scan), std::move(row_layout));
 }
 
 }  // namespace silo::query_engine::filter::operators

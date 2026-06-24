@@ -4,14 +4,16 @@
 #include <roaring/roaring.hh>
 
 using silo::query_engine::filter::operators::RangeSelection;
+using silo::storage::column::RowLayout;
+
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValues) {
    std::vector<RangeSelection::Range> test_ranges(
       // NOLINTNEXTLINE(readability-magic-numbers)
       {{RangeSelection::Range{0, 2}, RangeSelection::Range{3, 5}}}
    );
-   const uint32_t row_count = 8;
+   const auto row_layout = RowLayout::of(8);
 
-   auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_count);
+   auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_layout);
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 3, 4}));
    auto negated = RangeSelection::negate(std::move(under_test));
    ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({2, 5, 6, 7}));
@@ -19,9 +21,9 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValues) {
 
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesEmptyDatabase) {
    std::vector<RangeSelection::Range> test_ranges;
-   const uint32_t row_count = 0;
+   const auto row_layout = RowLayout::of(0);
 
-   auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_count);
+   auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_layout);
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring());
    auto negated = RangeSelection::negate(std::move(under_test));
    ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring());
@@ -31,9 +33,9 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesEmptyRanges) {
    std::vector<RangeSelection::Range> test_ranges(
       {{RangeSelection::Range{0, 0}, RangeSelection::Range{4, 4}}}
    );
-   const uint32_t row_count = 9;
+   const auto row_layout = RowLayout::of(9);
 
-   auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_count);
+   auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_layout);
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring());
    auto negated = RangeSelection::negate(std::move(under_test));
    ASSERT_EQ(
@@ -44,9 +46,9 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesEmptyRanges) {
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesFullRange) {
    // NOLINTNEXTLINE(readability-magic-numbers)
    std::vector<RangeSelection::Range> test_ranges({{RangeSelection::Range{0, 8}}});
-   const uint32_t row_count = 8;
+   const auto row_layout = RowLayout::of(8);
 
-   auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_count);
+   auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_layout);
    ASSERT_EQ(
       under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3, 4, 5, 6, 7})
    );
@@ -58,9 +60,9 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesMeetingRanges) {
    std::vector<RangeSelection::Range> test_ranges(
       {{RangeSelection::Range{0, 2}, RangeSelection::Range{2, 4}}}
    );
-   const uint32_t row_count = 9;
+   const auto row_layout = RowLayout::of(9);
 
-   auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_count);
+   auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_layout);
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3}));
    auto negated = RangeSelection::negate(std::move(under_test));
    ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({4, 5, 6, 7, 8}));
@@ -70,9 +72,9 @@ TEST(OperatorRangeSelection, returnsCorrectTypeInfo) {
    std::vector<RangeSelection::Range> test_ranges(
       {{RangeSelection::Range{0, 2}, RangeSelection::Range{2, 4}}}
    );
-   const uint32_t row_count = 8;
+   const auto row_layout = RowLayout::of(8);
 
-   auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_count);
+   auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_layout);
 
    ASSERT_EQ(under_test->type(), silo::query_engine::filter::operators::RANGE_SELECTION);
    auto negated = RangeSelection::negate(std::move(under_test));

@@ -7,24 +7,25 @@
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/storage/column/row_layout.h"
 
 namespace silo::query_engine::filter::operators {
 
 class RangeSelection : public Operator {
   public:
    struct Range {
-      uint32_t start;
-      uint32_t end;
+      storage::column::RowId start;
+      storage::column::RowId end;
 
-      explicit Range(uint32_t start, uint32_t end);
+      explicit Range(storage::column::RowId start, storage::column::RowId end);
    };
 
   private:
    std::vector<Range> ranges;
-   uint32_t row_count;
+   storage::column::RowLayout row_layout;
 
   public:
-   explicit RangeSelection(std::vector<Range>&& ranges, uint32_t row_count);
+   explicit RangeSelection(std::vector<Range>&& ranges, storage::column::RowLayout row_layout);
 
    ~RangeSelection() noexcept override;
 
