@@ -1,4 +1,4 @@
-#include "silo/query_engine/filter_pushdown_pass.h"
+#include "silo/query_engine/optimizer/filter_pushdown_pass.h"
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -11,7 +11,7 @@
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
 
-namespace silo::query_engine {
+namespace silo::query_engine::optimizer {
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::FilterNode& node) {
@@ -83,4 +83,4 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& 
    return nullptr;
 }
 
-}  // namespace silo::query_engine
+}  // namespace silo::query_engine::optimizer

@@ -1,4 +1,4 @@
-#include "silo/query_engine/filter_pushdown_pass.h"
+#include "silo/query_engine/optimizer/filter_pushdown_pass.h"
 
 #include <map>
 #include <memory>
@@ -16,7 +16,7 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
 
-using silo::query_engine::FilterPushdownPass;
+using silo::query_engine::optimizer::FilterPushdownPass;
 namespace operators = silo::query_engine::operators;
 namespace expressions = silo::query_engine::expressions;
 

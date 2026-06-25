@@ -1,4 +1,4 @@
-#include "silo/query_engine/node_resolution_pass.h"
+#include "silo/query_engine/optimizer/node_resolution_pass.h"
 
 #include <map>
 #include <memory>
@@ -27,7 +27,7 @@
 using silo::AminoAcid;
 using silo::Nucleotide;
 using silo::query_engine::IllegalQueryException;
-using silo::query_engine::NodeResolutionPass;
+using silo::query_engine::optimizer::NodeResolutionPass;
 namespace operators = silo::query_engine::operators;
 
 namespace {

@@ -2,7 +2,7 @@
 
 #include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
-#include "silo/query_engine/pipeline_pass_base.h"
+#include "silo/query_engine/optimizer/pipeline_pass_base.h"
 
 namespace silo::query_engine::operators {
 class FilterNode;
@@ -16,7 +16,7 @@ class MostRecentCommonAncestorNode;
 class UnionAllNode;
 }  // namespace silo::query_engine::operators
 
-namespace silo::query_engine {
+namespace silo::query_engine::optimizer {
 
 /// Optimization pass that eliminates FilterNodes by pushing their filter expression
 /// into the child node's filter field
@@ -39,4 +39,4 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    operators::QueryNodePtr operator()(operators::UnionAllNode& node);
 };
 
-}  // namespace silo::query_engine
+}  // namespace silo::query_engine::optimizer
