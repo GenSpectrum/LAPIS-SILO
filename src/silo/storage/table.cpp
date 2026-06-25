@@ -71,7 +71,7 @@ void Table::validate() const {
 }
 
 std::expected<void, std::string> Table::bulkInsert(ColumnGroupBuilder& block) {
-   sequence_count += block.numBufferedRows();
+   row_layout.appendChunk(static_cast<uint32_t>(block.numBufferedRows()));
    for (const auto& column : columns.metadata) {
       auto result = column::visit(column.type, BulkInsertVisitor{}, columns, block, column.name);
       if (!result.has_value()) {
@@ -96,12 +96,11 @@ void Table::validatePrimaryKeyUnique() const {
    SILO_ASSERT(primary_key.type == schema::ColumnType::STRING);
 
    const auto& primary_key_column = columns.string_columns.at(primary_key.name);
-   auto num_values = primary_key_column.numValues();
 
    std::unordered_set<std::string> unique_keys;
-   unique_keys.reserve(num_values);
-   for (size_t i = 0; i < num_values; ++i) {
-      std::string value = primary_key_column.getValueString(i);
+   unique_keys.reserve(row_layout.numRows());
+   for (const column::RowId row_id : row_layout) {
+      std::string value = primary_key_column.getValueString(row_id);
       if (unique_keys.contains(value)) {
          throw schema::DuplicatePrimaryKeyException("Found duplicate primary key {}", value);
       }
@@ -112,12 +111,12 @@ void Table::validatePrimaryKeyUnique() const {
 
 void Table::validateNucleotideSequences() const {
    for (const auto& [name, nuc_column] : columns.nuc_columns) {
-      if (nuc_column.sequence_count > sequence_count) {
+      if (nuc_column.sequence_count > row_layout.numRows()) {
          SILO_PANIC(
             "nuc_store {} ({}) has invalid size (expected {}).",
             name,
             nuc_column.sequence_count,
-            sequence_count
+            row_layout.numRows()
          );
       }
       if (nuc_column.metadata->reference_sequence.empty()) {
@@ -128,12 +127,12 @@ void Table::validateNucleotideSequences() const {
 
 void Table::validateAminoAcidSequences() const {
    for (const auto& [name, aa_column] : columns.aa_columns) {
-      if (aa_column.sequence_count > sequence_count) {
+      if (aa_column.sequence_count > row_layout.numRows()) {
          SILO_PANIC(
             "aa_store {} ({}) has invalid size (expected {}).",
             name,
             aa_column.sequence_count,
-            sequence_count
+            row_layout.numRows()
          );
       }
       if (aa_column.metadata->reference_sequence.empty()) {
@@ -148,7 +147,7 @@ void Table::validateColumnsHaveSize(
    const std::string& columnType
 ) const {
    for (const auto& col : columnsOfTheType) {
-      if (col.second.numValues() != sequence_count) {
+      if (col.second.numValues() != row_layout.numRows()) {
          throw preprocessing::PreprocessingException(
             columnType + " " + col.first + " has invalid size " +
             std::to_string(col.second.numValues())

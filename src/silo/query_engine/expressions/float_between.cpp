@@ -68,15 +68,13 @@ std::unique_ptr<filter::operators::Operator> FloatBetween::compile(const storage
    if (predicates.empty()) {
       return std::make_unique<filter::operators::Complement>(
          std::make_unique<filter::operators::IndexScan>(
-            CopyOnWriteBitmap{&float_column.null_bitmap}, table.sequence_count
+            CopyOnWriteBitmap{&float_column.null_bitmap}, table.row_layout
          ),
-         table.sequence_count
+         table.row_layout
       );
    }
 
-   return std::make_unique<filter::operators::Selection>(
-      std::move(predicates), table.sequence_count
-   );
+   return std::make_unique<filter::operators::Selection>(std::move(predicates), table.row_layout);
 }
 
 }  // namespace silo::query_engine::expressions

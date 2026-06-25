@@ -92,10 +92,10 @@ std::unique_ptr<filter::operators::Operator> LineageFilter::compile(const storag
    std::optional<const roaring::Roaring*> bitmap = getBitmapForValue(lineage_column);
 
    if (bitmap == std::nullopt) {
-      return std::make_unique<filter::operators::Empty>(table.sequence_count);
+      return std::make_unique<filter::operators::Empty>(table.row_layout);
    }
    return std::make_unique<filter::operators::IndexScan>(
-      CopyOnWriteBitmap{bitmap.value()}, table.sequence_count
+      CopyOnWriteBitmap{bitmap.value()}, table.row_layout
    );
 }
 

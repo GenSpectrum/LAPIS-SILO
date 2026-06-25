@@ -81,7 +81,7 @@ std::unique_ptr<filter::operators::Operator> InsertionContains<SymbolType>::comp
             );
          }
       },
-      table.sequence_count
+      table.row_layout
    );
 }
 

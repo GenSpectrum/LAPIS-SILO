@@ -11,13 +11,17 @@ using silo::query_engine::QueryCompilationException;
 using silo::query_engine::filter::operators::IndexScan;
 using silo::query_engine::filter::operators::Intersection;
 using silo::query_engine::filter::operators::OperatorVector;
+using silo::storage::column::RowLayout;
 
 namespace {
-OperatorVector generateTestInput(const std::vector<roaring::Roaring>& bitmaps, uint32_t row_count) {
+OperatorVector generateTestInput(
+   const std::vector<roaring::Roaring>& bitmaps,
+   const RowLayout& row_layout
+) {
    OperatorVector result;
 
    std::ranges::transform(bitmaps, std::back_inserter(result), [&](const auto& bitmap) {
-      return std::make_unique<IndexScan>(CopyOnWriteBitmap{&bitmap}, row_count);
+      return std::make_unique<IndexScan>(CopyOnWriteBitmap{&bitmap}, row_layout);
    });
    return result;
 }
@@ -26,10 +30,10 @@ OperatorVector generateTestInput(const std::vector<roaring::Roaring>& bitmaps, u
 TEST(OperatorIntersection, shouldFailOnEmptyInput) {
    OperatorVector non_negated;
    OperatorVector negated;
-   const uint32_t row_count = 5;
+   const auto row_layout = RowLayout::of(5);
 
    ASSERT_THROW(
-      const Intersection under_test(std::move(non_negated), std::move(negated), row_count),
+      const Intersection under_test(std::move(non_negated), std::move(negated), row_layout),
       QueryCompilationException
    );
 }
@@ -38,24 +42,24 @@ TEST(OperatorIntersection, shouldFailOnOnlyNegated) {
    const std::vector<roaring::Roaring> test_negated_bitmaps(
       {{roaring::Roaring({1, 2, 3}), roaring::Roaring({1, 2, 3})}}
    );
-   const uint32_t row_count = 5;
+   const auto row_layout = RowLayout::of(5);
 
    OperatorVector non_negated;
-   OperatorVector negated = generateTestInput(test_negated_bitmaps, row_count);
+   OperatorVector negated = generateTestInput(test_negated_bitmaps, row_layout);
    ASSERT_THROW(
-      const Intersection under_test(std::move(non_negated), std::move(negated), row_count),
+      const Intersection under_test(std::move(non_negated), std::move(negated), row_layout),
       QueryCompilationException
    );
 }
 
 TEST(OperatorIntersection, shouldFailOnOneNonNegated) {
    const std::vector<roaring::Roaring> test_bitmaps({{roaring::Roaring({1, 2, 3})}});
-   const uint32_t row_count = 5;
+   const auto row_layout = RowLayout::of(5);
 
-   OperatorVector non_negated = generateTestInput(test_bitmaps, row_count);
+   OperatorVector non_negated = generateTestInput(test_bitmaps, row_layout);
    OperatorVector negated;
    ASSERT_THROW(
-      const Intersection under_test(std::move(non_negated), std::move(negated), row_count),
+      const Intersection under_test(std::move(non_negated), std::move(negated), row_layout),
       std::runtime_error
    );
 }
@@ -64,11 +68,11 @@ TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesNoNegated) {
    const std::vector<roaring::Roaring> test_bitmaps(
       {{roaring::Roaring({1, 2, 3}), roaring::Roaring({1, 3}), roaring::Roaring({1, 2, 3})}}
    );
-   const uint32_t row_count = 5;
+   const auto row_layout = RowLayout::of(5);
 
-   OperatorVector non_negated = generateTestInput(test_bitmaps, row_count);
+   OperatorVector non_negated = generateTestInput(test_bitmaps, row_layout);
    OperatorVector negated;
-   const Intersection under_test(std::move(non_negated), std::move(negated), row_count);
+   const Intersection under_test(std::move(non_negated), std::move(negated), row_layout);
    ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1, 3}));
 }
 
@@ -79,11 +83,11 @@ TEST(OperatorIntersection, evaluateShouldReturnCorrectValues) {
    const std::vector<roaring::Roaring> test_negated_bitmaps(
       {{roaring::Roaring(), roaring::Roaring({3})}}
    );
-   const uint32_t row_count = 5;
+   const auto row_layout = RowLayout::of(5);
 
-   OperatorVector non_negated = generateTestInput(test_bitmaps, row_count);
-   OperatorVector negated = generateTestInput(test_negated_bitmaps, row_count);
-   const Intersection under_test(std::move(non_negated), std::move(negated), row_count);
+   OperatorVector non_negated = generateTestInput(test_bitmaps, row_layout);
+   OperatorVector negated = generateTestInput(test_negated_bitmaps, row_layout);
+   const Intersection under_test(std::move(non_negated), std::move(negated), row_layout);
    ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1}));
 }
 
@@ -95,11 +99,11 @@ TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesManyNegated) {
       roaring::Roaring({4}),
       roaring::Roaring({2, 4}),
    }});
-   const uint32_t row_count = 5;
+   const auto row_layout = RowLayout::of(5);
 
-   OperatorVector non_negated = generateTestInput(test_bitmaps, row_count);
-   OperatorVector negated = generateTestInput(test_negated_bitmaps, row_count);
-   const Intersection under_test(std::move(non_negated), std::move(negated), row_count);
+   OperatorVector non_negated = generateTestInput(test_bitmaps, row_layout);
+   OperatorVector negated = generateTestInput(test_negated_bitmaps, row_layout);
+   const Intersection under_test(std::move(non_negated), std::move(negated), row_layout);
    ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1}));
 }
 
@@ -110,11 +114,11 @@ TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesEmptyInput) {
       roaring::Roaring({4}),
       roaring::Roaring({2, 4}),
    }});
-   const uint32_t row_count = 5;
+   const auto row_layout = RowLayout::of(5);
 
-   OperatorVector non_negated = generateTestInput(test_bitmaps, row_count);
-   OperatorVector negated = generateTestInput(test_negated_bitmaps, row_count);
-   const Intersection under_test(std::move(non_negated), std::move(negated), row_count);
+   OperatorVector non_negated = generateTestInput(test_bitmaps, row_layout);
+   OperatorVector negated = generateTestInput(test_negated_bitmaps, row_layout);
+   const Intersection under_test(std::move(non_negated), std::move(negated), row_layout);
    ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring());
 }
 
@@ -122,11 +126,11 @@ TEST(OperatorIntersection, correctTypeInfo) {
    const std::vector<roaring::Roaring> test_bitmaps(
       {{roaring::Roaring({1, 2, 3}), roaring::Roaring({1, 2, 3})}}
    );
-   const uint32_t row_count = 5;
+   const auto row_layout = RowLayout::of(5);
 
-   OperatorVector non_negated = generateTestInput(test_bitmaps, row_count);
+   OperatorVector non_negated = generateTestInput(test_bitmaps, row_layout);
    OperatorVector negated;
-   const Intersection under_test(std::move(non_negated), std::move(negated), row_count);
+   const Intersection under_test(std::move(non_negated), std::move(negated), row_layout);
 
    ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::INTERSECTION);
 }

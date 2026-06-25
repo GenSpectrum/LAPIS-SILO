@@ -1,4 +1,4 @@
-#include "silo/query_engine/column_narrowing_pass.h"
+#include "silo/query_engine/optimizer/column_narrowing_pass.h"
 
 #include <memory>
 #include <optional>
@@ -9,6 +9,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "silo/query_engine/expressions/field_ref.h"
 #include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 #include "silo/query_engine/operators/aggregate_node.h"
@@ -18,11 +19,13 @@
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
+#include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/order_by_field.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
 
+using silo::query_engine::optimizer::ColumnNarrowingPass;
 using silo::schema::ColumnIdentifier;
 using silo::schema::ColumnType;
 namespace operators = silo::query_engine::operators;
@@ -112,7 +115,7 @@ std::vector<operators::MapNode::Assignment> decompressAssignments(
 
 TEST(ColumnNarrowingPassScan, keepsOnlyRequiredColumns) {
    auto scan = makeScan({col("a"), col("b"), col("c")});
-   silo::query_engine::ColumnNarrowingPass pass({col("b")});
+   ColumnNarrowingPass pass({col("b")});
    pass(*scan);
 
    EXPECT_THAT(scanSchema(*scan), ::testing::ElementsAre(col("b")));
@@ -120,7 +123,7 @@ TEST(ColumnNarrowingPassScan, keepsOnlyRequiredColumns) {
 
 TEST(ColumnNarrowingPassScan, removesAllWhenNoneRequired) {
    auto scan = makeScan({col("a"), col("b")});
-   silo::query_engine::ColumnNarrowingPass pass({});
+   ColumnNarrowingPass pass({});
    pass(*scan);
 
    EXPECT_THAT(scanSchema(*scan), ::testing::IsEmpty());
@@ -128,7 +131,7 @@ TEST(ColumnNarrowingPassScan, removesAllWhenNoneRequired) {
 
 TEST(ColumnNarrowingPassScan, keepsAllWhenAllRequired) {
    auto scan = makeScan({col("x"), col("y")});
-   silo::query_engine::ColumnNarrowingPass pass({col("x"), col("y")});
+   ColumnNarrowingPass pass({col("x"), col("y")});
    pass(*scan);
 
    EXPECT_THAT(scanSchema(*scan), ::testing::ElementsAre(col("x"), col("y")));
@@ -141,7 +144,7 @@ TEST(ColumnNarrowingPassProject, narrowsScanToProjectedColumns) {
    operators::QueryNodePtr node =
       std::make_unique<operators::ProjectNode>(std::move(scan), std::vector{col("a")});
 
-   silo::query_engine::ColumnNarrowingPass pass({col("a"), col("b"), col("c")});
+   ColumnNarrowingPass pass({col("a"), col("b"), col("c")});
    if (auto new_node = operators::visit(*node, pass)) {
       node = std::move(new_node);
    }
@@ -163,7 +166,7 @@ TEST(ColumnNarrowingPassAggregate, narrowsScanToGroupByColumns) {
       }
    );
 
-   silo::query_engine::ColumnNarrowingPass pass({col("a"), col("b"), col("c")});
+   ColumnNarrowingPass pass({col("a"), col("b"), col("c")});
    pass(*agg);
 
    EXPECT_THAT(scanSchema(leafScan(*agg)), ::testing::ElementsAre(col("b")));
@@ -181,7 +184,7 @@ TEST(ColumnNarrowingPassAggregate, countStarWithNoGroupByKeepsOneColumn) {
       }
    );
 
-   silo::query_engine::ColumnNarrowingPass pass({col("a"), col("b"), col("c")});
+   ColumnNarrowingPass pass({col("a"), col("b"), col("c")});
    pass(*agg);
 
    // COUNT(*) with no group-by needs only one column to drive the row stream.
@@ -199,7 +202,7 @@ TEST(ColumnNarrowingPassOrderBy, appendsSortKeyToRequired) {
    );
 
    // Only "a" is required from above; the pass must add "c" for sorting.
-   silo::query_engine::ColumnNarrowingPass pass({col("a")});
+   ColumnNarrowingPass pass({col("a")});
    pass(*order);
 
    EXPECT_THAT(scanSchema(leafScan(*order)), ::testing::UnorderedElementsAre(col("a"), col("c")));
@@ -213,7 +216,7 @@ TEST(ColumnNarrowingPassProject, collapsesWhenScanNarrowedToProjectFields) {
       std::make_unique<operators::ProjectNode>(std::move(scan), std::vector{col("a"), col("b")});
    auto fetch = std::make_unique<operators::FetchNode>(std::move(proj), std::nullopt, std::nullopt);
 
-   silo::query_engine::ColumnNarrowingPass pass({col("a"), col("b")});
+   ColumnNarrowingPass pass({col("a"), col("b")});
    pass(*fetch);
 
    // The ProjectNode should be removed; FetchNode's child is now directly the TableScanNode.
@@ -232,7 +235,7 @@ TEST(ColumnNarrowingPassProject, stackedProjectsDoNotPropagateSuperfluousColumns
       std::move(inner_proj), std::vector{col("a"), col("b")}
    );
 
-   silo::query_engine::ColumnNarrowingPass pass({col("a")});
+   ColumnNarrowingPass pass({col("a")});
    if (auto new_node = operators::visit(*outer_proj, pass)) {
       outer_proj = std::move(new_node);
    }
@@ -251,7 +254,7 @@ TEST(ColumnNarrowingPassProject, stackedProjectsAreCollapsedAfterNarrowing) {
    auto fetch =
       std::make_unique<operators::FetchNode>(std::move(outer_proj), std::nullopt, std::nullopt);
 
-   silo::query_engine::ColumnNarrowingPass pass({col("a"), col("b")});
+   ColumnNarrowingPass pass({col("a"), col("b")});
    pass(*fetch);
 
    EXPECT_NE(dynamic_cast<operators::TableScanNode*>(fetch->child.get()), nullptr);
@@ -276,7 +279,7 @@ TEST(ColumnNarrowingPassMap, keepsSequenceColumnInChildWhenRequired) {
       std::make_unique<operators::MapNode>(std::move(scan), decompressAssignments(nuc_col));
 
    // The parent sees "nuc" as STRING (MapNode output schema).
-   silo::query_engine::ColumnNarrowingPass pass({col("nuc")});
+   ColumnNarrowingPass pass({col("nuc")});
    if (auto new_node = operators::visit(*node, pass)) {
       node = std::move(new_node);
    }
@@ -292,7 +295,7 @@ TEST(ColumnNarrowingPassMap, doesNotEliminateNodeWhenSequenceColumnRequired) {
    operators::QueryNodePtr node =
       std::make_unique<operators::MapNode>(std::move(scan), decompressAssignments(nuc_col));
 
-   silo::query_engine::ColumnNarrowingPass pass({col("nuc")});
+   ColumnNarrowingPass pass({col("nuc")});
    if (auto new_node = operators::visit(*node, pass)) {
       node = std::move(new_node);
    }
@@ -313,7 +316,7 @@ TEST(ColumnNarrowingPassMap, prunesUnrequiredSequenceColumns) {
       std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
 
    // Only "nuc" is required; "aa" and "id" should be dropped from the child scan.
-   silo::query_engine::ColumnNarrowingPass pass({col("nuc")});
+   ColumnNarrowingPass pass({col("nuc")});
    if (auto new_node = operators::visit(*node, pass)) {
       node = std::move(new_node);
    }
@@ -329,7 +332,7 @@ TEST(ColumnNarrowingPassMap, eliminatesNodeWhenNoAssignmentIsRequired) {
       std::make_unique<operators::MapNode>(std::move(scan), decompressAssignments(nuc_col));
 
    // Only "id" is required - the decompression assignment for "nuc" can be dropped.
-   silo::query_engine::ColumnNarrowingPass pass({id_col});
+   ColumnNarrowingPass pass({id_col});
    if (auto new_node = operators::visit(*node, pass)) {
       node = std::move(new_node);
    }
@@ -364,7 +367,7 @@ TEST(ColumnNarrowingPassMap, keepsLastAssignmentForDuplicateOutputName) {
    operators::QueryNodePtr node =
       std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
 
-   silo::query_engine::ColumnNarrowingPass pass({col("out")});
+   ColumnNarrowingPass pass({col("out")});
    if (auto new_node = operators::visit(*node, pass)) {
       node = std::move(new_node);
    }
@@ -395,7 +398,7 @@ TEST(ColumnNarrowingPassMap, preservesAssignmentOrderForAddedColumns) {
       std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
 
    // Required columns are listed in the opposite order ("y" before "x").
-   silo::query_engine::ColumnNarrowingPass pass({col("y"), col("x")});
+   ColumnNarrowingPass pass({col("y"), col("x")});
    if (auto new_node = operators::visit(*node, pass)) {
       node = std::move(new_node);
    }
@@ -414,10 +417,61 @@ TEST(ColumnNarrowingPassFetch, propagatesRequiredThroughFetch) {
    auto scan = makeScan({col("a"), col("b"), col("c")});
    auto fetch = std::make_unique<operators::FetchNode>(std::move(scan), std::nullopt, std::nullopt);
 
-   silo::query_engine::ColumnNarrowingPass pass({col("b")});
+   ColumnNarrowingPass pass({col("b")});
    pass(*fetch);
 
    EXPECT_THAT(scanSchema(leafScan(*fetch)), ::testing::ElementsAre(col("b")));
+}
+
+// --- FilterNode -> TableScanNode ---
+TEST(ColumnNarrowingPassFilter, propagatesRequiredThroughFilter) {
+   auto scan = makeScan({col("a"), col("b"), col("c")});
+   auto filter = std::make_unique<operators::FilterNode>(
+      std::move(scan), std::make_unique<silo::query_engine::expressions::BoolLiteral>(true)
+   );
+
+   ColumnNarrowingPass pass({col("b")});
+   pass(*filter);
+
+   EXPECT_THAT(scanSchema(leafScan(*filter)), ::testing::ElementsAre(col("b")));
+}
+
+// --- MapNode -> TableScanNode ---
+
+// A map produces "x := b". Only "x" is required from above, so the child does not need to provide
+// "x" (the map produces it), but it must provide "b" (referenced by the assignment). "a" and "c"
+// are pruned from the scan.
+TEST(ColumnNarrowingPassMap, keepsReferencedColumnAndPrunesOthers) {
+   auto scan = makeScan({col("a"), col("b"), col("c")});
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = col("x"),
+       .expression = std::make_unique<silo::query_engine::expressions::FieldRef>(col("b"))}
+   );
+   auto map = std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
+
+   ColumnNarrowingPass pass({col("x")});
+   pass(*map);
+
+   EXPECT_THAT(scanSchema(leafScan(*map)), ::testing::ElementsAre(col("b")));
+}
+
+// --- UnionAllNode -> TableScanNode (both branches) ---
+
+// UnionAll narrows each branch independently using the same required set. A custom override is
+// kept (instead of the stateless base default) because `required` is mutated while walking, so
+// each branch needs its own pass instance.
+TEST(ColumnNarrowingPassUnionAll, narrowsBothBranchesIndependently) {
+   auto left = makeScan({col("a"), col("b"), col("c")});
+   auto right = makeScan({col("a"), col("b"), col("c")});
+   const auto union_all =
+      std::make_unique<operators::UnionAllNode>(std::move(left), std::move(right));
+
+   ColumnNarrowingPass pass({col("a")});
+   pass(*union_all);
+
+   EXPECT_THAT(scanSchema(leafScan(*union_all->left)), ::testing::ElementsAre(col("a")));
+   EXPECT_THAT(scanSchema(leafScan(*union_all->right)), ::testing::ElementsAre(col("a")));
 }
 
 }  // namespace

@@ -20,13 +20,13 @@ Threshold::Threshold(
    OperatorVector&& negated_children,
    uint32_t number_of_matchers,
    bool match_exactly,
-   uint32_t row_count
+   storage::column::RowLayout row_layout
 )
     : non_negated_children(std::move(non_negated_children)),
       negated_children(std::move(negated_children)),
       number_of_matchers(number_of_matchers),
       match_exactly(match_exactly),
-      row_count(row_count) {
+      row_layout(std::move(row_layout)) {
    if (number_of_matchers >= this->non_negated_children.size() + this->negated_children.size()) {
       throw QueryCompilationException(
          "Compilation Error: number_of_matchers must be less than the number of children of a "
@@ -79,7 +79,7 @@ CopyOnWriteBitmap Threshold::evaluate() const {
    }
 
    if (non_negated_children.empty()) {
-      bitmaps[0].flip(0, row_count);
+      row_layout.complementInPlace(bitmaps[0]);
    }
 
    // NOLINTBEGIN(readability-identifier-length)
@@ -123,7 +123,7 @@ CopyOnWriteBitmap Threshold::evaluate() const {
          bitmaps[j] |= bitmaps[j - 1] - bitmap.getConstReference();
       }
       if (k - i > n - 1) {
-         bitmap.getMutable().flip(0, row_count);
+         row_layout.complementInPlace(bitmap.getMutable());
          bitmaps[0] |= bitmap.getConstReference();
       }
    }
@@ -139,7 +139,8 @@ CopyOnWriteBitmap Threshold::evaluate() const {
 }
 
 std::unique_ptr<Operator> Threshold::negate(std::unique_ptr<Threshold>&& threshold) {
-   return std::make_unique<Complement>(std::move(threshold), threshold->row_count);
+   auto row_layout = threshold->row_layout;
+   return std::make_unique<Complement>(std::move(threshold), std::move(row_layout));
 }
 
 }  // namespace silo::query_engine::filter::operators

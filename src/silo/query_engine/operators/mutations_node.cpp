@@ -413,7 +413,7 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
             sequence_column,
             given_min_proportion,
             bitmap_filter,
-            table_handle->sequence_count,
+            table_handle->row_layout.numRows(),
             output_builder
          ));
       }

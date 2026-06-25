@@ -76,14 +76,14 @@ std::unique_ptr<filter::operators::Operator> IntBetween::compile(const storage::
    if (predicates.empty()) {
       return std::make_unique<filter::operators::Complement>(
          std::make_unique<filter::operators::IndexScan>(
-            CopyOnWriteBitmap{&int_column.null_bitmap}, table.sequence_count
+            CopyOnWriteBitmap{&int_column.null_bitmap}, table.row_layout
          ),
-         table.sequence_count
+         table.row_layout
       );
    }
 
    auto result =
-      std::make_unique<filter::operators::Selection>(std::move(predicates), table.sequence_count);
+      std::make_unique<filter::operators::Selection>(std::move(predicates), table.row_layout);
 
    SPDLOG_TRACE("Compiled IntBetween filter expression to {}", result->toString());
 

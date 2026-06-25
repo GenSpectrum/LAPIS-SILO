@@ -46,16 +46,16 @@ std::unique_ptr<filter::operators::Operator> BoolEquals::compile(const storage::
 
    if (value == std::nullopt) {
       return std::make_unique<filter::operators::IndexScan>(
-         CopyOnWriteBitmap{&bool_column.null_bitmap}, table.sequence_count
+         CopyOnWriteBitmap{&bool_column.null_bitmap}, table.row_layout
       );
    }
    if (value.value()) {
       return std::make_unique<filter::operators::IndexScan>(
-         CopyOnWriteBitmap{&bool_column.true_bitmap}, table.sequence_count
+         CopyOnWriteBitmap{&bool_column.true_bitmap}, table.row_layout
       );
    }
    return std::make_unique<filter::operators::IndexScan>(
-      CopyOnWriteBitmap{&bool_column.false_bitmap}, table.sequence_count
+      CopyOnWriteBitmap{&bool_column.false_bitmap}, table.row_layout
    );
 
    SILO_UNREACHABLE();

@@ -95,9 +95,9 @@ std::unique_ptr<Expression> BoolLiteral::rewrite(
 std::unique_ptr<filter::operators::Operator> BoolLiteral::compile(const storage::Table& table
 ) const {
    if (value) {
-      return std::make_unique<filter::operators::Full>(table.sequence_count);
+      return std::make_unique<filter::operators::Full>(table.row_layout);
    }
-   return std::make_unique<filter::operators::Empty>(table.sequence_count);
+   return std::make_unique<filter::operators::Empty>(table.row_layout);
 }
 
 }  // namespace silo::query_engine::expressions

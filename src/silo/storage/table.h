@@ -6,6 +6,7 @@
 #include <string>
 
 #include "silo/schema/database_schema.h"
+#include "silo/storage/column/row_layout.h"
 #include "silo/storage/column_group.h"
 
 namespace silo::storage {
@@ -17,7 +18,8 @@ class Table {
    schema::TableName table_name;
    std::shared_ptr<schema::TableSchema> schema;
    ColumnGroup columns;
-   uint32_t sequence_count = 0;
+   /// The shared row layout of this table
+   column::RowLayout row_layout;
 
    explicit Table(schema::TableName table_name, std::shared_ptr<schema::TableSchema> schema);
 
@@ -31,7 +33,7 @@ class Table {
    void serializeData(Archive& archive, [[maybe_unused]] const uint32_t version) {
       // clang-format off
       archive & columns;
-      archive & sequence_count;
+      archive & row_layout;
       // clang-format on
    }
 

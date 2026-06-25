@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -9,6 +8,7 @@
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/storage/column/row_layout.h"
 
 namespace silo::query_engine::expressions {
 // Forward declaration for friend class access. Include would introduce cyclic dependency
@@ -23,15 +23,15 @@ class IndexScan : public Operator {
   private:
    std::optional<std::unique_ptr<expressions::Expression>> logical_equivalent;
    CopyOnWriteBitmap bitmap;
-   uint32_t row_count;
+   storage::column::RowLayout row_layout;
 
   public:
-   explicit IndexScan(CopyOnWriteBitmap bitmap, uint32_t row_count);
+   explicit IndexScan(CopyOnWriteBitmap bitmap, storage::column::RowLayout row_layout);
 
    explicit IndexScan(
       std::unique_ptr<query_engine::expressions::Expression>&& logical_equivalent,
       CopyOnWriteBitmap bitmap,
-      uint32_t row_count
+      storage::column::RowLayout row_layout
    );
 
    ~IndexScan() noexcept override;

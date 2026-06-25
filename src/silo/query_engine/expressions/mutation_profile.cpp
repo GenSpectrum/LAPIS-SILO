@@ -128,8 +128,7 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
 
    if (primary_key_type == schema::ColumnType::STRING) {
       const auto& primary_key_column = table.columns.string_columns.at(primary_key_name);
-      for (uint32_t row_id = 0; row_id < static_cast<uint32_t>(primary_key_column.numValues());
-           ++row_id) {
+      for (const storage::column::RowId row_id : table.row_layout) {
          if (primary_key_column.getValueString(row_id) == seq_id) {
             found_row_id = row_id;
             break;

@@ -1,6 +1,7 @@
 #include "silo/query_engine/filter/operators/empty.h"
 
 #include <string>
+#include <utility>
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/filter/operators/full.h"
@@ -8,8 +9,8 @@
 
 namespace silo::query_engine::filter::operators {
 
-Empty::Empty(uint32_t row_count)
-    : row_count(row_count) {};
+Empty::Empty(storage::column::RowLayout row_layout)
+    : row_layout(std::move(row_layout)) {};
 
 Empty::~Empty() noexcept = default;
 
@@ -26,7 +27,7 @@ CopyOnWriteBitmap Empty::evaluate() const {
 }
 
 std::unique_ptr<Operator> Empty::negate(std::unique_ptr<Empty>&& empty) {
-   return std::make_unique<Full>(empty->row_count);
+   return std::make_unique<Full>(std::move(empty->row_layout));
 }
 
 }  // namespace silo::query_engine::filter::operators

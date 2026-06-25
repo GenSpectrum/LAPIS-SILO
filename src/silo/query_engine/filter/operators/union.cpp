@@ -14,9 +14,9 @@
 
 namespace silo::query_engine::filter::operators {
 
-Union::Union(OperatorVector&& children, uint32_t row_count)
+Union::Union(OperatorVector&& children, storage::column::RowLayout row_layout)
     : children(std::move(children)),
-      row_count(row_count) {}
+      row_layout(std::move(row_layout)) {}
 
 Union::~Union() noexcept = default;
 
@@ -45,7 +45,8 @@ CopyOnWriteBitmap Union::evaluate() const {
 }
 
 std::unique_ptr<Operator> Union::negate(std::unique_ptr<Union>&& union_operator) {
-   return std::make_unique<Complement>(std::move(union_operator), union_operator->row_count);
+   auto row_layout = union_operator->row_layout;
+   return std::make_unique<Complement>(std::move(union_operator), std::move(row_layout));
 }
 
 }  // namespace silo::query_engine::filter::operators

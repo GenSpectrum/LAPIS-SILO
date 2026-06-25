@@ -67,7 +67,7 @@ std::unique_ptr<Operator> DateBetween::compile(const storage::Table& table) cons
 
    if (date_column.isSorted()) {
       return std::make_unique<RangeSelection>(
-         computeRangesOfSortedColumn(date_column), table.sequence_count
+         computeRangesOfSortedColumn(date_column), table.row_layout
       );
    }
    PredicateVector predicates;
@@ -79,7 +79,7 @@ std::unique_ptr<Operator> DateBetween::compile(const storage::Table& table) cons
    predicates.emplace_back(std::make_unique<CompareToValueSelection<Date32Column>>(
       date_column, Comparator::LESS_OR_EQUALS, date_to.value_or(std::numeric_limits<Date32>::max())
    ));
-   return std::make_unique<Selection>(std::move(predicates), table.sequence_count);
+   return std::make_unique<Selection>(std::move(predicates), table.row_layout);
 }
 
 std::vector<RangeSelection::Range> DateBetween::computeRangesOfSortedColumn(

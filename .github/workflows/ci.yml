@@ -36,6 +36,57 @@ jobs:
           ${{ toJson(steps.release.outputs) }}
           EOF
 
+      - uses: actions/checkout@v6
+        if: >-
+          github.event_name == 'push'
+          && steps.release.outputs.prs_created == 'true'
+        with:
+          fetch-depth: 0
+
+      - name: Annotate changelog with serialization version change
+        if: >-
+          github.event_name == 'push'
+          && steps.release.outputs.prs_created == 'true'
+        run: |
+          set -euo pipefail
+
+          # PR_JSON is passed via the environment (see env: below) rather than
+          # interpolated into the script, so single quotes or other shell
+          # metacharacters in the payload cannot break parsing or inject commands.
+          BRANCH=$(echo "$PR_JSON" | jq -r '.headBranchName // empty')
+          VERSION=$(echo "$PR_JSON" | jq -r '.title // empty' | grep -oP '\d+\.\d+\.\d+' || true)
+
+          if [ -z "$BRANCH" ] || [ -z "$VERSION" ]; then
+            echo "Could not determine branch ($BRANCH) or version ($VERSION), skipping"
+            exit 0
+          fi
+
+          git fetch origin "$BRANCH"
+          git checkout -B "$BRANCH" "origin/$BRANCH"
+
+          ./.github/scripts/annotate-changelog-serialization-version.sh \
+            --version="$VERSION"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_JSON: ${{ steps.release.outputs.pr }}
+
+      - uses: actions/checkout@v6
+        if: >-
+          github.event_name == 'push'
+          && steps.release.outputs.release_created == 'true'
+        with:
+          fetch-depth: 0
+
+      - name: Annotate GitHub release with serialization version change
+        if: >-
+          github.event_name == 'push'
+          && steps.release.outputs.release_created == 'true'
+        run: |
+          ./.github/scripts/annotate-release-serialization-version.sh \
+            --tag="${{ steps.release.outputs.tag_name }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   dependencyImage:
     name: Build dependency image (${{ matrix.arch }})
     strategy:

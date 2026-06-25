@@ -10,6 +10,7 @@ using silo::query_engine::filter::operators::CompareToValueSelection;
 using silo::query_engine::filter::operators::Selection;
 using silo::storage::column::ColumnMetadata;
 using silo::storage::column::IntColumn;
+using silo::storage::column::RowLayout;
 
 namespace {
 
@@ -31,11 +32,11 @@ std::pair<std::shared_ptr<ColumnMetadata>, IntColumn> makeTestColumn(
 TEST(OperatorSelection, equalsShouldReturnCorrectValues) {
    const std::vector<int32_t> values({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
    auto [metadata, test_column] = makeTestColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::EQUALS, 1),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
@@ -46,11 +47,11 @@ TEST(OperatorSelection, equalsShouldReturnCorrectValues) {
 TEST(OperatorSelection, notEqualsShouldReturnCorrectValues) {
    const std::vector<int32_t> values({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
    auto [metadata, test_column] = makeTestColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::NOT_EQUALS, 1),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 2, 3, 4}));
@@ -61,11 +62,11 @@ TEST(OperatorSelection, notEqualsShouldReturnCorrectValues) {
 TEST(OperatorSelection, lessShouldReturnCorrectValues) {
    const std::vector<int32_t> values({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
    auto [metadata, test_column] = makeTestColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::LESS, 1),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0}));
@@ -78,13 +79,13 @@ TEST(OperatorSelection, lessShouldReturnCorrectValues) {
 TEST(OperatorSelection, lessOrEqualsShouldReturnCorrectValues) {
    const std::vector<int32_t> values({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
    auto [metadata, test_column] = makeTestColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<CompareToValueSelection<IntColumn>>(
          test_column, Comparator::LESS_OR_EQUALS, 1
       ),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 5, 6, 7, 8, 9}));
@@ -95,13 +96,13 @@ TEST(OperatorSelection, lessOrEqualsShouldReturnCorrectValues) {
 TEST(OperatorSelection, higherOrEqualsShouldReturnCorrectValues) {
    const std::vector<int32_t> values({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
    auto [metadata, test_column] = makeTestColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<CompareToValueSelection<IntColumn>>(
          test_column, Comparator::HIGHER_OR_EQUALS, 1
       ),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(
@@ -114,11 +115,11 @@ TEST(OperatorSelection, higherOrEqualsShouldReturnCorrectValues) {
 TEST(OperatorSelection, higherShouldReturnCorrectValues) {
    const std::vector<int32_t> values({{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}});
    auto [metadata, test_column] = makeTestColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
       std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::HIGHER, 1),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({2, 3, 4}));
@@ -129,11 +130,11 @@ TEST(OperatorSelection, higherShouldReturnCorrectValues) {
 TEST(OperatorSelection, correctWithNegativeNumbers) {
    const std::vector<int32_t> values({{0, -1, 4, 4, 4, -1, -1, -1, -1, -1}});
    auto [metadata, test_column] = makeTestColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    const Selection under_test(
       std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::EQUALS, -1),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
@@ -142,11 +143,11 @@ TEST(OperatorSelection, correctWithNegativeNumbers) {
 TEST(OperatorSelection, returnsCorrectTypeInfo) {
    const std::vector<int32_t> values{{0, 1, 4, 4, 4, 1, 1, 1, 1, 1}};
    auto [metadata, test_column] = makeTestColumn(values);
-   const uint32_t row_count = values.size();
+   const auto row_layout = RowLayout::of(values.size());
 
    const Selection under_test(
       std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::EQUALS, -1),
-      row_count
+      row_layout
    );
 
    ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::SELECTION);
