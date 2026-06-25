@@ -25,8 +25,7 @@ namespace silo::query_engine::operators {
 namespace {
 
 /// Translates a scalar expression into an Arrow compute expression for use in a
-/// projection. Literals and column references are supported; a boolean filter
-/// predicate would need to be evaluated against the column store first.
+/// projection.
 arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
    const expressions::Expression& expression
 ) {
@@ -82,7 +81,7 @@ arrow::Result<std::optional<arrow::acero::ExecNode*>> insertBackpressureForDecom
    arrow::acero::ExecNode* input_node
 ) {
    size_t sum_of_reference_genome_sizes = 0;
-   for (const auto& [name, assignment] : assignment_by_name) {
+   for (const auto& assignment : assignment_by_name | std::views::values) {
       if (const auto* zstd =
              dynamic_cast<const expressions::ZstdDecompressScalar*>(assignment->expression.get())) {
          sum_of_reference_genome_sizes += zstd->dictionary_string.size();
