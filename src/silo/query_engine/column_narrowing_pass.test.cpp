@@ -9,13 +9,16 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "silo/query_engine/expressions/field_ref.h"
 #include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
+#include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
+#include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/zstd_decompress_node.h"
 #include "silo/query_engine/order_by_field.h"
 #include "silo/schema/database_schema.h"
@@ -92,6 +95,9 @@ operators::TableScanNode& leafScan(operators::QueryNode& node) {
    }
    if (auto* zstd = dynamic_cast<operators::ZstdDecompressNode*>(&node)) {
       return leafScan(*zstd->child);
+   }
+   if (auto* map = dynamic_cast<operators::MapNode*>(&node)) {
+      return leafScan(*map->child);
    }
    throw std::logic_error("unexpected node type in leafScan");
 }
@@ -318,6 +324,57 @@ TEST(ColumnNarrowingPassFetch, propagatesRequiredThroughFetch) {
    pass(*fetch);
 
    EXPECT_THAT(scanSchema(leafScan(*fetch)), ::testing::ElementsAre(col("b")));
+}
+
+// --- FilterNode -> TableScanNode ---
+TEST(ColumnNarrowingPassFilter, propagatesRequiredThroughFilter) {
+   auto scan = makeScan({col("a"), col("b"), col("c")});
+   auto filter = std::make_unique<operators::FilterNode>(
+      std::move(scan), std::make_unique<silo::query_engine::expressions::BoolLiteral>(true)
+   );
+
+   silo::query_engine::ColumnNarrowingPass pass({col("b")});
+   pass(*filter);
+
+   EXPECT_THAT(scanSchema(leafScan(*filter)), ::testing::ElementsAre(col("b")));
+}
+
+// --- MapNode -> TableScanNode ---
+
+// A map produces "x := b". Only "x" is required from above, so the child does not need to provide
+// "x" (the map produces it), but it must provide "b" (referenced by the assignment). "a" and "c"
+// are pruned from the scan.
+TEST(ColumnNarrowingPassMap, keepsReferencedColumnAndPrunesOthers) {
+   auto scan = makeScan({col("a"), col("b"), col("c")});
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = col("x"),
+       .expression = std::make_unique<silo::query_engine::expressions::FieldRef>(col("b"))}
+   );
+   auto map = std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
+
+   silo::query_engine::ColumnNarrowingPass pass({col("x")});
+   pass(*map);
+
+   EXPECT_THAT(scanSchema(leafScan(*map)), ::testing::ElementsAre(col("b")));
+}
+
+// --- UnionAllNode -> TableScanNode (both branches) ---
+
+// UnionAll narrows each branch independently using the same required set. A custom override is
+// kept (instead of the stateless base default) because `required` is mutated while walking, so
+// each branch needs its own pass instance.
+TEST(ColumnNarrowingPassUnionAll, narrowsBothBranchesIndependently) {
+   auto left = makeScan({col("a"), col("b"), col("c")});
+   auto right = makeScan({col("a"), col("b"), col("c")});
+   const auto union_all =
+      std::make_unique<operators::UnionAllNode>(std::move(left), std::move(right));
+
+   silo::query_engine::ColumnNarrowingPass pass({col("a")});
+   pass(*union_all);
+
+   EXPECT_THAT(scanSchema(leafScan(*union_all->left)), ::testing::ElementsAre(col("a")));
+   EXPECT_THAT(scanSchema(leafScan(*union_all->right)), ::testing::ElementsAre(col("a")));
 }
 
 }  // namespace

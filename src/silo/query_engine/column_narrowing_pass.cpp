@@ -1,30 +1,18 @@
 #include "silo/query_engine/column_narrowing_pass.h"
 
-#include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
-#include "silo/query_engine/operators/fetch_node.h"
-#include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
-#include "silo/query_engine/operators/unresolved_insertions_node.h"
-#include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
-#include "silo/query_engine/operators/unresolved_mutations_node.h"
-#include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
 #include "silo/query_engine/operators/zstd_decompress_node.h"
 
 namespace silo::query_engine {
 
-namespace {
-// NOLINTNEXTLINE(misc-no-recursion)
-void applyToChild(operators::QueryNodePtr& child, ColumnNarrowingPass& pass) {
-   if (auto new_child = operators::visit(*child, pass)) {
-      child = std::move(new_child);
-   }
+ColumnNarrowingPass ColumnNarrowingPass::makePass(const operators::QueryNodePtr& node) {
+   return ColumnNarrowingPass{node->getOutputSchema()};
 }
-}  // namespace
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static,misc-no-recursion)
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::TableScanNode& node) {
@@ -59,7 +47,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::AggregateNode
    } else {
       required = std::move(child_required);
    }
-   applyToChild(node.child, *this);
+   propagateToNode(node.child);
    return nullptr;
 }
 
@@ -74,7 +62,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::ProjectNode& 
    node.fields = narrowed_fields;
 
    required = node.fields;
-   applyToChild(node.child, *this);
+   propagateToNode(node.child);
    if (node.child->getOutputSchema() == node.fields) {
       return std::move(node.child);
    }
@@ -98,7 +86,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::ZstdDecompres
       }
    }
    required = std::move(child_required);
-   applyToChild(node.child, *this);
+   propagateToNode(node.child);
 
    if (new_column_mapping.empty()) {
       return std::move(node.child);
@@ -137,7 +125,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
       child_required.push_back(child_schema.front());
    }
    required = std::move(child_required);
-   applyToChild(node.child, *this);
+   propagateToNode(node.child);
    return nullptr;
 }
 
@@ -148,72 +136,20 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::OrderByNode& 
          required.push_back(field.field);
       }
    }
-   applyToChild(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::FetchNode& node) {
-   applyToChild(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::FilterNode& node) {
-   applyToChild(node.child, *this);
-   return nullptr;
-}
-
-template <typename SymbolType>
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr ColumnNarrowingPass::operator()(
-   operators::UnresolvedMutationsNode<SymbolType>& node
-) {
-   applyToChild(node.child, *this);
-   return nullptr;
-}
-
-template <typename SymbolType>
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr ColumnNarrowingPass::operator()(
-   operators::UnresolvedInsertionsNode<SymbolType>& node
-) {
-   applyToChild(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr ColumnNarrowingPass::operator()(
-   operators::UnresolvedMostRecentCommonAncestorNode& node
-) {
-   applyToChild(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedPhyloSubtreeNode& node
-) {
-   applyToChild(node.child, *this);
+   propagateToNode(node.child);
    return nullptr;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion,readability-make-member-function-const)
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnionAllNode& node) {
-   // Narrow columns in each child independently using the same required set.
+   // Narrow columns in each child independently using the same required set. Each branch needs
+   // its own pass instance because `required` is mutated while walking, so the base default
+   // (which shares a single instance across both branches) is not correct here.
    ColumnNarrowingPass left_pass(required);
-   applyToChild(node.left, left_pass);
+   left_pass.propagateToNode(node.left);
    ColumnNarrowingPass right_pass(required);
-   applyToChild(node.right, right_pass);
+   right_pass.propagateToNode(node.right);
    return nullptr;
 }
-
-template operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedMutationsNode<
-                                                                 silo::Nucleotide>&);
-template operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnresolvedMutationsNode<
-                                                                 silo::AminoAcid>&);
-template operators::QueryNodePtr ColumnNarrowingPass::
-operator()(operators::UnresolvedInsertionsNode<silo::Nucleotide>&);
-template operators::QueryNodePtr ColumnNarrowingPass::
-operator()(operators::UnresolvedInsertionsNode<silo::AminoAcid>&);
 
 }  // namespace silo::query_engine

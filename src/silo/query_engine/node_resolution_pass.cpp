@@ -5,23 +5,15 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/illegal_query_exception.h"
-#include "silo/query_engine/operator_visitor.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/count_filter_node.h"
-#include "silo/query_engine/operators/fetch_node.h"
-#include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/insertions_node.h"
-#include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/mutations_node.h"
-#include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/phylo_subtree_node.h"
-#include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
-#include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
-#include "silo/query_engine/operators/zstd_decompress_node.h"
 
 namespace silo::query_engine {
 
@@ -32,55 +24,7 @@ std::optional<operators::TableScanNode*> getTableScanOrNone(operators::QueryNode
    return scan ? std::optional{scan} : std::nullopt;
 }
 
-// NOLINTNEXTLINE(misc-no-recursion)
-void applyToNode(operators::QueryNodePtr& node, NodeResolutionPass& pass) {
-   while (auto replacement = operators::visit(*node, pass)) {
-      node = std::move(replacement);
-   }
-}
-
 }  // namespace
-
-operators::QueryNodePtr NodeResolutionPass::run(operators::QueryNodePtr node) {
-   NodeResolutionPass pass;
-   applyToNode(node, pass);
-   return node;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr NodeResolutionPass::operator()(operators::FilterNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr NodeResolutionPass::operator()(operators::ProjectNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr NodeResolutionPass::operator()(operators::MapNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr NodeResolutionPass::operator()(operators::OrderByNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr NodeResolutionPass::operator()(operators::FetchNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr NodeResolutionPass::operator()(operators::ZstdDecompressNode& node) {
-   applyToNode(node.child, *this);
-   return nullptr;
-}
 
 template <typename SymbolType>
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -175,7 +119,7 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr NodeResolutionPass::operator()(operators::AggregateNode& node) {
-   applyToNode(node.child, *this);
+   propagateToNode(node.child);
 
    // Full aggregations (COUNT(*) and only a filter below can be optimized)
    if (node.group_by_fields.empty() && node.aggregates.size() == 1 &&
@@ -217,13 +161,6 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
       std::move(node.column_name),
       node.print_nodes_not_in_tree
    );
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnionAllNode& node) {
-   applyToNode(node.left, *this);
-   applyToNode(node.right, *this);
-   return nullptr;
 }
 
 template operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedMutationsNode<
