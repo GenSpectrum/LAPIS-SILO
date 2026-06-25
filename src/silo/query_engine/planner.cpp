@@ -6,15 +6,19 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/query_engine/column_narrowing_pass.h"
-#include "silo/query_engine/filter_pushdown_pass.h"
-#include "silo/query_engine/node_resolution_pass.h"
+#include "silo/query_engine/optimizer/column_narrowing_pass.h"
+#include "silo/query_engine/optimizer/filter_pushdown_pass.h"
+#include "silo/query_engine/optimizer/node_resolution_pass.h"
 #include "silo/query_engine/saneql/ast_to_query.h"
 #include "silo/schema/database_schema.h"
 
 namespace silo::query_engine {
 
 namespace {
+
+using optimizer::ColumnNarrowingPass;
+using optimizer::FilterPushdownPass;
+using optimizer::NodeResolutionPass;
 
 arrow::Result<QueryPlan> planQueryOrError(
    const operators::QueryNode& node,

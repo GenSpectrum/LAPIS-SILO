@@ -1,7 +1,7 @@
 #pragma once
 
 #include "silo/query_engine/operators/query_node.h"
-#include "silo/query_engine/pipeline_pass_base.h"
+#include "silo/query_engine/optimizer/pipeline_pass_base.h"
 
 namespace silo::query_engine::operators {
 class AggregateNode;
@@ -13,7 +13,7 @@ class UnresolvedMostRecentCommonAncestorNode;
 class UnresolvedPhyloSubtreeNode;
 }  // namespace silo::query_engine::operators
 
-namespace silo::query_engine {
+namespace silo::query_engine::optimizer {
 
 /// Optimization pass that resolves placeholder nodes into concrete, table-backed nodes.
 /// - UnresolvedMutationsNode → MutationsNode
@@ -34,4 +34,4 @@ class NodeResolutionPass : public PipelinePassBase<NodeResolutionPass> {
    operators::QueryNodePtr operator()(operators::UnresolvedPhyloSubtreeNode& node);
 };
 
-}  // namespace silo::query_engine
+}  // namespace silo::query_engine::optimizer

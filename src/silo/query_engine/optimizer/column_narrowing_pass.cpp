@@ -1,4 +1,4 @@
-#include "silo/query_engine/column_narrowing_pass.h"
+#include "silo/query_engine/optimizer/column_narrowing_pass.h"
 
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/map_node.h"
@@ -8,7 +8,7 @@
 #include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/zstd_decompress_node.h"
 
-namespace silo::query_engine {
+namespace silo::query_engine::optimizer {
 
 ColumnNarrowingPass ColumnNarrowingPass::makePass(const operators::QueryNodePtr& node) {
    return ColumnNarrowingPass{node->getOutputSchema()};
@@ -152,4 +152,4 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnionAllNode&
    return nullptr;
 }
 
-}  // namespace silo::query_engine
+}  // namespace silo::query_engine::optimizer

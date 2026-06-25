@@ -17,7 +17,7 @@
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
 #include "silo/query_engine/operators/zstd_decompress_node.h"
 
-namespace silo::query_engine {
+namespace silo::query_engine::optimizer {
 
 /// CRTP base for optimization passes that walk the QueryNode tree.
 ///
@@ -148,4 +148,4 @@ class PipelinePassBase {
    }
 };
 
-}  // namespace silo::query_engine
+}  // namespace silo::query_engine::optimizer

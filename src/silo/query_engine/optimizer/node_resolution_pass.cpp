@@ -1,4 +1,4 @@
-#include "silo/query_engine/node_resolution_pass.h"
+#include "silo/query_engine/optimizer/node_resolution_pass.h"
 
 #include <optional>
 
@@ -15,7 +15,7 @@
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
 
-namespace silo::query_engine {
+namespace silo::query_engine::optimizer {
 
 namespace {
 
@@ -172,4 +172,4 @@ template operators::QueryNodePtr NodeResolutionPass::operator()(operators::Unres
 template operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedInsertionsNode<
                                                                 silo::AminoAcid>&);
 
-}  // namespace silo::query_engine
+}  // namespace silo::query_engine::optimizer
