@@ -23,6 +23,9 @@ int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
    try {
       server_socket.bind(address, true);
       server_socket.listen();
+      // Set timeouts to avoid hanging connections
+      server_socket.setReceiveTimeout(Poco::Timespan(30, 0));
+      server_socket.setSendTimeout(Poco::Timespan(120, 0));
    } catch (const Poco::Net::NetException& e) {
       SPDLOG_ERROR(
          "Failed to bind to port {}: {}", runtime_config.api_options.port, e.displayText()
