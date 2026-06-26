@@ -356,6 +356,62 @@ unionAll(
 
 **Output:** all rows from both inputs. The order of rows is not guaranteed.
 
+### `schema()`
+
+Reports the output schema of whatever it is applied to — a base table or any
+intermediate query result. It emits one row per output field with two columns:
+`fieldName` and `type`, where `type` is the field's column type as a string.
+
+Schema of a base table:
+
+```
+default.schema()
+```
+
+```
+{"fieldName":"primaryKey","type":"STRING"}
+{"fieldName":"country","type":"STRING"}
+{"fieldName":"date","type":"DATE32"}
+{"fieldName":"age","type":"INT32"}
+```
+
+Schema of an intermediate result (the same operator, after a pipeline). The
+aggregate `count` is `INT64`:
+
+```
+default.filter(country='CH').groupBy({count:=count()}, {age}).schema()
+```
+
+```
+{"fieldName":"count","type":"INT64"}
+{"fieldName":"age","type":"INT32"}
+```
+
+For `mutations()` the `count` field is `INT32`:
+
+```
+default.mutations(minProportion:=0.1).schema()
+```
+
+```
+{"fieldName":"mutation","type":"STRING"}
+{"fieldName":"mutationFrom","type":"STRING"}
+{"fieldName":"mutationTo","type":"STRING"}
+{"fieldName":"sequenceName","type":"STRING"}
+{"fieldName":"position","type":"INT32"}
+{"fieldName":"proportion","type":"FLOAT"}
+{"fieldName":"coverage","type":"INT32"}
+{"fieldName":"count","type":"INT32"}
+```
+
+**Limitation:** sequence columns are reported as `STRING`. When a
+nucleotide/amino-acid sequence column is read into a pipeline it is decompressed
+to a plain string, so `schema()` sees `STRING` rather than `NUCLEOTIDE_SEQUENCE`
+or `AMINO_ACID_SEQUENCE`.
+
+**Output:** one row per field of the described schema, with columns `fieldName`
+and `type` (both `STRING`).
+
 ---
 
 ## Scalar Functions

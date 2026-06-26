@@ -50,6 +50,7 @@
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
+#include "silo/query_engine/operators/schema_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
@@ -964,6 +965,16 @@ operators::QueryNodePtr handleFilter(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr handleSchema(
+   const BoundArguments& args,
+   const Tables& tables,
+   const ChildConverter& convert_child
+) {
+   auto child = convert_child(args.at("input"), tables);
+   return std::make_unique<operators::SchemaNode>(child->getOutputSchema());
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr handleGroupBy(
    const BoundArguments& args,
    const Tables& tables,
@@ -1403,6 +1414,8 @@ ParameterDefinition named(std::string name, bool required = true) {
 
 FunctionRegistry::FunctionRegistry() {
    registerFunction("filter", {{pos("input"), pos("predicate")}}, handleFilter);
+
+   registerFunction("schema", {{pos("input")}}, handleSchema);
 
    registerFunction(
       "groupBy", {{pos("input"), pos("aggregates"), pos("columns", false)}}, handleGroupBy
