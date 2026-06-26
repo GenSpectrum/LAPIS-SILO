@@ -50,8 +50,6 @@ std::string_view nodeKindToString(NodeKind kind) {
          return "TableScan";
       case NodeKind::COUNT_FILTER:
          return "CountFilter";
-      case NodeKind::ZSTD_DECOMPRESS:
-         return "ZstdDecompress";
       case NodeKind::MAP:
          return "Map";
       case NodeKind::UNION_ALL:

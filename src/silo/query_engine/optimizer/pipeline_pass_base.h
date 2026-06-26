@@ -15,7 +15,6 @@
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
-#include "silo/query_engine/operators/zstd_decompress_node.h"
 
 namespace silo::query_engine::optimizer {
 
@@ -88,11 +87,6 @@ class PipelinePassBase {
    }
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::FetchNode& node) {
-      propagateToNode(node.child);
-      return nullptr;
-   }
-   // NOLINTNEXTLINE(misc-no-recursion)
-   operators::QueryNodePtr operator()(operators::ZstdDecompressNode& node) {
       propagateToNode(node.child);
       return nullptr;
    }

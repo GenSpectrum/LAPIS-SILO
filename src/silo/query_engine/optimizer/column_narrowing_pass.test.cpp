@@ -11,6 +11,7 @@
 
 #include "silo/query_engine/expressions/field_ref.h"
 #include "silo/query_engine/expressions/literal.h"
+#include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
@@ -19,7 +20,6 @@
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
-#include "silo/query_engine/operators/zstd_decompress_node.h"
 #include "silo/query_engine/order_by_field.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/string_column.h"
@@ -65,14 +65,6 @@ std::vector<ColumnIdentifier> scanSchema(const operators::TableScanNode& node) {
    return node.fields;
 }
 
-// ZstdDecompressNode decompresses a sequence-typed child column into a STRING-typed output
-// column with the same name. The reference string is only used at execution time, so a
-// placeholder suffices for the schema-only narrowing assertions here.
-operators::ZstdDecompressNode::ColumnMapping decompressMapping(const ColumnIdentifier& sequence_col
-) {
-   return {.input = sequence_col, .output = col(sequence_col.name), .reference = "A"};
-}
-
 // Extracts the TableScanNode from the bottom of a chain of unary nodes.
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::TableScanNode& leafScan(operators::QueryNode& node) {
@@ -94,13 +86,29 @@ operators::TableScanNode& leafScan(operators::QueryNode& node) {
    if (auto* flt = dynamic_cast<operators::FilterNode*>(&node)) {
       return leafScan(*flt->child);
    }
-   if (auto* zstd = dynamic_cast<operators::ZstdDecompressNode*>(&node)) {
-      return leafScan(*zstd->child);
-   }
    if (auto* map = dynamic_cast<operators::MapNode*>(&node)) {
       return leafScan(*map->child);
    }
    throw std::logic_error("unexpected node type in leafScan");
+}
+
+// Builds a MapNode assignment for decompressing a sequence column into a STRING column.
+operators::MapNode::Assignment decompressAssignment(const ColumnIdentifier& sequence_col) {
+   return {
+      .output_column = col(sequence_col.name),
+      .expression =
+         std::make_unique<silo::query_engine::expressions::ZstdDecompressScalar>(sequence_col, "A")
+   };
+}
+
+// Assignment holds a move-only expression, so it cannot be brace-initialized into a
+// vector (that would copy). This wraps a single assignment into a vector by moving.
+std::vector<operators::MapNode::Assignment> decompressAssignments(
+   const ColumnIdentifier& sequence_col
+) {
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(decompressAssignment(sequence_col));
+   return assignments;
 }
 
 // --- TableScanNode ---
@@ -246,65 +254,66 @@ TEST(ColumnNarrowingPassProject, stackedProjectsAreCollapsedAfterNarrowing) {
    auto fetch =
       std::make_unique<operators::FetchNode>(std::move(outer_proj), std::nullopt, std::nullopt);
 
-   ColumnNarrowingPass pass({col("a")});
+   ColumnNarrowingPass pass({col("a"), col("b")});
    pass(*fetch);
 
    EXPECT_NE(dynamic_cast<operators::TableScanNode*>(fetch->child.get()), nullptr);
-   EXPECT_THAT(scanSchema(leafScan(*fetch)), ::testing::ElementsAre(col("a")));
+   EXPECT_THAT(scanSchema(leafScan(*fetch)), ::testing::ElementsAre(col("a"), col("b")));
 }
 
-// --- ZstdDecompressNode -> TableScanNode ---
+// --- MapNode (ZstdDecompressScalar) -> TableScanNode ---
+//
+// A MapNode wrapping a TableScanNode is what wrapWithDecompressIfNeeded produces.
+// The decompression assignment maps a sequence-typed column (in the scan) to a
+// STRING-typed output column with the same name.  The narrowing pass must:
+//   1. Keep only the assignments that produce required output columns.
+//   2. Keep the corresponding compressed input columns in the child scan.
+//   3. Remove assignments for columns that are not required by the parent.
+//   4. Eliminate the MapNode entirely when all assignments are pruned.
 
-// ZstdDecompressNode::getOutputSchema() presents sequence columns (NUCLEOTIDE_SEQUENCE,
-// AMINO_ACID_SEQUENCE, ZSTD_COMPRESSED_STRING) as STRING-typed columns with the same name.
-// The narrowing pass must translate those STRING requirements back to the original sequence
-// column types before propagating to the child; otherwise the child TableScanNode won't
-// recognise them (ColumnIdentifier equality includes the type) and will prune them away.
-
-TEST(ColumnNarrowingPassZstdDecompress, keepsSequenceColumnInChildWhenRequired) {
+TEST(ColumnNarrowingPassMap, keepsSequenceColumnInChildWhenRequired) {
    auto nuc_col = colWithType("nuc", ColumnType::NUCLEOTIDE_SEQUENCE);
    auto id_col = col("id");
    auto scan = makeScan({nuc_col, id_col});
-   operators::QueryNodePtr node = std::make_unique<operators::ZstdDecompressNode>(
-      std::move(scan), std::vector{decompressMapping(nuc_col)}
-   );
+   operators::QueryNodePtr node =
+      std::make_unique<operators::MapNode>(std::move(scan), decompressAssignments(nuc_col));
 
-   // The parent sees "nuc" as STRING (ZstdDecompressNode output schema).
+   // The parent sees "nuc" as STRING (MapNode output schema).
    ColumnNarrowingPass pass({col("nuc")});
    if (auto new_node = operators::visit(*node, pass)) {
       node = std::move(new_node);
    }
 
    // The child scan must still carry the NUCLEOTIDE_SEQUENCE column so that
-   // ZstdDecompressNode can decompress it at execution time.
+   // the decompression assignment can reference it at execution time.
    EXPECT_THAT(scanSchema(leafScan(*node)), ::testing::Contains(nuc_col));
 }
 
-TEST(ColumnNarrowingPassZstdDecompress, doesNotEliminateNodeWhenSequenceColumnRequired) {
+TEST(ColumnNarrowingPassMap, doesNotEliminateNodeWhenSequenceColumnRequired) {
    auto nuc_col = colWithType("nuc", ColumnType::NUCLEOTIDE_SEQUENCE);
    auto scan = makeScan({nuc_col});
-   operators::QueryNodePtr node = std::make_unique<operators::ZstdDecompressNode>(
-      std::move(scan), std::vector{decompressMapping(nuc_col)}
-   );
+   operators::QueryNodePtr node =
+      std::make_unique<operators::MapNode>(std::move(scan), decompressAssignments(nuc_col));
 
    ColumnNarrowingPass pass({col("nuc")});
    if (auto new_node = operators::visit(*node, pass)) {
       node = std::move(new_node);
    }
 
-   // If the bug causes the sequence column to be pruned from the child, the node
-   // incorrectly eliminates itself (returns its child instead of nullptr).
-   EXPECT_NE(dynamic_cast<operators::ZstdDecompressNode*>(node.get()), nullptr);
+   // The MapNode must not be removed when the decompressed column is required.
+   EXPECT_NE(dynamic_cast<operators::MapNode*>(node.get()), nullptr);
 }
 
-TEST(ColumnNarrowingPassZstdDecompress, prunesUnrequiredSequenceColumns) {
+TEST(ColumnNarrowingPassMap, prunesUnrequiredSequenceColumns) {
    auto nuc_col = colWithType("nuc", ColumnType::NUCLEOTIDE_SEQUENCE);
    auto aa_col = colWithType("aa", ColumnType::AMINO_ACID_SEQUENCE);
    auto id_col = col("id");
    auto scan = makeScan({nuc_col, aa_col, id_col});
-   operators::QueryNodePtr node = std::make_unique<operators::ZstdDecompressNode>(
-      std::move(scan), std::vector{decompressMapping(nuc_col), decompressMapping(aa_col)}
-   );
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(decompressAssignment(nuc_col));
+   assignments.push_back(decompressAssignment(aa_col));
+   operators::QueryNodePtr node =
+      std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
 
    // Only "nuc" is required; "aa" and "id" should be dropped from the child scan.
    ColumnNarrowingPass pass({col("nuc")});
@@ -313,6 +322,61 @@ TEST(ColumnNarrowingPassZstdDecompress, prunesUnrequiredSequenceColumns) {
    }
 
    EXPECT_THAT(scanSchema(leafScan(*node)), ::testing::ElementsAre(nuc_col));
+}
+
+TEST(ColumnNarrowingPassMap, eliminatesNodeWhenNoAssignmentIsRequired) {
+   auto nuc_col = colWithType("nuc", ColumnType::NUCLEOTIDE_SEQUENCE);
+   auto id_col = col("id");
+   auto scan = makeScan({nuc_col, id_col});
+   operators::QueryNodePtr node =
+      std::make_unique<operators::MapNode>(std::move(scan), decompressAssignments(nuc_col));
+
+   // Only "id" is required - the decompression assignment for "nuc" can be dropped.
+   ColumnNarrowingPass pass({id_col});
+   if (auto new_node = operators::visit(*node, pass)) {
+      node = std::move(new_node);
+   }
+
+   // The MapNode should be replaced by its child (TableScanNode).
+   EXPECT_NE(dynamic_cast<operators::TableScanNode*>(node.get()), nullptr);
+   EXPECT_THAT(
+      dynamic_cast<operators::TableScanNode*>(node.get())->fields, ::testing::ElementsAre(id_col)
+   );
+}
+
+// Surviving assignments must keep their original relative order, even when the required
+// columns are requested in a different order. getOutputSchema appends newly-added columns
+// (not present in the child) in assignment-vector order, so reordering would change the
+// projection's output column order.
+TEST(ColumnNarrowingPassMap, preservesAssignmentOrderForAddedColumns) {
+   auto id_col = col("id");
+   auto scan = makeScan({id_col});
+
+   // Two assignments add new columns "x" then "y" (neither is in the child schema).
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = col("x"),
+       .expression = std::make_unique<silo::query_engine::expressions::Int64Literal>(1)}
+   );
+   assignments.push_back(
+      {.output_column = col("y"),
+       .expression = std::make_unique<silo::query_engine::expressions::Int64Literal>(2)}
+   );
+   operators::QueryNodePtr node =
+      std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
+
+   // Required columns are listed in the opposite order ("y" before "x").
+   ColumnNarrowingPass pass({col("y"), col("x")});
+   if (auto new_node = operators::visit(*node, pass)) {
+      node = std::move(new_node);
+   }
+
+   // Both assignments survive in their original order, so getOutputSchema appends x then y.
+   auto* map = dynamic_cast<operators::MapNode*>(node.get());
+   ASSERT_NE(map, nullptr);
+   ASSERT_EQ(map->assignments.size(), 2);
+   EXPECT_EQ(map->assignments[0].output_column.name, "x");
+   EXPECT_EQ(map->assignments[1].output_column.name, "y");
 }
 
 // --- FetchNode -> TableScanNode ---

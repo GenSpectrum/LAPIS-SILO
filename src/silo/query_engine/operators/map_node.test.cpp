@@ -11,7 +11,8 @@ nlohmann::json createData(
    const std::string& primaryKey,
    int value,
    const std::string& str_value,
-   const nlohmann::json& segment1 = nullptr
+   const nlohmann::json& segment1 = nullptr,
+   const nlohmann::json& unaligned_segment1 = nullptr
 ) {
    return {
       {"primaryKey", primaryKey},
@@ -19,7 +20,7 @@ nlohmann::json createData(
       {"str_value", str_value},
       {"segment1", segment1},
       {"gene1", nullptr},
-      {"unaligned_segment1", nullptr}
+      {"unaligned_segment1", unaligned_segment1}
    };
 }
 
@@ -31,8 +32,10 @@ nlohmann::json alignedSequence(const std::string& sequence) {
 // sequence column can be checked for both a present and an absent value. The
 // str_value column holds strings of differing lengths so that `at` can be checked
 // for a position that is out of bounds for one value but in bounds for the other.
+// unaligned_segment1 carries the (zstd-compressed) unaligned sequence used by the
+// decompression scenarios.
 const std::vector<nlohmann::json> DATA = {
-   createData("id_0", 1, "short", alignedSequence("ACGT")),
+   createData("id_0", 1, "short", alignedSequence("ACGT"), "ACGT"),
    createData("id_1", 2, "longlonglong")
 };
 
@@ -79,6 +82,14 @@ const QueryTestScenario MAP_OVERRIDE_SCENARIO = {
    .query = "default.map({int_value := 42}).project({primaryKey, int_value})",
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "id_0"}, {"int_value", 42}}, {{"primaryKey", "id_1"}, {"int_value", 42}}}
+   )
+};
+
+const QueryTestScenario MAP_OVERRIDE_TWICE_SCENARIO = {
+   .name = "MAP_OVERRIDE_TWICE",
+   .query = "default.map({int_value := 42}).map({int_value := 5}).project({primaryKey, int_value})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"int_value", 5}}, {{"primaryKey", "id_1"}, {"int_value", 5}}}
    )
 };
 
@@ -147,6 +158,41 @@ const QueryTestScenario MAP_ONLY_MAPPED_COLUMN_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"a", 1}}, {{"a", 1}}})
 };
 
+// A map() that assigns the same output column twice is rejected at query construction
+// time rather than silently dropping one assignment.
+const QueryTestScenario MAP_DUPLICATE_OUTPUT_NAME_SCENARIO = {
+   .name = "MAP_DUPLICATE_OUTPUT_NAME",
+   .query = "default.map({x := 1, x := 2}).project({primaryKey, x})",
+   .expected_query_result = {},
+   .expected_error_message = "map() assigns the output column 'x' more than once"
+};
+
+// A table scan that exposes a (compressed) sequence column is wrapped in a MapNode
+// holding a ZstdDecompressScalar assignment by wrapWithDecompressIfNeeded. This
+// exercises the decompression path (backpressure sink/source + ProjectNode) of
+// MapNode::addToExecPlan end-to-end.
+const QueryTestScenario DECOMPRESS_SEQUENCE_SCENARIO = {
+   .name = "DECOMPRESS_SEQUENCE",
+   .query = "default.project({primaryKey, unaligned_segment1}).orderBy({primaryKey})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}},
+       {{"primaryKey", "id_1"}, {"unaligned_segment1", nullptr}}}
+   )
+};
+
+// A user map() stacked on top of the implicit decompression MapNode: both the
+// decompressed sequence column and a mapped literal column flow through.
+const QueryTestScenario DECOMPRESS_WITH_USER_MAP_SCENARIO = {
+   .name = "DECOMPRESS_WITH_USER_MAP",
+   .query =
+      "default.map({tag := 7}).project({primaryKey, unaligned_segment1, "
+      "tag}).orderBy({primaryKey})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}, {"tag", 7}},
+       {{"primaryKey", "id_1"}, {"unaligned_segment1", nullptr}, {"tag", 7}}}
+   )
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -155,12 +201,16 @@ QUERY_TEST(
    ::testing::Values(
       MAP_LITERALS_SCENARIO,
       MAP_OVERRIDE_SCENARIO,
+      MAP_OVERRIDE_TWICE_SCENARIO,
       MAP_INT64_SCENARIO,
       MAP_FIELD_REF_SCENARIO,
       MAP_AT_SCENARIO,
       MAP_AT_OUT_OF_BOUNDS_SCENARIO,
       MAP_AT_SEQUENCE_FIRST_SCENARIO,
       MAP_AT_SEQUENCE_INNER_SCENARIO,
-      MAP_ONLY_MAPPED_COLUMN_SCENARIO
+      MAP_ONLY_MAPPED_COLUMN_SCENARIO,
+      MAP_DUPLICATE_OUTPUT_NAME_SCENARIO,
+      DECOMPRESS_SEQUENCE_SCENARIO,
+      DECOMPRESS_WITH_USER_MAP_SCENARIO
    )
 );

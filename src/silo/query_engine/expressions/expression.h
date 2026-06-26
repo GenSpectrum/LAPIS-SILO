@@ -60,6 +60,7 @@ class Expression {
       SYMBOL_EQUALS_AMINO_ACID,
       SYMBOL_IN_SET_NUCLEOTIDE,
       SYMBOL_IN_SET_AMINO_ACID,
+      ZSTD_DECOMPRESS_SCALAR,
    };
 
    /// The column type this expression evaluates to. All current expressions are

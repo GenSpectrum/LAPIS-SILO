@@ -53,6 +53,11 @@ CMake auto-scans `src/` directories. The Makefile maintains `.src_file_list` to 
 #include "silo/common/panic.h"           // 4. Internal (quotes)
 ```
 
+### `using` statements
+
+Never use `using my::Type` in `.h` files.
+Use `using my::Type` (only in `.cpp` files) deliberately for all `silo::...` types.
+
 ### Error handling
 - `std::expected<T, Error>` for recoverable errors.
 - `SILO_ASSERT()` for debug assertions.
