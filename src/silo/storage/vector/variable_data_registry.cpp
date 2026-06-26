@@ -5,7 +5,7 @@
 namespace silo::storage::vector {
 
 VariableDataRegistry::Identifier VariableDataRegistry::insert(std::string_view data) {
-   if (variable_data_pages.empty() || offset + sizeof(size_t) > buffer::PAGE_SIZE) {
+   if (variable_data_pages.empty() || offset + sizeof(size_t) > buffer::SILO_PAGE_SIZE) {
       variable_data_pages.emplace_back();
       offset = 0;
    }
@@ -20,14 +20,14 @@ VariableDataRegistry::Identifier VariableDataRegistry::insert(std::string_view d
    };
    offset += sizeof(size_t);
 
-   if (offset == buffer::PAGE_SIZE) {
+   if (offset == buffer::SILO_PAGE_SIZE) {
       variable_data_pages.emplace_back();
       offset = 0;
    }
 
    std::string_view remaining_data = data;
    while (true) {
-      const size_t space_for_next_data_piece = buffer::PAGE_SIZE - offset;
+      const size_t space_for_next_data_piece = buffer::SILO_PAGE_SIZE - offset;
       SILO_ASSERT(space_for_next_data_piece > 0);
       if (space_for_next_data_piece >= remaining_data.length()) {
          std::memcpy(
@@ -56,7 +56,7 @@ VariableDataRegistry::DataList getDataFromPage(
    size_t offset,
    size_t length
 ) {
-   const size_t length_on_page = std::min(length, buffer::PAGE_SIZE - offset);
+   const size_t length_on_page = std::min(length, buffer::SILO_PAGE_SIZE - offset);
    const char* start_pointer_on_page = reinterpret_cast<char*>(page.buffer + offset);
    const std::string_view data_on_page{start_pointer_on_page, length_on_page};
    return VariableDataRegistry::DataList{.data = data_on_page, .continuation = nullptr};

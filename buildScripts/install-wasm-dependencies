@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+./buildScripts/ensure-uv
+
+# TODO(#986) remove setting 'arrow/*:compiler.cppstd=20' when arrow compilation for C++23 is fixed
+uv run --project buildScripts conan install wasm --update \
+  --build=missing \
+  '--build=abseil/*' \
+  '--build=arrow/*' \
+  '--build=boost/*' \
+  '--build=bzip2/*' \
+  '--build=fmt/*' \
+  '--build=re2/*' \
+  '--build=roaring/*' \
+  '--build=simdjson/*' \
+  '--build=simdutf/*' \
+  '--build=spdlog/*' \
+  '--build=yaml-cpp/*' \
+  '--build=zlib/*' \
+  '--build=zstd/*' \
+  --profile:host build/wasm/conanprofile-emscripten \
+  --profile:build ./conanprofile \
+  --settings 'arrow/*:compiler.cppstd=20' \
+  --output-folder=build/wasm

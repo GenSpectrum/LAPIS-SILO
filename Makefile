@@ -5,8 +5,11 @@ SILO_DEBUG_EXECUTABLE=./build/Debug/silo
 SILO_DEBUG_TEST_EXECUTABLE=./build/Debug/silo_test
 SILO_RELEASE_EXECUTABLE=./build/Release/silo
 SILO_RELEASE_TEST_EXECUTABLE=./build/Release/silo_test
+SILO_WASM_EXECUTABLE=./build/wasm/silo_wasm.js
+SILO_WASM_DIST_DIR=dist/wasm
 RUNNING_SILO_FLAG=running_silo.flag
 DEPENDENCIES_FLAG=dependencies
+WASM_DEPENDENCIES_FLAG=build/wasm/dependencies
 CLANG_FORMAT=$(shell command -v clang-format-19 2>/dev/null || command -v clang-format 2>/dev/null || echo clang-format)
 CMAKE_BUILD_PARALLEL_LEVEL ?= 16
 
@@ -20,6 +23,13 @@ ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 	buildScripts/install-dependencies
 	touch ${DEPENDENCIES_FLAG}
 
+build/wasm/conanprofile-emscripten:
+	buildScripts/create-wasm-conanprofile
+
+${WASM_DEPENDENCIES_FLAG}: wasm/conanfile.py conanprofile build/wasm/conanprofile-emscripten
+	buildScripts/install-wasm-dependencies
+	touch ${WASM_DEPENDENCIES_FLAG}
+
 SRC_FILE_LIST=.src_file_list
 $(SRC_FILE_LIST): FORCE
 	@find src -type f | sort > $@.tmp
@@ -32,6 +42,9 @@ build/Debug/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
 build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
 	cmake -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
 
+build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) wasm/CMakeLists.txt
+	emcmake cmake -G Ninja -S wasm -B build/wasm -D CMAKE_BUILD_TYPE=Release
+
 ${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
 	cmake --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo
 
@@ -43,6 +56,15 @@ ${SILO_RELEASE_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
 
 ${SILO_RELEASE_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
 	cmake --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test
+
+${SILO_WASM_EXECUTABLE}: build/wasm/build.ninja $(shell find src wasm -type f)
+	cmake --build build/wasm --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_wasm
+
+.PHONY: wasm
+wasm: ${SILO_WASM_EXECUTABLE}
+	mkdir -p ${SILO_WASM_DIST_DIR}
+	cp build/wasm/silo_wasm.js build/wasm/silo_wasm.wasm ${SILO_WASM_DIST_DIR}/
+	@if [ -f build/wasm/silo_wasm.worker.js ]; then cp build/wasm/silo_wasm.worker.js ${SILO_WASM_DIST_DIR}/; fi
 
 .PHONY: output
 output: ${SILO_DEBUG_EXECUTABLE}
@@ -152,7 +174,7 @@ clean-api:
 
 .PHONY: clean
 clean: clean-api
-	rm -rf output logs ${DEPENDENCIES_FLAG} ${SRC_FILE_LIST}
+	rm -rf output logs ${DEPENDENCIES_FLAG} ${SRC_FILE_LIST} ${SILO_WASM_DIST_DIR}
 
 .PHONY: full-clean
 full-clean: clean

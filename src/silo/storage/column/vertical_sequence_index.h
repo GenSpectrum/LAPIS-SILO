@@ -118,7 +118,7 @@ class VerticalSequenceIndex {
          }
       }
    };
-   static_assert(sizeof(SequenceDiff) == 16);
+   static_assert(sizeof(SequenceDiff) == (sizeof(void*) == 8 ? 16 : 12));
 
    std::map<SequenceDiffKey, SequenceDiff> vertical_bitmaps;
 

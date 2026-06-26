@@ -65,6 +65,14 @@ class TableScanGenerator {
    arrow::Future<std::optional<arrow::ExecBatch>> operator()() {
       SPDLOG_TRACE("TableScanGenerator::operator()");
       auto future = arrow::Future<std::optional<arrow::ExecBatch>>::Make();
+#ifdef SILO_WASM
+      try {
+         auto result = produceNextBatch();
+         future.MarkFinished(std::move(result));
+      } catch (const std::exception& exception) {
+         future.MarkFinished(arrow::Status::ExecutionError(exception.what()));
+      }
+#else
       // We do this to guard against https://github.com/apache/arrow/issues/47641
       // and https://github.com/apache/arrow/issues/47642
       std::thread([future, this]() mutable {
@@ -75,6 +83,7 @@ class TableScanGenerator {
             future.MarkFinished(arrow::Status::ExecutionError(exception.what()));
          }
       }).detach();
+#endif
       return future;
    };
 
