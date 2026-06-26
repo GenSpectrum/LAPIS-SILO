@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstddef>
 #include <optional>
+#include <ranges>
 #include <string>
 
 #include <arrow/acero/exec_plan.h>
