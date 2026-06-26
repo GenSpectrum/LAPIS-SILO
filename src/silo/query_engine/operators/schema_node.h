@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <string_view>
 #include <vector>
 
 #include <arrow/result.h>
@@ -16,6 +17,9 @@ namespace silo::query_engine::operators {
 /// The child's query plan is never executed; only its output schema is inspected.
 class SchemaNode final : public QueryNode {
   public:
+   static constexpr std::string_view FIELD_NAME_COLUMN = "fieldName";
+   static constexpr std::string_view TYPE_COLUMN = "type";
+
    QueryNodePtr child;
 
    explicit SchemaNode(QueryNodePtr child);

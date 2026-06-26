@@ -12,6 +12,8 @@ nlohmann::json createData(
    const std::string& country,
    const std::string& date,
    int age,
+   bool is_covered,
+   double proportion,
    const nlohmann::json& segment1 = nullptr
 ) {
    return {
@@ -19,6 +21,8 @@ nlohmann::json createData(
       {"country", country},
       {"date", date},
       {"age", age},
+      {"is_covered", is_covered},
+      {"proportion", proportion},
       {"segment1", segment1},
       {"gene1", nullptr},
       {"unaligned_segment1", nullptr},
@@ -30,8 +34,8 @@ nlohmann::json alignedSequence(const std::string& sequence) {
 }
 
 const std::vector<nlohmann::json> DATA = {
-   createData("id_0", "CH", "2024-01-01", 31, alignedSequence("ACGT")),
-   createData("id_1", "DE", "2024-01-02", 42, alignedSequence("ACGA")),
+   createData("id_0", "CH", "2024-01-01", 31, true, 0.5, alignedSequence("ACGT")),
+   createData("id_1", "DE", "2024-01-02", 42, false, 0.75, alignedSequence("ACGA")),
 };
 
 const auto DATABASE_CONFIG =
@@ -48,6 +52,10 @@ schema:
       type: "date"
     - name: "age"
       type: "int"
+    - name: "is_covered"
+      type: "boolean"
+    - name: "proportion"
+      type: "float"
   primaryKey: "primaryKey"
 )";
 
@@ -73,7 +81,9 @@ const QueryTestScenario TABLE_SCHEMA_SCENARIO = {
        {{"fieldName", "country"}, {"type", "STRING"}},
        {{"fieldName", "date"}, {"type", "DATE32"}},
        {{"fieldName", "gene1"}, {"type", "STRING"}},
+       {{"fieldName", "is_covered"}, {"type", "BOOL"}},
        {{"fieldName", "primaryKey"}, {"type", "STRING"}},
+       {{"fieldName", "proportion"}, {"type", "FLOAT"}},
        {{"fieldName", "segment1"}, {"type", "STRING"}},
        {{"fieldName", "unaligned_segment1"}, {"type", "STRING"}}}
    )

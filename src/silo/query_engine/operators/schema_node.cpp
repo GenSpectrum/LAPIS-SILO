@@ -22,8 +22,8 @@ SchemaNode::SchemaNode(QueryNodePtr child)
 
 std::vector<schema::ColumnIdentifier> SchemaNode::getOutputSchema() const {
    return {
-      {"fieldName", schema::ColumnType::STRING},
-      {"type", schema::ColumnType::STRING},
+      {std::string{FIELD_NAME_COLUMN}, schema::ColumnType::STRING},
+      {std::string{TYPE_COLUMN}, schema::ColumnType::STRING},
    };
 }
 
