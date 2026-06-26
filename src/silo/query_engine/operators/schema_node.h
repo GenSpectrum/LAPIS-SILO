@@ -11,13 +11,14 @@
 
 namespace silo::query_engine::operators {
 
-/// Leaf node that reports the output schema of whatever it was applied to.
-/// Emits one row per described field with two STRING columns: `fieldName` and `type`.
+/// Terminal node that reports the output schema of its child as data rows.
+/// Emits one row per child field.
+/// The child's query plan is never executed; only its output schema is inspected.
 class SchemaNode final : public QueryNode {
   public:
-   std::vector<schema::ColumnIdentifier> input_schema;
+   QueryNodePtr child;
 
-   explicit SchemaNode(std::vector<schema::ColumnIdentifier> input_schema);
+   explicit SchemaNode(QueryNodePtr child);
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override;
 

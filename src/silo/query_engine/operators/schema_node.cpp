@@ -17,8 +17,8 @@
 
 namespace silo::query_engine::operators {
 
-SchemaNode::SchemaNode(std::vector<schema::ColumnIdentifier> input_schema)
-    : input_schema(std::move(input_schema)) {}
+SchemaNode::SchemaNode(QueryNodePtr child)
+    : child(std::move(child)) {}
 
 std::vector<schema::ColumnIdentifier> SchemaNode::getOutputSchema() const {
    return {
@@ -33,7 +33,7 @@ arrow::Result<arrow::acero::ExecNode*> SchemaNode::addToExecPlan(
    const config::QueryOptions& /*query_options*/
 ) const {
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [input_schema = input_schema,
+      [input_schema = child->getOutputSchema(),
        already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
          const std::optional<arrow::ExecBatch> result = std::nullopt;
@@ -72,7 +72,7 @@ arrow::Result<arrow::acero::ExecNode*> SchemaNode::addToExecPlan(
 nlohmann::json SchemaNode::toJson() const {
    return {
       {"type", nodeKindToString(kind())},
-      {"fields", columnsToJson(input_schema)},
+      {"child", child->toJson()},
    };
 }
 

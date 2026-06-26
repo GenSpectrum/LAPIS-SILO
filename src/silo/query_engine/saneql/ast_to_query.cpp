@@ -971,7 +971,7 @@ operators::QueryNodePtr handleSchema(
    const ChildConverter& convert_child
 ) {
    auto child = convert_child(args.at("input"), tables);
-   return std::make_unique<operators::SchemaNode>(child->getOutputSchema());
+   return std::make_unique<operators::SchemaNode>(std::move(child));
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
