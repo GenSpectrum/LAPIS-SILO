@@ -1,0 +1,183 @@
+########### AGGREGATED COMPONENTS AND DEPENDENCIES FOR THE MULTI CONFIG #####################
+#############################################################################################
+
+list(APPEND poco_COMPONENT_NAMES Poco::Foundation Poco::JSON Poco::Net Poco::Util)
+list(REMOVE_DUPLICATES poco_COMPONENT_NAMES)
+if(DEFINED poco_FIND_DEPENDENCY_NAMES)
+  list(APPEND poco_FIND_DEPENDENCY_NAMES PCRE2 utf8proc ZLIB)
+  list(REMOVE_DUPLICATES poco_FIND_DEPENDENCY_NAMES)
+else()
+  set(poco_FIND_DEPENDENCY_NAMES PCRE2 utf8proc ZLIB)
+endif()
+set(PCRE2_FIND_MODE "MODULE")
+set(utf8proc_FIND_MODE "NO_MODULE")
+set(ZLIB_FIND_MODE "MODULE")
+
+########### VARIABLES #######################################################################
+#############################################################################################
+set(poco_PACKAGE_FOLDER_RELEASE "/root/.conan2/p/b/poco6ee6a2bef8937/p")
+set(poco_BUILD_MODULES_PATHS_RELEASE )
+
+
+set(poco_INCLUDE_DIRS_RELEASE "${poco_PACKAGE_FOLDER_RELEASE}/include")
+set(poco_RES_DIRS_RELEASE )
+set(poco_DEFINITIONS_RELEASE "-DPOCO_UTIL_NO_XMLCONFIGURATION"
+			"-DPOCO_STATIC=ON"
+			"-DPOCO_UNBUNDLED")
+set(poco_SHARED_LINK_FLAGS_RELEASE )
+set(poco_EXE_LINK_FLAGS_RELEASE )
+set(poco_OBJECTS_RELEASE )
+set(poco_COMPILE_DEFINITIONS_RELEASE "POCO_UTIL_NO_XMLCONFIGURATION"
+			"POCO_STATIC=ON"
+			"POCO_UNBUNDLED")
+set(poco_COMPILE_OPTIONS_C_RELEASE )
+set(poco_COMPILE_OPTIONS_CXX_RELEASE )
+set(poco_LIB_DIRS_RELEASE "${poco_PACKAGE_FOLDER_RELEASE}/lib")
+set(poco_BIN_DIRS_RELEASE )
+set(poco_LIBRARY_TYPE_RELEASE STATIC)
+set(poco_IS_HOST_WINDOWS_RELEASE 0)
+set(poco_LIBS_RELEASE PocoUtil PocoNet PocoJSON PocoFoundation)
+set(poco_SYSTEM_LIBS_RELEASE pthread dl rt)
+set(poco_FRAMEWORK_DIRS_RELEASE )
+set(poco_FRAMEWORKS_RELEASE )
+set(poco_BUILD_DIRS_RELEASE )
+set(poco_NO_SONAME_MODE_RELEASE FALSE)
+
+
+# COMPOUND VARIABLES
+set(poco_COMPILE_OPTIONS_RELEASE
+    "$<$<COMPILE_LANGUAGE:CXX>:${poco_COMPILE_OPTIONS_CXX_RELEASE}>"
+    "$<$<COMPILE_LANGUAGE:C>:${poco_COMPILE_OPTIONS_C_RELEASE}>")
+set(poco_LINKER_FLAGS_RELEASE
+    "$<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>:${poco_SHARED_LINK_FLAGS_RELEASE}>"
+    "$<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,MODULE_LIBRARY>:${poco_SHARED_LINK_FLAGS_RELEASE}>"
+    "$<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:${poco_EXE_LINK_FLAGS_RELEASE}>")
+
+
+set(poco_COMPONENTS_RELEASE Poco::Foundation Poco::JSON Poco::Net Poco::Util)
+########### COMPONENT Poco::Util VARIABLES ############################################
+
+set(poco_Poco_Util_INCLUDE_DIRS_RELEASE "${poco_PACKAGE_FOLDER_RELEASE}/include")
+set(poco_Poco_Util_LIB_DIRS_RELEASE "${poco_PACKAGE_FOLDER_RELEASE}/lib")
+set(poco_Poco_Util_BIN_DIRS_RELEASE )
+set(poco_Poco_Util_LIBRARY_TYPE_RELEASE STATIC)
+set(poco_Poco_Util_IS_HOST_WINDOWS_RELEASE 0)
+set(poco_Poco_Util_RES_DIRS_RELEASE )
+set(poco_Poco_Util_DEFINITIONS_RELEASE "-DPOCO_UTIL_NO_XMLCONFIGURATION")
+set(poco_Poco_Util_OBJECTS_RELEASE )
+set(poco_Poco_Util_COMPILE_DEFINITIONS_RELEASE "POCO_UTIL_NO_XMLCONFIGURATION")
+set(poco_Poco_Util_COMPILE_OPTIONS_C_RELEASE "")
+set(poco_Poco_Util_COMPILE_OPTIONS_CXX_RELEASE "")
+set(poco_Poco_Util_LIBS_RELEASE PocoUtil)
+set(poco_Poco_Util_SYSTEM_LIBS_RELEASE )
+set(poco_Poco_Util_FRAMEWORK_DIRS_RELEASE )
+set(poco_Poco_Util_FRAMEWORKS_RELEASE )
+set(poco_Poco_Util_DEPENDENCIES_RELEASE Poco::Foundation Poco::JSON)
+set(poco_Poco_Util_SHARED_LINK_FLAGS_RELEASE )
+set(poco_Poco_Util_EXE_LINK_FLAGS_RELEASE )
+set(poco_Poco_Util_NO_SONAME_MODE_RELEASE FALSE)
+
+# COMPOUND VARIABLES
+set(poco_Poco_Util_LINKER_FLAGS_RELEASE
+        $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>:${poco_Poco_Util_SHARED_LINK_FLAGS_RELEASE}>
+        $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,MODULE_LIBRARY>:${poco_Poco_Util_SHARED_LINK_FLAGS_RELEASE}>
+        $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:${poco_Poco_Util_EXE_LINK_FLAGS_RELEASE}>
+)
+set(poco_Poco_Util_COMPILE_OPTIONS_RELEASE
+    "$<$<COMPILE_LANGUAGE:CXX>:${poco_Poco_Util_COMPILE_OPTIONS_CXX_RELEASE}>"
+    "$<$<COMPILE_LANGUAGE:C>:${poco_Poco_Util_COMPILE_OPTIONS_C_RELEASE}>")
+########### COMPONENT Poco::Net VARIABLES ############################################
+
+set(poco_Poco_Net_INCLUDE_DIRS_RELEASE "${poco_PACKAGE_FOLDER_RELEASE}/include")
+set(poco_Poco_Net_LIB_DIRS_RELEASE "${poco_PACKAGE_FOLDER_RELEASE}/lib")
+set(poco_Poco_Net_BIN_DIRS_RELEASE )
+set(poco_Poco_Net_LIBRARY_TYPE_RELEASE STATIC)
+set(poco_Poco_Net_IS_HOST_WINDOWS_RELEASE 0)
+set(poco_Poco_Net_RES_DIRS_RELEASE )
+set(poco_Poco_Net_DEFINITIONS_RELEASE )
+set(poco_Poco_Net_OBJECTS_RELEASE )
+set(poco_Poco_Net_COMPILE_DEFINITIONS_RELEASE )
+set(poco_Poco_Net_COMPILE_OPTIONS_C_RELEASE "")
+set(poco_Poco_Net_COMPILE_OPTIONS_CXX_RELEASE "")
+set(poco_Poco_Net_LIBS_RELEASE PocoNet)
+set(poco_Poco_Net_SYSTEM_LIBS_RELEASE )
+set(poco_Poco_Net_FRAMEWORK_DIRS_RELEASE )
+set(poco_Poco_Net_FRAMEWORKS_RELEASE )
+set(poco_Poco_Net_DEPENDENCIES_RELEASE Poco::Foundation)
+set(poco_Poco_Net_SHARED_LINK_FLAGS_RELEASE )
+set(poco_Poco_Net_EXE_LINK_FLAGS_RELEASE )
+set(poco_Poco_Net_NO_SONAME_MODE_RELEASE FALSE)
+
+# COMPOUND VARIABLES
+set(poco_Poco_Net_LINKER_FLAGS_RELEASE
+        $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>:${poco_Poco_Net_SHARED_LINK_FLAGS_RELEASE}>
+        $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,MODULE_LIBRARY>:${poco_Poco_Net_SHARED_LINK_FLAGS_RELEASE}>
+        $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:${poco_Poco_Net_EXE_LINK_FLAGS_RELEASE}>
+)
+set(poco_Poco_Net_COMPILE_OPTIONS_RELEASE
+    "$<$<COMPILE_LANGUAGE:CXX>:${poco_Poco_Net_COMPILE_OPTIONS_CXX_RELEASE}>"
+    "$<$<COMPILE_LANGUAGE:C>:${poco_Poco_Net_COMPILE_OPTIONS_C_RELEASE}>")
+########### COMPONENT Poco::JSON VARIABLES ############################################
+
+set(poco_Poco_JSON_INCLUDE_DIRS_RELEASE "${poco_PACKAGE_FOLDER_RELEASE}/include")
+set(poco_Poco_JSON_LIB_DIRS_RELEASE "${poco_PACKAGE_FOLDER_RELEASE}/lib")
+set(poco_Poco_JSON_BIN_DIRS_RELEASE )
+set(poco_Poco_JSON_LIBRARY_TYPE_RELEASE STATIC)
+set(poco_Poco_JSON_IS_HOST_WINDOWS_RELEASE 0)
+set(poco_Poco_JSON_RES_DIRS_RELEASE )
+set(poco_Poco_JSON_DEFINITIONS_RELEASE )
+set(poco_Poco_JSON_OBJECTS_RELEASE )
+set(poco_Poco_JSON_COMPILE_DEFINITIONS_RELEASE )
+set(poco_Poco_JSON_COMPILE_OPTIONS_C_RELEASE "")
+set(poco_Poco_JSON_COMPILE_OPTIONS_CXX_RELEASE "")
+set(poco_Poco_JSON_LIBS_RELEASE PocoJSON)
+set(poco_Poco_JSON_SYSTEM_LIBS_RELEASE )
+set(poco_Poco_JSON_FRAMEWORK_DIRS_RELEASE )
+set(poco_Poco_JSON_FRAMEWORKS_RELEASE )
+set(poco_Poco_JSON_DEPENDENCIES_RELEASE Poco::Foundation)
+set(poco_Poco_JSON_SHARED_LINK_FLAGS_RELEASE )
+set(poco_Poco_JSON_EXE_LINK_FLAGS_RELEASE )
+set(poco_Poco_JSON_NO_SONAME_MODE_RELEASE FALSE)
+
+# COMPOUND VARIABLES
+set(poco_Poco_JSON_LINKER_FLAGS_RELEASE
+        $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>:${poco_Poco_JSON_SHARED_LINK_FLAGS_RELEASE}>
+        $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,MODULE_LIBRARY>:${poco_Poco_JSON_SHARED_LINK_FLAGS_RELEASE}>
+        $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:${poco_Poco_JSON_EXE_LINK_FLAGS_RELEASE}>
+)
+set(poco_Poco_JSON_COMPILE_OPTIONS_RELEASE
+    "$<$<COMPILE_LANGUAGE:CXX>:${poco_Poco_JSON_COMPILE_OPTIONS_CXX_RELEASE}>"
+    "$<$<COMPILE_LANGUAGE:C>:${poco_Poco_JSON_COMPILE_OPTIONS_C_RELEASE}>")
+########### COMPONENT Poco::Foundation VARIABLES ############################################
+
+set(poco_Poco_Foundation_INCLUDE_DIRS_RELEASE "${poco_PACKAGE_FOLDER_RELEASE}/include")
+set(poco_Poco_Foundation_LIB_DIRS_RELEASE "${poco_PACKAGE_FOLDER_RELEASE}/lib")
+set(poco_Poco_Foundation_BIN_DIRS_RELEASE )
+set(poco_Poco_Foundation_LIBRARY_TYPE_RELEASE STATIC)
+set(poco_Poco_Foundation_IS_HOST_WINDOWS_RELEASE 0)
+set(poco_Poco_Foundation_RES_DIRS_RELEASE )
+set(poco_Poco_Foundation_DEFINITIONS_RELEASE "-DPOCO_STATIC=ON"
+			"-DPOCO_UNBUNDLED")
+set(poco_Poco_Foundation_OBJECTS_RELEASE )
+set(poco_Poco_Foundation_COMPILE_DEFINITIONS_RELEASE "POCO_STATIC=ON"
+			"POCO_UNBUNDLED")
+set(poco_Poco_Foundation_COMPILE_OPTIONS_C_RELEASE "")
+set(poco_Poco_Foundation_COMPILE_OPTIONS_CXX_RELEASE "")
+set(poco_Poco_Foundation_LIBS_RELEASE PocoFoundation)
+set(poco_Poco_Foundation_SYSTEM_LIBS_RELEASE pthread dl rt)
+set(poco_Poco_Foundation_FRAMEWORK_DIRS_RELEASE )
+set(poco_Poco_Foundation_FRAMEWORKS_RELEASE )
+set(poco_Poco_Foundation_DEPENDENCIES_RELEASE pcre2::pcre2 ZLIB::ZLIB utf8proc::utf8proc)
+set(poco_Poco_Foundation_SHARED_LINK_FLAGS_RELEASE )
+set(poco_Poco_Foundation_EXE_LINK_FLAGS_RELEASE )
+set(poco_Poco_Foundation_NO_SONAME_MODE_RELEASE FALSE)
+
+# COMPOUND VARIABLES
+set(poco_Poco_Foundation_LINKER_FLAGS_RELEASE
+        $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>:${poco_Poco_Foundation_SHARED_LINK_FLAGS_RELEASE}>
+        $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,MODULE_LIBRARY>:${poco_Poco_Foundation_SHARED_LINK_FLAGS_RELEASE}>
+        $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:${poco_Poco_Foundation_EXE_LINK_FLAGS_RELEASE}>
+)
+set(poco_Poco_Foundation_COMPILE_OPTIONS_RELEASE
+    "$<$<COMPILE_LANGUAGE:CXX>:${poco_Poco_Foundation_COMPILE_OPTIONS_CXX_RELEASE}>"
+    "$<$<COMPILE_LANGUAGE:C>:${poco_Poco_Foundation_COMPILE_OPTIONS_C_RELEASE}>")

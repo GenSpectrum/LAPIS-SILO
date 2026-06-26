@@ -38,6 +38,7 @@ enum class NodeKind : uint8_t {
    COUNT_FILTER,
    ZSTD_DECOMPRESS,
    UNION_ALL,
+   SCHEMA,
 };
 
 class QueryNode {
