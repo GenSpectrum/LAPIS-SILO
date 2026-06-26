@@ -12,9 +12,6 @@
 
 # Conan
 conanprofile
-/*.cmake
-/*.sh
-conandeps_legacy.cmake
 
 # --------------------
 # IDE-related files
