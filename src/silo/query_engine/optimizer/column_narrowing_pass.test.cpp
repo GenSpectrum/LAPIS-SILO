@@ -344,38 +344,6 @@ TEST(ColumnNarrowingPassMap, eliminatesNodeWhenNoAssignmentIsRequired) {
    );
 }
 
-// Duplicate output names: getOutputSchema/addToExecPlan apply assignments front-to-back,
-// so the last assignment for a name wins. Narrowing must keep that last assignment and its
-// input column in the child, not the first.
-TEST(ColumnNarrowingPassMap, keepsLastAssignmentForDuplicateOutputName) {
-   auto nuc_a = colWithType("nuc_a", ColumnType::NUCLEOTIDE_SEQUENCE);
-   auto nuc_b = colWithType("nuc_b", ColumnType::NUCLEOTIDE_SEQUENCE);
-   auto scan = makeScan({nuc_a, nuc_b});
-
-   // Two assignments both output "out"; the second references nuc_b and must win.
-   std::vector<operators::MapNode::Assignment> assignments;
-   assignments.push_back(
-      {.output_column = col("out"),
-       .expression =
-          std::make_unique<silo::query_engine::expressions::ZstdDecompressScalar>(nuc_a, "A")}
-   );
-   assignments.push_back(
-      {.output_column = col("out"),
-       .expression =
-          std::make_unique<silo::query_engine::expressions::ZstdDecompressScalar>(nuc_b, "A")}
-   );
-   operators::QueryNodePtr node =
-      std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
-
-   ColumnNarrowingPass pass({col("out")});
-   if (auto new_node = operators::visit(*node, pass)) {
-      node = std::move(new_node);
-   }
-
-   // The child must carry nuc_b (last assignment's input), not nuc_a.
-   EXPECT_THAT(scanSchema(leafScan(*node)), ::testing::ElementsAre(nuc_b));
-}
-
 // Surviving assignments must keep their original relative order, even when the required
 // columns are requested in a different order. getOutputSchema appends newly-added columns
 // (not present in the child) in assignment-vector order, so reordering would change the

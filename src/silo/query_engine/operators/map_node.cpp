@@ -66,12 +66,11 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
    );
 }
 
-/// When any *effective* assignment uses zstd decompression, insert a backpressure sink/source
-/// pair into the plan so that Arrow can throttle the upstream scan appropriately. Decompression
-/// inflates each batch by (roughly) the reference/dictionary size, so we size the batches relative
-/// to the summed reference sizes to bound peak memory. Only the effective (last-wins) assignments
-/// are counted; dead earlier duplicates neither appear in the projection nor contribute to the
-/// batch sizing.
+/// When any assignment uses zstd decompression, insert a backpressure sink/source pair into the
+/// plan so that Arrow can throttle the upstream scan appropriately. Decompression inflates each
+/// batch by (roughly) the reference/dictionary size, so we size the batches relative to the
+/// summed reference sizes to bound peak memory. Output names are unique (handleMap rejects
+/// duplicates).
 ///
 /// Returns the new top node when a backpressure pair was inserted, or std::nullopt when no
 /// assignment decompresses (in which case the caller keeps its existing node).

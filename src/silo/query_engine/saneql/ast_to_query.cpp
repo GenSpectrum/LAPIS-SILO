@@ -1140,9 +1140,15 @@ operators::QueryNodePtr handleMap(
    auto child = convert_child(args.at("input"), tables);
    const auto child_schema = child->getOutputSchema();
 
+   std::unordered_set<std::string> seen_output_names;
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.reserve(record.fields.size());
    for (const auto& field : record.fields) {
+      CHECK_SILO_QUERY(
+         seen_output_names.insert(field.name).second,
+         "map() assigns the output column '{}' more than once",
+         field.name
+      );
       assignments.push_back(parseMapAssignment(field, child_schema));
    }
 

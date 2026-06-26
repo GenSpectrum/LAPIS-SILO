@@ -85,6 +85,14 @@ const QueryTestScenario MAP_OVERRIDE_SCENARIO = {
    )
 };
 
+const QueryTestScenario MAP_OVERRIDE_TWICE_SCENARIO = {
+   .name = "MAP_OVERRIDE_TWICE",
+   .query = "default.map({int_value := 42}).map({int_value := 5}).project({primaryKey, int_value})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"int_value", 5}}, {{"primaryKey", "id_1"}, {"int_value", 5}}}
+   )
+};
+
 const QueryTestScenario MAP_INT64_SCENARIO = {
    .name = "MAP_INT64",
    .query = "default.map({x := 3000000000}).project({primaryKey, x})",
@@ -150,6 +158,15 @@ const QueryTestScenario MAP_ONLY_MAPPED_COLUMN_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"a", 1}}, {{"a", 1}}})
 };
 
+// A map() that assigns the same output column twice is rejected at query construction
+// time rather than silently dropping one assignment.
+const QueryTestScenario MAP_DUPLICATE_OUTPUT_NAME_SCENARIO = {
+   .name = "MAP_DUPLICATE_OUTPUT_NAME",
+   .query = "default.map({x := 1, x := 2}).project({primaryKey, x})",
+   .expected_query_result = {},
+   .expected_error_message = "map() assigns the output column 'x' more than once"
+};
+
 // A table scan that exposes a (compressed) sequence column is wrapped in a MapNode
 // holding a ZstdDecompressScalar assignment by wrapWithDecompressIfNeeded. This
 // exercises the decompression path (backpressure sink/source + ProjectNode) of
@@ -184,6 +201,7 @@ QUERY_TEST(
    ::testing::Values(
       MAP_LITERALS_SCENARIO,
       MAP_OVERRIDE_SCENARIO,
+      MAP_OVERRIDE_TWICE_SCENARIO,
       MAP_INT64_SCENARIO,
       MAP_FIELD_REF_SCENARIO,
       MAP_AT_SCENARIO,
@@ -191,6 +209,7 @@ QUERY_TEST(
       MAP_AT_SEQUENCE_FIRST_SCENARIO,
       MAP_AT_SEQUENCE_INNER_SCENARIO,
       MAP_ONLY_MAPPED_COLUMN_SCENARIO,
+      MAP_DUPLICATE_OUTPUT_NAME_SCENARIO,
       DECOMPRESS_SEQUENCE_SCENARIO,
       DECOMPRESS_WITH_USER_MAP_SCENARIO
    )
