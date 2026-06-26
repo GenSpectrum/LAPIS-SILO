@@ -19,7 +19,7 @@ namespace silo::query_engine::optimizer {
 
 /// Optimization pass that narrows the set of columns produced by each node down to those
 /// actually required by its parent, pruning unneeded columns from scans and collapsing
-/// redundant Project nodes and decompression Map nodes.
+/// redundant Project and Map nodes.
 ///
 /// Carries state (`required`) that is mutated while walking the nodes.
 class ColumnNarrowingPass : public PipelinePassBase<ColumnNarrowingPass> {
