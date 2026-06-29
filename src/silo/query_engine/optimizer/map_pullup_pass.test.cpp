@@ -78,6 +78,39 @@ TEST(MapPullupPass, pullsMapUpThroughFetch) {
    EXPECT_EQ(moved_fetch->child->kind(), operators::NodeKind::TABLE_SCAN);
 }
 
+// An offset-only Fetch (no count) keeps its fields after the Map is pulled above it.
+
+TEST(MapPullupPass, pullsMapUpThroughOffsetOnlyFetch) {
+   auto fetch = std::make_unique<operators::FetchNode>(makeMap(makeScan()), std::nullopt, 7);
+
+   auto result = MapPullupPass::run(std::move(fetch));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::FETCH);
+   auto* moved_fetch = dynamic_cast<operators::FetchNode*>(map->child.get());
+   EXPECT_FALSE(moved_fetch->count.has_value());
+   EXPECT_EQ(moved_fetch->offset, 7);
+}
+
+// A MapNode with no assignments is still pulled up (it is a no-op pass-through; the pass
+// does not need to special-case it, and ColumnNarrowingPass normally removes such Maps
+// before this pass runs).
+
+TEST(MapPullupPass, pullsEmptyMapUpThroughFetch) {
+   auto map = std::make_unique<operators::MapNode>(
+      makeScan(), std::vector<operators::MapNode::Assignment>{}
+   );
+   auto fetch = std::make_unique<operators::FetchNode>(std::move(map), 5, std::nullopt);
+
+   auto result = MapPullupPass::run(std::move(fetch));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* result_map = dynamic_cast<operators::MapNode*>(result.get());
+   EXPECT_TRUE(result_map->assignments.empty());
+   EXPECT_EQ(result_map->child->kind(), operators::NodeKind::FETCH);
+}
+
 // --- A zstd-decompression MapNode (the real motivating case) is pulled above a Fetch ---
 
 TEST(MapPullupPass, pullsDecompressMapUpThroughFetch) {
