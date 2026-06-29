@@ -7,6 +7,8 @@
 #include <gtest/gtest.h>
 
 #include "silo/query_engine/expressions/literal.h"
+#include "silo/query_engine/expressions/string_equals.h"
+#include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/project_node.h"
@@ -160,6 +162,59 @@ TEST(FilterPushdownPass, pushesFilterIntoBothUnionAllBranches) {
    // outer filter (true) + branch filter (false/true) + scan filter (true)
    EXPECT_EQ(left_scan->filter->toString(), "And(true & false & true)");
    EXPECT_EQ(right_scan->filter->toString(), "And(true & true & true)");
+}
+
+// --- Filter(predicate on Map-produced col) → Map(produces col) → Scan ---
+//
+// The filter predicate references `seq`, which is the OUTPUT column of the MapNode
+// (the MapNode produces `seq` by decompressing the same-named compressed column).
+// FilterPushdownPass must NOT push this predicate below the Map: doing so would move
+// the predicate to the TableScan where `seq` is still the raw compressed column, making
+// the filter semantically wrong.
+//
+// This test is expected to FAIL until FilterPushdownPass is guarded with freeIUs().
+TEST(FilterPushdownPass, doesNotPushFilterThroughMapWhenFilterReferencesProducedColumn) {
+   using silo::schema::ColumnIdentifier;
+   using silo::schema::ColumnType;
+
+   // Map produces `seq` (STRING) by decompressing the compressed `seq` column.
+   const ColumnIdentifier compressed_col{.name = "seq", .type = ColumnType::ZSTD_COMPRESSED_STRING};
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = {.name = "seq", .type = ColumnType::STRING},
+       .expression =
+          std::make_unique<expressions::ZstdDecompressScalar>(compressed_col, "dictionary")}
+   );
+   auto map_node = std::make_unique<operators::MapNode>(makeScan(), std::move(assignments));
+
+   // Filter references `seq` — the Map-produced column (not the compressed source).
+   auto filter_node = std::make_unique<operators::FilterNode>(
+      std::move(map_node),
+      std::make_unique<expressions::StringEquals>("seq", std::optional<std::string>{"ACGT"})
+   );
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   // The Map-produced column `seq` is referenced by the filter predicate, so the filter
+   // must NOT be pushed through the MapNode. The FilterNode must survive above the Map.
+   // Currently FAILS: FilterPushdownPass pushes all filters past MapNodes unconditionally,
+   // sinking seq='ACGT' into the TableScan where `seq` is still the compressed column.
+   ASSERT_EQ(result->kind(), operators::NodeKind::FILTER)
+      << "FilterPushdownPass incorrectly pushed a filter referencing a Map-produced column "
+         "below the MapNode (bug: filter now runs against the compressed column, not the "
+         "decompressed one)";
+   // Additionally: the scan must NOT have `seq = 'ACGT'` in its filter (it was incorrectly
+   // pushed there by the current buggy implementation).
+   const auto* filter_result = dynamic_cast<operators::FilterNode*>(result.get());
+   ASSERT_NE(filter_result, nullptr);
+   ASSERT_EQ(filter_result->child->kind(), operators::NodeKind::MAP);
+   const auto* map = dynamic_cast<operators::MapNode*>(filter_result->child.get());
+   ASSERT_NE(map, nullptr);
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
+   const auto* scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
+   ASSERT_NE(scan, nullptr);
+   EXPECT_EQ(scan->filter->toString(), "And(true)")
+      << "seq='ACGT' was incorrectly pushed into the TableScan past the MapNode";
 }
 
 }  // namespace

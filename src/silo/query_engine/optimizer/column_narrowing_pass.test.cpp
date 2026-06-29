@@ -11,6 +11,7 @@
 
 #include "silo/query_engine/expressions/field_ref.h"
 #include "silo/query_engine/expressions/literal.h"
+#include "silo/query_engine/expressions/string_equals.h"
 #include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
@@ -402,6 +403,61 @@ TEST(ColumnNarrowingPassFilter, propagatesRequiredThroughFilter) {
    pass(*filter);
 
    EXPECT_THAT(scanSchema(leafScan(*filter)), ::testing::ElementsAre(col("b")));
+}
+
+// FilterNode whose predicate references a Map-produced column that is NOT in the
+// required set from above (e.g. Project only needs "id", filter needs "seq").
+//
+// Tree:   Project({id}) → Filter(seq='X') → Map(seq := decompress(seq_compressed)) → Scan
+//
+// The `seq` decompression assignment is NOT required by the Project, so narrowing
+// would naively prune it. But the FilterNode's predicate references `seq`, so the
+// assignment MUST be kept alive.
+//
+// Currently FAILS: ColumnNarrowingPass has no FilterNode override and does not add
+// predicate column references to `required` before descending.
+TEST(ColumnNarrowingPassFilter, keepsMapAssignmentRequiredByFilterPredicate) {
+   const auto seq_compressed = colWithType("seq", ColumnType::ZSTD_COMPRESSED_STRING);
+   const auto id_col = col("id");
+
+   auto scan = makeScan({seq_compressed, id_col});
+   operators::QueryNodePtr node =
+      std::make_unique<operators::MapNode>(std::move(scan), decompressAssignments(seq_compressed));
+
+   // Filter predicate references `seq` — the Map-produced STRING column.
+   node = std::make_unique<operators::FilterNode>(
+      std::move(node),
+      std::make_unique<silo::query_engine::expressions::StringEquals>(
+         "seq", std::optional<std::string>{"ACGT"}
+      )
+   );
+
+   // Project only requires "id" — not "seq".
+   operators::QueryNodePtr root =
+      std::make_unique<operators::ProjectNode>(std::move(node), std::vector{id_col});
+
+   root = ColumnNarrowingPass::run(std::move(root));
+
+   // Walk past any ProjectNode (narrowing may collapse it) to find the FilterNode.
+   operators::QueryNode* cur = root.get();
+   if (auto* proj = dynamic_cast<operators::ProjectNode*>(cur)) {
+      cur = proj->child.get();
+   }
+
+   // The FilterNode must still exist above the MapNode.
+   const auto* filter = dynamic_cast<operators::FilterNode*>(cur);
+   ASSERT_NE(filter, nullptr) << "FilterNode was unexpectedly removed";
+
+   // The MapNode must still exist and its decompression assignment must not have been
+   // pruned, because the FilterNode above it references the `seq` column it produces.
+   const auto* map = dynamic_cast<operators::MapNode*>(filter->child.get());
+   ASSERT_NE(map, nullptr)
+      << "ColumnNarrowingPass incorrectly pruned the MapNode whose assignment is "
+         "referenced by the FilterNode predicate";
+   EXPECT_FALSE(map->assignments.empty())
+      << "ColumnNarrowingPass incorrectly pruned the `seq` decompression assignment "
+         "needed by the FilterNode predicate (bug: filter predicate columns not added "
+         "to `required` before descending into Map)";
 }
 
 // --- MapNode -> TableScanNode ---
