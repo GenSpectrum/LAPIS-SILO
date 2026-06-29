@@ -8,6 +8,7 @@
 
 #include "silo/query_engine/optimizer/column_narrowing_pass.h"
 #include "silo/query_engine/optimizer/filter_pushdown_pass.h"
+#include "silo/query_engine/optimizer/map_pullup_pass.h"
 #include "silo/query_engine/optimizer/node_resolution_pass.h"
 #include "silo/query_engine/saneql/ast_to_query.h"
 #include "silo/schema/database_schema.h"
@@ -18,6 +19,7 @@ namespace {
 
 using optimizer::ColumnNarrowingPass;
 using optimizer::FilterPushdownPass;
+using optimizer::MapPullupPass;
 using optimizer::NodeResolutionPass;
 
 arrow::Result<QueryPlan> planQueryOrError(
@@ -47,6 +49,8 @@ QueryPlan Planner::planQuery(
    log_plan("initial");
    node = ColumnNarrowingPass::run(std::move(node));
    log_plan("after ColumnNarrowingPass");
+   node = MapPullupPass::run(std::move(node));
+   log_plan("after MapPullupPass");
    node = FilterPushdownPass::run(std::move(node));
    log_plan("after FilterPushdownPass");
    node = NodeResolutionPass::run(std::move(node));

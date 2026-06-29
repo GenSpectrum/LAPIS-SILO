@@ -193,6 +193,17 @@ const QueryTestScenario DECOMPRESS_WITH_USER_MAP_SCENARIO = {
    )
 };
 
+// The (zstd-compressed) sequence column is selected together with a `limit`. The
+// MapPullupPass moves the decompression MapNode above the FetchNode, so only the
+// retained row is decompressed. The result must still be correct: ordered by
+// primaryKey, the first row is id_0 with sequence "ACGT".
+const QueryTestScenario DECOMPRESS_SEQUENCE_WITH_LIMIT_SCENARIO = {
+   .name = "DECOMPRESS_SEQUENCE_WITH_LIMIT",
+   .query = "default.project({primaryKey, unaligned_segment1}).orderBy({primaryKey}).limit(1)",
+   .expected_query_result =
+      nlohmann::json({{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}}})
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -211,6 +222,7 @@ QUERY_TEST(
       MAP_ONLY_MAPPED_COLUMN_SCENARIO,
       MAP_DUPLICATE_OUTPUT_NAME_SCENARIO,
       DECOMPRESS_SEQUENCE_SCENARIO,
-      DECOMPRESS_WITH_USER_MAP_SCENARIO
+      DECOMPRESS_WITH_USER_MAP_SCENARIO,
+      DECOMPRESS_SEQUENCE_WITH_LIMIT_SCENARIO
    )
 );
