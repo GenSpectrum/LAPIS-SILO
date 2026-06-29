@@ -9,7 +9,7 @@ IMPORTANT: Changes here may require updates to query docs: `documentation/query_
 SaneQL string
   → Parser (saneql/parser.cpp) → AST (saneql/ast.h)
   → ast_to_query.cpp → QueryNode tree (operators/*.h)
-  → ColumnNarrowingPass → FilterPushdownPass → NodeResolutionPass
+  → ColumnNarrowingPass → MapPullupPass → FilterPushdownPass → NodeResolutionPass
   → addToExecPlan() → Arrow Acero ExecPlan (single shared plan)
   → QueryPlan execution → send result
 ```

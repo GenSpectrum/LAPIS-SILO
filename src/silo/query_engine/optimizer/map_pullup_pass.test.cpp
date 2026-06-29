@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "silo/query_engine/expressions/literal.h"
+#include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
@@ -74,6 +75,37 @@ TEST(MapPullupPass, pullsMapUpThroughFetch) {
    auto* moved_fetch = dynamic_cast<operators::FetchNode*>(map->child.get());
    EXPECT_EQ(moved_fetch->count, 5);
    EXPECT_EQ(moved_fetch->offset, 2);
+   EXPECT_EQ(moved_fetch->child->kind(), operators::NodeKind::TABLE_SCAN);
+}
+
+// --- A zstd-decompression MapNode (the real motivating case) is pulled above a Fetch ---
+
+TEST(MapPullupPass, pullsDecompressMapUpThroughFetch) {
+   const auto seq_column = ColumnIdentifier{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = {.name = "seq", .type = ColumnType::STRING},
+       .expression = std::make_unique<expressions::ZstdDecompressScalar>(seq_column, "A")}
+   );
+   auto map = std::make_unique<operators::MapNode>(
+      std::make_unique<operators::TableScanNode>(
+         makeTable(), trueFilter(), std::vector<ColumnIdentifier>{seq_column}
+      ),
+      std::move(assignments)
+   );
+   auto fetch = std::make_unique<operators::FetchNode>(std::move(map), 1, std::nullopt);
+
+   auto result = MapPullupPass::run(std::move(fetch));
+
+   // Decompression now runs above the limit, so only the retained row is decompressed.
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* result_map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(result_map->assignments.size(), 1);
+   EXPECT_EQ(
+      result_map->assignments.front().expression->kind(), expressions::ZstdDecompressScalar::KIND
+   );
+   ASSERT_EQ(result_map->child->kind(), operators::NodeKind::FETCH);
+   auto* moved_fetch = dynamic_cast<operators::FetchNode*>(result_map->child.get());
    EXPECT_EQ(moved_fetch->child->kind(), operators::NodeKind::TABLE_SCAN);
 }
 
