@@ -72,8 +72,8 @@ TEST(MapPullupPass, bubblesMapThroughStackedFetchNodes) {
        .expression = std::make_unique<expressions::Int64Literal>(3)}
    );
    auto map_node = std::make_unique<operators::MapNode>(makeScan({}), std::move(assignments));
-   auto inner_fetch = std::make_unique<operators::FetchNode>(std::move(map_node), 5U, std::nullopt);
-   auto root = std::make_unique<operators::FetchNode>(std::move(inner_fetch), 2U, std::nullopt);
+   auto lower_fetch = std::make_unique<operators::FetchNode>(std::move(map_node), 5U, std::nullopt);
+   auto root = std::make_unique<operators::FetchNode>(std::move(lower_fetch), 2U, std::nullopt);
 
    auto result = MapPullupPass::run(std::move(root));
 

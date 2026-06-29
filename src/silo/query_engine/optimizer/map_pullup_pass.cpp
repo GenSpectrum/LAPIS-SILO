@@ -40,8 +40,8 @@ bool intersects(
 }
 
 std::unique_ptr<operators::MapNode> getMapChildOrNone(operators::QueryNodePtr& child) {
-   if (auto* map_node = dynamic_cast<operators::MapNode*>(child.get())) {
-      return std::unique_ptr<operators::MapNode>(static_cast<operators::MapNode*>(child.release()));
+   if (dynamic_cast<operators::MapNode*>(child.get()) != nullptr) {
+      return std::unique_ptr<operators::MapNode>(child.release());
    }
    return nullptr;
 }
