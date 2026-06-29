@@ -70,7 +70,8 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::MostRecentComm
    return nullptr;
 }
 
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::SchemaNode& /*node*/) {
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr FilterPushdownPass::operator()(operators::SchemaNode& node) {
    // schema() reports a child's output schema; it is a result-producing source with no
    // place to push a predicate into. A filter() applied to its output therefore cannot be
    // realized -> reject the query.
@@ -79,6 +80,13 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::SchemaNode& /*
       "filter() cannot be applied to the output of schema(); schema() is a source operator "
       "and its result cannot be filtered. Apply filter() before schema() instead."
    );
+   // Push filters down *within* the child subtree using a fresh pass, so that filters inside
+   // the child (e.g. `default.filter(...).mutations().schema()`) are pushed into the scan.
+   // NodeResolutionPass requires this: it expects a bare table scan beneath
+   // mutations()/insertions(). A separate instance is used so the filters from above schema()
+   // cannot leak into the child.
+   FilterPushdownPass child_pass;
+   child_pass.propagateToNode(node.child);
    return nullptr;
 }
 

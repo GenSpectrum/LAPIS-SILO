@@ -125,13 +125,17 @@ class PipelinePassBase {
       return nullptr;
    }
 
-   // `SchemaNode` deliberately does NOT propagate into its child. The child plan is
-   // never executed; only `child->getOutputSchema()` is inspected at exec-plan-build
-   // time. Optimization passes (column narrowing, filter pushdown, node resolution)
-   // exist to make execution correct/fast and must not run on a subtree that is never
-   // executed. This is correct only because every operator's `getOutputSchema()` is
-   // invariant under those passes (e.g. an unresolved node reports the same schema as
-   // its resolved form). If that ever stops holding, this must resolve the child first.
+   // Default for `SchemaNode`: do NOT propagate into its child. `schema()` never executes
+   // the child plan; it only inspects `child->getOutputSchema()`. Pure optimization passes
+   // (e.g. ColumnNarrowingPass) must not touch the child: narrowing in particular would
+   // prune the child's columns against the *root* required-set (`{fieldName, type}`) and
+   // corrupt the very schema we report.
+   //
+   // Passes that perform query *validation* on the child override this to recurse, so that a query
+   // like `default.mutations(sequenceNames:={'noseq'}).schema()` is rejected with the same error it
+   // would produce without the trailing `schema()`. This is sound because every operator's
+   // `getOutputSchema()` is invariant under those passes (an unresolved node reports the same
+   // schema as its resolved form).
    operators::QueryNodePtr operator()(operators::SchemaNode& /*node*/) { return nullptr; }
 
    template <typename T>

@@ -17,13 +17,35 @@
 
 namespace silo::query_engine::operators {
 
+namespace {
+
+arrow::Result<arrow::ExecBatch> buildSchemaBatch(
+   const std::vector<schema::ColumnIdentifier>& input_schema
+) {
+   arrow::StringBuilder field_name_builder{};
+   arrow::StringBuilder type_builder{};
+   for (const auto& field : input_schema) {
+      ARROW_RETURN_NOT_OK(field_name_builder.Append(field.name));
+      ARROW_RETURN_NOT_OK(type_builder.Append(schema::columnTypeToString(field.type)));
+   }
+
+   arrow::Datum field_name_datum;
+   ARROW_ASSIGN_OR_RAISE(field_name_datum, field_name_builder.Finish());
+   arrow::Datum type_datum;
+   ARROW_ASSIGN_OR_RAISE(type_datum, type_builder.Finish());
+
+   return arrow::ExecBatch::Make({field_name_datum, type_datum});
+}
+
+}  // namespace
+
 SchemaNode::SchemaNode(QueryNodePtr child)
     : child(std::move(child)) {}
 
 std::vector<schema::ColumnIdentifier> SchemaNode::getOutputSchema() const {
    return {
-      {std::string{FIELD_NAME_COLUMN}, schema::ColumnType::STRING},
-      {std::string{TYPE_COLUMN}, schema::ColumnType::STRING},
+      {.name = std::string{FIELD_NAME_COLUMN}, .type = schema::ColumnType::STRING},
+      {.name = std::string{TYPE_COLUMN}, .type = schema::ColumnType::STRING},
    };
 }
 
@@ -41,22 +63,8 @@ arrow::Result<arrow::acero::ExecNode*> SchemaNode::addToExecPlan(
       }
       already_produced = true;
 
-      arrow::StringBuilder field_name_builder{};
-      arrow::StringBuilder type_builder{};
-      for (const auto& field : input_schema) {
-         ARROW_RETURN_NOT_OK(field_name_builder.Append(field.name));
-         ARROW_RETURN_NOT_OK(type_builder.Append(schema::columnTypeToString(field.type)));
-      }
-
-      arrow::Datum field_name_datum;
-      ARROW_ASSIGN_OR_RAISE(field_name_datum, field_name_builder.Finish());
-      arrow::Datum type_datum;
-      ARROW_ASSIGN_OR_RAISE(type_datum, type_builder.Finish());
-
-      ARROW_ASSIGN_OR_RAISE(
-         const std::optional<arrow::ExecBatch> result,
-         arrow::ExecBatch::Make({field_name_datum, type_datum})
-      );
+      ARROW_ASSIGN_OR_RAISE(const arrow::ExecBatch batch, buildSchemaBatch(input_schema));
+      const std::optional<arrow::ExecBatch> result = batch;
       return arrow::Future{result};
    };
 

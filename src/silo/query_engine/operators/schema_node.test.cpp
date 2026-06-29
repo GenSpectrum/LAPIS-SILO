@@ -212,6 +212,38 @@ const QueryTestScenario FILTER_AFTER_SCHEMA_ERROR_SCENARIO = {
       "and its result cannot be filtered. Apply filter() before schema() instead."
 };
 
+// schema() must validate its child the same way it would be validated without the trailing
+const QueryTestScenario SCHEMA_PROPAGATES_BAD_SEQUENCE_ERROR_SCENARIO = {
+   .name = "SCHEMA_PROPAGATES_BAD_SEQUENCE_ERROR",
+   .query = "default.aminoAcidMutations(minProportion:=0.1, sequenceNames:={noseq}).schema()",
+   .expected_error_message = "The database does not contain the AminoAcid sequence 'noseq'"
+};
+
+// mutations() must be applied to a table scan and schema() must not suppress that error.
+const QueryTestScenario SCHEMA_PROPAGATES_NON_SCAN_ERROR_SCENARIO = {
+   .name = "SCHEMA_PROPAGATES_NON_SCAN_ERROR",
+   .query = "default.project({age}).mutations(minProportion:=0.1).schema()",
+   .expected_error_message = "mutations() must be applied to a table scan"
+};
+
+// Positive control: a filter() before mutations() inside the child must still be pushed
+// down so that mutations() resolves against a bare table scan. schema() then reports the
+// resolved mutations schema correctly.
+const QueryTestScenario SCHEMA_AFTER_FILTERED_MUTATIONS_SCENARIO = {
+   .name = "SCHEMA_AFTER_FILTERED_MUTATIONS",
+   .query = "default.filter(country='CH').mutations(minProportion:=0.1).schema()",
+   .expected_query_result = nlohmann::json(
+      {{{"fieldName", "mutation"}, {"type", "STRING"}},
+       {{"fieldName", "mutationFrom"}, {"type", "STRING"}},
+       {{"fieldName", "mutationTo"}, {"type", "STRING"}},
+       {{"fieldName", "sequenceName"}, {"type", "STRING"}},
+       {{"fieldName", "position"}, {"type", "INT32"}},
+       {{"fieldName", "proportion"}, {"type", "FLOAT"}},
+       {{"fieldName", "coverage"}, {"type", "INT32"}},
+       {{"fieldName", "count"}, {"type", "INT32"}}}
+   )
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -230,6 +262,9 @@ QUERY_TEST(
       SCHEMA_OF_SCHEMA_SCENARIO,
       SCHEMA_IGNORES_DATA_SCENARIO,
       SCHEMA_EXTRA_ARG_ERROR_SCENARIO,
-      FILTER_AFTER_SCHEMA_ERROR_SCENARIO
+      FILTER_AFTER_SCHEMA_ERROR_SCENARIO,
+      SCHEMA_PROPAGATES_BAD_SEQUENCE_ERROR_SCENARIO,
+      SCHEMA_PROPAGATES_NON_SCAN_ERROR_SCENARIO,
+      SCHEMA_AFTER_FILTERED_MUTATIONS_SCENARIO
    )
 );
