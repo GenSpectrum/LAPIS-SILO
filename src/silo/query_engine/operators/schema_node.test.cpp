@@ -201,6 +201,27 @@ const QueryTestScenario SCHEMA_EXTRA_ARG_ERROR_SCENARIO = {
    .expected_error_message = "schema() received too many positional arguments"
 };
 
+// KNOWN LIMITATION: filter() after schema() is NOT applied.
+// Filtering is realized by pushing the predicate down into a data
+// source, and schema() is itself a source with nothing above it to push into, so the
+// FilterPushdownPass discards the predicate. The result is the FULL, unfiltered schema
+// rather than the rows matching `type='STRING'` (and notably not an error).
+const QueryTestScenario FILTER_AFTER_SCHEMA_IS_DROPPED_SCENARIO = {
+   .name = "FILTER_AFTER_SCHEMA_IS_DROPPED",
+   .query = "default.schema().filter(type='STRING')",
+   .expected_query_result = nlohmann::json(
+      {{{"fieldName", "age"}, {"type", "INT32"}},
+       {{"fieldName", "country"}, {"type", "STRING"}},
+       {{"fieldName", "date"}, {"type", "DATE32"}},
+       {{"fieldName", "gene1"}, {"type", "STRING"}},
+       {{"fieldName", "is_covered"}, {"type", "BOOL"}},
+       {{"fieldName", "primaryKey"}, {"type", "STRING"}},
+       {{"fieldName", "proportion"}, {"type", "FLOAT"}},
+       {{"fieldName", "segment1"}, {"type", "STRING"}},
+       {{"fieldName", "unaligned_segment1"}, {"type", "STRING"}}}
+   )
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -209,6 +230,7 @@ QUERY_TEST(
    ::testing::Values(
       TABLE_SCHEMA_SCENARIO,
       GROUP_BY_SCHEMA_SCENARIO,
+      CHAINING_SCHEMA_SCENARIO,
       MUTATIONS_SCHEMA_SCENARIO,
       AMINO_ACID_MUTATIONS_SCHEMA_SCENARIO,
       INSERTIONS_SCHEMA_SCENARIO,
@@ -218,6 +240,6 @@ QUERY_TEST(
       SCHEMA_OF_SCHEMA_SCENARIO,
       SCHEMA_IGNORES_DATA_SCENARIO,
       SCHEMA_EXTRA_ARG_ERROR_SCENARIO,
-      CHAINING_SCHEMA_SCENARIO
+      FILTER_AFTER_SCHEMA_IS_DROPPED_SCENARIO
    )
 );
