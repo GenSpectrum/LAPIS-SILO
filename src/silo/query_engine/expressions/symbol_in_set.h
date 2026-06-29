@@ -43,6 +43,13 @@ class SymbolInSet : public Expression {
                                    : Kind::SYMBOL_IN_SET_AMINO_ACID;
    [[nodiscard]] Kind kind() const override { return KIND; }
 
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override {
+      const auto col_type = std::is_same_v<SymbolType, Nucleotide>
+                               ? schema::ColumnType::NUCLEOTIDE_SEQUENCE
+                               : schema::ColumnType::AMINO_ACID_SEQUENCE;
+      return {{sequence_name.value_or(""), col_type}};
+   }
+
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
       AmbiguityMode mode

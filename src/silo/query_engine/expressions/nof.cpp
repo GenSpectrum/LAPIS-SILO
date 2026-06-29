@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "silo/common/string_utils.h"
 #include "silo/query_engine/expressions/and.h"
@@ -156,6 +157,10 @@ NOf::NOf(ExpressionVector&& children, int number_of_matchers, bool match_exactly
     : children(std::move(children)),
       number_of_matchers(number_of_matchers),
       match_exactly(match_exactly) {}
+
+std::vector<schema::ColumnIdentifier> NOf::freeIUs() const {
+   return collectFreeIUs(children);
+}
 
 std::string NOf::toString() const {
    std::string res;

@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -16,6 +17,10 @@ namespace silo::query_engine::expressions {
 PhyloChildFilter::PhyloChildFilter(std::string column_name, std::string internal_node)
     : column_name(std::move(column_name)),
       internal_node(std::move(internal_node)) {}
+
+std::vector<schema::ColumnIdentifier> PhyloChildFilter::freeIUs() const {
+   return {{column_name, schema::ColumnType::BOOL}};
+}
 
 std::string PhyloChildFilter::toString() const {
    return fmt::format("column {} phylo_child_of {}", column_name, internal_node);

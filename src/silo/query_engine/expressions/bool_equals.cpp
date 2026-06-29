@@ -1,6 +1,7 @@
 #include "silo/query_engine/expressions/bool_equals.h"
 
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -14,6 +15,10 @@ namespace silo::query_engine::expressions {
 BoolEquals::BoolEquals(std::string column_name, std::optional<bool> value)
     : column_name(std::move(column_name)),
       value(value) {}
+
+std::vector<schema::ColumnIdentifier> BoolEquals::freeIUs() const {
+   return {{column_name, schema::ColumnType::BOOL}};
+}
 
 std::string BoolEquals::toString() const {
    if (value.has_value()) {

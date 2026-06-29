@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include "silo/common/panic.h"
 #include "silo/query_engine/expressions/expression.h"
@@ -19,6 +20,10 @@ namespace silo::query_engine::expressions {
 StringEquals::StringEquals(std::string column_name, std::optional<std::string> value)
     : column_name(std::move(column_name)),
       value(std::move(value)) {}
+
+std::vector<schema::ColumnIdentifier> StringEquals::freeIUs() const {
+   return {{column_name, schema::ColumnType::BOOL}};
+}
 
 std::string StringEquals::toString() const {
    if (value.has_value()) {

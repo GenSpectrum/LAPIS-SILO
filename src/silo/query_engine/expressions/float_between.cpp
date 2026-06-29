@@ -3,6 +3,7 @@
 #include <cmath>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
@@ -24,6 +25,10 @@ FloatBetween::FloatBetween(
     : column_name(std::move(column_name)),
       from(from),
       to(to) {}
+
+std::vector<schema::ColumnIdentifier> FloatBetween::freeIUs() const {
+   return {{column_name, schema::ColumnType::BOOL}};
+}
 
 std::string FloatBetween::toString() const {
    const auto from_string = from.has_value() ? std::to_string(from.value()) : "unbounded";

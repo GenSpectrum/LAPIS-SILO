@@ -30,6 +30,8 @@ class LineageFilter : public Expression {
    static constexpr Kind KIND = Kind::LINEAGE_FILTER;
    [[nodiscard]] Kind kind() const override { return KIND; }
 
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
+
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
       AmbiguityMode mode

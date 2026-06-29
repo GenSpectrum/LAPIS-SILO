@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
@@ -27,6 +28,10 @@ IntBetween::IntBetween(
     : column_name(std::move(column_name)),
       from(from),
       to(to) {}
+
+std::vector<schema::ColumnIdentifier> IntBetween::freeIUs() const {
+   return {{column_name, schema::ColumnType::BOOL}};
+}
 
 std::string IntBetween::toString() const {
    const auto from_string = from.has_value() ? std::to_string(from.value()) : "unbounded";

@@ -35,6 +35,16 @@ class HasMutation : public Expression {
                                    : Kind::HAS_MUTATION_AMINO_ACID;
    [[nodiscard]] Kind kind() const override { return KIND; }
 
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override {
+      const auto col_type = std::is_same_v<SymbolType, Nucleotide>
+                               ? schema::ColumnType::NUCLEOTIDE_SEQUENCE
+                               : schema::ColumnType::AMINO_ACID_SEQUENCE;
+      // When sequence_name is nullopt the actual name is resolved from the schema at
+      // rewrite() time; we return an empty name as a safe placeholder (it cannot match
+      // any real column name in a MapNode assignment).
+      return {{sequence_name.value_or(""), col_type}};
+   }
+
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
       AmbiguityMode mode

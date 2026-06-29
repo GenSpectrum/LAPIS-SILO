@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -15,6 +16,10 @@ namespace silo::query_engine::expressions {
 
 Maybe::Maybe(std::unique_ptr<Expression> child)
     : child(std::move(child)) {}
+
+std::vector<schema::ColumnIdentifier> Maybe::freeIUs() const {
+   return child->freeIUs();
+}
 
 std::string Maybe::toString() const {
    return "Maybe (" + child->toString() + ")";
