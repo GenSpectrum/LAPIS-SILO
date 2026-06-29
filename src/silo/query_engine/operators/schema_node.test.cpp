@@ -33,7 +33,7 @@ nlohmann::json alignedSequence(const std::string& sequence) {
    return {{"sequence", sequence}, {"insertions", nlohmann::json::array()}};
 }
 
-const std::vector DATA = {
+const std::vector<nlohmann::json> DATA = {
    createData("id_0", "CH", "2024-01-01", 31, true, 0.5, alignedSequence("ACGT")),
    createData("id_1", "DE", "2024-01-02", 42, false, 0.75, alignedSequence("ACGA")),
 };
