@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -14,6 +15,10 @@ namespace silo::query_engine::expressions {
 
 Negation::Negation(std::unique_ptr<Expression> child)
     : child(std::move(child)) {}
+
+std::vector<schema::ColumnIdentifier> Negation::freeIUs() const {
+   return child->freeIUs();
+}
 
 std::string Negation::toString() const {
    return "!(" + child->toString() + ")";

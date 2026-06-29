@@ -75,7 +75,12 @@ class Expression {
    /// The columns ("identifiable units") this expression references and that an
    /// upstream node must therefore provide. Literals reference none; a column
    /// reference yields that column. Used by column narrowing to keep the child
-   /// columns a scalar expression depends on alive.
+   /// columns a scalar expression depends on alive, and by optimizer passes to
+   /// determine whether it is safe to reorder a node with respect to this expression.
+   ///
+   /// For scalar expressions (FieldRef, At, ZstdDecompressScalar) both `.name` and
+   /// `.type` of each returned identifier are accurate. For filter predicates, only
+   /// `.name` is reliable; `.type` is always `ColumnType::BOOL` (a placeholder).
    [[nodiscard]] virtual std::vector<schema::ColumnIdentifier> freeIUs() const { return {}; }
 
    [[nodiscard]] virtual std::unique_ptr<Expression> rewrite(
@@ -119,5 +124,18 @@ void appendVectorToVector(
 }
 
 using ExpressionVector = std::vector<std::unique_ptr<Expression>>;
+
+/// Union of freeIUs() across all expressions in a vector.
+[[nodiscard]] inline std::vector<schema::ColumnIdentifier> collectFreeIUs(
+   const ExpressionVector& expressions
+) {
+   std::vector<schema::ColumnIdentifier> result;
+   for (const auto& expr : expressions) {
+      for (const auto& col : expr->freeIUs()) {
+         result.push_back(col);
+      }
+   }
+   return result;
+}
 
 }  // namespace silo::query_engine::expressions

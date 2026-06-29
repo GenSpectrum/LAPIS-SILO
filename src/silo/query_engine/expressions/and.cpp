@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -27,6 +28,10 @@ using filter::operators::OperatorVector;
 
 And::And(ExpressionVector&& children)
     : children(std::move(children)) {}
+
+std::vector<schema::ColumnIdentifier> And::freeIUs() const {
+   return collectFreeIUs(children);
+}
 
 std::string And::toString() const {
    std::string res = "And(";

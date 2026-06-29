@@ -4,6 +4,7 @@
 #include <limits>
 #include <map>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -30,6 +31,10 @@ DateBetween::DateBetween(
     : column_name(std::move(column_name)),
       date_from(date_from),
       date_to(date_to) {}
+
+std::vector<schema::ColumnIdentifier> DateBetween::freeIUs() const {
+   return {{column_name, schema::ColumnType::BOOL}};
+}
 
 std::string DateBetween::toString() const {
    std::string res = "[Date-between ";

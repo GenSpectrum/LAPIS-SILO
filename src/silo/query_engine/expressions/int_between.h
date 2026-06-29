@@ -33,6 +33,8 @@ class IntBetween : public Expression {
    static constexpr Kind KIND = Kind::INT_BETWEEN;
    [[nodiscard]] Kind kind() const override { return KIND; }
 
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
+
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
       AmbiguityMode mode
