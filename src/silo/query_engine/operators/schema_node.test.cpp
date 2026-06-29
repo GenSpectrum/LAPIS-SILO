@@ -33,7 +33,7 @@ nlohmann::json alignedSequence(const std::string& sequence) {
    return {{"sequence", sequence}, {"insertions", nlohmann::json::array()}};
 }
 
-const std::vector<nlohmann::json> DATA = {
+const std::vector DATA = {
    createData("id_0", "CH", "2024-01-01", 31, true, 0.5, alignedSequence("ACGT")),
    createData("id_1", "DE", "2024-01-02", 42, false, 0.75, alignedSequence("ACGA")),
 };
@@ -70,9 +70,6 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-// schema() on a base table reports every output field of the scan. The queried
-// sequence column `segment1` is decompressed to STRING, so it is reported as
-// STRING rather than NUCLEOTIDE_SEQUENCE (documented limitation).
 const QueryTestScenario TABLE_SCHEMA_SCENARIO = {
    .name = "TABLE_SCHEMA",
    .query = "default.schema()",
@@ -89,8 +86,6 @@ const QueryTestScenario TABLE_SCHEMA_SCENARIO = {
    )
 };
 
-// schema() after a pipeline reports the intermediate result's schema. The
-// aggregate count column is INT64.
 const QueryTestScenario GROUP_BY_SCHEMA_SCENARIO = {
    .name = "GROUP_BY_SCHEMA",
    .query = "default.filter(country='CH').groupBy({count := count()}, {age}).schema()",
@@ -99,8 +94,6 @@ const QueryTestScenario GROUP_BY_SCHEMA_SCENARIO = {
    )
 };
 
-// schema() output is itself a regular 2-column relation, so pipeline operators
-// can be chained after it.
 const QueryTestScenario CHAINING_SCHEMA_SCENARIO = {
    .name = "CHAINING_SCHEMA",
    .query =
@@ -108,9 +101,6 @@ const QueryTestScenario CHAINING_SCHEMA_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"type", "INT32"}}, {{"type", "INT64"}}})
 };
 
-// schema() on a mutations result reports the mutations default fields. The
-// mutations `count` is INT32 (unlike the INT64 aggregate count). The queried
-// sequence appears only via the derived columns, no NUCLEOTIDE_SEQUENCE column.
 const QueryTestScenario MUTATIONS_SCHEMA_SCENARIO = {
    .name = "MUTATIONS_SCHEMA",
    .query = "default.mutations(minProportion:=0.1).schema()",
