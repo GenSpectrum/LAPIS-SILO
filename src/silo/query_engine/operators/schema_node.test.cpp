@@ -116,6 +116,57 @@ const QueryTestScenario MUTATIONS_SCHEMA_SCENARIO = {
    )
 };
 
+const QueryTestScenario INSERTIONS_SCHEMA_SCENARIO = {
+   .name = "INSERTIONS_SCHEMA",
+   .query = "default.insertions().schema()",
+   .expected_query_result = nlohmann::json(
+      {{{"fieldName", "position"}, {"type", "INT32"}},
+       {{"fieldName", "insertedSymbols"}, {"type", "STRING"}},
+       {{"fieldName", "sequenceName"}, {"type", "STRING"}},
+       {{"fieldName", "insertion"}, {"type", "STRING"}},
+       {{"fieldName", "count"}, {"type", "INT32"}}}
+   )
+};
+
+const QueryTestScenario SCHEMA_AFTER_MAP_SCENARIO = {
+   .name = "SCHEMA_AFTER_MAP",
+   .query = "default.map({tag := 42, label := 'x'}).project({primaryKey, tag, label}).schema()",
+   .expected_query_result = nlohmann::json(
+      {{{"fieldName", "primaryKey"}, {"type", "STRING"}},
+       {{"fieldName", "tag"}, {"type", "INT64"}},
+       {{"fieldName", "label"}, {"type", "STRING"}}}
+   )
+};
+
+// project() before schema() controls field selection and order
+const QueryTestScenario SCHEMA_AFTER_PROJECT_ORDER_SCENARIO = {
+   .name = "SCHEMA_AFTER_PROJECT_ORDER",
+   .query = "default.project({date, age, primaryKey}).schema()",
+   .expected_query_result = nlohmann::json(
+      {{{"fieldName", "date"}, {"type", "DATE32"}},
+       {{"fieldName", "age"}, {"type", "INT32"}},
+       {{"fieldName", "primaryKey"}, {"type", "STRING"}}}
+   )
+};
+
+const QueryTestScenario MAP_AFTER_SCHEMA_SCENARIO = {
+   .name = "MAP_AFTER_SCHEMA",
+   .query = "default.groupBy({count := count()}, {age}).schema().map({kind := 'field'})",
+   .expected_query_result = nlohmann::json(
+      {{{"fieldName", "age"}, {"type", "INT32"}, {"kind", "field"}},
+       {{"fieldName", "count"}, {"type", "INT64"}, {"kind", "field"}}}
+   )
+};
+
+const QueryTestScenario SCHEMA_OF_SCHEMA_SCENARIO = {
+   .name = "SCHEMA_OF_SCHEMA",
+   .query = "default.schema().schema()",
+   .expected_query_result = nlohmann::json(
+      {{{"fieldName", "fieldName"}, {"type", "STRING"}}, {{"fieldName", "type"}, {"type", "STRING"}}
+      }
+   )
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -125,6 +176,11 @@ QUERY_TEST(
       TABLE_SCHEMA_SCENARIO,
       GROUP_BY_SCHEMA_SCENARIO,
       MUTATIONS_SCHEMA_SCENARIO,
+      INSERTIONS_SCHEMA_SCENARIO,
+      SCHEMA_AFTER_MAP_SCENARIO,
+      SCHEMA_AFTER_PROJECT_ORDER_SCENARIO,
+      MAP_AFTER_SCHEMA_SCENARIO,
+      SCHEMA_OF_SCHEMA_SCENARIO,
       CHAINING_SCHEMA_SCENARIO
    )
 );
