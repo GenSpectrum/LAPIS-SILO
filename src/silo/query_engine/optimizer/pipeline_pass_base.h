@@ -125,6 +125,15 @@ class PipelinePassBase {
       return nullptr;
    }
 
+   // `SchemaNode` deliberately does NOT propagate into its child. The child plan is
+   // never executed; only `child->getOutputSchema()` is inspected at exec-plan-build
+   // time. Optimization passes (column narrowing, filter pushdown, node resolution)
+   // exist to make execution correct/fast and must not run on a subtree that is never
+   // executed. This is correct only because every operator's `getOutputSchema()` is
+   // invariant under those passes (e.g. an unresolved node reports the same schema as
+   // its resolved form). If that ever stops holding, this must resolve the child first.
+   operators::QueryNodePtr operator()(operators::SchemaNode& /*node*/) { return nullptr; }
+
    template <typename T>
    operators::QueryNodePtr operator()(T& /*node*/) {
       return nullptr;

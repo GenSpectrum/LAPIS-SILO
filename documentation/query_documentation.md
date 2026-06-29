@@ -386,6 +386,10 @@ so schema-preserving and schema-defining operators (such as `project` and `order
 When a sequence column is read into a pipeline it is decompressed to a string before `schema()` observes it,
 so nucleotide and amino acid sequences cannot be distinguished from ordinary strings at this point.
 
+**Limitation:** `schema()` is a result-producing source, so `filter(...)` cannot be applied to its output.
+Filtering is realized by pushing the predicate down into the underlying data source,
+and there is no data source above `schema()` to push into.
+
 ---
 
 ## Scalar Functions

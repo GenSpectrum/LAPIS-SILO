@@ -167,6 +167,40 @@ const QueryTestScenario SCHEMA_OF_SCHEMA_SCENARIO = {
    )
 };
 
+// Amino acid mutations resolve through a different node template than nucleotide mutations
+const QueryTestScenario AMINO_ACID_MUTATIONS_SCHEMA_SCENARIO = {
+   .name = "AMINO_ACID_MUTATIONS_SCHEMA",
+   .query = "default.aminoAcidMutations(minProportion:=0.1).schema()",
+   .expected_query_result = nlohmann::json(
+      {{{"fieldName", "mutation"}, {"type", "STRING"}},
+       {{"fieldName", "mutationFrom"}, {"type", "STRING"}},
+       {{"fieldName", "mutationTo"}, {"type", "STRING"}},
+       {{"fieldName", "sequenceName"}, {"type", "STRING"}},
+       {{"fieldName", "position"}, {"type", "INT32"}},
+       {{"fieldName", "proportion"}, {"type", "FLOAT"}},
+       {{"fieldName", "coverage"}, {"type", "INT32"}},
+       {{"fieldName", "count"}, {"type", "INT32"}}}
+   )
+};
+
+// schema() inspects only the declared output schema, never the data: a child that
+// filters out every row still reports the full table schema (not zero rows).
+const QueryTestScenario SCHEMA_IGNORES_DATA_SCENARIO = {
+   .name = "SCHEMA_IGNORES_DATA",
+   .query = "default.filter(country='does-not-exist').project({primaryKey, age}).schema()",
+   .expected_query_result = nlohmann::json(
+      {{{"fieldName", "primaryKey"}, {"type", "STRING"}}, {{"fieldName", "age"}, {"type", "INT32"}}}
+   )
+};
+
+// schema() takes no arguments beyond its input; passing an extra positional argument
+// must be rejected at planning time.
+const QueryTestScenario SCHEMA_EXTRA_ARG_ERROR_SCENARIO = {
+   .name = "SCHEMA_EXTRA_ARG_ERROR",
+   .query = "default.schema(age)",
+   .expected_error_message = "schema() received too many positional arguments"
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -176,11 +210,14 @@ QUERY_TEST(
       TABLE_SCHEMA_SCENARIO,
       GROUP_BY_SCHEMA_SCENARIO,
       MUTATIONS_SCHEMA_SCENARIO,
+      AMINO_ACID_MUTATIONS_SCHEMA_SCENARIO,
       INSERTIONS_SCHEMA_SCENARIO,
       SCHEMA_AFTER_MAP_SCENARIO,
       SCHEMA_AFTER_PROJECT_ORDER_SCENARIO,
       MAP_AFTER_SCHEMA_SCENARIO,
       SCHEMA_OF_SCHEMA_SCENARIO,
+      SCHEMA_IGNORES_DATA_SCENARIO,
+      SCHEMA_EXTRA_ARG_ERROR_SCENARIO,
       CHAINING_SCHEMA_SCENARIO
    )
 );

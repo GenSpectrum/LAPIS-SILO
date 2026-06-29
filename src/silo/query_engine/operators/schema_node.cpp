@@ -45,8 +45,7 @@ arrow::Result<arrow::acero::ExecNode*> SchemaNode::addToExecPlan(
       arrow::StringBuilder type_builder{};
       for (const auto& field : input_schema) {
          ARROW_RETURN_NOT_OK(field_name_builder.Append(field.name));
-         ARROW_RETURN_NOT_OK(type_builder.Append(std::string{schema::columnTypeToString(field.type)}
-         ));
+         ARROW_RETURN_NOT_OK(type_builder.Append(schema::columnTypeToString(field.type)));
       }
 
       arrow::Datum field_name_datum;
