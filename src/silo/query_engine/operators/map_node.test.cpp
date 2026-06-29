@@ -193,10 +193,10 @@ const QueryTestScenario DECOMPRESS_WITH_USER_MAP_SCENARIO = {
    )
 };
 
-// The (zstd-compressed) sequence column is selected together with a `limit`. The
-// MapPullupPass moves the decompression MapNode above the FetchNode, so only the
-// retained row is decompressed. The result must still be correct: ordered by
-// primaryKey, the first row is id_0 with sequence "ACGT".
+// Regression guard: selecting the (zstd-compressed) sequence column together with a
+// `limit` must still return the correct, order-stable result. (For this particular
+// query shape the decompression MapNode is not adjacent to the FetchNode, so the pass
+// does not rewrite it; correctness is the property under test.)
 const QueryTestScenario DECOMPRESS_SEQUENCE_WITH_LIMIT_SCENARIO = {
    .name = "DECOMPRESS_SEQUENCE_WITH_LIMIT",
    .query = "default.project({primaryKey, unaligned_segment1}).orderBy({primaryKey}).limit(1)",
