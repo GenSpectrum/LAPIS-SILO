@@ -358,59 +358,33 @@ unionAll(
 
 ### `schema()`
 
-Reports the output schema of whatever it is applied to — a base table or any
-intermediate query result. It emits one row per output field with two columns:
-`fieldName` and `type`, where `type` is the field's column type as a string.
-
-Schema of a base table:
+Describes the output schema of whatever it is applied to — a table or the result of any pipeline.
+It does not read or return any data; it only reports the fields that the input would produce.
 
 ```
 default.schema()
-```
-
-```
-{"fieldName":"primaryKey","type":"STRING"}
-{"fieldName":"country","type":"STRING"}
-{"fieldName":"date","type":"DATE32"}
-{"fieldName":"age","type":"INT32"}
-```
-
-Schema of an intermediate result (the same operator, after a pipeline). The
-aggregate `count` is `INT64`:
-
-```
 default.filter(country='CH').groupBy({count:=count()}, {age}).schema()
-```
-
-```
-{"fieldName":"count","type":"INT64"}
-{"fieldName":"age","type":"INT32"}
-```
-
-For `mutations()` the `count` field is `INT32`:
-
-```
 default.mutations(minProportion:=0.1).schema()
 ```
 
-```
-{"fieldName":"mutation","type":"STRING"}
-{"fieldName":"mutationFrom","type":"STRING"}
-{"fieldName":"mutationTo","type":"STRING"}
-{"fieldName":"sequenceName","type":"STRING"}
-{"fieldName":"position","type":"INT32"}
-{"fieldName":"proportion","type":"FLOAT"}
-{"fieldName":"coverage","type":"INT32"}
-{"fieldName":"count","type":"INT32"}
+**Output:** one row per field of the described result, with two columns:
+
+| Field       | Type   | Description                                  |
+|-------------|--------|----------------------------------------------|
+| `fieldName` | string | Name of the field                            |
+| `type`      | string | Type of the field (e.g. `STRING`, `INT32`, `INT64`, `DATE32`, `BOOL`, `FLOAT`, `INDEXED_STRING`) |
+
+```json
+{"fieldName": "age", "type": "INT32"}
+{"fieldName": "count", "type": "INT64"}
 ```
 
-**Limitation:** sequence columns are reported as `STRING`. When a
-nucleotide/amino-acid sequence column is read into a pipeline it is decompressed
-to a plain string, so `schema()` sees `STRING` rather than `NUCLEOTIDE_SEQUENCE`
-or `AMINO_ACID_SEQUENCE`.
+`schema()` produces an ordinary two-column relation,
+so schema-preserving and schema-defining operators (such as `project` and `orderBy`) can be chained after it.
 
-**Output:** one row per field of the described schema, with columns `fieldName`
-and `type` (both `STRING`).
+**Limitation:** sequence columns are reported with type `STRING`.
+When a sequence column is read into a pipeline it is decompressed to a string before `schema()` observes it,
+so nucleotide and amino acid sequences cannot be distinguished from ordinary strings at this point.
 
 ---
 
