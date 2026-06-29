@@ -20,8 +20,7 @@ namespace silo::query_engine::optimizer {
 /// P(M(child))  →  M(P(child))
 /// ```
 ///
-/// Both the parent and the MapNode preserve row count and ordering, so the swap is
-/// semantics-preserving. The main win is pulling a MapNode above a FetchNode (limit/offset)
+/// The main win is pulling a MapNode above a FetchNode (limit/offset)
 /// so a `limit` no longer forces every row to be decompressed and then discarded.
 ///
 /// Scope (this pass): pull through FetchNode only, which references no columns and is

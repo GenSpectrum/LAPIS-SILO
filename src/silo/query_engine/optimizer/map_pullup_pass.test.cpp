@@ -5,7 +5,6 @@
 #include <optional>
 #include <vector>
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "silo/query_engine/expressions/literal.h"
