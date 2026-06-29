@@ -201,25 +201,15 @@ const QueryTestScenario SCHEMA_EXTRA_ARG_ERROR_SCENARIO = {
    .expected_error_message = "schema() received too many positional arguments"
 };
 
-// KNOWN LIMITATION: filter() after schema() is NOT applied.
-// Filtering is realized by pushing the predicate down into a data
-// source, and schema() is itself a source with nothing above it to push into, so the
-// FilterPushdownPass discards the predicate. The result is the FULL, unfiltered schema
-// rather than the rows matching `type='STRING'` (and notably not an error).
-const QueryTestScenario FILTER_AFTER_SCHEMA_IS_DROPPED_SCENARIO = {
-   .name = "FILTER_AFTER_SCHEMA_IS_DROPPED",
+// schema() is a source operator: there is no underlying data source above it for a
+// predicate to be pushed into, so filter() cannot be realized on its output. The query
+// is rejected at planning time rather than silently returning the unfiltered schema.
+const QueryTestScenario FILTER_AFTER_SCHEMA_ERROR_SCENARIO = {
+   .name = "FILTER_AFTER_SCHEMA_ERROR",
    .query = "default.schema().filter(type='STRING')",
-   .expected_query_result = nlohmann::json(
-      {{{"fieldName", "age"}, {"type", "INT32"}},
-       {{"fieldName", "country"}, {"type", "STRING"}},
-       {{"fieldName", "date"}, {"type", "DATE32"}},
-       {{"fieldName", "gene1"}, {"type", "STRING"}},
-       {{"fieldName", "is_covered"}, {"type", "BOOL"}},
-       {{"fieldName", "primaryKey"}, {"type", "STRING"}},
-       {{"fieldName", "proportion"}, {"type", "FLOAT"}},
-       {{"fieldName", "segment1"}, {"type", "STRING"}},
-       {{"fieldName", "unaligned_segment1"}, {"type", "STRING"}}}
-   )
+   .expected_error_message =
+      "filter() cannot be applied to the output of schema(); schema() is a source operator "
+      "and its result cannot be filtered. Apply filter() before schema() instead."
 };
 
 }  // namespace
@@ -240,6 +230,6 @@ QUERY_TEST(
       SCHEMA_OF_SCHEMA_SCENARIO,
       SCHEMA_IGNORES_DATA_SCENARIO,
       SCHEMA_EXTRA_ARG_ERROR_SCENARIO,
-      FILTER_AFTER_SCHEMA_IS_DROPPED_SCENARIO
+      FILTER_AFTER_SCHEMA_ERROR_SCENARIO
    )
 );
