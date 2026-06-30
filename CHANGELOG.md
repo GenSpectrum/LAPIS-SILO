@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.12.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.11.3...v0.12.0) (2026-06-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* **preprocessing:** remove deprecated preprocessing config values `intermediateResultsDirectory`, `preprocessingDatabaseLocation`, `duckdbMemoryLimitInG` and database config values `dateToSortBy`, `partitionBy`
+* **silo:** use date32 type for dates instead of converting to string
+* **silo:** change query interface to saneql
+
+### Features
+
+* add `unionAll` operator to SaneQL queries ([#1305](https://github.com/GenSpectrum/LAPIS-SILO/issues/1305)) ([53da65f](https://github.com/GenSpectrum/LAPIS-SILO/commit/53da65fa816e3c58029c98dff4b2ad8ccf0f1c35))
+* **preprocessing:** remove deprecated preprocessing config and database config values ([#1287](https://github.com/GenSpectrum/LAPIS-SILO/issues/1287)) ([fbe4014](https://github.com/GenSpectrum/LAPIS-SILO/commit/fbe4014000651f67f86cb42dd462fb59c40f4b4d))
+* **silo:** add a dedicated filter-pushdown-pass and move node resolution to own file ([2da2f48](https://github.com/GenSpectrum/LAPIS-SILO/commit/2da2f483f2fdb18f881f968c7ee61aca2019f855))
+* **silo:** add a references to input fields in `.map(...)` expressions ([2ce79f2](https://github.com/GenSpectrum/LAPIS-SILO/commit/2ce79f20ae45065308f6d1a0297875325784ea01))
+* **silo:** add an at expression ([82f98b4](https://github.com/GenSpectrum/LAPIS-SILO/commit/82f98b4353f3bec217848f8eb72d0631693ee9ca))
+* **silo:** add column narrowing to query planner ([90071f3](https://github.com/GenSpectrum/LAPIS-SILO/commit/90071f384750da77ba16576b36c81400ffa5713a))
+* **silo:** change query interface to saneql ([daba3ea](https://github.com/GenSpectrum/LAPIS-SILO/commit/daba3eaf903f7b4bab56fd805c4619a984a73d8b))
+* **silo:** log the query plan and optimization steps ([50e3e17](https://github.com/GenSpectrum/LAPIS-SILO/commit/50e3e17d703be2ff7e1867699437970840972269))
+* **silo:** organize string columns in immutable chunks ([b8922e4](https://github.com/GenSpectrum/LAPIS-SILO/commit/b8922e49f121146aa1925fd8a4a5c5550eedb17b))
+* **silo:** use date32 type for dates instead of converting to string ([f907787](https://github.com/GenSpectrum/LAPIS-SILO/commit/f907787e86a39520d21ade243abdb68613a0f694))
+
+
+### Bug Fixes
+
+* **preprocessing:** ignore bracketed comments in Newick tree files ([#1268](https://github.com/GenSpectrum/LAPIS-SILO/issues/1268)) ([9d0e323](https://github.com/GenSpectrum/LAPIS-SILO/commit/9d0e323a14ed8b3bb708fe23a9cabc39c3327358))
+* **silo:** disambiguate unary/binary minus in SaneQL ([#1266](https://github.com/GenSpectrum/LAPIS-SILO/issues/1266)) ([e1739ff](https://github.com/GenSpectrum/LAPIS-SILO/commit/e1739ff765c5a3922af0357c92602887d32b81c4))
+
 ## [0.11.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.11.2...v0.11.3) (2026-05-18)
 
 
