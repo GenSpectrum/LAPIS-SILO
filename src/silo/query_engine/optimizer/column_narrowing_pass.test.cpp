@@ -451,9 +451,10 @@ TEST(ColumnNarrowingPassFilter, keepsMapAssignmentRequiredByFilterPredicate) {
    // The MapNode must still exist and its decompression assignment must not have been
    // pruned, because the FilterNode above it references the `seq` column it produces.
    const auto* map = dynamic_cast<operators::MapNode*>(filter->child.get());
-   ASSERT_NE(map, nullptr)
-      << "ColumnNarrowingPass incorrectly pruned the MapNode whose assignment is "
-         "referenced by the FilterNode predicate";
+   ASSERT_NE(
+      map, nullptr
+   ) << "ColumnNarrowingPass incorrectly pruned the MapNode whose assignment is "
+        "referenced by the FilterNode predicate";
    EXPECT_FALSE(map->assignments.empty())
       << "ColumnNarrowingPass incorrectly pruned the `seq` decompression assignment "
          "needed by the FilterNode predicate (bug: filter predicate columns not added "

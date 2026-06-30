@@ -87,6 +87,9 @@ TEST(FilterPushdownPass, eliminatesStackedFilterNodesAboveTableScan) {
 
 // --- MapNode(FilterNode(TableScanNode)) ---
 
+// The filter references no column the MapNode produces (the Map adds an independent
+// column `x := 3`), so the filter is independent and is pushed through the Map into the
+// TableScan.
 TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
    auto table = makeTable();
    auto scan = std::make_unique<operators::TableScanNode>(
@@ -195,16 +198,15 @@ TEST(FilterPushdownPass, doesNotPushFilterThroughMapWhenFilterReferencesProduced
 
    auto result = FilterPushdownPass::run(std::move(filter_node));
 
-   // The Map-produced column `seq` is referenced by the filter predicate, so the filter
-   // must NOT be pushed through the MapNode. The FilterNode must survive above the Map.
-   // Currently FAILS: FilterPushdownPass pushes all filters past MapNodes unconditionally,
-   // sinking seq='ACGT' into the TableScan where `seq` is still the compressed column.
+   // The Map-produced column `seq` is referenced by the filter predicate (a StringEquals on
+   // the decompressed STRING), so the filter must NOT be pushed through the MapNode. The
+   // FilterNode must survive above the Map.
    ASSERT_EQ(result->kind(), operators::NodeKind::FILTER)
       << "FilterPushdownPass incorrectly pushed a filter referencing a Map-produced column "
-         "below the MapNode (bug: filter now runs against the compressed column, not the "
+         "below the MapNode (bug: filter would run against the compressed column, not the "
          "decompressed one)";
-   // Additionally: the scan must NOT have `seq = 'ACGT'` in its filter (it was incorrectly
-   // pushed there by the current buggy implementation).
+   // Additionally: the scan must NOT have `seq = 'ACGT'` in its filter (it must not be
+   // pushed past the MapNode).
    const auto* filter_result = dynamic_cast<operators::FilterNode*>(result.get());
    ASSERT_NE(filter_result, nullptr);
    ASSERT_EQ(filter_result->child->kind(), operators::NodeKind::MAP);
@@ -215,6 +217,76 @@ TEST(FilterPushdownPass, doesNotPushFilterThroughMapWhenFilterReferencesProduced
    ASSERT_NE(scan, nullptr);
    EXPECT_EQ(scan->filter->toString(), "And(true)")
       << "seq='ACGT' was incorrectly pushed into the TableScan past the MapNode";
+}
+
+// Helper: a MapNode that decompresses `seq` (sequence → STRING, same name).
+operators::QueryNodePtr makeDecompressMapOverScan() {
+   using silo::schema::ColumnIdentifier;
+   using silo::schema::ColumnType;
+   const ColumnIdentifier compressed_col{.name = "seq", .type = ColumnType::ZSTD_COMPRESSED_STRING};
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = {.name = "seq", .type = ColumnType::STRING},
+       .expression =
+          std::make_unique<expressions::ZstdDecompressScalar>(compressed_col, "dictionary")}
+   );
+   return std::make_unique<operators::MapNode>(makeScan(), std::move(assignments));
+}
+
+// Two stacked filters above a decompression Map: one references the produced column `seq`
+// (dependent → must stay above the Map), the other references an unrelated column (`country`,
+// independent → must be pushed through into the scan). The pass must SPLIT them.
+TEST(FilterPushdownPass, splitsFiltersKeepingProducedColumnFilterAboveMap) {
+   auto map_node = makeDecompressMapOverScan();
+   auto inner_filter = std::make_unique<operators::FilterNode>(
+      std::move(map_node),
+      std::make_unique<expressions::StringEquals>("country", std::optional<std::string>{"CH"})
+   );
+   auto outer_filter = std::make_unique<operators::FilterNode>(
+      std::move(inner_filter),
+      std::make_unique<expressions::StringEquals>("seq", std::optional<std::string>{"ACGT"})
+   );
+
+   auto result = FilterPushdownPass::run(std::move(outer_filter));
+
+   // Result: Filter(seq='ACGT') → Map(seq) → Scan{filter includes country='CH'}.
+   ASSERT_EQ(result->kind(), operators::NodeKind::FILTER);
+   const auto* filter = dynamic_cast<operators::FilterNode*>(result.get());
+   ASSERT_NE(filter, nullptr);
+   EXPECT_EQ(filter->filter->toString(), "seq = 'ACGT'");
+   ASSERT_EQ(filter->child->kind(), operators::NodeKind::MAP);
+   const auto* map = dynamic_cast<operators::MapNode*>(filter->child.get());
+   ASSERT_NE(map, nullptr);
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
+   const auto* scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
+   ASSERT_NE(scan, nullptr);
+   EXPECT_EQ(scan->filter->toString(), "And(country = 'CH' & true)");
+}
+
+TEST(FilterPushdownPass, mergesMultipleDependentFiltersAboveMap) {
+   auto map_node = makeDecompressMapOverScan();
+
+   auto inner_filter = std::make_unique<operators::FilterNode>(
+      std::move(map_node),
+      std::make_unique<expressions::StringEquals>("seq", std::optional<std::string>{"ACGT"})
+   );
+   auto outer_filter = std::make_unique<operators::FilterNode>(
+      std::move(inner_filter),
+      std::make_unique<expressions::StringEquals>("seq", std::optional<std::string>{"TTTT"})
+   );
+
+   auto result = FilterPushdownPass::run(std::move(outer_filter));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::FILTER);
+   const auto* filter = dynamic_cast<operators::FilterNode*>(result.get());
+   ASSERT_NE(filter, nullptr);
+   EXPECT_EQ(filter->filter->toString(), "And(seq = 'TTTT' & seq = 'ACGT')");
+   ASSERT_EQ(filter->child->kind(), operators::NodeKind::MAP);
+   const auto* map = dynamic_cast<operators::MapNode*>(filter->child.get());
+   ASSERT_NE(map, nullptr);
+   const auto* scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
+   ASSERT_NE(scan, nullptr);
+   EXPECT_EQ(scan->filter->toString(), "And(true)");
 }
 
 }  // namespace
