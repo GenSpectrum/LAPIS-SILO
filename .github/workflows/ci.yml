@@ -36,7 +36,7 @@ jobs:
           ${{ toJson(steps.release.outputs) }}
           EOF
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: >-
           github.event_name == 'push'
           && steps.release.outputs.prs_created == 'true'
@@ -70,7 +70,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_JSON: ${{ steps.release.outputs.pr }}
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: >-
           github.event_name == 'push'
           && steps.release.outputs.release_created == 'true'
