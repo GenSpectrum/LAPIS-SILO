@@ -11,6 +11,7 @@ template <typename SymbolType>
 class UnresolvedInsertionsNode;
 class UnresolvedMostRecentCommonAncestorNode;
 class UnresolvedPhyloSubtreeNode;
+class SchemaNode;
 }  // namespace silo::query_engine::operators
 
 namespace silo::query_engine::optimizer {
@@ -32,6 +33,7 @@ class NodeResolutionPass : public PipelinePassBase<NodeResolutionPass> {
    operators::QueryNodePtr operator()(operators::UnresolvedInsertionsNode<SymbolType>& node);
    operators::QueryNodePtr operator()(operators::UnresolvedMostRecentCommonAncestorNode& node);
    operators::QueryNodePtr operator()(operators::UnresolvedPhyloSubtreeNode& node);
+   operators::QueryNodePtr operator()(operators::SchemaNode& node);
 };
 
 }  // namespace silo::query_engine::optimizer

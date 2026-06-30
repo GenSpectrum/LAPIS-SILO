@@ -11,6 +11,7 @@
 #include "silo/query_engine/operators/most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/mutations_node.h"
 #include "silo/query_engine/operators/phylo_subtree_node.h"
+#include "silo/query_engine/operators/schema_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
@@ -161,6 +162,13 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
       std::move(node.column_name),
       node.print_nodes_not_in_tree
    );
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr NodeResolutionPass::operator()(operators::SchemaNode& node) {
+   // Resolution does not change a node's output schema, so the reported schema is unaffected.
+   propagateToNode(node.child);
+   return nullptr;
 }
 
 template operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedMutationsNode<

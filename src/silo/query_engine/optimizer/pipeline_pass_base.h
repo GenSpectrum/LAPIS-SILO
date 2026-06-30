@@ -10,6 +10,7 @@
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/query_node.h"
+#include "silo/query_engine/operators/schema_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
@@ -123,6 +124,19 @@ class PipelinePassBase {
       propagateToNode(node.right);
       return nullptr;
    }
+
+   // Default for `SchemaNode`: do NOT propagate into its child. `schema()` never executes
+   // the child plan; it only inspects `child->getOutputSchema()`. Pure optimization passes
+   // (e.g. ColumnNarrowingPass) must not touch the child: narrowing in particular would
+   // prune the child's columns against the *root* required-set (`{fieldName, type}`) and
+   // corrupt the very schema we report.
+   //
+   // Passes that perform query *validation* on the child override this to recurse, so that a query
+   // like `default.mutations(sequenceNames:={'noseq'}).schema()` is rejected with the same error it
+   // would produce without the trailing `schema()`. This is sound because every operator's
+   // `getOutputSchema()` is invariant under those passes (an unresolved node reports the same
+   // schema as its resolved form).
+   operators::QueryNodePtr operator()(operators::SchemaNode& /*node*/) { return nullptr; }
 
    template <typename T>
    operators::QueryNodePtr operator()(T& /*node*/) {

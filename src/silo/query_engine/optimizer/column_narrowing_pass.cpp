@@ -7,6 +7,7 @@
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
+#include "silo/query_engine/operators/schema_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
 
@@ -154,6 +155,19 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::OrderByNode& 
       }
    }
    propagateToNode(node.child);
+   return nullptr;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::SchemaNode& node) {
+   // schema() reports its child's full output schema, so NO column may be pruned from the
+   // child (unlike the base default, which would prune against this pass's `required` set —
+   // seeded from the root, i.e. schema()'s own {fieldName, type} columns — and corrupt the
+   // reported schema). We still recurse with a fresh pass seeded with the child's complete
+   // output schema as "required": this keeps every column while still allowing the pass's
+   // structural simplifications to run.
+   ColumnNarrowingPass child_pass{node.child->getOutputSchema()};
+   child_pass.propagateToNode(node.child);
    return nullptr;
 }
 
