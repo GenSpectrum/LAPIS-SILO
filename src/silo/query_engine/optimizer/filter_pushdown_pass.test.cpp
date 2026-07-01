@@ -174,8 +174,6 @@ TEST(FilterPushdownPass, pushesFilterIntoBothUnionAllBranches) {
 // FilterPushdownPass must NOT push this predicate below the Map: doing so would move
 // the predicate to the TableScan where `seq` is still the raw compressed column, making
 // the filter semantically wrong.
-//
-// This test is expected to FAIL until FilterPushdownPass is guarded with freeIUs().
 TEST(FilterPushdownPass, doesNotPushFilterThroughMapWhenFilterReferencesProducedColumn) {
    using silo::schema::ColumnIdentifier;
    using silo::schema::ColumnType;

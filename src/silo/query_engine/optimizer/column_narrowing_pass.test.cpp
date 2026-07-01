@@ -412,10 +412,8 @@ TEST(ColumnNarrowingPassFilter, propagatesRequiredThroughFilter) {
 //
 // The `seq` decompression assignment is NOT required by the Project, so narrowing
 // would naively prune it. But the FilterNode's predicate references `seq`, so the
-// assignment MUST be kept alive.
-//
-// Currently FAILS: ColumnNarrowingPass has no FilterNode override and does not add
-// predicate column references to `required` before descending.
+// assignment MUST be kept alive (ColumnNarrowingPass's FilterNode override adds the
+// predicate's referenced columns to `required` before descending into the Map).
 TEST(ColumnNarrowingPassFilter, keepsMapAssignmentRequiredByFilterPredicate) {
    const auto seq_compressed = colWithType("seq", ColumnType::ZSTD_COMPRESSED_STRING);
    const auto id_col = col("id");
