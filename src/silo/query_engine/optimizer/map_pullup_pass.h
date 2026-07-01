@@ -20,14 +20,8 @@ namespace silo::query_engine::optimizer {
 /// P(M(child))  →  M(P(child))
 /// ```
 ///
-/// The main win is pulling a MapNode above a FetchNode (limit/offset)
+/// One goal is pulling a MapNode above a FetchNode (limit/offset)
 /// so a `limit` no longer forces every row to be decompressed and then discarded.
-///
-/// Scope (this pass): pull through FetchNode only, which references no columns and is
-/// therefore always safe. Pulling through FilterNode requires knowing the columns a filter
-/// predicate references (Expression::freeIUs), which most predicate types do not yet report;
-/// that, along with Project/OrderBy/Aggregate, is a follow-up (see #1336). The pass blocks
-/// (leaves the MapNode in place) at every other node and at the root.
 class MapPullupPass : public PipelinePassBase<MapPullupPass> {
   public:
    using PipelinePassBase<MapPullupPass>::operator();

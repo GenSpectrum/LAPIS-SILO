@@ -194,14 +194,21 @@ const QueryTestScenario DECOMPRESS_WITH_USER_MAP_SCENARIO = {
 };
 
 // Regression guard: selecting the (zstd-compressed) sequence column together with a
-// `limit` must still return the correct, order-stable result. (For this particular
-// query shape the decompression MapNode is not adjacent to the FetchNode, so the pass
-// does not rewrite it; correctness is the property under test.)
+// `limit` must still return the correct, order-stable result.
 const QueryTestScenario DECOMPRESS_SEQUENCE_WITH_LIMIT_SCENARIO = {
    .name = "DECOMPRESS_SEQUENCE_WITH_LIMIT",
    .query = "default.project({primaryKey, unaligned_segment1}).orderBy({primaryKey}).limit(1)",
    .expected_query_result =
       nlohmann::json({{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}}})
+};
+
+// End-to-end coverage that MapPullupPass actually fires: `map({...}).limit(...)` builds a
+// FetchNode directly above the user MapNode (Fetch(Map(scan))), which the pass rewrites to
+// Map(Fetch(scan)).
+const QueryTestScenario MAP_WITH_LIMIT_TRIGGERS_PULLUP_SCENARIO = {
+   .name = "MAP_WITH_LIMIT_TRIGGERS_PULLUP",
+   .query = "default.map({a := 3}).orderBy({primaryKey}).map({b := 7}).limit(1).project({a, b})",
+   .expected_query_result = nlohmann::json({{{"a", 3}, {"b", 7}}})
 };
 
 }  // namespace
@@ -223,6 +230,7 @@ QUERY_TEST(
       MAP_DUPLICATE_OUTPUT_NAME_SCENARIO,
       DECOMPRESS_SEQUENCE_SCENARIO,
       DECOMPRESS_WITH_USER_MAP_SCENARIO,
-      DECOMPRESS_SEQUENCE_WITH_LIMIT_SCENARIO
+      DECOMPRESS_SEQUENCE_WITH_LIMIT_SCENARIO,
+      MAP_WITH_LIMIT_TRIGGERS_PULLUP_SCENARIO
    )
 );

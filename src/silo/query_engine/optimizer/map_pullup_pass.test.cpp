@@ -159,6 +159,36 @@ TEST(MapPullupPass, bubblesMapUpThroughStackedFetch) {
    EXPECT_EQ(inner->child->kind(), operators::NodeKind::TABLE_SCAN);
 }
 
+TEST(MapPullupPass, leavesFetchOverNonMapInPlace) {
+   auto fetch = std::make_unique<operators::FetchNode>(makeScan(), 5, std::nullopt);
+
+   auto result = MapPullupPass::run(std::move(fetch));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::FETCH);
+   auto* fetch_node = dynamic_cast<operators::FetchNode*>(result.get());
+   EXPECT_EQ(fetch_node->count, 5);
+   EXPECT_EQ(fetch_node->child->kind(), operators::NodeKind::TABLE_SCAN);
+}
+
+// --- MapNode(FetchNode(MapNode(...))): the inner map is pulled above the fetch and comes to
+// rest directly under the (blocked) root map, giving Map(Map(Fetch(scan))). The root map is
+// not itself moved (it is the root). ---
+
+TEST(MapPullupPass, pullsInnerMapUpUnderRootMap) {
+   auto inner_fetch = std::make_unique<operators::FetchNode>(makeMap(makeScan()), 5, std::nullopt);
+   auto root_map = makeMap(std::move(inner_fetch));
+
+   auto result = MapPullupPass::run(std::move(root_map));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* outer_map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(outer_map->child->kind(), operators::NodeKind::MAP);
+   auto* inner_map = dynamic_cast<operators::MapNode*>(outer_map->child.get());
+   ASSERT_EQ(inner_map->child->kind(), operators::NodeKind::FETCH);
+   auto* fetch = dynamic_cast<operators::FetchNode*>(inner_map->child.get());
+   EXPECT_EQ(fetch->child->kind(), operators::NodeKind::TABLE_SCAN);
+}
+
 // --- Blocked: FilterNode. Pulling a MapNode up through a filter needs the columns the
 // filter references (Expression::freeIUs), which most predicates don't report yet, so this
 // pass leaves the MapNode below the filter (see #1336). ---
