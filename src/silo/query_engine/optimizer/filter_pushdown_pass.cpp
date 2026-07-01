@@ -72,10 +72,11 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::MapNode& node)
       return nullptr;
    }
 
-   // Re-erect the filters that depend on produced columns as a single FilterNode directly
-   // above the Map, AND-merging when there is more than one.
+   // Re-erect the filters that depend on produced columns as FilterNode directly above the Map
    std::unique_ptr<expressions::Expression> surviving_filter =
-      std::make_unique<expressions::And>(std::move(dependent_filters));
+      dependent_filters.size() == 1
+         ? std::move(dependent_filters.front())
+         : std::make_unique<expressions::And>(std::move(dependent_filters));
 
    // Returning a replacement node swaps out the visited MapNode. Move the visited Map's
    // contents into a fresh MapNode and return Filter(Map(child)), keeping the dependent
