@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "silo/common/string_utils.h"
 #include "silo/query_engine/expressions/expression.h"
@@ -22,6 +23,10 @@ using filter::operators::OperatorVector;
 
 Or::Or(ExpressionVector&& children)
     : children(std::move(children)) {}
+
+std::vector<schema::ColumnIdentifier> Or::freeIUs() const {
+   return collectFreeIUs(children);
+}
 
 std::string Or::toString() const {
    std::string res = "Or(";

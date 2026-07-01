@@ -3,6 +3,7 @@
 #include <cmath>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -19,6 +20,10 @@ namespace silo::query_engine::expressions {
 FloatEquals::FloatEquals(std::string column_name, std::optional<double> value)
     : column_name(std::move(column_name)),
       value(value) {}
+
+std::vector<schema::ColumnIdentifier> FloatEquals::freeIUs() const {
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
+}
 
 std::string FloatEquals::toString() const {
    if (value.has_value()) {

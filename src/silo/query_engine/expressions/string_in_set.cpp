@@ -1,6 +1,7 @@
 #include "silo/query_engine/expressions/string_in_set.h"
 
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -23,6 +24,10 @@ using storage::column::StringColumn;
 StringInSet::StringInSet(std::string column_name, std::unordered_set<std::string> values)
     : column_name(std::move(column_name)),
       values(std::move(values)) {}
+
+std::vector<schema::ColumnIdentifier> StringInSet::freeIUs() const {
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
+}
 
 std::string StringInSet::toString() const {
    std::vector<std::string> sorted_values;

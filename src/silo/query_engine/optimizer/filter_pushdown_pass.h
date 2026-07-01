@@ -6,6 +6,7 @@
 
 namespace silo::query_engine::operators {
 class FilterNode;
+class MapNode;
 class TableScanNode;
 template <typename SymbolType>
 class MutationsNode;
@@ -27,6 +28,7 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    using PipelinePassBase<FilterPushdownPass>::operator();
 
    operators::QueryNodePtr operator()(operators::FilterNode& node);
+   operators::QueryNodePtr operator()(operators::MapNode& node);
 
    operators::QueryNodePtr operator()(operators::TableScanNode& node);
    operators::QueryNodePtr operator()(operators::MutationsNode<Nucleotide>& node);

@@ -1,6 +1,7 @@
 #include "silo/query_engine/expressions/string_search.h"
 
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -15,6 +16,10 @@ namespace silo::query_engine::expressions {
 StringSearch::StringSearch(std::string column_name, std::unique_ptr<re2::RE2> search_expression)
     : column_name(std::move(column_name)),
       search_expression(std::move(search_expression)) {}
+
+std::vector<schema::ColumnIdentifier> StringSearch::freeIUs() const {
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
+}
 
 std::string StringSearch::toString() const {
    return fmt::format("column {} regex_matches \"{}\"", column_name, search_expression->pattern());

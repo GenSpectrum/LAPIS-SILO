@@ -4,6 +4,7 @@
 #include <optional>
 #include <ranges>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -26,6 +27,10 @@ LineageFilter::LineageFilter(
     : column_name(std::move(column_name)),
       lineage(std::move(lineage)),
       sublineage_mode(sublineage_mode) {}
+
+std::vector<schema::ColumnIdentifier> LineageFilter::freeIUs() const {
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
+}
 
 std::string LineageFilter::toString() const {
    if (!lineage.has_value()) {

@@ -1,6 +1,7 @@
 #include "silo/query_engine/expressions/is_null.h"
 
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -15,6 +16,10 @@ namespace silo::query_engine::expressions {
 
 IsNull::IsNull(std::string column_name)
     : column_name(std::move(column_name)) {}
+
+std::vector<schema::ColumnIdentifier> IsNull::freeIUs() const {
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
+}
 
 std::string IsNull::toString() const {
    return fmt::format("{} IS NULL", column_name);
