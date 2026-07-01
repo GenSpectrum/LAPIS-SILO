@@ -44,7 +44,7 @@ class InsertionContains : public Expression {
       const auto col_type = std::is_same_v<SymbolType, Nucleotide>
                                ? schema::ColumnType::NUCLEOTIDE_SEQUENCE
                                : schema::ColumnType::AMINO_ACID_SEQUENCE;
-      return {{sequence_name.value_or(""), col_type}};
+      return {{.name = sequence_name.value_or(""), .type = col_type}};
    }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(

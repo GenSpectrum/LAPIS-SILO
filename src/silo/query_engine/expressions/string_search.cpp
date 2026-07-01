@@ -18,7 +18,7 @@ StringSearch::StringSearch(std::string column_name, std::unique_ptr<re2::RE2> se
       search_expression(std::move(search_expression)) {}
 
 std::vector<schema::ColumnIdentifier> StringSearch::freeIUs() const {
-   return {{column_name, schema::ColumnType::BOOL}};
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
 }
 
 std::string StringSearch::toString() const {

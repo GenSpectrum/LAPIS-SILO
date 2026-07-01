@@ -42,7 +42,7 @@ class HasMutation : public Expression {
       // When sequence_name is nullopt the actual name is resolved from the schema at
       // rewrite() time; we return an empty name as a safe placeholder (it cannot match
       // any real column name in a MapNode assignment).
-      return {{sequence_name.value_or(""), col_type}};
+      return {{.name = sequence_name.value_or(""), .type = col_type}};
    }
 
    [[nodiscard]] std::unique_ptr<Expression> rewrite(

@@ -22,7 +22,7 @@ FloatEquals::FloatEquals(std::string column_name, std::optional<double> value)
       value(value) {}
 
 std::vector<schema::ColumnIdentifier> FloatEquals::freeIUs() const {
-   return {{column_name, schema::ColumnType::BOOL}};
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
 }
 
 std::string FloatEquals::toString() const {

@@ -21,7 +21,7 @@ IntEquals::IntEquals(std::string column_name, std::optional<int32_t> value)
       value(value) {}
 
 std::vector<schema::ColumnIdentifier> IntEquals::freeIUs() const {
-   return {{column_name, schema::ColumnType::BOOL}};
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
 }
 
 std::string IntEquals::toString() const {
