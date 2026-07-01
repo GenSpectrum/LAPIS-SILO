@@ -191,7 +191,7 @@ TEST(MapPullupPass, pullsInnerMapUpUnderRootMap) {
 
 // --- Blocked: FilterNode. Pulling a MapNode up through a filter needs the columns the
 // filter references (Expression::freeIUs), which most predicates don't report yet, so this
-// pass leaves the MapNode below the filter (see #1336). ---
+// pass leaves the MapNode below the filter (#1343). ---
 
 TEST(MapPullupPass, doesNotPullMapUpThroughFilter) {
    auto filter = std::make_unique<operators::FilterNode>(makeMap(makeScan()), trueFilter());

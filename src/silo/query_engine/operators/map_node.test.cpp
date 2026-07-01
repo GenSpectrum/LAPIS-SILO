@@ -202,9 +202,11 @@ const QueryTestScenario DECOMPRESS_SEQUENCE_WITH_LIMIT_SCENARIO = {
       nlohmann::json({{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}}})
 };
 
-// End-to-end coverage that MapPullupPass actually fires: `map({...}).limit(...)` builds a
-// FetchNode directly above the user MapNode (Fetch(Map(scan))), which the pass rewrites to
-// Map(Fetch(scan)).
+// Correctness regression guard for a shape MapPullupPass is eligible to rewrite:
+// `map({...}).limit(...)` builds a FetchNode directly above the user MapNode
+// (Fetch(Map(scan))), which the pass may rewrite to Map(Fetch(scan)). QUERY_TEST asserts
+// only the query result (it does not inspect the optimized plan), so this checks that the
+// rewrite - when it happens - does not change the result.
 const QueryTestScenario MAP_WITH_LIMIT_TRIGGERS_PULLUP_SCENARIO = {
    .name = "MAP_WITH_LIMIT_TRIGGERS_PULLUP",
    .query = "default.map({a := 3}).orderBy({primaryKey}).map({b := 7}).limit(1).project({a, b})",
