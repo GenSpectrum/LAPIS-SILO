@@ -22,7 +22,7 @@ DateEquals::DateEquals(std::string column_name, std::optional<silo::common::Date
       value(value) {}
 
 std::vector<schema::ColumnIdentifier> DateEquals::freeIUs() const {
-   return {{column_name, schema::ColumnType::BOOL}};
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
 }
 
 std::string DateEquals::toString() const {

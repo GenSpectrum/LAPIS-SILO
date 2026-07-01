@@ -22,7 +22,7 @@ StringEquals::StringEquals(std::string column_name, std::optional<std::string> v
       value(std::move(value)) {}
 
 std::vector<schema::ColumnIdentifier> StringEquals::freeIUs() const {
-   return {{column_name, schema::ColumnType::BOOL}};
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
 }
 
 std::string StringEquals::toString() const {

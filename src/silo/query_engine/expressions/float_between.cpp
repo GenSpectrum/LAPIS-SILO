@@ -27,7 +27,7 @@ FloatBetween::FloatBetween(
       to(to) {}
 
 std::vector<schema::ColumnIdentifier> FloatBetween::freeIUs() const {
-   return {{column_name, schema::ColumnType::BOOL}};
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
 }
 
 std::string FloatBetween::toString() const {

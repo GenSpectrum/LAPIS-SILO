@@ -18,7 +18,7 @@ IsNull::IsNull(std::string column_name)
     : column_name(std::move(column_name)) {}
 
 std::vector<schema::ColumnIdentifier> IsNull::freeIUs() const {
-   return {{column_name, schema::ColumnType::BOOL}};
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
 }
 
 std::string IsNull::toString() const {

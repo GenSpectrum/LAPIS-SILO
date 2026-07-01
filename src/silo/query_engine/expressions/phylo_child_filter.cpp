@@ -19,7 +19,7 @@ PhyloChildFilter::PhyloChildFilter(std::string column_name, std::string internal
       internal_node(std::move(internal_node)) {}
 
 std::vector<schema::ColumnIdentifier> PhyloChildFilter::freeIUs() const {
-   return {{column_name, schema::ColumnType::BOOL}};
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
 }
 
 std::string PhyloChildFilter::toString() const {

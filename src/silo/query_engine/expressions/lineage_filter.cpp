@@ -29,7 +29,7 @@ LineageFilter::LineageFilter(
       sublineage_mode(sublineage_mode) {}
 
 std::vector<schema::ColumnIdentifier> LineageFilter::freeIUs() const {
-   return {{column_name, schema::ColumnType::BOOL}};
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
 }
 
 std::string LineageFilter::toString() const {
