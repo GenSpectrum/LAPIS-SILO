@@ -380,13 +380,15 @@ default.mutations(minProportion:=0.1).schema()
 ```
 
 `schema()` produces an ordinary two-column relation,
-so schema-preserving and schema-defining operators (such as `project` and `orderBy`) can be chained after it.
+so operators such as `project`, `map`, `orderBy` and `limit` can be chained after it.
+
+`schema()` is a *pipeline breaker*: like `groupBy`, `mutations` and `insertions`, it produces a new result relation instead of forwarding its child's rows.
 
 **Limitation:** sequence columns are reported with type `STRING`.
 When a sequence column is read into a pipeline it is decompressed to a string before `schema()` observes it,
 so nucleotide and amino acid sequences cannot be distinguished from ordinary strings at this point.
 
-**Limitation:** `schema()` is a result-producing source, so `filter(...)` cannot be applied to its output.
+**Limitation:** `filter(...)` cannot be applied to `schema()`. A filter is only realizable when it can be pushed into a table scan, and there is none above `schema()`.
 
 ---
 
