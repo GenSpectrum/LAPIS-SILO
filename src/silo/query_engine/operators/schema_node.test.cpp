@@ -149,6 +149,23 @@ const QueryTestScenario SCHEMA_AFTER_PROJECT_ORDER_SCENARIO = {
    )
 };
 
+// orderBy() after schema() is schema-preserving and needs no data source below it,
+// so it reorders schema() rows out of the box.
+const QueryTestScenario ORDER_BY_AFTER_SCHEMA_SCENARIO = {
+   .name = "ORDER_BY_AFTER_SCHEMA",
+   .query = "default.groupBy({count := count()}, {age}).schema().orderBy({fieldName})",
+   .expected_query_result = nlohmann::json(
+      {{{"fieldName", "age"}, {"type", "INT32"}}, {{"fieldName", "count"}, {"type", "INT64"}}}
+   )
+};
+
+// limit() after schema() truncates the schema() rows.
+const QueryTestScenario LIMIT_AFTER_SCHEMA_SCENARIO = {
+   .name = "LIMIT_AFTER_SCHEMA",
+   .query = "default.groupBy({count := count()}, {age}).schema().orderBy({fieldName}).limit(1)",
+   .expected_query_result = nlohmann::json({{{"fieldName", "age"}, {"type", "INT32"}}})
+};
+
 const QueryTestScenario MAP_AFTER_SCHEMA_SCENARIO = {
    .name = "MAP_AFTER_SCHEMA",
    .query = "default.groupBy({count := count()}, {age}).schema().map({kind := 'field'})",
@@ -258,6 +275,8 @@ QUERY_TEST(
       INSERTIONS_SCHEMA_SCENARIO,
       SCHEMA_AFTER_MAP_SCENARIO,
       SCHEMA_AFTER_PROJECT_ORDER_SCENARIO,
+      ORDER_BY_AFTER_SCHEMA_SCENARIO,
+      LIMIT_AFTER_SCHEMA_SCENARIO,
       MAP_AFTER_SCHEMA_SCENARIO,
       SCHEMA_OF_SCHEMA_SCENARIO,
       SCHEMA_IGNORES_DATA_SCENARIO,
