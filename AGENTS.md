@@ -17,6 +17,9 @@ make build/Release/silo            # Release build (includes mimalloc on Linux)
 make test                          # Build and run C++ unit tests
 make all-tests                     # Run C++, Python, and E2E tests
 
+# WebAssembly (browser) build (see wasm/README.md)
+make wasm                          # Build silo_wasm.js/.wasm into dist/wasm (requires Emscripten)
+
 # Run specific tests
 build/Debug/silo_test --gtest_filter='TestSuite*'         # By suite
 build/Debug/silo_test --gtest_filter='TestSuite.testCase'  # By case

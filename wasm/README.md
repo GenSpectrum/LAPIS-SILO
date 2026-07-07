@@ -57,7 +57,14 @@ PY
 
 Prerequisites:
 
-- Emscripten SDK activated so `emcmake`, `emcc`, and `em++` are on `PATH`
+- Emscripten SDK activated so `emcmake`, `emcc`, and `em++` are on `PATH`. Install it via
+  [emsdk](https://emscripten.org/docs/getting_started/downloads.html):
+
+  ```sh
+  git clone https://github.com/emscripten-core/emsdk.git
+  cd emsdk && ./emsdk install latest && ./emsdk activate latest
+  source ./emsdk_env.sh
+  ```
 - CMake
 - Ninja
 - uv

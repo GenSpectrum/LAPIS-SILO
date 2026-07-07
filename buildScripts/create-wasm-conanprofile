@@ -4,6 +4,18 @@ set -euo pipefail
 
 mkdir -p build/wasm
 
+# The Emscripten CMake toolchain file teaches CMake about the Emscripten
+# platform (e.g. byte order, type sizes). Without it, dependency builds that
+# call TEST_BIG_ENDIAN fall back to a broken detection path and fail to
+# configure. Conan generates its own toolchain, so we chain-load Emscripten's
+# via tools.cmake.cmaketoolchain:user_toolchain.
+EMCC_PATH=$(command -v emcc)
+EMSCRIPTEN_TOOLCHAIN="$(dirname "${EMCC_PATH}")/cmake/Modules/Platform/Emscripten.cmake"
+if [ ! -f "${EMSCRIPTEN_TOOLCHAIN}" ]; then
+   echo "Could not find Emscripten CMake toolchain at ${EMSCRIPTEN_TOOLCHAIN}" >&2
+   exit 1
+fi
+
 cat > build/wasm/conanprofile-emscripten <<PROFILE
 [settings]
 os=Emscripten
@@ -21,4 +33,5 @@ tools.build:cxxflags=["-pthread"]
 tools.build:exelinkflags=["-pthread"]
 tools.build:sharedlinkflags=["-pthread"]
 tools.cmake.cmaketoolchain:generator=Ninja
+tools.cmake.cmaketoolchain:user_toolchain=["${EMSCRIPTEN_TOOLCHAIN}"]
 PROFILE
