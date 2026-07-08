@@ -19,11 +19,27 @@
 namespace {
 
 constexpr uint64_t QUERY_TIMEOUT_SECONDS = 120;
+// Native SILO defaults to DEFAULT_ARROW_BATCH_SIZE (32767, see
+// src/silo/config/runtime_config.cpp) rows before it stops collecting a query
+// result in memory and starts streaming it instead. Browser memory is far
+// more constrained than a server process, and detail queries that project
+// full nucleotide sequences can materialize large intermediate batches before
+// a downstream `.limit(...)` is applied, so the browser build uses a much
+// smaller cutoff.
 constexpr size_t DEFAULT_MATERIALIZATION_CUTOFF = 256;
 
+// Not thread-safe. All embind-exported functions in this file are expected to
+// be called sequentially from a single JS context (the main thread or one
+// dedicated worker). Arrow's own thread pool (see PTHREAD_POOL_SIZE in
+// wasm/CMakeLists.txt) is used internally during query execution but never
+// calls back into these functions, so it does not introduce concurrent access
+// here.
 std::map<int, std::unique_ptr<silo::Database>> databases;
 int next_database_handle = 1;
 
+// Idempotent: safe to call before every preprocess/load/query. The static
+// local is initialized exactly once (guaranteed thread-safe by the standard),
+// and every subsequent call is then just a check of `initialized`.
 void initializeArrowCompute() {
    static const bool initialized = [] {
       auto status = arrow::compute::Initialize();

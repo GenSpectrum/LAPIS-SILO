@@ -66,6 +66,12 @@ class TableScanGenerator {
       SPDLOG_TRACE("TableScanGenerator::operator()");
       auto future = arrow::Future<std::optional<arrow::ExecBatch>>::Make();
 #ifdef SILO_WASM
+      // In the browser build we produce the batch synchronously. Spawning a
+      // detached pthread per batch (as the native path does below) starves or
+      // deadlocks Emscripten's fixed pthread worker pool (PTHREAD_POOL_SIZE in
+      // wasm/CMakeLists.txt) on larger datasets. The arrow issues worked around
+      // below do not affect the browser build, which runs acero with a
+      // single-threaded executor.
       try {
          auto result = produceNextBatch();
          future.MarkFinished(std::move(result));

@@ -5,25 +5,14 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}" "${CMAKE_BINARY_DIR}/generat
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}" "${CMAKE_BINARY_DIR}/generators")
 
 # Conan lays out the CMakeDeps config files directly in the build folder for the
-# wasm build, so point each package there.
-set(absl_DIR "${CMAKE_BINARY_DIR}")
-set(Arrow_DIR "${CMAKE_BINARY_DIR}")
-set(Boost_DIR "${CMAKE_BINARY_DIR}")
-set(BZip2_DIR "${CMAKE_BINARY_DIR}")
-set(FastFloat_DIR "${CMAKE_BINARY_DIR}")
-set(fmt_DIR "${CMAKE_BINARY_DIR}")
-set(Libevent_DIR "${CMAKE_BINARY_DIR}")
-set(nlohmann_json_DIR "${CMAKE_BINARY_DIR}")
-set(OpenSSL_DIR "${CMAKE_BINARY_DIR}")
-set(re2_DIR "${CMAKE_BINARY_DIR}")
-set(roaring_DIR "${CMAKE_BINARY_DIR}")
-set(simdjson_DIR "${CMAKE_BINARY_DIR}")
-set(simdutf_DIR "${CMAKE_BINARY_DIR}")
-set(spdlog_DIR "${CMAKE_BINARY_DIR}")
-set(Thrift_DIR "${CMAKE_BINARY_DIR}")
-set(yaml-cpp_DIR "${CMAKE_BINARY_DIR}")
-set(ZLIB_DIR "${CMAKE_BINARY_DIR}")
-set(zstd_DIR "${CMAKE_BINARY_DIR}")
+# wasm build, so point each package there. Package names must match the exact
+# case passed to find_package()/find_dependency() (CMake derives the `<Pkg>_DIR`
+# variable name from that case).
+foreach(package IN ITEMS
+        absl Arrow Boost BZip2 FastFloat fmt Libevent nlohmann_json OpenSSL
+        re2 roaring simdjson simdutf spdlog Thrift yaml-cpp ZLIB zstd)
+   set(${package}_DIR "${CMAKE_BINARY_DIR}")
+endforeach()
 
 # Shared C++ standard, common compile definitions, core dependencies and source
 # collection (shared with the native build).
