@@ -610,3 +610,39 @@ jobs:
           tag_name: v${{ env.SILO_VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  wasmBuild:
+    name: Build WebAssembly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Must match the Emscripten version used to generate the Conan profile
+      # (see buildScripts/create-wasm-conanprofile).
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 6.0.2
+          actions-cache-folder: emsdk-cache
+
+      - uses: astral-sh/setup-uv@v7
+
+      # The WASM dependencies (Arrow, Boost, ...) are compiled from source for
+      # Emscripten, which is slow. Cache the Conan package cache to avoid
+      # rebuilding them on every run.
+      - name: Cache Conan packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.conan2
+          key: conan-wasm-${{ hashFiles('wasm/conanfile.py', 'buildScripts/install-wasm-dependencies', 'buildScripts/create-wasm-conanprofile') }}
+          restore-keys: |
+            conan-wasm-
+
+      - name: Build WASM target
+        run: make wasm
+
+      - name: Upload WASM artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: silo-wasm
+          path: dist/wasm/*
