@@ -66,6 +66,10 @@ wasm: ${SILO_WASM_EXECUTABLE}
 	cp build/wasm/silo_wasm.js build/wasm/silo_wasm.wasm ${SILO_WASM_DIST_DIR}/
 	@if [ -f build/wasm/silo_wasm.worker.js ]; then cp build/wasm/silo_wasm.worker.js ${SILO_WASM_DIST_DIR}/; fi
 
+.PHONY: wasm-test
+wasm-test: wasm
+	node --test wasm/test/*.test.mjs
+
 .PHONY: output
 output: ${SILO_DEBUG_EXECUTABLE}
 	export SPDLOG_LEVEL=debug; \

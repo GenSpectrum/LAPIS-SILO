@@ -68,6 +68,15 @@ From the repository root:
 make wasm
 ```
 
+### Test
+
+`wasm/test` contains a Node.js smoke test that runs the built module end-to-end (preprocess,
+query, save, load) against the `testBaseData/unitTestDummyDataset` fixture:
+
+```shell
+make wasm-test
+```
+
 See [`wasm/README.md`](../../wasm/README.md) for the exposed API, the example app, and the
 cross-origin isolation headers required to serve the pthread-enabled build.
 

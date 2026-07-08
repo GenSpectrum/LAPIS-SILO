@@ -78,6 +78,18 @@ make wasm
 
 The compatibility wrapper `./wasm/scripts/build-wasm.sh` also calls `make wasm`. The Makefile writes the Emscripten Conan profile to `build/wasm/conanprofile-emscripten`, installs dependencies into `build/wasm`, configures CMake with `emcmake`, builds `silo_wasm`, and copies the artifacts to `dist/wasm`.
 
+## Tests
+
+`./test` contains a Node.js smoke test (`node:test`) that loads the built module, preprocesses
+the `testBaseData/unitTestDummyDataset` fixture, runs a SaneQL query, and round-trips a saved
+state through `save`/`load`. Run it with:
+
+```sh
+make wasm-test
+```
+
+This builds `silo_wasm` first if necessary, then runs `node --test wasm/test/*.test.mjs`.
+
 ## Example App
 
 An example app is available in `./example`. Any static web server can be used as long as it sets the headers. Opening the `index.html` directly as a local file is not enough for the pthread-enabled build.
