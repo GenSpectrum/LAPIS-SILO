@@ -11,16 +11,15 @@ set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -D SILO_DEBUG_ASSERTIONS=1")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D SILO_DEBUG_ASSERTIONS=0")
 
-set(CMAKE_CXX_STANDARD 23)
-
 # For find_package calls in Module mode (looking for the Find<lib>.cmake files)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_BINARY_DIR}/generators/")
 # For find_package calls in config mode / find_dependency calls
 # (looking for the <lib>-config.cmake files of transitive dependencies of modules, e.g. spdlog->fmt)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/generators/")
 
-# Export compile commands for configuring language servers or debugging the build
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# Shared C++ standard, common compile definitions, core dependencies and source
+# collection (shared with the wasm build).
+include(${CMAKE_SOURCE_DIR}/cmake/silo_core.cmake)
 
 # ---------------------------------------------------------------------------
 # Allocator
@@ -42,29 +41,13 @@ endif()
 
 
 # ---------------------------------------------------------------------------
-# Compile definitions
+# Native-only dependencies
 # ---------------------------------------------------------------------------
+# The core dependencies are found in cmake/silo_core.cmake. These are only
+# needed by the native build (HTTP API and lzma-compressed inputs).
 
-add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
-add_compile_definitions(SIMDJSON_EXCEPTIONS=0)
-
-# ---------------------------------------------------------------------------
-# Dependencies
-# ---------------------------------------------------------------------------
-
-find_package(Arrow REQUIRED COMPONENTS Acero)
-find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
-find_package(FastFloat REQUIRED)
 find_package(LibLZMA REQUIRED)
-find_package(nlohmann_json REQUIRED)
 find_package(Poco REQUIRED COMPONENTS Net Util JSON)
-find_package(re2 REQUIRED)
-find_package(roaring REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(simdjson REQUIRED)
-find_package(simdutf REQUIRED)
-find_package(yaml-cpp REQUIRED)
-find_package(zstd REQUIRED)
 
 # ---------------------------------------------------------------------------
 # Version
@@ -93,11 +76,8 @@ include_directories(
 
 file(GLOB_RECURSE SRC_TEST "src/*.test.cpp")
 
-file(GLOB_RECURSE SRC_SILO "src/*.cpp")
-list(REMOVE_ITEM SRC_SILO ${SRC_TEST})
-
-set(SRC_SILO_WITHOUT_MAIN ${SRC_SILO})
-list(REMOVE_ITEM SRC_SILO_WITHOUT_MAIN "${CMAKE_SOURCE_DIR}/src/main.cpp")
+# All non-test sources except main.cpp (added directly to the silo executable).
+silo_collect_sources(SRC_SILO_WITHOUT_MAIN "${CMAKE_SOURCE_DIR}/src/main.cpp")
 
 # ---------------------------------------------------------------------------
 # Linter
@@ -124,21 +104,10 @@ set_target_properties(silolib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(
         silolib
         PUBLIC
-        Arrow::arrow_static
-        ArrowAcero::arrow_acero_static
-        ${Boost_LIBRARIES}
-        ${FastFloat_LIBRARIES}
-        nlohmann_json::nlohmann_json
-        ${roaring_LIBRARIES}
-        ${spdlog_LIBRARIES}
-        ${simdjson_LIBRARIES}
-        ${simdutf_LIBRARIES}
-        ${yaml-cpp_LIBRARIES}
-        zstd::libzstd_static
+        ${SILO_CORE_LINK_LIBRARIES}
         Poco::Net
         Poco::Util
         Poco::JSON
-        re2::re2
 )
 
 add_executable(silo "${CMAKE_SOURCE_DIR}/src/main.cpp")
