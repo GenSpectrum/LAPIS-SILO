@@ -625,6 +625,17 @@ jobs:
           version: 6.0.2
           actions-cache-folder: emsdk-cache
 
+      # setup-emsdk prepends $EMSDK/upstream/emscripten to PATH, which contains
+      # a directory literally named `cmake` (Emscripten's own CMake Modules).
+      # GNU Make bypasses the shell for simple recipe lines and execs commands
+      # directly; on Linux this PATH search does not skip directory entries
+      # and does not fall back to later PATH entries after the resulting
+      # EACCES, so bare `cmake` invocations fail with "Permission denied"
+      # instead of finding the real cmake binary. Re-prioritize the system
+      # cmake's directory so it is found first again.
+      - name: Ensure system cmake takes priority over Emscripten's cmake/ directory
+        run: echo "$(dirname "$(command -v cmake)")" >> "$GITHUB_PATH"
+
       - uses: astral-sh/setup-uv@v7
 
       # The WASM dependencies (Arrow, Boost, ...) are compiled from source for
