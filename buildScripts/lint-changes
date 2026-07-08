@@ -28,6 +28,7 @@ docker run --rm \
   -v "$(pwd)/.clang-tidy:/src/.clang-tidy" \
   -v "$(pwd)/performance:/src/performance" \
   -v "$(pwd)/src:/src/src" \
+  -v "$(pwd)/cmake:/src/cmake" \
   -v "$(pwd)/CMakeLists.txt:/src/CMakeLists.txt" \
   -v "${DOCKER_BUILD_CACHE_VOLUME}:/src/build/Debug" \
   -e files="$files" \
