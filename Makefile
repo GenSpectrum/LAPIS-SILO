@@ -57,7 +57,10 @@ ${SILO_RELEASE_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
 ${SILO_RELEASE_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
 	cmake --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test
 
-${SILO_WASM_EXECUTABLE}: build/wasm/build.ninja $(shell find src wasm -type f)
+# Only the compiled sources trigger a rebuild; wasm/CMakeLists.txt is already a
+# prerequisite of build/wasm/build.ninja. Non-source assets (wasm/example,
+# wasm/README.md, ...) intentionally do not force a rebuild of the binary.
+${SILO_WASM_EXECUTABLE}: build/wasm/build.ninja $(shell find src wasm/src -type f)
 	cmake --build build/wasm --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_wasm
 
 .PHONY: wasm

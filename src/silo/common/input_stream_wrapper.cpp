@@ -34,11 +34,18 @@ InputStreamWrapper::InputStreamWrapper(const std::filesystem::path& file_path) {
       SPDLOG_INFO("Detected file-ending .zst for input file " + file_path.string());
       file_stream = std::ifstream(withZSTending(file_path), std::ios::binary);
       boost_input_stream->push(boost::iostreams::zstd_decompressor());
-#ifndef __EMSCRIPTEN__
    } else if (std::filesystem::is_regular_file(withXZending(file_path))) {
+#ifndef __EMSCRIPTEN__
       SPDLOG_INFO("Detected file-ending .xz for input file " + file_path.string());
       file_stream = std::ifstream(withXZending(file_path), std::ios::binary);
       boost_input_stream->push(boost::iostreams::lzma_decompressor());
+#else
+      // The WASM build does not include lzma. Fail fast instead of letting the
+      // .xz file fall through and be read as if it were uncompressed.
+      throw silo::preprocessing::PreprocessingException(
+         "The WASM build does not support .xz (lzma) inputs; found: " +
+         withXZending(file_path).string()
+      );
 #endif
    } else if (std::filesystem::is_regular_file(file_path)) {
       SPDLOG_INFO(
