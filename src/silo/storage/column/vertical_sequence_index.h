@@ -118,7 +118,8 @@ class VerticalSequenceIndex {
          }
       }
    };
-   static_assert(sizeof(SequenceDiff) == 16);
+   // On 64-bit systems we expect a 16 byte struct, on 32-bit a 12 byte struct
+   static_assert(sizeof(SequenceDiff) == (sizeof(void*) == 8 ? 16 : 12));
 
    std::map<SequenceDiffKey, SequenceDiff> vertical_bitmaps;
 
