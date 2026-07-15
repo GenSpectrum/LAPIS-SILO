@@ -28,6 +28,7 @@ class Expression {
       AND,
       OR,
       AT,
+      ISO_WEEK,
       N_OF,
       NEGATION,
       MAYBE,

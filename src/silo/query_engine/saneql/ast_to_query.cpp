@@ -30,6 +30,7 @@
 #include "silo/query_engine/expressions/int_between.h"
 #include "silo/query_engine/expressions/int_equals.h"
 #include "silo/query_engine/expressions/is_null.h"
+#include "silo/query_engine/expressions/iso_week.h"
 #include "silo/query_engine/expressions/lineage_filter.h"
 #include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/expressions/maybe.h"
@@ -477,6 +478,26 @@ ScalarExpressionPtr handleAt(
       found != schema.end(), "at(): the field {} is not found in the current context", input_column
    );
    return std::make_unique<expressions::At>(*found, position);
+}
+
+ScalarExpressionPtr handleIsoWeek(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   auto input_column = extractIdentifierName(args.at("input"));
+   const auto found =
+      std::ranges::find_if(schema, [&](const auto& col) { return col.name == input_column; });
+   CHECK_SILO_QUERY(
+      found != schema.end(),
+      "isoWeek(): the field {} is not found in the current context",
+      input_column
+   );
+   CHECK_SILO_QUERY(
+      found->type == schema::ColumnType::DATE32,
+      "isoWeek(): the field {} must be a date column",
+      input_column
+   );
+   return std::make_unique<expressions::IsoWeek>(*found);
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -1496,6 +1517,7 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
    registerFunction("like", {{pos("column"), pos("pattern")}}, handleLike);
 
    registerFunction("at", {{pos("input"), pos("position")}}, handleAt);
+   registerFunction("isoWeek", {{pos("input")}}, handleIsoWeek);
 
    auto symbol_equals_sig =
       FunctionSignature{{named("position"), named("symbol"), named("sequenceName", false)}};

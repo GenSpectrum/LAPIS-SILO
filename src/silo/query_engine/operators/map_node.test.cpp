@@ -12,7 +12,8 @@ nlohmann::json createData(
    int value,
    const std::string& str_value,
    const nlohmann::json& segment1 = nullptr,
-   const nlohmann::json& unaligned_segment1 = nullptr
+   const nlohmann::json& unaligned_segment1 = nullptr,
+   const std::string& date_value = ""
 ) {
    return {
       {"primaryKey", primaryKey},
@@ -20,7 +21,8 @@ nlohmann::json createData(
       {"str_value", str_value},
       {"segment1", segment1},
       {"gene1", nullptr},
-      {"unaligned_segment1", unaligned_segment1}
+      {"unaligned_segment1", unaligned_segment1},
+      {"date", date_value.empty() ? nlohmann::json(nullptr) : nlohmann::json(date_value)}
    };
 }
 
@@ -35,8 +37,8 @@ nlohmann::json alignedSequence(const std::string& sequence) {
 // unaligned_segment1 carries the (zstd-compressed) unaligned sequence used by the
 // decompression scenarios.
 const std::vector<nlohmann::json> DATA = {
-   createData("id_0", 1, "short", alignedSequence("ACGT"), "ACGT"),
-   createData("id_1", 2, "longlonglong")
+   createData("id_0", 1, "short", alignedSequence("ACGT"), "ACGT", "2023-01-05"),
+   createData("id_1", 2, "longlonglong", nullptr, nullptr, "2023-12-31")
 };
 
 const auto DATABASE_CONFIG =
@@ -51,6 +53,8 @@ schema:
       type: "int"
     - name: "str_value"
       type: "string"
+    - name: "date"
+      type: "date"
   primaryKey: "primaryKey"
 )";
 
@@ -213,6 +217,15 @@ const QueryTestScenario MAP_WITH_LIMIT_TRIGGERS_PULLUP_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"a", 3}, {"b", 7}}})
 };
 
+// `isoWeek` maps a date column to its ISO 8601 week number as an integer.
+const QueryTestScenario MAP_ISO_WEEK_SCENARIO = {
+   .name = "MAP_ISO_WEEK",
+   .query = "default.map({week := date.isoWeek()}).project({primaryKey, week})",
+   .expected_query_result =
+      nlohmann::json({{{"primaryKey", "id_0"}, {"week", 1}}, {{"primaryKey", "id_1"}, {"week", 52}}}
+      )
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -233,6 +246,36 @@ QUERY_TEST(
       DECOMPRESS_SEQUENCE_SCENARIO,
       DECOMPRESS_WITH_USER_MAP_SCENARIO,
       DECOMPRESS_SEQUENCE_WITH_LIMIT_SCENARIO,
-      MAP_WITH_LIMIT_TRIGGERS_PULLUP_SCENARIO
+      MAP_WITH_LIMIT_TRIGGERS_PULLUP_SCENARIO,
+      MAP_ISO_WEEK_SCENARIO
    )
+);
+
+namespace {
+
+const std::vector<nlohmann::json> ISO_WEEK_NULL_DATA = {
+   createData("id_0", 1, "short"),
+   createData("id_1", 2, "short", nullptr, nullptr, "2020-12-31")
+};
+
+const QueryTestData ISO_WEEK_NULL_TEST_DATA{
+   .ndjson_input_data = ISO_WEEK_NULL_DATA,
+   .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
+};
+
+const QueryTestScenario MAP_ISO_WEEK_NULL_SCENARIO = {
+   .name = "MAP_ISO_WEEK_NULL",
+   .query = "default.map({week := date.isoWeek()}).project({primaryKey, week})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"week", nullptr}}, {{"primaryKey", "id_1"}, {"week", 53}}}
+   )
+};
+
+}  // namespace
+
+QUERY_TEST(
+   MapIsoWeekNullTest,
+   ISO_WEEK_NULL_TEST_DATA,
+   ::testing::Values(MAP_ISO_WEEK_NULL_SCENARIO)
 );

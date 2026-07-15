@@ -1,5 +1,6 @@
 #include "silo/query_engine/saneql/ast_to_query.h"
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <string_view>
@@ -39,8 +40,10 @@ Tables makeTablesWithDefault() {
    using silo::storage::column::StringColumnMetadata;
 
    ColumnIdentifier primary_key{.name = "id", .type = ColumnType::STRING};
+   ColumnIdentifier date_column{.name = "date", .type = ColumnType::DATE32};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
-      {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
+      {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
+      {date_column, std::make_shared<ColumnMetadata>(date_column.name)}
    };
    auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), primary_key);
    Tables tables;
@@ -427,6 +430,38 @@ TEST(AstToQueryMap, atWithPositionZeroThrows) {
       [&tables]() { (void)parseAndConvertToQueryTree("default.map({c := id.at(0)})", tables); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("at(): the field 'position' is 1-indexed. Value of 0 not allowed.")
+      )
+   );
+}
+
+TEST(AstToQueryMap, isoWeekResolvesToWeekOfDateColumn) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree = parseAndConvertToQueryTree("default.map({w := date.isoWeek()})", tables);
+   const auto output_schema = query_tree->getOutputSchema();
+   const auto found =
+      std::ranges::find_if(output_schema, [](const auto& col) { return col.name == "w"; });
+   ASSERT_NE(found, output_schema.end());
+   EXPECT_EQ(found->type, silo::schema::ColumnType::INT64);
+}
+
+TEST(AstToQueryMap, isoWeekOnUnknownColumnThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() {
+         (void)parseAndConvertToQueryTree("default.map({w := nope.isoWeek()})", tables);
+      },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("isoWeek(): the field nope is not found in the current context")
+      )
+   );
+}
+
+TEST(AstToQueryMap, isoWeekOnNonDateColumnThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() { (void)parseAndConvertToQueryTree("default.map({w := id.isoWeek()})", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("isoWeek(): the field id must be a date column")
       )
    );
 }
