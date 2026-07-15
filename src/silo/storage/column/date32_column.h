@@ -44,6 +44,12 @@ class Date32Column {
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
+   /// Assigns `value` to every row in `row_ids` (physical global row ids). A `std::nullopt` value
+   /// marks the rows null; a concrete value clears their null flag and overwrites the stored value
+   /// in place. Rows not in `row_ids` are left untouched. Since an update can move a value in
+   /// either direction, the column's sortedness is recomputed by a full scan afterwards.
+   void update(const roaring::Roaring& row_ids, std::optional<common::Date32> value);
+
    /// The per-chunk value buffers. Used by `DateBetween` to binary search a sorted column.
    [[nodiscard]] const ChunkedValueBuffer<common::Date32>& getValueBuffer() const { return values; }
 

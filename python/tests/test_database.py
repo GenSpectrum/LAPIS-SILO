@@ -1,6 +1,7 @@
 import pytest
 import os
 import json
+import datetime
 import tempfile
 import shutil
 import pyroaring
@@ -11,6 +12,14 @@ import pyarrow as pa
 TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'testBaseData', 'exampleDataset')
 REFERENCE_GENOMES_FILE = os.path.join(TEST_DATA_DIR, 'reference_genomes.json')
 INPUT_FILE = os.path.join(TEST_DATA_DIR, 'input_file.ndjson')
+
+# A serialized database (checked into the repo) whose schema has scalar value columns
+# (age:int, qc_value:float, date:date, test_boolean_column:bool). These cannot be created
+# through the Python table-creation API, so loading this state is how the Python tests exercise
+# a real scalar update.
+SERIALIZED_STATE_DIR = os.path.join(
+    os.path.dirname(__file__), '..', '..', 'testBaseData', 'siloSerializedState'
+)
 
 
 @pytest.fixture
@@ -66,6 +75,7 @@ class TestDatabaseCreation:
             'get_tables',
             'print_all_data',
             'save_checkpoint',
+            'update_column',
         ]
         for method in expected_methods:
             assert hasattr(empty_database, method), f"Missing method: {method}"
@@ -773,3 +783,132 @@ class TestQuery:
         # Results should match
         assert result_before.num_rows == result_after.num_rows
         assert result_before.column_names == result_after.column_names
+
+
+class TestUpdateColumn:
+    """Test the update_column binding.
+
+    Scalar value columns (int/float/date/bool) cannot be created through the Python table-creation
+    API (its extra columns are always strings), so these tests exercise the binding layer itself:
+    argument validation, marshalling, and translation of C++ errors into Python exceptions. The
+    successful scalar-update behavior is covered by the C++ unit tests (database.test.cpp).
+    """
+
+    def _database_with_string_column(self, main_reference_sequence):
+        from silodb import Database
+
+        db = Database()
+        db.create_nucleotide_sequence_table(
+            table_name="sequences",
+            primary_key_name="primary_key",
+            sequence_name="main",
+            reference_sequence=main_reference_sequence,
+            extra_columns=["country"]
+        )
+        db.append_data_from_file("sequences", INPUT_FILE)
+        return db
+
+    def test_update_column_empty_table_name_raises(self, empty_database):
+        """Test that an empty table name raises ValueError before reaching C++."""
+        with pytest.raises(ValueError, match="table_name cannot be empty"):
+            empty_database.update_column("", "country", "'x'")
+
+    def test_update_column_empty_column_name_raises(self, empty_database):
+        """Test that an empty column name raises ValueError before reaching C++."""
+        with pytest.raises(ValueError, match="column_name cannot be empty"):
+            empty_database.update_column("sequences", "", "'x'")
+
+    def test_update_column_unknown_column_raises(self, main_reference_sequence):
+        """Test that updating a non-existent column surfaces the C++ query error as ValueError."""
+        db = self._database_with_string_column(main_reference_sequence)
+        with pytest.raises(ValueError, match="does not contain a column"):
+            db.update_column("sequences", "does_not_exist", "1")
+
+    def test_update_column_string_column_not_supported(self, main_reference_sequence):
+        """Test that updating a non-scalar (string) column raises the 'not supported' ValueError."""
+        db = self._database_with_string_column(main_reference_sequence)
+        with pytest.raises(ValueError, match="not supported"):
+            db.update_column("sequences", "country", "'x'")
+
+
+class TestUpdateColumnOnLoadedDatabase:
+    """End-to-end update_column tests against the serialized database checked into the repo.
+
+    That database has real scalar value columns (age:int, qc_value:float, date:date,
+    test_boolean_column:bool), which the Python table-creation API cannot produce. update_column
+    mutates only the in-memory database (the on-disk state is never saved), so every test loads its
+    own fresh copy and the repo files are left untouched.
+    """
+
+    @pytest.fixture
+    def loaded_database(self):
+        from silodb import Database
+        return Database(SERIALIZED_STATE_DIR)
+
+    @staticmethod
+    def _column(database, name):
+        return database.query(f'default.project({{{name}}})').to_pydict()[name]
+
+    @staticmethod
+    def _count(database, filter_expression):
+        return len(database.get_filtered_bitmap("default", filter_expression))
+
+    def test_update_int_column_all_rows(self, loaded_database):
+        """Updating without a filter assigns the value to every row."""
+        total = self._count(loaded_database, "true")
+        assert total > 0
+
+        loaded_database.update_column("default", "age", "42")
+
+        assert self._count(loaded_database, "age = 42") == total
+        assert all(age == 42 for age in self._column(loaded_database, "age"))
+
+    def test_update_int_column_with_filter(self, loaded_database):
+        """Only rows matching the filter are updated; the rest keep their values."""
+        matching = self._count(loaded_database, "age = 4")
+        total = self._count(loaded_database, "true")
+        assert 0 < matching < total
+
+        loaded_database.update_column("default", "age", "100", "age = 4")
+
+        assert self._count(loaded_database, "age = 4") == 0
+        assert self._count(loaded_database, "age = 100") == matching
+        # Rows that did not match still exist and were not turned into 100.
+        assert self._count(loaded_database, "age = 100") < total
+
+    def test_update_float_column(self, loaded_database):
+        """Float literals are assigned to a float column."""
+        loaded_database.update_column("default", "qc_value", "0.5")
+        assert all(abs(value - 0.5) < 1e-9 for value in self._column(loaded_database, "qc_value"))
+
+    def test_update_bool_column(self, loaded_database):
+        """Boolean literals are assigned to a bool column (including rows that were null)."""
+        loaded_database.update_column("default", "test_boolean_column", "false")
+        assert all(value is False for value in self._column(loaded_database, "test_boolean_column"))
+
+    def test_update_date_column(self, loaded_database):
+        """SaneQL date literals are assigned to a date column."""
+        loaded_database.update_column("default", "date", "'2000-01-01'::date")
+        assert all(
+            value == datetime.date(2000, 1, 1) for value in self._column(loaded_database, "date")
+        )
+
+    def test_update_column_clears_rows_to_null(self, loaded_database):
+        """The literal 'null' clears the matched rows."""
+        matching = self._count(loaded_database, "age = 4")
+        nulls_before = self._count(loaded_database, "age = null")
+        assert matching > 0
+
+        loaded_database.update_column("default", "age", "null", "age = 4")
+
+        assert self._count(loaded_database, "age = 4") == 0
+        assert self._count(loaded_database, "age = null") == nulls_before + matching
+
+    def test_update_does_not_persist_to_disk(self, loaded_database):
+        """Updating the in-memory database must not modify the on-disk repo state."""
+        loaded_database.update_column("default", "age", "999")
+        assert self._count(loaded_database, "age = 999") > 0
+
+        from silodb import Database
+        fresh = Database(SERIALIZED_STATE_DIR)
+        assert self._count(fresh, "age = 999") == 0

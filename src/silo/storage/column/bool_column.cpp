@@ -27,4 +27,22 @@ std::expected<void, std::string> BoolColumn::appendChunk(const Buffer& buffer) {
    num_chunks++;
    return {};
 }
+
+void BoolColumn::update(const roaring::Roaring& row_ids, std::optional<bool> value) {
+   if (value == std::nullopt) {
+      null_bitmap |= row_ids;
+   } else {
+      null_bitmap -= row_ids;
+   }
+   if (value == true) {
+      true_bitmap |= row_ids;
+   } else {
+      true_bitmap -= row_ids;
+   }
+   if (value == false) {
+      false_bitmap |= row_ids;
+   } else {
+      false_bitmap -= row_ids;
+   }
+}
 }  // namespace silo::storage::column

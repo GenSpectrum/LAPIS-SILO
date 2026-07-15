@@ -67,6 +67,12 @@ class BoolColumn {
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
+   /// Assigns `value` to every row in `row_ids` (physical global row ids). Each row is first
+   /// removed from all three bitmaps and then re-classified into the true, false or null bitmap
+   /// according to `value` (`std::nullopt` marks it null). Rows not in `row_ids` are left
+   /// untouched.
+   void update(const roaring::Roaring& row_ids, std::optional<bool> value);
+
   private:
    friend class boost::serialization::access;
    template <class Archive>

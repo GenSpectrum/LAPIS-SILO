@@ -21,6 +21,7 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/data_version.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/common/panic.h"
 #include "silo/common/silo_directory.h"
 #include "silo/common/version.h"
 #include "silo/database_info.h"
@@ -33,6 +34,7 @@
 #include "silo/query_engine/planner.h"
 #include "silo/query_engine/saneql/ast_to_query.h"
 #include "silo/query_engine/saneql/parser.h"
+#include "silo/query_engine/scalar_column_update.h"
 #include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/sequence_column.h"
@@ -272,6 +274,36 @@ roaring::Roaring Database::getFilteredBitmap(
    auto filter_operator = rewritten_filter_expression->compile(*table);
    roaring::Roaring bitmap = filter_operator->evaluate().getConstReference();
    return bitmap;
+}
+
+// Currently updates are not thread-safe. An update during concurrent access is not allowed
+void Database::updateColumn(
+   const std::string& table_name,
+   const std::string& column_name,
+   const std::string& value,
+   const std::string& filter_expression
+) {
+   auto maybe_table = tables.find(schema::TableName{table_name});
+   if (maybe_table == tables.end()) {
+      throw query_engine::IllegalQueryException(
+         fmt::format("The database does not contain the table '{}'", table_name)
+      );
+   }
+   auto& table = *maybe_table->second;
+
+   const auto column = table.schema->getColumn(column_name);
+   if (!column.has_value()) {
+      throw query_engine::IllegalQueryException(
+         fmt::format("The table '{}' does not contain a column '{}'", table_name, column_name)
+      );
+   }
+
+   const roaring::Roaring row_ids = getFilteredBitmap(table_name, filter_expression);
+   query_engine::assignScalarLiteralToColumn(table.columns, *column, value, row_ids);
+
+   // The update mutates persisted table data, so bump the data version like appendData does; this
+   // keeps getDataVersionTimestamp() and versioned save directories consistent with the change.
+   updateDataVersion();
 }
 
 namespace {

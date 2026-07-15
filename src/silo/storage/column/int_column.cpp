@@ -1,5 +1,9 @@
 #include "silo/storage/column/int_column.h"
 
+#include <cstdint>
+
+#include "silo/storage/column/row_id.h"
+
 namespace silo::storage::column {
 
 IntColumn::IntColumn(ColumnMetadata* metadata)
@@ -19,6 +23,18 @@ std::expected<void, std::string> IntColumn::appendChunk(const Buffer& buffer) {
    }
    values.appendChunk(std::move(chunk));
    return {};
+}
+
+void IntColumn::update(const roaring::Roaring& row_ids, std::optional<int32_t> value) {
+   if (value == std::nullopt) {
+      null_bitmap |= row_ids;
+   } else {
+      null_bitmap -= row_ids;
+   }
+   const int32_t stored_value = value.value_or(0);
+   for (const uint32_t global_row_id : row_ids) {
+      values.setValue(RowId::fromGlobal(global_row_id), stored_value);
+   }
 }
 
 }  // namespace silo::storage::column

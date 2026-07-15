@@ -5,6 +5,8 @@
 #include <fstream>
 #include <map>
 
+#include <fmt/format.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "config/source/yaml_file.h"
@@ -12,6 +14,7 @@
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"
 #include "silo/initialize/initializer.h"
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/planner.h"
 #include "silo/storage/reference_genomes.h"
 #include "silo/test/query_fixture.test.h"
@@ -121,6 +124,82 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
 
    EXPECT_EQ(database_info_after_append.sequence_count, 7);
    EXPECT_GT(data_version_after_append, data_version);
+}
+
+namespace {
+// Counts the rows of the default table matching `filter` by running a SaneQL count aggregation.
+int64_t countWhere(silo::Database& database, const std::string& filter) {
+   auto query_plan = silo::query_engine::Planner::planSaneqlQuery(
+      fmt::format("default.filter({}).groupBy({{count:=count()}})", filter),
+      database.tables,
+      silo::config::QueryOptions{},
+      "count_query"
+   );
+   auto result = silo::test::executeQueryToJsonArray(query_plan);
+   if (result.empty()) {
+      return 0;
+   }
+   return result.at(0).at("count").get<int64_t>();
+}
+}  // namespace
+
+TEST(DatabaseTest, updateColumnAssignsScalarValueToMatchingRows) {
+   auto database = buildTestDatabase();
+   const std::string table = silo::schema::TableName::getDefault().getName();
+
+   // Two rows (key1, key4) start with age 4; key3 has a null age.
+   ASSERT_EQ(countWhere(*database, "age = 4"), 2);
+
+   // Assign a scalar int to only the matching rows.
+   database->updateColumn(table, "age", "100", "age = 4");
+   ASSERT_EQ(countWhere(*database, "age = 4"), 0);
+   ASSERT_EQ(countWhere(*database, "age = 100"), 2);
+
+   // A previously-null value can be set to a concrete value.
+   ASSERT_EQ(countWhere(*database, "age = 7"), 0);
+   database->updateColumn(table, "age", "7", "primaryKey = 'key3'");
+   ASSERT_EQ(countWhere(*database, "age = 7"), 1);
+
+   // A SaneQL `null` literal clears the matched rows back to null.
+   database->updateColumn(table, "age", "null", "primaryKey = 'key3'");
+   ASSERT_EQ(countWhere(*database, "age = 7"), 0);
+   ASSERT_EQ(countWhere(*database, "age = null"), 1);
+
+   // Bool values are parsed as the boolean literals 'true'/'false'.
+   database->updateColumn(table, "test_boolean_column", "false", "true");
+   ASSERT_EQ(countWhere(*database, "test_boolean_column = false"), 5);
+
+   // Date values are SaneQL date literals.
+   database->updateColumn(table, "date", "'2000-01-01'::date", "true");
+   ASSERT_EQ(countWhere(*database, "date = '2000-01-01'::date"), 5);
+}
+
+TEST(DatabaseTest, updateColumnRejectsInvalidRequests) {
+   auto database = buildTestDatabase();
+   const std::string table = silo::schema::TableName::getDefault().getName();
+
+   // A literal that does not match the column's type is a query error.
+   EXPECT_THAT(
+      [&]() { database->updateColumn(table, "age", "'not_a_number'", "true"); },
+      ThrowsMessage<silo::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("expected integer literal")
+      )
+   );
+
+   // String columns cannot be updated by this scalar path.
+   EXPECT_THAT(
+      [&]() { database->updateColumn(table, "division", "Basel", "true"); },
+      ThrowsMessage<silo::query_engine::IllegalQueryException>(::testing::HasSubstr("not supported")
+      )
+   );
+
+   // Unknown columns and tables are reported.
+   EXPECT_THAT(
+      [&]() { database->updateColumn(table, "does_not_exist", "1", "true"); },
+      ThrowsMessage<silo::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("does not contain a column")
+      )
+   );
 }
 
 using silo::Nucleotide;
