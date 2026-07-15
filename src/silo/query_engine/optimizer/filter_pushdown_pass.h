@@ -14,6 +14,7 @@ class InsertionsNode;
 class PhyloSubtreeNode;
 class MostRecentCommonAncestorNode;
 class UnionAllNode;
+class SchemaNode;
 }  // namespace silo::query_engine::operators
 
 namespace silo::query_engine::optimizer {
@@ -35,6 +36,7 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    operators::QueryNodePtr operator()(operators::InsertionsNode<AminoAcid>& node);
    operators::QueryNodePtr operator()(operators::PhyloSubtreeNode& node);
    operators::QueryNodePtr operator()(operators::MostRecentCommonAncestorNode& node);
+   operators::QueryNodePtr operator()(operators::SchemaNode& node);
 
    operators::QueryNodePtr operator()(operators::UnionAllNode& node);
 };

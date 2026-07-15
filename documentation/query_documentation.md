@@ -356,6 +356,40 @@ unionAll(
 
 **Output:** all rows from both inputs. The order of rows is not guaranteed.
 
+### `schema()`
+
+Describes the output schema of whatever it is applied to — a table or the result of any pipeline.
+It does not read or return any data; it only reports the fields that the input would produce.
+
+```
+default.schema()
+default.filter(country='CH').groupBy({count:=count()}, {age}).schema()
+default.mutations(minProportion:=0.1).schema()
+```
+
+**Output:** one row per field of the described result, with two columns:
+
+| Field       | Type   | Description                                  |
+|-------------|--------|----------------------------------------------|
+| `fieldName` | string | Name of the field                            |
+| `type`      | string | Type of the field (e.g. `STRING`, `INT32`, `INT64`, `DATE32`, `BOOL`, `FLOAT`, `INDEXED_STRING`) |
+
+```json
+{"fieldName": "age", "type": "INT32"}
+{"fieldName": "count", "type": "INT64"}
+```
+
+`schema()` produces an ordinary two-column relation,
+so operators such as `project`, `map`, `orderBy` and `limit` can be chained after it.
+
+`schema()` is a *pipeline breaker*: like `groupBy`, `mutations` and `insertions`, it produces a new result relation instead of forwarding its child's rows.
+
+**Limitation:** sequence columns are reported with type `STRING`.
+When a sequence column is read into a pipeline it is decompressed to a string before `schema()` observes it,
+so nucleotide and amino acid sequences cannot be distinguished from ordinary strings at this point.
+
+**Limitation:** `filter(...)` cannot be applied to `schema()`. A filter is only realizable when it can be pushed into a table scan, and there is none above `schema()`.
+
 ---
 
 ## Scalar Functions
