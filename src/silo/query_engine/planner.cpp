@@ -49,13 +49,10 @@ QueryPlan Planner::planQuery(
    log_plan("initial");
    node = ColumnNarrowingPass::run(std::move(node));
    log_plan("after ColumnNarrowingPass");
-   node = FilterPushdownPass::run(std::move(node));
-   log_plan("after FilterPushdownPass");
-   // Runs after FilterPushdownPass: removing FilterNodes can expose a Fetch(Map(...)) shape
-   // (e.g. `filter(...).limit(...)` over a decompression MapNode), which this pass can then
-   // pull up.
    node = MapPullupPass::run(std::move(node));
    log_plan("after MapPullupPass");
+   node = FilterPushdownPass::run(std::move(node));
+   log_plan("after FilterPushdownPass");
    node = NodeResolutionPass::run(std::move(node));
    log_plan("after NodeResolutionPass");
    auto result = planQueryOrError(*node, tables, query_options, request_id);

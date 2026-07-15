@@ -213,6 +213,66 @@ const QueryTestScenario MAP_WITH_LIMIT_TRIGGERS_PULLUP_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"a", 3}, {"b", 7}}})
 };
 
+// --- map()/filter() ordering combinations ---
+//
+// MapPullupPass swaps Filter(Map)->Map(Filter) unconditionally and runs before
+// FilterPushdownPass. These scenarios assert that both orderings produce the correct result
+// (a filter that references a passed-through column, never a Map-produced one).
+
+// filter() stacked on top of map(): Filter(Map(scan)). MapPullupPass pulls the Map above the
+// filter; the filter (on the passed-through `int_value`) is pushed to the scan.
+const QueryTestScenario FILTER_ON_TOP_OF_MAP_SCENARIO = {
+   .name = "FILTER_ON_TOP_OF_MAP",
+   .query = "default.map({a := 3}).filter(int_value = 1).project({primaryKey, a})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}, {"a", 3}}})
+};
+
+// map() stacked on top of filter(): Map(Filter(scan)). The Map is already above the filter,
+// so nothing is swapped; the filter is pushed to the scan.
+const QueryTestScenario MAP_ON_TOP_OF_FILTER_SCENARIO = {
+   .name = "MAP_ON_TOP_OF_FILTER",
+   .query = "default.filter(int_value = 1).map({a := 3}).project({primaryKey, a})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}, {"a", 3}}})
+};
+
+// A map() whose assignment reads a passed-through column, stacked below a filter on a
+// different passed-through column.
+const QueryTestScenario FILTER_ON_TOP_OF_MAP_FIELD_REF_SCENARIO = {
+   .name = "FILTER_ON_TOP_OF_MAP_FIELD_REF",
+   .query =
+      "default.map({copied := int_value}).filter(str_value = 'short').project({primaryKey, "
+      "copied})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}, {"copied", 1}}})
+};
+
+// filter() over the implicit decompression MapNode: Filter(Map_decompress(scan)). The
+// decompression Map is pulled above the filter, so decompression runs above the filter.
+const QueryTestScenario FILTER_OVER_DECOMPRESS_MAP_SCENARIO = {
+   .name = "FILTER_OVER_DECOMPRESS_MAP",
+   .query = "default.filter(int_value = 1).project({primaryKey, unaligned_segment1})",
+   .expected_query_result =
+      nlohmann::json({{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}}})
+};
+
+// filter() + user map() + implicit decompression map() + limit, all stacked. Exercises the
+// Map bubbling up through both the filter and the fetch.
+const QueryTestScenario FILTER_MAP_DECOMPRESS_LIMIT_SCENARIO = {
+   .name = "FILTER_MAP_DECOMPRESS_LIMIT",
+   .query =
+      "default.filter(int_value >= 1).map({tag := 7}).project({primaryKey, unaligned_segment1, "
+      "tag}).orderBy({primaryKey}).limit(1)",
+   .expected_query_result =
+      nlohmann::json({{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}, {"tag", 7}}})
+};
+
+// A filter that references a column the map produces (`a`) is not yet supported
+const QueryTestScenario FILTER_ON_MAPPED_COLUMN_SCENARIO = {
+   .name = "FILTER_ON_MAPPED_COLUMN",
+   .query = "default.map({a := 3}).filter(a = 3).project({primaryKey})",
+   .expected_query_result = {},
+   .expected_error_message = "The database does not contain the column 'a'"
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -233,6 +293,12 @@ QUERY_TEST(
       DECOMPRESS_SEQUENCE_SCENARIO,
       DECOMPRESS_WITH_USER_MAP_SCENARIO,
       DECOMPRESS_SEQUENCE_WITH_LIMIT_SCENARIO,
-      MAP_WITH_LIMIT_TRIGGERS_PULLUP_SCENARIO
+      MAP_WITH_LIMIT_TRIGGERS_PULLUP_SCENARIO,
+      FILTER_ON_TOP_OF_MAP_SCENARIO,
+      MAP_ON_TOP_OF_FILTER_SCENARIO,
+      FILTER_ON_TOP_OF_MAP_FIELD_REF_SCENARIO,
+      FILTER_OVER_DECOMPRESS_MAP_SCENARIO,
+      FILTER_MAP_DECOMPRESS_LIMIT_SCENARIO,
+      FILTER_ON_MAPPED_COLUMN_SCENARIO
    )
 );
