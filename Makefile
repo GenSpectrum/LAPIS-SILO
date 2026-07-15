@@ -3,12 +3,22 @@
 ## If something fails during execution, it might be necessary to kill the daemon using `make clean-api`.
 SILO_DEBUG_EXECUTABLE=./build/Debug/silo
 SILO_DEBUG_TEST_EXECUTABLE=./build/Debug/silo_test
+SILO_DEBUG_APP_TEST_EXECUTABLE=./build/Debug/silo_app_test
 SILO_RELEASE_EXECUTABLE=./build/Release/silo
 SILO_RELEASE_TEST_EXECUTABLE=./build/Release/silo_test
+SILO_RELEASE_APP_TEST_EXECUTABLE=./build/Release/silo_app_test
 RUNNING_SILO_FLAG=running_silo.flag
 DEPENDENCIES_FLAG=dependencies
 CLANG_FORMAT=$(shell command -v clang-format-19 2>/dev/null || command -v clang-format 2>/dev/null || echo clang-format)
 CMAKE_BUILD_PARALLEL_LEVEL ?= 16
+# Route cmake through `env` so recipe lines survive an emsdk-activated PATH.
+# emsdk prepends a directory literally named `cmake` (its CMake module dir) to
+# PATH. GNU make execs recipe lines without shell metacharacters directly via
+# its own PATH search, which stops at that directory and dies with
+# "cmake: Permission denied". `env` is a real binary make can exec; it redoes
+# the PATH search and skips the non-executable directory. Harmless (identical
+# to plain `cmake`) when emsdk is not on PATH.
+CMAKE = env cmake
 
 .PHONY: ci
 ci: format all-tests
@@ -22,27 +32,33 @@ ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 
 SRC_FILE_LIST=.src_file_list
 $(SRC_FILE_LIST): FORCE
-	@find src -type f | sort > $@.tmp
+	@find src app/src -type f | sort > $@.tmp
 	@cmp -s $@ $@.tmp && rm $@.tmp || mv $@.tmp $@
 .PHONY: FORCE
 
 build/Debug/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
-	cmake -G Ninja -B build/Debug -D CMAKE_BUILD_TYPE=Debug
+	$(CMAKE) -G Ninja -B build/Debug -D CMAKE_BUILD_TYPE=Debug
 
 build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
-	cmake -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
+	$(CMAKE) -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
 
-${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
-	cmake --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo
+${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
+	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo
 
 ${SILO_DEBUG_TEST_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
-	cmake --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test
+	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test
 
-${SILO_RELEASE_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
-	cmake --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo
+${SILO_DEBUG_APP_TEST_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
+	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_app_test
+
+${SILO_RELEASE_EXECUTABLE}: build/Release/build.ninja $(shell find src app/src -type f)
+	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo
 
 ${SILO_RELEASE_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
-	cmake --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test
+	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test
+
+${SILO_RELEASE_APP_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src app/src -type f)
+	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_app_test
 
 .PHONY: output
 output: ${SILO_DEBUG_EXECUTABLE}
@@ -71,8 +87,9 @@ e2e: ${RUNNING_SILO_FLAG}
 	(cd endToEndTests && SILO_URL=localhost:8093 npm run test)
 
 .PHONY: test
-test: ${SILO_DEBUG_TEST_EXECUTABLE}
+test: ${SILO_DEBUG_TEST_EXECUTABLE} ${SILO_DEBUG_APP_TEST_EXECUTABLE}
 	${SILO_DEBUG_TEST_EXECUTABLE} --gtest_filter='*' --gtest_color=no
+	${SILO_DEBUG_APP_TEST_EXECUTABLE} --gtest_filter='*' --gtest_color=no
 
 .PHONY: python-tests
 python-tests: ${DEPENDENCIES_FLAG}
@@ -109,7 +126,7 @@ endToEndTests/node_modules: endToEndTests/package-lock.json
 
 .PHONY: format-cpp
 format-cpp:
-	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) -i
+	find src app/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) -i
 
 .PHONY: format-node
 format-node: endToEndTests/node_modules
@@ -121,7 +138,7 @@ format: format-cpp format-node
 
 .PHONY: check-format-cpp
 check-format-cpp:
-	find src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) --dry-run --Werror
+	find src app/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) --dry-run --Werror
 
 .PHONY: check-format-node
 check-format-node: endToEndTests/node_modules
