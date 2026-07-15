@@ -233,6 +233,9 @@ jobs:
           docker run \
             --entrypoint "./silo_test" \
             builder
+          docker run \
+            --entrypoint "./silo_app_test" \
+            builder
 
       - name: Build and push production image
         uses: docker/build-push-action@v7

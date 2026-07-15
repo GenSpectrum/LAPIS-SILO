@@ -12,6 +12,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -D SILO_DEBUG_ASSERTIONS=1")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D SILO_DEBUG_ASSERTIONS=0")
 
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # For find_package calls in Module mode (looking for the Find<lib>.cmake files)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_BINARY_DIR}/generators/")
@@ -23,33 +24,7 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/generators/")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ---------------------------------------------------------------------------
-# Allocator
-# ---------------------------------------------------------------------------
-
-option(USE_MIMALLOC "Use mimalloc allocator" ON)
-
-# Only use mimalloc in Release mode, because of conflicts with ASAN
-# And only on Linux, because Mac has some specialties that occur
-# at program startup before mimalloc is loaded, which can lead to
-# mixing of allocations and thus Segmentation Faults
-if(USE_MIMALLOC AND ${CMAKE_BUILD_TYPE} STREQUAL "Release" AND LINUX)
-    message("Using mimalloc as allocator")
-    find_package(mimalloc REQUIRED)
-    set(MIMALLOC_LIB mimalloc-static)
-else()
-    set(MIMALLOC_LIB "")
-endif()
-
-
-# ---------------------------------------------------------------------------
-# Compile definitions
-# ---------------------------------------------------------------------------
-
-add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
-add_compile_definitions(SIMDJSON_EXCEPTIONS=0)
-
-# ---------------------------------------------------------------------------
-# Dependencies
+# silolib dependencies
 # ---------------------------------------------------------------------------
 
 find_package(Arrow REQUIRED COMPONENTS Acero)
@@ -57,7 +32,6 @@ find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
 find_package(FastFloat REQUIRED)
 find_package(LibLZMA REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(Poco REQUIRED COMPONENTS Net Util JSON)
 find_package(re2 REQUIRED)
 find_package(roaring REQUIRED)
 find_package(spdlog REQUIRED)
@@ -65,6 +39,42 @@ find_package(simdjson REQUIRED)
 find_package(simdutf REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
+
+# ---------------------------------------------------------------------------
+# silolib
+# ---------------------------------------------------------------------------
+
+add_library(silolib_deps INTERFACE)
+
+target_link_libraries(silolib_deps INTERFACE
+        Arrow::arrow_static
+        ArrowAcero::arrow_acero_static
+        ${Boost_LIBRARIES}
+        ${FastFloat_LIBRARIES}
+        nlohmann_json::nlohmann_json
+        ${roaring_LIBRARIES}
+        ${spdlog_LIBRARIES}
+        ${simdjson_LIBRARIES}
+        ${simdutf_LIBRARIES}
+        ${yaml-cpp_LIBRARIES}
+        zstd::libzstd_static
+        re2::re2
+)
+
+target_include_directories(silolib_deps INTERFACE "src")
+
+target_compile_definitions(silolib_deps INTERFACE
+        SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE
+        SIMDJSON_EXCEPTIONS=0
+)
+
+file(GLOB_RECURSE SILOLIB_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE SILO_TEST_SOURCES CONFIGURE_DEPENDS "src/*.test.cpp")
+list(REMOVE_ITEM SILOLIB_SOURCES ${SILO_TEST_SOURCES})
+
+add_library(silolib OBJECT ${SILOLIB_SOURCES})
+set_target_properties(silolib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(silolib PUBLIC silolib_deps)
 
 # ---------------------------------------------------------------------------
 # Version
@@ -78,26 +88,6 @@ if (EXISTS "${CMAKE_SOURCE_DIR}/release_version.txt")
 else ()
     message(STATUS "No release_version.txt available for setting the version")
 endif()
-
-# ---------------------------------------------------------------------------
-# Includes
-# ---------------------------------------------------------------------------
-
-include_directories(
-        ${CMAKE_SOURCE_DIR}/src
-)
-
-# ---------------------------------------------------------------------------
-# Sources
-# ---------------------------------------------------------------------------
-
-file(GLOB_RECURSE SRC_TEST "src/*.test.cpp")
-
-file(GLOB_RECURSE SRC_SILO "src/*.cpp")
-list(REMOVE_ITEM SRC_SILO ${SRC_TEST})
-
-set(SRC_SILO_WITHOUT_MAIN ${SRC_SILO})
-list(REMOVE_ITEM SRC_SILO_WITHOUT_MAIN "${CMAKE_SOURCE_DIR}/src/main.cpp")
 
 # ---------------------------------------------------------------------------
 # Linter
@@ -116,40 +106,6 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL Release AND BUILD_WITH_CLANG_TIDY)
 endif ()
 
 # ---------------------------------------------------------------------------
-# Targets
-# ---------------------------------------------------------------------------
-
-add_library(silolib OBJECT ${SRC_SILO_WITHOUT_MAIN})
-set_target_properties(silolib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(
-        silolib
-        PUBLIC
-        Arrow::arrow_static
-        ArrowAcero::arrow_acero_static
-        ${Boost_LIBRARIES}
-        ${FastFloat_LIBRARIES}
-        nlohmann_json::nlohmann_json
-        ${roaring_LIBRARIES}
-        ${spdlog_LIBRARIES}
-        ${simdjson_LIBRARIES}
-        ${simdutf_LIBRARIES}
-        ${yaml-cpp_LIBRARIES}
-        zstd::libzstd_static
-        Poco::Net
-        Poco::Util
-        Poco::JSON
-        re2::re2
-)
-
-add_executable(silo "${CMAKE_SOURCE_DIR}/src/main.cpp")
-target_link_libraries(
-        silo
-        PUBLIC
-        ${MIMALLOC_LIB} # this should be first
-        silolib
-)
-
-# ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 
@@ -157,90 +113,25 @@ enable_testing()
 find_package(GTest REQUIRED)
 include_directories(${GTest_INCLUDE_DIRS})
 
-add_executable(silo_test ${SRC_TEST})
+add_executable(silo_test ${SILO_TEST_SOURCES})
 if (NOT GTest_LIBRARIES)
     set(GTest_LIBRARIES gtest gmock)
 endif ()
 target_link_libraries(silo_test PUBLIC ${GTest_LIBRARIES} silolib)
 
 # ---------------------------------------------------------------------------
-# Benchmarks
+# Targets
 # ---------------------------------------------------------------------------
 
+# The native command-line application (the `silo` executable) is a consumer
+# of the shared silolib declaration
+add_subdirectory(app)
+
+# The performance benchmark targets
 add_subdirectory(performance)
 
-# ---------------------------------------------------------------------------
-# Python Bindings
-# ---------------------------------------------------------------------------
-
+# The python binding target
 option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
-
 if(BUILD_PYTHON_BINDINGS)
-    find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
-
-    # Find Cython
-    execute_process(
-        COMMAND "${Python3_EXECUTABLE}" -c "import Cython; print(Cython.__version__)"
-        OUTPUT_VARIABLE CYTHON_VERSION
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        RESULT_VARIABLE CYTHON_NOT_FOUND
-    )
-
-    if(CYTHON_NOT_FOUND)
-        message(FATAL_ERROR "Cython not found. Install with: pip install Cython")
-    endif()
-
-    message(STATUS "Found Cython version: ${CYTHON_VERSION}")
-
-    # Cython modules to build
-    set(CYTHON_MODULES database)
-
-    # Build each Cython module
-    foreach(module ${CYTHON_MODULES})
-        set(pyx_file "${CMAKE_SOURCE_DIR}/python/silodb/${module}.pyx")
-        set(cpp_file "${CMAKE_BINARY_DIR}/python/silodb/${module}.cpp")
-
-        # Run Cython to generate C++ file
-        add_custom_command(
-            OUTPUT ${cpp_file}
-            COMMAND ${Python3_EXECUTABLE} -m cython
-                --cplus
-                -3
-                -I "${CMAKE_SOURCE_DIR}/python/silodb"
-                -o ${cpp_file}
-                ${pyx_file}
-            DEPENDS ${pyx_file}
-            COMMENT "Cythonizing ${module}.pyx"
-        )
-
-        # Create Python extension module
-        Python3_add_library(${module} MODULE ${cpp_file})
-
-        # Set include directories
-        target_include_directories(${module} PRIVATE
-            ${CMAKE_SOURCE_DIR}/src
-            ${CMAKE_SOURCE_DIR}/python/silodb
-        )
-
-        # Link against silolib
-        target_link_libraries(${module} PRIVATE silolib)
-
-        # Set output name and location
-        set_target_properties(${module} PROPERTIES
-            PREFIX ""
-            OUTPUT_NAME "${module}"
-            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/silodb"
-        )
-
-        # Install to Python package directory
-        # Note: CMAKE_INSTALL_PREFIX is set by setup.py to point to the silodb directory
-        install(TARGETS ${module}
-            LIBRARY DESTINATION .
-        )
-    endforeach()
-
-    # Install Python package files
-    install(FILES "${CMAKE_SOURCE_DIR}/python/silodb/__init__.py"
-        DESTINATION .
-    )
+    add_subdirectory(python)
 endif()
