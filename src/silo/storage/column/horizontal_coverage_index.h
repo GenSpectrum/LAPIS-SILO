@@ -38,6 +38,9 @@ class HorizontalCoverageIndex {
 
    void insertNullSequence(RowId row_id);
 
+   /// The number of rows covering each position
+   [[nodiscard]] std::vector<uint64_t> computeCoverageCardinalities(size_t genome_length) const;
+
    [[nodiscard]] size_t numChunks() const { return start_end.size(); }
 
    [[nodiscard]] uint32_t chunkSize(uint16_t chunk_id) const {
