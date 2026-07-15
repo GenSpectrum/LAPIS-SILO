@@ -11,7 +11,7 @@
 
 #include "silo/preprocessing/preprocessing_exception.h"
 
-#ifndef __EMSCRIPTEN__
+#ifndef SILO_WASM
 #include <boost/iostreams/filter/lzma.hpp>
 #endif
 
@@ -35,7 +35,7 @@ InputStreamWrapper::InputStreamWrapper(const std::filesystem::path& file_path) {
       file_stream = std::ifstream(withZSTending(file_path), std::ios::binary);
       boost_input_stream->push(boost::iostreams::zstd_decompressor());
    } else if (std::filesystem::is_regular_file(withXZending(file_path))) {
-#ifndef __EMSCRIPTEN__
+#ifndef SILO_WASM
       SPDLOG_INFO("Detected file-ending .xz for input file " + file_path.string());
       file_stream = std::ifstream(withXZending(file_path), std::ios::binary);
       boost_input_stream->push(boost::iostreams::lzma_decompressor());

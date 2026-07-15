@@ -26,7 +26,7 @@ constexpr uint64_t QUERY_TIMEOUT_SECONDS = 120;
 // full nucleotide sequences can materialize large intermediate batches before
 // a downstream `.limit(...)` is applied, so the browser build uses a much
 // smaller cutoff.
-constexpr size_t DEFAULT_MATERIALIZATION_CUTOFF = 256;
+constexpr size_t WASM_MATERIALIZATION_CUTOFF = 256;
 
 // Not thread-safe. All embind-exported functions in this file are expected to
 // be called sequentially from a single JS context (the main thread or one
@@ -64,7 +64,7 @@ silo::config::PreprocessingConfig readPreprocessingConfig(
 }
 
 silo::config::QueryOptions browserQueryOptions() {
-   return silo::config::QueryOptions{.materialization_cutoff = DEFAULT_MATERIALIZATION_CUTOFF};
+   return silo::config::QueryOptions{.materialization_cutoff = WASM_MATERIALIZATION_CUTOFF};
 }
 
 }  // namespace
