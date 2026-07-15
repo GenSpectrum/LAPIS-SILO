@@ -42,7 +42,7 @@ class Page {
       } else {
          // Loading: ensure buffer is allocated, then read from archive
          if(!buffer) {
-            buffer = reinterpret_cast<uint8_t*>(malloc(SILO_PAGE_SIZE));
+            buffer = new uint8_t[SILO_PAGE_SIZE];
          }
          archive & boost::serialization::make_binary_object(buffer, SILO_PAGE_SIZE);
       }
