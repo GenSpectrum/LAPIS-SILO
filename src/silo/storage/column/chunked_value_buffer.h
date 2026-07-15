@@ -36,6 +36,12 @@ class ChunkedValueBuffer {
       return chunks.at(row_id.chunk_id).at(row_id.row_in_chunk);
    }
 
+   /// Overwrites the value at `row_id` in place. Used by `update` to assign a new scalar value to
+   /// an already ingested row; null handling lives in the owning column's bitmaps.
+   void setValue(RowId row_id, T value) {
+      chunks.at(row_id.chunk_id).at(row_id.row_in_chunk) = value;
+   }
+
    /// The most recently appended value (the last value of the last chunk).
    [[nodiscard]] const T& lastValue() const { return chunks.back().back(); }
 

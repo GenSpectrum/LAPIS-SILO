@@ -70,6 +70,18 @@ class Database {
 
    roaring::Roaring getFilteredBitmap(const std::string& table_name, const std::string& filter);
 
+   /// Assigns the scalar `value` to the column `column_name` of `table_name` for every row matched
+   /// by the SaneQL `filter_expression`. `value` is a single SaneQL literal (parsed by the same
+   /// lexer/parser as queries) matching the column's type, e.g. `3`, `3.14`, `true`, or
+   /// `'2021-03-15'::date`; the literal `null` clears the matched rows. Only scalar value columns
+   /// (INT32, FLOAT, DATE32, BOOL) can be updated; other column types raise an error.
+   void updateColumn(
+      const std::string& table_name,
+      const std::string& column_name,
+      const std::string& value,
+      const std::string& filter_expression
+   );
+
    void saveDatabaseState(const std::filesystem::path& save_directory);
 
    static std::optional<Database> loadDatabaseStateFromPath(

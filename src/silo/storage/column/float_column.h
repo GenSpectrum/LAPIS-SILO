@@ -47,6 +47,11 @@ class FloatColumn {
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
+   /// Assigns `value` to every row in `row_ids` (physical global row ids). A `std::nullopt` value
+   /// marks the rows null; a concrete value clears their null flag and overwrites the stored value
+   /// in place. Rows not in `row_ids` are left untouched.
+   void update(const roaring::Roaring& row_ids, std::optional<double> value);
+
   private:
    friend class boost::serialization::access;
    template <class Archive>

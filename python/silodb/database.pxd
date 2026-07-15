@@ -25,6 +25,7 @@ cdef extern from "silo/database.h" namespace "silo":
         string getNucleotideReferenceSequence(string table_name, string sequence_name) except +
         string getAminoAcidReferenceSequence(string table_name, string sequence_name) except +
         Roaring getFilteredBitmap(string table_name, string filter) except +handle_silo_exception
+        void updateColumn(string table_name, string column_name, string value, string filter_expression) except +handle_silo_exception
         void saveDatabaseState(string save_directory) except +
         string executeQueryAsArrowIpc(string query_string) except +handle_silo_exception
         string getTablesAsArrowIpc() except +

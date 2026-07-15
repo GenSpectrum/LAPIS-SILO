@@ -367,6 +367,55 @@ cdef class PyDatabase:
         except Exception as e:
             raise RuntimeError(f"Failed to get filtered bitmap: {e}")
 
+    def update_column(self, str table_name, str column_name, str value, str filter_expression=""):
+        """
+        Assign a single scalar value to a column for all rows matching a filter.
+
+        The rows to update are selected by ``filter_expression`` (a SaneQL filter, like
+        ``get_filtered_bitmap``). Every matched row is assigned the same ``value``, a SaneQL
+        literal (parsed by the same parser as queries) matching the column's type, e.g. ``"3"``
+        for an int column, ``"3.14"`` for a float column, ``"true"``/``"false"`` for a bool
+        column, ``"'2021-03-15'::date"`` for a date column. The literal ``"null"`` clears the
+        matched rows.
+
+        Only scalar value columns (int, float, date and bool) can be updated.
+
+        Not thread-safe: this mutates the in-memory database in place with no
+        internal locking.
+
+        Parameters
+        ----------
+        table_name : str
+            Name of the table
+        column_name : str
+            Name of the column to update
+        value : str
+            SaneQL literal assigned to every matched row (``"null"`` clears the rows)
+        filter_expression : str, optional
+            SaneQL filter expression selecting the rows to update
+            (default: 'true' which matches all rows)
+        """
+        if not table_name or not table_name.strip():
+            raise ValueError("table_name cannot be empty")
+        if not column_name or not column_name.strip():
+            raise ValueError("column_name cannot be empty")
+
+        # Default to True filter (updates all rows) if no filter specified
+        if filter_expression is None or filter_expression == "":
+            filter_expression = 'true'
+
+        cdef string cpp_table_name = table_name.encode('utf-8')
+        cdef string cpp_column_name = column_name.encode('utf-8')
+        cdef string cpp_filter = filter_expression.encode('utf-8')
+        cdef string cpp_value = value.encode('utf-8')
+
+        try:
+            self.c_database.updateColumn(cpp_table_name, cpp_column_name, cpp_value, cpp_filter)
+        except ValueError:
+            raise
+        except Exception as e:
+            raise RuntimeError(f"Failed to update column '{column_name}': {e}")
+
     def query(self, str query_string):
         """
         Execute a query and return results as a PyArrow Table
