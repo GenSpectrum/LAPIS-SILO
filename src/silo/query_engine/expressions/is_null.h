@@ -23,6 +23,8 @@ class IsNull : public Expression {
    static constexpr Kind KIND = Kind::IS_NULL;
    [[nodiscard]] Kind kind() const override { return KIND; }
 
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
+
    [[nodiscard]] std::unique_ptr<Expression> rewrite(
       const storage::Table& table,
       AmbiguityMode mode

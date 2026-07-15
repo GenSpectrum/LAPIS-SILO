@@ -12,6 +12,7 @@ class AggregateNode;
 class ProjectNode;
 class MapNode;
 class OrderByNode;
+class FilterNode;
 class UnionAllNode;
 }  // namespace silo::query_engine::operators
 
@@ -40,6 +41,7 @@ class ColumnNarrowingPass : public PipelinePassBase<ColumnNarrowingPass> {
    operators::QueryNodePtr operator()(operators::ProjectNode& node);
    operators::QueryNodePtr operator()(operators::MapNode& node);
    operators::QueryNodePtr operator()(operators::OrderByNode& node);
+   operators::QueryNodePtr operator()(operators::FilterNode& node);
    operators::QueryNodePtr operator()(operators::UnionAllNode& node);
 };
 

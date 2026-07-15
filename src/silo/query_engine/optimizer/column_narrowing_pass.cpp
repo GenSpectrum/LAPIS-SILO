@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "silo/query_engine/operators/aggregate_node.h"
+#include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
@@ -151,6 +152,24 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::OrderByNode& 
    for (const auto& field : node.fields) {
       if (std::ranges::find(required, field.field) == required.end()) {
          required.push_back(field.field);
+      }
+   }
+   propagateToNode(node.child);
+   return nullptr;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::FilterNode& node) {
+   // A FilterNode passes through all of its child's columns but its predicate references
+   // some of them. Those referenced columns must be kept alive in the child (e.g. a Map
+   // assignment that produces a column the predicate filters on must not be pruned).
+   // Columns are deduplicated by name, consistent with the rest of the pass.
+   for (const auto& referenced_column : node.filter->freeIUs()) {
+      const bool already_required = std::ranges::any_of(required, [&](const auto& existing) {
+         return existing.name == referenced_column.name;
+      });
+      if (!already_required) {
+         required.push_back(referenced_column);
       }
    }
    propagateToNode(node.child);

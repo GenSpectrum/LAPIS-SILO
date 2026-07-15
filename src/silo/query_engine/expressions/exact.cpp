@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -15,6 +16,10 @@ namespace silo::query_engine::expressions {
 
 Exact::Exact(std::unique_ptr<Expression> child)
     : child(std::move(child)) {}
+
+std::vector<schema::ColumnIdentifier> Exact::freeIUs() const {
+   return child->freeIUs();
+}
 
 std::string Exact::toString() const {
    return fmt::format("Exact ({})", child->toString());

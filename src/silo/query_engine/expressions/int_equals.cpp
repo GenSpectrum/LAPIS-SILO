@@ -1,6 +1,7 @@
 #include "silo/query_engine/expressions/int_equals.h"
 
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
@@ -18,6 +19,10 @@ namespace silo::query_engine::expressions {
 IntEquals::IntEquals(std::string column_name, std::optional<int32_t> value)
     : column_name(std::move(column_name)),
       value(value) {}
+
+std::vector<schema::ColumnIdentifier> IntEquals::freeIUs() const {
+   return {{.name = column_name, .type = schema::ColumnType::BOOL}};
+}
 
 std::string IntEquals::toString() const {
    if (value.has_value()) {
