@@ -645,7 +645,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.conan2
-          key: conan-wasm-${{ hashFiles('wasm/conanfile.py', 'buildScripts/install-wasm-dependencies', 'buildScripts/create-wasm-conanprofile') }}
+          key: conan-wasm-${{ hashFiles('conanfile.py', 'buildScripts/install-wasm-dependencies', 'buildScripts/create-wasm-conanprofile') }}
           restore-keys: |
             conan-wasm-
 

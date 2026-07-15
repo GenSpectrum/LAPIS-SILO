@@ -26,7 +26,7 @@ ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 build/wasm/conanprofile-emscripten:
 	buildScripts/create-wasm-conanprofile
 
-${WASM_DEPENDENCIES_FLAG}: wasm/conanfile.py conanprofile build/wasm/conanprofile-emscripten
+${WASM_DEPENDENCIES_FLAG}: conanfile.py conanprofile build/wasm/conanprofile-emscripten
 	buildScripts/install-wasm-dependencies
 	touch ${WASM_DEPENDENCIES_FLAG}
 

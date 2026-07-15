@@ -5,123 +5,144 @@ from conan.tools.cmake import CMakeDeps
 class SiloRecipe(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
 
-    requires = [
-        "arrow/22.0.0",
-        "boost/1.85.0",
-        "fast_float/8.1.0",
-        "gtest/1.17.0",
-        "mimalloc/3.3.2",
-        "nlohmann_json/3.12.0",
-        "poco/1.15.2",
-        "re2/20251105",
-        "roaring/4.5.0",
-        "simdjson/4.2.4",
-        "simdutf/8.0.0",
-        "spdlog/1.17.0",
-        "yaml-cpp/0.8.0",
-        "zstd/1.5.7",
-    ]
+    # The `wasm` option selects the Emscripten/WebAssembly build variant. It
+    # drops the native-only dependencies (gtest, mimalloc, poco) and adjusts a
+    # handful of dependency options that must differ for the browser build
+    # (e.g. no lzma, no threading, a slimmer Arrow). Enable it with
+    # `conan install . -o "&:wasm=True"` (see buildScripts/install-wasm-dependencies).
+    options = {"wasm": [True, False]}
+    default_options = {"wasm": False}
 
-    default_options = {
-        "abseil/*:shared": False,
+    def requirements(self):
+        self.requires("arrow/22.0.0")
+        self.requires("boost/1.85.0")
+        self.requires("fast_float/8.1.0")
+        self.requires("nlohmann_json/3.12.0")
+        self.requires("re2/20251105")
+        self.requires("roaring/4.5.0")
+        self.requires("simdjson/4.2.4")
+        self.requires("simdutf/8.0.0")
+        self.requires("spdlog/1.17.0")
+        self.requires("yaml-cpp/0.8.0")
+        self.requires("zstd/1.5.7")
 
-        "arrow/*:with_mimalloc": False,
-        "arrow/*:compute": True,
-        "arrow/*:acero": True,
+        if not self.options.wasm:
+            self.requires("gtest/1.17.0")
+            self.requires("mimalloc/3.3.2")
+            self.requires("poco/1.15.2")
 
-        "boost/*:lzma": True,
-        "boost/*:zstd": True,
-        "boost/*:shared": False,
+    def configure(self):
+        # Options shared by both the native and the WASM build.
+        self.options["abseil"].shared = False
 
-        "boost/*:without_iostreams": False,
-        "boost/*:without_serialization": False,
-        "boost/*:without_container": False,
-        "boost/*:without_system": False,
-        "boost/*:without_random": False,
-        "boost/*:without_regex": False,
-        "boost/*:without_atomic": True,
-        "boost/*:without_chrono": True,
-        "boost/*:without_context": True,
-        "boost/*:without_contract": True,
-        "boost/*:without_coroutine": True,
-        "boost/*:without_date_time": True,
-        "boost/*:without_exception": True,
-        "boost/*:without_fiber": True,
-        "boost/*:without_filesystem": True,
-        "boost/*:without_graph": True,
-        "boost/*:without_graph_parallel": True,
-        "boost/*:without_json": True,
-        "boost/*:without_locale": True,
-        "boost/*:without_log": True,
-        "boost/*:without_math": True,
-        "boost/*:without_mpi": True,
-        "boost/*:without_nowide": True,
-        "boost/*:without_program_options": True,
-        "boost/*:without_python": True,
-        "boost/*:without_stacktrace": True,
-        "boost/*:without_test": True,
-        "boost/*:without_thread": True,
-        "boost/*:without_timer": True,
-        "boost/*:without_type_erasure": True,
-        "boost/*:without_wave": True,
+        self.options["arrow"].with_mimalloc = False
+        self.options["arrow"].compute = True
+        self.options["arrow"].acero = True
 
-        "gtest/*:no_main": True,
+        self.options["boost"].zstd = True
+        self.options["boost"].shared = False
+        self.options["boost"].without_iostreams = False
+        self.options["boost"].without_serialization = False
+        self.options["boost"].without_system = False
+        self.options["boost"].without_random = False
+        self.options["boost"].without_regex = False
+        self.options["boost"].without_atomic = True
+        self.options["boost"].without_chrono = True
+        self.options["boost"].without_context = True
+        self.options["boost"].without_contract = True
+        self.options["boost"].without_coroutine = True
+        self.options["boost"].without_date_time = True
+        self.options["boost"].without_exception = True
+        self.options["boost"].without_fiber = True
+        self.options["boost"].without_filesystem = True
+        self.options["boost"].without_graph = True
+        self.options["boost"].without_graph_parallel = True
+        self.options["boost"].without_json = True
+        self.options["boost"].without_locale = True
+        self.options["boost"].without_log = True
+        self.options["boost"].without_math = True
+        self.options["boost"].without_mpi = True
+        self.options["boost"].without_nowide = True
+        self.options["boost"].without_program_options = True
+        self.options["boost"].without_python = True
+        self.options["boost"].without_stacktrace = True
+        self.options["boost"].without_test = True
+        self.options["boost"].without_thread = True
+        self.options["boost"].without_timer = True
+        self.options["boost"].without_type_erasure = True
+        self.options["boost"].without_wave = True
 
-        "hwloc/*:shared": False,
+        self.options["hwloc"].shared = False
+        self.options["re2"].shared = False
+        self.options["roaring"].shared = False
+        self.options["simdjson"].shared = False
+        self.options["simdutf"].shared = False
+        self.options["spdlog"].shared = False
+        self.options["yaml-cpp"].shared = False
+        self.options["zstd"].shared = False
 
-        # this statically overrides the `malloc` symbol to use mimalloc
-        "mimalloc/*:override": True,
+        if self.options.wasm:
+            # Browser build: no lzma (not available for Emscripten), a
+            # single-threaded, slimmer Arrow, and a few extra boost libraries
+            # compiled out.
+            self.options["arrow"].filesystem_layer = False
+            self.options["arrow"].parquet = False
+            self.options["arrow"].with_thrift = False
+            self.options["arrow"].with_zlib = False
 
-        "poco/*:shared": False,
-        "poco/*:enable_json": True,
-        "poco/*:enable_net": True,
-        "poco/*:enable_util": True,
+            self.options["boost"].lzma = False
+            self.options["boost"].multithreading = False
+            self.options["boost"].without_charconv = True
+            self.options["boost"].without_cobalt = True
+            self.options["boost"].without_container = True
+            self.options["boost"].without_url = True
+        else:
+            # Native build.
+            self.options["boost"].lzma = True
+            self.options["boost"].without_container = False
 
-        "poco/*:enable_crypto": False,
-        "poco/*:enable_activerecord": False,
-        "poco/*:enable_active_record": False,
-        "poco/*:enable_data": False,
-        "poco/*:enable_data_mysql": False,
-        "poco/*:enable_data_postgresql": False,
-        "poco/*:enable_data_sqlite": False,
-        "poco/*:enable_encodings": False,
-        "poco/*:enable_jwt": False,
-        "poco/*:enable_mongodb": False,
-        "poco/*:enable_netssl": False,
-        "poco/*:enable_redis": False,
-        "poco/*:enable_xml": False,
-        "poco/*:enable_zip": False,
+            self.options["gtest"].no_main = True
 
-        "re2/*:shared": False,
+            # this statically overrides the `malloc` symbol to use mimalloc
+            self.options["mimalloc"].override = True
 
-        "roaring/*:shared": False,
-
-        "simdjson/*:shared": False,
-
-        "simdutf/*:shared": False,
-
-        "spdlog/*:shared": False,
-
-        "yaml-cpp/*:shared": False,
-
-        "zstd/*:shared": False,
-    }
+            self.options["poco"].shared = False
+            self.options["poco"].enable_json = True
+            self.options["poco"].enable_net = True
+            self.options["poco"].enable_util = True
+            self.options["poco"].enable_crypto = False
+            self.options["poco"].enable_activerecord = False
+            self.options["poco"].enable_active_record = False
+            self.options["poco"].enable_data = False
+            self.options["poco"].enable_data_mysql = False
+            self.options["poco"].enable_data_postgresql = False
+            self.options["poco"].enable_data_sqlite = False
+            self.options["poco"].enable_encodings = False
+            self.options["poco"].enable_jwt = False
+            self.options["poco"].enable_mongodb = False
+            self.options["poco"].enable_netssl = False
+            self.options["poco"].enable_redis = False
+            self.options["poco"].enable_xml = False
+            self.options["poco"].enable_zip = False
 
     def generate(self):
         deps = CMakeDeps(self)
-        deps.set_property("abseil", "cmake_find_mode", "both")
-        deps.set_property("boost", "cmake_find_mode", "both")
-        deps.set_property("gtest", "cmake_find_mode", "both")
-        deps.set_property("hwloc", "cmake_find_mode", "both")
-        deps.set_property("mimalloc", "cmake_find_mode", "both")
-        deps.set_property("nlohmann_json", "cmake_find_mode", "both")
-        deps.set_property("pcre2", "cmake_find_mode", "both")
-        deps.set_property("poco", "cmake_find_mode", "both")
-        deps.set_property("re2", "cmake_find_mode", "both")
-        deps.set_property("roaring", "cmake_find_mode", "both")
-        deps.set_property("spdlog", "cmake_find_mode", "both")
-        deps.set_property("simdjson", "cmake_find_mode", "both")
-        deps.set_property("simdutf", "cmake_find_mode", "both")
-        deps.set_property("yaml-cpp", "cmake_find_mode", "both")
-        deps.set_property("zstd", "cmake_find_mode", "both")
+        packages = [
+            "abseil",
+            "boost",
+            "hwloc",
+            "nlohmann_json",
+            "pcre2",
+            "re2",
+            "roaring",
+            "spdlog",
+            "simdjson",
+            "simdutf",
+            "yaml-cpp",
+            "zstd",
+        ]
+        if not self.options.wasm:
+            packages += ["gtest", "mimalloc", "poco"]
+        for package in packages:
+            deps.set_property(package, "cmake_find_mode", "both")
         deps.generate()

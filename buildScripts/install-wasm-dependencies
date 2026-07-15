@@ -5,7 +5,8 @@ set -euo pipefail
 ./buildScripts/ensure-uv
 
 # TODO(#986) remove setting 'arrow/*:compiler.cppstd=20' when arrow compilation for C++23 is fixed
-uv run --project buildScripts conan install wasm --update \
+uv run --project buildScripts conan install . --update \
+  -o '&:wasm=True' \
   --build=missing \
   '--build=abseil/*' \
   '--build=arrow/*' \
