@@ -463,4 +463,54 @@ TEST_F(HorizontalCoverageIndexTest, EmptySequenceIsAlwaysUncovered) {
    EXPECT_EQ(index->getCoverageBitmapForPositions<1>(10).at(0), roaring::Roaring{});
 }
 
+// computeCoverageCardinalities must return, for every position, the cardinality of the bitmap
+// that getCoverageBitmapForPositions produces there - that equivalence is what lets finalize skip
+// materializing the bitmaps.
+TEST_F(HorizontalCoverageIndexTest, CoverageCardinalitiesMatchBitmapCardinalities) {
+   // A mix of ranges, an internal N run (populating the horizontal bitmaps), leading/trailing N,
+   // a fully missing sequence and an empty one, so every branch contributes.
+   insertSequenceCoverage(std::string(GENOME_LENGTH, 'A'), 0);
+   insertSequenceCoverage("ACGTACGT", 10);
+   insertSequenceCoverage("ACGTNNNNNNACGT", 20);  // internal N run
+   insertSequenceCoverage("NNNACGTNNN", 40);      // leading and trailing N
+   insertSequenceCoverage(std::string(15, 'N'), 5);
+   insertNullCoverage();
+   insertSequenceCoverage("", 30);
+
+   const std::vector<uint64_t> cardinalities = index->computeCoverageCardinalities(GENOME_LENGTH);
+
+   ASSERT_EQ(cardinalities.size(), GENOME_LENGTH);
+   for (uint32_t position_idx = 0; position_idx < GENOME_LENGTH; ++position_idx) {
+      EXPECT_EQ(
+         cardinalities.at(position_idx),
+         index->getCoverageBitmapForPositions<1>(position_idx).at(0).cardinality()
+      ) << "at position "
+        << position_idx;
+   }
+}
+
+TEST_F(HorizontalCoverageIndexTest, CoverageCardinalitiesAcrossMultipleChunks) {
+   // Spread rows across three chunks so the per-chunk iteration in computeCoverageCardinalities is
+   // exercised, with a gap chunk boundary that carries N runs.
+   for (size_t chunk_id = 0; chunk_id < 3; ++chunk_id) {
+      index->insertCoverage(
+         RowId{.chunk_id = static_cast<uint16_t>(chunk_id), .row_in_chunk = 0},
+         extractCoverageAndMutationsFromSequence<Nucleotide>("ACGTNNACGT", chunk_id * 5, REFERENCE)
+            .value()
+            .coverage
+      );
+   }
+
+   const std::vector<uint64_t> cardinalities = index->computeCoverageCardinalities(GENOME_LENGTH);
+
+   ASSERT_EQ(cardinalities.size(), GENOME_LENGTH);
+   for (uint32_t position_idx = 0; position_idx < GENOME_LENGTH; ++position_idx) {
+      EXPECT_EQ(
+         cardinalities.at(position_idx),
+         index->getCoverageBitmapForPositions<1>(position_idx).at(0).cardinality()
+      ) << "at position "
+        << position_idx;
+   }
+}
+
 }  // namespace silo::storage::column

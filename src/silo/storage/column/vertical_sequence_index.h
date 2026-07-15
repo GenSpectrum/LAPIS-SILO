@@ -145,6 +145,16 @@ class VerticalSequenceIndex {
       SymbolType::Symbol current_local_reference_symbol
    ) const;
 
+   /// The symbol that should replace the current local reference symbol at this position, or
+   /// nullopt if the current one is already the most common. Only needs the number of rows
+   /// covering the position, not the (expensive to materialize) bitmap of those rows, so it can
+   /// cheaply decide whether adaptLocalReference needs to run at all.
+   [[nodiscard]] std::optional<typename SymbolType::Symbol> findBetterLocalReferenceSymbol(
+      uint32_t position_idx,
+      SymbolType::Symbol current_local_reference_symbol,
+      uint64_t coverage_cardinality
+   ) const;
+
    std::optional<typename SymbolType::Symbol> adaptLocalReference(
       const roaring::Roaring& coverage_bitmap,
       uint32_t position_idx,

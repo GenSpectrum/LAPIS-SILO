@@ -105,6 +105,26 @@ SymbolType::Symbol VerticalSequenceIndex<SymbolType>::getSymbolWithHighestCount(
 }
 
 template <typename SymbolType>
+std::optional<typename SymbolType::Symbol> VerticalSequenceIndex<SymbolType>::
+   findBetterLocalReferenceSymbol(
+      uint32_t position_idx,
+      SymbolType::Symbol current_local_reference_symbol,
+      uint64_t coverage_cardinality
+   ) const {
+   auto [start, end] = getRangeForPosition(position_idx);
+
+   const SymbolMap<SymbolType, uint32_t> symbol_counts = computeSymbolCountsForPosition(
+      start, end, current_local_reference_symbol, coverage_cardinality
+   );
+   const typename SymbolType::Symbol best_symbol =
+      getSymbolWithHighestCount(symbol_counts, current_local_reference_symbol);
+   if (best_symbol == current_local_reference_symbol) {
+      return std::nullopt;
+   }
+   return best_symbol;
+}
+
+template <typename SymbolType>
 std::optional<typename SymbolType::Symbol> VerticalSequenceIndex<SymbolType>::adaptLocalReference(
    const roaring::Roaring& coverage_bitmap,
    uint32_t position_idx,
@@ -112,16 +132,13 @@ std::optional<typename SymbolType::Symbol> VerticalSequenceIndex<SymbolType>::ad
 ) {
    auto [start, end] = getRangeForPosition(position_idx);
 
-   const SymbolMap<SymbolType, uint32_t> symbol_counts = computeSymbolCountsForPosition(
-      start, end, current_local_reference_symbol, coverage_bitmap.cardinality()
+   const auto best_symbol = findBetterLocalReferenceSymbol(
+      position_idx, current_local_reference_symbol, coverage_bitmap.cardinality()
    );
-   // Find the symbol with the highest count
-   const typename SymbolType::Symbol best_symbol =
-      getSymbolWithHighestCount(symbol_counts, current_local_reference_symbol);
-   if (best_symbol == current_local_reference_symbol) {
+   if (!best_symbol.has_value()) {
       return std::nullopt;
    }
-   typename SymbolType::Symbol new_reference_symbol = best_symbol;
+   const typename SymbolType::Symbol new_reference_symbol = best_symbol.value();
    roaring::Roaring old_reference_bitmap = coverage_bitmap;
 
    old_reference_bitmap -= getMatchingContainersAsBitmap(
