@@ -18,6 +18,7 @@
 #include "silo/query_engine/exec_node/zstd_decompress_expression.h"
 #include "silo/query_engine/expressions/at.h"
 #include "silo/query_engine/expressions/field_ref.h"
+#include "silo/query_engine/expressions/iso_week.h"
 #include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 
@@ -60,6 +61,11 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
          "utf8_slice_codeunits",
          {arrow::compute::field_ref(at_function->input_column.name)},
          arrow::compute::SliceOptions(start, stop)
+      );
+   }
+   if (const auto* iso_week = dynamic_cast<const expressions::IsoWeek*>(&expression)) {
+      return arrow::compute::call(
+         "iso_week", {arrow::compute::field_ref(iso_week->input_column.name)}
       );
    }
    return arrow::Status::NotImplemented(

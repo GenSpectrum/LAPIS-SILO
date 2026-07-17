@@ -152,6 +152,42 @@ TEST(SequenceColumn, validInsertionAtPositionEqualToGenomeLength) {
    EXPECT_NO_THROW(appendSequence(under_test, "A", 0, {"1:G"}));
 }
 
+// finalize decides whether to adapt the local reference from each position's coverage
+// cardinality, which excludes rows whose base there is N. This checks that path end to end: at
+// position 2 the majority of *covered* rows is T even though two rows have N there, so the
+// reference must adapt G -> T.
+TEST(SequenceColumn, adaptsLocalReferenceWhenMajorityOfCoveredRowsDiffers) {
+   SequenceColumnMetadata<Nucleotide> column_metadata{
+      "test_column",
+      {Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T}
+   };
+   SequenceColumn<Nucleotide> under_test(&column_metadata);
+
+   {
+      SequenceColumn<Nucleotide>::Builder builder(
+         under_test.metadata, under_test.local_reference_sequence_string
+      );
+      builder.insert("ACTT", 0, std::vector<std::string>{});  // T at position 2
+      builder.insert("ACTT", 0, std::vector<std::string>{});  // T at position 2
+      builder.insert("ACTT", 0, std::vector<std::string>{});  // T at position 2
+      builder.insert("ACNT", 0, std::vector<std::string>{});  // N -> uncovered at position 2
+      builder.insert("ACNT", 0, std::vector<std::string>{});  // N -> uncovered at position 2
+      builder.insert("ACGT", 0, std::vector<std::string>{});  // G (== reference) at position 2
+      SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
+   }
+
+   under_test.finalize();
+
+   // Position 2 has coverage cardinality 4 (the two N rows do not count): T occurs 3 times, G once,
+   // so T wins. Every other position stays at the reference symbol.
+   ASSERT_EQ(
+      under_test.getLocalReference(),
+      (std::vector<Nucleotide::Symbol>{
+         Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::T, Nucleotide::Symbol::T
+      })
+   );
+}
+
 TEST(SequenceColumn, canFinalizeTwice) {
    SequenceColumnMetadata<Nucleotide> column_metadata{
       "test_column",

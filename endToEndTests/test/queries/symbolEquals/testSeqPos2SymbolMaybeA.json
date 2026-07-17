@@ -3,7 +3,7 @@
   "query": "default.filter(maybe(nucleotideEquals(position:=2, symbol:='A', sequenceName:='testSecondSequence'))).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
-      "count": 9
+      "count": 6
     }
   ]
 }

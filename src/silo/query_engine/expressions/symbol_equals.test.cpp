@@ -26,10 +26,27 @@ nlohmann::json createDataWithNucleotideSequence(const std::string& nucleotideSeq
    };
 }
 
+nlohmann::json createDataWithoutNucleotideSequence() {
+   random_generator generator;
+   const auto primary_key = generator();
+
+   return {
+      {"primaryKey", "id_" + to_string(primary_key)},
+      {"float_value", nullptr},
+      {"segment1", nullptr},
+      {"unaligned_segment1", {}},
+      {"gene1", {}}
+   };
+}
+
 const nlohmann::json DATA_SAME_AS_REFERENCE = createDataWithNucleotideSequence("ATGCN");
 const nlohmann::json DATA_SAME_AS_REFERENCE2 = createDataWithNucleotideSequence("ATGCN");
 const nlohmann::json DATA_WITH_ALL_N = createDataWithNucleotideSequence("NNNNN");
 const nlohmann::json DATA_WITH_ALL_MUTATED = createDataWithNucleotideSequence("CATTT");
+// A row without any sequence. It carries no symbol at any position, so it must not be matched by
+// any symbol, in particular not by the missing symbol N: a null sequence is stored with an empty
+// covered region, which makes it look like a row that is merely not covered at this position.
+const nlohmann::json DATA_WITHOUT_SEQUENCE = createDataWithoutNucleotideSequence();
 
 const auto DATABASE_CONFIG =
    R"(
@@ -49,7 +66,11 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
 
 const QueryTestData TEST_DATA{
    .ndjson_input_data =
-      {DATA_SAME_AS_REFERENCE, DATA_SAME_AS_REFERENCE2, DATA_WITH_ALL_N, DATA_WITH_ALL_MUTATED},
+      {DATA_SAME_AS_REFERENCE,
+       DATA_SAME_AS_REFERENCE2,
+       DATA_WITH_ALL_N,
+       DATA_WITH_ALL_MUTATED,
+       DATA_WITHOUT_SEQUENCE},
    .database_config = DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES
 };
@@ -189,6 +210,33 @@ const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_5 = {
    .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
 };
 
+// The missing symbol is matched via the rows that are not covered at this position. The row without
+// a sequence is not covered anywhere, but it has no symbol at all, so only the all-N row matches.
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_N_AT_1 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_N_AT_1",
+   .query = createNucleotideSymbolEqualsQuery("N", 1),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 1}])")
+};
+
+// Position 5 is N in the reference, so this takes the compilation for the case where the queried
+// symbols contain both the missing and the reference symbol. The two rows equal to the reference
+// and the all-N row match, the row without a sequence still does not.
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITH_SYMBOL_N_AT_5 = {
+   .name = "NUCLEOTIDE_EQUALS_WITH_SYMBOL_N_AT_5",
+   .query = createNucleotideSymbolEqualsQuery("N", 5),
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 3}])")
+};
+
+// Every row of this dataset is without an amino acid sequence, so nothing matches the missing
+// symbol X.
+const QueryTestScenario AMINO_ACID_EQUALS_MISSING_SYMBOL_WITHOUT_SEQUENCES = {
+   .name = "AMINO_ACID_EQUALS_MISSING_SYMBOL_WITHOUT_SEQUENCES",
+   .query =
+      "default.filter(aminoAcidEquals(position:=1, symbol:='X', sequenceName:='gene1'))"
+      ".groupBy({count:=count()})",
+   .expected_query_result = nlohmann::json::parse(R"([{"count": 0}])")
+};
+
 const QueryTestScenario NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE = {
    .name = "NUCLEOTIDE_EQUALS_SYMBOL_OUT_OF_RANGE",
    .query = createNucleotideSymbolEqualsQuery("C", 1000),
@@ -290,7 +338,10 @@ QUERY_TEST(
       nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_2,
       nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_3,
       nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_4,
-      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_5
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_5,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_N_AT_1,
+      nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_N_AT_5,
+      nucleotide::AMINO_ACID_EQUALS_MISSING_SYMBOL_WITHOUT_SEQUENCES
    )
 );
 

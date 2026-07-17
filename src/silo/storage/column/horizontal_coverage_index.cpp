@@ -49,6 +49,35 @@ void HorizontalCoverageIndex::insertNullSequence(RowId row_id) {
    insertCoverage(row_id, Coverage{.start = 0, .end = 0, .missing_positions = {}});
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+std::vector<uint64_t> HorizontalCoverageIndex::computeCoverageCardinalities(size_t genome_length
+) const {
+   std::vector<int64_t> coverage_changes(genome_length + 1, 0);
+   for (const auto& chunk : start_end) {
+      for (const auto& [start, end] : chunk) {
+         SILO_ASSERT_LE(end, genome_length);
+         coverage_changes[start] += 1;
+         coverage_changes[end] -= 1;
+      }
+   }
+   for (const auto& [_row_id, missing_positions] : horizontal_bitmaps) {
+      for (const uint32_t position_idx : missing_positions) {
+         SILO_ASSERT_LT(position_idx, genome_length);
+         coverage_changes[position_idx] -= 1;
+         coverage_changes[position_idx + 1] += 1;
+      }
+   }
+
+   std::vector<uint64_t> cardinalities(genome_length);
+   uint64_t cardinality = 0;
+   for (size_t position_idx = 0; position_idx < genome_length; ++position_idx) {
+      cardinality += coverage_changes[position_idx];
+      SILO_ASSERT_GE(cardinality, 0UL);
+      cardinalities[position_idx] = static_cast<uint32_t>(cardinality);
+   }
+   return cardinalities;
+}
+
 template <typename SymbolType>
 void HorizontalCoverageIndex::overwriteCoverageInSequence(
    std::vector<std::string>& sequences,

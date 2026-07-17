@@ -100,6 +100,29 @@ std::unique_ptr<filter::operators::Operator> makeDifference(
    );
 }
 
+// A row without a sequence has no value at any position, so it must not match a symbol filter. It
+// is stored with an empty covered region, which makes it indistinguishable from a row that is
+// merely not covered at this position, i.e. it would otherwise be matched by the missing symbol.
+// Only the compilations that start from the not-covered rows need this; the ones that start from
+// the covered rows or from the mutation index never see a null row in the first place.
+template <typename SymbolType>
+std::unique_ptr<filter::operators::Operator> excludeNullSequences(
+   std::unique_ptr<filter::operators::Operator> operator_,
+   const SequenceColumn<SymbolType>& sequence_column,
+   const storage::column::RowLayout& row_layout
+) {
+   if (sequence_column.null_bitmap.isEmpty()) {
+      return operator_;
+   }
+   return makeDifference(
+      std::move(operator_),
+      std::make_unique<filter::operators::IndexScan>(
+         CopyOnWriteBitmap{&sequence_column.null_bitmap}, row_layout
+      ),
+      row_layout
+   );
+}
+
 template <typename SymbolType>
 std::unique_ptr<filter::operators::Operator> compileWithMissingSymbolAndReference(
    const SequenceColumn<SymbolType>& sequence_column,
@@ -113,10 +136,14 @@ std::unique_ptr<filter::operators::Operator> compileWithMissingSymbolAndReferenc
    auto bitmap = sequence_column.vertical_sequence_index.getMatchingContainersAsBitmap(
       position_idx, negated_symbols
    );
-   return std::make_unique<filter::operators::Complement>(
-      std::make_unique<filter::operators::IndexScan>(
-         CopyOnWriteBitmap{std::move(bitmap)}, row_layout
+   return excludeNullSequences(
+      std::make_unique<filter::operators::Complement>(
+         std::make_unique<filter::operators::IndexScan>(
+            CopyOnWriteBitmap{std::move(bitmap)}, row_layout
+         ),
+         row_layout
       ),
+      sequence_column,
       row_layout
    );
 }
@@ -145,7 +172,11 @@ std::unique_ptr<filter::operators::Operator> compileWithMissingSymbol(
    operators_for_union.push_back(std::make_unique<filter::operators::IndexScan>(
       CopyOnWriteBitmap{std::move(bitmap)}, row_layout
    ));
-   return std::make_unique<filter::operators::Union>(std::move(operators_for_union), row_layout);
+   return excludeNullSequences(
+      std::make_unique<filter::operators::Union>(std::move(operators_for_union), row_layout),
+      sequence_column,
+      row_layout
+   );
 }
 
 template <typename SymbolType>
