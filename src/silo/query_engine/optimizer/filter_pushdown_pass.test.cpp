@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "silo/query_engine/expressions/literal.h"
+#include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/project_node.h"
@@ -105,6 +106,42 @@ TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
    // The MapNode is retained; the FilterNode below it was pushed into the TableScan.
    ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
    auto* map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
+   EXPECT_EQ(table_scan->filter->toString(), "And(true & true)");
+}
+
+// --- FilterNode(MapNode(TableScanNode)): the swap that keeps decompression above the filter ---
+//
+// This is the motivating case for #1343: a filter stacked on top of a (decompression) MapNode.
+// FilterPushdownPass keeps the MapNode on top and pushes the filter down into the TableScan,
+// so only the rows matching the filter are ever decompressed.
+TEST(FilterPushdownPass, pushesFilterThroughDecompressMapIntoTableScan) {
+   using silo::schema::ColumnIdentifier;
+   using silo::schema::ColumnType;
+
+   const ColumnIdentifier seq_column{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
+   auto scan = std::make_unique<operators::TableScanNode>(
+      makeTable(), makeDummyFilter(), std::vector<ColumnIdentifier>{seq_column}
+   );
+
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = {.name = "seq", .type = ColumnType::STRING},
+       .expression = std::make_unique<expressions::ZstdDecompressScalar>(seq_column, "A")}
+   );
+   auto map_node = std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
+   auto filter_node =
+      std::make_unique<operators::FilterNode>(std::move(map_node), makeDummyFilter());
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   // The FilterNode is gone; the decompression MapNode stays on top with the filter pushed
+   // into the TableScan below it.
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(map->assignments.size(), 1);
+   EXPECT_EQ(map->assignments.front().expression->kind(), expressions::ZstdDecompressScalar::KIND);
    ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
    auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
    EXPECT_EQ(table_scan->filter->toString(), "And(true & true)");

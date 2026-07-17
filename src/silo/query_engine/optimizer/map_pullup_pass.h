@@ -5,7 +5,6 @@
 
 namespace silo::query_engine::operators {
 class FetchNode;
-class FilterNode;
 }  // namespace silo::query_engine::operators
 
 namespace silo::query_engine::optimizer {
@@ -21,21 +20,13 @@ namespace silo::query_engine::optimizer {
 /// P(M(child))  →  M(P(child))
 /// ```
 ///
-/// One goal is pulling a MapNode above a FetchNode (limit/offset) so a `limit` no longer
-/// forces every row to be decompressed and then discarded.
-///
-/// Known limitation:
-/// The FilterNode swap is unconditional: it does not inspect which columns the predicate
-/// references. If a filter depends on a column the MapNode produces, the rewritten plan
-/// simply fails later (a filter can ultimately only be applied at the table scan), just with
-/// a different error than before. FilterPushdownPass runs after this pass and pushes the
-/// filters that now sit below the Maps down into the TableScan.
+/// One goal is pulling a MapNode above a FetchNode (limit/offset)
+/// so a `limit` no longer forces every row to be decompressed and then discarded.
 class MapPullupPass : public PipelinePassBase<MapPullupPass> {
   public:
    using PipelinePassBase<MapPullupPass>::operator();
 
    operators::QueryNodePtr operator()(operators::FetchNode& node);
-   operators::QueryNodePtr operator()(operators::FilterNode& node);
 };
 
 }  // namespace silo::query_engine::optimizer

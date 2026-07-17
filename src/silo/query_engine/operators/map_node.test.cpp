@@ -215,12 +215,13 @@ const QueryTestScenario MAP_WITH_LIMIT_TRIGGERS_PULLUP_SCENARIO = {
 
 // --- map()/filter() ordering combinations ---
 //
-// MapPullupPass swaps Filter(Map)->Map(Filter) unconditionally and runs before
-// FilterPushdownPass. These scenarios assert that both orderings produce the correct result
-// (a filter that references a passed-through column, never a Map-produced one).
+// FilterPushdownPass keeps a MapNode on top of a filter and pushes the filter down into the
+// TableScan (effectively swapping Filter(Map)->Map(Filter)). These scenarios assert that both
+// orderings produce the correct result (a filter that references a passed-through column, never
+// a Map-produced one).
 
-// filter() stacked on top of map(): Filter(Map(scan)). MapPullupPass pulls the Map above the
-// filter; the filter (on the passed-through `int_value`) is pushed to the scan.
+// filter() stacked on top of map(): Filter(Map(scan)). FilterPushdownPass keeps the Map on top
+// and pushes the filter (on the passed-through `int_value`) down into the scan.
 const QueryTestScenario FILTER_ON_TOP_OF_MAP_SCENARIO = {
    .name = "FILTER_ON_TOP_OF_MAP",
    .query = "default.map({a := 3}).filter(int_value = 1).project({primaryKey, a})",
@@ -245,8 +246,8 @@ const QueryTestScenario FILTER_ON_TOP_OF_MAP_FIELD_REF_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}, {"copied", 1}}})
 };
 
-// filter() over the implicit decompression MapNode: Filter(Map_decompress(scan)). The
-// decompression Map is pulled above the filter, so decompression runs above the filter.
+// filter() over the implicit decompression MapNode: Filter(Map_decompress(scan)). The filter is
+// pushed below the decompression Map into the scan, so only matching rows are decompressed.
 const QueryTestScenario FILTER_OVER_DECOMPRESS_MAP_SCENARIO = {
    .name = "FILTER_OVER_DECOMPRESS_MAP",
    .query = "default.filter(int_value = 1).project({primaryKey, unaligned_segment1})",
@@ -254,8 +255,8 @@ const QueryTestScenario FILTER_OVER_DECOMPRESS_MAP_SCENARIO = {
       nlohmann::json({{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}}})
 };
 
-// filter() + user map() + implicit decompression map() + limit, all stacked. Exercises the
-// Map bubbling up through both the filter and the fetch.
+// filter() + user map() + implicit decompression map() + limit, all stacked. The filter is
+// pushed below the Maps into the scan, and MapPullupPass then pulls the Maps above the fetch.
 const QueryTestScenario FILTER_MAP_DECOMPRESS_LIMIT_SCENARIO = {
    .name = "FILTER_MAP_DECOMPRESS_LIMIT",
    .query =

@@ -189,92 +189,16 @@ TEST(MapPullupPass, pullsInnerMapUpUnderRootMap) {
    EXPECT_EQ(fetch->child->kind(), operators::NodeKind::TABLE_SCAN);
 }
 
-// --- FilterNode(MapNode(...)) → MapNode(FilterNode(...)): the Map is pulled up through the
-// filter unconditionally. ---
+// Blocked: FilterNode. Should be handled by the filter pushdown
 
-TEST(MapPullupPass, pullsMapUpThroughFilter) {
+TEST(MapPullupPass, doesNotPullMapUpThroughFilter) {
    auto filter = std::make_unique<operators::FilterNode>(makeMap(makeScan()), trueFilter());
-
-   auto result = MapPullupPass::run(std::move(filter));
-
-   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
-   auto* map = dynamic_cast<operators::MapNode*>(result.get());
-   ASSERT_EQ(map->child->kind(), operators::NodeKind::FILTER);
-   auto* moved_filter = dynamic_cast<operators::FilterNode*>(map->child.get());
-   EXPECT_EQ(moved_filter->child->kind(), operators::NodeKind::TABLE_SCAN);
-}
-
-// A decompression MapNode (the motivating case) is pulled above a filter, so decompression
-// runs above the filter rather than below it.
-TEST(MapPullupPass, pullsDecompressMapUpThroughFilter) {
-   const auto seq_column = ColumnIdentifier{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
-   std::vector<operators::MapNode::Assignment> assignments;
-   assignments.push_back(
-      {.output_column = {.name = "seq", .type = ColumnType::STRING},
-       .expression = std::make_unique<expressions::ZstdDecompressScalar>(seq_column, "A")}
-   );
-   auto map = std::make_unique<operators::MapNode>(
-      std::make_unique<operators::TableScanNode>(
-         makeTable(), trueFilter(), std::vector{seq_column}
-      ),
-      std::move(assignments)
-   );
-   auto filter = std::make_unique<operators::FilterNode>(std::move(map), trueFilter());
-
-   auto result = MapPullupPass::run(std::move(filter));
-
-   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
-   auto* result_map = dynamic_cast<operators::MapNode*>(result.get());
-   ASSERT_EQ(result_map->assignments.size(), 1);
-   EXPECT_EQ(
-      result_map->assignments.front().expression->kind(), expressions::ZstdDecompressScalar::KIND
-   );
-   ASSERT_EQ(result_map->child->kind(), operators::NodeKind::FILTER);
-   auto* moved_filter = dynamic_cast<operators::FilterNode*>(result_map->child.get());
-   EXPECT_EQ(moved_filter->child->kind(), operators::NodeKind::TABLE_SCAN);
-}
-
-TEST(MapPullupPass, leavesFilterOverNonMapInPlace) {
-   auto filter = std::make_unique<operators::FilterNode>(makeScan(), trueFilter());
 
    auto result = MapPullupPass::run(std::move(filter));
 
    ASSERT_EQ(result->kind(), operators::NodeKind::FILTER);
    auto* filter_node = dynamic_cast<operators::FilterNode*>(result.get());
-   EXPECT_EQ(filter_node->child->kind(), operators::NodeKind::TABLE_SCAN);
-}
-
-// Fetch(Filter(Map(scan))) -> Map(Fetch(Filter(scan))).
-TEST(MapPullupPass, bubblesMapUpThroughFilterThenFetch) {
-   auto filter = std::make_unique<operators::FilterNode>(makeMap(makeScan()), trueFilter());
-   auto fetch = std::make_unique<operators::FetchNode>(std::move(filter), 5, std::nullopt);
-
-   auto result = MapPullupPass::run(std::move(fetch));
-
-   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
-   auto* map = dynamic_cast<operators::MapNode*>(result.get());
-   ASSERT_EQ(map->child->kind(), operators::NodeKind::FETCH);
-   auto* moved_fetch = dynamic_cast<operators::FetchNode*>(map->child.get());
-   ASSERT_EQ(moved_fetch->child->kind(), operators::NodeKind::FILTER);
-   auto* moved_filter = dynamic_cast<operators::FilterNode*>(moved_fetch->child.get());
-   EXPECT_EQ(moved_filter->child->kind(), operators::NodeKind::TABLE_SCAN);
-}
-
-// Filter_outer(Filter_inner(Map(scan))): both filters end up below the single pulled-up Map
-TEST(MapPullupPass, pullsMapUpThroughStackedFilters) {
-   auto inner_filter = std::make_unique<operators::FilterNode>(makeMap(makeScan()), trueFilter());
-   auto outer_filter =
-      std::make_unique<operators::FilterNode>(std::move(inner_filter), trueFilter());
-
-   auto result = MapPullupPass::run(std::move(outer_filter));
-
-   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
-   auto* map = dynamic_cast<operators::MapNode*>(result.get());
-   ASSERT_EQ(map->child->kind(), operators::NodeKind::FILTER);
-   auto* outer = dynamic_cast<operators::FilterNode*>(map->child.get());
-   ASSERT_EQ(outer->child->kind(), operators::NodeKind::FILTER);
-   auto* inner = dynamic_cast<operators::FilterNode*>(outer->child.get());
-   EXPECT_EQ(inner->child->kind(), operators::NodeKind::TABLE_SCAN);
+   EXPECT_EQ(filter_node->child->kind(), operators::NodeKind::MAP);
 }
 
 // --- Blocked: ProjectNode is the root over the MapNode ---
