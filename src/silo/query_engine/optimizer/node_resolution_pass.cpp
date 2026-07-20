@@ -8,11 +8,13 @@
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/count_filter_node.h"
 #include "silo/query_engine/operators/insertions_node.h"
+#include "silo/query_engine/operators/lineage_aggregate_node.h"
 #include "silo/query_engine/operators/most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/mutations_node.h"
 #include "silo/query_engine/operators/phylo_subtree_node.h"
 #include "silo/query_engine/operators/schema_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
+#include "silo/query_engine/operators/unresolved_lineage_aggregate_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
 
@@ -161,6 +163,23 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
       std::move((*scan)->filter),
       std::move(node.column_name),
       node.print_nodes_not_in_tree
+   );
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr NodeResolutionPass::operator()(
+   operators::UnresolvedLineageAggregateNode& node
+) {
+   auto scan = getTableScanOrNone(*node.child);
+   CHECK_SILO_QUERY(
+      scan.has_value(), "lineage aggregation groupBy must be applied to a table scan"
+   );
+   return std::make_unique<operators::LineageAggregateNode>(
+      std::move((*scan)->table),
+      std::move((*scan)->filter),
+      std::move(node.column_name),
+      node.mode,
+      std::move(node.count_output_name)
    );
 }
 
