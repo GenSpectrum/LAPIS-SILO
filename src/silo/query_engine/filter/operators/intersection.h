@@ -7,17 +7,17 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/column/row_layout.h"
 
-namespace silo::query_engine::expressions {
+namespace silo::query_engine::scalar_expressions {
 // Forward declaration for friend class access. Include would introduce cyclic dependency
 class And;
 class NOf;
-}  // namespace silo::query_engine::expressions
+}  // namespace silo::query_engine::scalar_expressions
 
 namespace silo::query_engine::filter::operators {
 
 class Intersection : public Operator {
-   friend class silo::query_engine::expressions::And;
-   friend class silo::query_engine::expressions::NOf;
+   friend class silo::query_engine::scalar_expressions::And;
+   friend class silo::query_engine::scalar_expressions::NOf;
 
    OperatorVector children;
    OperatorVector negated_children;

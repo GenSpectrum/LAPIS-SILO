@@ -6,8 +6,8 @@
 
 #include <arrow/result.h>
 
-#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
+#include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
@@ -18,9 +18,9 @@ namespace silo::query_engine::operators {
 class FilterNode final : public QueryNode {
   public:
    QueryNodePtr child;
-   std::unique_ptr<expressions::Expression> filter;
+   std::unique_ptr<scalar_expressions::ScalarExpression> filter;
 
-   FilterNode(QueryNodePtr child, std::unique_ptr<expressions::Expression> filter);
+   FilterNode(QueryNodePtr child, std::unique_ptr<scalar_expressions::ScalarExpression> filter);
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override;
 

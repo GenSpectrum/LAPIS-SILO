@@ -4,9 +4,9 @@
 #include <memory>
 #include <string_view>
 
-#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/saneql/ast.h"
+#include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
@@ -30,7 +30,7 @@ operators::QueryNodePtr convertExpression(
 /// Converts a saneql expression into a boolean filter predicate. `schema` lists the
 /// columns available where the predicate appears (the input table or child node's
 /// output), used to resolve referenced columns to their full {name, type}.
-std::unique_ptr<expressions::Expression> convertToFilter(
+std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
    const ast::Expression& ast,
    const std::vector<schema::ColumnIdentifier>& schema
 );

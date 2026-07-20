@@ -10,8 +10,8 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
+#include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
@@ -28,12 +28,12 @@ class InsertionsNode final : public QueryNode {
    static constexpr std::string_view COUNT_FIELD_NAME = "count";
 
    std::shared_ptr<storage::Table> table;
-   std::unique_ptr<expressions::Expression> filter;
+   std::unique_ptr<scalar_expressions::ScalarExpression> filter;
    std::vector<schema::ColumnIdentifier> sequence_columns;
 
    InsertionsNode(
       std::shared_ptr<storage::Table> table,
-      std::unique_ptr<expressions::Expression> filter,
+      std::unique_ptr<scalar_expressions::ScalarExpression> filter,
       std::vector<schema::ColumnIdentifier> sequence_columns
    )
        : table(std::move(table)),

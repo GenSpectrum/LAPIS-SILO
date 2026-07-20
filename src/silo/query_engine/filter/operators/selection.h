@@ -13,7 +13,7 @@
 #include "silo/storage/column/row_layout.h"
 #include "silo/storage/column/string_column.h"
 
-namespace silo::query_engine::expressions {
+namespace silo::query_engine::scalar_expressions {
 class And;
 }
 
@@ -169,7 +169,7 @@ template <>
 bool CompareToValueSelection<silo::storage::column::StringColumn>::match(uint32_t row_id) const;
 
 class Selection : public Operator {
-   friend class expressions::And;
+   friend class scalar_expressions::And;
 
   private:
    std::optional<std::unique_ptr<Operator>> child_operator;

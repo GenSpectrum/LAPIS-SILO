@@ -63,7 +63,7 @@ namespace silo::query_engine::operators {
 
 MostRecentCommonAncestorNode::MostRecentCommonAncestorNode(
    std::shared_ptr<storage::Table> table,
-   std::unique_ptr<expressions::Expression> filter,
+   std::unique_ptr<scalar_expressions::ScalarExpression> filter,
    std::string column_name,
    bool print_nodes_not_in_tree
 )

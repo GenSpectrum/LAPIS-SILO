@@ -3,11 +3,11 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-#include "silo/query_engine/expressions/literal.h"
+#include "silo/query_engine/scalar_expressions/literal.h"
 
 using silo::query_engine::CopyOnWriteBitmap;
-using silo::query_engine::expressions::BoolLiteral;
 using silo::query_engine::filter::operators::IndexScan;
+using silo::query_engine::scalar_expressions::BoolLiteral;
 using silo::storage::column::RowLayout;
 
 TEST(OperatorIndexScan, evaluateShouldReturnCorrectValues) {

@@ -10,7 +10,6 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
-#include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/filter_node.h"
@@ -20,6 +19,7 @@
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
+#include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
@@ -53,7 +53,7 @@ operators::QueryNodePtr makeTableScan() {
    auto tables = makeTablesWithDefault();
    return std::make_unique<operators::TableScanNode>(
       tables.at(silo::schema::TableName{"default"}),
-      std::make_unique<silo::query_engine::expressions::BoolLiteral>(true),
+      std::make_unique<silo::query_engine::scalar_expressions::BoolLiteral>(true),
       std::vector<silo::schema::ColumnIdentifier>{}
    );
 }
@@ -61,7 +61,7 @@ operators::QueryNodePtr makeTableScan() {
 operators::QueryNodePtr makeNonScanChild() {
    // A FilterNode is not a TableScanNode — used to exercise the "must be a table scan" error path.
    return std::make_unique<operators::FilterNode>(
-      makeTableScan(), std::make_unique<silo::query_engine::expressions::BoolLiteral>(true)
+      makeTableScan(), std::make_unique<silo::query_engine::scalar_expressions::BoolLiteral>(true)
    );
 }
 
@@ -69,7 +69,7 @@ std::vector<operators::MapNode::Assignment> makeMapAssignments() {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
-       .expression = std::make_unique<silo::query_engine::expressions::Int64Literal>(3)}
+       .expression = std::make_unique<silo::query_engine::scalar_expressions::Int64Literal>(3)}
    );
    return assignments;
 }

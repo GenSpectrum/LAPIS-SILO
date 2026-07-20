@@ -10,10 +10,10 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/column/row_layout.h"
 
-namespace silo::query_engine::expressions {
+namespace silo::query_engine::scalar_expressions {
 // Forward declaration for friend class access. Include would introduce cyclic dependency
-class Expression;
-}  // namespace silo::query_engine::expressions
+class ScalarExpression;
+}  // namespace silo::query_engine::scalar_expressions
 
 namespace silo::query_engine::filter::operators {
 
@@ -21,7 +21,7 @@ class IndexScan : public Operator {
    friend class Operator;
 
   private:
-   std::optional<std::unique_ptr<expressions::Expression>> logical_equivalent;
+   std::optional<std::unique_ptr<scalar_expressions::ScalarExpression>> logical_equivalent;
    CopyOnWriteBitmap bitmap;
    storage::column::RowLayout row_layout;
 
@@ -29,7 +29,7 @@ class IndexScan : public Operator {
    explicit IndexScan(CopyOnWriteBitmap bitmap, storage::column::RowLayout row_layout);
 
    explicit IndexScan(
-      std::unique_ptr<query_engine::expressions::Expression>&& logical_equivalent,
+      std::unique_ptr<query_engine::scalar_expressions::ScalarExpression>&& logical_equivalent,
       CopyOnWriteBitmap bitmap,
       storage::column::RowLayout row_layout
    );
