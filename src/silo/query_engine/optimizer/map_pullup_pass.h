@@ -5,6 +5,7 @@
 
 namespace silo::query_engine::operators {
 class FetchNode;
+class OrderByNode;
 }  // namespace silo::query_engine::operators
 
 namespace silo::query_engine::optimizer {
@@ -27,6 +28,7 @@ class MapPullupPass : public PipelinePassBase<MapPullupPass> {
    using PipelinePassBase<MapPullupPass>::operator();
 
    operators::QueryNodePtr operator()(operators::FetchNode& node);
+   operators::QueryNodePtr operator()(operators::OrderByNode& node);
 };
 
 }  // namespace silo::query_engine::optimizer
