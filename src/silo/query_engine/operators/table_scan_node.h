@@ -7,8 +7,8 @@
 
 #include <arrow/result.h>
 
-#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
+#include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
@@ -18,12 +18,12 @@ namespace silo::query_engine::operators {
 class TableScanNode final : public QueryNode {
   public:
    std::shared_ptr<storage::Table> table;
-   std::unique_ptr<expressions::Expression> filter;
+   std::unique_ptr<scalar_expressions::ScalarExpression> filter;
    std::vector<schema::ColumnIdentifier> fields;
 
    TableScanNode(
       std::shared_ptr<storage::Table> table,
-      std::unique_ptr<expressions::Expression> filter,
+      std::unique_ptr<scalar_expressions::ScalarExpression> filter,
       std::vector<schema::ColumnIdentifier> fields
    );
 

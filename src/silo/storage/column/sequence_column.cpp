@@ -164,33 +164,34 @@ void SequenceColumn<SymbolType>::finalize() {
    const SequenceColumnInfo info_after_filling = calculateInfo();
 
    SPDLOG_DEBUG("Adapting local reference");
-   constexpr size_t BATCH_SIZE = 1024;
-   for (uint32_t position_range_start = 0; position_range_start < genome_length;
-        position_range_start += BATCH_SIZE) {
-      auto coverage_bitmaps =
-         horizontal_coverage_index.getCoverageBitmapForPositions<BATCH_SIZE>(position_range_start);
-
-      const size_t range_size = std::min(BATCH_SIZE, genome_length - position_range_start);
-      for (size_t position_idx = position_range_start;
-           position_idx < position_range_start + range_size;
-           ++position_idx) {
-         const roaring::Roaring& coverage_bitmap =
-            coverage_bitmaps[position_idx - position_range_start];
-         auto new_reference_symbol = vertical_sequence_index.adaptLocalReference(
-            coverage_bitmap,
-            position_idx,
-            SymbolType::charToSymbol(local_reference_sequence_string.at(position_idx)).value()
-         );
-         if (new_reference_symbol.has_value()) {
-            SPDLOG_DEBUG(
-               "At position {} adapted local reference symbol to '{}'",
-               position_idx,
-               SymbolType::symbolToChar(new_reference_symbol.value())
-            );
-            local_reference_sequence_string.at(position_idx) =
-               SymbolType::symbolToChar(new_reference_symbol.value());
-         }
+   // We only need the number of rows covering a position to decide reference symbol adaptation
+   const std::vector<uint64_t> coverage_cardinalities =
+      horizontal_coverage_index.computeCoverageCardinalities(genome_length);
+   for (uint32_t position_idx = 0; position_idx < genome_length; ++position_idx) {
+      const auto current_reference_symbol =
+         SymbolType::charToSymbol(local_reference_sequence_string.at(position_idx)).value();
+      if (!vertical_sequence_index
+              .findBetterLocalReferenceSymbol(
+                 position_idx, current_reference_symbol, coverage_cardinalities.at(position_idx)
+              )
+              .has_value()) {
+         continue;
       }
+      // Only now compute the coverage bitmap for the position that needs to be adapted
+      const auto coverage_bitmaps =
+         horizontal_coverage_index.getCoverageBitmapForPositions<1>(position_idx);
+      const roaring::Roaring& coverage_bitmap = coverage_bitmaps[0];
+      const auto new_reference_symbol = vertical_sequence_index.adaptLocalReference(
+         coverage_bitmap, position_idx, current_reference_symbol
+      );
+      SILO_ASSERT(new_reference_symbol.has_value());
+      SPDLOG_DEBUG(
+         "At position {} adapted local reference symbol to '{}'",
+         position_idx,
+         SymbolType::symbolToChar(new_reference_symbol.value())
+      );
+      local_reference_sequence_string.at(position_idx) =
+         SymbolType::symbolToChar(new_reference_symbol.value());
    }
 
    const SequenceColumnInfo info_after_adaption = calculateInfo();

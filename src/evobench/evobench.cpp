@@ -6,6 +6,7 @@
 #include "evobench/evobench.hpp"
 
 #include <charconv>
+#include <concepts>
 #include <cstdint>
 #include <cstring>
 #include <iomanip>
@@ -54,7 +55,7 @@ uint64_t our_get_thread_id() {
 #else
 
 // Linux
-__pid_t our_get_thread_id() {
+pid_t our_get_thread_id() {
    return gettid();
 }
 
@@ -124,38 +125,14 @@ void js_print_slow(T val, std::string& out) {
    out.append(tmpout.str());
 }
 
-[[maybe_unused]] void js_print(uint32_t value, std::string& out) {
-   char buffer[11];
-   auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
-   if (ec == std::errc()) {
-      out.append(buffer, ptr);
-   } else {
-      abort();
-   }
-}
-
-[[maybe_unused]] void js_print(int32_t value, std::string& out) {
-   char buffer[12];
-   auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
-   if (ec == std::errc()) {
-      out.append(buffer, ptr);
-   } else {
-      abort();
-   }
-}
-
-[[maybe_unused]] void js_print(uint64_t value, std::string& out) {
-   char buffer[21];
-   auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
-   if (ec == std::errc()) {
-      out.append(buffer, ptr);
-   } else {
-      abort();
-   }
-}
-
-[[maybe_unused]] void js_print(int64_t value, std::string& out) {
-   char buffer[22];
+// One overload for every integral width. Using a constrained template rather
+// than fixed-width (u)int32/64 overloads keeps this unambiguous on ILP32
+// targets like wasm32, where `long` (e.g. the fields of `struct rusage`) is
+// neither `int` nor `long long` and so matched no fixed-width overload exactly.
+// 24 bytes hold any 64-bit integer with sign.
+template <std::integral T>
+[[maybe_unused]] void js_print(T value, std::string& out) {
+   char buffer[24];
    auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), value);
    if (ec == std::errc()) {
       out.append(buffer, ptr);

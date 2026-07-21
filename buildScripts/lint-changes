@@ -29,6 +29,7 @@ docker run --rm \
   -v "$(pwd)/performance:/src/performance" \
   -v "$(pwd)/src:/src/src" \
   -v "$(pwd)/cmake:/src/cmake" \
+  -v "$(pwd)/app:/src/app" \
   -v "$(pwd)/CMakeLists.txt:/src/CMakeLists.txt" \
   -v "${DOCKER_BUILD_CACHE_VOLUME}:/src/build/Debug" \
   -e files="$files" \
@@ -43,6 +44,12 @@ docker run --rm \
         targets+=(--target "CMakeFiles/silo_test.dir/${file}.o")
       elif [[ $file == src/*.cpp ]]; then
         targets+=(--target "CMakeFiles/silolib.dir/${file}.o")
+      elif [[ $file == app/*.test.cpp ]]; then
+        targets+=(--target "app/CMakeFiles/silo_app_test.dir/${file#app/}.o")
+      elif [[ $file == app/src/silo/api/main.cpp ]]; then
+        targets+=(--target "app/CMakeFiles/silo.dir/${file#app/}.o")
+      elif [[ $file == app/*.cpp ]]; then
+        targets+=(--target "app/CMakeFiles/silo_app.dir/${file#app/}.o")
       fi
     done
     echo "Collected targets: ${targets[@]}"

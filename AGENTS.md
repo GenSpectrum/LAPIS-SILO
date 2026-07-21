@@ -31,7 +31,7 @@ make format                        # Format C++ code (requires clang-format)
 make ci                            # Format + run all tests
 ```
 
-CMake auto-scans `src/` directories. The Makefile maintains `.src_file_list` to retrigger CMake when files are added/removed, so no CMakeLists.txt changes (or clean rebuild) are required.
+CMake auto-scans `src/` and `app/src/` directories. The Makefile maintains `.src_file_list` to retrigger CMake when files are added/removed, so no CMakeLists.txt changes (or clean rebuild) are required.
 
 ## Code Style
 

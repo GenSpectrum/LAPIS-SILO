@@ -7,9 +7,9 @@
 
 #include "evobench/evobench.hpp"
 #include "silo/query_engine/copy_on_write_bitmap.h"
-#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
+#include "silo/query_engine/scalar_expressions/scalar_expression.h"
 
 namespace silo::query_engine::filter::operators {
 
@@ -18,7 +18,7 @@ IndexScan::IndexScan(CopyOnWriteBitmap bitmap, storage::column::RowLayout row_la
       row_layout(std::move(row_layout)) {}
 
 IndexScan::IndexScan(
-   std::unique_ptr<expressions::Expression>&& logical_equivalent,
+   std::unique_ptr<scalar_expressions::ScalarExpression>&& logical_equivalent,
    CopyOnWriteBitmap bitmap,
    storage::column::RowLayout row_layout
 )

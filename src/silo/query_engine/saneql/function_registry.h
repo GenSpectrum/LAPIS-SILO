@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/saneql/ast.h"
+#include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/storage/table.h"
 
 namespace silo::query_engine::saneql {
@@ -92,7 +92,7 @@ class FunctionRegistry {
 
 // --- Scalar function registry ---
 
-using ScalarExpressionPtr = std::unique_ptr<expressions::Expression>;
+using ScalarExpressionPtr = std::unique_ptr<scalar_expressions::ScalarExpression>;
 
 using ScalarFunctionHandler = std::function<ScalarExpressionPtr(
    const BoundArguments& args,

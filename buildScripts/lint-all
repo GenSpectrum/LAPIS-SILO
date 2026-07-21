@@ -14,6 +14,7 @@ docker run --rm \
   -v "$(pwd)/performance:/src/performance" \
   -v "$(pwd)/src:/src/src" \
   -v "$(pwd)/cmake:/src/cmake" \
+  -v "$(pwd)/app:/src/app" \
   -v "$(pwd)/CMakeLists.txt:/src/CMakeLists.txt" \
   -v "${DOCKER_BUILD_CACHE_VOLUME}:/src/build/Debug" \
   "$DOCKER_IMAGE" \

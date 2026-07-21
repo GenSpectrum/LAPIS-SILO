@@ -1,8 +1,8 @@
 #pragma once
 
-#include "silo/query_engine/expressions/expression.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/optimizer/pipeline_pass_base.h"
+#include "silo/query_engine/scalar_expressions/scalar_expression.h"
 
 namespace silo::query_engine::operators {
 class FilterNode;
@@ -22,7 +22,7 @@ namespace silo::query_engine::optimizer {
 /// Optimization pass that eliminates FilterNodes by pushing their filter expression
 /// into the child node's filter field
 class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
-   std::vector<std::unique_ptr<expressions::Expression>> current_filters;
+   std::vector<std::unique_ptr<scalar_expressions::ScalarExpression>> current_filters;
 
   public:
    using PipelinePassBase<FilterPushdownPass>::operator();

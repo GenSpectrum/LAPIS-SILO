@@ -7,8 +7,6 @@
 
 #include <gtest/gtest.h>
 
-#include "silo/query_engine/expressions/literal.h"
-#include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
@@ -17,13 +15,15 @@
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/order_by_field.h"
+#include "silo/query_engine/scalar_expressions/literal.h"
+#include "silo/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
 
 using silo::query_engine::optimizer::MapPullupPass;
 namespace operators = silo::query_engine::operators;
-namespace expressions = silo::query_engine::expressions;
+namespace scalar_expressions = silo::query_engine::scalar_expressions;
 
 using silo::schema::ColumnIdentifier;
 using silo::schema::ColumnType;
@@ -42,8 +42,8 @@ std::shared_ptr<silo::storage::Table> makeTable() {
    return std::make_shared<silo::storage::Table>(silo::schema::TableName("default"), schema);
 }
 
-std::unique_ptr<expressions::Expression> trueFilter() {
-   return std::make_unique<expressions::BoolLiteral>(true);
+std::unique_ptr<scalar_expressions::ScalarExpression> trueFilter() {
+   return std::make_unique<scalar_expressions::BoolLiteral>(true);
 }
 
 operators::QueryNodePtr makeScan() {
@@ -57,7 +57,7 @@ operators::QueryNodePtr makeMap(operators::QueryNodePtr child) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "x", .type = ColumnType::INT64},
-       .expression = std::make_unique<expressions::Int64Literal>(3)}
+       .expression = std::make_unique<scalar_expressions::Int64Literal>(3)}
    );
    return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
 }
@@ -118,7 +118,7 @@ TEST(MapPullupPass, pullsDecompressMapUpThroughFetch) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "seq", .type = ColumnType::STRING},
-       .expression = std::make_unique<expressions::ZstdDecompressScalar>(seq_column, "A")}
+       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(seq_column, "A")}
    );
    auto map = std::make_unique<operators::MapNode>(
       std::make_unique<operators::TableScanNode>(
@@ -135,7 +135,8 @@ TEST(MapPullupPass, pullsDecompressMapUpThroughFetch) {
    auto* result_map = dynamic_cast<operators::MapNode*>(result.get());
    ASSERT_EQ(result_map->assignments.size(), 1);
    EXPECT_EQ(
-      result_map->assignments.front().expression->kind(), expressions::ZstdDecompressScalar::KIND
+      result_map->assignments.front().expression->kind(),
+      scalar_expressions::ZstdDecompressScalar::KIND
    );
    ASSERT_EQ(result_map->child->kind(), operators::NodeKind::FETCH);
    auto* moved_fetch = dynamic_cast<operators::FetchNode*>(result_map->child.get());
@@ -189,9 +190,7 @@ TEST(MapPullupPass, pullsInnerMapUpUnderRootMap) {
    EXPECT_EQ(fetch->child->kind(), operators::NodeKind::TABLE_SCAN);
 }
 
-// --- Blocked: FilterNode. Pulling a MapNode up through a filter needs the columns the
-// filter references (Expression::freeIUs), which most predicates don't report yet, so this
-// pass leaves the MapNode below the filter (#1343). ---
+// Blocked: FilterNode. Should be handled by the filter pushdown
 
 TEST(MapPullupPass, doesNotPullMapUpThroughFilter) {
    auto filter = std::make_unique<operators::FilterNode>(makeMap(makeScan()), trueFilter());
@@ -217,11 +216,56 @@ TEST(MapPullupPass, doesNotPullMapUpThroughProject) {
    EXPECT_EQ(project_node->child->kind(), operators::NodeKind::MAP);
 }
 
-// --- Blocked: OrderByNode ---
+// --- OrderByNode(MapNode(...)) → MapNode(OrderByNode(...)) when the order-by fields do not
+// reference a produced column ---
 
-TEST(MapPullupPass, doesNotPullMapUpThroughOrderBy) {
+TEST(MapPullupPass, pullsMapUpThroughOrderBy) {
    std::vector<silo::query_engine::OrderByField> fields{
       {.field = {.name = "id", .type = ColumnType::STRING}, .ascending = true}
+   };
+   auto order_by = std::make_unique<operators::OrderByNode>(
+      makeMap(makeScan()), std::move(fields), std::nullopt
+   );
+
+   auto result = MapPullupPass::run(std::move(order_by));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::ORDER_BY);
+   auto* moved_order_by = dynamic_cast<operators::OrderByNode*>(map->child.get());
+   ASSERT_EQ(moved_order_by->fields.size(), 1);
+   EXPECT_EQ(moved_order_by->fields.front().field.name, "id");
+   EXPECT_TRUE(moved_order_by->fields.front().ascending);
+   EXPECT_EQ(moved_order_by->child->kind(), operators::NodeKind::TABLE_SCAN);
+}
+
+// The randomize seed is preserved when the OrderBy moves below the Map.
+
+TEST(MapPullupPass, pullsMapUpThroughOrderByPreservingRandomizeSeed) {
+   std::vector<silo::query_engine::OrderByField> fields{
+      {.field = {.name = "id", .type = ColumnType::STRING}, .ascending = true}
+   };
+   auto order_by = std::make_unique<operators::OrderByNode>(
+      makeMap(makeScan()), std::move(fields), std::optional<uint32_t>{42}
+   );
+
+   auto result = MapPullupPass::run(std::move(order_by));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::ORDER_BY);
+   auto* moved_order_by = dynamic_cast<operators::OrderByNode*>(map->child.get());
+   ASSERT_TRUE(moved_order_by->randomize_seed.has_value());
+   EXPECT_EQ(moved_order_by->randomize_seed.value(), 42);
+}
+
+// --- Blocked: an order-by field references a column the MapNode produces, so swapping would
+// change ordering. The MapNode stays below the OrderBy. ---
+
+TEST(MapPullupPass, doesNotPullMapUpThroughOrderByOnProducedColumn) {
+   // makeMap produces column `x`; ordering by `x` must not be pushed below the Map.
+   std::vector<silo::query_engine::OrderByField> fields{
+      {.field = {.name = "x", .type = ColumnType::INT64}, .ascending = true}
    };
    auto order_by = std::make_unique<operators::OrderByNode>(
       makeMap(makeScan()), std::move(fields), std::nullopt

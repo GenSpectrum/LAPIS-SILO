@@ -16,41 +16,51 @@
 #include "silo/common/size_constants.h"
 #include "silo/query_engine/exec_node/throttled_batch_reslicer.h"
 #include "silo/query_engine/exec_node/zstd_decompress_expression.h"
-#include "silo/query_engine/expressions/at.h"
-#include "silo/query_engine/expressions/field_ref.h"
-#include "silo/query_engine/expressions/literal.h"
-#include "silo/query_engine/expressions/zstd_decompress_scalar.h"
+#include "silo/query_engine/scalar_expressions/at.h"
+#include "silo/query_engine/scalar_expressions/field_ref.h"
+#include "silo/query_engine/scalar_expressions/iso_week.h"
+#include "silo/query_engine/scalar_expressions/literal.h"
+#include "silo/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 
 namespace silo::query_engine::operators {
+
+using scalar_expressions::At;
+using scalar_expressions::BoolLiteral;
+using scalar_expressions::FieldRef;
+using scalar_expressions::FloatLiteral;
+using scalar_expressions::Int64Literal;
+using scalar_expressions::IsoWeek;
+using scalar_expressions::ScalarExpression;
+using scalar_expressions::StringLiteral;
+using scalar_expressions::ZstdDecompressScalar;
 
 namespace {
 
 /// Translates a scalar expression into an Arrow compute expression for use in a
 /// projection.
-arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
-   const expressions::Expression& expression
+arrow::Result<arrow::compute::Expression> scalarToArrowExpression(const ScalarExpression& expression
 ) {
-   if (const auto* literal = dynamic_cast<const expressions::Int64Literal*>(&expression)) {
+   if (const auto* literal = dynamic_cast<const Int64Literal*>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
-   if (const auto* literal = dynamic_cast<const expressions::FloatLiteral*>(&expression)) {
+   if (const auto* literal = dynamic_cast<const FloatLiteral*>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
-   if (const auto* literal = dynamic_cast<const expressions::StringLiteral*>(&expression)) {
+   if (const auto* literal = dynamic_cast<const StringLiteral*>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
-   if (const auto* literal = dynamic_cast<const expressions::BoolLiteral*>(&expression)) {
+   if (const auto* literal = dynamic_cast<const BoolLiteral*>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
-   if (const auto* field_ref = dynamic_cast<const expressions::FieldRef*>(&expression)) {
+   if (const auto* field_ref = dynamic_cast<const FieldRef*>(&expression)) {
       return arrow::compute::field_ref(field_ref->column.name);
    }
-   if (const auto* zstd = dynamic_cast<const expressions::ZstdDecompressScalar*>(&expression)) {
+   if (const auto* zstd = dynamic_cast<const ZstdDecompressScalar*>(&expression)) {
       return exec_node::ZstdDecompressExpression::make(
          arrow::compute::field_ref(zstd->input_column.name), zstd->dictionary_string
       );
    }
-   if (const auto* at_function = dynamic_cast<const expressions::At*>(&expression)) {
+   if (const auto* at_function = dynamic_cast<const At*>(&expression)) {
       // `at` is 1-indexed; utf8_slice_codeunits takes a 0-indexed, half-open
       // [start, stop) range of code units, so extract the single character at
       // position-1.
@@ -60,6 +70,11 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(
          "utf8_slice_codeunits",
          {arrow::compute::field_ref(at_function->input_column.name)},
          arrow::compute::SliceOptions(start, stop)
+      );
+   }
+   if (const auto* iso_week = dynamic_cast<const IsoWeek*>(&expression)) {
+      return arrow::compute::call(
+         "iso_week", {arrow::compute::field_ref(iso_week->input_column.name)}
       );
    }
    return arrow::Status::NotImplemented(
@@ -83,7 +98,7 @@ arrow::Result<std::optional<arrow::acero::ExecNode*>> insertBackpressureForDecom
    size_t sum_of_reference_genome_sizes = 0;
    for (const auto& assignment : assignment_by_name | std::views::values) {
       if (const auto* zstd =
-             dynamic_cast<const expressions::ZstdDecompressScalar*>(assignment->expression.get())) {
+             dynamic_cast<const ZstdDecompressScalar*>(assignment->expression.get())) {
          sum_of_reference_genome_sizes += zstd->dictionary_string.size();
       }
    }

@@ -394,7 +394,9 @@ so nucleotide and amino acid sequences cannot be distinguished from ordinary str
 
 ## Scalar Functions
 
-Most scalar functions are boolean predicates used inside `.filter(...)`. Functions that return a non-boolean value (currently [`at`](#atcolumn-position)) cannot be used as a filter predicate and are instead used as `map()` assignments.
+Most scalar functions are boolean predicates used inside `.filter(...)`.
+Functions that return a non-boolean value (like [`at`](#atcolumn-position) and [`isoWeek`](#isoweekcolumn))
+cannot be used as a filter predicate and are instead used as `map()` assignments.
 
 ### `at(column, position)`
 
@@ -402,6 +404,16 @@ Extracts the single character of a string `column` at the 1-based `position`, re
 
 ```
 default.map({second_char := primary_key.at(2)})
+```
+
+### `isoWeek(column)`
+
+Maps a date `column` to its ISO 8601 week number (1–53) as an integer.
+`column` must be a date column. A `null` date yields `null`.
+Use it inside [`map()`](#mapexpressions).
+
+```
+default.map({week := date.isoWeek()})
 ```
 
 ### `between(column, from, to)`

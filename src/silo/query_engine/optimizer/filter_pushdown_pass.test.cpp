@@ -6,19 +6,20 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
+#include "silo/query_engine/scalar_expressions/literal.h"
+#include "silo/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
 
 using silo::query_engine::optimizer::FilterPushdownPass;
 namespace operators = silo::query_engine::operators;
-namespace expressions = silo::query_engine::expressions;
+namespace scalar_expressions = silo::query_engine::scalar_expressions;
 
 namespace {
 
@@ -36,8 +37,8 @@ std::shared_ptr<silo::storage::Table> makeTable() {
    return std::make_shared<silo::storage::Table>(silo::schema::TableName("default"), schema);
 }
 
-std::unique_ptr<expressions::Expression> makeDummyFilter() {
-   return std::make_unique<expressions::BoolLiteral>(true);
+std::unique_ptr<scalar_expressions::ScalarExpression> makeDummyFilter() {
+   return std::make_unique<scalar_expressions::BoolLiteral>(true);
 }
 
 operators::QueryNodePtr makeScan() {
@@ -48,7 +49,7 @@ operators::QueryNodePtr makeScan() {
 
 operators::QueryNodePtr makeFilteredScan(bool filter_value) {
    return std::make_unique<operators::FilterNode>(
-      makeScan(), std::make_unique<expressions::BoolLiteral>(filter_value)
+      makeScan(), std::make_unique<scalar_expressions::BoolLiteral>(filter_value)
    );
 }
 
@@ -95,7 +96,7 @@ TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
-       .expression = std::make_unique<expressions::Int64Literal>(3)}
+       .expression = std::make_unique<scalar_expressions::Int64Literal>(3)}
    );
    auto map_node =
       std::make_unique<operators::MapNode>(std::move(filter_node), std::move(assignments));
@@ -110,6 +111,44 @@ TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
    EXPECT_EQ(table_scan->filter->toString(), "And(true & true)");
 }
 
+// --- FilterNode(MapNode(TableScanNode)): the swap that keeps decompression above the filter ---
+//
+// This is the motivating case for #1343: a filter stacked on top of a (decompression) MapNode.
+// FilterPushdownPass keeps the MapNode on top and pushes the filter down into the TableScan,
+// so only the rows matching the filter are ever decompressed.
+TEST(FilterPushdownPass, pushesFilterThroughDecompressMapIntoTableScan) {
+   using silo::schema::ColumnIdentifier;
+   using silo::schema::ColumnType;
+
+   const ColumnIdentifier seq_column{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
+   auto scan = std::make_unique<operators::TableScanNode>(
+      makeTable(), makeDummyFilter(), std::vector<ColumnIdentifier>{seq_column}
+   );
+
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = {.name = "seq", .type = ColumnType::STRING},
+       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(seq_column, "A")}
+   );
+   auto map_node = std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
+   auto filter_node =
+      std::make_unique<operators::FilterNode>(std::move(map_node), makeDummyFilter());
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   // The FilterNode is gone; the decompression MapNode stays on top with the filter pushed
+   // into the TableScan below it.
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(map->assignments.size(), 1);
+   EXPECT_EQ(
+      map->assignments.front().expression->kind(), scalar_expressions::ZstdDecompressScalar::KIND
+   );
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
+   EXPECT_EQ(table_scan->filter->toString(), "And(true & true)");
+}
+
 // --- FilterNode(ProjectNode(MapNode(FilterNode(TableScanNode)))) ---
 TEST(FilterPushdownPass, pushesFilterThroughProjectAndMapIntoTableScan) {
    auto inner_filter = makeFilteredScan(false);
@@ -117,7 +156,7 @@ TEST(FilterPushdownPass, pushesFilterThroughProjectAndMapIntoTableScan) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
-       .expression = std::make_unique<expressions::Int64Literal>(3)}
+       .expression = std::make_unique<scalar_expressions::Int64Literal>(3)}
    );
    auto map_node =
       std::make_unique<operators::MapNode>(std::move(inner_filter), std::move(assignments));

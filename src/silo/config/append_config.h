@@ -4,7 +4,6 @@
 #include <optional>
 #include <string>
 
-#include <Poco/Util/OptionSet.h>
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
