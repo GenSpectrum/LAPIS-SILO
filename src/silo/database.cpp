@@ -27,13 +27,13 @@
 #include "silo/persistence/exception.h"
 #include "silo/query_engine/exec_node/arrow_ipc_sink.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/expressions/literal.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/planner.h"
 #include "silo/query_engine/saneql/ast_to_query.h"
 #include "silo/query_engine/saneql/parser.h"
+#include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/sequence_column.h"
 
@@ -176,8 +176,8 @@ void Database::appendDataFromString(const std::string& table_name, std::string j
    silo::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
 }
 
-using silo::query_engine::expressions::BoolLiteral;
-using silo::query_engine::expressions::Expression;
+using silo::query_engine::scalar_expressions::BoolLiteral;
+using silo::query_engine::scalar_expressions::ScalarExpression;
 
 void Database::printAllData(const std::string& table_name) const {
    auto table_iter = tables.find(schema::TableName{table_name});
@@ -268,7 +268,7 @@ roaring::Roaring Database::getFilteredBitmap(
       query_engine::saneql::convertToFilter(*ast, table->schema->getColumnIdentifiers());
 
    auto rewritten_filter_expression =
-      filter_expression->rewrite(*table, Expression::AmbiguityMode::NONE);
+      filter_expression->rewrite(*table, ScalarExpression::AmbiguityMode::NONE);
    auto filter_operator = rewritten_filter_expression->compile(*table);
    roaring::Roaring bitmap = filter_operator->evaluate().getConstReference();
    return bitmap;

@@ -11,13 +11,13 @@
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/expressions/or.h"
-#include "silo/query_engine/expressions/string_equals.h"
-#include "silo/query_engine/expressions/string_in_set.h"
+#include "silo/query_engine/scalar_expressions/or.h"
+#include "silo/query_engine/scalar_expressions/string_equals.h"
+#include "silo/query_engine/scalar_expressions/string_in_set.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/query_node.h"
-#include "silo/query_engine/expressions/literal.h"
+#include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/planner.h"
 
@@ -25,12 +25,12 @@ namespace {
 
 using silo::Database;
 using silo::query_engine::Planner;
-using silo::query_engine::expressions::Expression;
-using silo::query_engine::expressions::ExpressionVector;
-using silo::query_engine::expressions::Or;
-using silo::query_engine::expressions::StringEquals;
-using silo::query_engine::expressions::StringInSet;
-using silo::query_engine::expressions::BoolLiteral;
+using silo::query_engine::scalar_expressions::ScalarExpression;
+using silo::query_engine::scalar_expressions::ScalarExpressionVector;
+using silo::query_engine::scalar_expressions::Or;
+using silo::query_engine::scalar_expressions::StringEquals;
+using silo::query_engine::scalar_expressions::StringInSet;
+using silo::query_engine::scalar_expressions::BoolLiteral;
 using silo::query_engine::operators::AggregateDefinition;
 using silo::query_engine::operators::AggregateFunction;
 using silo::query_engine::operators::AggregateNode;
@@ -90,11 +90,11 @@ std::shared_ptr<Database> setupTestDatabase(size_t num_records) {
 }
 
 /// Build an OR expression with many StringEquals clauses
-std::unique_ptr<Expression> buildManyStringEquals(
+std::unique_ptr<ScalarExpression> buildManyStringEquals(
    const std::string& column,
    const std::vector<std::string>& values
 ) {
-   ExpressionVector children;
+   ScalarExpressionVector children;
    children.reserve(values.size());
    for (const auto& value : values) {
       children.push_back(std::make_unique<StringEquals>(column, value));
@@ -103,17 +103,17 @@ std::unique_ptr<Expression> buildManyStringEquals(
 }
 
 /// Build an OR expression with many StringEquals clauses
-std::unique_ptr<Expression> buildManyNestedStringEquals(
+std::unique_ptr<ScalarExpression> buildManyNestedStringEquals(
    const std::string& column,
    const std::vector<std::string>& values
 ) {
    SILO_ASSERT(values.size() >= 2);
-   ExpressionVector children;
+   ScalarExpressionVector children;
    children.push_back(std::make_unique<StringEquals>(column, values.at(0)));
    children.push_back(std::make_unique<StringEquals>(column, values.at(1)));
    std::unique_ptr<Or> result = std::make_unique<Or>(std::move(children));
    for (size_t idx = 2; idx < values.size(); ++idx) {
-      children = ExpressionVector{};
+      children = ScalarExpressionVector{};
       children.push_back(std::make_unique<StringEquals>(column, values.at(idx)));
       children.push_back(std::move(result));
       result = std::make_unique<Or>(std::move(children));
@@ -122,7 +122,7 @@ std::unique_ptr<Expression> buildManyNestedStringEquals(
 }
 
 /// Build a StringInSet expression
-std::unique_ptr<Expression> buildStringInSet(
+std::unique_ptr<ScalarExpression> buildStringInSet(
    const std::string& column,
    const std::vector<std::string>& values
 ) {
@@ -132,7 +132,7 @@ std::unique_ptr<Expression> buildStringInSet(
 
 void executeCountWithFilter(
    const std::shared_ptr<Database>& database,
-   std::unique_ptr<Expression> filter
+   std::unique_ptr<ScalarExpression> filter
 ) {
    const auto& table_name = silo::schema::TableName::getDefault();
    auto table = database->tables.at(table_name);

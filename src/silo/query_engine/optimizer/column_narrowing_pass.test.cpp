@@ -9,9 +9,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "silo/query_engine/expressions/field_ref.h"
-#include "silo/query_engine/expressions/literal.h"
-#include "silo/query_engine/expressions/zstd_decompress_scalar.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
@@ -21,6 +18,9 @@
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/order_by_field.h"
+#include "silo/query_engine/scalar_expressions/field_ref.h"
+#include "silo/query_engine/scalar_expressions/literal.h"
+#include "silo/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
@@ -56,7 +56,7 @@ std::shared_ptr<silo::storage::Table> dummyTable() {
 std::unique_ptr<operators::TableScanNode> makeScan(std::vector<ColumnIdentifier> fields) {
    return std::make_unique<operators::TableScanNode>(
       dummyTable(),
-      std::make_unique<silo::query_engine::expressions::BoolLiteral>(true),
+      std::make_unique<silo::query_engine::scalar_expressions::BoolLiteral>(true),
       std::move(fields)
    );
 }
@@ -96,8 +96,9 @@ operators::TableScanNode& leafScan(operators::QueryNode& node) {
 operators::MapNode::Assignment decompressAssignment(const ColumnIdentifier& sequence_col) {
    return {
       .output_column = col(sequence_col.name),
-      .expression =
-         std::make_unique<silo::query_engine::expressions::ZstdDecompressScalar>(sequence_col, "A")
+      .expression = std::make_unique<silo::query_engine::scalar_expressions::ZstdDecompressScalar>(
+         sequence_col, "A"
+      )
    };
 }
 
@@ -356,11 +357,11 @@ TEST(ColumnNarrowingPassMap, preservesAssignmentOrderForAddedColumns) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = col("x"),
-       .expression = std::make_unique<silo::query_engine::expressions::Int64Literal>(1)}
+       .expression = std::make_unique<silo::query_engine::scalar_expressions::Int64Literal>(1)}
    );
    assignments.push_back(
       {.output_column = col("y"),
-       .expression = std::make_unique<silo::query_engine::expressions::Int64Literal>(2)}
+       .expression = std::make_unique<silo::query_engine::scalar_expressions::Int64Literal>(2)}
    );
    operators::QueryNodePtr node =
       std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
@@ -395,7 +396,7 @@ TEST(ColumnNarrowingPassFetch, propagatesRequiredThroughFetch) {
 TEST(ColumnNarrowingPassFilter, propagatesRequiredThroughFilter) {
    auto scan = makeScan({col("a"), col("b"), col("c")});
    auto filter = std::make_unique<operators::FilterNode>(
-      std::move(scan), std::make_unique<silo::query_engine::expressions::BoolLiteral>(true)
+      std::move(scan), std::make_unique<silo::query_engine::scalar_expressions::BoolLiteral>(true)
    );
 
    ColumnNarrowingPass pass({col("b")});
@@ -414,7 +415,7 @@ TEST(ColumnNarrowingPassMap, keepsReferencedColumnAndPrunesOthers) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = col("x"),
-       .expression = std::make_unique<silo::query_engine::expressions::FieldRef>(col("b"))}
+       .expression = std::make_unique<silo::query_engine::scalar_expressions::FieldRef>(col("b"))}
    );
    auto map = std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
 

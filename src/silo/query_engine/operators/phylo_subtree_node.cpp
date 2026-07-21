@@ -63,7 +63,7 @@ namespace silo::query_engine::operators {
 
 PhyloSubtreeNode::PhyloSubtreeNode(
    std::shared_ptr<storage::Table> table,
-   std::unique_ptr<expressions::Expression> filter,
+   std::unique_ptr<scalar_expressions::ScalarExpression> filter,
    std::string column_name,
    bool print_nodes_not_in_tree,
    bool contract_unary_nodes
