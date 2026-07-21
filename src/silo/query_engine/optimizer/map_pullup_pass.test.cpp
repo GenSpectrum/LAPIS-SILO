@@ -190,9 +190,7 @@ TEST(MapPullupPass, pullsInnerMapUpUnderRootMap) {
    EXPECT_EQ(fetch->child->kind(), operators::NodeKind::TABLE_SCAN);
 }
 
-// --- Blocked: FilterNode. Pulling a MapNode up through a filter needs the columns the
-// filter references (Expression::freeIUs), which most predicates don't report yet, so this
-// pass leaves the MapNode below the filter (#1343). ---
+// Blocked: FilterNode. Should be handled by the filter pushdown
 
 TEST(MapPullupPass, doesNotPullMapUpThroughFilter) {
    auto filter = std::make_unique<operators::FilterNode>(makeMap(makeScan()), trueFilter());
