@@ -43,8 +43,10 @@ constexpr std::string_view SEQ_COLUMN = "seq";
 // A table with a string primary key and a single nucleotide sequence column whose reference is
 // `genome_length` copies of 'A'.
 std::shared_ptr<Table> makeTable(size_t genome_length) {
-   const ColumnIdentifier pk_id{std::string{PK_COLUMN}, ColumnType::STRING};
-   const ColumnIdentifier seq_id{std::string{SEQ_COLUMN}, ColumnType::NUCLEOTIDE_SEQUENCE};
+   const ColumnIdentifier pk_id{.name = std::string{PK_COLUMN}, .type = ColumnType::STRING};
+   const ColumnIdentifier seq_id{
+      .name = std::string{SEQ_COLUMN}, .type = ColumnType::NUCLEOTIDE_SEQUENCE
+   };
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata;
    column_metadata.emplace(pk_id, std::make_shared<StringColumnMetadata>(std::string{PK_COLUMN}));
    std::vector<Nucleotide::Symbol> reference(genome_length, Nucleotide::Symbol::A);
@@ -71,15 +73,16 @@ std::string coveredSequence(size_t genome_length, uint32_t start, uint32_t end) 
 // One ndjson row. covered == nullopt emits a null sequence.
 std::string row(std::string_view primary_key, std::optional<std::string> covered_sequence) {
    if (!covered_sequence.has_value()) {
-      return fmt::format(R"({{"{}":"{}","{}":null}})", PK_COLUMN, primary_key, SEQ_COLUMN);
+      return fmt::format(R"({{"{}":"{}","{}":null}})", PK_COLUMN, primary_key, SEQ_COLUMN) + "\n";
    }
    return fmt::format(
-      R"({{"{}":"{}","{}":{{"sequence":"{}","insertions":[]}}}})",
-      PK_COLUMN,
-      primary_key,
-      SEQ_COLUMN,
-      *covered_sequence
-   );
+             R"({{"{}":"{}","{}":{{"sequence":"{}","insertions":[]}}}})",
+             PK_COLUMN,
+             primary_key,
+             SEQ_COLUMN,
+             *covered_sequence
+          ) +
+          "\n";
 }
 
 ClusteredBufferingOptions clusteringOn(size_t num_buffers, double threshold_fraction = 0.10) {
@@ -123,7 +126,7 @@ std::vector<std::pair<uint32_t, uint32_t>> allRowRanges(const Table& table) {
 TEST(ClusteredBuffering, disjointRangesBeyondThresholdOpenSeparateChunks) {
    auto table = makeTable(100);
    const std::string ndjson =
-      row("a", coveredSequence(100, 0, 20)) + "\n" + row("b", coveredSequence(100, 80, 100)) + "\n";
+      row("a", coveredSequence(100, 0, 20)) + row("b", coveredSequence(100, 80, 100));
 
    appendRows(table, ndjson, clusteringOn(8));
 
@@ -133,7 +136,7 @@ TEST(ClusteredBuffering, disjointRangesBeyondThresholdOpenSeparateChunks) {
 TEST(ClusteredBuffering, overlappingRangesWithinThresholdShareOneChunk) {
    auto table = makeTable(100);
    const std::string ndjson =
-      row("a", coveredSequence(100, 0, 20)) + "\n" + row("b", coveredSequence(100, 0, 25)) + "\n";
+      row("a", coveredSequence(100, 0, 20)) + row("b", coveredSequence(100, 0, 25));
 
    appendRows(table, ndjson, clusteringOn(8));
 
@@ -144,9 +147,9 @@ TEST(ClusteredBuffering, respectsBufferCapacityByMergingIntoLeastGrowthBuffer) {
    auto table = makeTable(100);
    // Three mutually distant clusters but only two buffers: the third must merge into an existing
    // buffer rather than open a third.
-   const std::string ndjson = row("a", coveredSequence(100, 0, 10)) + "\n" +
-                              row("b", coveredSequence(100, 45, 55)) + "\n" +
-                              row("c", coveredSequence(100, 90, 100)) + "\n";
+   const std::string ndjson = row("a", coveredSequence(100, 0, 10)) +
+                              row("b", coveredSequence(100, 45, 55)) +
+                              row("c", coveredSequence(100, 90, 100));
 
    appendRows(table, ndjson, clusteringOn(2));
 
@@ -155,9 +158,8 @@ TEST(ClusteredBuffering, respectsBufferCapacityByMergingIntoLeastGrowthBuffer) {
 
 TEST(ClusteredBuffering, nullSequencesClusterSeparatelyFromDataRows) {
    auto table = makeTable(100);
-   const std::string ndjson = row("a", coveredSequence(100, 0, 20)) + "\n" +
-                              row("n1", std::nullopt) + "\n" + row("n2", std::nullopt) + "\n" +
-                              row("b", coveredSequence(100, 0, 25)) + "\n";
+   const std::string ndjson = row("a", coveredSequence(100, 0, 20)) + row("n1", std::nullopt) +
+                              row("n2", std::nullopt) + row("b", coveredSequence(100, 0, 25));
 
    appendRows(table, ndjson, clusteringOn(8));
 
@@ -185,7 +187,6 @@ TEST(ClusteredBuffering, flushesBufferWhenItReachesChunkSize) {
    ndjson.reserve((CHUNK_SIZE + 1) * 40);
    for (size_t i = 0; i < CHUNK_SIZE + 1; ++i) {
       ndjson += row(fmt::format("row-{}", i), coveredSequence(1, 0, 1));
-      ndjson += "\n";
    }
 
    appendRows(table, ndjson, clusteringOn(8));
@@ -196,10 +197,10 @@ TEST(ClusteredBuffering, flushesBufferWhenItReachesChunkSize) {
 }
 
 TEST(ClusteredBuffering, preservesAllRowsRegardlessOfChunkAssignment) {
-   const std::string ndjson = row("a", coveredSequence(60, 0, 60)) + "\n" +
-                              row("b", coveredSequence(60, 0, 30)) + "\n" + row("c", std::nullopt) +
-                              "\n" + row("d", coveredSequence(60, 40, 60)) + "\n" +
-                              row("e", coveredSequence(60, 0, 58)) + "\n";
+   const std::string ndjson = row("a", coveredSequence(60, 0, 60)) +
+                              row("b", coveredSequence(60, 0, 30)) + row("c", std::nullopt) +
+                              row("d", coveredSequence(60, 40, 60)) +
+                              row("e", coveredSequence(60, 0, 58));
 
    auto clustered = makeTable(60);
    appendRows(clustered, ndjson, clusteringOn(8));
@@ -227,7 +228,7 @@ TEST(ClusteredBuffering, disabledByDefaultKeepsSingleInOrderBuffer) {
    auto table = makeTable(100);
    // Two disjoint ranges that would open separate chunks if clustering were on.
    const std::string ndjson =
-      row("a", coveredSequence(100, 0, 20)) + "\n" + row("b", coveredSequence(100, 80, 100)) + "\n";
+      row("a", coveredSequence(100, 0, 20)) + row("b", coveredSequence(100, 80, 100));
 
    appendRows(table, ndjson, ClusteredBufferingOptions{});
 

@@ -28,9 +28,15 @@ schema::ColumnIdentifier resolveDriverColumn(
       throw AppendException("clustered ingestion requires a driver column name");
    }
    const auto column = schema.getColumn(*driver_column_name);
-   if (!column.has_value() || !schema::isSequenceColumn(column->type)) {
+   if (!column.has_value()) {
       throw AppendException(
-         "the clustering driver column '{}' is not a sequence column of the table",
+         "the clustering driver column '{}' does not exist in the table schema", *driver_column_name
+      );
+   }
+   if (column.value().type != schema::ColumnType::NUCLEOTIDE_SEQUENCE &&
+       column.value().type != schema::ColumnType::AMINO_ACID_SEQUENCE) {
+      throw AppendException(
+         "the clustering driver column '{}' must be a nucleotide or amino-acid sequence column",
          *driver_column_name
       );
    }
