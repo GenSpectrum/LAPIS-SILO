@@ -115,14 +115,12 @@ void run() {
 
    auto [database, reference_length] = setupTestDatabase();
 
-   while (true) {
-      SPDLOG_INFO("Starting full query set benchmark ({} queries):", DEFAULT_QUERY_COUNT);
-      auto start = std::chrono::high_resolution_clock::now();
-      executeAllQueries(database, reference_length);
-      auto end = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-      SPDLOG_INFO("Finished full query set in {}.{:03} seconds", duration / 1000, duration % 1000);
-   }
+   SPDLOG_INFO("Starting full query set benchmark ({} queries):", DEFAULT_QUERY_COUNT);
+   auto start = std::chrono::high_resolution_clock::now();
+   executeAllQueries(database, reference_length);
+   auto end = std::chrono::high_resolution_clock::now();
+   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+   SPDLOG_INFO("Finished full query set in {}.{:03} seconds", duration / 1000, duration % 1000);
 }
 
 }  // namespace

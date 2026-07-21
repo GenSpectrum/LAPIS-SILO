@@ -1,8 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <vector>
 
@@ -213,7 +215,12 @@ class Selection : public Operator {
    static std::unique_ptr<Operator> negate(std::unique_ptr<Selection>&& selection);
 
   private:
-   [[nodiscard]] static bool matchesPredicates(const PredicateVector& predicates, uint32_t row);
+   template <std::ranges::range PredicateRange>
+   [[nodiscard]] static bool matchesPredicates(const PredicateRange& predicates, uint32_t row) {
+      return std::ranges::all_of(predicates, [row](const auto& predicate) {
+         return predicate->match(row);
+      });
+   }
 };
 
 }  // namespace silo::query_engine::filter::operators
