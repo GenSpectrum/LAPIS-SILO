@@ -110,9 +110,7 @@ std::string query(int handle, const std::string& saneql_query) {
    );
 
    std::ostringstream output_stream;
-   silo::query_engine::exec_node::NdjsonSink output_sink{
-      &output_stream, query_plan.results_schema
-   };
+   silo::query_engine::exec_node::NdjsonSink output_sink{&output_stream, query_plan.results_schema};
    query_plan.executeAndWrite(output_sink, QUERY_TIMEOUT_SECONDS);
    return output_stream.str();
 }

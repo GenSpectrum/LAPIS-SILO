@@ -20,6 +20,15 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_BINARY_DIR}/generators/")
 # (looking for the <lib>-config.cmake files of transitive dependencies of modules, e.g. spdlog->fmt)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/generators/")
 
+# Under the Emscripten toolchain, find_package defaults to searching only inside
+# the cross-compilation sysroot (CMAKE_FIND_ROOT_PATH), so the Conan-generated
+# package config files in build/wasm/generators are ignored. Add that directory
+# as a find root and allow package lookups to fall back to CMAKE_PREFIX_PATH.
+if(EMSCRIPTEN)
+    list(APPEND CMAKE_FIND_ROOT_PATH "${CMAKE_BINARY_DIR}/generators")
+    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
+endif()
+
 # Export compile commands for configuring language servers or debugging the build
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -30,7 +39,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Arrow REQUIRED COMPONENTS Acero)
 find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
 find_package(FastFloat REQUIRED)
-find_package(LibLZMA REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(re2 REQUIRED)
 find_package(roaring REQUIRED)
@@ -39,6 +47,12 @@ find_package(simdjson REQUIRED)
 find_package(simdutf REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
+
+# Native-only: lzma-compressed inputs. Not available for Emscripten (the browser
+# build accepts raw and .zst inputs only).
+if(NOT EMSCRIPTEN)
+    find_package(LibLZMA REQUIRED)
+endif()
 
 # ---------------------------------------------------------------------------
 # silolib
@@ -68,9 +82,31 @@ target_compile_definitions(silolib_deps INTERFACE
         SIMDJSON_EXCEPTIONS=0
 )
 
+# WebAssembly-only usage requirements. These are INTERFACE so they compile into
+# the silolib objects too: the SILO_WASM guards live in silolib sources
+# (input_stream_wrapper.cpp, exec_node/table_scan.h), NO_EVOBENCH neutralises the
+# evobench header pulled in by silolib, and -fexceptions must reach every silolib
+# object (they throw). -pthread keeps SILO objects ABI-consistent with the
+# Emscripten dependency builds.
+if(EMSCRIPTEN)
+    target_compile_definitions(silolib_deps INTERFACE SILO_WASM NO_EVOBENCH)
+    target_compile_options(silolib_deps INTERFACE -fexceptions -pthread)
+endif()
+
 file(GLOB_RECURSE SILOLIB_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE SILO_TEST_SOURCES CONFIGURE_DEPENDS "src/*.test.cpp")
 list(REMOVE_ITEM SILOLIB_SOURCES ${SILO_TEST_SOURCES})
+
+# The browser target does not include append mode, runtime config, or evobench.
+if(EMSCRIPTEN)
+    file(GLOB_RECURSE WASM_EXCLUDED_SOURCES CONFIGURE_DEPENDS
+            "src/silo/append/append.cpp"
+            "src/silo/config/append_config.cpp"
+            "src/silo/config/runtime_config.cpp"
+            "src/evobench/evobench.cpp"
+    )
+    list(REMOVE_ITEM SILOLIB_SOURCES ${WASM_EXCLUDED_SOURCES})
+endif()
 
 add_library(silolib OBJECT ${SILOLIB_SOURCES})
 set_target_properties(silolib PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -109,29 +145,38 @@ endif ()
 # Tests
 # ---------------------------------------------------------------------------
 
-enable_testing()
-find_package(GTest REQUIRED)
-include_directories(${GTest_INCLUDE_DIRS})
+# GTest is not part of the Emscripten dependency set; the browser build ships
+# its own node smoke test under wasm/test instead.
+if(NOT EMSCRIPTEN)
+    enable_testing()
+    find_package(GTest REQUIRED)
+    include_directories(${GTest_INCLUDE_DIRS})
 
-add_executable(silo_test ${SILO_TEST_SOURCES})
-if (NOT GTest_LIBRARIES)
-    set(GTest_LIBRARIES gtest gmock)
-endif ()
-target_link_libraries(silo_test PUBLIC ${GTest_LIBRARIES} silolib)
+    add_executable(silo_test ${SILO_TEST_SOURCES})
+    if (NOT GTest_LIBRARIES)
+        set(GTest_LIBRARIES gtest gmock)
+    endif ()
+    target_link_libraries(silo_test PUBLIC ${GTest_LIBRARIES} silolib)
+endif()
 
 # ---------------------------------------------------------------------------
 # Targets
 # ---------------------------------------------------------------------------
 
-# The native command-line application (the `silo` executable) is a consumer
-# of the shared silolib declaration
-add_subdirectory(app)
+if(EMSCRIPTEN)
+    # The browser embind module, a consumer of the shared silolib declaration.
+    add_subdirectory(wasm)
+else()
+    # The native command-line application (the `silo` executable) is a consumer
+    # of the shared silolib declaration
+    add_subdirectory(app)
 
-# The performance benchmark targets
-add_subdirectory(performance)
+    # The performance benchmark targets
+    add_subdirectory(performance)
 
-# The python binding target
-option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
-if(BUILD_PYTHON_BINDINGS)
-    add_subdirectory(python)
+    # The python binding target
+    option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
+    if(BUILD_PYTHON_BINDINGS)
+        add_subdirectory(python)
+    endif()
 endif()

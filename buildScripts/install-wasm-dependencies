@@ -24,4 +24,4 @@ uv run --project buildScripts conan install . --update \
   --profile:host build/wasm/conanprofile-emscripten \
   --profile:build ./conanprofile \
   --settings 'arrow/*:compiler.cppstd=20' \
-  --output-folder=build/wasm
+  --output-folder=build/wasm/generators

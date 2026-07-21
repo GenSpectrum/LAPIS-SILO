@@ -42,7 +42,7 @@ ${WASM_DEPENDENCIES_FLAG}: conanfile.py conanprofile build/wasm/conanprofile-ems
 
 SRC_FILE_LIST=.src_file_list
 $(SRC_FILE_LIST): FORCE
-	@find src app/src -type f | sort > $@.tmp
+	@find src app/src wasm/src -type f | sort > $@.tmp
 	@cmp -s $@ $@.tmp && rm $@.tmp || mv $@.tmp $@
 .PHONY: FORCE
 
@@ -52,8 +52,8 @@ build/Debug/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
 build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
 	$(CMAKE) -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
 
-build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) wasm/CMakeLists.txt
-	emcmake cmake -G Ninja -S wasm -B build/wasm -D CMAKE_BUILD_TYPE=Release
+build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) CMakeLists.txt wasm/CMakeLists.txt
+	emcmake cmake -G Ninja -S . -B build/wasm -D CMAKE_BUILD_TYPE=Release
 
 ${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo
@@ -155,7 +155,7 @@ endToEndTests/node_modules: endToEndTests/package-lock.json
 
 .PHONY: format-cpp
 format-cpp:
-	find src app/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) -i
+	find src app/src wasm/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) -i
 
 .PHONY: format-node
 format-node: endToEndTests/node_modules
@@ -167,7 +167,7 @@ format: format-cpp format-node
 
 .PHONY: check-format-cpp
 check-format-cpp:
-	find src app/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) --dry-run --Werror
+	find src app/src wasm/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) --dry-run --Werror
 
 .PHONY: check-format-node
 check-format-node: endToEndTests/node_modules
