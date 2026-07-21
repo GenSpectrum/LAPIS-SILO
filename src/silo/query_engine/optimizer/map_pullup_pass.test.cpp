@@ -216,11 +216,56 @@ TEST(MapPullupPass, doesNotPullMapUpThroughProject) {
    EXPECT_EQ(project_node->child->kind(), operators::NodeKind::MAP);
 }
 
-// --- Blocked: OrderByNode ---
+// --- OrderByNode(MapNode(...)) → MapNode(OrderByNode(...)) when the order-by fields do not
+// reference a produced column ---
 
-TEST(MapPullupPass, doesNotPullMapUpThroughOrderBy) {
+TEST(MapPullupPass, pullsMapUpThroughOrderBy) {
    std::vector<silo::query_engine::OrderByField> fields{
       {.field = {.name = "id", .type = ColumnType::STRING}, .ascending = true}
+   };
+   auto order_by = std::make_unique<operators::OrderByNode>(
+      makeMap(makeScan()), std::move(fields), std::nullopt
+   );
+
+   auto result = MapPullupPass::run(std::move(order_by));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::ORDER_BY);
+   auto* moved_order_by = dynamic_cast<operators::OrderByNode*>(map->child.get());
+   ASSERT_EQ(moved_order_by->fields.size(), 1);
+   EXPECT_EQ(moved_order_by->fields.front().field.name, "id");
+   EXPECT_TRUE(moved_order_by->fields.front().ascending);
+   EXPECT_EQ(moved_order_by->child->kind(), operators::NodeKind::TABLE_SCAN);
+}
+
+// The randomize seed is preserved when the OrderBy moves below the Map.
+
+TEST(MapPullupPass, pullsMapUpThroughOrderByPreservingRandomizeSeed) {
+   std::vector<silo::query_engine::OrderByField> fields{
+      {.field = {.name = "id", .type = ColumnType::STRING}, .ascending = true}
+   };
+   auto order_by = std::make_unique<operators::OrderByNode>(
+      makeMap(makeScan()), std::move(fields), std::optional<uint32_t>{42}
+   );
+
+   auto result = MapPullupPass::run(std::move(order_by));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::ORDER_BY);
+   auto* moved_order_by = dynamic_cast<operators::OrderByNode*>(map->child.get());
+   ASSERT_TRUE(moved_order_by->randomize_seed.has_value());
+   EXPECT_EQ(moved_order_by->randomize_seed.value(), 42);
+}
+
+// --- Blocked: an order-by field references a column the MapNode produces, so swapping would
+// change ordering. The MapNode stays below the OrderBy. ---
+
+TEST(MapPullupPass, doesNotPullMapUpThroughOrderByOnProducedColumn) {
+   // makeMap produces column `x`; ordering by `x` must not be pushed below the Map.
+   std::vector<silo::query_engine::OrderByField> fields{
+      {.field = {.name = "x", .type = ColumnType::INT64}, .ascending = true}
    };
    auto order_by = std::make_unique<operators::OrderByNode>(
       makeMap(makeScan()), std::move(fields), std::nullopt
