@@ -141,7 +141,9 @@ TEST(FilterPushdownPass, pushesFilterThroughDecompressMapIntoTableScan) {
    ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
    auto* map = dynamic_cast<operators::MapNode*>(result.get());
    ASSERT_EQ(map->assignments.size(), 1);
-   EXPECT_EQ(map->assignments.front().expression->kind(), scalar_expressions::ZstdDecompressScalar::KIND);
+   EXPECT_EQ(
+      map->assignments.front().expression->kind(), scalar_expressions::ZstdDecompressScalar::KIND
+   );
    ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
    auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
    EXPECT_EQ(table_scan->filter->toString(), "And(true & true)");
