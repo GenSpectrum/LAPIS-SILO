@@ -335,11 +335,9 @@ void SequenceColumnBuilder<SymbolType>::insert(
    }
    auto [coverage, mutations] = std::move(coverage_mutations).value();
 
-   typename SequenceColumn<SymbolType>::BufferedSequence buffered{
+   buffer.push_back(typename SequenceColumn<SymbolType>::BufferedSequence{
       .coverage = std::move(coverage), .mutations = std::move(mutations), .insertions = {insertions}
-   };
-
-   buffer.push_back(std::move(buffered));
+   });
 }
 
 template class SequenceColumn<Nucleotide>;

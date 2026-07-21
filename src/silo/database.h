@@ -2,6 +2,7 @@
 
 #include <filesystem>
 
+#include "silo/append/database_inserter.h"
 #include "silo/common/data_version.h"
 #include "silo/common/silo_directory.h"
 #include "silo/config/runtime_config.h"
@@ -34,7 +35,11 @@ class Database {
       std::shared_ptr<schema::TableSchema> table_schema
    );
 
-   void appendData(const schema::TableName& table_name, std::istream& input_stream);
+   void appendData(
+      const schema::TableName& table_name,
+      std::istream& input_stream,
+      append::ClusteredBufferingOptions clustering_options = {}
+   );
 
    void createNucleotideSequenceTable(
       const std::string& table_name,

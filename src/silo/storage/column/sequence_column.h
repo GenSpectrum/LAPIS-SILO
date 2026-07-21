@@ -206,6 +206,20 @@ class SequenceColumnBuilder {
       buffer.push_back(typename SequenceColumn<SymbolType>::BufferedSequence{.is_null = true});
    }
 
+   void moveRowTo(size_t index, SequenceColumnBuilder& destination) {
+      destination.buffer.push_back(std::move(buffer.at(index)));
+   }
+
+   // The covered [start, end) of the buffered row, or nullopt for a null / fully-missing row.
+   // Lets the repartitioning step read a row's coverage without consuming the buffer.
+   [[nodiscard]] std::optional<std::pair<uint32_t, uint32_t>> coverageRangeAt(size_t index) const {
+      const auto& buffered = buffer.at(index);
+      if (buffered.is_null || buffered.coverage.start == buffered.coverage.end) {
+         return std::nullopt;
+      }
+      return std::make_pair(buffered.coverage.start, buffered.coverage.end);
+   }
+
    [[nodiscard]] size_t numValues() const { return buffer.size(); }
 
    [[nodiscard]] SequenceColumn<SymbolType>::Buffer finalize() {
