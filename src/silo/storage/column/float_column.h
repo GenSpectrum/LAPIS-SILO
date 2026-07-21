@@ -71,6 +71,10 @@ class FloatColumnBuilder {
 
    void insertNull() { buffer.emplace_back(std::nullopt); }
 
+   void moveRowTo(size_t index, FloatColumnBuilder& destination) {
+      destination.buffer.push_back(std::move(buffer.at(index)));
+   }
+
    [[nodiscard]] size_t numValues() const { return buffer.size(); }
 
    [[nodiscard]] FloatColumn::Buffer finalize() {

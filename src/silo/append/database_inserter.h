@@ -1,21 +1,82 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
+#include <optional>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include <simdjson.h>
 #include <spdlog/spdlog.h>
 
 #include "silo/append/ndjson_line_reader.h"
+#include "silo/schema/database_schema.h"
 #include "silo/storage/column_group_builder.h"
 #include "silo/storage/table.h"
 
 namespace silo::append {
 
+/// Controls the N-way clustered buffering during ingestion. When enabled, rows are routed to one of
+/// `num_buffers` open buffers by the covered range of a single driver sequence column, so that each
+/// flushed chunk holds sequences of similar coverage (which compresses better).
+///
+/// Off by default: ingestion then stays single-buffer and strictly in input order, byte-identical
+/// to the pre-clustering behavior. This matters because clustering reorders rows across chunks,
+/// which changes the row iteration order that order-sensitive query results depend on. Callers
+/// (and, once wired, config) must opt in explicitly.
+struct ClusteredBufferingOptions {
+   /// Master switch. False -> single-buffer, in-order ingestion (old behavior); the fields below
+   /// are ignored.
+   bool enabled = false;
+   /// Name of the sequence column whose coverage drives routing. Required when enabled; must name a
+   /// sequence column of the table.
+   std::optional<std::string> driver_column_name;
+   /// Number of simultaneously open data buffers (>=1). A separate buffer holds null-driver rows.
+   size_t num_buffers = 8;
+   /// A row joins an existing buffer when doing so widens that buffer's covered span by at most
+   /// this fraction of the genome length; otherwise it opens a new buffer (until num_buffers is
+   /// reached).
+   double span_growth_threshold_fraction = 0.10;
+};
+
 class TableInserter {
    std::shared_ptr<storage::Table> table;
-   // Buffers the current ingestion chunk; flushed to the table via bulkInsert.
-   storage::ColumnGroupBuilder column_builder;
+
+   /// One output buffer plus its current bounding covered range over the driver column.
+   /// `range == nullopt` marks an empty slot (also true right after a flush).
+   struct ClusterBuffer {
+      storage::ColumnGroupBuilder builder;
+      std::optional<std::pair<uint32_t, uint32_t>> range;
+   };
+
+   /// The driver sequence column, or nullopt when clustering is disabled.
+   std::optional<schema::ColumnIdentifier> driver_column;
+   /// Max span increase (in genome positions) still allowed to merge a row into an existing buffer.
+   uint32_t growth_threshold = 0;
+   /// The reader inserts every row into this single buffer. When it fills (COLUMN_CHUNK_SIZE rows)
+   /// it is flushed: appended directly as one chunk (clustering off) or repartitioned across the
+   /// output buffers by driver coverage (clustering on).
+   storage::ColumnGroupBuilder input_buffer;
+   /// Per-cluster output buffers. Each accumulates coverage-homogeneous rows across successive
+   /// input batches and flushes independently once full. Empty when clustering is disabled.
+   std::vector<ClusterBuffer> output_buffers;
+   /// Receives rows whose driver sequence is null or fully missing (unused when clustering
+   /// disabled).
+   ClusterBuffer null_buffer;
+
+   [[nodiscard]] bool clusteringEnabled() const { return driver_column.has_value(); }
+
+   /// Flush the full input buffer: append it directly (clustering off), or repartition its rows
+   /// across the output buffers by driver coverage (clustering on). Resets the input buffer.
+   [[nodiscard]] std::expected<void, std::string> flushInputBuffer();
+
+   /// Pick (and widen the range of) the output buffer a row with the given driver coverage joins.
+   ClusterBuffer& chooseBuffer(const std::optional<std::pair<uint32_t, uint32_t>>& row_range);
+
+   /// Flush the buffer as a chunk (via bulkInsert) once it reaches COLUMN_CHUNK_SIZE rows, freeing
+   /// its slot for a new cluster.
+   [[nodiscard]] std::expected<void, std::string> flushIfFull(ClusterBuffer& buffer);
 
   public:
    class Commit {
@@ -24,9 +85,10 @@ class TableInserter {
       Commit() = default;
    };
 
-   explicit TableInserter(std::shared_ptr<storage::Table> table)
-       : table(std::move(table)),
-         column_builder(*this->table->schema, this->table->columns) {}
+   explicit TableInserter(
+      std::shared_ptr<storage::Table> table,
+      ClusteredBufferingOptions options = {}
+   );
 
    struct SniffedField {
       silo::schema::ColumnIdentifier column_identifier;
@@ -52,7 +114,8 @@ class TableInserter {
 
 TableInserter::Commit appendDataToTable(
    std::shared_ptr<silo::storage::Table> table,
-   NdjsonLineReader& input_data
+   NdjsonLineReader& input_data,
+   ClusteredBufferingOptions options = {}
 );
 
 }  // namespace silo::append

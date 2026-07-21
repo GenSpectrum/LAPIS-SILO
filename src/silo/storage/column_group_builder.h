@@ -2,7 +2,9 @@
 
 #include <expected>
 #include <map>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <simdjson.h>
@@ -53,6 +55,22 @@ class ColumnGroupBuilder {
       const schema::ColumnIdentifier& column_identifier,
       simdjson::ondemand::value& value
    );
+
+   /// Move buffered row `index` (all columns) from this builder into `destination`, appending it
+   /// there. Used by the repartitioning step to distribute a full input buffer across the
+   /// per-cluster output buffers. The moved-from slots remain in this builder; call clear() after.
+   void moveRowTo(size_t index, ColumnGroupBuilder& destination);
+
+   /// Drop all buffered rows (resets the input buffer once its rows have been moved out).
+   void clear();
+
+   /// The covered [start, end) of buffered row `index` for the given sequence column, or nullopt
+   /// for a null / fully-missing row. Lets a row's output partition be chosen without consuming the
+   /// buffer. `sequence_column` must be a nucleotide or amino-acid sequence column.
+   [[nodiscard]] std::optional<std::pair<uint32_t, uint32_t>> coverageRangeAt(
+      const schema::ColumnIdentifier& sequence_column,
+      size_t index
+   ) const;
 
    /// Number of rows buffered into the current chunk.
    [[nodiscard]] size_t numBufferedRows() const;

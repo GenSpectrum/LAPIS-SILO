@@ -86,6 +86,10 @@ class Date32ColumnBuilder {
 
    void insertNull() { buffer.emplace_back(std::nullopt); }
 
+   void moveRowTo(size_t index, Date32ColumnBuilder& destination) {
+      destination.buffer.push_back(std::move(buffer.at(index)));
+   }
+
    [[nodiscard]] size_t numValues() const { return buffer.size(); }
 
    [[nodiscard]] Date32Column::Buffer finalize() {

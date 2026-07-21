@@ -90,11 +90,15 @@ void Database::createTable(
    schema.tables.emplace(std::move(table_name), std::move(table_schema));
 }
 
-void Database::appendData(const schema::TableName& table_name, std::istream& input_stream) {
+void Database::appendData(
+   const schema::TableName& table_name,
+   std::istream& input_stream,
+   append::ClusteredBufferingOptions clustering_options
+) {
    silo::append::NdjsonLineReader input_data{input_stream};
    SILO_ASSERT(tables.contains(table_name));
    auto& table = tables.at(table_name);
-   silo::append::appendDataToTable(table, input_data);
+   silo::append::appendDataToTable(table, input_data, std::move(clustering_options));
    updateDataVersion();
    SPDLOG_INFO("Database info: {}", getDatabaseInfo());
 }
