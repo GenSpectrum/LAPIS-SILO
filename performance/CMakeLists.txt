@@ -11,6 +11,7 @@ set(BENCHMARK_NAMES
     mutation_benchmark
     many_string_equals
     many_short_read_filters
+    clustered_ingestion_benchmark
     nof_sequence_filter
     sequence_column_insert
     co_occurrence_benchmark
