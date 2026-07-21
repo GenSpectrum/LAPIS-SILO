@@ -12,12 +12,19 @@
 
 namespace silo::query_engine::scalar_expressions {
 
-StringSearch::StringSearch(std::string column_name, std::unique_ptr<re2::RE2> search_expression)
-    : column_name(std::move(column_name)),
+StringSearch::StringSearch(
+   schema::ColumnIdentifier column,
+   std::unique_ptr<re2::RE2> search_expression
+)
+    : column(std::move(column)),
       search_expression(std::move(search_expression)) {}
 
 std::string StringSearch::toString() const {
-   return fmt::format("column {} regex_matches \"{}\"", column_name, search_expression->pattern());
+   return fmt::format("column {} regex_matches \"{}\"", column.name, search_expression->pattern());
+}
+
+std::vector<schema::ColumnIdentifier> StringSearch::freeIUs() const {
+   return {column};
 }
 
 namespace {
@@ -49,25 +56,25 @@ std::unique_ptr<ScalarExpression> StringSearch::rewrite(
    AmbiguityMode /*mode*/
 ) const {
    return std::make_unique<StringSearch>(
-      column_name, std::make_unique<re2::RE2>(search_expression->pattern())
+      column, std::make_unique<re2::RE2>(search_expression->pattern())
    );
 }
 
 std::unique_ptr<filter::operators::Operator> StringSearch::compile(const storage::Table& table
 ) const {
    CHECK_SILO_QUERY(
-      table.columns.string_columns.contains(column_name) ||
-         table.columns.indexed_string_columns.contains(column_name),
+      table.columns.string_columns.contains(column.name) ||
+         table.columns.indexed_string_columns.contains(column.name),
       "The database does not contain the string column '{}'",
-      column_name
+      column.name
    )
 
-   if (table.columns.indexed_string_columns.contains(column_name)) {
-      const auto& string_column = table.columns.indexed_string_columns.at(column_name);
+   if (table.columns.indexed_string_columns.contains(column.name)) {
+      const auto& string_column = table.columns.indexed_string_columns.at(column.name);
       return createMatchingBitmap(string_column, *search_expression, table.row_layout);
    }
-   SILO_ASSERT(table.columns.string_columns.contains(column_name));
-   const auto& string_column = table.columns.string_columns.at(column_name);
+   SILO_ASSERT(table.columns.string_columns.contains(column.name));
+   const auto& string_column = table.columns.string_columns.at(column.name);
    return createMatchingBitmap(string_column, *search_expression, table.row_layout);
 }
 

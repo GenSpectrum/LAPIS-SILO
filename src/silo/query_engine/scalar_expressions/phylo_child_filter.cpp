@@ -13,13 +13,17 @@
 
 namespace silo::query_engine::scalar_expressions {
 
-PhyloChildFilter::PhyloChildFilter(std::string column_name, std::string internal_node)
-    : column_name(std::move(column_name)),
+PhyloChildFilter::PhyloChildFilter(schema::ColumnIdentifier column, std::string internal_node)
+    : column(std::move(column)),
       internal_node(std::move(internal_node)) {}
 
 std::string PhyloChildFilter::toString() const {
-   return fmt::format("column {} phylo_child_of {}", column_name, internal_node);
+   return fmt::format("column {} phylo_child_of {}", column.name, internal_node);
 };
+
+std::vector<schema::ColumnIdentifier> PhyloChildFilter::freeIUs() const {
+   return {column};
+}
 
 namespace {
 std::unique_ptr<filter::operators::Operator> createMatchingBitmap(
@@ -55,24 +59,24 @@ std::unique_ptr<ScalarExpression> PhyloChildFilter::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
 ) const {
-   return std::make_unique<PhyloChildFilter>(column_name, internal_node);
+   return std::make_unique<PhyloChildFilter>(column, internal_node);
 }
 
 std::unique_ptr<filter::operators::Operator> PhyloChildFilter::compile(const storage::Table& table
 ) const {
    CHECK_SILO_QUERY(
-      table.schema->getColumn(column_name).has_value(),
+      table.schema->getColumn(column.name).has_value(),
       "The database does not contain the column '{}'",
-      column_name
+      column.name
    );
    CHECK_SILO_QUERY(
-      table.columns.string_columns.contains(column_name),
+      table.columns.string_columns.contains(column.name),
       "The column '{}' is not of type string",
-      column_name
+      column.name
    );
 
-   SILO_ASSERT(table.columns.string_columns.contains(column_name));
-   const auto& string_column = table.columns.string_columns.at(column_name);
+   SILO_ASSERT(table.columns.string_columns.contains(column.name));
+   const auto& string_column = table.columns.string_columns.at(column.name);
    return createMatchingBitmap(string_column, internal_node, table.row_layout);
 }
 

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "silo/common/string_utils.h"
 #include "silo/query_engine/filter/operators/complement.h"
@@ -28,6 +29,16 @@ std::string Or::toString() const {
    res += joinWithLimit(children, " | ");
    res += ")";
    return res;
+}
+
+std::vector<schema::ColumnIdentifier> Or::freeIUs() const {
+   std::vector<schema::ColumnIdentifier> result;
+   for (const auto& child : children) {
+      for (auto& column : child->freeIUs()) {
+         result.push_back(std::move(column));
+      }
+   }
+   return result;
 }
 
 std::vector<const ScalarExpression*> Or::collectChildren(const ScalarExpressionVector& children) {
@@ -126,12 +137,12 @@ void appendStringSetToStringSet(
 
 ScalarExpressionVector Or::mergeStringInSetExpressions(ScalarExpressionVector children) {
    ScalarExpressionVector new_children;
-   using Column = std::string;
+   using Column = schema::ColumnIdentifier;
    using Strings = std::unordered_set<std::string>;
    std::map<Column, Strings> new_string_in_set_children;
    for (auto& child : children) {
       if (auto* string_in_set_child = dynCast<StringInSet>(child.get())) {
-         if (auto iter = new_string_in_set_children.find(string_in_set_child->column_name);
+         if (auto iter = new_string_in_set_children.find(string_in_set_child->column);
              iter != new_string_in_set_children.end()) {
             auto& new_string_in_set_child_for_column = iter->second;
             appendStringSetToStringSet(
@@ -139,7 +150,7 @@ ScalarExpressionVector Or::mergeStringInSetExpressions(ScalarExpressionVector ch
             );
          } else {
             new_string_in_set_children.emplace(
-               std::move(string_in_set_child->column_name), std::move(string_in_set_child->values)
+               std::move(string_in_set_child->column), std::move(string_in_set_child->values)
             );
          }
       } else {

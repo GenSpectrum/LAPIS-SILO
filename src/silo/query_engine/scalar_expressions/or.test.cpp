@@ -14,6 +14,10 @@ namespace silo::query_engine::scalar_expressions {
 
 namespace {
 
+schema::ColumnIdentifier col(std::string name) {
+   return {.name = std::move(name), .type = schema::ColumnType::STRING};
+}
+
 // Helper to count expressions of a specific type
 template <typename T>
 size_t countExpressionsOfType(const ScalarExpressionVector& expressions) {
@@ -33,10 +37,10 @@ size_t countExpressionsOfType(const ScalarExpressionVector& expressions) {
 TEST(OrMergeStringInSet, shouldMergeTwoStringInSetWithSameColumn) {
    ScalarExpressionVector children;
    children.emplace_back(
-      std::make_unique<StringInSet>("country", std::unordered_set<std::string>{"Switzerland"})
+      std::make_unique<StringInSet>(col("country"), std::unordered_set<std::string>{"Switzerland"})
    );
    children.emplace_back(
-      std::make_unique<StringInSet>("country", std::unordered_set<std::string>{"Germany"})
+      std::make_unique<StringInSet>(col("country"), std::unordered_set<std::string>{"Germany"})
    );
 
    auto result = Or::mergeStringInSetExpressions(std::move(children));
@@ -54,10 +58,10 @@ TEST(OrMergeStringInSet, shouldMergeTwoStringInSetWithSameColumn) {
 TEST(OrMergeStringInSet, shouldKeepSeparateStringInSetWithDifferentColumns) {
    ScalarExpressionVector children;
    children.emplace_back(
-      std::make_unique<StringInSet>("country", std::unordered_set<std::string>{"Switzerland"})
+      std::make_unique<StringInSet>(col("country"), std::unordered_set<std::string>{"Switzerland"})
    );
    children.emplace_back(
-      std::make_unique<StringInSet>("region", std::unordered_set<std::string>{"Europe"})
+      std::make_unique<StringInSet>(col("region"), std::unordered_set<std::string>{"Europe"})
    );
 
    auto result = Or::mergeStringInSetExpressions(std::move(children));
@@ -70,7 +74,7 @@ TEST(OrMergeStringInSet, shouldPassThroughOtherExpressions) {
    ScalarExpressionVector children;
    children.emplace_back(std::make_unique<BoolLiteral>(true));
    children.emplace_back(
-      std::make_unique<StringInSet>("country", std::unordered_set<std::string>{"Switzerland"})
+      std::make_unique<StringInSet>(col("country"), std::unordered_set<std::string>{"Switzerland"})
    );
    children.emplace_back(std::make_unique<BoolLiteral>(true));
 
@@ -92,7 +96,7 @@ TEST(OrMergeStringInSet, shouldHandleEmptyInput) {
 TEST(OrMergeStringInSet, shouldHandleSingleStringInSet) {
    ScalarExpressionVector children;
    children.emplace_back(
-      std::make_unique<StringInSet>("country", std::unordered_set<std::string>{"Switzerland"})
+      std::make_unique<StringInSet>(col("country"), std::unordered_set<std::string>{"Switzerland"})
    );
 
    auto result = Or::mergeStringInSetExpressions(std::move(children));
@@ -104,13 +108,13 @@ TEST(OrMergeStringInSet, shouldHandleSingleStringInSet) {
 TEST(OrMergeStringInSet, shouldMergeMultipleValuesFromMultipleExpressions) {
    ScalarExpressionVector children;
    children.emplace_back(std::make_unique<StringInSet>(
-      "country", std::unordered_set<std::string>{"Switzerland", "Austria"}
+      col("country"), std::unordered_set<std::string>{"Switzerland", "Austria"}
+   ));
+   children.emplace_back(std::make_unique<StringInSet>(
+      col("country"), std::unordered_set<std::string>{"Germany", "France"}
    ));
    children.emplace_back(
-      std::make_unique<StringInSet>("country", std::unordered_set<std::string>{"Germany", "France"})
-   );
-   children.emplace_back(
-      std::make_unique<StringInSet>("country", std::unordered_set<std::string>{"Italy"})
+      std::make_unique<StringInSet>(col("country"), std::unordered_set<std::string>{"Italy"})
    );
 
    auto result = Or::mergeStringInSetExpressions(std::move(children));
@@ -129,10 +133,10 @@ TEST(OrMergeStringInSet, shouldMergeMultipleValuesFromMultipleExpressions) {
 TEST(OrMergeStringInSet, shouldHandleDuplicateValues) {
    ScalarExpressionVector children;
    children.emplace_back(
-      std::make_unique<StringInSet>("country", std::unordered_set<std::string>{"Switzerland"})
+      std::make_unique<StringInSet>(col("country"), std::unordered_set<std::string>{"Switzerland"})
    );
    children.emplace_back(std::make_unique<StringInSet>(
-      "country", std::unordered_set<std::string>{"Switzerland", "Germany"}
+      col("country"), std::unordered_set<std::string>{"Switzerland", "Germany"}
    ));
 
    auto result = Or::mergeStringInSetExpressions(std::move(children));
@@ -329,12 +333,12 @@ TEST(OrToString, shouldHandleNestedStringEquals) {
    );
 
    ScalarExpressionVector inner_children;
-   inner_children.emplace_back(std::make_unique<StringEquals>("key", "value_1"));
-   inner_children.emplace_back(std::make_unique<StringEquals>("key", "value_2"));
+   inner_children.emplace_back(std::make_unique<StringEquals>(col("key"), "value_1"));
+   inner_children.emplace_back(std::make_unique<StringEquals>(col("key"), "value_2"));
 
    ScalarExpressionVector outer_children;
    outer_children.emplace_back(std::make_unique<Or>(std::move(inner_children)));
-   outer_children.emplace_back(std::make_unique<StringEquals>("key", "value_3"));
+   outer_children.emplace_back(std::make_unique<StringEquals>(col("key"), "value_3"));
 
    const Or outer_or(std::move(outer_children));
 
@@ -357,15 +361,15 @@ TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
 
    ScalarExpressionVector innermost_children;
    innermost_children.emplace_back(std::make_unique<BoolLiteral>(false));
-   innermost_children.emplace_back(std::make_unique<StringEquals>("key", "value_1"));
+   innermost_children.emplace_back(std::make_unique<StringEquals>(col("key"), "value_1"));
 
    ScalarExpressionVector inner_children;
    inner_children.emplace_back(std::make_unique<Or>(std::move(innermost_children)));
-   inner_children.emplace_back(std::make_unique<StringEquals>("key", "value_2"));
+   inner_children.emplace_back(std::make_unique<StringEquals>(col("key"), "value_2"));
 
    ScalarExpressionVector outer_children;
    outer_children.emplace_back(std::make_unique<Or>(std::move(inner_children)));
-   outer_children.emplace_back(std::make_unique<StringEquals>("key", "value_3"));
+   outer_children.emplace_back(std::make_unique<StringEquals>(col("key"), "value_3"));
 
    const Or outer_or(std::move(outer_children));
 

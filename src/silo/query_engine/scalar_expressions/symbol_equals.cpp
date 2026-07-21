@@ -59,6 +59,18 @@ std::string SymbolEquals<SymbolType>::toString() const {
 }
 
 template <typename SymbolType>
+std::vector<schema::ColumnIdentifier> SymbolEquals<SymbolType>::freeIUs() const {
+   // Only a named sequence can be resolved here. The default sequence name is not
+   // known at construction time (no table available), and sequence columns are never
+   // produced by a map(), so returning {} for the default sequence is safe for the
+   // optimizer's column-narrowing use-case.
+   if (sequence_name.has_value()) {
+      return {schema::ColumnIdentifier{sequence_name.value(), SymbolType::COLUMN_TYPE}};
+   }
+   return {};
+}
+
+template <typename SymbolType>
 std::unique_ptr<ScalarExpression> SymbolEquals<SymbolType>::rewrite(
    const storage::Table& table,
    AmbiguityMode mode

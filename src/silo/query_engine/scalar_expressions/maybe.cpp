@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -18,6 +19,10 @@ Maybe::Maybe(std::unique_ptr<ScalarExpression> child)
 
 std::string Maybe::toString() const {
    return "Maybe (" + child->toString() + ")";
+}
+
+std::vector<schema::ColumnIdentifier> Maybe::freeIUs() const {
+   return child->freeIUs();
 }
 
 std::unique_ptr<ScalarExpression> Maybe::rewrite(

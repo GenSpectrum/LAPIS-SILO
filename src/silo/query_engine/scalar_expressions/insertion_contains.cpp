@@ -1,6 +1,7 @@
 #include "silo/query_engine/scalar_expressions/insertion_contains.h"
 
 #include <utility>
+#include <vector>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -33,6 +34,18 @@ std::string InsertionContains<SymbolType>::toString() const {
                                           : "The default " + symbol_name + " sequence ";
 
    return sequence_string + " has insertion '" + value + "'";
+}
+
+template <typename SymbolType>
+std::vector<schema::ColumnIdentifier> InsertionContains<SymbolType>::freeIUs() const {
+   // Only a named sequence can be resolved here. The default sequence name is not
+   // known at construction time (no table available), and sequence columns are never
+   // produced by a map(), so returning {} for the default sequence is safe for the
+   // optimizer's column-narrowing use-case.
+   if (sequence_name.has_value()) {
+      return {schema::ColumnIdentifier{sequence_name.value(), SymbolType::COLUMN_TYPE}};
+   }
+   return {};
 }
 
 template <typename SymbolType>

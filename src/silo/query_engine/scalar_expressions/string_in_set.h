@@ -3,9 +3,11 @@
 #include <memory>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
+#include "silo/schema/database_schema.h"
 
 namespace silo::query_engine::scalar_expressions {
 
@@ -15,19 +17,21 @@ class StringInSet : public ScalarExpression {
    friend class Or;
 
   private:
-   std::string column_name;
+   schema::ColumnIdentifier column;
    std::unordered_set<std::string> values;
 
   public:
-   explicit StringInSet(std::string column_name, std::unordered_set<std::string> value);
+   explicit StringInSet(schema::ColumnIdentifier column, std::unordered_set<std::string> value);
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
-      return std::make_unique<StringInSet>(column_name, values);
+      return std::make_unique<StringInSet>(column, values);
    }
 
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::STRING_IN_SET;
    [[nodiscard]] Kind kind() const override { return KIND; }
+
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> rewrite(
       const storage::Table& table,

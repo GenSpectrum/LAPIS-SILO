@@ -136,7 +136,7 @@ const QueryTestScenario STRING_IN_SET_INVALID_VALUES_TYPE = {
 const QueryTestScenario STRING_IN_SET_NONEXISTENT_COLUMN = {
    .name = "STRING_IN_SET_NONEXISTENT_COLUMN",
    .query = "default.filter(nonexistent.in({'Switzerland'}))",
-   .expected_error_message = "The database does not contain the string column 'nonexistent'"
+   .expected_error_message = "The database does not contain the column 'nonexistent'"
 };
 
 }  // namespace

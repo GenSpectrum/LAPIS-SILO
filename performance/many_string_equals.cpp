@@ -94,10 +94,13 @@ std::unique_ptr<ScalarExpression> buildManyStringEquals(
    const std::string& column,
    const std::vector<std::string>& values
 ) {
+   const silo::schema::ColumnIdentifier column_identifier{
+      .name = column, .type = silo::schema::ColumnType::STRING
+   };
    ScalarExpressionVector children;
    children.reserve(values.size());
    for (const auto& value : values) {
-      children.push_back(std::make_unique<StringEquals>(column, value));
+      children.push_back(std::make_unique<StringEquals>(column_identifier, value));
    }
    return std::make_unique<Or>(std::move(children));
 }
@@ -108,13 +111,16 @@ std::unique_ptr<ScalarExpression> buildManyNestedStringEquals(
    const std::vector<std::string>& values
 ) {
    SILO_ASSERT(values.size() >= 2);
+   const silo::schema::ColumnIdentifier column_identifier{
+      .name = column, .type = silo::schema::ColumnType::STRING
+   };
    ScalarExpressionVector children;
-   children.push_back(std::make_unique<StringEquals>(column, values.at(0)));
-   children.push_back(std::make_unique<StringEquals>(column, values.at(1)));
+   children.push_back(std::make_unique<StringEquals>(column_identifier, values.at(0)));
+   children.push_back(std::make_unique<StringEquals>(column_identifier, values.at(1)));
    std::unique_ptr<Or> result = std::make_unique<Or>(std::move(children));
    for (size_t idx = 2; idx < values.size(); ++idx) {
       children = ScalarExpressionVector{};
-      children.push_back(std::make_unique<StringEquals>(column, values.at(idx)));
+      children.push_back(std::make_unique<StringEquals>(column_identifier, values.at(idx)));
       children.push_back(std::move(result));
       result = std::make_unique<Or>(std::move(children));
    }
@@ -126,8 +132,11 @@ std::unique_ptr<ScalarExpression> buildStringInSet(
    const std::string& column,
    const std::vector<std::string>& values
 ) {
+   const silo::schema::ColumnIdentifier column_identifier{
+      .name = column, .type = silo::schema::ColumnType::STRING
+   };
    std::unordered_set<std::string> value_set(values.begin(), values.end());
-   return std::make_unique<StringInSet>(column, std::move(value_set));
+   return std::make_unique<StringInSet>(column_identifier, std::move(value_set));
 }
 
 void executeCountWithFilter(
