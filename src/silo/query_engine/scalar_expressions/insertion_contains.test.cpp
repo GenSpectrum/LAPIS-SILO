@@ -38,7 +38,6 @@ const std::vector<nlohmann::json> DATA = {
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:
@@ -75,10 +74,11 @@ const QueryTestScenario INSERTION_CONTAINS_SCENARIO_POSITION_0_EQUALS_BEFORE_FIR
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_4"}}})
 };
 
-const QueryTestScenario INSERTION_CONTAINS_WITH_EMPTY_SEGMENT_SCENARIO = {
-   .name = "INSERTION_CONTAINS_WITH_EMPTY_SEGMENT_SCENARIO",
+// A sequence name is required for every nucleotide sequence filter.
+const QueryTestScenario INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME_ERRORS = {
+   .name = "INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME_ERRORS",
    .query = "default.filter(insertionContains(position:=12, value:='A')).project(primaryKey)",
-   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
+   .expected_error_message = "insertionContains() requires argument 'sequenceName'"
 };
 
 const QueryTestScenario INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO = {
@@ -99,12 +99,11 @@ const QueryTestScenario INSERTION_CONTAINS_POSITION_OUT_OF_RANGE = {
       "(32) for sequence 'segment2'"
 };
 
-const QueryTestScenario INSERTION_CONTAINS_POSITION_OUT_OF_RANGE_DEFAULT_SEQUENCE = {
-   .name = "INSERTION_CONTAINS_POSITION_OUT_OF_RANGE_DEFAULT_SEQUENCE",
+// A sequence name is required even before the insertion position is validated.
+const QueryTestScenario INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME_POSITION_OUT_OF_RANGE = {
+   .name = "INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME_POSITION_OUT_OF_RANGE",
    .query = "default.filter(insertionContains(position:=100, value:='A'))",
-   .expected_error_message =
-      "the requested insertion position (100) is larger than the length of the reference sequence "
-      "(32) for sequence 'segment1'"
+   .expected_error_message = "insertionContains() requires argument 'sequenceName'"
 };
 
 }  // namespace nucleotide
@@ -137,7 +136,6 @@ const std::vector<nlohmann::json> DATA = {
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:
@@ -168,7 +166,7 @@ const QueryTestScenario AMINO_ACID_INSERTION_CONTAINS_SCENARIO = {
 const QueryTestScenario AMINO_ACID_INSERTION_CONTAINS_WITH_NULL_SEGMENT_SCENARIO = {
    .name = "AMINO_ACID_INSERTION_CONTAINS_WITH_NULL_SEGMENT_SCENARIO",
    .query = "default.filter(aminoAcidInsertionContains(position:=12, value:='A'))",
-   .expected_error_message = "The database has no default amino acid sequence name",
+   .expected_error_message = "aminoAcidInsertionContains() requires argument 'sequenceName'",
 };
 
 }  // namespace amino_acid
@@ -181,10 +179,10 @@ QUERY_TEST(
    ::testing::Values(
       nucleotide::INSERTION_CONTAINS_SCENARIO,
       nucleotide::INSERTION_CONTAINS_SCENARIO_POSITION_0_EQUALS_BEFORE_FIRST,
-      nucleotide::INSERTION_CONTAINS_WITH_EMPTY_SEGMENT_SCENARIO,
+      nucleotide::INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME_ERRORS,
       nucleotide::INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO,
       nucleotide::INSERTION_CONTAINS_POSITION_OUT_OF_RANGE,
-      nucleotide::INSERTION_CONTAINS_POSITION_OUT_OF_RANGE_DEFAULT_SEQUENCE
+      nucleotide::INSERTION_CONTAINS_WITHOUT_SEQUENCE_NAME_POSITION_OUT_OF_RANGE
    )
 );
 

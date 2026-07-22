@@ -32,7 +32,6 @@ const nlohmann::json DATA_WITH_ALL_MUTATED = createDataWithSequences("CATTT", "X
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:
@@ -108,6 +107,21 @@ const QueryTestScenario HAS_AMINO_ACID_MUTATION_OUT_OF_RANGE = {
    .expected_error_message = "HasAminoAcidMutation position is out of bounds 1000 > 2"
 };
 
+// A sequence name is always required; there is no implicit default even though the reference genome
+// has only a single nucleotide sequence.
+const QueryTestScenario HAS_NUCLEOTIDE_MUTATION_WITHOUT_SEQUENCE_NAME = {
+   .name = "HAS_NUCLEOTIDE_MUTATION_WITHOUT_SEQUENCE_NAME",
+   .query = "default.filter(hasMutation(position:=1)).groupBy({count:=count()})",
+   .expected_error_message = "hasMutation() requires argument 'sequenceName'"
+};
+
+// Amino acid filters always require a sequence name.
+const QueryTestScenario HAS_AMINO_ACID_MUTATION_WITHOUT_SEQUENCE_NAME = {
+   .name = "HAS_AMINO_ACID_MUTATION_WITHOUT_SEQUENCE_NAME",
+   .query = "default.filter(hasAAMutation(position:=1)).groupBy({count:=count()})",
+   .expected_error_message = "hasAAMutation() requires argument 'sequenceName'"
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -120,6 +134,8 @@ QUERY_TEST(
       HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE_EDGE_LOW,
       HAS_NUCLEOTIDE_MUTATION_OUT_OF_RANGE_EDGE_HIGH,
       HAS_NUCLEOTIDE_MUTATION_IN_RANGE_EDGE,
-      HAS_AMINO_ACID_MUTATION_OUT_OF_RANGE
+      HAS_AMINO_ACID_MUTATION_OUT_OF_RANGE,
+      HAS_NUCLEOTIDE_MUTATION_WITHOUT_SEQUENCE_NAME,
+      HAS_AMINO_ACID_MUTATION_WITHOUT_SEQUENCE_NAME
    )
 );

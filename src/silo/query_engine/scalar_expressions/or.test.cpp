@@ -150,10 +150,10 @@ TEST(OrMergeStringInSet, shouldHandleDuplicateValues) {
 TEST(OrRewriteSymbolInSet, shouldMergeTwoSymbolInSetWithSamePosition) {
    ScalarExpressionVector children;
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
    ));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G}
    ));
 
    auto result = Or::rewriteSymbolInSetExpressions<Nucleotide>(std::move(children));
@@ -171,10 +171,10 @@ TEST(OrRewriteSymbolInSet, shouldMergeTwoSymbolInSetWithSamePosition) {
 TEST(OrRewriteSymbolInSet, shouldKeepSeparateSymbolInSetWithDifferentPositions) {
    ScalarExpressionVector children;
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
    ));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 200, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G}
+      "segment1", 200, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G}
    ));
 
    auto result = Or::rewriteSymbolInSetExpressions<Nucleotide>(std::move(children));
@@ -202,7 +202,7 @@ TEST(OrRewriteSymbolInSet, shouldPassThroughOtherExpressions) {
    ScalarExpressionVector children;
    children.emplace_back(std::make_unique<BoolLiteral>(true));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
    ));
    children.emplace_back(std::make_unique<BoolLiteral>(true));
 
@@ -224,15 +224,13 @@ TEST(OrRewriteSymbolInSet, shouldHandleEmptyInput) {
 TEST(OrRewriteSymbolInSet, shouldMergeMultipleSymbolsFromMultipleExpressions) {
    ScalarExpressionVector children;
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
    ));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt,
-      100,
-      std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G, Nucleotide::Symbol::C}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G, Nucleotide::Symbol::C}
    ));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::T}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::T}
    ));
 
    auto result = Or::rewriteSymbolInSetExpressions<Nucleotide>(std::move(children));
@@ -249,16 +247,16 @@ TEST(OrRewriteSymbolInSet, shouldMergeMultipleSymbolsFromMultipleExpressions) {
 
 TEST(OrRewriteSymbolInSet, shouldMergeOnlyMatchingPositionsAndSequences) {
    ScalarExpressionVector children;
-   // These two should merge (same position, nullopt sequence)
+   // These two should merge (same position and sequence name)
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
    ));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G}
    ));
    // This one stays separate (different position)
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 200, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::C}
+      "segment1", 200, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::C}
    ));
    // These two should merge (same position and sequence name)
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
@@ -271,8 +269,8 @@ TEST(OrRewriteSymbolInSet, shouldMergeOnlyMatchingPositionsAndSequences) {
    auto result = Or::rewriteSymbolInSetExpressions<Nucleotide>(std::move(children));
 
    // Should have 3 SymbolInSet expressions:
-   // 1. Merged A+G at position 100 (nullopt)
-   // 2. C at position 200 (nullopt)
+   // 1. Merged A+G at position 100 (segment1)
+   // 2. C at position 200 (segment1)
    // 3. Merged A+T at position 50 (segment1)
    ASSERT_EQ(result.size(), 3);
    EXPECT_EQ(countExpressionsOfType<SymbolInSet<Nucleotide>>(result), 3);
