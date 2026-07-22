@@ -156,7 +156,70 @@ const QueryTestScenario JOIN_LEFT_ANTI_SCENARIO = {
    )
 };
 
-// A filter above the join over a left-only column is pushed into the left input.
+// Right outer join: unmatched right rows keep null values for the left columns.
+const QueryTestScenario JOIN_RIGHT_OUTER_SCENARIO = {
+   .name = "JOIN_RIGHT_OUTER",
+   .query = R"(join(
+      default.filter(country='CH').project({primaryKey, country}),
+      default.map({pk := primaryKey, ctry := country}).project({pk, ctry}),
+      primaryKey = pk,
+      type := right
+   ).orderBy({asc(pk)}))",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"country", "CH"}, {"pk", "id_0"}, {"ctry", "CH"}},
+       {{"primaryKey", nullptr}, {"country", nullptr}, {"pk", "id_1"}, {"ctry", "DE"}},
+       {{"primaryKey", "id_2"}, {"country", "CH"}, {"pk", "id_2"}, {"ctry", "CH"}},
+       {{"primaryKey", nullptr}, {"country", nullptr}, {"pk", "id_3"}, {"ctry", "DE"}}}
+   )
+};
+
+// Full outer join with disjoint keys on the two inputs: every left row and every right row
+// appears, each null-extended on the side it has no match on.
+const QueryTestScenario JOIN_FULL_OUTER_SCENARIO = {
+   .name = "JOIN_FULL_OUTER",
+   .query = R"(join(
+      default.filter(country='CH').project({primaryKey, country}),
+      default.filter(country='DE').map({pk := primaryKey, ctry := country}).project({pk, ctry}),
+      primaryKey = pk,
+      type := full
+   ).orderBy({asc(primaryKey), asc(pk)}))",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", nullptr}, {"country", nullptr}, {"pk", "id_1"}, {"ctry", "DE"}},
+       {{"primaryKey", nullptr}, {"country", nullptr}, {"pk", "id_3"}, {"ctry", "DE"}},
+       {{"primaryKey", "id_0"}, {"country", "CH"}, {"pk", nullptr}, {"ctry", nullptr}},
+       {{"primaryKey", "id_2"}, {"country", "CH"}, {"pk", nullptr}, {"ctry", nullptr}}}
+   )
+};
+
+// Right semi join: keeps right rows that have a match, outputs only right columns.
+const QueryTestScenario JOIN_RIGHT_SEMI_SCENARIO = {
+   .name = "JOIN_RIGHT_SEMI",
+   .query = R"(join(
+      default.filter(country='CH').project({primaryKey, country}),
+      default.map({pk := primaryKey, ctry := country}).project({pk, ctry}),
+      primaryKey = pk,
+      type := rightSemi
+   ).orderBy({asc(pk)}))",
+   .expected_query_result =
+      nlohmann::json({{{"pk", "id_0"}, {"ctry", "CH"}}, {{"pk", "id_2"}, {"ctry", "CH"}}})
+};
+
+// Right anti join: keeps right rows WITHOUT a match, outputs only right columns.
+const QueryTestScenario JOIN_RIGHT_ANTI_SCENARIO = {
+   .name = "JOIN_RIGHT_ANTI",
+   .query = R"(join(
+      default.filter(country='CH').project({primaryKey, country}),
+      default.map({pk := primaryKey, ctry := country}).project({pk, ctry}),
+      primaryKey = pk,
+      type := rightAnti
+   ).orderBy({asc(pk)}))",
+   .expected_query_result =
+      nlohmann::json({{{"pk", "id_1"}, {"ctry", "DE"}}, {{"pk", "id_3"}, {"ctry", "DE"}}})
+};
+
+// A filter above the join cannot be pushed into a single join input safely (which input a
+// predicate belongs to is not derivable, and outer-join / column-less cases are not
+// semantics-preserving), so it is rejected. Apply the filter to a join input instead.
 const QueryTestScenario JOIN_DOWNSTREAM_FILTER_SCENARIO = {
    .name = "JOIN_DOWNSTREAM_FILTER",
    .query = R"(join(
@@ -164,10 +227,9 @@ const QueryTestScenario JOIN_DOWNSTREAM_FILTER_SCENARIO = {
       default.map({pk := primaryKey, ctry := country}).project({pk, ctry}),
       primaryKey = pk
    ).filter(country='CH').orderBy({asc(primaryKey)}))",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"country", "CH"}, {"pk", "id_0"}, {"ctry", "CH"}},
-       {{"primaryKey", "id_2"}, {"country", "CH"}, {"pk", "id_2"}, {"ctry", "CH"}}}
-   )
+   .expected_error_message =
+      "filter() cannot be applied to the output of join(); a filter above a join cannot be "
+      "pushed into a join input safely. Apply the filter to one of the join inputs instead."
 };
 
 // GroupBy applied to the join result.
@@ -251,6 +313,10 @@ QUERY_TEST(
       JOIN_LEFT_OUTER_SCENARIO,
       JOIN_LEFT_SEMI_SCENARIO,
       JOIN_LEFT_ANTI_SCENARIO,
+      JOIN_RIGHT_OUTER_SCENARIO,
+      JOIN_FULL_OUTER_SCENARIO,
+      JOIN_RIGHT_SEMI_SCENARIO,
+      JOIN_RIGHT_ANTI_SCENARIO,
       JOIN_DOWNSTREAM_FILTER_SCENARIO,
       JOIN_WITH_GROUPBY_SCENARIO,
       JOIN_MULTI_KEY_SCENARIO,

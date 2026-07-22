@@ -1,6 +1,5 @@
 #include "silo/query_engine/optimizer/filter_pushdown_pass.h"
 
-#include <algorithm>
 #include <vector>
 
 #include "silo/common/aa_symbols.h"
@@ -98,47 +97,22 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::SchemaNode& no
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::JoinNode& node) {
-   // A predicate sitting above a join is distributed to the input whose output schema
-   // provides all of the columns it references: a predicate over left-only columns is
-   // evaluated on the left input, a right-only predicate on the right input. A predicate
-   // that spans both inputs (or references a column that exists on both sides, making the
-   // side ambiguous) cannot be turned into a pre-join filter and is rejected.
-   auto left_schema = node.left->getOutputSchema();
-   auto right_schema = node.right->getOutputSchema();
+   // A filter sitting above a join cannot be turned into a pre-join filter: attributing a
+   // predicate to one input requires knowing which columns it references (ScalarExpression
+   // predicates do not report this), and even then pushing into the null-supplying side of
+   // an outer join -- or pushing a column-less predicate -- would change the result. Rather
+   // than push unsafely, reject any filter above join() and point the user at the inputs.
+   CHECK_SILO_QUERY(
+      current_filters.empty(),
+      "filter() cannot be applied to the output of join(); a filter above a join cannot be "
+      "pushed into a join input safely. Apply the filter to one of the join inputs instead."
+   );
 
-   const auto all_names_in = [](const std::vector<schema::ColumnIdentifier>& referenced,
-                                const std::vector<schema::ColumnIdentifier>& schema) {
-      return std::ranges::all_of(referenced, [&](const auto& column) {
-         return std::ranges::any_of(schema, [&](const auto& available) {
-            return available.name == column.name;
-         });
-      });
-   };
-
+   // No filters to carry across, but the child subtrees may still contain FilterNodes of
+   // their own (e.g. `join(default.filter(...), ...)`); push those down within each input
+   // using fresh passes so no state leaks between the two branches.
    FilterPushdownPass left_pass;
    FilterPushdownPass right_pass;
-   for (auto& filter : current_filters) {
-      auto referenced = filter->freeIUs();
-      const bool in_left = all_names_in(referenced, left_schema);
-      const bool in_right = all_names_in(referenced, right_schema);
-      CHECK_SILO_QUERY(
-         !(in_left && in_right && !referenced.empty()),
-         "filter() above join() references column(s) that exist on both join inputs; the side is "
-         "ambiguous. Apply the filter to one of the join inputs instead."
-      );
-      if (in_left) {
-         left_pass.current_filters.push_back(std::move(filter));
-      } else if (in_right) {
-         right_pass.current_filters.push_back(std::move(filter));
-      } else {
-         throw IllegalQueryException(
-            "filter() above join() references columns from both join inputs, which cannot be "
-            "pushed into a single input. Apply the filter to one of the join inputs instead."
-         );
-      }
-   }
-   current_filters.clear();
-
    left_pass.propagateToNode(node.left);
    right_pass.propagateToNode(node.right);
    return nullptr;

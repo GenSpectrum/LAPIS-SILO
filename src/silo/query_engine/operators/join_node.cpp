@@ -24,7 +24,12 @@ JoinNode::JoinNode(
       right(std::move(right)),
       left_keys(std::move(left_keys)),
       right_keys(std::move(right_keys)),
-      join_type(join_type) {}
+      join_type(join_type) {
+   // Equi-join key vectors are paired positionally (left_keys[i] == right_keys[i]), so they
+   // must have the same length. Downstream code (toJson, the Arrow hash-join configuration)
+   // relies on this; a mismatch would be an out-of-bounds read or an invalid join.
+   SILO_ASSERT_EQ(this->left_keys.size(), this->right_keys.size());
+}
 
 std::string_view joinTypeToString(arrow::acero::JoinType join_type) {
    switch (join_type) {
