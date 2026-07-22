@@ -37,6 +37,7 @@ enum class NodeKind : uint8_t {
    TABLE_SCAN,
    COUNT_FILTER,
    UNION_ALL,
+   JOIN,
    SCHEMA,
 };
 

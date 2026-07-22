@@ -19,6 +19,7 @@
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
+#include "silo/query_engine/operators/join_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
@@ -1365,6 +1366,177 @@ operators::QueryNodePtr handlePhyloSubtree(
    );
 }
 
+namespace {
+
+std::optional<schema::ColumnIdentifier> findColumnByName(
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const std::string& name
+) {
+   auto found = std::ranges::find_if(schema, [&](const auto& col) { return col.name == name; });
+   if (found == schema.end()) {
+      return std::nullopt;
+   }
+   return *found;
+}
+
+struct JoinKeys {
+   std::vector<schema::ColumnIdentifier> left;
+   std::vector<schema::ColumnIdentifier> right;
+};
+
+/// Resolves an identifier appearing in a join condition against exactly one of the two
+/// join inputs. Errors if the name is present on both sides (ambiguous) or on neither.
+enum class JoinSide : uint8_t { LEFT, RIGHT };
+
+struct ResolvedJoinColumn {
+   JoinSide side;
+   schema::ColumnIdentifier column;
+};
+
+ResolvedJoinColumn resolveJoinColumn(
+   const ast::Expression& expression,
+   const std::vector<schema::ColumnIdentifier>& left_schema,
+   const std::vector<schema::ColumnIdentifier>& right_schema
+) {
+   CHECK_SILO_QUERY(
+      std::holds_alternative<ast::Identifier>(expression.value),
+      "join() on-expression must compare column identifiers, got '{}' at {}:{}",
+      expression.toString(),
+      expression.location.line,
+      expression.location.column
+   );
+   const auto name = extractIdentifierName(expression);
+   auto in_left = findColumnByName(left_schema, name);
+   auto in_right = findColumnByName(right_schema, name);
+   CHECK_SILO_QUERY(
+      !(in_left.has_value() && in_right.has_value()),
+      "join() on-expression references column '{}', which exists in both inputs and is therefore "
+      "ambiguous. Rename one side (e.g. via map()) before joining.",
+      name
+   );
+   CHECK_SILO_QUERY(
+      in_left.has_value() || in_right.has_value(),
+      "join() on-expression references unknown column '{}'",
+      name
+   );
+   if (in_left.has_value()) {
+      return {.side = JoinSide::LEFT, .column = in_left.value()};
+   }
+   return {.side = JoinSide::RIGHT, .column = in_right.value()};
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+void collectJoinKeys(
+   const ast::Expression& on_expression,
+   const std::vector<schema::ColumnIdentifier>& left_schema,
+   const std::vector<schema::ColumnIdentifier>& right_schema,
+   JoinKeys& keys
+) {
+   CHECK_SILO_QUERY(
+      std::holds_alternative<ast::BinaryExpr>(on_expression.value),
+      "join() on-expression must be an equality between a left and a right column, or a "
+      "conjunction (&&) of such equalities, at {}:{}",
+      on_expression.location.line,
+      on_expression.location.column
+   );
+   const auto& binary = std::get<ast::BinaryExpr>(on_expression.value);
+   if (binary.op == ast::BinaryOp::AND) {
+      collectJoinKeys(*binary.left, left_schema, right_schema, keys);
+      collectJoinKeys(*binary.right, left_schema, right_schema, keys);
+      return;
+   }
+   CHECK_SILO_QUERY(
+      binary.op == ast::BinaryOp::EQUALS,
+      "join() on-expression only supports equality (=) comparisons, optionally combined with "
+      "'&&', at {}:{}",
+      on_expression.location.line,
+      on_expression.location.column
+   );
+   auto first = resolveJoinColumn(*binary.left, left_schema, right_schema);
+   auto second = resolveJoinColumn(*binary.right, left_schema, right_schema);
+   CHECK_SILO_QUERY(
+      first.side != second.side,
+      "join() on-expression equality must reference one column from each input, but both '{}' and "
+      "'{}' resolve to the same input at {}:{}",
+      binary.left->toString(),
+      binary.right->toString(),
+      on_expression.location.line,
+      on_expression.location.column
+   );
+   if (first.side == JoinSide::LEFT) {
+      keys.left.push_back(first.column);
+      keys.right.push_back(second.column);
+   } else {
+      keys.left.push_back(second.column);
+      keys.right.push_back(first.column);
+   }
+}
+
+arrow::acero::JoinType parseJoinType(const BoundArguments& args) {
+   if (!args.has("type")) {
+      return arrow::acero::JoinType::INNER;
+   }
+   const auto* type_expr = args.get("type");
+   const auto name = extractIdentifierName(*type_expr);
+   if (name == "inner") {
+      return arrow::acero::JoinType::INNER;
+   }
+   if (name == "left") {
+      return arrow::acero::JoinType::LEFT_OUTER;
+   }
+   if (name == "right") {
+      return arrow::acero::JoinType::RIGHT_OUTER;
+   }
+   if (name == "full") {
+      return arrow::acero::JoinType::FULL_OUTER;
+   }
+   if (name == "leftSemi") {
+      return arrow::acero::JoinType::LEFT_SEMI;
+   }
+   if (name == "rightSemi") {
+      return arrow::acero::JoinType::RIGHT_SEMI;
+   }
+   if (name == "leftAnti") {
+      return arrow::acero::JoinType::LEFT_ANTI;
+   }
+   if (name == "rightAnti") {
+      return arrow::acero::JoinType::RIGHT_ANTI;
+   }
+   throw IllegalQueryException(
+      "invalid join type '{}'. Valid types are: inner, left, right, full, leftSemi, rightSemi, "
+      "leftAnti, rightAnti",
+      name
+   );
+}
+
+}  // namespace
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr handleJoin(
+   const BoundArguments& args,
+   const Tables& tables,
+   const ChildConverter& convert_child
+) {
+   auto left = convert_child(args.at("left"), tables);
+   auto right = convert_child(args.at("right"), tables);
+
+   auto left_schema = left->getOutputSchema();
+   auto right_schema = right->getOutputSchema();
+
+   JoinKeys keys;
+   collectJoinKeys(args.at("on"), left_schema, right_schema, keys);
+   CHECK_SILO_QUERY(
+      !keys.left.empty(),
+      "join() on-expression must contain at least one equality between a left and a right column"
+   );
+
+   const auto join_type = parseJoinType(args);
+
+   return std::make_unique<operators::JoinNode>(
+      std::move(left), std::move(right), std::move(keys.left), std::move(keys.right), join_type
+   );
+}
+
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr handleUnionAll(
    const BoundArguments& args,
@@ -1511,6 +1683,10 @@ FunctionRegistry::FunctionRegistry() {
    );
 
    registerFunction("unionAll", {{pos("left"), pos("right")}}, handleUnionAll);
+
+   registerFunction(
+      "join", {{pos("left"), pos("right"), pos("on"), named("type", false)}}, handleJoin
+   );
 }
 
 FunctionRegistry& FunctionRegistry::instance() {
