@@ -7,6 +7,7 @@
 // number. Because the query is unchanged, the two runs are directly comparable.
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <memory>
 #include <random>
