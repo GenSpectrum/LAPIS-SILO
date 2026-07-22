@@ -596,6 +596,104 @@ TEST(AstToQueryNOf, matchExactlyNotBoolThrows) {
    );
 }
 
+// --- collectJoinKeys ---
+
+TEST(AstToQueryJoin, onExpressionNotABinaryExpressionThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() {
+         (void)parseAndConvertToQueryTree(
+            "join(default.project({id}), default.map({pk := id}).project({pk}), id)", tables
+         );
+      },
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
+         "join() on-expression must be an equality between a left and a right column, or a "
+         "conjunction (&&) of such equalities"
+      ))
+   );
+}
+
+TEST(AstToQueryJoin, conjunctOfOnExpressionNotABinaryExpressionThrows) {
+   // The same check, but reached through the recursive descent into a '&&' conjunction.
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() {
+         (void)parseAndConvertToQueryTree(
+            "join(default.project({id, date}), default.map({pk := id}).project({pk}), id = pk && "
+            "date)",
+            tables
+         );
+      },
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
+         "join() on-expression must be an equality between a left and a right column, or a "
+         "conjunction (&&) of such equalities"
+      ))
+   );
+}
+
+TEST(AstToQueryJoin, onExpressionNotAnEqualityThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() {
+         (void)parseAndConvertToQueryTree(
+            "join(default.project({id}), default.map({pk := id}).project({pk}), id <> pk)", tables
+         );
+      },
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
+         "join() on-expression only supports equality (=) comparisons, optionally combined with "
+         "'&&'"
+      ))
+   );
+}
+
+TEST(AstToQueryJoin, onExpressionEqualityOfTwoColumnsOfTheSameInputThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() {
+         (void)parseAndConvertToQueryTree(
+            "join(default.project({id, date}), default.map({pk := id}).project({pk}), id = date)",
+            tables
+         );
+      },
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
+         "join() on-expression equality must reference one column from each input, but both 'id' "
+         "and 'date' resolve to the same input"
+      ))
+   );
+}
+
+TEST(AstToQueryJoin, onExpressionEqualityOfMismatchingColumnTypesThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() {
+         (void)parseAndConvertToQueryTree(
+            "join(default.project({id}), default.map({num := 3}).project({num}), id = num)", tables
+         );
+      },
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
+         "join() on-expression equality must reference equal column types from each input, but "
+         "'id' and 'num' have mismatching types STRING and INT64"
+      ))
+   );
+}
+
+// --- resolveJoinColumn ---
+
+TEST(AstToQueryJoin, onExpressionComparingANonIdentifierThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() {
+         (void)parseAndConvertToQueryTree(
+            "join(default.project({id}), default.map({pk := id}).project({pk}), id = 'value')",
+            tables
+         );
+      },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("join() on-expression must compare column identifiers")
+      )
+   );
+}
+
 // --- convertExpression ---
 
 TEST(AstToQueryConvertExpression, nonIdentifierNonFunctionCallThrows) {
