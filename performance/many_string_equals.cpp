@@ -11,31 +11,47 @@
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/scalar_expressions/or.h"
-#include "silo/query_engine/scalar_expressions/string_equals.h"
-#include "silo/query_engine/scalar_expressions/string_in_set.h"
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/query_node.h"
-#include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/planner.h"
+#include "silo/query_engine/scalar_expressions/equals.h"
+#include "silo/query_engine/scalar_expressions/field_ref.h"
+#include "silo/query_engine/scalar_expressions/literal.h"
+#include "silo/query_engine/scalar_expressions/or.h"
+#include "silo/query_engine/scalar_expressions/string_in_set.h"
 
 namespace {
 
 using silo::Database;
 using silo::query_engine::Planner;
-using silo::query_engine::scalar_expressions::ScalarExpression;
-using silo::query_engine::scalar_expressions::ScalarExpressionVector;
-using silo::query_engine::scalar_expressions::Or;
-using silo::query_engine::scalar_expressions::StringEquals;
-using silo::query_engine::scalar_expressions::StringInSet;
-using silo::query_engine::scalar_expressions::BoolLiteral;
 using silo::query_engine::operators::AggregateDefinition;
 using silo::query_engine::operators::AggregateFunction;
 using silo::query_engine::operators::AggregateNode;
 using silo::query_engine::operators::FilterNode;
 using silo::query_engine::operators::TableScanNode;
+using silo::query_engine::scalar_expressions::BoolLiteral;
+using silo::query_engine::scalar_expressions::Equals;
+using silo::query_engine::scalar_expressions::FieldRef;
+using silo::query_engine::scalar_expressions::Or;
+using silo::query_engine::scalar_expressions::ScalarExpression;
+using silo::query_engine::scalar_expressions::ScalarExpressionVector;
+using silo::query_engine::scalar_expressions::StringInSet;
+using silo::query_engine::scalar_expressions::StringLiteral;
+
+/// Build an `Equals` predicate on an indexed string column, i.e. `column = value`.
+std::unique_ptr<ScalarExpression> makeStringEquals(
+   const std::string& column,
+   const std::string& value
+) {
+   return std::make_unique<Equals>(
+      std::make_unique<FieldRef>(silo::schema::ColumnIdentifier{
+         .name = column, .type = silo::schema::ColumnType::INDEXED_STRING
+      }),
+      std::make_unique<StringLiteral>(value)
+   );
+}
 
 std::shared_ptr<Database> initializeDatabase() {
    auto database_config = silo::config::DatabaseConfig::getValidatedConfig(R"(
@@ -97,7 +113,7 @@ std::unique_ptr<ScalarExpression> buildManyStringEquals(
    ScalarExpressionVector children;
    children.reserve(values.size());
    for (const auto& value : values) {
-      children.push_back(std::make_unique<StringEquals>(column, value));
+      children.push_back(makeStringEquals(column, value));
    }
    return std::make_unique<Or>(std::move(children));
 }
@@ -109,12 +125,12 @@ std::unique_ptr<ScalarExpression> buildManyNestedStringEquals(
 ) {
    SILO_ASSERT(values.size() >= 2);
    ScalarExpressionVector children;
-   children.push_back(std::make_unique<StringEquals>(column, values.at(0)));
-   children.push_back(std::make_unique<StringEquals>(column, values.at(1)));
+   children.push_back(makeStringEquals(column, values.at(0)));
+   children.push_back(makeStringEquals(column, values.at(1)));
    std::unique_ptr<Or> result = std::make_unique<Or>(std::move(children));
    for (size_t idx = 2; idx < values.size(); ++idx) {
       children = ScalarExpressionVector{};
-      children.push_back(std::make_unique<StringEquals>(column, values.at(idx)));
+      children.push_back(makeStringEquals(column, values.at(idx)));
       children.push_back(std::move(result));
       result = std::make_unique<Or>(std::move(children));
    }
