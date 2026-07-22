@@ -83,30 +83,19 @@ target_compile_definitions(silolib_deps INTERFACE
 )
 
 # WebAssembly-only usage requirements. These are INTERFACE so they compile into
-# the silolib objects too: the SILO_WASM guards live in silolib sources
-# (input_stream_wrapper.cpp, exec_node/table_scan.h), NO_EVOBENCH neutralises the
-# evobench header pulled in by silolib, and -fexceptions must reach every silolib
-# object (they throw). -pthread keeps SILO objects ABI-consistent with the
-# Emscripten dependency builds.
+# the silolib objects too: NO_EVOBENCH disables the evobench probes (the browser
+# build does not profile), and -fexceptions must reach every silolib object (they
+# throw). -pthread keeps SILO objects ABI-consistent with the Emscripten
+# dependency builds. The build variant is detected via the compiler-defined
+# __EMSCRIPTEN__ macro.
 if(EMSCRIPTEN)
-    target_compile_definitions(silolib_deps INTERFACE SILO_WASM NO_EVOBENCH)
+    target_compile_definitions(silolib_deps INTERFACE NO_EVOBENCH)
     target_compile_options(silolib_deps INTERFACE -fexceptions -pthread)
 endif()
 
 file(GLOB_RECURSE SILOLIB_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE SILO_TEST_SOURCES CONFIGURE_DEPENDS "src/*.test.cpp")
 list(REMOVE_ITEM SILOLIB_SOURCES ${SILO_TEST_SOURCES})
-
-# The browser target does not include append mode, runtime config, or evobench.
-if(EMSCRIPTEN)
-    file(GLOB_RECURSE WASM_EXCLUDED_SOURCES CONFIGURE_DEPENDS
-            "src/silo/append/append.cpp"
-            "src/silo/config/append_config.cpp"
-            "src/silo/config/runtime_config.cpp"
-            "src/evobench/evobench.cpp"
-    )
-    list(REMOVE_ITEM SILOLIB_SOURCES ${WASM_EXCLUDED_SOURCES})
-endif()
 
 add_library(silolib OBJECT ${SILOLIB_SOURCES})
 set_target_properties(silolib PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -145,9 +134,9 @@ endif ()
 # Tests
 # ---------------------------------------------------------------------------
 
-# GTest is not part of the Emscripten dependency set; the browser build ships
-# its own node smoke test under wasm/test instead.
-if(NOT EMSCRIPTEN)
+# Building the unit tests is opt-in and on by default.
+option(BUILD_UNIT_TESTS "Build the SILO unit tests" ON)
+if(BUILD_UNIT_TESTS)
     enable_testing()
     find_package(GTest REQUIRED)
     include_directories(${GTest_INCLUDE_DIRS})

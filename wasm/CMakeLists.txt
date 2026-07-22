@@ -3,7 +3,7 @@
 #
 # This subdirectory is only added when configuring with the Emscripten toolchain
 # (see the EMSCRIPTEN guard in the root CMakeLists.txt). The shared C++ standard,
-# core dependencies, source globbing, and the SILO_WASM/NO_EVOBENCH defines and
+# core dependencies, source globbing, and the NO_EVOBENCH define and
 # -fexceptions/-pthread compile flags all come from silolib / silolib_deps.
 
 add_executable(silo_wasm src/silo_wasm.cpp)

@@ -53,7 +53,7 @@ build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
 	$(CMAKE) -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
 
 build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) CMakeLists.txt wasm/CMakeLists.txt
-	emcmake cmake -G Ninja -S . -B build/wasm -D CMAKE_BUILD_TYPE=Release
+	emcmake cmake -G Ninja -S . -B build/wasm -D CMAKE_BUILD_TYPE=Release -D BUILD_UNIT_TESTS=OFF
 
 ${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo
