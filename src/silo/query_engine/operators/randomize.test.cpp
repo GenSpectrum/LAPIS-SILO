@@ -58,7 +58,6 @@ const std::vector<json> DATA = json::parse(DATA_JSON);
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:
