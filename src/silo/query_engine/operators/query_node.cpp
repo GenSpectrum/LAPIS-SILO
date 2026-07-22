@@ -56,6 +56,8 @@ std::string_view nodeKindToString(NodeKind kind) {
          return "UnionAll";
       case NodeKind::SCHEMA:
          return "Schema";
+      case NodeKind::BITMAP_AGGREGATION:
+         return "BitmapAggregation";
    }
    SILO_UNREACHABLE();
 }

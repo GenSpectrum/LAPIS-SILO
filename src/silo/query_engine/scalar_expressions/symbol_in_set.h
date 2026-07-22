@@ -9,6 +9,8 @@
 
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
+#include "silo/storage/column/row_layout.h"
+#include "silo/storage/column/sequence_column.h"
 
 namespace silo {
 class Nucleotide;
@@ -17,6 +19,19 @@ class Nucleotide;
 namespace silo::query_engine::scalar_expressions {
 
 class Or;
+
+/// Compile a "symbol at `position_idx` is in `symbols`" filter directly against a sequence column,
+/// without requiring a surrounding table or schema. Reference, missing (no coverage) and the
+/// remaining symbol handling are resolved exactly as in the regular query engine. Exposed so that
+/// callers holding only a column (e.g. the bitmap aggregation node's per-position grouping) can
+/// reuse this machinery.
+template <typename SymbolType>
+std::unique_ptr<filter::operators::Operator> compileSymbolInSet(
+   const storage::column::SequenceColumn<SymbolType>& sequence_column,
+   uint32_t position_idx,
+   const std::vector<typename SymbolType::Symbol>& symbols,
+   const storage::column::RowLayout& row_layout
+);
 
 template <typename SymbolType>
 class SymbolInSet : public ScalarExpression {

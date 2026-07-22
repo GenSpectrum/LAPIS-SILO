@@ -38,6 +38,7 @@ enum class NodeKind : uint8_t {
    COUNT_FILTER,
    UNION_ALL,
    SCHEMA,
+   BITMAP_AGGREGATION,
 };
 
 class QueryNode {
