@@ -79,6 +79,20 @@ operators::QueryNodePtr makeMapWithAt(
    return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
 }
 
+/// map({<column> := <literal>}) over `child`: a user-defined map that overrides `column` in place,
+/// standing in for any non-decompress map that could sit between the grouping map and the scan.
+operators::QueryNodePtr makeMapOverridingColumn(
+   operators::QueryNodePtr child,
+   const ColumnIdentifier& column
+) {
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = column,
+       .expression = std::make_unique<scalar_expressions::StringLiteral>("overridden")}
+   );
+   return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
+}
+
 /// groupBy({count := count()}, {<fields>}) over `child`, with the single count aggregate optionally
 /// carrying a source column (which takes it out of the recognized "bare count()" shape).
 operators::QueryNodePtr makeGroupByCount(
@@ -170,6 +184,18 @@ TEST(BitmapAggregationRewritePass, declinesWithoutThrowingWhenChildIsNotScan) {
 
    operators::QueryNodePtr result;
    ASSERT_NO_THROW(result = BitmapAggregationRewritePass::run(std::move(node)));
+   EXPECT_EQ(result->kind(), operators::NodeKind::AGGREGATE);
+}
+
+// A non-decompress map (here a user-defined map overriding the "nuc" sequence column) between the
+// grouping map and the table scan must not be skipped: it can change the very inputs the rewrite
+// reads, so the pass declines rather than resolving the `At` against the raw table scan.
+TEST(BitmapAggregationRewritePass, declinesWhenIntermediateMapIsNotDecompress) {
+   auto overriding_map = makeMapOverridingColumn(makeScan(), NUC_COLUMN);
+   auto node = makeGroupByCount(makeMapWithAt(std::move(overriding_map), "s", NUC_COLUMN), {"s"});
+
+   auto result = BitmapAggregationRewritePass::run(std::move(node));
+
    EXPECT_EQ(result->kind(), operators::NodeKind::AGGREGATE);
 }
 

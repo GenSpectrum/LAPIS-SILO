@@ -127,6 +127,50 @@ std::vector<GroupCombination> computeCombinations(
    return combinations;
 }
 
+/// Materializes the combinations for `combinations[begin, end)` into a single ExecBatch: one string
+/// column per dimension (holding that dimension's group value, or null) plus the int64 count
+/// column.
+// The cognitive-complexity count comes entirely from the ARROW_RETURN_NOT_OK/ARROW_ASSIGN_OR_RAISE
+// error-check macros, not from real branching; the logic is a straight-line append loop.
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+arrow::Result<arrow::ExecBatch> buildBatch(
+   const std::vector<GroupCombination>& combinations,
+   const std::vector<GroupBitmaps>& group_bitmaps_per_dimension,
+   size_t dimension_count,
+   size_t begin,
+   size_t end
+) {
+   std::vector<arrow::StringBuilder> value_builders(dimension_count);
+   arrow::Int64Builder count_builder;
+   for (size_t combination_idx = begin; combination_idx < end; ++combination_idx) {
+      const auto& combination = combinations[combination_idx];
+      for (size_t i = 0; i < dimension_count; ++i) {
+         const std::optional<std::string>& value =
+            group_bitmaps_per_dimension[i][combination.group_indices[i]].first;
+         if (value.has_value()) {
+            ARROW_RETURN_NOT_OK(value_builders[i].Append(value.value()));
+         } else {
+            ARROW_RETURN_NOT_OK(value_builders[i].AppendNull());
+         }
+      }
+      ARROW_RETURN_NOT_OK(count_builder.Append(static_cast<int64_t>(combination.count)));
+   }
+
+   std::vector<arrow::Datum> result_columns;
+   result_columns.reserve(dimension_count + 1);
+   for (auto& value_builder : value_builders) {
+      arrow::Datum datum;
+      ARROW_ASSIGN_OR_RAISE(datum, value_builder.Finish());
+      result_columns.push_back(std::move(datum));
+   }
+   {
+      arrow::Datum datum;
+      ARROW_ASSIGN_OR_RAISE(datum, count_builder.Finish());
+      result_columns.push_back(std::move(datum));
+   }
+   return arrow::ExecBatch::Make(result_columns);
+}
+
 }  // namespace
 
 SequencePositionDimension::SequencePositionDimension(
@@ -271,61 +315,30 @@ arrow::Result<arrow::acero::ExecNode*> BitmapAggregationNode::addToExecPlan(
 
    const size_t dimension_count = dimensions.size();
 
-   // Materialize the combinations for `combinations[begin, end)` into a single ExecBatch.
-   auto build_batch = [&](size_t begin, size_t end) -> arrow::Result<arrow::ExecBatch> {
-      std::vector<arrow::StringBuilder> value_builders(dimension_count);
-      arrow::Int64Builder count_builder;
-      for (size_t combination_idx = begin; combination_idx < end; ++combination_idx) {
-         const auto& combination = combinations[combination_idx];
-         for (size_t i = 0; i < dimension_count; ++i) {
-            const std::optional<std::string>& value =
-               group_bitmaps_per_dimension[i][combination.group_indices[i]].first;
-            if (value.has_value()) {
-               ARROW_RETURN_NOT_OK(value_builders[i].Append(value.value()));
-            } else {
-               ARROW_RETURN_NOT_OK(value_builders[i].AppendNull());
-            }
-         }
-         ARROW_RETURN_NOT_OK(count_builder.Append(static_cast<int64_t>(combination.count)));
-      }
-
-      std::vector<arrow::Datum> result_columns;
-      result_columns.reserve(dimension_count + 1);
-      for (auto& value_builder : value_builders) {
-         arrow::Datum datum;
-         ARROW_ASSIGN_OR_RAISE(datum, value_builder.Finish());
-         result_columns.push_back(std::move(datum));
-      }
-      {
-         arrow::Datum datum;
-         ARROW_ASSIGN_OR_RAISE(datum, count_builder.Finish());
-         result_columns.push_back(std::move(datum));
-      }
-      return arrow::ExecBatch::Make(result_columns);
-   };
-
-   // Emit the combinations in pipeline-sized batches instead of a single unbounded one: the number
-   // of combinations is bounded only by the filtered row count, so a many-dimension query can
-   // produce a very large result. `materialization_cutoff` is the batch-size-minus-one knob the
-   // rest of the pipeline (e.g. the table scan) uses, so this output is sized the same way.
+   // Emit the combinations in pipeline-sized batches instead of a single unbounded one, and build
+   // each batch only when the downstream pulls it rather than materializing the whole result up
+   // front: the number of combinations is bounded only by the filtered row count, so a
+   // many-dimension query can produce a very large result and holding it all at once would blow up
+   // peak memory. `materialization_cutoff` is the batch-size-minus-one knob the rest of the
+   // pipeline (e.g. the table scan) uses, so this output is sized the same way.
    const size_t batch_size = query_options.materialization_cutoff + 1;
-   std::vector<arrow::ExecBatch> batches;
-   for (size_t begin = 0; begin < combinations.size(); begin += batch_size) {
-      const size_t end = std::min(begin + batch_size, combinations.size());
-      ARROW_ASSIGN_OR_RAISE(arrow::ExecBatch batch, build_batch(begin, end));
-      batches.push_back(std::move(batch));
-   }
 
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [batches = std::move(batches),
-       next_batch = size_t{0}]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
-      if (next_batch >= batches.size()) {
-         const std::optional<arrow::ExecBatch> empty = std::nullopt;
-         return arrow::Future{empty};
+      [combinations = std::move(combinations),
+       group_bitmaps_per_dimension = std::move(group_bitmaps_per_dimension),
+       dimension_count,
+       batch_size,
+       begin = size_t{0}]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+      if (begin >= combinations.size()) {
+         return arrow::Future<std::optional<arrow::ExecBatch>>::MakeFinished(std::nullopt);
       }
-      std::optional<arrow::ExecBatch> batch = std::move(batches[next_batch]);
-      ++next_batch;
-      return arrow::Future{std::move(batch)};
+      const size_t end = std::min(begin + batch_size, combinations.size());
+      arrow::Result<arrow::ExecBatch> batch =
+         buildBatch(combinations, group_bitmaps_per_dimension, dimension_count, begin, end);
+      begin = end;
+      return arrow::Future<std::optional<arrow::ExecBatch>>::MakeFinished(batch.Map(
+         [](arrow::ExecBatch value) { return std::optional<arrow::ExecBatch>{std::move(value)}; }
+      ));
    };
 
    const arrow::acero::SourceNodeOptions options{

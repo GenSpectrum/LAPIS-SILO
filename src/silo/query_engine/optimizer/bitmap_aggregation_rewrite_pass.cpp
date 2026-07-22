@@ -11,6 +11,8 @@
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/scalar_expressions/at.h"
+#include "silo/query_engine/scalar_expressions/scalar_expression.h"
+#include "silo/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 #include "silo/schema/database_schema.h"
 
 namespace silo::query_engine::optimizer {
@@ -51,6 +53,17 @@ const scalar_expressions::At* findAtAssignment(
    return dynamic_cast<const scalar_expressions::At*>(assignment->expression.get());
 }
 
+/// Whether every assignment of `map_node` merely zstd-decompresses a sequence column. Only such a
+/// map is the implicit decompress map that this rewrite may transparently skip; a user-defined map
+/// can override arbitrary column values/types, so skipping it would read the wrong inputs.
+bool isDecompressMap(const operators::MapNode& map_node) {
+   return std::ranges::all_of(map_node.assignments, [](const auto& assignment) {
+      return scalar_expressions::isA<scalar_expressions::ZstdDecompressScalar>(
+         assignment.expression.get()
+      );
+   });
+}
+
 /// The leaf table scan the aggregate reads from. `map_node` (if any) is the map defining the `At`
 /// grouping keys; below it there may be a decompress `MapNode` that remaps sequence columns to
 /// strings. Returns nullptr if the aggregate is not (directly or through those maps) reading a
@@ -60,7 +73,8 @@ operators::TableScanNode* getTableScan(
    const operators::MapNode* map_node
 ) {
    operators::QueryNode* below = map_node != nullptr ? map_node->child.get() : aggregate_child;
-   if (auto* decompress = dynamic_cast<operators::MapNode*>(below)) {
+   if (auto* decompress = dynamic_cast<operators::MapNode*>(below);
+       decompress != nullptr && isDecompressMap(*decompress)) {
       below = decompress->child.get();
    }
    return dynamic_cast<operators::TableScanNode*>(below);
@@ -107,7 +121,8 @@ operators::QueryNodePtr BitmapAggregationRewritePass::operator()(operators::Aggr
       }
       // Not an `At`: a map that computes this key with any other expression is not something the
       // bitmap engine can group on, so decline rather than misread it as a passthrough column.
-      if (map_node != nullptr && std::ranges::any_of(map_node->assignments, [&](const auto& assignment) {
+      if (map_node != nullptr &&
+          std::ranges::any_of(map_node->assignments, [&](const auto& assignment) {
              return assignment.output_column.name == group_by_field.name;
           })) {
          return nullptr;
