@@ -20,7 +20,6 @@ TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
 TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
    const DatabaseConfig config = silo::config::DatabaseConfig::getValidatedConfig(
       R"(
-defaultNucleotideSequence: "main"
 schema:
   instanceName: "testInstanceName"
   metadata:
@@ -143,8 +142,6 @@ TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[8].name, "qc_value");
    ASSERT_EQ(config.schema.metadata[8].type, ValueType::FLOAT);
    ASSERT_EQ(config.schema.metadata[8].generate_index, false);
-   ASSERT_EQ(config.default_nucleotide_sequence, "main");
-   ASSERT_EQ(config.default_amino_acid_sequence, std::nullopt);
 }
 
 TEST(DatabaseConfig, shouldThrowExceptionWhenConfigFileDoesNotExist) {
@@ -201,46 +198,9 @@ schema:
    );
 }
 
-TEST(DatabaseConfig, shouldReadConfigWithDefaultSequencesSet) {
-   const auto* yaml = R"-(
-schema:
-  instanceName: dummy with default
-  metadata:
-    - name: primaryKey
-      type: string
-  primaryKey: primaryKey
-defaultNucleotideSequence: defaultNuc
-defaultAminoAcidSequence: defaultAA
-)-";
-
-   const DatabaseConfig& config = silo::config::DatabaseConfig::getValidatedConfig(yaml);
-
-   ASSERT_EQ(config.default_nucleotide_sequence, "defaultNuc");
-   ASSERT_EQ(config.default_amino_acid_sequence, "defaultAA");
-}
-
-TEST(DatabaseConfig, shouldReadConfigWithDefaultSequencesSetButNull) {
-   const auto* yaml = R"-(
-schema:
-  instanceName: dummy with no default explicitly
-  metadata:
-    - name: primaryKey
-      type: string
-  primaryKey: primaryKey
-defaultNucleotideSequence: null
-defaultAminoAcidSequence: null
-)-";
-
-   const DatabaseConfig& config = silo::config::DatabaseConfig::getValidatedConfig(yaml);
-
-   ASSERT_EQ(config.default_nucleotide_sequence, std::nullopt);
-   ASSERT_EQ(config.default_amino_acid_sequence, std::nullopt);
-}
-
 TEST(DatabaseConfig, shouldReadConfigWithoutErrors) {
    const char* const config_yaml =
       R"(
-defaultNucleotideSequence: "main"
 schema:
   instanceName: "testInstanceName"
   metadata:
@@ -264,7 +224,6 @@ schema:
 TEST(DatabaseConfig, shouldThrowIfPrimaryKeyIsNotInMetadata) {
    const char* const config_yaml =
       R"(
-defaultNucleotideSequence: "main"
 schema:
   instanceName: "testInstanceName"
   metadata:
@@ -279,7 +238,6 @@ schema:
 TEST(DatabaseConfig, shouldThrowIfThereAreTwoMetadataWithTheSameName) {
    const char* const config_yaml =
       R"(
-defaultNucleotideSequence: "main"
 schema:
   instanceName: "testInstanceName"
   metadata:
@@ -298,7 +256,6 @@ schema:
 TEST(DatabaseConfig, givenMetadataToGenerateIndexForThatIsNotStringThenThrows) {
    const char* const config_yaml =
       R"(
-defaultNucleotideSequence: "main"
 schema:
   instanceName: "testInstanceName"
   metadata:
@@ -322,7 +279,6 @@ schema:
 TEST(DatabaseConfig, givenLineageIndexAndNotGenerateThenThrows) {
    const char* const config_yaml =
       R"(
-defaultNucleotideSequence: "main"
 schema:
   instanceName: "testInstanceName"
   metadata:
@@ -346,7 +302,6 @@ schema:
 TEST(DatabaseConfig, givenPhyloTreeIndexAndGenerateThenThrows) {
    const char* const config_yaml =
       R"(
-defaultNucleotideSequence: "main"
 schema:
   instanceName: "testInstanceName"
   metadata:

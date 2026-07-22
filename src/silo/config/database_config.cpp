@@ -36,9 +36,6 @@ ValueType silo::config::toDatabaseValueType(std::string_view type) {
 
 namespace {
 
-const std::string DEFAULT_NUCLEOTIDE_SEQUENCE_KEY = "defaultNucleotideSequence";
-const std::string DEFAULT_AMINO_ACID_SEQUENCE_KEY = "defaultAminoAcidSequence";
-
 std::string toString(ValueType type) {
    switch (type) {
       case ValueType::STRING:
@@ -62,15 +59,6 @@ bool YAML::convert<silo::config::DatabaseConfig>::decode(
 ) {
    config.schema = node["schema"].as<silo::config::DatabaseSchema>();
 
-   if (node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].IsDefined() &&
-       !node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].IsNull()) {
-      config.default_nucleotide_sequence = node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY].as<std::string>();
-   }
-   if (node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].IsDefined() &&
-       !node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].IsNull()) {
-      config.default_amino_acid_sequence = node[DEFAULT_AMINO_ACID_SEQUENCE_KEY].as<std::string>();
-   }
-
    SPDLOG_TRACE("Resulting database config: {}", config);
 
    return true;
@@ -81,12 +69,6 @@ YAML::Node YAML::convert<silo::config::DatabaseConfig>::encode(
    Node node;
    node["schema"] = config.schema;
 
-   if (config.default_nucleotide_sequence.has_value()) {
-      node[DEFAULT_NUCLEOTIDE_SEQUENCE_KEY] = *config.default_nucleotide_sequence;
-   }
-   if (config.default_amino_acid_sequence.has_value()) {
-      node[DEFAULT_AMINO_ACID_SEQUENCE_KEY] = *config.default_amino_acid_sequence;
-   }
    return node;
 }
 
@@ -309,17 +291,7 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
    const silo::config::DatabaseConfig& database_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
-   return fmt::format_to(
-      ctx.out(),
-      "{{ default_nucleotide_sequence: {}, default_amino_acid_sequence: {}, schema: {} }}",
-      database_config.default_nucleotide_sequence.has_value()
-         ? "'" + *database_config.default_nucleotide_sequence + "'"
-         : "null",
-      database_config.default_amino_acid_sequence.has_value()
-         ? "'" + *database_config.default_nucleotide_sequence + "'"
-         : "null",
-      database_config.schema
-   );
+   return fmt::format_to(ctx.out(), "{{ schema: {} }}", database_config.schema);
 }
 
 [[maybe_unused]] auto fmt::formatter<silo::config::DatabaseSchema>::format(

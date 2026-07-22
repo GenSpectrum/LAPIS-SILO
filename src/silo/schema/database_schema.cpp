@@ -45,16 +45,6 @@ std::vector<ColumnIdentifier> TableSchema::getColumnIdentifiers() const {
    return result;
 }
 
-template <>
-std::optional<ColumnIdentifier> TableSchema::getDefaultSequenceName<Nucleotide>() const {
-   return default_nucleotide_sequence;
-}
-
-template <>
-std::optional<ColumnIdentifier> TableSchema::getDefaultSequenceName<AminoAcid>() const {
-   return default_aa_sequence;
-}
-
 class ColumnMetadataSaverByType {
   public:
    template <storage::column::Column ColumnType, class Archive>
@@ -80,8 +70,6 @@ class ColumnMetadataLoaderByType {
 
 template <class Archive>
 void TableSchema::save(Archive& archive, const unsigned int /*version*/) const {
-   archive & default_nucleotide_sequence;
-   archive & default_aa_sequence;
    archive & primary_key;
 
    std::vector<ColumnIdentifier> column_identifiers;
@@ -100,8 +88,6 @@ void TableSchema::save(Archive& archive, const unsigned int /*version*/) const {
 
 template <class Archive>
 void TableSchema::load(Archive& archive, const unsigned int /*version*/) {
-   archive & default_nucleotide_sequence;
-   archive & default_aa_sequence;
    archive & primary_key;
 
    std::vector<ColumnIdentifier> column_identifiers;

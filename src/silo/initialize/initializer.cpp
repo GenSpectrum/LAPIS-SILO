@@ -155,48 +155,6 @@ void ColumnMetadataInitializer::operator()(
 
 namespace {
 
-void setDefaultSequencesIfUnsetAndThereIsOnlyOne(
-   silo::config::DatabaseConfig& database_config,
-   const ReferenceGenomes& reference_genomes
-) {
-   const auto& nuc_sequence_names = reference_genomes.getSequenceNames<Nucleotide>();
-   const auto& aa_sequence_names = reference_genomes.getSequenceNames<AminoAcid>();
-   if (nuc_sequence_names.size() == 1 && !database_config.default_nucleotide_sequence.has_value()) {
-      database_config.default_nucleotide_sequence = nuc_sequence_names.at(0);
-   }
-   if (aa_sequence_names.size() == 1 && !database_config.default_amino_acid_sequence.has_value()) {
-      database_config.default_amino_acid_sequence = aa_sequence_names.at(0);
-   }
-}
-
-void assertDefaultSequencesAreInReference(
-   const silo::config::DatabaseConfig& database_config,
-   const ReferenceGenomes& reference_genomes
-) {
-   const auto& nuc_sequence_names = reference_genomes.getSequenceNames<Nucleotide>();
-   const auto& aa_sequence_names = reference_genomes.getSequenceNames<AminoAcid>();
-   const bool default_nucleotide_sequence_is_not_in_reference =
-      database_config.default_nucleotide_sequence.has_value() &&
-      std::ranges::find(nuc_sequence_names, *database_config.default_nucleotide_sequence) ==
-         nuc_sequence_names.end();
-   if (default_nucleotide_sequence_is_not_in_reference) {
-      throw silo::initialize::InitializeException(
-         "The default nucleotide sequence that is set in the database config is not contained in "
-         "the reference genomes."
-      );
-   }
-   const bool default_amino_acid_sequence_is_not_in_reference =
-      database_config.default_amino_acid_sequence.has_value() &&
-      std::ranges::find(aa_sequence_names, *database_config.default_amino_acid_sequence) ==
-         aa_sequence_names.end();
-   if (default_amino_acid_sequence_is_not_in_reference) {
-      throw silo::initialize::InitializeException(
-         "The default amino acid sequence that is set in the database config is not contained in "
-         "the reference genomes."
-      );
-   }
-}
-
 void assertPrimaryKeyInMetadata(const silo::config::DatabaseConfig& database_config) {
    auto primary_key_metadata = std::ranges::find_if(
       database_config.schema.metadata,
@@ -235,14 +193,12 @@ const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
 }  // namespace
 
 std::shared_ptr<schema::TableSchema> Initializer::createSchemaFromConfigFiles(
-   config::DatabaseConfig database_config,
+   const config::DatabaseConfig& database_config,
    ReferenceGenomes reference_genomes,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
    const common::PhyloTree& phylo_tree_file,
    bool without_unaligned_sequences
 ) {
-   setDefaultSequencesIfUnsetAndThereIsOnlyOne(database_config, reference_genomes);
-   assertDefaultSequencesAreInReference(database_config, reference_genomes);
    assertPrimaryKeyInMetadata(database_config);
    assertPrimaryKeyOfTypeString(database_config);
 
@@ -307,20 +263,7 @@ std::shared_ptr<schema::TableSchema> Initializer::createSchemaFromConfigFiles(
       column_metadata.emplace(column_identifier, std::move(metadata));
    }
 
-   auto table_schema = std::make_shared<schema::TableSchema>(column_metadata, primary_key);
-   if (database_config.default_nucleotide_sequence.has_value()) {
-      table_schema->default_nucleotide_sequence = schema::ColumnIdentifier{
-         .name = database_config.default_nucleotide_sequence.value(),
-         .type = schema::ColumnType::NUCLEOTIDE_SEQUENCE
-      };
-   }
-   if (database_config.default_amino_acid_sequence.has_value()) {
-      table_schema->default_aa_sequence = schema::ColumnIdentifier{
-         .name = database_config.default_amino_acid_sequence.value(),
-         .type = schema::ColumnType::AMINO_ACID_SEQUENCE
-      };
-   }
-   return table_schema;
+   return std::make_shared<schema::TableSchema>(column_metadata, primary_key);
 }
 
 std::optional<common::LineageTreeAndIdMap> Initializer::findLineageTreeForName(
