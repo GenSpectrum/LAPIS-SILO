@@ -9,12 +9,14 @@
 #include <emscripten/bind.h>
 #include <nlohmann/json.hpp>
 
-#include "config/source/yaml_file.h"
-#include "silo/config/preprocessing_config.h"
-#include "silo/database.h"
-#include "silo/preprocessing/preprocessing.h"
-#include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/planner.h"
+#include <config/source/yaml_file.h>
+#include <silo/config/preprocessing_config.h>
+#include <silo/database.h>
+#include <silo/preprocessing/preprocessing.h>
+#include <silo/query_engine/exec_node/ndjson_sink.h>
+#include <silo/query_engine/planner.h>
+
+namespace silo_wasm {
 
 namespace {
 
@@ -135,3 +137,5 @@ EMSCRIPTEN_BINDINGS(silo_wasm) {
    emscripten::function("info", &info);
    emscripten::function("dispose", &dispose);
 }
+
+}  // namespace silo_wasm

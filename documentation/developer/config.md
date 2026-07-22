@@ -79,7 +79,7 @@ the templated [`getConfig`](../src/config/config_interface.h)
 function, which returns a fully filled-in "Config"
 instance. `getConfig` needs an allow list for environment variables to
 satisfy the last point above; this is done in
-[`main.cpp`](../app/src/silo/api/main.cpp).
+[`main.cpp`](../app/src/main.cpp).
 
 Hard-coded values for a "Config" class should be read from its
 `ConfigSpecification`, in its constructor, rather than using the `=`
