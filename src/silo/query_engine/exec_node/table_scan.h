@@ -65,6 +65,20 @@ class TableScanGenerator {
    arrow::Future<std::optional<arrow::ExecBatch>> operator()() {
       SPDLOG_TRACE("TableScanGenerator::operator()");
       auto future = arrow::Future<std::optional<arrow::ExecBatch>>::Make();
+#ifdef __EMSCRIPTEN__
+      // In the browser build we produce the batch synchronously. Spawning a
+      // detached pthread per batch (as the native path does below) starves or
+      // deadlocks Emscripten's fixed pthread worker pool (PTHREAD_POOL_SIZE in
+      // wasm/CMakeLists.txt) on larger datasets. The arrow issues worked around
+      // below do not affect the browser build, which runs acero with a
+      // single-threaded executor.
+      try {
+         auto result = produceNextBatch();
+         future.MarkFinished(std::move(result));
+      } catch (const std::exception& exception) {
+         future.MarkFinished(arrow::Status::ExecutionError(exception.what()));
+      }
+#else
       // We do this to guard against https://github.com/apache/arrow/issues/47641
       // and https://github.com/apache/arrow/issues/47642
       std::thread([future, this]() mutable {
@@ -75,6 +89,7 @@ class TableScanGenerator {
             future.MarkFinished(arrow::Status::ExecutionError(exception.what()));
          }
       }).detach();
+#endif
       return future;
    };
 

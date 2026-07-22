@@ -50,6 +50,36 @@ hand).
 make dependencies
 ```
 
+## Building for WebAssembly (Browser)
+
+SILO can be compiled to WebAssembly to run preprocessing and SaneQL queries in the browser.
+
+### Prerequisites
+
+- The Emscripten SDK, activated so that `emcc`, `em++`, and `emcmake` are on your `PATH`.
+  Install it: https://emscripten.org/docs/getting_started/downloads.html
+- cmake, ninja, and uv (same as the native build).
+
+### Build
+
+From the repository root:
+
+```shell
+make wasm
+```
+
+### Test
+
+`wasm/test` contains a Node.js smoke test that runs the built module end-to-end (preprocess,
+query, save, load) against the `testBaseData/unitTestDummyDataset` fixture:
+
+```shell
+make wasm-test
+```
+
+See [`wasm/README.md`](../../wasm/README.md) for the exposed API, the example app, and the
+cross-origin isolation headers required to serve the pthread-enabled build.
+
 ## Building Python Bindings
 
 SILO provides Python bindings via Cython. The bindings wrap the core C++ `Database` class.

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>SILO WASM Example</title>
+        <link rel="stylesheet" href="./style.css" />
+    </head>
+    <body>
+        <main>
+            <h1>SILO WASM Example</h1>
+            <p>
+                Minimal example showing how to write files into the Emscripten filesystem,
+                preprocess them with SILO, save the processed state, load it again, and run SaneQL.
+            </p>
+            <p>
+                Serve this page over HTTP with <code>Cross-Origin-Opener-Policy: same-origin</code>
+                and <code>Cross-Origin-Embedder-Policy: require-corp</code>, because the current
+                SILO WASM build uses pthreads.
+            </p>
+
+            <section>
+                <h2>1. Preprocess input files</h2>
+                <p>
+                    Upload the files referenced by your preprocessing config, for example
+                    <code>preprocessing_config.yaml</code>, <code>database_config.yaml</code>,
+                    <code>reference_genomes.json</code>, and an NDJSON input file.
+                </p>
+                <label>
+                    Input files
+                    <input id="input-files" type="file" multiple />
+                </label>
+                <label>
+                    Preprocessing config path
+                    <input id="config-path" value="preprocessing_config.yaml" />
+                </label>
+                <button id="preprocess">Preprocess and download state</button>
+            </section>
+
+            <section>
+                <h2>2. Load processed state and query</h2>
+                <p>The JSON file is only this example's archive format; SILO itself saves and loads a directory of processed state files.</p>
+                <label>
+                    Processed state JSON
+                    <input id="state-file" type="file" accept="application/json,.json" />
+                </label>
+                <button id="load-state">Load state</button>
+                <label>
+                    SaneQL query
+                    <textarea id="query" rows="4">default.groupBy({count:=count()})</textarea>
+                </label>
+                <button id="run-query">Run query</button>
+                <pre id="result"></pre>
+            </section>
+
+            <section>
+                <h2>Status</h2>
+                <pre id="log"></pre>
+            </section>
+        </main>
+
+        <script type="module" src="./app.js"></script>
+    </body>
+</html>
