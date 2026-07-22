@@ -4,8 +4,9 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/query_engine/scalar_expressions/equals.h"
+#include "silo/query_engine/scalar_expressions/field_ref.h"
 #include "silo/query_engine/scalar_expressions/literal.h"
-#include "silo/query_engine/scalar_expressions/string_equals.h"
 #include "silo/query_engine/scalar_expressions/string_in_set.h"
 #include "silo/query_engine/scalar_expressions/symbol_in_set.h"
 #include "silo/test/query_fixture.test.h"
@@ -312,11 +313,22 @@ TEST(OrToString, shouldHandleNestedOr) {
    EXPECT_EQ(rewritten_or->toString(), "true");
 }
 
-using scalar_expressions::StringEquals;
 using schema::ColumnIdentifier;
 using schema::ColumnType;
 using storage::column::ColumnMetadata;
 using storage::column::StringColumnMetadata;
+
+namespace {
+std::unique_ptr<ScalarExpression> stringEquals(
+   const std::string& column,
+   const std::string& value
+) {
+   return std::make_unique<Equals>(
+      std::make_unique<FieldRef>(ColumnIdentifier{.name = column, .type = ColumnType::STRING}),
+      std::make_unique<StringLiteral>(value)
+   );
+}
+}  // namespace
 
 TEST(OrToString, shouldHandleNestedStringEquals) {
    ColumnIdentifier primary_key{.name = "key", .type = ColumnType::STRING};
@@ -329,12 +341,12 @@ TEST(OrToString, shouldHandleNestedStringEquals) {
    );
 
    ScalarExpressionVector inner_children;
-   inner_children.emplace_back(std::make_unique<StringEquals>("key", "value_1"));
-   inner_children.emplace_back(std::make_unique<StringEquals>("key", "value_2"));
+   inner_children.emplace_back(stringEquals("key", "value_1"));
+   inner_children.emplace_back(stringEquals("key", "value_2"));
 
    ScalarExpressionVector outer_children;
    outer_children.emplace_back(std::make_unique<Or>(std::move(inner_children)));
-   outer_children.emplace_back(std::make_unique<StringEquals>("key", "value_3"));
+   outer_children.emplace_back(stringEquals("key", "value_3"));
 
    const Or outer_or(std::move(outer_children));
 
@@ -357,15 +369,15 @@ TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
 
    ScalarExpressionVector innermost_children;
    innermost_children.emplace_back(std::make_unique<BoolLiteral>(false));
-   innermost_children.emplace_back(std::make_unique<StringEquals>("key", "value_1"));
+   innermost_children.emplace_back(stringEquals("key", "value_1"));
 
    ScalarExpressionVector inner_children;
    inner_children.emplace_back(std::make_unique<Or>(std::move(innermost_children)));
-   inner_children.emplace_back(std::make_unique<StringEquals>("key", "value_2"));
+   inner_children.emplace_back(stringEquals("key", "value_2"));
 
    ScalarExpressionVector outer_children;
    outer_children.emplace_back(std::make_unique<Or>(std::move(inner_children)));
-   outer_children.emplace_back(std::make_unique<StringEquals>("key", "value_3"));
+   outer_children.emplace_back(stringEquals("key", "value_3"));
 
    const Or outer_or(std::move(outer_children));
 
