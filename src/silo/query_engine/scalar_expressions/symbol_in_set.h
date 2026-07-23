@@ -4,11 +4,13 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <type_traits>
 
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
+#include "silo/schema/database_schema.h"
 
 namespace silo {
 class Nucleotide;
@@ -42,6 +44,8 @@ class SymbolInSet : public ScalarExpression {
                                    ? Kind::SYMBOL_IN_SET_NUCLEOTIDE
                                    : Kind::SYMBOL_IN_SET_AMINO_ACID;
    [[nodiscard]] Kind kind() const override { return KIND; }
+
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> rewrite(
       const storage::Table& table,

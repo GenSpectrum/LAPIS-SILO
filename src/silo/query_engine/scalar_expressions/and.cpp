@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -33,6 +34,16 @@ std::string And::toString() const {
    res += joinWithLimit(children, " & ");
    res += ")";
    return res;
+}
+
+std::vector<schema::ColumnIdentifier> And::freeIUs() const {
+   std::vector<schema::ColumnIdentifier> result;
+   for (const auto& child : children) {
+      for (auto& column : child->freeIUs()) {
+         result.push_back(std::move(column));
+      }
+   }
+   return result;
 }
 
 namespace {

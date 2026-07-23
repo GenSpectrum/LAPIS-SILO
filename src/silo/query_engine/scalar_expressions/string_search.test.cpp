@@ -123,8 +123,7 @@ const QueryTestScenario INVALID_REGULAR_EXPRESSION = {
 const QueryTestScenario FILTER_FOR_COLUMN_THAT_DOES_NOT_EXIST = {
    .name = "FILTER_FOR_COLUMN_THAT_DOES_NOT_EXIST",
    .query = "default.filter(column_that_does_not_exist.like('some value')).project(primaryKey)",
-   .expected_error_message =
-      "The database does not contain the string column 'column_that_does_not_exist'"
+   .expected_error_message = "The database does not contain the column 'column_that_does_not_exist'"
 };
 
 const QueryTestScenario TABLE_NOT_FOUND = {

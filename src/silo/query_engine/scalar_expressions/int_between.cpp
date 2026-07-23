@@ -19,12 +19,12 @@ namespace silo::query_engine::scalar_expressions {
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters,readability-identifier-length)
 IntBetween::IntBetween(
-   std::string column_name,
+   schema::ColumnIdentifier column,
    std::optional<int32_t> from,
    std::optional<int32_t> to
 )
     // NOLINTEND(bugprone-easily-swappable-parameters,readability-identifier-length)
-    : column_name(std::move(column_name)),
+    : column(std::move(column)),
       from(from),
       to(to) {}
 
@@ -35,27 +35,31 @@ std::string IntBetween::toString() const {
    return "[IntBetween " + from_string + " - " + to_string + "]";
 }
 
+std::vector<schema::ColumnIdentifier> IntBetween::freeIUs() const {
+   return {column};
+}
+
 std::unique_ptr<ScalarExpression> IntBetween::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
 ) const {
-   return std::make_unique<IntBetween>(column_name, from, to);
+   return std::make_unique<IntBetween>(column, from, to);
 }
 
 std::unique_ptr<filter::operators::Operator> IntBetween::compile(const storage::Table& table
 ) const {
    CHECK_SILO_QUERY(
-      table.schema->getColumn(column_name).has_value(),
+      table.schema->getColumn(column.name).has_value(),
       "The database does not contain the column '{}'",
-      column_name
+      column.name
    );
    CHECK_SILO_QUERY(
-      table.columns.int_columns.contains(column_name),
+      table.columns.int_columns.contains(column.name),
       "The column '{}' is not of type int",
-      column_name
+      column.name
    );
 
-   const auto& int_column = table.columns.int_columns.at(column_name);
+   const auto& int_column = table.columns.int_columns.at(column.name);
 
    filter::operators::PredicateVector predicates;
    if (from.has_value()) {

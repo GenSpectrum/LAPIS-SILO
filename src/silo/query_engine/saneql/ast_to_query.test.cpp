@@ -205,8 +205,11 @@ TEST(AstToQueryConvertToFilter, unsupportedExpressionTypeThrows) {
 // --- integer comparisons ---
 
 TEST(AstToQueryIntComparison, lessThanThrows) {
+   const std::vector<silo::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = silo::schema::ColumnType::INT32}
+   };
    EXPECT_THAT(
-      []() { (void)parseFilter("age < 5"); },
+      [&]() { (void)parseFilter("age < 5", schema); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("less than is not implemented for integer expressions")
       )
@@ -214,8 +217,11 @@ TEST(AstToQueryIntComparison, lessThanThrows) {
 }
 
 TEST(AstToQueryIntComparison, greaterThanThrows) {
+   const std::vector<silo::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = silo::schema::ColumnType::INT32}
+   };
    EXPECT_THAT(
-      []() { (void)parseFilter("age > 5"); },
+      [&]() { (void)parseFilter("age > 5", schema); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("greater than is not implemented for integer expressions")
       )
@@ -225,8 +231,11 @@ TEST(AstToQueryIntComparison, greaterThanThrows) {
 // --- float comparisons ---
 
 TEST(AstToQueryFloatComparison, lessEqualThrows) {
+   const std::vector<silo::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = silo::schema::ColumnType::FLOAT}
+   };
    EXPECT_THAT(
-      []() { (void)parseFilter("age <= 5.0"); },
+      [&]() { (void)parseFilter("age <= 5.0", schema); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("less equal is not implemented for float expressions")
       )
@@ -234,8 +243,11 @@ TEST(AstToQueryFloatComparison, lessEqualThrows) {
 }
 
 TEST(AstToQueryFloatComparison, greaterThanThrows) {
+   const std::vector<silo::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = silo::schema::ColumnType::FLOAT}
+   };
    EXPECT_THAT(
-      []() { (void)parseFilter("age > 5.0"); },
+      [&]() { (void)parseFilter("age > 5.0", schema); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("greater than is not implemented for float expressions")
       )
@@ -245,8 +257,11 @@ TEST(AstToQueryFloatComparison, greaterThanThrows) {
 // --- date comparisons ---
 
 TEST(AstToQueryDateComparison, lessThanThrows) {
+   const std::vector<silo::schema::ColumnIdentifier> schema{
+      {.name = "date", .type = silo::schema::ColumnType::DATE32}
+   };
    EXPECT_THAT(
-      []() { (void)parseFilter("date < '2020-01-01'::date"); },
+      [&]() { (void)parseFilter("date < '2020-01-01'::date", schema); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("less than is not implemented for date expressions")
       )
@@ -254,8 +269,11 @@ TEST(AstToQueryDateComparison, lessThanThrows) {
 }
 
 TEST(AstToQueryDateComparison, greaterThanThrows) {
+   const std::vector<silo::schema::ColumnIdentifier> schema{
+      {.name = "date", .type = silo::schema::ColumnType::DATE32}
+   };
    EXPECT_THAT(
-      []() { (void)parseFilter("date > '2020-01-01'::date"); },
+      [&]() { (void)parseFilter("date > '2020-01-01'::date", schema); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("greater than is not implemented for date expressions")
       )
