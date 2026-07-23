@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.12.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.12.0...v0.12.1) (2026-07-23)
+
+
+### Features
+
+* **SaneQL:** pipeline optimization step: map pull up through filter ([#1354](https://github.com/GenSpectrum/LAPIS-SILO/issues/1354)) ([b1966c4](https://github.com/GenSpectrum/LAPIS-SILO/commit/b1966c47bc68ab5ba66a830e32da772991dc67cd))
+* **silo:** add update function to python bindings ([6e27cd5](https://github.com/GenSpectrum/LAPIS-SILO/commit/6e27cd52192014ab0856a05615cad25d820972c0))
+* **silo:** add WebAssembly build ([#1320](https://github.com/GenSpectrum/LAPIS-SILO/issues/1320)) ([f41993a](https://github.com/GenSpectrum/LAPIS-SILO/commit/f41993a68f3d1f347d05759b4147b00cbcde1038))
+
+
+### Performance Improvements
+
+* **silo:** always prime Selection with most-selective predicate ([a8b458e](https://github.com/GenSpectrum/LAPIS-SILO/commit/a8b458e621cefa4f9556b4f4a5e480064b0263eb))
+* **silo:** when adapting references, compute the coverage bitmaps only when necessary ([8f178dc](https://github.com/GenSpectrum/LAPIS-SILO/commit/8f178dc221081d88c4161a24e480251160ab101d))
+
 ## [0.12.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.11.3...v0.12.0) (2026-07-15)
 
 
