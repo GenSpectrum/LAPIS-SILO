@@ -8,6 +8,7 @@
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/insertions_node.h"
+#include "silo/query_engine/operators/lineage_aggregate_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/mutations_node.h"
@@ -18,6 +19,7 @@
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
+#include "silo/query_engine/operators/unresolved_lineage_aggregate_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
@@ -60,6 +62,8 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
          );
       case NodeKind::UNRESOLVED_PHYLO_SUBTREE:
          return std::forward<Func>(func)(static_cast<UnresolvedPhyloSubtreeNode&>(node));
+      case NodeKind::UNRESOLVED_LINEAGE_AGGREGATE:
+         return std::forward<Func>(func)(static_cast<UnresolvedLineageAggregateNode&>(node));
       case NodeKind::MUTATIONS_NUCLEOTIDE:
          return std::forward<Func>(func)(static_cast<MutationsNode<silo::Nucleotide>&>(node));
       case NodeKind::MUTATIONS_AMINO_ACID:
@@ -72,6 +76,8 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
          return std::forward<Func>(func)(static_cast<MostRecentCommonAncestorNode&>(node));
       case NodeKind::PHYLO_SUBTREE:
          return std::forward<Func>(func)(static_cast<PhyloSubtreeNode&>(node));
+      case NodeKind::LINEAGE_AGGREGATE:
+         return std::forward<Func>(func)(static_cast<LineageAggregateNode&>(node));
       case NodeKind::TABLE_SCAN:
          return std::forward<Func>(func)(static_cast<TableScanNode&>(node));
       case NodeKind::COUNT_FILTER:

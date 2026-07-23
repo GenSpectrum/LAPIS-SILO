@@ -34,6 +34,8 @@ std::string_view nodeKindToString(NodeKind kind) {
          return "UnresolvedMostRecentCommonAncestor";
       case NodeKind::UNRESOLVED_PHYLO_SUBTREE:
          return "UnresolvedPhyloSubtree";
+      case NodeKind::UNRESOLVED_LINEAGE_AGGREGATE:
+         return "UnresolvedLineageAggregate";
       case NodeKind::MUTATIONS_NUCLEOTIDE:
          return "MutationsNucleotide";
       case NodeKind::MUTATIONS_AMINO_ACID:
@@ -46,6 +48,8 @@ std::string_view nodeKindToString(NodeKind kind) {
          return "MostRecentCommonAncestor";
       case NodeKind::PHYLO_SUBTREE:
          return "PhyloSubtree";
+      case NodeKind::LINEAGE_AGGREGATE:
+         return "LineageAggregate";
       case NodeKind::TABLE_SCAN:
          return "TableScan";
       case NodeKind::COUNT_FILTER:

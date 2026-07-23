@@ -26,6 +26,7 @@
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
+#include "silo/query_engine/operators/unresolved_lineage_aggregate_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
@@ -352,6 +353,25 @@ ScalarExpressionPtr handleIsNotNull(
    );
 }
 
+// Parse a `recombinantFollowingMode` string argument (shared by the `lineage(...)` filter and the
+// sublineage-inclusive groupBy column form).
+common::RecombinantEdgeFollowingMode parseRecombinantFollowingMode(const std::string& value) {
+   if (value == "alwaysFollow") {
+      return common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW;
+   }
+   if (value == "followIfFullyContainedInClade") {
+      return common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE;
+   }
+   if (value == "doNotFollow") {
+      return common::RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
+   }
+   throw IllegalQueryException(
+      "invalid recombinantFollowingMode: '{}'. Valid values are: alwaysFollow, "
+      "followIfFullyContainedInClade, doNotFollow",
+      value
+   );
+}
+
 ScalarExpressionPtr handleLineage(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& /*schema*/
@@ -372,19 +392,7 @@ ScalarExpressionPtr handleLineage(
    }
    auto recombinant_mode = args.getOptionalString("recombinantFollowingMode");
    if (recombinant_mode.has_value()) {
-      if (recombinant_mode.value() == "alwaysFollow") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW;
-      } else if (recombinant_mode.value() == "followIfFullyContainedInClade") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE;
-      } else if (recombinant_mode.value() == "doNotFollow") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
-      } else {
-         throw IllegalQueryException(
-            "invalid recombinantFollowingMode: '{}'. Valid values are: alwaysFollow, "
-            "followIfFullyContainedInClade, doNotFollow",
-            recombinant_mode.value()
-         );
-      }
+      sublineage_mode = parseRecombinantFollowingMode(recombinant_mode.value());
    }
    return std::make_unique<scalar_expressions::LineageFilter>(
       column_name, lineage_value, sublineage_mode
@@ -1011,6 +1019,67 @@ operators::QueryNodePtr handleSchema(
    return std::make_unique<operators::SchemaNode>(std::move(child));
 }
 
+namespace {
+
+struct LineageGroupBySpec {
+   std::string column_name;
+   bool include_sublineages = false;
+   common::RecombinantEdgeFollowingMode mode = common::RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
+};
+
+// If the groupBy `columns` set contains a `lineage(...)` call, parse and return it. A lineage(...)
+// group-by column must be the *only* group-by column (mixing it with other columns is rejected).
+// Returns nullopt when there are no columns or none of them is a lineage(...) call (the normal
+// AggregateNode path). The named-arg shape mirrors the `lineage(...)` filter, minus the `value`.
+std::optional<LineageGroupBySpec> tryParseLineageGroupBy(const BoundArguments& args) {
+   const auto* columns_expr = args.get("columns");
+   if (columns_expr == nullptr) {
+      return std::nullopt;
+   }
+   const auto& set = extractSetLiteral(*columns_expr);
+
+   const auto is_lineage_call = [](const ast::ExpressionPtr& element) {
+      return std::holds_alternative<ast::FunctionCall>(element->value) &&
+             std::get<ast::FunctionCall>(element->value).function_name == "lineage";
+   };
+
+   const bool has_lineage_column = std::ranges::any_of(set.elements, is_lineage_call);
+   if (!has_lineage_column) {
+      return std::nullopt;
+   }
+   CHECK_SILO_QUERY(
+      set.elements.size() == 1,
+      "a lineage(...) group-by column must be the only group-by column; it cannot be combined "
+      "with other group-by columns"
+   );
+
+   const auto& call = std::get<ast::FunctionCall>(set.elements.front()->value);
+   CHECK_SILO_QUERY(
+      call.positional_arguments.size() == 1,
+      "lineage(...) as a group-by column takes exactly one positional argument (the column name); "
+      "do not pass a lineage value here"
+   );
+
+   LineageGroupBySpec spec;
+   spec.column_name = extractIdentifierName(*call.positional_arguments.front().value);
+   for (const auto& named_argument : call.named_arguments) {
+      if (named_argument.name == "includeSublineages") {
+         spec.include_sublineages = extractBoolLiteral(*named_argument.value);
+      } else if (named_argument.name == "recombinantFollowingMode") {
+         spec.mode = parseRecombinantFollowingMode(extractStringLiteral(*named_argument.value));
+      } else {
+         throw IllegalQueryException(
+            "unknown named argument '{}' for lineage(...) group-by column. Valid named arguments "
+            "are: includeSublineages, recombinantFollowingMode",
+            named_argument.name
+         );
+      }
+   }
+   return spec;
+}
+
+}  // namespace
+
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr handleGroupBy(
    const BoundArguments& args,
@@ -1019,6 +1088,49 @@ operators::QueryNodePtr handleGroupBy(
 ) {
    auto child = convert_child(args.at("input"), tables);
    auto child_schema = child->getOutputSchema();
+
+   if (auto lineage_spec = tryParseLineageGroupBy(args)) {
+      CHECK_SILO_QUERY(
+         lineage_spec->include_sublineages,
+         "lineage(...) as a group-by column requires 'includeSublineages := true'. For exact "
+         "grouping use the bare column name '{}' instead.",
+         lineage_spec->column_name
+      );
+
+      const auto found = std::ranges::find_if(child_schema, [&](const auto& col) {
+         return col.name == lineage_spec->column_name;
+      });
+      CHECK_SILO_QUERY(
+         found != child_schema.end(),
+         "groupBy field '{}' is not present in the input's output schema",
+         lineage_spec->column_name
+      );
+
+      // v1 is deliberately narrow: exactly one count() aggregate, nothing else.
+      const auto& agg_expr = args.at("aggregates");
+      CHECK_SILO_QUERY(
+         std::holds_alternative<ast::RecordLiteral>(agg_expr.value),
+         "groupBy aggregates must be a record literal like {{count:=count()}}"
+      );
+      const auto& record = std::get<ast::RecordLiteral>(agg_expr.value);
+      CHECK_SILO_QUERY(
+         record.fields.size() == 1,
+         "a lineage(...) group-by supports exactly one aggregate, which must be count()"
+      );
+      const auto aggregate = parseAggregateDefinition(record.fields.front(), child_schema);
+      CHECK_SILO_QUERY(
+         aggregate.function == operators::AggregateFunction::COUNT &&
+            !aggregate.source_column.has_value(),
+         "a lineage(...) group-by supports only the count() aggregate with no source column"
+      );
+
+      return std::make_unique<operators::UnresolvedLineageAggregateNode>(
+         std::move(child),
+         std::move(lineage_spec->column_name),
+         lineage_spec->mode,
+         aggregate.output_name
+      );
+   }
 
    auto [group_by_fields, aggregates] = parseGroupBySpecs(args, child_schema);
 
