@@ -105,7 +105,7 @@ arrow::Status addAggregatedInsertionsToInsertionCounts(
          InsertionsNode<SymbolType>::INSERTION_FIELD_NAME,
          [&]() -> OutputValue {
             return fmt::format(
-               "ins_{}{}:{}",
+               "ins_{}:{}:{}",
                sequence_name,
                position_and_insertion.position_idx,
                position_and_insertion.insertion_value
