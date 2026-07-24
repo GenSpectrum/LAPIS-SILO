@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "silo/query_engine/operators/aggregate_node.h"
+#include "silo/query_engine/operators/join_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
@@ -168,6 +169,21 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::SchemaNode& n
    // structural simplifications to run.
    ColumnNarrowingPass child_pass{node.child->getOutputSchema()};
    child_pass.propagateToNode(node.child);
+   return nullptr;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion,readability-make-member-function-const)
+operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::JoinNode& node) {
+   // A join reads columns from both inputs (at minimum its key columns), and the mapping
+   // between the join's own required columns and each input's columns is not a simple
+   // subset relation. Rather than track that, recurse into each branch with a fresh pass
+   // seeded with that branch's complete output schema: no column is pruned directly below
+   // the join (keeping the join keys and all outputs intact), while structural
+   // simplifications deeper in each branch still run.
+   ColumnNarrowingPass left_pass{node.left->getOutputSchema()};
+   left_pass.propagateToNode(node.left);
+   ColumnNarrowingPass right_pass{node.right->getOutputSchema()};
+   right_pass.propagateToNode(node.right);
    return nullptr;
 }
 

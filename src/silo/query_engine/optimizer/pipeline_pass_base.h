@@ -6,6 +6,7 @@
 #include "silo/query_engine/operators/aggregate_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
+#include "silo/query_engine/operators/join_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
 #include "silo/query_engine/operators/project_node.h"
@@ -119,6 +120,16 @@ class PipelinePassBase {
    // stateless passes. A stateful pass MUST override this.
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::UnionAllNode& node) {
+      propagateToNode(node.left);
+      propagateToNode(node.right);
+      return nullptr;
+   }
+
+   // Default propagation for the two-child Join operator. As with UnionAll, both
+   // branches are walked by the same pass instance, so this default is only correct
+   // for stateless passes. A stateful pass MUST override this.
+   // NOLINTNEXTLINE(misc-no-recursion)
+   operators::QueryNodePtr operator()(operators::JoinNode& node) {
       propagateToNode(node.left);
       propagateToNode(node.right);
       return nullptr;

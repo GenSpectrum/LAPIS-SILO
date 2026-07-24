@@ -1,10 +1,13 @@
 #include "silo/query_engine/optimizer/filter_pushdown_pass.h"
 
+#include <vector>
+
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/insertions_node.h"
+#include "silo/query_engine/operators/join_node.h"
 #include "silo/query_engine/operators/most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/mutations_node.h"
 #include "silo/query_engine/operators/phylo_subtree_node.h"
@@ -89,6 +92,29 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::SchemaNode& no
    // cannot leak into the child.
    FilterPushdownPass child_pass;
    child_pass.propagateToNode(node.child);
+   return nullptr;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr FilterPushdownPass::operator()(operators::JoinNode& node) {
+   // A filter sitting above a join cannot be turned into a pre-join filter: attributing a
+   // predicate to one input requires knowing which columns it references (ScalarExpression
+   // predicates do not report this), and even then pushing into the null-supplying side of
+   // an outer join -- or pushing a column-less predicate -- would change the result. Rather
+   // than push unsafely, reject any filter above join() and point the user at the inputs.
+   CHECK_SILO_QUERY(
+      current_filters.empty(),
+      "filter() cannot be applied to the output of join(); a filter above a join cannot be "
+      "pushed into a join input safely. Apply the filter to one of the join inputs instead."
+   );
+
+   // No filters to carry across, but the child subtrees may still contain FilterNodes of
+   // their own (e.g. `join(default.filter(...), ...)`); push those down within each input
+   // using fresh passes so no state leaks between the two branches.
+   FilterPushdownPass left_pass;
+   FilterPushdownPass right_pass;
+   left_pass.propagateToNode(node.left);
+   right_pass.propagateToNode(node.right);
    return nullptr;
 }
 

@@ -285,6 +285,74 @@ default.filter(pango_lineage = 'B.1.1.7').phyloSubtree('usherTree')
 {"subtreeNewick": "((key_83:0.00027051)NODE_0000077:3.291e-05,(...)NODE_0000079:1e-06)NODE_0000076;", "missingNodeCount": 0}
 ```
 
+### `join(left, right, on [, type := ...])`
+
+Combines two pipelines on an equality condition (equi-join). `join` can be called as a standalone function or with piped syntax.
+
+The `on` argument is an equality between a left column and a right column. Multiple key pairs are combined with `&&`; a row pair joins only when all key pairs are equal:
+
+```
+join(
+  default.project({primaryKey, country}),
+  default.map({pk := primaryKey, ctry := country}).project({pk, ctry}),
+  primaryKey = pk
+)
+```
+
+Or equivalently using piped syntax:
+
+```
+default.project({primaryKey, country})
+  .join(default.map({pk := primaryKey, ctry := country}).project({pk, ctry}), primaryKey = pk)
+```
+
+Named arguments are also supported:
+
+```
+join(left := <pipeline1>, right := <pipeline2>, on := primaryKey = pk)
+```
+
+Multiple equalities:
+
+```
+join(<left>, <right>, primaryKey = pk && country = ctry)
+```
+
+**Join type:** the optional `type` named argument selects the join kind (default `inner`):
+
+| `type`      | Kept rows                                     | Output columns |
+| ----------- | --------------------------------------------- | -------------- |
+| `inner`     | matching pairs only (default)                 | left + right   |
+| `left`      | all left rows; right null-filled if unmatched | left + right   |
+| `right`     | all right rows; left null-filled if unmatched | left + right   |
+| `full`      | all rows from both sides, null-filled         | left + right   |
+| `leftSemi`  | left rows that have a match                   | left only      |
+| `rightSemi` | right rows that have a match                  | right only     |
+| `leftAnti`  | left rows without a match                     | left only      |
+| `rightAnti` | right rows without a match                    | right only     |
+
+```
+join(<left>, <right>, primaryKey = pk, type := left)
+```
+
+**Output schema:** the left input's columns followed by the right input's columns (semi/anti joins output only the kept side's columns). Overlapping column names between the two sides are passed through as-is (mirroring SQL `SELECT *`); rename or project them downstream if distinct names are required.
+
+**Restrictions:**
+
+- Overlapping column names make references ambiguous. If the `on`-expression names a column that exists in both inputs, the query is rejected: rename one side (e.g. via `map()`) before joining.
+
+```
+join(
+  default.project({primaryKey, country}),
+  default.project({primaryKey, country}),
+  primaryKey = primaryKey
+)
+```
+
+  fails with an ambiguity error; give the two sides distinct key names instead (`primaryKey = pk`).
+
+**Output:** the joined rows. The order of rows is not guaranteed; use `orderBy(...)` for a deterministic order.
+
 ### `unionAll(left, right)`
 
 Concatenates the output of two pipelines. `unionAll` can be called as a standalone function or with piped syntax:

@@ -6,7 +6,11 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <arrow/acero/options.h>
+
+#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/operators/filter_node.h"
+#include "silo/query_engine/operators/join_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
@@ -199,6 +203,48 @@ TEST(FilterPushdownPass, pushesFilterIntoBothUnionAllBranches) {
    // outer filter (true) + branch filter (false/true) + scan filter (true)
    EXPECT_EQ(left_scan->filter->toString(), "And(true & false & true)");
    EXPECT_EQ(right_scan->filter->toString(), "And(true & true & true)");
+}
+
+// --- FilterNode(JoinNode(...)) ---
+
+operators::QueryNodePtr makeJoin(operators::QueryNodePtr left, operators::QueryNodePtr right) {
+   return std::make_unique<operators::JoinNode>(
+      std::move(left),
+      std::move(right),
+      std::vector<silo::schema::ColumnIdentifier>{},
+      std::vector<silo::schema::ColumnIdentifier>{},
+      arrow::acero::JoinType::INNER
+   );
+}
+
+// A filter sitting above a join cannot be pushed into a single input safely, so it is
+// rejected rather than silently mis-attributed to one side.
+TEST(FilterPushdownPass, rejectsFilterAboveJoin) {
+   auto join = makeJoin(makeScan(), makeScan());
+   auto filter_node = std::make_unique<operators::FilterNode>(std::move(join), makeDummyFilter());
+
+   EXPECT_THROW(
+      { FilterPushdownPass::run(std::move(filter_node)); },
+      silo::query_engine::IllegalQueryException
+   );
+}
+
+// Filters that live *inside* a join input are still pushed down into that input's scan;
+// only filters stacked on top of the join itself are rejected.
+TEST(FilterPushdownPass, pushesFiltersInsideJoinInputsIntoScans) {
+   auto join = makeJoin(makeFilteredScan(false), makeScan());
+
+   auto result = FilterPushdownPass::run(std::move(join));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::JOIN);
+   auto* join_node = dynamic_cast<operators::JoinNode*>(result.get());
+   ASSERT_EQ(join_node->left->kind(), operators::NodeKind::TABLE_SCAN);
+   ASSERT_EQ(join_node->right->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* left_scan = dynamic_cast<operators::TableScanNode*>(join_node->left.get());
+   auto* right_scan = dynamic_cast<operators::TableScanNode*>(join_node->right.get());
+   // left: branch filter (false) + scan filter (true); right: only its scan filter (true)
+   EXPECT_EQ(left_scan->filter->toString(), "And(false & true)");
+   EXPECT_EQ(right_scan->filter->toString(), "And(true)");
 }
 
 }  // namespace
