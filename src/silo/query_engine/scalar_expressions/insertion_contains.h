@@ -19,16 +19,12 @@ namespace silo::query_engine::scalar_expressions {
 template <typename SymbolType>
 class InsertionContains : public ScalarExpression {
   private:
-   std::optional<std::string> sequence_name;
+   std::string sequence_name;
    uint32_t position_idx;
    std::string value;
 
   public:
-   explicit InsertionContains(
-      std::optional<std::string> sequence_name,
-      uint32_t position_idx,
-      std::string value
-   );
+   explicit InsertionContains(std::string sequence_name, uint32_t position_idx, std::string value);
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
       return std::make_unique<InsertionContains>(sequence_name, position_idx, value);

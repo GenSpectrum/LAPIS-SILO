@@ -17,7 +17,7 @@ namespace silo::query_engine::scalar_expressions {
 
 template <typename SymbolType>
 InsertionContains<SymbolType>::InsertionContains(
-   std::optional<std::string> sequence_name,
+   std::string sequence_name,
    uint32_t position_idx,
    std::string value
 )
@@ -27,10 +27,7 @@ InsertionContains<SymbolType>::InsertionContains(
 
 template <typename SymbolType>
 std::string InsertionContains<SymbolType>::toString() const {
-   const std::string symbol_name = std::string(SymbolType::SYMBOL_NAME);
-   const std::string sequence_string = sequence_name
-                                          ? "The sequence '" + sequence_name.value() + "'"
-                                          : "The default " + symbol_name + " sequence ";
+   const std::string sequence_string = "The sequence '" + sequence_name + "'";
 
    return sequence_string + " has insertion '" + value + "'";
 }
@@ -47,8 +44,7 @@ template <typename SymbolType>
 std::unique_ptr<filter::operators::Operator> InsertionContains<SymbolType>::compile(
    const storage::Table& table
 ) const {
-   const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
+   const auto valid_sequence_name = validateSequenceName<SymbolType>(sequence_name, *table.schema);
 
    const std::map<std::string, storage::column::SequenceColumn<SymbolType>>& sequence_stores =
       table.columns.getColumns<typename SymbolType::Column>();

@@ -81,7 +81,7 @@ ScalarExpressionVector Or::algebraicSimplification(
 template <typename SymbolType>
 ScalarExpressionVector Or::rewriteSymbolInSetExpressions(ScalarExpressionVector children) {
    ScalarExpressionVector new_children;
-   using SequenceNameAndPosition = std::pair<std::optional<std::string>, uint32_t>;
+   using SequenceNameAndPosition = std::pair<std::string, uint32_t>;
    using Symbols = std::vector<typename SymbolType::Symbol>;
    std::map<SequenceNameAndPosition, Symbols> symbol_in_set_children;
    for (auto& child : children) {

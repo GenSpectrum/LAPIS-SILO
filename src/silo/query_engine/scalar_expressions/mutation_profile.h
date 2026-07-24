@@ -45,7 +45,7 @@ class MutationProfile : public ScalarExpression {
    using ProfileInput = std::variant<QuerySequenceInput, SequenceIdInput, MutationsInput>;
 
   private:
-   std::optional<std::string> sequence_name;
+   std::string sequence_name;
    uint32_t distance;
    ProfileInput input;
 
@@ -63,11 +63,7 @@ class MutationProfile : public ScalarExpression {
    ) const;
 
   public:
-   explicit MutationProfile(
-      std::optional<std::string> sequence_name,
-      uint32_t distance,
-      ProfileInput input
-   );
+   explicit MutationProfile(std::string sequence_name, uint32_t distance, ProfileInput input);
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
       return std::make_unique<MutationProfile>(sequence_name, distance, input);

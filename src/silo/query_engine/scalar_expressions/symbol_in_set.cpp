@@ -25,7 +25,7 @@ namespace silo::query_engine::scalar_expressions {
 
 template <typename SymbolType>
 SymbolInSet<SymbolType>::SymbolInSet(
-   std::optional<std::string> sequence_name,
+   std::string sequence_name,
    uint32_t position_idx,
    std::vector<typename SymbolType::Symbol> symbols
 )
@@ -46,10 +46,7 @@ std::string SymbolInSet<SymbolType>::toString() const {
    );
 
    return fmt::format(
-      "({}symbol at position {} in {{{}}})",
-      sequence_name ? sequence_name.value() + ":" : "",
-      position_idx + 1,
-      symbols_string
+      "({}:symbol at position {} in {{{}}})", sequence_name, position_idx + 1, symbols_string
    );
 }
 
@@ -241,16 +238,7 @@ template <typename SymbolType>
 std::unique_ptr<filter::operators::Operator> SymbolInSet<SymbolType>::compile(
    const storage::Table& table
 ) const {
-   CHECK_SILO_QUERY(
-      sequence_name.has_value() || table.schema->getDefaultSequenceName<SymbolType>(),
-      "Database does not have a default sequence name for {} sequences. "
-      "You need to provide the sequence name with the {} filter.",
-      SymbolType::SYMBOL_NAME,
-      getFilterName()
-   );
-
-   const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
+   const auto valid_sequence_name = validateSequenceName<SymbolType>(sequence_name, *table.schema);
 
    const auto& sequence_column =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);

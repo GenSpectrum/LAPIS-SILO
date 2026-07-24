@@ -22,13 +22,13 @@ template <typename SymbolType>
 class SymbolInSet : public ScalarExpression {
    friend class Or;  // For optimization under Or
 
-   std::optional<std::string> sequence_name;
+   std::string sequence_name;
    uint32_t position_idx;
    std::vector<typename SymbolType::Symbol> symbols;
 
   public:
    explicit SymbolInSet(
-      std::optional<std::string> sequence_name,
+      std::string sequence_name,
       uint32_t position_idx,
       std::vector<typename SymbolType::Symbol> symbols
    );

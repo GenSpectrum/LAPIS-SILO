@@ -438,7 +438,7 @@ ScalarExpressionPtr handleSymbolEquals(
    CHECK_SILO_QUERY(
       symbol_str.size() == 1, "{}() symbol must be a single character", args.functionName()
    );
-   auto sequence_name = args.getOptionalString("sequenceName");
+   auto sequence_name = extractStringLiteral(args.at("sequenceName"));
    char symbol_char = symbol_str[0];
    if (symbol_char == '.') {
       return std::make_unique<scalar_expressions::SymbolEquals<SymbolType>>(
@@ -461,7 +461,7 @@ ScalarExpressionPtr handleHasMutation(
 ) {
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_SILO_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
-   auto sequence_name = args.getOptionalString("sequenceName");
+   auto sequence_name = extractStringLiteral(args.at("sequenceName"));
    return std::make_unique<scalar_expressions::HasMutation<SymbolType>>(
       std::move(sequence_name), position - 1
    );
@@ -478,7 +478,7 @@ ScalarExpressionPtr handleInsertionContains(
       !value.empty(),
       "The field 'value' in an InsertionContains expression must not be an empty string"
    );
-   auto sequence_name = args.getOptionalString("sequenceName");
+   auto sequence_name = extractStringLiteral(args.at("sequenceName"));
    return std::make_unique<scalar_expressions::InsertionContains<SymbolType>>(
       sequence_name, position, std::move(value)
    );
@@ -638,7 +638,7 @@ ScalarExpressionPtr handleMutationProfile(
    const std::vector<schema::ColumnIdentifier>& /*schema*/
 ) {
    const uint32_t distance = extractUint32Literal(args.at("distance"));
-   auto sequence_name = args.getOptionalString("sequenceName");
+   auto sequence_name = extractStringLiteral(args.at("sequenceName"));
 
    const auto* query_seq_expr = args.get("querySequence");
    const auto* sequence_id_expr = args.get("sequenceId");
@@ -1553,16 +1553,16 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
    registerFunction("isoWeek", {{pos("input")}}, handleIsoWeek);
 
    auto symbol_equals_sig =
-      FunctionSignature{{named("position"), named("symbol"), named("sequenceName", false)}};
+      FunctionSignature{{named("position"), named("symbol"), named("sequenceName")}};
    registerFunction("nucleotideEquals", symbol_equals_sig, handleSymbolEquals<Nucleotide>);
    registerFunction("aminoAcidEquals", symbol_equals_sig, handleSymbolEquals<AminoAcid>);
 
-   auto has_mutation_sig = FunctionSignature{{named("position"), named("sequenceName", false)}};
+   auto has_mutation_sig = FunctionSignature{{named("position"), named("sequenceName")}};
    registerFunction("hasMutation", has_mutation_sig, handleHasMutation<Nucleotide>);
    registerFunction("hasAAMutation", has_mutation_sig, handleHasMutation<AminoAcid>);
 
    auto insertion_contains_sig =
-      FunctionSignature{{named("position"), named("value"), named("sequenceName", false)}};
+      FunctionSignature{{named("position"), named("value"), named("sequenceName")}};
    registerFunction("insertionContains", insertion_contains_sig, handleInsertionContains<Nucleotide>);
    registerFunction("aminoAcidInsertionContains", insertion_contains_sig, handleInsertionContains<AminoAcid>);
 
@@ -1575,7 +1575,7 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
 
    auto mutation_profile_sig = FunctionSignature{{
       named("distance"),
-      named("sequenceName", false),
+      named("sequenceName"),
       named("querySequence", false),
       named("sequenceId", false),
       named("mutations", false),

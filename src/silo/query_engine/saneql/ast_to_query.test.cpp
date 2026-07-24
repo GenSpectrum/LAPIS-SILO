@@ -71,7 +71,9 @@ TEST(AstToQuery, nullFromAndTo) {
 
 TEST(AstToQueryNucleotideEquals, multiCharSymbolThrows) {
    EXPECT_THAT(
-      []() { (void)parseFilter("nucleotideEquals(position:=1, symbol:='ZZ')"); },
+      []() {
+         (void)parseFilter("nucleotideEquals(position:=1, symbol:='ZZ', sequenceName:='segment1')");
+      },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("nucleotideEquals() symbol must be a single character")
       )
@@ -80,7 +82,9 @@ TEST(AstToQueryNucleotideEquals, multiCharSymbolThrows) {
 
 TEST(AstToQueryNucleotideEquals, invalidSymbolThrows) {
    EXPECT_THAT(
-      []() { (void)parseFilter("nucleotideEquals(position:=1, symbol:='Q')"); },
+      []() {
+         (void)parseFilter("nucleotideEquals(position:=1, symbol:='Q', sequenceName:='segment1')");
+      },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("nucleotideEquals() invalid symbol 'Q'")
       )
@@ -102,7 +106,11 @@ TEST(AstToQueryLineage, invalidRecombinantFollowingModeThrows) {
 
 TEST(AstToQueryMutationProfile, mutationsNotSetLiteralThrows) {
    EXPECT_THAT(
-      []() { (void)parseFilter("nucleotideMutationProfile(distance:=1, mutations:='ACGT')"); },
+      []() {
+         (void)parseFilter(
+            "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', mutations:='ACGT')"
+         );
+      },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
          "The 'mutations' argument of a Nucleotide MutationProfile expression must be a set "
          "literal"
@@ -114,7 +122,8 @@ TEST(AstToQueryMutationProfile, mutationRecordPositionZeroThrows) {
    EXPECT_THAT(
       []() {
          (void)parseFilter(
-            "nucleotideMutationProfile(distance:=1, mutations:={{position:=0, symbol:='A'}})"
+            "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
+            "mutations:={{position:=0, symbol:='A'}})"
          );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("value 0 is not allowed"))
@@ -124,7 +133,10 @@ TEST(AstToQueryMutationProfile, mutationRecordPositionZeroThrows) {
 TEST(AstToQueryMutationProfile, mutationRecordMissingPositionThrows) {
    EXPECT_THAT(
       []() {
-         (void)parseFilter("nucleotideMutationProfile(distance:=1, mutations:={{symbol:='A'}})");
+         (void)parseFilter(
+            "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
+            "mutations:={{symbol:='A'}})"
+         );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("must have a 'position' field"))
    );
@@ -133,7 +145,10 @@ TEST(AstToQueryMutationProfile, mutationRecordMissingPositionThrows) {
 TEST(AstToQueryMutationProfile, mutationRecordMissingSymbolThrows) {
    EXPECT_THAT(
       []() {
-         (void)parseFilter("nucleotideMutationProfile(distance:=1, mutations:={{position:=1}})");
+         (void)parseFilter(
+            "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
+            "mutations:={{position:=1}})"
+         );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("must have a 'symbol' field"))
    );
@@ -143,7 +158,8 @@ TEST(AstToQueryMutationProfile, mutationRecordMultiCharSymbolThrows) {
    EXPECT_THAT(
       []() {
          (void)parseFilter(
-            "nucleotideMutationProfile(distance:=1, mutations:={{position:=1, symbol:='AB'}})"
+            "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
+            "mutations:={{position:=1, symbol:='AB'}})"
          );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("must be a single character"))
@@ -154,7 +170,8 @@ TEST(AstToQueryMutationProfile, mutationRecordInvalidSymbolThrows) {
    EXPECT_THAT(
       []() {
          (void)parseFilter(
-            "nucleotideMutationProfile(distance:=1, mutations:={{position:=1, symbol:='Q'}})"
+            "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
+            "mutations:={{position:=1, symbol:='Q'}})"
          );
       },
       ThrowsMessage<IllegalQueryException>(
@@ -165,7 +182,12 @@ TEST(AstToQueryMutationProfile, mutationRecordInvalidSymbolThrows) {
 
 TEST(AstToQueryMutationProfile, mutationListElementNotRecordThrows) {
    EXPECT_THAT(
-      []() { (void)parseFilter("nucleotideMutationProfile(distance:=1, mutations:={'A123T'})"); },
+      []() {
+         (void)parseFilter(
+            "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
+            "mutations:={'A123T'})"
+         );
+      },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("must be a record literal with 'position' and 'symbol' fields")
       )

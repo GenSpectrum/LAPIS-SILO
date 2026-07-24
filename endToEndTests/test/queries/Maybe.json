@@ -1,6 +1,6 @@
 {
   "testCaseName": "Maybe Query",
-  "query": "default.filter(maybe(nucleotideEquals(position:=122, symbol:='A'))).groupBy({count:=count()})",
+  "query": "default.filter(maybe(nucleotideEquals(position:=122, symbol:='A', sequenceName:='main'))).groupBy({count:=count()})",
   "expectedQueryResult": [
     {
       "count": 96
