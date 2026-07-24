@@ -191,7 +191,10 @@ arrow::Result<arrow::acero::ExecNode*> OrderByNode::addToExecPlan(
    std::vector<arrow::compute::SortKey> sort_keys;
    for (const auto& order_by_field : fields) {
       auto sort_order = order_by_field.ascending ? SortOrder::Ascending : SortOrder::Descending;
-      sort_keys.emplace_back(order_by_field.field.name, sort_order);
+      // order nulls as smallest element
+      const auto null_placement =
+         order_by_field.ascending ? NullPlacement::AtStart : NullPlacement::AtEnd;
+      sort_keys.emplace_back(order_by_field.field.name, sort_order, null_placement);
    }
    if (randomize_seed.has_value()) {
       sort_keys.emplace_back(RANDOMIZE_HASH_FIELD_NAME);
@@ -201,11 +204,7 @@ arrow::Result<arrow::acero::ExecNode*> OrderByNode::addToExecPlan(
       return top_node;
    }
 
-   auto first_sort_key = sort_keys.at(0);
-   const auto null_placement = first_sort_key.order == arrow::compute::SortOrder::Ascending
-                                  ? NullPlacement::AtStart
-                                  : NullPlacement::AtEnd;
-   const arrow::Ordering ordering{sort_keys, null_placement};
+   const arrow::Ordering ordering{sort_keys};
 
    if (randomize_seed.has_value()) {
       ARROW_ASSIGN_OR_RAISE(top_node, addRandomizeColumn(plan, top_node, randomize_seed.value()));

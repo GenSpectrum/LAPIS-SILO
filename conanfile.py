@@ -14,7 +14,7 @@ class SiloRecipe(ConanFile):
     default_options = {"wasm": False}
 
     def requirements(self):
-        self.requires("arrow/22.0.0")
+        self.requires("arrow/25.0.0")
         self.requires("boost/1.85.0")
         self.requires("fast_float/8.1.0")
         self.requires("nlohmann_json/3.12.0")
