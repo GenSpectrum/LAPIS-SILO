@@ -249,7 +249,25 @@ resolves #123
   (useful for smaller changes that don't have a corresponding issue).
 
 We use [commitlint](https://commitlint.js.org/) to enforce the commit message format.
-To use it locally, run `npm install`.
+The configuration lives in `.commitlintrc.js`.
+CI checks all commit messages of a pull request and additionally the pull request title itself
+(see `.github/workflows/commitlint.yml`), so the title must also be a valid conventional commit header.
+
+If a scope is given, it must be one of the allowed scopes:
+
+- any git-tracked top-level directory of the repository (e.g. `app`, `performance`, `python`, `wasm`),
+- any subdirectory of `src/silo/` (e.g. `query_engine`, `storage`, `preprocessing`),
+- or the literal value `silo`.
+
+Both directory lists are determined when commitlint runs (via `git ls-tree`, see `.commitlintrc.js`),
+so new directories are picked up automatically and results are consistent between local runs and CI.
+Gitignored directories such as `build/` are not valid scopes.
+A commit message without a scope (e.g. `feat: my fancy new feature`) is also allowed.
+
+Pick the most specific scope that covers the change:
+if the change is restricted to a single subsystem or subdirectory, use that directory as the scope
+(e.g. `fix(query_engine): ...` for a change confined to `src/silo/query_engine/`).
+If the change spans multiple subsystems, use `silo`.
 
 The last commit message can be checked with
 
