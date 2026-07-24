@@ -375,10 +375,12 @@ cdef class PyDatabase:
         ``get_filtered_bitmap``). Every matched row is assigned the same ``value``, a SaneQL
         literal (parsed by the same parser as queries) matching the column's type, e.g. ``"3"``
         for an int column, ``"3.14"`` for a float column, ``"true"``/``"false"`` for a bool
-        column, ``"'2021-03-15'::date"`` for a date column. The literal ``"null"`` clears the
-        matched rows.
+        column, ``"'2021-03-15'::date"`` for a date column, and a quoted string literal such as
+        ``"'Basel'"`` for a string column. The literal ``"null"`` clears the matched rows.
 
-        Only scalar value columns (int, float, date and bool) can be updated.
+        Scalar value columns (int, float, date and bool) and string columns (plain, indexed and
+        zstd-compressed) can be updated. String columns backed by a phylogenetic tree or a lineage
+        index cannot be updated, because their auxiliary indexes have no in-place update support.
 
         Not thread-safe: this mutates the in-memory database in place with no
         internal locking.

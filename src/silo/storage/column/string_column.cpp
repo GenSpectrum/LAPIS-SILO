@@ -139,6 +139,51 @@ std::expected<void, std::string> StringColumn::appendChunk(const Buffer& buffer)
    return {};
 }
 
+void StringColumn::update(
+   const roaring::Roaring& row_ids,
+   const std::optional<std::string>& value
+) {
+   // Chunks are immutable once appended, so every chunk containing an updated row is rebuilt from
+   // scratch rather than mutated in place. First collect the chunk ids that are actually touched so
+   // untouched chunks are left alone.
+   std::unordered_set<uint16_t> touched_chunk_ids;
+   for (const uint32_t global_row_id : row_ids) {
+      touched_chunk_ids.insert(RowId::fromGlobal(global_row_id).chunk_id);
+   }
+
+   for (const uint16_t chunk_id : touched_chunk_ids) {
+      const uint32_t chunk_row_count = chunkSize(chunk_id);
+      StringColumnChunk rebuilt_chunk;
+      for (uint32_t row_in_chunk = 0; row_in_chunk < chunk_row_count; ++row_in_chunk) {
+         const RowId row_id{
+            .chunk_id = chunk_id, .row_in_chunk = static_cast<uint16_t>(row_in_chunk)
+         };
+         const uint32_t global_row_id = row_id.toGlobal();
+         if (row_ids.contains(global_row_id)) {
+            // Updated row: take the new value (or the null placeholder when clearing).
+            if (value.has_value()) {
+               rebuilt_chunk.insert(*value);
+            } else {
+               rebuilt_chunk.insertNull();
+            }
+         } else if (null_bitmap.contains(global_row_id)) {
+            // Untouched null row: reads from the old chunk are meaningless, keep it null.
+            rebuilt_chunk.insertNull();
+         } else {
+            // Untouched non-null row: copy its current value over from the old chunk.
+            rebuilt_chunk.insert(getValueString(row_id));
+         }
+      }
+      chunks.at(chunk_id) = std::move(rebuilt_chunk);
+   }
+
+   if (value.has_value()) {
+      null_bitmap -= row_ids;
+   } else {
+      null_bitmap |= row_ids;
+   }
+}
+
 bool StringColumn::isNull(RowId row_id) const {
    return null_bitmap.contains(row_id.toGlobal());
 }

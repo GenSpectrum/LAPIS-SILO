@@ -2,8 +2,11 @@
 
 #include <expected>
 #include <initializer_list>
+#include <optional>
 #include <string>
 #include <string_view>
+
+#include <roaring/roaring.hh>
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -223,6 +226,42 @@ TEST(StringColumn, compareAcrossColumns) {
    EXPECT_EQ(column_1.getValueString(RowId(0, 0)), column_1.getValueString(RowId(0, 5)));
    EXPECT_EQ(column_1.getValueString(RowId(0, 5)), column_2.getValueString(RowId(0, 2)));
    EXPECT_EQ(column_1.getValueString(RowId(0, 4)), column_2.getValueString(RowId(0, 4)));
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(StringColumn, updateRebuildsTouchedChunks) {
+   StringColumnMetadata metadata{"string_column"};
+   StringColumn under_test(&metadata);
+
+   SILO_ASSERT(appendStringValues(under_test, {"short a", "value to overwrite"}).has_value());
+   SILO_ASSERT(appendStringValues(under_test, {"short b", "short c"}).has_value());
+
+   // Overwrite a short value with a long one (moving it into the variable-data registry) and a long
+   // value with a short one, targeting rows in both chunks at once. Untouched rows in a rebuilt
+   // chunk must keep their original values.
+   roaring::Roaring to_long;
+   to_long.add(RowId(0, 0).toGlobal());
+   to_long.add(RowId(1, 1).toGlobal());
+   under_test.update(to_long, "a replacement value that is definitely long");
+
+   roaring::Roaring to_short;
+   to_short.add(RowId(0, 1).toGlobal());
+   under_test.update(to_short, "tiny");
+
+   EXPECT_EQ(under_test.getValueString(RowId(0, 0)), "a replacement value that is definitely long");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 1)), "tiny");
+   EXPECT_EQ(under_test.getValueString(RowId(1, 0)), "short b");  // untouched
+   EXPECT_EQ(under_test.getValueString(RowId(1, 1)), "a replacement value that is definitely long");
+
+   // A nullopt update marks rows null; a concrete value clears the null flag again.
+   roaring::Roaring to_null;
+   to_null.add(RowId(1, 0).toGlobal());
+   under_test.update(to_null, std::nullopt);
+   EXPECT_TRUE(under_test.isNull(RowId(1, 0)));
+
+   under_test.update(to_null, "revived");
+   EXPECT_FALSE(under_test.isNull(RowId(1, 0)));
+   EXPECT_EQ(under_test.getValueString(RowId(1, 0)), "revived");
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)

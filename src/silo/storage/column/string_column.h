@@ -66,7 +66,7 @@ class StringColumnMetadata : public ColumnMetadata {
 /// One immutable slice of a StringColumn, produced by a single `appendChunk` call. The German
 /// string suffix ids stored in `fixed_string_data` reference offsets within this same chunk's
 /// `variable_string_data`, so the two registries are kept paired. A chunk is never mutated once it
-/// has been appended; deleting rows rewrites whole chunks rather than shifting data across them.
+/// has been appended; deleting or updating rows rewrites whole chunks rather than mutating them.
 class StringColumnChunk {
    vector::GermanStringRegistry fixed_string_data;
 
@@ -123,6 +123,8 @@ class StringColumn {
    explicit StringColumn(Metadata* metadata);
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
+
+   void update(const roaring::Roaring& row_ids, const std::optional<std::string>& value);
 
    [[nodiscard]] bool isNull(RowId row_id) const;
 

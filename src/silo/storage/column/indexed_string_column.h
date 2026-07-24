@@ -91,6 +91,8 @@ class IndexedStringColumn {
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
+   void update(const roaring::Roaring& row_ids, const std::optional<std::string>& value);
+
    [[nodiscard]] size_t numChunks() const { return value_ids.numChunks(); }
 
    [[nodiscard]] uint32_t chunkSize(uint16_t chunk_id) const {

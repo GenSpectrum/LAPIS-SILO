@@ -1,5 +1,7 @@
 #include "silo/storage/column/zstd_compressed_string_column.h"
 
+#include "silo/storage/column/row_id.h"
+
 namespace silo::storage::column {
 
 ZstdCompressedStringColumnMetadata::ZstdCompressedStringColumnMetadata(
@@ -31,6 +33,24 @@ std::expected<void, std::string> ZstdCompressedStringColumn::appendChunk(const B
    }
    values.appendChunk(std::move(chunk));
    return {};
+}
+
+void ZstdCompressedStringColumn::update(
+   const roaring::Roaring& row_ids,
+   const std::optional<std::string>& value
+) {
+   // An empty stored buffer denotes null (see `appendChunk`/`getDecompressed`); a concrete value is
+   // compressed once and the same bytes are written to every matched row.
+   std::string stored_value;
+   if (value.has_value()) {
+      stored_value = metadata->compressor.compress(value->data(), value->size());
+      null_bitmap -= row_ids;
+   } else {
+      null_bitmap |= row_ids;
+   }
+   for (const uint32_t global_row_id : row_ids) {
+      values.setValue(RowId::fromGlobal(global_row_id), stored_value);
+   }
 }
 
 bool ZstdCompressedStringColumn::isNull(RowId row_id) const {

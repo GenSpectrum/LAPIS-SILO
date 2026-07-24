@@ -5,6 +5,7 @@
 #include <fmt/format.h>
 
 #include "silo/common/bidirectional_string_map.h"
+#include "silo/storage/column/row_id.h"
 
 namespace silo::storage::column {
 
@@ -104,6 +105,41 @@ std::expected<void, std::string> IndexedStringColumn::appendChunk(const Buffer& 
    }
    value_ids.appendChunk(std::move(chunk));
    return {};
+}
+
+void IndexedStringColumn::update(
+   const roaring::Roaring& row_ids,
+   const std::optional<std::string>& value
+) {
+   SILO_ASSERT(!lineage_index.has_value());
+
+   // Null rows carry the empty-string placeholder id as their stored value (see `appendChunk`), so
+   // the target id is that placeholder for a null update and the interned value id otherwise.
+   const Idx new_value_id = value.has_value() ? metadata->dictionary.getOrCreateId(*value)
+                                              : metadata->dictionary.getOrCreateId("");
+   // `try_emplace` keeps the id present in the index even for the null placeholder, matching how
+   // `appendChunk` treats null rows (present as a value id, absent from any match bitmap).
+   indexed_values.try_emplace(new_value_id);
+
+   for (const uint32_t global_row_id : row_ids) {
+      const RowId row_id = RowId::fromGlobal(global_row_id);
+      // Detach the row from its previous value's match bitmap. Previously-null rows are not members
+      // of any match bitmap, so only non-null rows need detaching.
+      if (!null_bitmap.contains(global_row_id)) {
+         const Idx old_value_id = value_ids.at(row_id);
+         indexed_values.at(old_value_id).remove(global_row_id);
+      }
+      value_ids.setValue(row_id, new_value_id);
+      if (value.has_value()) {
+         indexed_values.at(new_value_id).add(global_row_id);
+      }
+   }
+
+   if (value.has_value()) {
+      null_bitmap -= row_ids;
+   } else {
+      null_bitmap |= row_ids;
+   }
 }
 
 bool IndexedStringColumn::isNull(RowId row_id) const {

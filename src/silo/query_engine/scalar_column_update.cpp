@@ -49,10 +49,41 @@ void assignScalarLiteralToColumn(
                row_ids, is_null ? std::nullopt : std::optional{ast::extractBoolLiteral(*literal)}
             );
          return;
+      case schema::ColumnType::STRING: {
+         auto& string_column = columns.string_columns.at(column.name);
+         if (string_column.metadata->phylo_tree.has_value()) {
+            throw IllegalQueryException(fmt::format(
+               "Column '{}' is backed by a phylogenetic tree and cannot be updated, because it "
+               "would break the tree's row bindings",
+               column.name
+            ));
+         }
+         string_column.update(
+            row_ids, is_null ? std::nullopt : std::optional{ast::extractStringLiteral(*literal)}
+         );
+         return;
+      }
+      case schema::ColumnType::INDEXED_STRING: {
+         auto& indexed_string_column = columns.indexed_string_columns.at(column.name);
+         if (indexed_string_column.getLineageIndex().has_value()) {
+            throw IllegalQueryException(fmt::format(
+               "Column '{}' is backed by a lineage index and cannot be updated", column.name
+            ));
+         }
+         indexed_string_column.update(
+            row_ids, is_null ? std::nullopt : std::optional{ast::extractStringLiteral(*literal)}
+         );
+         return;
+      }
+      case schema::ColumnType::ZSTD_COMPRESSED_STRING:
+         columns.zstd_compressed_string_columns.at(column.name)
+            .update(
+               row_ids, is_null ? std::nullopt : std::optional{ast::extractStringLiteral(*literal)}
+            );
+         return;
       default:
          throw IllegalQueryException(fmt::format(
-            "Updating columns of type '{}' is not supported; only INT32, FLOAT, DATE32 and BOOL "
-            "columns can be updated (column '{}')",
+            "Updating columns of type '{}' is not supported (column '{}')",
             schema::columnTypeToString(column.type),
             column.name
          ));
