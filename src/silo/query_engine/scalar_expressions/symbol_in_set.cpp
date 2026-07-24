@@ -227,6 +227,55 @@ std::unique_ptr<filter::operators::Operator> compileOnlyMutations(
 }  // namespace
 
 template <typename SymbolType>
+std::unique_ptr<filter::operators::Operator> compileSymbolInSet(
+   const SequenceColumn<SymbolType>& sequence_column,
+   uint32_t position_idx,
+   const std::vector<typename SymbolType::Symbol>& symbols,
+   const storage::column::RowLayout& row_layout
+) {
+   CHECK_SILO_QUERY(
+      position_idx < sequence_column.metadata->reference_sequence.size(),
+      "SymbolInSet<{}> position is out of bounds {} > {}",
+      SymbolType::SYMBOL_NAME,
+      position_idx + 1,
+      sequence_column.metadata->reference_sequence.size()
+   );
+
+   auto local_reference_symbol = sequence_column.getLocalReferencePosition(position_idx);
+   const bool includes_reference =
+      std::find(symbols.begin(), symbols.end(), local_reference_symbol) != symbols.end();
+
+   const bool includes_missing_symbol =
+      std::find(symbols.begin(), symbols.end(), SymbolType::SYMBOL_MISSING) != symbols.end();
+
+   if (includes_reference && includes_missing_symbol) {
+      return compileWithMissingSymbolAndReference(
+         sequence_column, position_idx, symbols, row_layout
+      );
+   }
+   if (includes_missing_symbol) {
+      return compileWithMissingSymbol(sequence_column, position_idx, symbols, row_layout);
+   }
+   if (includes_reference) {
+      return compileWithReference(sequence_column, position_idx, symbols, row_layout);
+   }
+   return compileOnlyMutations(sequence_column, position_idx, symbols, row_layout);
+}
+
+template std::unique_ptr<filter::operators::Operator> compileSymbolInSet<AminoAcid>(
+   const SequenceColumn<AminoAcid>& sequence_column,
+   uint32_t position_idx,
+   const std::vector<AminoAcid::Symbol>& symbols,
+   const storage::column::RowLayout& row_layout
+);
+template std::unique_ptr<filter::operators::Operator> compileSymbolInSet<Nucleotide>(
+   const SequenceColumn<Nucleotide>& sequence_column,
+   uint32_t position_idx,
+   const std::vector<Nucleotide::Symbol>& symbols,
+   const storage::column::RowLayout& row_layout
+);
+
+template <typename SymbolType>
 std::unique_ptr<ScalarExpression> SymbolInSet<SymbolType>::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
@@ -255,33 +304,7 @@ std::unique_ptr<filter::operators::Operator> SymbolInSet<SymbolType>::compile(
    const auto& sequence_column =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
-   CHECK_SILO_QUERY(
-      position_idx < sequence_column.metadata->reference_sequence.size(),
-      "{} position is out of bounds {} > {}",
-      getFilterName(),
-      position_idx + 1,
-      sequence_column.metadata->reference_sequence.size()
-   );
-
-   auto local_reference_symbol = sequence_column.getLocalReferencePosition(position_idx);
-   const bool includes_reference =
-      std::find(symbols.begin(), symbols.end(), local_reference_symbol) != symbols.end();
-
-   const bool includes_missing_symbol =
-      std::find(symbols.begin(), symbols.end(), SymbolType::SYMBOL_MISSING) != symbols.end();
-
-   if (includes_reference && includes_missing_symbol) {
-      return compileWithMissingSymbolAndReference(
-         sequence_column, position_idx, symbols, table.row_layout
-      );
-   }
-   if (includes_missing_symbol) {
-      return compileWithMissingSymbol(sequence_column, position_idx, symbols, table.row_layout);
-   }
-   if (includes_reference) {
-      return compileWithReference(sequence_column, position_idx, symbols, table.row_layout);
-   }
-   return compileOnlyMutations(sequence_column, position_idx, symbols, table.row_layout);
+   return compileSymbolInSet(sequence_column, position_idx, symbols, table.row_layout);
 }
 
 template class SymbolInSet<AminoAcid>;

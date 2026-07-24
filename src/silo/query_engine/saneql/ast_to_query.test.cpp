@@ -466,6 +466,17 @@ TEST(AstToQueryMap, isoWeekOnNonDateColumnThrows) {
    );
 }
 
+TEST(AstToQueryFilter, nonBooleanScalarFunctionRejected) {
+   EXPECT_THAT(
+      []() {
+         (void)parseFilter("id.at(2)", {{.name = "id", .type = silo::schema::ColumnType::STRING}});
+      },
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
+         "scalar function 'at' produces a STRING value and cannot be used as a filter predicate"
+      ))
+   );
+}
+
 // --- orderBy ---
 
 TEST(AstToQueryOrderBy, fieldUnsupportedTypeThrows) {
