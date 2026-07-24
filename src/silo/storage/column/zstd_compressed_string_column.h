@@ -55,6 +55,8 @@ class ZstdCompressedStringColumn {
 
    [[nodiscard]] std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
+   void update(const roaring::Roaring& row_ids, const std::optional<std::string>& value);
+
    [[nodiscard]] bool isNull(RowId row_id) const;
 
    [[nodiscard]] size_t numChunks() const { return values.numChunks(); }

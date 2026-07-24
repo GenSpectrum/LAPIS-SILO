@@ -118,11 +118,11 @@ print(len(matching))                       # number of matching rows
 **`get_amino_acid_reference_sequence(table_name, sequence_name)`** → `str`.
 **`print_all_data(table_name)`** — prints all rows of a table to stdout (debugging aid).
 
-### Updating scalar columns
+### Updating columns
 
 **`update_column(table_name, column_name, value, filter_expression="")`**
 
-Assigns a single scalar `value` to `column_name` for every row matched by `filter_expression` (a SaneQL filter, like `get_filtered_bitmap`). An empty or `None` filter defaults to `true`, updating all rows.
+Assigns a single `value` to `column_name` for every row matched by `filter_expression` (a SaneQL filter, like `get_filtered_bitmap`). An empty or `None` filter defaults to `true`, updating all rows.
 
 `value` is a **SaneQL literal** — parsed by the same parser as queries — and must match the column's type:
 
@@ -132,9 +132,10 @@ Assigns a single scalar `value` to `column_name` for every row matched by `filte
 | float       | `"3.14"`, `"0"`                       |
 | bool        | `"true"`, `"false"`                  |
 | date        | `"'2021-03-15'::date"`               |
+| string      | `"'Basel'"` &nbsp;(a quoted string literal) |
 | any of them | `"null"` &nbsp;(clears the rows)     |
 
-Only scalar value columns (int, float, date, bool) can be updated. String and sequence columns are rejected.
+Scalar value columns (int, float, date, bool) and string columns (plain, indexed, and zstd-compressed) can be updated. Two kinds of string column are rejected because their auxiliary indexes have no in-place update support: columns backed by a **phylogenetic tree** (e.g. the primary key when it is a phylo field) and columns backed by a **lineage index**. Sequence columns are also rejected.
 
 ```python
 db = Database("path/to/silo-dir")
@@ -147,6 +148,9 @@ db.update_column("default", "age", "100", filter_expression="age = 4")
 
 # Assign a date literal
 db.update_column("default", "date", "'2000-01-01'::date")
+
+# Reassign a string column (note the quotes: the value is a SaneQL string literal)
+db.update_column("default", "division", "'Basel'", filter_expression="division = 'Bern'")
 
 # Clear a boolean column to null for a subset of rows
 db.update_column("default", "test_boolean_column", "null", filter_expression="region = 'Asia'")
@@ -177,9 +181,9 @@ The bindings translate C++ exceptions into Python ones:
 
 ```python
 try:
-    db.update_column("default", "country", "'x'")   # country is a string column
+    db.update_column("default", "pango_lineage", "'B.1'")   # backed by a lineage index
 except ValueError as e:
-    print(e)   # "Updating columns of type '...' is not supported; only INT32, FLOAT, DATE32 and BOOL ..."
+    print(e)   # "Column 'pango_lineage' is backed by a lineage index and cannot be updated"
 ```
 
 ## Complete Example

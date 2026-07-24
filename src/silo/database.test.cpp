@@ -54,7 +54,7 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
    database->createTable(
       silo::schema::TableName::getDefault(),
       silo::initialize::Initializer::createSchemaFromConfigFiles(
-         std::move(database_config),
+         database_config,
          reference_genomes,
          lineage_trees,
          phylo_tree_file,
@@ -172,6 +172,25 @@ TEST(DatabaseTest, updateColumnAssignsScalarValueToMatchingRows) {
    // Date values are SaneQL date literals.
    database->updateColumn(table, "date", "'2000-01-01'::date", "true");
    ASSERT_EQ(countWhere(*database, "date = '2000-01-01'::date"), 5);
+
+   // Indexed string columns can be reassigned; the inverted index stays consistent. `value` is a
+   // SaneQL string literal, so it is quoted.
+   ASSERT_EQ(countWhere(*database, "division = 'Bern'"), 2);
+   database->updateColumn(table, "division", "'Zurich'", "division = 'Bern'");
+   ASSERT_EQ(countWhere(*database, "division = 'Bern'"), 0);
+   ASSERT_EQ(countWhere(*database, "division = 'Zurich'"), 2);
+
+   // A value not previously present in the dictionary is interned on update.
+   database->updateColumn(table, "division", "'Geneva'", "primaryKey = 'key1'");
+   ASSERT_EQ(countWhere(*database, "division = 'Geneva'"), 1);
+
+   // A SaneQL `null` literal clears an indexed string back to null, and a concrete value can be set
+   // again afterwards.
+   database->updateColumn(table, "division", "null", "primaryKey = 'key1'");
+   ASSERT_EQ(countWhere(*database, "division = null"), 1);
+   database->updateColumn(table, "division", "'Basel'", "primaryKey = 'key1'");
+   ASSERT_EQ(countWhere(*database, "division = null"), 0);
+   ASSERT_EQ(countWhere(*database, "division = 'Basel'"), 1);
 }
 
 TEST(DatabaseTest, updateColumnRejectsInvalidRequests) {
@@ -186,10 +205,26 @@ TEST(DatabaseTest, updateColumnRejectsInvalidRequests) {
       )
    );
 
-   // String columns cannot be updated by this scalar path.
+   // A string literal must be quoted; an int literal is not a valid string value.
    EXPECT_THAT(
-      [&]() { database->updateColumn(table, "division", "Basel", "true"); },
-      ThrowsMessage<silo::query_engine::IllegalQueryException>(::testing::HasSubstr("not supported")
+      [&]() { database->updateColumn(table, "division", "5", "true"); },
+      ThrowsMessage<silo::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("expected string literal")
+      )
+   );
+
+   // A phylogenetic-tree-backed column (primaryKey) cannot be updated.
+   EXPECT_THAT(
+      [&]() { database->updateColumn(table, "primaryKey", "'new_key'", "true"); },
+      ThrowsMessage<silo::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("phylogenetic tree")
+      )
+   );
+
+   // A lineage-indexed column (pango_lineage) cannot be updated.
+   EXPECT_THAT(
+      [&]() { database->updateColumn(table, "pango_lineage", "'B.1'", "true"); },
+      ThrowsMessage<silo::query_engine::IllegalQueryException>(::testing::HasSubstr("lineage index")
       )
    );
 

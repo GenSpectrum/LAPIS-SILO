@@ -2,6 +2,7 @@
 
 #include <expected>
 #include <initializer_list>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -101,6 +102,36 @@ TEST(IndexedStringColumn, valuesSpanningMultipleAppendedChunks) {
       roaring::Roaring({RowId::chunkStart(0) + 1, RowId::chunkStart(1) + 0})
    );
    ASSERT_EQ(*under_test.filter("value 3").value(), roaring::Roaring({RowId::chunkStart(1) + 1}));
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(IndexedStringColumn, updateKeepsInvertedIndexConsistent) {
+   IndexedStringColumnMetadata column_metadata("some_column");
+   IndexedStringColumn under_test{&column_metadata};
+
+   ASSERT_TRUE(
+      appendIndexedValues(under_test, {"value 1", "value 2", "value 2", "value 3", "value 1"})
+         .has_value()
+   );
+
+   // Reassign the two "value 2" rows to a value not yet in the dictionary; the old value's bitmap
+   // empties and the new value is interned in both the dictionary and the inverted index.
+   under_test.update(roaring::Roaring({1, 2}), "value 4");
+   ASSERT_EQ(*under_test.filter("value 4").value(), roaring::Roaring({1, 2}));
+   ASSERT_EQ(*under_test.filter("value 2").value(), roaring::Roaring());
+   EXPECT_EQ(under_test.getValueString(RowId(0, 1)), "value 4");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 2)), "value 4");
+
+   // A nullopt update detaches rows from their value bitmap and marks them null.
+   under_test.update(roaring::Roaring({0}), std::nullopt);
+   ASSERT_EQ(*under_test.filter("value 1").value(), roaring::Roaring({4}));
+   ASSERT_EQ(*under_test.filter(std::optional<std::string>{}).value(), roaring::Roaring({0}));
+   EXPECT_TRUE(under_test.isNull(RowId(0, 0)));
+
+   // A previously-null row can be reassigned to a concrete value again.
+   under_test.update(roaring::Roaring({0}), "value 1");
+   ASSERT_EQ(*under_test.filter("value 1").value(), roaring::Roaring({0, 4}));
+   EXPECT_FALSE(under_test.isNull(RowId(0, 0)));
 }
 
 TEST(IndexedStringColumn, addingLineageAndThenSublineageFiltersCorrectly) {

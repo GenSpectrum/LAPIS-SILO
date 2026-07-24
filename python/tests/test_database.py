@@ -788,10 +788,12 @@ class TestQuery:
 class TestUpdateColumn:
     """Test the update_column binding.
 
-    Scalar value columns (int/float/date/bool) cannot be created through the Python table-creation
-    API (its extra columns are always strings), so these tests exercise the binding layer itself:
-    argument validation, marshalling, and translation of C++ errors into Python exceptions. The
-    successful scalar-update behavior is covered by the C++ unit tests (database.test.cpp).
+    Extra columns created through the Python table-creation API are plain (non-indexed, non-phylo)
+    string columns, so these tests cover both the binding layer itself (argument validation,
+    marshalling, translation of C++ errors into Python exceptions) and the end-to-end update of a
+    string column. Scalar value columns (int/float/date/bool) and indexed string columns cannot be
+    created through this API; their update behavior is covered by TestUpdateColumnOnLoadedDatabase
+    and the C++ unit tests.
     """
 
     def _database_with_string_column(self, main_reference_sequence):
@@ -807,6 +809,10 @@ class TestUpdateColumn:
         )
         db.append_data_from_file("sequences", INPUT_FILE)
         return db
+
+    @staticmethod
+    def _count(database, filter_expression):
+        return len(database.get_filtered_bitmap("sequences", filter_expression))
 
     def test_update_column_empty_table_name_raises(self, empty_database):
         """Test that an empty table name raises ValueError before reaching C++."""
@@ -824,11 +830,42 @@ class TestUpdateColumn:
         with pytest.raises(ValueError, match="does not contain a column"):
             db.update_column("sequences", "does_not_exist", "1")
 
-    def test_update_column_string_column_not_supported(self, main_reference_sequence):
-        """Test that updating a non-scalar (string) column raises the 'not supported' ValueError."""
+    def test_update_string_column_all_rows(self, main_reference_sequence):
+        """A quoted string literal is assigned to every matched row of a string column."""
         db = self._database_with_string_column(main_reference_sequence)
-        with pytest.raises(ValueError, match="not supported"):
-            db.update_column("sequences", "country", "'x'")
+        total = self._count(db, "true")
+        assert self._count(db, "country = 'Switzerland'") == total
+
+        db.update_column("sequences", "country", "'Germany'")
+
+        assert self._count(db, "country = 'Switzerland'") == 0
+        assert self._count(db, "country = 'Germany'") == total
+
+    def test_update_string_column_with_filter(self, main_reference_sequence):
+        """Only rows matching the filter are reassigned; a brand-new value is interned."""
+        db = self._database_with_string_column(main_reference_sequence)
+        total = self._count(db, "true")
+        assert total > 1
+
+        db.update_column("sequences", "country", "'France'", "primary_key = 'key_29'")
+
+        assert self._count(db, "country = 'France'") == 1
+        assert self._count(db, "country = 'Switzerland'") == total - 1
+
+    def test_update_string_column_clears_rows_to_null(self, main_reference_sequence):
+        """The literal 'null' clears the matched rows of a string column."""
+        db = self._database_with_string_column(main_reference_sequence)
+        assert self._count(db, "country = null") == 0
+
+        db.update_column("sequences", "country", "null", "primary_key = 'key_29'")
+
+        assert self._count(db, "country = null") == 1
+
+    def test_update_string_column_type_mismatch_raises(self, main_reference_sequence):
+        """A non-string literal is rejected for a string column."""
+        db = self._database_with_string_column(main_reference_sequence)
+        with pytest.raises(ValueError, match="expected string literal"):
+            db.update_column("sequences", "country", "5")
 
 
 class TestUpdateColumnOnLoadedDatabase:
