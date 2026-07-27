@@ -97,7 +97,7 @@ operators::MapNode::Assignment decompressAssignment(const ColumnIdentifier& sequ
    return {
       .output_column = col(sequence_col.name),
       .expression = std::make_unique<silo::query_engine::scalar_expressions::ZstdDecompressScalar>(
-         sequence_col, "A"
+         std::make_unique<silo::query_engine::scalar_expressions::FieldRef>(sequence_col), "A"
       )
    };
 }

@@ -12,21 +12,23 @@
 
 namespace silo::query_engine::scalar_expressions {
 
-At::At(schema::ColumnIdentifier input_column, uint32_t position)
-    : input_column(std::move(input_column)),
-      position(position) {}
+At::At(std::unique_ptr<ScalarExpression> input, uint32_t position)
+    : input(std::move(input)),
+      position(position) {
+   SILO_ASSERT(this->input != nullptr);
+}
 
 std::string At::toString() const {
-   return fmt::format("{}.at({})", input_column.name, position);
+   return fmt::format("{}.at({})", input->toString(), position);
 }
 
 std::vector<schema::ColumnIdentifier> At::freeIUs() const {
-   return {input_column};
+   return input->freeIUs();
 }
 
-std::unique_ptr<ScalarExpression> At::
-   rewrite(const storage::Table& /*table*/, AmbiguityMode /*mode*/) const {
-   return std::make_unique<At>(input_column, position);
+std::unique_ptr<ScalarExpression> At::rewrite(const storage::Table& table, AmbiguityMode mode)
+   const {
+   return std::make_unique<At>(input->rewrite(table, mode), position);
 }
 
 std::unique_ptr<filter::operators::Operator> At::compile(const storage::Table& /*table*/) const {

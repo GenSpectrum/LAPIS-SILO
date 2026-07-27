@@ -12,20 +12,22 @@
 
 namespace silo::query_engine::scalar_expressions {
 
-IsoWeek::IsoWeek(schema::ColumnIdentifier input_column)
-    : input_column(std::move(input_column)) {}
+IsoWeek::IsoWeek(std::unique_ptr<ScalarExpression> input)
+    : input(std::move(input)) {
+   SILO_ASSERT(this->input != nullptr);
+}
 
 std::string IsoWeek::toString() const {
-   return fmt::format("{}.isoWeek()", input_column.name);
+   return fmt::format("{}.isoWeek()", input->toString());
 }
 
 std::vector<schema::ColumnIdentifier> IsoWeek::freeIUs() const {
-   return {input_column};
+   return input->freeIUs();
 }
 
-std::unique_ptr<ScalarExpression> IsoWeek::
-   rewrite(const storage::Table& /*table*/, AmbiguityMode /*mode*/) const {
-   return std::make_unique<IsoWeek>(input_column);
+std::unique_ptr<ScalarExpression> IsoWeek::rewrite(const storage::Table& table, AmbiguityMode mode)
+   const {
+   return std::make_unique<IsoWeek>(input->rewrite(table, mode));
 }
 
 std::unique_ptr<filter::operators::Operator> IsoWeek::compile(const storage::Table& /*table*/)

@@ -10,15 +10,15 @@
 
 namespace silo::query_engine::scalar_expressions {
 
-/// A scalar expression that evaluates to the ISO week number (int) of a date-valued
-/// column, e.g. `myDate.isoWeek()`. Its value is an int, so it is not a filter predicate;
-/// compile() is unimplemented and it is only meaningful as a scalar expression (e.g. in a
-/// map() assignment).
+/// A scalar expression that evaluates to the ISO week number (int) of the date its child expression
+/// evaluates to, e.g. `myDate.isoWeek()`. The child is usually a `FieldRef` to a date column. Its
+/// value is an int, so it is not a filter predicate; compile() is unimplemented and it is only
+/// meaningful as a scalar expression (e.g. in a map() assignment).
 class IsoWeek : public ScalarExpression {
   public:
-   schema::ColumnIdentifier input_column;
+   std::unique_ptr<ScalarExpression> input;
 
-   explicit IsoWeek(schema::ColumnIdentifier input_column);
+   explicit IsoWeek(std::unique_ptr<ScalarExpression> input);
 
    [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::INT64; }
 
@@ -35,7 +35,7 @@ class IsoWeek : public ScalarExpression {
    ) const override;
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
-      return std::make_unique<IsoWeek>(input_column);
+      return std::make_unique<IsoWeek>(input->clone());
    }
 
    [[nodiscard]] std::unique_ptr<filter::operators::Operator> compile(const storage::Table& table

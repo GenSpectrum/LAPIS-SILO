@@ -14,31 +14,32 @@
 namespace silo::query_engine::scalar_expressions {
 
 ZstdDecompressScalar::ZstdDecompressScalar(
-   schema::ColumnIdentifier input_column,
+   std::unique_ptr<ScalarExpression> input,
    std::string dictionary_string
 )
-    : input_column(std::move(input_column)),
+    : input(std::move(input)),
       dictionary_string(std::move(dictionary_string)) {
+   SILO_ASSERT(this->input != nullptr);
    SILO_ASSERT(!this->dictionary_string.empty());
 }
 
 std::unique_ptr<ScalarExpression> ZstdDecompressScalar::clone() const {
-   return std::make_unique<ZstdDecompressScalar>(input_column, dictionary_string);
+   return std::make_unique<ZstdDecompressScalar>(input->clone(), dictionary_string);
 }
 
 std::string ZstdDecompressScalar::toString() const {
-   return fmt::format("zstd_decompress({})", input_column.name);
+   return fmt::format("zstd_decompress({})", input->toString());
 }
 
 std::vector<schema::ColumnIdentifier> ZstdDecompressScalar::freeIUs() const {
-   return {input_column};
+   return input->freeIUs();
 }
 
 std::unique_ptr<ScalarExpression> ZstdDecompressScalar::rewrite(
-   const storage::Table& /*table*/,
-   AmbiguityMode /*mode*/
+   const storage::Table& table,
+   AmbiguityMode mode
 ) const {
-   return clone();
+   return std::make_unique<ZstdDecompressScalar>(input->rewrite(table, mode), dictionary_string);
 }
 
 std::unique_ptr<filter::operators::Operator> ZstdDecompressScalar::compile(

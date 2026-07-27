@@ -26,6 +26,7 @@ namespace silo::query_engine::operators {
 
 using scalar_expressions::At;
 using scalar_expressions::BoolLiteral;
+using scalar_expressions::dynCast;
 using scalar_expressions::FieldRef;
 using scalar_expressions::FloatLiteral;
 using scalar_expressions::Int64Literal;
@@ -40,46 +41,59 @@ namespace {
 /// projection.
 arrow::Result<arrow::compute::Expression> scalarToArrowExpression(const ScalarExpression& expression
 ) {
-   if (const auto* literal = dynamic_cast<const Int64Literal*>(&expression)) {
+   if (const auto* literal = dynCast<Int64Literal>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
-   if (const auto* literal = dynamic_cast<const FloatLiteral*>(&expression)) {
+   if (const auto* literal = dynCast<FloatLiteral>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
-   if (const auto* literal = dynamic_cast<const StringLiteral*>(&expression)) {
+   if (const auto* literal = dynCast<StringLiteral>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
-   if (const auto* literal = dynamic_cast<const BoolLiteral*>(&expression)) {
+   if (const auto* literal = dynCast<BoolLiteral>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
-   if (const auto* field_ref = dynamic_cast<const FieldRef*>(&expression)) {
+   if (const auto* field_ref = dynCast<FieldRef>(&expression)) {
       return arrow::compute::field_ref(field_ref->column.name);
    }
-   if (const auto* zstd = dynamic_cast<const ZstdDecompressScalar*>(&expression)) {
-      return exec_node::ZstdDecompressExpression::make(
-         arrow::compute::field_ref(zstd->input_column.name), zstd->dictionary_string
-      );
+   if (const auto* zstd = dynCast<ZstdDecompressScalar>(&expression)) {
+      ARROW_ASSIGN_OR_RAISE(auto input, scalarToArrowExpression(*zstd->input));
+      return exec_node::ZstdDecompressExpression::make(input, zstd->dictionary_string);
    }
-   if (const auto* at_function = dynamic_cast<const At*>(&expression)) {
+   if (const auto* at_function = dynCast<At>(&expression)) {
       // `at` is 1-indexed; utf8_slice_codeunits takes a 0-indexed, half-open
       // [start, stop) range of code units, so extract the single character at
       // position-1.
       const int64_t start = static_cast<int64_t>(at_function->position) - 1;
       const auto stop = static_cast<int64_t>(at_function->position);
+      ARROW_ASSIGN_OR_RAISE(auto input, scalarToArrowExpression(*at_function->input));
       return arrow::compute::call(
-         "utf8_slice_codeunits",
-         {arrow::compute::field_ref(at_function->input_column.name)},
-         arrow::compute::SliceOptions(start, stop)
+         "utf8_slice_codeunits", {input}, arrow::compute::SliceOptions(start, stop)
       );
    }
-   if (const auto* iso_week = dynamic_cast<const IsoWeek*>(&expression)) {
-      return arrow::compute::call(
-         "iso_week", {arrow::compute::field_ref(iso_week->input_column.name)}
-      );
+   if (const auto* iso_week = dynCast<IsoWeek>(&expression)) {
+      ARROW_ASSIGN_OR_RAISE(auto input, scalarToArrowExpression(*iso_week->input));
+      return arrow::compute::call("iso_week", {input});
    }
    return arrow::Status::NotImplemented(
       "the scalar expression ", expression.toString(), " is not supported in map() assignments"
    );
+}
+
+/// Sums the dictionary sizes of every `ZstdDecompressScalar` anywhere in `expression`'s tree. A
+/// decompress may be nested inside another scalar expression (e.g. `At(ZstdDecompress(...))` after
+/// a map merge), so the whole tree is traversed rather than just the top node.
+size_t sumDecompressDictionarySizes(const ScalarExpression& expression) {
+   if (const auto* zstd = dynCast<ZstdDecompressScalar>(&expression)) {
+      return zstd->dictionary_string.size() + sumDecompressDictionarySizes(*zstd->input);
+   }
+   if (const auto* at_function = dynCast<At>(&expression)) {
+      return sumDecompressDictionarySizes(*at_function->input);
+   }
+   if (const auto* iso_week = dynCast<IsoWeek>(&expression)) {
+      return sumDecompressDictionarySizes(*iso_week->input);
+   }
+   return 0;
 }
 
 /// When any assignment uses zstd decompression, insert a backpressure sink/source pair into the
@@ -97,10 +111,7 @@ arrow::Result<std::optional<arrow::acero::ExecNode*>> insertBackpressureForDecom
 ) {
    size_t sum_of_reference_genome_sizes = 0;
    for (const auto& assignment : assignment_by_name | std::views::values) {
-      if (const auto* zstd =
-             dynamic_cast<const ZstdDecompressScalar*>(assignment->expression.get())) {
-         sum_of_reference_genome_sizes += zstd->dictionary_string.size();
-      }
+      sum_of_reference_genome_sizes += sumDecompressDictionarySizes(*assignment->expression);
    }
 
    if (sum_of_reference_genome_sizes == 0) {
