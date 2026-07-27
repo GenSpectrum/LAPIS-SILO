@@ -1,5 +1,6 @@
 #include <filesystem>
 
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 #include <arrow/compute/api.h>
@@ -68,9 +69,6 @@ int runApi(const silo::config::RuntimeConfig& runtime_config) {
 enum class ExecutionMode : uint8_t { INITIALIZE, APPEND, API, PREPROCESSING };
 
 int mainWhichMayThrowExceptions(int argc, char** argv) {
-   setupLogger();
-   SILO_ASSERT(arrow::compute::Initialize().ok());
-
    std::vector<std::string> all_args(argv, argv + argc);
 
    const std::filesystem::path program_path{all_args[0]};
@@ -78,6 +76,14 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    const std::string program_name = program_path.filename();
 
    std::span<const std::string> args(all_args.begin() + 1, all_args.end());
+
+   if (!args.empty() && (args[0] == "--version" || args[0] == "-V")) {
+      fmt::print("{} {}\n", program_name, silo::RELEASE_VERSION);
+      return 0;
+   }
+
+   setupLogger();
+   SILO_ASSERT(arrow::compute::Initialize().ok());
 
    ExecutionMode mode;
    if (args.empty()) {
