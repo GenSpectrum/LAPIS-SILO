@@ -623,7 +623,7 @@ jobs:
       # Must match the Emscripten version used to generate the Conan profile
       # (see buildScripts/create-wasm-conanprofile).
       - name: Set up Emscripten
-        uses: mymindstorm/setup-emsdk@v14
+        uses: mymindstorm/setup-emsdk@v16
         with:
           version: 6.0.2
           actions-cache-folder: emsdk-cache
