@@ -11,6 +11,7 @@
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
+#include "silo/query_engine/scalar_expressions/field_ref.h"
 #include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 #include "silo/schema/database_schema.h"
@@ -128,7 +129,9 @@ TEST(FilterPushdownPass, pushesFilterThroughDecompressMapIntoTableScan) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "seq", .type = ColumnType::STRING},
-       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(seq_column, "A")}
+       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
+          std::make_unique<scalar_expressions::FieldRef>(seq_column), "A"
+       )}
    );
    auto map_node = std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
    auto filter_node =

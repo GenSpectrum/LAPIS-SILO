@@ -501,7 +501,9 @@ ScalarExpressionPtr handleAt(
    CHECK_SILO_QUERY(
       found != schema.end(), "at(): the field {} is not found in the current context", input_column
    );
-   return std::make_unique<scalar_expressions::At>(*found, position);
+   return std::make_unique<scalar_expressions::At>(
+      std::make_unique<scalar_expressions::FieldRef>(*found), position
+   );
 }
 
 ScalarExpressionPtr handleIsoWeek(
@@ -521,7 +523,9 @@ ScalarExpressionPtr handleIsoWeek(
       "isoWeek(): the field {} must be a date column",
       input_column
    );
-   return std::make_unique<scalar_expressions::IsoWeek>(*found);
+   return std::make_unique<scalar_expressions::IsoWeek>(
+      std::make_unique<scalar_expressions::FieldRef>(*found)
+   );
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -971,7 +975,7 @@ operators::QueryNodePtr wrapWithDecompressIfNeeded(
          assignments.push_back(
             {.output_column = {.name = col.name, .type = schema::ColumnType::STRING},
              .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
-                col, std::move(reference).value()
+                std::make_unique<scalar_expressions::FieldRef>(col), std::move(reference).value()
              )}
          );
       }

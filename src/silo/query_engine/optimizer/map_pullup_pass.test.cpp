@@ -1,5 +1,6 @@
 #include "silo/query_engine/optimizer/map_pullup_pass.h"
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <optional>
@@ -15,6 +16,9 @@
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/order_by_field.h"
+#include "silo/query_engine/scalar_expressions/at.h"
+#include "silo/query_engine/scalar_expressions/equals.h"
+#include "silo/query_engine/scalar_expressions/field_ref.h"
 #include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 #include "silo/schema/database_schema.h"
@@ -118,7 +122,9 @@ TEST(MapPullupPass, pullsDecompressMapUpThroughFetch) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "seq", .type = ColumnType::STRING},
-       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(seq_column, "A")}
+       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
+          std::make_unique<scalar_expressions::FieldRef>(seq_column), "A"
+       )}
    );
    auto map = std::make_unique<operators::MapNode>(
       std::make_unique<operators::TableScanNode>(
@@ -171,23 +177,125 @@ TEST(MapPullupPass, leavesFetchOverNonMapInPlace) {
    EXPECT_EQ(fetch_node->child->kind(), operators::NodeKind::TABLE_SCAN);
 }
 
-// --- MapNode(FetchNode(MapNode(...))): the inner map is pulled above the fetch and comes to
-// rest directly under the (blocked) root map, giving Map(Map(Fetch(scan))). The root map is
-// not itself moved (it is the root). ---
+// --- MapNode(FetchNode(MapNode(...))): the inner map is pulled above the fetch, which brings it
+// directly under the root map; the two adjacent maps are then merged into one, giving
+// Map(Fetch(scan)). Both maps produce `x := 3`, so the merged map keeps a single `x` assignment.
+// ---
 
-TEST(MapPullupPass, pullsInnerMapUpUnderRootMap) {
+TEST(MapPullupPass, pullsInnerMapUpUnderRootMapAndMerges) {
    auto inner_fetch = std::make_unique<operators::FetchNode>(makeMap(makeScan()), 5, std::nullopt);
    auto root_map = makeMap(std::move(inner_fetch));
 
    auto result = MapPullupPass::run(std::move(root_map));
 
    ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
-   auto* outer_map = dynamic_cast<operators::MapNode*>(result.get());
-   ASSERT_EQ(outer_map->child->kind(), operators::NodeKind::MAP);
-   auto* inner_map = dynamic_cast<operators::MapNode*>(outer_map->child.get());
-   ASSERT_EQ(inner_map->child->kind(), operators::NodeKind::FETCH);
-   auto* fetch = dynamic_cast<operators::FetchNode*>(inner_map->child.get());
+   auto* merged_map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(merged_map->assignments.size(), 1);
+   EXPECT_EQ(merged_map->assignments.front().output_column.name, "x");
+   ASSERT_EQ(merged_map->child->kind(), operators::NodeKind::FETCH);
+   auto* fetch = dynamic_cast<operators::FetchNode*>(merged_map->child.get());
    EXPECT_EQ(fetch->child->kind(), operators::NodeKind::TABLE_SCAN);
+}
+
+// --- Two stacked maps are contracted into one: the upper `at` over the lower in-place decompress
+// becomes a single map whose `symbol` assignment holds the nested at(zstdDecompress(seq)). The
+// lower `seq` decompression is kept as a passthrough (the upper map does not overwrite it). ---
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(MapPullupPass, mergesAtOverDecompressIntoOneMap) {
+   const auto seq_column = ColumnIdentifier{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
+
+   std::vector<operators::MapNode::Assignment> lower_assignments;
+   lower_assignments.push_back(
+      {.output_column = {.name = "seq", .type = ColumnType::STRING},
+       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
+          std::make_unique<scalar_expressions::FieldRef>(seq_column), "A"
+       )}
+   );
+   auto lower_map = std::make_unique<operators::MapNode>(
+      std::make_unique<operators::TableScanNode>(
+         makeTable(), trueFilter(), std::vector<ColumnIdentifier>{seq_column}
+      ),
+      std::move(lower_assignments)
+   );
+
+   std::vector<operators::MapNode::Assignment> upper_assignments;
+   upper_assignments.push_back(
+      {.output_column = {.name = "symbol", .type = ColumnType::STRING},
+       .expression = std::make_unique<scalar_expressions::At>(
+          std::make_unique<scalar_expressions::FieldRef>(
+             ColumnIdentifier{.name = "seq", .type = ColumnType::STRING}
+          ),
+          3
+       )}
+   );
+   auto upper_map =
+      std::make_unique<operators::MapNode>(std::move(lower_map), std::move(upper_assignments));
+
+   auto result = MapPullupPass::run(std::move(upper_map));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* merged = dynamic_cast<operators::MapNode*>(result.get());
+   EXPECT_EQ(merged->child->kind(), operators::NodeKind::TABLE_SCAN);
+
+   const auto symbol = std::ranges::find_if(merged->assignments, [](const auto& assignment) {
+      return assignment.output_column.name == "symbol";
+   });
+   ASSERT_NE(symbol, merged->assignments.end());
+   const auto* at_expression =
+      scalar_expressions::dynCast<scalar_expressions::At>(symbol->expression.get());
+   ASSERT_NE(at_expression, nullptr);
+   EXPECT_EQ(at_expression->position, 3);
+   const auto* decompress = scalar_expressions::dynCast<scalar_expressions::ZstdDecompressScalar>(
+      at_expression->input.get()
+   );
+   ASSERT_NE(decompress, nullptr);
+   EXPECT_TRUE(scalar_expressions::isA<scalar_expressions::FieldRef>(decompress->input.get()));
+}
+
+// --- The merge safely declines when an upper expression references a lower-produced column through
+// a construct it cannot rewrite (here an Equals predicate): inlining would be needed to avoid a
+// dangling reference, and since the merge cannot inline into an Equals, both maps are left in
+// place. ---
+
+TEST(MapPullupPass, doesNotMergeWhenUpperReferencesProducedColumnUnsubstitutably) {
+   const auto seq_column = ColumnIdentifier{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
+
+   std::vector<operators::MapNode::Assignment> lower_assignments;
+   lower_assignments.push_back(
+      {.output_column = {.name = "seq", .type = ColumnType::STRING},
+       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
+          std::make_unique<scalar_expressions::FieldRef>(seq_column), "A"
+       )}
+   );
+   auto lower_map = std::make_unique<operators::MapNode>(
+      std::make_unique<operators::TableScanNode>(
+         makeTable(), trueFilter(), std::vector<ColumnIdentifier>{seq_column}
+      ),
+      std::move(lower_assignments)
+   );
+
+   // `flag := (seq = "AAAA")` reads the lower-produced `seq` through an Equals the merge cannot
+   // rewrite, so it must decline rather than leave a reference to a column the merged map no longer
+   // produces.
+   std::vector<operators::MapNode::Assignment> upper_assignments;
+   upper_assignments.push_back(
+      {.output_column = {.name = "flag", .type = ColumnType::BOOL},
+       .expression = std::make_unique<scalar_expressions::Equals>(
+          std::make_unique<scalar_expressions::FieldRef>(
+             ColumnIdentifier{.name = "seq", .type = ColumnType::STRING}
+          ),
+          std::make_unique<scalar_expressions::StringLiteral>("AAAA")
+       )}
+   );
+   auto upper_map =
+      std::make_unique<operators::MapNode>(std::move(lower_map), std::move(upper_assignments));
+
+   auto result = MapPullupPass::run(std::move(upper_map));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* upper = dynamic_cast<operators::MapNode*>(result.get());
+   EXPECT_EQ(upper->child->kind(), operators::NodeKind::MAP);
 }
 
 // Blocked: FilterNode. Should be handled by the filter pushdown
