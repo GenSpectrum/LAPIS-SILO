@@ -56,7 +56,6 @@ template <typename SymbolType>
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status addAggregatedInsertionsToInsertionCounts(
    const std::string& sequence_name,
-   bool show_sequence_in_response,
    const CopyOnWriteBitmap& bitmap_filter,
    const storage::Table& table,
    exec_node::SchemaOutputBuilder& output_builder
@@ -88,7 +87,6 @@ arrow::Status addAggregatedInsertionsToInsertionCounts(
          }
       }
    }
-   const std::string sequence_in_response = show_sequence_in_response ? sequence_name + ":" : "";
    for (const auto& [position_and_insertion, count] : all_insertions) {
       using OutputValue = std::optional<std::variant<std::string, bool, int32_t, double>>;
       ARROW_RETURN_NOT_OK(output_builder.addValueIfContainedInOutput(
@@ -107,8 +105,8 @@ arrow::Status addAggregatedInsertionsToInsertionCounts(
          InsertionsNode<SymbolType>::INSERTION_FIELD_NAME,
          [&]() -> OutputValue {
             return fmt::format(
-               "ins_{}{}:{}",
-               sequence_in_response,
+               "ins_{}:{}:{}",
+               sequence_name,
                position_and_insertion.position_idx,
                position_and_insertion.insertion_value
             );
@@ -152,13 +150,8 @@ arrow::Result<arrow::acero::ExecNode*> InsertionsNode<SymbolType>::addToExecPlan
       exec_node::SchemaOutputBuilder output_builder{output_fields};
 
       for (const auto& [sequence_name, _] : sequence_columns_handle) {
-         const auto default_sequence_name =
-            table_handle->schema->template getDefaultSequenceName<SymbolType>();
-         const bool omit_sequence_in_response =
-            default_sequence_name.has_value() &&
-            (default_sequence_name.value().name == sequence_name);
          ARROW_RETURN_NOT_OK(addAggregatedInsertionsToInsertionCounts<SymbolType>(
-            sequence_name, !omit_sequence_in_response, bitmap_filter, *table_handle, output_builder
+            sequence_name, bitmap_filter, *table_handle, output_builder
          ));
       }
 

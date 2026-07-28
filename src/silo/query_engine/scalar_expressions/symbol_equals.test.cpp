@@ -50,7 +50,6 @@ const nlohmann::json DATA_WITHOUT_SEQUENCE = createDataWithoutNucleotideSequence
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:
@@ -249,6 +248,14 @@ const QueryTestScenario NUCLEOTIDE_EQUALS_OUT_OF_RANGE_EDGE_LOW = {
    .expected_error_message = "The field 'position' is 1-indexed. Value of 0 not allowed."
 };
 
+// A sequence name is always required; there is no implicit default even though the reference genome
+// has only a single nucleotide sequence.
+const QueryTestScenario NUCLEOTIDE_EQUALS_WITHOUT_SEQUENCE_NAME = {
+   .name = "NUCLEOTIDE_EQUALS_WITHOUT_SEQUENCE_NAME",
+   .query = "default.filter(nucleotideEquals(position:=1, symbol:='A')).groupBy({count:=count()})",
+   .expected_error_message = "nucleotideEquals() requires argument 'sequenceName'"
+};
+
 }  // namespace nucleotide
 
 namespace amino_acid {
@@ -272,7 +279,6 @@ const nlohmann::json DATA_WITH_B = createDataWithAminoAcidSequence("B*");
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:
@@ -308,6 +314,13 @@ const QueryTestScenario AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE = {
    .expected_query_result = nlohmann::json::parse(R"([{"count": 2}])")
 };
 
+// Amino acid filters always require a sequence name.
+const QueryTestScenario AMINO_ACID_EQUALS_WITHOUT_SEQUENCE_NAME = {
+   .name = "AMINO_ACID_EQUALS_WITHOUT_SEQUENCE_NAME",
+   .query = "default.filter(aminoAcidEquals(position:=1, symbol:='D')).groupBy({count:=count()})",
+   .expected_error_message = "aminoAcidEquals() requires argument 'sequenceName'"
+};
+
 }  // namespace amino_acid
 
 }  // namespace
@@ -341,7 +354,8 @@ QUERY_TEST(
       nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_T_AT_5,
       nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_N_AT_1,
       nucleotide::NUCLEOTIDE_EQUALS_WITH_SYMBOL_N_AT_5,
-      nucleotide::AMINO_ACID_EQUALS_MISSING_SYMBOL_WITHOUT_SEQUENCES
+      nucleotide::AMINO_ACID_EQUALS_MISSING_SYMBOL_WITHOUT_SEQUENCES,
+      nucleotide::NUCLEOTIDE_EQUALS_WITHOUT_SEQUENCE_NAME
    )
 );
 
@@ -350,6 +364,7 @@ QUERY_TEST(
    amino_acid::TEST_DATA,
    ::testing::Values(
       amino_acid::AMINO_ACID_EQUALS_D,
-      amino_acid::AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE
+      amino_acid::AMINO_ACID_EQUALS_WITH_DOT_RETURNS_AS_IF_REFERENCE,
+      amino_acid::AMINO_ACID_EQUALS_WITHOUT_SEQUENCE_NAME
    )
 );

@@ -85,7 +85,6 @@ nlohmann::json createNOfData(
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:

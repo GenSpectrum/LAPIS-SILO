@@ -19,11 +19,11 @@ namespace silo::query_engine::scalar_expressions {
 template <typename SymbolType>
 class HasMutation : public ScalarExpression {
   private:
-   std::optional<std::string> sequence_name;
+   std::string sequence_name;
    uint32_t position_idx;
 
   public:
-   explicit HasMutation(std::optional<std::string> sequence_name, uint32_t position_idx);
+   explicit HasMutation(std::string sequence_name, uint32_t position_idx);
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
       return std::make_unique<HasMutation>(sequence_name, position_idx);

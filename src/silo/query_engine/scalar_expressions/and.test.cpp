@@ -42,7 +42,6 @@ nlohmann::json createData(const std::string& country, const std::string& date) {
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:

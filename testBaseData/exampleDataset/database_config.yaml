@@ -29,4 +29,3 @@ schema:
     - name: test_boolean_column
       type: boolean
   primaryKey: primary_key
-defaultNucleotideSequence: "main"

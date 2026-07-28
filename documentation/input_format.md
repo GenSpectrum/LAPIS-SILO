@@ -48,9 +48,6 @@ schema:
     - name: is_complete
       type: boolean
   primaryKey: primaryKey
-
-defaultNucleotideSequence: main
-defaultAminoAcidSequence: E
 ```
 
 **Metadata Field Options**:
@@ -60,8 +57,6 @@ defaultAminoAcidSequence: E
 - `generateLineageIndex`: Path to lineage definition file for hierarchical queries. This is only possible if `generateIndex` is also set
 - `treatUnknownLineagesAsNull`: Treats unknown lineage values as null when adding them to the lineage index
 - `isPhyloTreeField`: Mark this column as a phyloTreeField, which enables the phylogenetic queries. See [phylogenetic_queries.md](phylogenetic_queries.md)
-
-`defaultNucleotideSequence` and `defaultAminoAcidSequence` are optional and set the default sequence to be searched for, so that the sequence name can be omitted in queries.
 
 ### reference_genomes.json
 
@@ -289,8 +284,6 @@ schema:
     - name: qc_score
       type: float
   primaryKey: accession
-
-defaultNucleotideSequence: main
 ```
 
 ### Input NDJSON

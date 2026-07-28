@@ -36,13 +36,13 @@ class SymbolOrDot {
 
 template <typename SymbolType>
 class SymbolEquals : public ScalarExpression {
-   std::optional<std::string> sequence_name;
+   std::string sequence_name;
    uint32_t position_idx;
    SymbolOrDot<SymbolType> value;
 
   public:
    explicit SymbolEquals(
-      std::optional<std::string> sequence_name,
+      std::string sequence_name,
       uint32_t position_idx,
       SymbolOrDot<SymbolType> value
    );

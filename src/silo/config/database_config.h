@@ -47,8 +47,6 @@ class DatabaseConfig {
    DatabaseConfig& operator=(const DatabaseConfig&) = default;
    DatabaseConfig& operator=(DatabaseConfig&&) = default;
 
-   std::optional<std::string> default_nucleotide_sequence;
-   std::optional<std::string> default_amino_acid_sequence;
    DatabaseSchema schema;
 
    [[nodiscard]] std::optional<DatabaseMetadata> getMetadata(const std::string& name) const;

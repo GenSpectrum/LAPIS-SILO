@@ -43,7 +43,7 @@ template class SymbolOrDot<Nucleotide>;
 
 template <typename SymbolType>
 SymbolEquals<SymbolType>::SymbolEquals(
-   std::optional<std::string> sequence_name,
+   std::string sequence_name,
    uint32_t position_idx,
    SymbolOrDot<SymbolType> value
 )
@@ -53,9 +53,7 @@ SymbolEquals<SymbolType>::SymbolEquals(
 
 template <typename SymbolType>
 std::string SymbolEquals<SymbolType>::toString() const {
-   return fmt::format(
-      "{}{}{}", sequence_name ? sequence_name.value() + ":" : "", position_idx + 1, value.asChar()
-   );
+   return fmt::format("{}:{}{}", sequence_name, position_idx + 1, value.asChar());
 }
 
 template <typename SymbolType>
@@ -63,16 +61,7 @@ std::unique_ptr<ScalarExpression> SymbolEquals<SymbolType>::rewrite(
    const storage::Table& table,
    AmbiguityMode mode
 ) const {
-   CHECK_SILO_QUERY(
-      sequence_name.has_value() || table.schema->getDefaultSequenceName<SymbolType>(),
-      "Database does not have a default sequence name for {} sequences. "
-      "You need to provide the sequence name with the {} filter.",
-      SymbolType::SYMBOL_NAME,
-      getFilterName()
-   );
-
-   const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
+   const auto valid_sequence_name = validateSequenceName<SymbolType>(sequence_name, *table.schema);
 
    const auto& sequence_column =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
