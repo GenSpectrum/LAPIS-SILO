@@ -26,4 +26,3 @@ schema:
     - name: qc_value
       type: float
   primaryKey: primary_key
-defaultNucleotideSequence: "main"

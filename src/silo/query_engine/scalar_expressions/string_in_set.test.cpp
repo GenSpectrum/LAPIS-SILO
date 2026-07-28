@@ -28,7 +28,6 @@ nlohmann::json createData(const std::string& primary_key, const std::string& cou
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:

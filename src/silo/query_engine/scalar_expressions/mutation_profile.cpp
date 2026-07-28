@@ -27,7 +27,7 @@ namespace silo::query_engine::scalar_expressions {
 
 template <typename SymbolType>
 MutationProfile<SymbolType>::MutationProfile(
-   std::optional<std::string> sequence_name,
+   std::string sequence_name,
    uint32_t distance,
    ProfileInput input
 )
@@ -37,7 +37,7 @@ MutationProfile<SymbolType>::MutationProfile(
 
 template <typename SymbolType>
 std::string MutationProfile<SymbolType>::toString() const {
-   const std::string seq_prefix = sequence_name ? sequence_name.value() + ":" : "";
+   const std::string seq_prefix = sequence_name + ":";
    const std::string input_str = std::visit(
       [](const auto& inp) -> std::string {
          using T = std::decay_t<decltype(inp)>;
@@ -56,14 +56,9 @@ std::string MutationProfile<SymbolType>::toString() const {
 
 template <typename SymbolType>
 std::vector<schema::ColumnIdentifier> MutationProfile<SymbolType>::freeIUs() const {
-   // Only a named sequence can be resolved here. The default sequence name is not
-   // known at construction time (no table available), and sequence columns are never
-   // produced by a map(), so returning {} for the default sequence is safe for the
-   // optimizer's column-narrowing use-case.
-   if (sequence_name.has_value()) {
-      return {schema::ColumnIdentifier{sequence_name.value(), SymbolType::COLUMN_TYPE}};
-   }
-   return {};
+   // The referenced sequence column. sequence_name is always present (no default
+   // sequence), so this is always resolvable.
+   return {schema::ColumnIdentifier{sequence_name, SymbolType::COLUMN_TYPE}};
 }
 
 template <typename SymbolType>
@@ -205,16 +200,7 @@ std::unique_ptr<ScalarExpression> MutationProfile<SymbolType>::rewrite(
    const storage::Table& table,
    AmbiguityMode /*mode*/
 ) const {
-   CHECK_SILO_QUERY(
-      sequence_name.has_value() || table.schema->getDefaultSequenceName<SymbolType>(),
-      "Database does not have a default sequence name for {} sequences. "
-      "You need to provide the sequence name with the {} MutationProfile filter.",
-      SymbolType::SYMBOL_NAME,
-      SymbolType::SYMBOL_NAME
-   );
-
-   const auto valid_sequence_name =
-      validateSequenceNameOrGetDefault<SymbolType>(sequence_name, *table.schema);
+   const auto valid_sequence_name = validateSequenceName<SymbolType>(sequence_name, *table.schema);
 
    const auto& sequence_column =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);

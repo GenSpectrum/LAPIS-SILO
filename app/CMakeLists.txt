@@ -2,8 +2,10 @@
 # Poco-based HTTP API layer it serves. This is a consumer of the portable silolib
 # and built by the root CMakeLists before this subproject is added
 #
-# app/src is added as an include root so every `#include "silo/api/..."` resolves
-# here while silolib headers still resolve against silolib's src/ include root.
+# app/src is added as an include root so the app's own `#include "..."` headers
+# resolve here while silolib headers still resolve against silolib's src/ include
+# root. The app layer lives in the flat `silo_app` namespace, so its sources sit
+# directly in app/src rather than in a namespace-mirroring subdirectory.
 
 # ---------------------------------------------------------------------------
 # Native-only dependencies (only this subproject needs them)
@@ -31,7 +33,7 @@ endif()
 file(GLOB_RECURSE SILO_APP_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 file(GLOB_RECURSE SILO_APP_TESTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.test.cpp")
 
-set(SILO_APP_MAIN "${CMAKE_CURRENT_SOURCE_DIR}/src/silo/api/main.cpp")
+set(SILO_APP_MAIN "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
 list(REMOVE_ITEM SILO_APP_SOURCES ${SILO_APP_TESTS} ${SILO_APP_MAIN})
 
@@ -44,7 +46,7 @@ list(REMOVE_ITEM SILO_APP_SOURCES ${SILO_APP_TESTS} ${SILO_APP_MAIN})
 add_library(silo_app OBJECT ${SILO_APP_SOURCES})
 set_target_properties(silo_app PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # PUBLIC so consumers (the silo executable, silo_app_test) also see the app/src
-# include root and can resolve `#include "silo/api/..."`.
+# include root and can resolve the app layer's `#include "..."` headers.
 target_include_directories(silo_app PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(
         silo_app

@@ -491,16 +491,15 @@ True if the phylogenetic tree column value is a descendant of `node`.
 usherTree.phyloDescendantOf('NODE_0000072')
 ```
 
-### `nucleotideEquals(position:=n, symbol:=s [, sequenceName:=name])`
+### `nucleotideEquals(position:=n, symbol:=s, sequenceName:=name)`
 
-True if the nucleotide sequence has symbol `s` at 1-based position `n`. Use `.` as a wildcard symbol (matches the reference). `sequenceName` is required if there is more than one nucleotide sequence.
+True if the nucleotide sequence has symbol `s` at 1-based position `n`. Use `.` as a wildcard symbol (matches the reference).
 
 ```
-nucleotideEquals(position:=300, symbol:='G')
 nucleotideEquals(position:=100, symbol:='A', sequenceName:='main')
 ```
 
-### `aminoAcidEquals(position:=n, symbol:=s [, sequenceName:=name])`
+### `aminoAcidEquals(position:=n, symbol:=s, sequenceName:=name)`
 
 Same as `nucleotideEquals` but for amino acid sequences.
 
@@ -508,16 +507,15 @@ Same as `nucleotideEquals` but for amino acid sequences.
 aminoAcidEquals(position:=501, symbol:='Y', sequenceName:='S')
 ```
 
-### `hasMutation(position:=n [, sequenceName:=name])`
+### `hasMutation(position:=n, sequenceName:=name)`
 
 True if the nucleotide sequence has a symbol at position `n` that differs from the reference and is not `N`.
 
 ```
-hasMutation(position:=23403)
 hasMutation(position:=100, sequenceName:='main')
 ```
 
-### `hasAAMutation(position:=n [, sequenceName:=name])`
+### `hasAAMutation(position:=n, sequenceName:=name)`
 
 Same as `hasMutation` but for amino acid sequences.
 
@@ -525,16 +523,15 @@ Same as `hasMutation` but for amino acid sequences.
 hasAAMutation(position:=501, sequenceName:='S')
 ```
 
-### `insertionContains(position:=n, value:=regex [, sequenceName:=name])`
+### `insertionContains(position:=n, value:=regex, sequenceName:=name)`
 
 True if the nucleotide sequence has an insertion after 1-based position `n` that matches regex `value`. Position 0 means before the first symbol. The regex may contain valid nucleotide symbols and `.*`.
 
 ```
-insertionContains(position:=22204, value:='AGT')
 insertionContains(position:=100, value:='A.*G', sequenceName:='main')
 ```
 
-### `aminoAcidInsertionContains(position:=n, value:=regex [, sequenceName:=name])`
+### `aminoAcidInsertionContains(position:=n, value:=regex, sequenceName:=name)`
 
 Same as `insertionContains` for amino acid sequences. The stop-codon symbol `*` must be escaped as `\\*` in the regex.
 
@@ -547,7 +544,7 @@ aminoAcidInsertionContains(position:=214, value:='.*EPE', sequenceName:='S')
 Relaxes the child expression: true if the child is possibly true (allowing ambiguous symbols). See [maybe_documentation.md](maybe_documentation.md).
 
 ```
-maybe(nucleotideEquals(position:=122, symbol:='A'))
+maybe(nucleotideEquals(position:=122, symbol:='A', sequenceName:='main'))
 ```
 
 ### `exact(child)`
@@ -555,7 +552,7 @@ maybe(nucleotideEquals(position:=122, symbol:='A'))
 Tightens the child expression: requires an exact (non-ambiguous) match. See [maybe_documentation.md](maybe_documentation.md).
 
 ```
-exact(nucleotideEquals(position:=300, symbol:='G'))
+exact(nucleotideEquals(position:=300, symbol:='G', sequenceName:='main'))
 ```
 
 ### `nOf(count, {children} [, matchExactly:=bool])`
@@ -564,19 +561,17 @@ True if at least `count` of the child expressions are true. If `matchExactly` is
 
 ```
 nOf(2, {
-  nucleotideEquals(position:=241, symbol:='T'),
-  nucleotideEquals(position:=3037, symbol:='T'),
-  nucleotideEquals(position:=23403, symbol:='G')
+  nucleotideEquals(position:=241, symbol:='T', sequenceName:='main'),
+  nucleotideEquals(position:=3037, symbol:='T', sequenceName:='main'),
+  nucleotideEquals(position:=23403, symbol:='G', sequenceName:='main')
 })
 ```
 
-### `nucleotideMutationProfile(distance:=n, ..., [sequenceName:=name])`
+### `nucleotideMutationProfile(distance:=n, ..., sequenceName:=name)`
 
 True if a sequence has at most `distance` **conservative differences** from a profile sequence.
 
 A position counts as a difference when the database sequence's symbol is **not** ambiguity-compatible with the profile symbol at that position (e.g. `R` is compatible with `A` because `R` represents A or G; `N` is compatible with any definitive base). Positions where the profile symbol is `N` (missing) are skipped and never counted as differences.
-
-`sequenceName` is optional; when omitted the database's default nucleotide sequence is used.
 
 **Profile input — exactly one of the following named arguments:**
 
@@ -603,7 +598,7 @@ nucleotideMutationProfile(distance:=3, sequenceName:='S', mutations:={
 })
 ```
 
-### `aminoAcidMutationProfile(distance:=n, ..., [sequenceName:=name])`
+### `aminoAcidMutationProfile(distance:=n, ..., sequenceName:=name)`
 
 Same as `nucleotideMutationProfile` but for amino acid sequences. `symbol` values must be valid amino acid characters.
 

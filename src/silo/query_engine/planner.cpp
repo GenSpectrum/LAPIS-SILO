@@ -6,6 +6,7 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
+#include "silo/query_engine/optimizer/bitmap_aggregation_rewrite_pass.h"
 #include "silo/query_engine/optimizer/column_narrowing_pass.h"
 #include "silo/query_engine/optimizer/filter_pushdown_pass.h"
 #include "silo/query_engine/optimizer/map_pullup_pass.h"
@@ -17,6 +18,7 @@ namespace silo::query_engine {
 
 namespace {
 
+using optimizer::BitmapAggregationRewritePass;
 using optimizer::ColumnNarrowingPass;
 using optimizer::FilterPushdownPass;
 using optimizer::MapPullupPass;
@@ -53,6 +55,8 @@ QueryPlan Planner::planQuery(
    log_plan("after FilterPushdownPass");
    node = MapPullupPass::run(std::move(node));
    log_plan("after MapPullupPass");
+   node = BitmapAggregationRewritePass::run(std::move(node));
+   log_plan("after BitmapAggregationRewritePass");
    node = NodeResolutionPass::run(std::move(node));
    log_plan("after NodeResolutionPass");
    auto result = planQueryOrError(*node, tables, query_options, request_id);

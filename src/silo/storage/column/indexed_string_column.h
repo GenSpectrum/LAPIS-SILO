@@ -99,6 +99,13 @@ class IndexedStringColumn {
 
    [[nodiscard]] const Idx& getValue(RowId row_id) const { return value_ids.at(row_id); }
 
+   /// The inverted index: for every distinct dictionary id that occurs, the rows carrying it. Null
+   /// rows are excluded (they live in `null_bitmap`), so these bitmaps are disjoint from it. Used
+   /// by the bitmap-aggregation node to group by this column straight from the index.
+   [[nodiscard]] const std::unordered_map<Idx, roaring::Roaring>& getIndexedValues() const {
+      return indexed_values;
+   }
+
    [[nodiscard]] bool isNull(RowId row_id) const;
 
    [[nodiscard]] std::string getValueString(RowId row_id) const {

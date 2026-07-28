@@ -4,6 +4,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/panic.h"
 #include "silo/query_engine/operators/aggregate_node.h"
+#include "silo/query_engine/operators/bitmap_aggregation_node.h"
 #include "silo/query_engine/operators/count_filter_node.h"
 #include "silo/query_engine/operators/fetch_node.h"
 #include "silo/query_engine/operators/filter_node.h"
@@ -80,6 +81,8 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
          return std::forward<Func>(func)(static_cast<UnionAllNode&>(node));
       case NodeKind::SCHEMA:
          return std::forward<Func>(func)(static_cast<SchemaNode&>(node));
+      case NodeKind::BITMAP_AGGREGATION:
+         return std::forward<Func>(func)(static_cast<BitmapAggregationNode&>(node));
    }
    SILO_UNREACHABLE();
 }

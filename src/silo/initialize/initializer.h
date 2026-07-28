@@ -18,7 +18,7 @@ class Initializer {
    );
 
    static std::shared_ptr<schema::TableSchema> createSchemaFromConfigFiles(
-      config::DatabaseConfig database_config,
+      const config::DatabaseConfig& database_config,
       ReferenceGenomes reference_genomes,
       const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
       const common::PhyloTree& phylo_tree_file,

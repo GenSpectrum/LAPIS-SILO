@@ -5,6 +5,7 @@
 
 namespace silo::query_engine::operators {
 class FetchNode;
+class MapNode;
 class OrderByNode;
 }  // namespace silo::query_engine::operators
 
@@ -23,12 +24,25 @@ namespace silo::query_engine::optimizer {
 ///
 /// One goal is pulling a MapNode above a FetchNode (limit/offset)
 /// so a `limit` no longer forces every row to be decompressed and then discarded.
+///
+/// The pass also contracts two directly stacked MapNodes into one:
+///
+/// ```
+/// M_upper(M_lower(child))  →  M_merged(child)
+/// ```
+///
+/// by inlining each lower assignment into the upper expressions that reference it (substituting the
+/// referencing `FieldRef` with the lower expression). This turns the decompress + `at` pattern
+/// (`at(x) := main.at(pos)` over `main := zstdDecompress(main)`) into a single map holding the
+/// nested `at(zstdDecompress(main))`, which downstream passes can match as one clear expression
+/// tree.
 class MapPullupPass : public PipelinePassBase<MapPullupPass> {
   public:
    using PipelinePassBase<MapPullupPass>::operator();
 
    operators::QueryNodePtr operator()(operators::FetchNode& node);
    operators::QueryNodePtr operator()(operators::OrderByNode& node);
+   operators::QueryNodePtr operator()(operators::MapNode& node);
 };
 
 }  // namespace silo::query_engine::optimizer

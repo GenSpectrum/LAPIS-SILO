@@ -4,8 +4,9 @@
 #include <nlohmann/json.hpp>
 
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/query_engine/scalar_expressions/equals.h"
+#include "silo/query_engine/scalar_expressions/field_ref.h"
 #include "silo/query_engine/scalar_expressions/literal.h"
-#include "silo/query_engine/scalar_expressions/string_equals.h"
 #include "silo/query_engine/scalar_expressions/string_in_set.h"
 #include "silo/query_engine/scalar_expressions/symbol_in_set.h"
 #include "silo/test/query_fixture.test.h"
@@ -154,10 +155,10 @@ TEST(OrMergeStringInSet, shouldHandleDuplicateValues) {
 TEST(OrRewriteSymbolInSet, shouldMergeTwoSymbolInSetWithSamePosition) {
    ScalarExpressionVector children;
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
    ));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G}
    ));
 
    auto result = Or::rewriteSymbolInSetExpressions<Nucleotide>(std::move(children));
@@ -175,10 +176,10 @@ TEST(OrRewriteSymbolInSet, shouldMergeTwoSymbolInSetWithSamePosition) {
 TEST(OrRewriteSymbolInSet, shouldKeepSeparateSymbolInSetWithDifferentPositions) {
    ScalarExpressionVector children;
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
    ));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 200, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G}
+      "segment1", 200, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G}
    ));
 
    auto result = Or::rewriteSymbolInSetExpressions<Nucleotide>(std::move(children));
@@ -206,7 +207,7 @@ TEST(OrRewriteSymbolInSet, shouldPassThroughOtherExpressions) {
    ScalarExpressionVector children;
    children.emplace_back(std::make_unique<BoolLiteral>(true));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
    ));
    children.emplace_back(std::make_unique<BoolLiteral>(true));
 
@@ -228,15 +229,13 @@ TEST(OrRewriteSymbolInSet, shouldHandleEmptyInput) {
 TEST(OrRewriteSymbolInSet, shouldMergeMultipleSymbolsFromMultipleExpressions) {
    ScalarExpressionVector children;
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
    ));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt,
-      100,
-      std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G, Nucleotide::Symbol::C}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G, Nucleotide::Symbol::C}
    ));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::T}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::T}
    ));
 
    auto result = Or::rewriteSymbolInSetExpressions<Nucleotide>(std::move(children));
@@ -253,16 +252,16 @@ TEST(OrRewriteSymbolInSet, shouldMergeMultipleSymbolsFromMultipleExpressions) {
 
 TEST(OrRewriteSymbolInSet, shouldMergeOnlyMatchingPositionsAndSequences) {
    ScalarExpressionVector children;
-   // These two should merge (same position, nullopt sequence)
+   // These two should merge (same position and sequence name)
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
    ));
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G}
+      "segment1", 100, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::G}
    ));
    // This one stays separate (different position)
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
-      std::nullopt, 200, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::C}
+      "segment1", 200, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::C}
    ));
    // These two should merge (same position and sequence name)
    children.emplace_back(std::make_unique<SymbolInSet<Nucleotide>>(
@@ -275,8 +274,8 @@ TEST(OrRewriteSymbolInSet, shouldMergeOnlyMatchingPositionsAndSequences) {
    auto result = Or::rewriteSymbolInSetExpressions<Nucleotide>(std::move(children));
 
    // Should have 3 SymbolInSet expressions:
-   // 1. Merged A+G at position 100 (nullopt)
-   // 2. C at position 200 (nullopt)
+   // 1. Merged A+G at position 100 (segment1)
+   // 2. C at position 200 (segment1)
    // 3. Merged A+T at position 50 (segment1)
    ASSERT_EQ(result.size(), 3);
    EXPECT_EQ(countExpressionsOfType<SymbolInSet<Nucleotide>>(result), 3);
@@ -316,11 +315,22 @@ TEST(OrToString, shouldHandleNestedOr) {
    EXPECT_EQ(rewritten_or->toString(), "true");
 }
 
-using scalar_expressions::StringEquals;
 using schema::ColumnIdentifier;
 using schema::ColumnType;
 using storage::column::ColumnMetadata;
 using storage::column::StringColumnMetadata;
+
+namespace {
+std::unique_ptr<ScalarExpression> stringEquals(
+   const std::string& column,
+   const std::string& value
+) {
+   return std::make_unique<Equals>(
+      std::make_unique<FieldRef>(ColumnIdentifier{.name = column, .type = ColumnType::STRING}),
+      std::make_unique<StringLiteral>(value)
+   );
+}
+}  // namespace
 
 TEST(OrToString, shouldHandleNestedStringEquals) {
    ColumnIdentifier primary_key{.name = "key", .type = ColumnType::STRING};
@@ -333,12 +343,12 @@ TEST(OrToString, shouldHandleNestedStringEquals) {
    );
 
    ScalarExpressionVector inner_children;
-   inner_children.emplace_back(std::make_unique<StringEquals>(col("key"), "value_1"));
-   inner_children.emplace_back(std::make_unique<StringEquals>(col("key"), "value_2"));
+   inner_children.emplace_back(stringEquals("key", "value_1"));
+   inner_children.emplace_back(stringEquals("key", "value_2"));
 
    ScalarExpressionVector outer_children;
    outer_children.emplace_back(std::make_unique<Or>(std::move(inner_children)));
-   outer_children.emplace_back(std::make_unique<StringEquals>(col("key"), "value_3"));
+   outer_children.emplace_back(stringEquals("key", "value_3"));
 
    const Or outer_or(std::move(outer_children));
 
@@ -361,15 +371,15 @@ TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
 
    ScalarExpressionVector innermost_children;
    innermost_children.emplace_back(std::make_unique<BoolLiteral>(false));
-   innermost_children.emplace_back(std::make_unique<StringEquals>(col("key"), "value_1"));
+   innermost_children.emplace_back(stringEquals("key", "value_1"));
 
    ScalarExpressionVector inner_children;
    inner_children.emplace_back(std::make_unique<Or>(std::move(innermost_children)));
-   inner_children.emplace_back(std::make_unique<StringEquals>(col("key"), "value_2"));
+   inner_children.emplace_back(stringEquals("key", "value_2"));
 
    ScalarExpressionVector outer_children;
    outer_children.emplace_back(std::make_unique<Or>(std::move(inner_children)));
-   outer_children.emplace_back(std::make_unique<StringEquals>(col("key"), "value_3"));
+   outer_children.emplace_back(stringEquals("key", "value_3"));
 
    const Or outer_or(std::move(outer_children));
 
@@ -412,7 +422,6 @@ nlohmann::json createData(const std::string& primary_key, const std::string& cou
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:

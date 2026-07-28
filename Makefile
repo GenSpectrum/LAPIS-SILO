@@ -7,8 +7,11 @@ SILO_DEBUG_APP_TEST_EXECUTABLE=./build/Debug/silo_app_test
 SILO_RELEASE_EXECUTABLE=./build/Release/silo
 SILO_RELEASE_TEST_EXECUTABLE=./build/Release/silo_test
 SILO_RELEASE_APP_TEST_EXECUTABLE=./build/Release/silo_app_test
+SILO_WASM_EXECUTABLE=./build/wasm/silo_wasm.js
+SILO_WASM_DIST_DIR=dist/wasm
 RUNNING_SILO_FLAG=running_silo.flag
 DEPENDENCIES_FLAG=dependencies
+WASM_DEPENDENCIES_FLAG=build/wasm/dependencies
 CLANG_FORMAT=$(shell command -v clang-format-19 2>/dev/null || command -v clang-format 2>/dev/null || echo clang-format)
 CMAKE_BUILD_PARALLEL_LEVEL ?= 16
 # Route cmake through `env` so recipe lines survive an emsdk-activated PATH.
@@ -30,9 +33,16 @@ ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 	buildScripts/install-dependencies
 	touch ${DEPENDENCIES_FLAG}
 
+build/wasm/conanprofile-emscripten:
+	buildScripts/create-wasm-conanprofile
+
+${WASM_DEPENDENCIES_FLAG}: conanfile.py conanprofile build/wasm/conanprofile-emscripten
+	buildScripts/install-wasm-dependencies
+	touch ${WASM_DEPENDENCIES_FLAG}
+
 SRC_FILE_LIST=.src_file_list
 $(SRC_FILE_LIST): FORCE
-	@find src app/src -type f | sort > $@.tmp
+	@find src app/src wasm/src -type f | sort > $@.tmp
 	@cmp -s $@ $@.tmp && rm $@.tmp || mv $@.tmp $@
 .PHONY: FORCE
 
@@ -41,6 +51,9 @@ build/Debug/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
 
 build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
 	$(CMAKE) -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
+
+build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) CMakeLists.txt wasm/CMakeLists.txt
+	emcmake cmake -G Ninja -S . -B build/wasm -D CMAKE_BUILD_TYPE=Release -D BUILD_UNIT_TESTS=OFF
 
 ${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo
@@ -59,6 +72,22 @@ ${SILO_RELEASE_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src -typ
 
 ${SILO_RELEASE_APP_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_app_test
+
+# Only the compiled sources trigger a rebuild; wasm/CMakeLists.txt is already a
+# prerequisite of build/wasm/build.ninja. Non-source assets (wasm/example,
+# wasm/README.md, ...) intentionally do not force a rebuild of the binary.
+${SILO_WASM_EXECUTABLE}: build/wasm/build.ninja $(shell find src wasm/src -type f)
+	$(CMAKE) --build build/wasm --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_wasm
+
+.PHONY: wasm
+wasm: ${SILO_WASM_EXECUTABLE}
+	mkdir -p ${SILO_WASM_DIST_DIR}
+	cp build/wasm/silo_wasm.js build/wasm/silo_wasm.wasm ${SILO_WASM_DIST_DIR}/
+	@if [ -f build/wasm/silo_wasm.worker.js ]; then cp build/wasm/silo_wasm.worker.js ${SILO_WASM_DIST_DIR}/; fi
+
+.PHONY: wasm-test
+wasm-test: wasm
+	node --test wasm/test/*.test.mjs
 
 .PHONY: output
 output: ${SILO_DEBUG_EXECUTABLE}
@@ -126,7 +155,7 @@ endToEndTests/node_modules: endToEndTests/package-lock.json
 
 .PHONY: format-cpp
 format-cpp:
-	find src app/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) -i
+	find src app/src wasm/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) -i
 
 .PHONY: format-node
 format-node: endToEndTests/node_modules
@@ -138,7 +167,7 @@ format: format-cpp format-node
 
 .PHONY: check-format-cpp
 check-format-cpp:
-	find src app/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) --dry-run --Werror
+	find src app/src wasm/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) --dry-run --Werror
 
 .PHONY: check-format-node
 check-format-node: endToEndTests/node_modules
@@ -169,7 +198,7 @@ clean-api:
 
 .PHONY: clean
 clean: clean-api
-	rm -rf output logs ${DEPENDENCIES_FLAG} ${SRC_FILE_LIST}
+	rm -rf output logs ${DEPENDENCIES_FLAG} ${SRC_FILE_LIST} ${SILO_WASM_DIST_DIR}
 
 .PHONY: full-clean
 full-clean: clean

@@ -10,9 +10,11 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/string_in_set.h"
 #include "silo/query_engine/illegal_query_exception.h"
+#include "silo/query_engine/scalar_expressions/equals.h"
+#include "silo/query_engine/scalar_expressions/field_ref.h"
+#include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/query_engine/scalar_expressions/or.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
-#include "silo/query_engine/scalar_expressions/string_equals.h"
 #include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/string_column.h"
 
@@ -51,11 +53,13 @@ std::unique_ptr<ScalarExpression> StringInSet::rewrite(
       return std::make_unique<StringInSet>(column, values);
    }
 
-   // We want to improve IndexedStringColumn by using our Indexes directly -> StringEquals
+   // We want to improve IndexedStringColumn by using our Indexes directly -> one Equals per value
    std::vector<std::unique_ptr<ScalarExpression>> string_equal_expressions;
    string_equal_expressions.reserve(values.size());
    for (const auto& value : values) {
-      string_equal_expressions.emplace_back(std::make_unique<StringEquals>(column, value));
+      string_equal_expressions.emplace_back(std::make_unique<Equals>(
+         std::make_unique<FieldRef>(column), std::make_unique<StringLiteral>(value)
+      ));
    }
    return std::make_unique<Or>(std::move(string_equal_expressions));
 }

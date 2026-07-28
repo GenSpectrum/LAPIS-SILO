@@ -82,8 +82,6 @@ struct ColumnIdentifier {
 class TableSchema {
   public:
    std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
-   std::optional<ColumnIdentifier> default_nucleotide_sequence;
-   std::optional<ColumnIdentifier> default_aa_sequence;
    ColumnIdentifier primary_key;
 
    TableSchema(
@@ -98,9 +96,6 @@ class TableSchema {
    [[nodiscard]] std::optional<ColumnIdentifier> getColumn(std::string_view name) const;
 
    [[nodiscard]] std::vector<ColumnIdentifier> getColumnIdentifiers() const;
-
-   template <typename SymbolType>
-   [[nodiscard]] std::optional<ColumnIdentifier> getDefaultSequenceName() const;
 
    template <silo::storage::column::Column ColumnType>
    [[nodiscard]] std::vector<ColumnIdentifier> getColumnByType() const {

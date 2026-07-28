@@ -10,17 +10,18 @@
 
 namespace silo::query_engine::scalar_expressions {
 
-/// A scalar expression that zstd-decompresses a single sequence-typed column into the
-/// STRING value it encodes. The output is a STRING-typed column with the same name as
-/// the input. Used to expand the compressed columns of a table scan on demand.
+/// A scalar expression that zstd-decompresses the sequence-typed value its child expression
+/// evaluates to into the STRING value it encodes. The child is usually a `FieldRef` to a compressed
+/// column produced by the table scan. Used to expand the compressed columns of a table scan on
+/// demand.
 class ZstdDecompressScalar : public ScalarExpression {
   public:
-   /// The compressed input column produced by the child node.
-   const schema::ColumnIdentifier input_column;
+   /// The expression producing the compressed input, usually a `FieldRef` to a scan column.
+   std::unique_ptr<ScalarExpression> input;
 
    const std::string dictionary_string;
 
-   ZstdDecompressScalar(schema::ColumnIdentifier input_column, std::string dictionary_string);
+   ZstdDecompressScalar(std::unique_ptr<ScalarExpression> input, std::string dictionary_string);
 
    [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::STRING; }
 

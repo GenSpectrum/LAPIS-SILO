@@ -1,6 +1,5 @@
 #pragma once
 
-#include <optional>
 #include <string>
 
 #include "silo/schema/database_schema.h"
@@ -17,24 +16,6 @@ std::string validateSequenceName(std::string sequence_name, const schema::TableS
       sequence_name
    );
    return sequence_name;
-}
-
-template <typename SymbolType>
-std::string validateSequenceNameOrGetDefault(
-   std::optional<std::string> sequence_name,
-   const schema::TableSchema& schema
-) {
-   if (sequence_name.has_value()) {
-      return validateSequenceName<SymbolType>(sequence_name.value(), schema);
-   }
-
-   auto default_sequence = schema.getDefaultSequenceName<SymbolType>();
-   CHECK_SILO_QUERY(
-      default_sequence.has_value(),
-      "The database has no default {} sequence name",
-      SymbolType::SYMBOL_NAME_LOWER_CASE
-   );
-   return default_sequence.value().name;
 }
 
 }  // namespace silo

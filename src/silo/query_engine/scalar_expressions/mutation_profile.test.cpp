@@ -32,7 +32,6 @@ nlohmann::json createData(
 //   seq_mixed_amb: RTGCN | M*   (0 conservative nuc diffs; 0 AA diffs)
 
 const auto DATABASE_CONFIG = R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "test"
   metadata:
@@ -69,7 +68,8 @@ const QueryTestData TEST_DATA{
 const QueryTestScenario MUTATIONS_DISTANCE_0 = {
    .name = "MUTATIONS_DISTANCE_0",
    .query =
-      "default.filter(nucleotideMutationProfile(distance:=0, mutations:={})).project(primaryKey)",
+      "default.filter(nucleotideMutationProfile(distance:=0, sequenceName:='segment1', "
+      "mutations:={})).project(primaryKey)",
    .expected_query_result = nlohmann::json::parse(
       R"([{"primaryKey":"seq_ref"},{"primaryKey":"seq_all_n"},{"primaryKey":"seq_mixed_amb"}])"
    )
@@ -79,7 +79,8 @@ const QueryTestScenario MUTATIONS_DISTANCE_0 = {
 const QueryTestScenario MUTATIONS_DISTANCE_1 = {
    .name = "MUTATIONS_DISTANCE_1",
    .query =
-      "default.filter(nucleotideMutationProfile(distance:=1, mutations:={})).project(primaryKey)",
+      "default.filter(nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
+      "mutations:={})).project(primaryKey)",
    .expected_query_result = nlohmann::json::parse(
       R"([{"primaryKey":"seq_ref"},{"primaryKey":"seq_1mut"},{"primaryKey":"seq_all_n"},{"primaryKey":"seq_mixed_amb"}])"
    )
@@ -89,7 +90,8 @@ const QueryTestScenario MUTATIONS_DISTANCE_1 = {
 const QueryTestScenario MUTATIONS_DISTANCE_2 = {
    .name = "MUTATIONS_DISTANCE_2",
    .query =
-      "default.filter(nucleotideMutationProfile(distance:=2, mutations:={})).project(primaryKey)",
+      "default.filter(nucleotideMutationProfile(distance:=2, sequenceName:='segment1', "
+      "mutations:={})).project(primaryKey)",
    .expected_query_result = nlohmann::json::parse(
       R"([{"primaryKey":"seq_ref"},{"primaryKey":"seq_1mut"},{"primaryKey":"seq_2mut"},{"primaryKey":"seq_all_n"},{"primaryKey":"seq_mixed_amb"}])"
    )
@@ -101,8 +103,8 @@ const QueryTestScenario MUTATIONS_DISTANCE_2 = {
 const QueryTestScenario MUTATIONS_WITH_PROFILE_DISTANCE_0 = {
    .name = "MUTATIONS_WITH_PROFILE_DISTANCE_0",
    .query =
-      "default.filter(nucleotideMutationProfile(distance:=0, mutations:={{position:=1, "
-      "symbol:='C'}})).project(primaryKey)",
+      "default.filter(nucleotideMutationProfile(distance:=0, sequenceName:='segment1', "
+      "mutations:={{position:=1, symbol:='C'}})).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"seq_1mut"},{"primaryKey":"seq_all_n"}])")
 };
@@ -114,7 +116,7 @@ const QueryTestScenario MUTATIONS_WITH_PROFILE_DISTANCE_0 = {
 const QueryTestScenario QUERY_SEQUENCE_DISTANCE_0 = {
    .name = "QUERY_SEQUENCE_DISTANCE_0",
    .query =
-      "default.filter(nucleotideMutationProfile(distance:=0, "
+      "default.filter(nucleotideMutationProfile(distance:=0, sequenceName:='segment1', "
       "querySequence:='ATGCN')).project(primaryKey)",
    .expected_query_result = nlohmann::json::parse(
       R"([{"primaryKey":"seq_ref"},{"primaryKey":"seq_all_n"},{"primaryKey":"seq_mixed_amb"}])"
@@ -125,7 +127,7 @@ const QueryTestScenario QUERY_SEQUENCE_DISTANCE_0 = {
 const QueryTestScenario QUERY_SEQUENCE_WRONG_LENGTH = {
    .name = "QUERY_SEQUENCE_WRONG_LENGTH",
    .query =
-      "default.filter(nucleotideMutationProfile(distance:=0, "
+      "default.filter(nucleotideMutationProfile(distance:=0, sequenceName:='segment1', "
       "querySequence:='ATG')).project(primaryKey)",
    .expected_error_message =
       "querySequence length 3 does not match the reference sequence length 5 for Nucleotide "
@@ -139,7 +141,7 @@ const QueryTestScenario QUERY_SEQUENCE_WRONG_LENGTH = {
 const QueryTestScenario SEQUENCE_ID_DISTANCE_0 = {
    .name = "SEQUENCE_ID_DISTANCE_0",
    .query =
-      "default.filter(nucleotideMutationProfile(distance:=0, "
+      "default.filter(nucleotideMutationProfile(distance:=0, sequenceName:='segment1', "
       "sequenceId:='seq_1mut')).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"seq_1mut"},{"primaryKey":"seq_all_n"}])")
@@ -149,7 +151,7 @@ const QueryTestScenario SEQUENCE_ID_DISTANCE_0 = {
 const QueryTestScenario SEQUENCE_ID_NOT_FOUND = {
    .name = "SEQUENCE_ID_NOT_FOUND",
    .query =
-      "default.filter(nucleotideMutationProfile(distance:=0, "
+      "default.filter(nucleotideMutationProfile(distance:=0, sequenceName:='segment1', "
       "sequenceId:='nonexistent_id')).project(primaryKey)",
    .expected_error_message =
       "No sequence found with primary key 'nonexistent_id' in Nucleotide MutationProfile"
@@ -158,7 +160,9 @@ const QueryTestScenario SEQUENCE_ID_NOT_FOUND = {
 // No input method provided
 const QueryTestScenario NO_INPUT_METHOD = {
    .name = "NO_INPUT_METHOD",
-   .query = "default.filter(nucleotideMutationProfile(distance:=0)).project(primaryKey)",
+   .query =
+      "default.filter(nucleotideMutationProfile(distance:=0, sequenceName:='segment1'))."
+      "project(primaryKey)",
    .expected_error_message =
       "Exactly one of 'querySequence', 'sequenceId', or 'mutations' must be provided in a "
       "Nucleotide MutationProfile expression, but 0 were provided"
@@ -168,8 +172,8 @@ const QueryTestScenario NO_INPUT_METHOD = {
 const QueryTestScenario TWO_INPUT_METHODS = {
    .name = "TWO_INPUT_METHODS",
    .query =
-      "default.filter(nucleotideMutationProfile(distance:=0, mutations:={}, "
-      "querySequence:='ATGCN')).project(primaryKey)",
+      "default.filter(nucleotideMutationProfile(distance:=0, sequenceName:='segment1', "
+      "mutations:={}, querySequence:='ATGCN')).project(primaryKey)",
    .expected_error_message =
       "Exactly one of 'querySequence', 'sequenceId', or 'mutations' must be provided in a "
       "Nucleotide MutationProfile expression, but 2 were provided"
@@ -244,14 +248,12 @@ const QueryTestScenario AA_INVALID_SEQUENCE_NAME = {
       "Database does not contain the AminoAcid Sequence with name: 'nonexistent_gene'"
 };
 
-// No sequenceName provided and no default AA sequence in the config → error
+// No sequenceName provided → error (a sequence name is always required)
 const QueryTestScenario AA_NO_SEQUENCE_NAME = {
    .name = "AA_NO_SEQUENCE_NAME",
    .query =
       "default.filter(aminoAcidMutationProfile(distance:=0, mutations:={})).project(primaryKey)",
-   .expected_error_message =
-      "Database does not have a default sequence name for AminoAcid sequences. "
-      "You need to provide the sequence name with the AminoAcid MutationProfile filter."
+   .expected_error_message = "aminoAcidMutationProfile() requires argument 'sequenceName'"
 };
 
 // Mutation position is outside the bounds of the specified AA sequence → error

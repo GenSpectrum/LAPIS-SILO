@@ -4,6 +4,7 @@
 #include <cmath>
 #include <compare>
 #include <iterator>
+#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -89,53 +90,41 @@ Type Selection::type() const {
    return SELECTION;
 }
 
-bool Selection::matchesPredicates(const PredicateVector& predicates, uint32_t row) {
-   return std::ranges::all_of(predicates, [&](const auto& predicate) {
-      return predicate->match(row);
-   });
-}
-
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 CopyOnWriteBitmap Selection::evaluate() const {
    EVOBENCH_SCOPE("Selection", "evaluate");
+   SILO_ASSERT(!predicates.empty());
+
+   // Build the candidate rows that already satisfy the most selective predicate. Predicates are
+   // sorted most-selective-first at construction
+   roaring::Roaring candidates;
    if (child_operator.has_value()) {
       CopyOnWriteBitmap child_result = (*child_operator)->evaluate();
-      // Do not iterate over bitmap, if child result is larger than 10%
-      if (child_result.getConstReference().cardinality() > row_layout.numRows() / 10) {
-         SILO_ASSERT(!predicates.empty());
-         auto most_selective_predicate_bitmap = predicates.front()->makeBitmap(row_layout);
-         child_result.getMutable() &= most_selective_predicate_bitmap;
-
-         if (predicates.size() == 1) {
-            return CopyOnWriteBitmap{std::move(child_result)};
-         }
-
-         // Apply all remaining predicates as before `matchesPredicates`
-         PredicateVector remaining_predicates;
-         remaining_predicates.reserve(predicates.size() - 1);
-         for (size_t i = 1; i < predicates.size(); ++i) {
-            remaining_predicates.push_back(predicates.at(i)->copy());
-         }
+      // For a small child, matching each of its rows against every predicate is cheaper than
+      // materializing the first predicate over the whole partition.
+      if (child_result.getConstReference().cardinality() <= row_layout.numRows() / 10) {
          roaring::Roaring result;
          for (const uint32_t row : child_result.getConstReference()) {
-            if (matchesPredicates(remaining_predicates, row)) {
+            if (matchesPredicates(predicates, row)) {
                result.add(row);
             }
          }
          return CopyOnWriteBitmap{std::move(result)};
       }
-      roaring::Roaring result;
-      for (const uint32_t row : child_result.getConstReference()) {
-         if (matchesPredicates(predicates, row)) {
-            result.add(row);
-         }
-      }
-      return CopyOnWriteBitmap{std::move(result)};
+      candidates = std::move(child_result.getMutable());
+      candidates &= predicates.front()->makeBitmap(row_layout);
+   } else {
+      candidates = predicates.front()->makeBitmap(row_layout);
    }
+
+   // `candidates` already satisfies predicates.front(); apply the remaining predicates row by row.
+   if (predicates.size() == 1) {
+      return CopyOnWriteBitmap{std::move(candidates)};
+   }
+   const auto remaining_predicates =
+      std::ranges::subrange(predicates.begin() + 1, predicates.end());
    roaring::Roaring result;
-   for (const storage::column::RowId row_id : row_layout) {
-      const uint32_t row = row_id.toGlobal();
-      if (matchesPredicates(predicates, row)) {
+   for (const uint32_t row : candidates) {
+      if (matchesPredicates(remaining_predicates, row)) {
          result.add(row);
       }
    }
