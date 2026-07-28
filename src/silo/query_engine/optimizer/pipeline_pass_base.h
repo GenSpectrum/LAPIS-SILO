@@ -9,6 +9,7 @@
 #include "silo/query_engine/operators/join_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
+#include "silo/query_engine/operators/order_by_with_limit_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
@@ -83,6 +84,11 @@ class PipelinePassBase {
    }
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::OrderByNode& node) {
+      propagateToNode(node.child);
+      return nullptr;
+   }
+   // NOLINTNEXTLINE(misc-no-recursion)
+   operators::QueryNodePtr operator()(operators::OrderByWithLimitNode& node) {
       propagateToNode(node.child);
       return nullptr;
    }

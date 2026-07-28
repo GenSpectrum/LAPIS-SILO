@@ -18,6 +18,8 @@ std::string_view nodeKindToString(NodeKind kind) {
          return "Project";
       case NodeKind::ORDER_BY:
          return "OrderBy";
+      case NodeKind::ORDER_BY_WITH_LIMIT:
+         return "OrderByWithLimit";
       case NodeKind::FETCH:
          return "Fetch";
       case NodeKind::FILTER:

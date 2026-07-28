@@ -200,6 +200,19 @@ const QueryTestScenario LIMIT_3_RANDOMIZE = {
    )
 };
 
+// A randomize directly followed by a limit is combined into an OrderByWithLimitNode that uses the
+// top-k (select_k) path. The result must still be the prefix of the full randomized order for this
+// seed (see RANDOMIZE_SEED: id5, id1, id4, ...).
+const QueryTestScenario RANDOMIZE_WITH_LIMIT = {
+   .name = "RANDOMIZE_WITH_LIMIT",
+   .query = "default.project(key).randomize(seed:=1231).limit(3)",
+   .expected_query_result = json::parse(
+      R"([{"key": "id5"},
+          {"key": "id1"},
+          {"key": "id4"}])"
+   )
+};
+
 const QueryTestScenario AGGREGATE_LIMIT_RANDOMIZE = {
    .name = "AGGREGATE_LIMIT_RANDOMIZE",
    .query = "default.groupBy({count:=count()},{key}).randomize(seed:=12321).offset(1).limit(2)",
@@ -225,6 +238,7 @@ QUERY_TEST(
       ORDER_BY_AGGREGATE_RANDOMIZE,
       LIMIT_2_RANDOMIZE,
       LIMIT_3_RANDOMIZE,
+      RANDOMIZE_WITH_LIMIT,
       AGGREGATE_LIMIT_RANDOMIZE
    )
 );
