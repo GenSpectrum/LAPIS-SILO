@@ -11,6 +11,7 @@
 #include "silo/query_engine/optimizer/filter_pushdown_pass.h"
 #include "silo/query_engine/optimizer/map_pullup_pass.h"
 #include "silo/query_engine/optimizer/node_resolution_pass.h"
+#include "silo/query_engine/optimizer/select_k_rewrite_pass.h"
 #include "silo/query_engine/saneql/ast_to_query.h"
 #include "silo/schema/database_schema.h"
 
@@ -23,6 +24,7 @@ using optimizer::ColumnNarrowingPass;
 using optimizer::FilterPushdownPass;
 using optimizer::MapPullupPass;
 using optimizer::NodeResolutionPass;
+using optimizer::SelectKRewritePass;
 
 arrow::Result<QueryPlan> planQueryOrError(
    const operators::QueryNode& node,
@@ -55,6 +57,8 @@ QueryPlan Planner::planQuery(
    log_plan("after FilterPushdownPass");
    node = MapPullupPass::run(std::move(node));
    log_plan("after MapPullupPass");
+   node = SelectKRewritePass::run(std::move(node));
+   log_plan("after SelectKRewritePass");
    node = BitmapAggregationRewritePass::run(std::move(node));
    log_plan("after BitmapAggregationRewritePass");
    node = NodeResolutionPass::run(std::move(node));

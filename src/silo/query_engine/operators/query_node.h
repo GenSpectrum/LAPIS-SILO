@@ -20,6 +20,7 @@ enum class NodeKind : uint8_t {
    PROJECT,
    MAP,
    ORDER_BY,
+   ORDER_BY_WITH_LIMIT,
    FETCH,
    FILTER,
    UNRESOLVED_MUTATIONS_NUCLEOTIDE,

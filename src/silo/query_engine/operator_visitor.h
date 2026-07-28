@@ -13,6 +13,7 @@
 #include "silo/query_engine/operators/most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/mutations_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
+#include "silo/query_engine/operators/order_by_with_limit_node.h"
 #include "silo/query_engine/operators/phylo_subtree_node.h"
 #include "silo/query_engine/operators/project_node.h"
 #include "silo/query_engine/operators/schema_node.h"
@@ -37,6 +38,8 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
          return std::forward<Func>(func)(static_cast<MapNode&>(node));
       case NodeKind::ORDER_BY:
          return std::forward<Func>(func)(static_cast<OrderByNode&>(node));
+      case NodeKind::ORDER_BY_WITH_LIMIT:
+         return std::forward<Func>(func)(static_cast<OrderByWithLimitNode&>(node));
       case NodeKind::FETCH:
          return std::forward<Func>(func)(static_cast<FetchNode&>(node));
       case NodeKind::FILTER:
