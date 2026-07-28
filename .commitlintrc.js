@@ -37,7 +37,7 @@ const Configuration = {
     "scope-enum": [
       RuleConfigSeverity.Error,
       "always",
-      [...trackedRootDirectories, ...siloSubdirectories, "silo"],
+      [...trackedRootDirectories, ...siloSubdirectories, "silo", "main", "deps"],
     ],
   },
 };
