@@ -57,7 +57,6 @@ std::string makeRandomReference(std::mt19937& rng) {
 
 std::shared_ptr<Database> setupDatabase(const std::string& reference) {
    auto database_config = silo::config::DatabaseConfig::getValidatedConfig(R"(
-defaultNucleotideSequence: "main"
 schema:
   instanceName: co_occurrence_benchmark
   metadata:
