@@ -42,7 +42,6 @@ const nlohmann::json ROW_CA = createDataWithSequences("CATTT", "X*", "Europe");
 
 const auto DATABASE_CONFIG =
    R"(
-defaultNucleotideSequence: "segment1"
 schema:
   instanceName: "dummy name"
   metadata:
