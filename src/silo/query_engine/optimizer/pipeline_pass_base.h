@@ -12,6 +12,7 @@
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
 #include "silo/query_engine/operators/unresolved_insertions_node.h"
+#include "silo/query_engine/operators/unresolved_lineage_aggregate_node.h"
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
@@ -110,6 +111,11 @@ class PipelinePassBase {
    }
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(operators::UnresolvedPhyloSubtreeNode& node) {
+      propagateToNode(node.child);
+      return nullptr;
+   }
+   // NOLINTNEXTLINE(misc-no-recursion)
+   operators::QueryNodePtr operator()(operators::UnresolvedLineageAggregateNode& node) {
       propagateToNode(node.child);
       return nullptr;
    }

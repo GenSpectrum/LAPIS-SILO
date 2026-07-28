@@ -72,6 +72,11 @@ class LineageTree {
       return child_to_parent_relation;
    }
 
+   // The number of canonical (non-alias) lineages defined in the lineage tree. Canonical lineages
+   // occupy the id range [0, numberOfLineages()); aliases are assigned ids >= numberOfLineages().
+   // See LineageTreeAndIdMap::fromLineageDefinitionFile / assignLineageIds.
+   [[nodiscard]] size_t numberOfLineages() const { return child_to_parent_relation.size(); }
+
    static std::unordered_map<Idx, std::optional<Idx>> computeRecombinantCladeAncestors(
       const std::vector<std::vector<Idx>>& child_to_parent_relation
    );

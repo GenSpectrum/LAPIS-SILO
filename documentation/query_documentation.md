@@ -109,6 +109,21 @@ default.groupBy({count:=count()}, {country, pango_lineage})
 {"count": 1,  "pango_lineage": null}
 ```
 
+#### Sublineage-inclusive counts
+
+A single group-by column may be given as `lineage(<column>, includeSublineages := true)` (optionally with `recombinantFollowingMode`, exactly as in the [`lineage(...)` scalar filter](#lineagecolumn-value--includesublineagesbool--recombinantfollowingmodestring)). Instead of grouping by the exact stored value, this emits, for **every lineage defined for that column** (including lineages with no matching rows, which get count `0`), the number of matching rows whose lineage is that lineage *or any of its sublineages*:
+
+```
+default.filter(country = 'CH').groupBy({count := count()}, {lineage(pango_lineage, includeSublineages := true)})
+default.groupBy({count := count()}, {lineage(pango_lineage, includeSublineages := true, recombinantFollowingMode := 'alwaysFollow')})
+```
+
+**Output:** one row per defined lineage, `{<column>: "<lineage>", <countName>: N}`. Lineage aliases are reported once, under their canonical name.
+
+> **This is not a partition of the rows.** A row in lineage `A.1` is counted under both `A.1` and its ancestor `A`, so the emitted counts do **not** sum to the filtered total (unlike a plain `groupBy`). This is the same "or below" semantics as `includeSublineages` in the `lineage(...)` filter.
+
+Only the narrow form is supported: exactly one `lineage(..., includeSublineages := true)` group-by column and exactly one `count()` aggregate. Combining it with other group-by columns or non-`count()` aggregates is rejected. For grouping by the exact stored lineage value, use the bare column name (`{pango_lineage}`) as above.
+
 ### `project(fields)`
 
 Returns only the specified columns. `fields` is a set of column names (or a single name without braces).
