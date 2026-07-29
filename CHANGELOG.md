@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.13.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.12.1...v0.13.0) (2026-07-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* **silo:** Insertions response: removed `insertion` field. Mutations response: removed `mutation` field. The string was constructed from information that is still present in the response.
+* **preprocessing:** the database config options `defaultNucleotideSequence` and `defaultAminoAcidSequence` have been removed. `sequenceName` is now required on all nucleotide and amino acid filters (`nucleotideEquals`/`aminoAcidEquals`, `hasMutation`/`hasAAMutation`, `insertionContains`/`aminoAcidInsertionContains`, `symbolInSet` and the mutation profile filters).
+
+### Features
+
+* **app:** add a --version command to the silo binary ([8b3146e](https://github.com/GenSpectrum/LAPIS-SILO/commit/8b3146ec977f5fd643acb41b494ac381f085e1e3))
+* **preprocessing:** remove default sequence names from database config ([#1386](https://github.com/GenSpectrum/LAPIS-SILO/issues/1386)) ([b8712ec](https://github.com/GenSpectrum/LAPIS-SILO/commit/b8712ec2fbee7b7df374c9091019858adb8bed46))
+* **query_engine:** add join operator ([f7cbaf4](https://github.com/GenSpectrum/LAPIS-SILO/commit/f7cbaf480336399f6d07e25b4383d797210bef0d))
+* **silo:** allow updating of string columns ([818a737](https://github.com/GenSpectrum/LAPIS-SILO/commit/818a737a0b0d8d8df86cd27447d695d0722e93b3))
+* **silo:** remove `insertion` and `mutation` field from responses ([#1408](https://github.com/GenSpectrum/LAPIS-SILO/issues/1408)) ([72fca9f](https://github.com/GenSpectrum/LAPIS-SILO/commit/72fca9fd660733914b84cf2c3c322f3003e5da7d))
+
 ## [0.12.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.12.0...v0.12.1) (2026-07-27)
 
 
