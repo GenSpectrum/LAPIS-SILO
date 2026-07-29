@@ -184,11 +184,11 @@ const QueryTestScenario UNION_ALL_MUTATIONS_ON_UNION_SCENARIO = {
 const QueryTestScenario UNION_ALL_OF_MUTATIONS_SCENARIO = {
    .name = "UNION_ALL_OF_MUTATIONS",
    .query = R"(unionAll(
-      default.filter(country='CH').mutations(minProportion:=0.0, fields:={mutation, proportion}),
-      default.filter(country='DE').mutations(minProportion:=0.0, fields:={mutation, proportion})
-   ).orderBy({asc(mutation)}))",
+      default.filter(country='CH').mutations(minProportion:=0.0, fields:={mutationTo, proportion}),
+      default.filter(country='DE').mutations(minProportion:=0.0, fields:={mutationTo, proportion})
+   ).orderBy({asc(mutationTo)}))",
    .expected_query_result = nlohmann::json(
-      {{{"mutation", "A1T"}, {"proportion", 1.0}}, {{"mutation", "A1T"}, {"proportion", 1.0}}}
+      {{{"mutationTo", "T"}, {"proportion", 1.0}}, {{"mutationTo", "T"}, {"proportion", 1.0}}}
    )
 };
 

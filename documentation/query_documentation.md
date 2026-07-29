@@ -191,7 +191,6 @@ default.mutations(minProportion:=0.9, sequenceNames:={main, S})
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `mutation` | string | Substitution formatted as `<from><position><to>`, e.g. `A23403G`, `E156-` |
 | `mutationFrom` | string | Reference symbol at this position |
 | `mutationTo` | string | Observed symbol (`-` for a deletion) |
 | `position` | integer | 1-based position in the sequence |
@@ -201,7 +200,7 @@ default.mutations(minProportion:=0.9, sequenceNames:={main, S})
 | `count` | integer | Number of sequences carrying this mutation |
 
 ```json
-{"mutation": "N501Y", "mutationFrom": "N", "mutationTo": "Y", "position": 501, "sequenceName": "S", "proportion": 0.44086021505376344, "coverage": 93, "count": 41}
+{"mutationFrom": "N", "mutationTo": "Y", "position": 501, "sequenceName": "S", "proportion": 0.44086021505376344, "coverage": 93, "count": 41}
 ```
 
 ### `aminoAcidMutations(minProportion:=p [, sequenceNames:={...}] [, fields:={...}])`
@@ -225,14 +224,13 @@ default.insertions(sequenceNames:={main})
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `insertion` | string | Formatted as `ins_<position>:<symbols>`, e.g. `ins_22204:CAGAA` |
 | `insertedSymbols` | string | The inserted nucleotide sequence |
 | `position` | integer | 1-based position after which the insertion occurs (0 = before position 1) |
 | `sequenceName` | string | Name of the sequence |
 | `count` | integer | Number of sequences carrying this exact insertion |
 
 ```json
-{"insertion": "ins_22204:CAGAA", "insertedSymbols": "CAGAA", "position": 22204, "sequenceName": "main", "count": 1}
+{"insertedSymbols": "CAGAA", "position": 22204, "sequenceName": "main", "count": 1}
 ```
 
 ### `aminoAcidInsertions([sequenceNames:={...}])`

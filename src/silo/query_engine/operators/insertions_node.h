@@ -23,7 +23,6 @@ class InsertionsNode final : public QueryNode {
   public:
    static constexpr std::string_view POSITION_FIELD_NAME = "position";
    static constexpr std::string_view INSERTED_SYMBOLS_FIELD_NAME = "insertedSymbols";
-   static constexpr std::string_view INSERTION_FIELD_NAME = "insertion";
    static constexpr std::string_view SEQUENCE_FIELD_NAME = "sequenceName";
    static constexpr std::string_view COUNT_FIELD_NAME = "count";
 
@@ -45,7 +44,6 @@ class InsertionsNode final : public QueryNode {
       fields.emplace_back(std::string(POSITION_FIELD_NAME), schema::ColumnType::INT32);
       fields.emplace_back(std::string(INSERTED_SYMBOLS_FIELD_NAME), schema::ColumnType::STRING);
       fields.emplace_back(std::string(SEQUENCE_FIELD_NAME), schema::ColumnType::STRING);
-      fields.emplace_back(std::string(INSERTION_FIELD_NAME), schema::ColumnType::STRING);
       fields.emplace_back(std::string(COUNT_FIELD_NAME), schema::ColumnType::INT32);
       return fields;
    }

@@ -1,33 +1,29 @@
 {
   "testCaseName": "The insertions action",
-  "query": "default.insertions().orderBy({insertion})",
+  "query": "default.insertions().orderBy({sequenceName, position, insertedSymbols})",
   "expectedQueryResult": [
     {
       "count": 1,
+      "insertedSymbols": "TAT",
+      "position": 5959,
+      "sequenceName": "main"
+    },
+    {
+      "count": 1,
       "insertedSymbols": "CAGAA",
-      "insertion": "ins_main:22204:CAGAA",
       "position": 22204,
       "sequenceName": "main"
     },
     {
       "count": 1,
       "insertedSymbols": "GCTGGT",
-      "insertion": "ins_main:22339:GCTGGT",
       "position": 22339,
       "sequenceName": "main"
     },
     {
       "count": 17,
       "insertedSymbols": "CCC",
-      "insertion": "ins_main:25701:CCC",
       "position": 25701,
-      "sequenceName": "main"
-    },
-    {
-      "count": 1,
-      "insertedSymbols": "TAT",
-      "insertion": "ins_main:5959:TAT",
-      "position": 5959,
       "sequenceName": "main"
     }
   ]

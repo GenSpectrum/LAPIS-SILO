@@ -30,7 +30,6 @@ class UnresolvedInsertionsNode final : public QueryNode {
          {.name = std::string(IN::POSITION_FIELD_NAME), .type = schema::ColumnType::INT32},
          {.name = std::string(IN::INSERTED_SYMBOLS_FIELD_NAME), .type = schema::ColumnType::STRING},
          {.name = std::string(IN::SEQUENCE_FIELD_NAME), .type = schema::ColumnType::STRING},
-         {.name = std::string(IN::INSERTION_FIELD_NAME), .type = schema::ColumnType::STRING},
          {.name = std::string(IN::COUNT_FIELD_NAME), .type = schema::ColumnType::INT32},
       };
    }

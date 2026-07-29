@@ -40,9 +40,6 @@ class UnresolvedMutationsNode final : public QueryNode {
          return include_all || std::ranges::find(fields, name) != fields.end();
       };
       std::vector<schema::ColumnIdentifier> output_fields;
-      if (has(MN::MUTATION_FIELD_NAME)) {
-         output_fields.emplace_back(std::string(MN::MUTATION_FIELD_NAME), ColumnType::STRING);
-      }
       if (has(MN::MUTATION_FROM_FIELD_NAME)) {
          output_fields.emplace_back(std::string(MN::MUTATION_FROM_FIELD_NAME), ColumnType::STRING);
       }

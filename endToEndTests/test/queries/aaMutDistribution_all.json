@@ -5,7 +5,6 @@
     {
       "count": 37,
       "coverage": 91,
-      "mutation": "G142D",
       "mutationFrom": "G",
       "mutationTo": "D",
       "position": 142,
@@ -15,7 +14,6 @@
     {
       "count": 46,
       "coverage": 100,
-      "mutation": "R203K",
       "mutationFrom": "R",
       "mutationTo": "K",
       "position": 203,
@@ -25,7 +23,6 @@
     {
       "count": 46,
       "coverage": 100,
-      "mutation": "G204R",
       "mutationFrom": "G",
       "mutationTo": "R",
       "position": 204,
@@ -35,7 +32,6 @@
     {
       "count": 98,
       "coverage": 100,
-      "mutation": "P314L",
       "mutationFrom": "P",
       "mutationTo": "L",
       "position": 314,
@@ -45,7 +41,6 @@
     {
       "count": 38,
       "coverage": 88,
-      "mutation": "L452R",
       "mutationFrom": "L",
       "mutationTo": "R",
       "position": 452,
@@ -55,7 +50,6 @@
     {
       "count": 69,
       "coverage": 94,
-      "mutation": "T478K",
       "mutationFrom": "T",
       "mutationTo": "K",
       "position": 478,
@@ -65,7 +59,6 @@
     {
       "count": 41,
       "coverage": 93,
-      "mutation": "N501Y",
       "mutationFrom": "N",
       "mutationTo": "Y",
       "position": 501,
@@ -75,7 +68,6 @@
     {
       "count": 98,
       "coverage": 99,
-      "mutation": "D614G",
       "mutationFrom": "D",
       "mutationTo": "G",
       "position": 614,
@@ -85,7 +77,6 @@
     {
       "count": 42,
       "coverage": 100,
-      "mutation": "P681H",
       "mutationFrom": "P",
       "mutationTo": "H",
       "position": 681,
@@ -95,7 +86,6 @@
     {
       "count": 64,
       "coverage": 99,
-      "mutation": "T3255I",
       "mutationFrom": "T",
       "mutationTo": "I",
       "position": 3255,
@@ -105,7 +95,6 @@
     {
       "count": 44,
       "coverage": 98,
-      "mutation": "S3675-",
       "mutationFrom": "S",
       "mutationTo": "-",
       "position": 3675,
@@ -115,7 +104,6 @@
     {
       "count": 44,
       "coverage": 99,
-      "mutation": "G3676-",
       "mutationFrom": "G",
       "mutationTo": "-",
       "position": 3676,

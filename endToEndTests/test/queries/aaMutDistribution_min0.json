@@ -1,21 +1,19 @@
 {
   "testCaseName": "The distribution of Amino Acid Mutations action with minProportion 0",
-  "query": "default.aminoAcidMutations(minProportion:=0.0, sequenceNames:={E}).orderBy({mutation})",
+  "query": "default.aminoAcidMutations(minProportion:=0.0, sequenceNames:={E}).orderBy({sequenceName, position, mutationTo})",
   "expectedQueryResult": [
     {
-      "count": 1,
-      "coverage": 99,
-      "mutation": "F20L",
-      "mutationFrom": "F",
-      "mutationTo": "L",
-      "position": 20,
-      "proportion": 0.010101010101010102,
+      "count": 34,
+      "coverage": 98,
+      "mutationFrom": "T",
+      "mutationTo": "I",
+      "position": 9,
+      "proportion": 0.3469387755102041,
       "sequenceName": "E"
     },
     {
       "count": 1,
       "coverage": 99,
-      "mutation": "L18I",
       "mutationFrom": "L",
       "mutationTo": "I",
       "position": 18,
@@ -23,13 +21,12 @@
       "sequenceName": "E"
     },
     {
-      "count": 34,
-      "coverage": 98,
-      "mutation": "T9I",
-      "mutationFrom": "T",
-      "mutationTo": "I",
-      "position": 9,
-      "proportion": 0.3469387755102041,
+      "count": 1,
+      "coverage": 99,
+      "mutationFrom": "F",
+      "mutationTo": "L",
+      "position": 20,
+      "proportion": 0.010101010101010102,
       "sequenceName": "E"
     }
   ]

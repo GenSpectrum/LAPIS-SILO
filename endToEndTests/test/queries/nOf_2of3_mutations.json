@@ -5,7 +5,6 @@
     {
       "count": 1,
       "coverage": 1,
-      "mutation": "A1-",
       "mutationFrom": "A",
       "mutationTo": "-",
       "position": 1,
@@ -15,7 +14,6 @@
     {
       "count": 1,
       "coverage": 1,
-      "mutation": "T2-",
       "mutationFrom": "T",
       "mutationTo": "-",
       "position": 2,
@@ -25,7 +23,6 @@
     {
       "count": 53,
       "coverage": 53,
-      "mutation": "C241T",
       "mutationFrom": "C",
       "mutationTo": "T",
       "position": 241,
@@ -35,7 +32,6 @@
     {
       "count": 51,
       "coverage": 51,
-      "mutation": "C3037T",
       "mutationFrom": "C",
       "mutationTo": "T",
       "position": 3037,
@@ -45,7 +41,6 @@
     {
       "count": 52,
       "coverage": 52,
-      "mutation": "C14408T",
       "mutationFrom": "C",
       "mutationTo": "T",
       "position": 14408,
@@ -55,7 +50,6 @@
     {
       "count": 53,
       "coverage": 53,
-      "mutation": "A23403G",
       "mutationFrom": "A",
       "mutationTo": "G",
       "position": 23403,
@@ -65,7 +59,6 @@
     {
       "count": 4,
       "coverage": 4,
-      "mutation": "G29868-",
       "mutationFrom": "G",
       "mutationTo": "-",
       "position": 29868,
@@ -75,7 +68,6 @@
     {
       "count": 4,
       "coverage": 5,
-      "mutation": "A29869-",
       "mutationFrom": "A",
       "mutationTo": "-",
       "position": 29869,
