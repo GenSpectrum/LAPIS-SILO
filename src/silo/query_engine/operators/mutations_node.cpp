@@ -10,7 +10,6 @@
 
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
-#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
 #include "evobench/evobench.hpp"
@@ -321,17 +320,6 @@ arrow::Status addMutationsToOutput(
             if (count > threshold_count) {
                const double proportion = static_cast<double>(count) / static_cast<double>(total);
                using OutputValue = std::optional<std::variant<std::string, bool, int32_t, double>>;
-               ARROW_RETURN_NOT_OK(output_builder.addValueIfContainedInOutput(
-                  MutationsNode<SymbolType>::MUTATION_FIELD_NAME,
-                  [&]() -> OutputValue {
-                     return {fmt::format(
-                        "{}{}{}",
-                        SymbolType::symbolToChar(symbol_in_reference_genome),
-                        pos + 1,
-                        SymbolType::symbolToChar(symbol)
-                     )};
-                  }
-               ));
                ARROW_RETURN_NOT_OK(output_builder.addValueIfContainedInOutput(
                   MutationsNode<SymbolType>::MUTATION_FROM_FIELD_NAME,
                   [&]() -> OutputValue {

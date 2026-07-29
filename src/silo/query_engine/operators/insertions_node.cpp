@@ -11,7 +11,6 @@
 
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
-#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <boost/container_hash/hash.hpp>
 #include <nlohmann/json.hpp>
@@ -100,17 +99,6 @@ arrow::Status addAggregatedInsertionsToInsertionCounts(
       ARROW_RETURN_NOT_OK(output_builder.addValueIfContainedInOutput(
          InsertionsNode<SymbolType>::SEQUENCE_FIELD_NAME,
          [&]() -> OutputValue { return sequence_name; }
-      ));
-      ARROW_RETURN_NOT_OK(output_builder.addValueIfContainedInOutput(
-         InsertionsNode<SymbolType>::INSERTION_FIELD_NAME,
-         [&]() -> OutputValue {
-            return fmt::format(
-               "ins_{}:{}:{}",
-               sequence_name,
-               position_and_insertion.position_idx,
-               position_and_insertion.insertion_value
-            );
-         }
       ));
       ARROW_RETURN_NOT_OK(output_builder.addValueIfContainedInOutput(
          InsertionsNode<SymbolType>::COUNT_FIELD_NAME,

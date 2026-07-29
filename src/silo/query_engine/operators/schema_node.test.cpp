@@ -104,8 +104,7 @@ const QueryTestScenario MUTATIONS_SCHEMA_SCENARIO = {
    .name = "MUTATIONS_SCHEMA",
    .query = "default.mutations(minProportion:=0.1).schema()",
    .expected_query_result = nlohmann::json(
-      {{{"fieldName", "mutation"}, {"type", "STRING"}},
-       {{"fieldName", "mutationFrom"}, {"type", "STRING"}},
+      {{{"fieldName", "mutationFrom"}, {"type", "STRING"}},
        {{"fieldName", "mutationTo"}, {"type", "STRING"}},
        {{"fieldName", "sequenceName"}, {"type", "STRING"}},
        {{"fieldName", "position"}, {"type", "INT32"}},
@@ -122,7 +121,6 @@ const QueryTestScenario INSERTIONS_SCHEMA_SCENARIO = {
       {{{"fieldName", "position"}, {"type", "INT32"}},
        {{"fieldName", "insertedSymbols"}, {"type", "STRING"}},
        {{"fieldName", "sequenceName"}, {"type", "STRING"}},
-       {{"fieldName", "insertion"}, {"type", "STRING"}},
        {{"fieldName", "count"}, {"type", "INT32"}}}
    )
 };
@@ -188,8 +186,7 @@ const QueryTestScenario AMINO_ACID_MUTATIONS_SCHEMA_SCENARIO = {
    .name = "AMINO_ACID_MUTATIONS_SCHEMA",
    .query = "default.aminoAcidMutations(minProportion:=0.1).schema()",
    .expected_query_result = nlohmann::json(
-      {{{"fieldName", "mutation"}, {"type", "STRING"}},
-       {{"fieldName", "mutationFrom"}, {"type", "STRING"}},
+      {{{"fieldName", "mutationFrom"}, {"type", "STRING"}},
        {{"fieldName", "mutationTo"}, {"type", "STRING"}},
        {{"fieldName", "sequenceName"}, {"type", "STRING"}},
        {{"fieldName", "position"}, {"type", "INT32"}},
@@ -249,8 +246,7 @@ const QueryTestScenario SCHEMA_AFTER_FILTERED_MUTATIONS_SCENARIO = {
    .name = "SCHEMA_AFTER_FILTERED_MUTATIONS",
    .query = "default.filter(country='CH').mutations(minProportion:=0.1).schema()",
    .expected_query_result = nlohmann::json(
-      {{{"fieldName", "mutation"}, {"type", "STRING"}},
-       {{"fieldName", "mutationFrom"}, {"type", "STRING"}},
+      {{{"fieldName", "mutationFrom"}, {"type", "STRING"}},
        {{"fieldName", "mutationTo"}, {"type", "STRING"}},
        {{"fieldName", "sequenceName"}, {"type", "STRING"}},
        {{"fieldName", "position"}, {"type", "INT32"}},

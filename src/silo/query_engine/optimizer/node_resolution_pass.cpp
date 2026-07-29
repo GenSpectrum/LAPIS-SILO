@@ -56,7 +56,6 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
    std::vector<std::string_view> fields_to_use;
    if (node.fields.empty()) {
       fields_to_use = {
-         operators::MutationsNode<SymbolType>::MUTATION_FIELD_NAME,
          operators::MutationsNode<SymbolType>::MUTATION_FROM_FIELD_NAME,
          operators::MutationsNode<SymbolType>::MUTATION_TO_FIELD_NAME,
          operators::MutationsNode<SymbolType>::POSITION_FIELD_NAME,
@@ -70,7 +69,7 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
          auto it = std::ranges::find(operators::MutationsNode<SymbolType>::VALID_FIELDS, field_str);
          CHECK_SILO_QUERY(
             it != operators::MutationsNode<SymbolType>::VALID_FIELDS.end(),
-            "The attribute 'fields' contains an invalid field '{}'. Valid fields are mutation, "
+            "The attribute 'fields' contains an invalid field '{}'. Valid fields are "
             "mutationFrom, mutationTo, position, sequenceName, proportion, coverage, count.",
             field_str
          );

@@ -21,7 +21,6 @@ namespace silo::query_engine::operators {
 template <typename SymbolType>
 class MutationsNode final : public QueryNode {
   public:
-   constexpr static std::string_view MUTATION_FIELD_NAME = "mutation";
    constexpr static std::string_view MUTATION_FROM_FIELD_NAME = "mutationFrom";
    constexpr static std::string_view MUTATION_TO_FIELD_NAME = "mutationTo";
    constexpr static std::string_view POSITION_FIELD_NAME = "position";
@@ -29,8 +28,7 @@ class MutationsNode final : public QueryNode {
    constexpr static std::string_view PROPORTION_FIELD_NAME = "proportion";
    constexpr static std::string_view COVERAGE_FIELD_NAME = "coverage";
    constexpr static std::string_view COUNT_FIELD_NAME = "count";
-   static constexpr std::array<std::string_view, 8> VALID_FIELDS{
-      MUTATION_FIELD_NAME,
+   static constexpr std::array<std::string_view, 7> VALID_FIELDS{
       MUTATION_FROM_FIELD_NAME,
       MUTATION_TO_FIELD_NAME,
       POSITION_FIELD_NAME,
@@ -62,9 +60,6 @@ class MutationsNode final : public QueryNode {
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override {
       using silo::schema::ColumnType;
       std::vector<schema::ColumnIdentifier> output_fields;
-      if (std::ranges::find(fields, MUTATION_FIELD_NAME) != fields.end()) {
-         output_fields.emplace_back(std::string(MUTATION_FIELD_NAME), ColumnType::STRING);
-      }
       if (std::ranges::find(fields, MUTATION_FROM_FIELD_NAME) != fields.end()) {
          output_fields.emplace_back(std::string(MUTATION_FROM_FIELD_NAME), ColumnType::STRING);
       }

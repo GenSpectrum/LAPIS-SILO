@@ -5,7 +5,6 @@
     {
       "count": 37,
       "coverage": 97,
-      "mutation": "T19R",
       "mutationFrom": "T",
       "mutationTo": "R",
       "position": 19,
@@ -15,7 +14,6 @@
     {
       "count": 37,
       "coverage": 91,
-      "mutation": "G142D",
       "mutationFrom": "G",
       "mutationTo": "D",
       "position": 142,
@@ -25,7 +23,6 @@
     {
       "count": 35,
       "coverage": 94,
-      "mutation": "E156-",
       "mutationFrom": "E",
       "mutationTo": "-",
       "position": 156,
@@ -35,7 +32,6 @@
     {
       "count": 35,
       "coverage": 94,
-      "mutation": "F157-",
       "mutationFrom": "F",
       "mutationTo": "-",
       "position": 157,
@@ -45,7 +41,6 @@
     {
       "count": 34,
       "coverage": 94,
-      "mutation": "R158G",
       "mutationFrom": "R",
       "mutationTo": "G",
       "position": 158,
@@ -55,7 +50,6 @@
     {
       "count": 34,
       "coverage": 99,
-      "mutation": "G339D",
       "mutationFrom": "G",
       "mutationTo": "D",
       "position": 339,
@@ -65,7 +59,6 @@
     {
       "count": 33,
       "coverage": 98,
-      "mutation": "S373P",
       "mutationFrom": "S",
       "mutationTo": "P",
       "position": 373,
@@ -75,7 +68,6 @@
     {
       "count": 33,
       "coverage": 99,
-      "mutation": "S375F",
       "mutationFrom": "S",
       "mutationTo": "F",
       "position": 375,
@@ -85,7 +77,6 @@
     {
       "count": 38,
       "coverage": 88,
-      "mutation": "L452R",
       "mutationFrom": "L",
       "mutationTo": "R",
       "position": 452,
@@ -95,7 +86,6 @@
     {
       "count": 32,
       "coverage": 93,
-      "mutation": "S477N",
       "mutationFrom": "S",
       "mutationTo": "N",
       "position": 477,
@@ -105,7 +95,6 @@
     {
       "count": 69,
       "coverage": 94,
-      "mutation": "T478K",
       "mutationFrom": "T",
       "mutationTo": "K",
       "position": 478,
@@ -115,7 +104,6 @@
     {
       "count": 31,
       "coverage": 93,
-      "mutation": "E484A",
       "mutationFrom": "E",
       "mutationTo": "A",
       "position": 484,
@@ -125,7 +113,6 @@
     {
       "count": 31,
       "coverage": 93,
-      "mutation": "Q493R",
       "mutationFrom": "Q",
       "mutationTo": "R",
       "position": 493,
@@ -135,7 +122,6 @@
     {
       "count": 30,
       "coverage": 93,
-      "mutation": "Q498R",
       "mutationFrom": "Q",
       "mutationTo": "R",
       "position": 498,
@@ -145,7 +131,6 @@
     {
       "count": 41,
       "coverage": 93,
-      "mutation": "N501Y",
       "mutationFrom": "N",
       "mutationTo": "Y",
       "position": 501,
@@ -155,7 +140,6 @@
     {
       "count": 30,
       "coverage": 93,
-      "mutation": "Y505H",
       "mutationFrom": "Y",
       "mutationTo": "H",
       "position": 505,
@@ -165,7 +149,6 @@
     {
       "count": 98,
       "coverage": 99,
-      "mutation": "D614G",
       "mutationFrom": "D",
       "mutationTo": "G",
       "position": 614,
@@ -175,7 +158,6 @@
     {
       "count": 37,
       "coverage": 99,
-      "mutation": "H655Y",
       "mutationFrom": "H",
       "mutationTo": "Y",
       "position": 655,
@@ -185,7 +167,6 @@
     {
       "count": 34,
       "coverage": 100,
-      "mutation": "N679K",
       "mutationFrom": "N",
       "mutationTo": "K",
       "position": 679,
@@ -195,7 +176,6 @@
     {
       "count": 42,
       "coverage": 100,
-      "mutation": "P681H",
       "mutationFrom": "P",
       "mutationTo": "H",
       "position": 681,
@@ -205,7 +185,6 @@
     {
       "count": 38,
       "coverage": 100,
-      "mutation": "P681R",
       "mutationFrom": "P",
       "mutationTo": "R",
       "position": 681,
@@ -215,7 +194,6 @@
     {
       "count": 31,
       "coverage": 95,
-      "mutation": "N764K",
       "mutationFrom": "N",
       "mutationTo": "K",
       "position": 764,
@@ -225,7 +203,6 @@
     {
       "count": 34,
       "coverage": 99,
-      "mutation": "D796Y",
       "mutationFrom": "D",
       "mutationTo": "Y",
       "position": 796,
@@ -235,7 +212,6 @@
     {
       "count": 34,
       "coverage": 97,
-      "mutation": "D950N",
       "mutationFrom": "D",
       "mutationTo": "N",
       "position": 950,
@@ -245,7 +221,6 @@
     {
       "count": 33,
       "coverage": 98,
-      "mutation": "Q954H",
       "mutationFrom": "Q",
       "mutationTo": "H",
       "position": 954,
@@ -255,7 +230,6 @@
     {
       "count": 34,
       "coverage": 99,
-      "mutation": "N969K",
       "mutationFrom": "N",
       "mutationTo": "K",
       "position": 969,
