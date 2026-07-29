@@ -42,9 +42,14 @@ std::unique_ptr<ScalarExpression> StringInSet::rewrite(
    AmbiguityMode /*mode*/
 ) const {
    CHECK_SILO_QUERY(
+      table.schema->getColumn(column.name).has_value(),
+      "The database does not contain the column '{}'",
+      column.name
+   );
+   CHECK_SILO_QUERY(
       table.columns.string_columns.contains(column.name) ||
          table.columns.indexed_string_columns.contains(column.name),
-      "The database does not contain the string column '{}'",
+      "The column '{}' is not of type string",
       column.name
    );
 
