@@ -21,14 +21,14 @@ namespace silo::query_engine::scalar_expressions {
 template <typename SymbolType>
 class HasMutation : public ScalarExpression {
   private:
-   std::string sequence_name;
+   schema::ColumnIdentifier column;
    uint32_t position_idx;
 
   public:
-   explicit HasMutation(std::string sequence_name, uint32_t position_idx);
+   explicit HasMutation(schema::ColumnIdentifier column, uint32_t position_idx);
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
-      return std::make_unique<HasMutation>(sequence_name, position_idx);
+      return std::make_unique<HasMutation>(column, position_idx);
    }
 
    [[nodiscard]] std::string toString() const override;

@@ -43,24 +43,22 @@ template class SymbolOrDot<Nucleotide>;
 
 template <typename SymbolType>
 SymbolEquals<SymbolType>::SymbolEquals(
-   std::string sequence_name,
+   schema::ColumnIdentifier column,
    uint32_t position_idx,
    SymbolOrDot<SymbolType> value
 )
-    : sequence_name(std::move(sequence_name)),
+    : column(std::move(column)),
       position_idx(position_idx),
       value(value) {}
 
 template <typename SymbolType>
 std::string SymbolEquals<SymbolType>::toString() const {
-   return fmt::format("{}:{}{}", sequence_name, position_idx + 1, value.asChar());
+   return fmt::format("{}:{}{}", column.name, position_idx + 1, value.asChar());
 }
 
 template <typename SymbolType>
 std::vector<schema::ColumnIdentifier> SymbolEquals<SymbolType>::freeIUs() const {
-   // The referenced sequence column. sequence_name is always present (no default
-   // sequence), so this is always resolvable.
-   return {schema::ColumnIdentifier{sequence_name, SymbolType::COLUMN_TYPE}};
+   return {column};
 }
 
 template <typename SymbolType>
@@ -68,7 +66,7 @@ std::unique_ptr<ScalarExpression> SymbolEquals<SymbolType>::rewrite(
    const storage::Table& table,
    AmbiguityMode mode
 ) const {
-   const auto valid_sequence_name = validateSequenceName<SymbolType>(sequence_name, *table.schema);
+   const auto valid_sequence_name = validateSequenceName<SymbolType>(column.name, *table.schema);
 
    const auto& sequence_column =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
@@ -86,13 +84,11 @@ std::unique_ptr<ScalarExpression> SymbolEquals<SymbolType>::rewrite(
       );
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = SymbolType::AMBIGUITY_SYMBOLS.at(symbol);
-      return std::make_unique<SymbolInSet<SymbolType>>(
-         valid_sequence_name, position_idx, symbols_to_match
-      );
+      return std::make_unique<SymbolInSet<SymbolType>>(column, position_idx, symbols_to_match);
    }
 
    return std::make_unique<SymbolInSet<SymbolType>>(
-      valid_sequence_name, position_idx, std::vector<typename SymbolType::Symbol>{symbol}
+      column, position_idx, std::vector<typename SymbolType::Symbol>{symbol}
    );
 }
 

@@ -39,19 +39,19 @@ template <typename SymbolType>
 class SymbolInSet : public ScalarExpression {
    friend class Or;  // For optimization under Or
 
-   std::string sequence_name;
+   schema::ColumnIdentifier column;
    uint32_t position_idx;
    std::vector<typename SymbolType::Symbol> symbols;
 
   public:
    explicit SymbolInSet(
-      std::string sequence_name,
+      schema::ColumnIdentifier column,
       uint32_t position_idx,
       std::vector<typename SymbolType::Symbol> symbols
    );
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
-      return std::make_unique<SymbolInSet>(sequence_name, position_idx, symbols);
+      return std::make_unique<SymbolInSet>(column, position_idx, symbols);
    }
 
    [[nodiscard]] std::string toString() const override;

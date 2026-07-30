@@ -27,17 +27,17 @@ namespace silo::query_engine::scalar_expressions {
 
 template <typename SymbolType>
 MutationProfile<SymbolType>::MutationProfile(
-   std::string sequence_name,
+   schema::ColumnIdentifier column,
    uint32_t distance,
    ProfileInput input
 )
-    : sequence_name(std::move(sequence_name)),
+    : column(std::move(column)),
       distance(distance),
       input(std::move(input)) {}
 
 template <typename SymbolType>
 std::string MutationProfile<SymbolType>::toString() const {
-   const std::string seq_prefix = sequence_name + ":";
+   const std::string seq_prefix = column.name + ":";
    const std::string input_str = std::visit(
       [](const auto& inp) -> std::string {
          using T = std::decay_t<decltype(inp)>;
@@ -56,9 +56,7 @@ std::string MutationProfile<SymbolType>::toString() const {
 
 template <typename SymbolType>
 std::vector<schema::ColumnIdentifier> MutationProfile<SymbolType>::freeIUs() const {
-   // The referenced sequence column. sequence_name is always present (no default
-   // sequence), so this is always resolvable.
-   return {schema::ColumnIdentifier{sequence_name, SymbolType::COLUMN_TYPE}};
+   return {column};
 }
 
 template <typename SymbolType>
@@ -200,7 +198,7 @@ std::unique_ptr<ScalarExpression> MutationProfile<SymbolType>::rewrite(
    const storage::Table& table,
    AmbiguityMode /*mode*/
 ) const {
-   const auto valid_sequence_name = validateSequenceName<SymbolType>(sequence_name, *table.schema);
+   const auto valid_sequence_name = validateSequenceName<SymbolType>(column.name, *table.schema);
 
    const auto& sequence_column =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
@@ -243,7 +241,7 @@ std::unique_ptr<ScalarExpression> MutationProfile<SymbolType>::rewrite(
       }
 
       difference_children.push_back(std::make_unique<SymbolInSet<SymbolType>>(
-         valid_sequence_name, static_cast<uint32_t>(pos), std::move(difference_symbols)
+         column, static_cast<uint32_t>(pos), std::move(difference_symbols)
       ));
    }
 

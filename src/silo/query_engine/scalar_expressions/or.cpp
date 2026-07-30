@@ -92,13 +92,13 @@ ScalarExpressionVector Or::algebraicSimplification(
 template <typename SymbolType>
 ScalarExpressionVector Or::rewriteSymbolInSetExpressions(ScalarExpressionVector children) {
    ScalarExpressionVector new_children;
-   using SequenceNameAndPosition = std::pair<std::string, uint32_t>;
+   using ColumnAndPosition = std::pair<schema::ColumnIdentifier, uint32_t>;
    using Symbols = std::vector<typename SymbolType::Symbol>;
-   std::map<SequenceNameAndPosition, Symbols> symbol_in_set_children;
+   std::map<ColumnAndPosition, Symbols> symbol_in_set_children;
    for (auto& child : children) {
       if (auto* symbol_in_set_child = dynCast<SymbolInSet<SymbolType>>(child.get())) {
          std::vector<typename SymbolType::Symbol>& symbols_so_far = symbol_in_set_children[{
-            symbol_in_set_child->sequence_name, symbol_in_set_child->position_idx
+            symbol_in_set_child->column, symbol_in_set_child->position_idx
          }];
          std::ranges::copy(symbol_in_set_child->symbols, std::back_inserter(symbols_so_far));
       } else {
@@ -106,9 +106,9 @@ ScalarExpressionVector Or::rewriteSymbolInSetExpressions(ScalarExpressionVector 
       }
    }
 
-   for (auto& [sequence_name_and_position, symbols] : symbol_in_set_children) {
+   for (auto& [column_and_position, symbols] : symbol_in_set_children) {
       new_children.emplace_back(std::make_unique<SymbolInSet<SymbolType>>(
-         sequence_name_and_position.first, sequence_name_and_position.second, std::move(symbols)
+         column_and_position.first, column_and_position.second, std::move(symbols)
       ));
    }
 

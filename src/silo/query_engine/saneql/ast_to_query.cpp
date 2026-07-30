@@ -86,6 +86,22 @@ schema::ColumnIdentifier resolveColumn(
    return *found;
 }
 
+template <typename SymbolType>
+schema::ColumnIdentifier resolveSequenceColumn(
+   const std::string& sequence_name,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   const auto found =
+      std::ranges::find_if(schema, [&](const auto& col) { return col.name == sequence_name; });
+   CHECK_SILO_QUERY(
+      found != schema.end(),
+      "Database does not contain the {} Sequence with name: '{}'",
+      SymbolType::SYMBOL_NAME,
+      sequence_name
+   );
+   return schema::ColumnIdentifier{sequence_name, SymbolType::COLUMN_TYPE};
+}
+
 ScalarExpressionPtr convertEqualsToFilter(
    const std::string& column_name,
    const ast::Expression& value_expr,
@@ -457,7 +473,7 @@ ScalarExpressionPtr handleLike(
 template <typename SymbolType>
 ScalarExpressionPtr handleSymbolEquals(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_SILO_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
@@ -467,10 +483,11 @@ ScalarExpressionPtr handleSymbolEquals(
       symbol_str.size() == 1, "{}() symbol must be a single character", args.functionName()
    );
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
+   auto column = resolveSequenceColumn<SymbolType>(sequence_name, schema);
    char symbol_char = symbol_str[0];
    if (symbol_char == '.') {
       return std::make_unique<scalar_expressions::SymbolEquals<SymbolType>>(
-         sequence_name, position_idx, scalar_expressions::SymbolOrDot<SymbolType>::dot()
+         column, position_idx, scalar_expressions::SymbolOrDot<SymbolType>::dot()
       );
    }
    auto symbol = SymbolType::charToSymbol(symbol_char);
@@ -478,27 +495,28 @@ ScalarExpressionPtr handleSymbolEquals(
       symbol.has_value(), "{}() invalid symbol '{}'", args.functionName(), symbol_char
    );
    return std::make_unique<scalar_expressions::SymbolEquals<SymbolType>>(
-      sequence_name, position_idx, scalar_expressions::SymbolOrDot<SymbolType>(symbol.value())
+      column, position_idx, scalar_expressions::SymbolOrDot<SymbolType>(symbol.value())
    );
 }
 
 template <typename SymbolType>
 ScalarExpressionPtr handleHasMutation(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_SILO_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
+   auto column = resolveSequenceColumn<SymbolType>(sequence_name, schema);
    return std::make_unique<scalar_expressions::HasMutation<SymbolType>>(
-      std::move(sequence_name), position - 1
+      std::move(column), position - 1
    );
 }
 
 template <typename SymbolType>
 ScalarExpressionPtr handleInsertionContains(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    auto position = extractUint32Literal(args.at("position"));
    auto value = extractStringLiteral(args.at("value"));
@@ -507,8 +525,9 @@ ScalarExpressionPtr handleInsertionContains(
       "The field 'value' in an InsertionContains expression must not be an empty string"
    );
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
+   auto column = resolveSequenceColumn<SymbolType>(sequence_name, schema);
    return std::make_unique<scalar_expressions::InsertionContains<SymbolType>>(
-      sequence_name, position, std::move(value)
+      std::move(column), position, std::move(value)
    );
 }
 
@@ -667,10 +686,11 @@ std::vector<typename scalar_expressions::MutationProfile<SymbolType>::Mutation> 
 template <typename SymbolType>
 ScalarExpressionPtr handleMutationProfile(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    const uint32_t distance = extractUint32Literal(args.at("distance"));
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
+   auto column = resolveSequenceColumn<SymbolType>(sequence_name, schema);
 
    const auto* query_seq_expr = args.get("querySequence");
    const auto* sequence_id_expr = args.get("sequenceId");
@@ -690,16 +710,12 @@ ScalarExpressionPtr handleMutationProfile(
 
    if (query_seq_expr != nullptr) {
       return std::make_unique<MP>(
-         sequence_name,
-         distance,
-         typename MP::QuerySequenceInput{extractStringLiteral(*query_seq_expr)}
+         column, distance, typename MP::QuerySequenceInput{extractStringLiteral(*query_seq_expr)}
       );
    }
    if (sequence_id_expr != nullptr) {
       return std::make_unique<MP>(
-         sequence_name,
-         distance,
-         typename MP::SequenceIdInput{extractStringLiteral(*sequence_id_expr)}
+         column, distance, typename MP::SequenceIdInput{extractStringLiteral(*sequence_id_expr)}
       );
    }
 
@@ -711,7 +727,7 @@ ScalarExpressionPtr handleMutationProfile(
    auto parsed_mutations =
       parseMutationList<SymbolType>(std::get<ast::SetLiteral>(mutations_expr->value));
    return std::make_unique<MP>(
-      sequence_name, distance, typename MP::MutationsInput{std::move(parsed_mutations)}
+      std::move(column), distance, typename MP::MutationsInput{std::move(parsed_mutations)}
    );
 }
 

@@ -31,6 +31,12 @@ auto parseFilter(
    return convertToFilter(*Parser(query).parse(), schema);
 }
 
+// Schema exposing a nucleotide sequence column, so that the sequence leaf expressions can
+// resolve their sequence name against the input schema at parse time.
+const std::vector<silo::schema::ColumnIdentifier> SEQUENCE_SCHEMA{
+   {.name = "segment1", .type = silo::schema::ColumnType::NUCLEOTIDE_SEQUENCE}
+};
+
 using Tables = std::map<silo::schema::TableName, std::shared_ptr<silo::storage::Table>>;
 
 Tables makeTablesWithDefault() {
@@ -83,7 +89,9 @@ TEST(AstToQueryNucleotideEquals, multiCharSymbolThrows) {
 TEST(AstToQueryNucleotideEquals, invalidSymbolThrows) {
    EXPECT_THAT(
       []() {
-         (void)parseFilter("nucleotideEquals(position:=1, symbol:='Q', sequenceName:='segment1')");
+         (void)parseFilter(
+            "nucleotideEquals(position:=1, symbol:='Q', sequenceName:='segment1')", SEQUENCE_SCHEMA
+         );
       },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("nucleotideEquals() invalid symbol 'Q'")
@@ -108,7 +116,8 @@ TEST(AstToQueryMutationProfile, mutationsNotSetLiteralThrows) {
    EXPECT_THAT(
       []() {
          (void)parseFilter(
-            "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', mutations:='ACGT')"
+            "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', mutations:='ACGT')",
+            SEQUENCE_SCHEMA
          );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
@@ -123,7 +132,8 @@ TEST(AstToQueryMutationProfile, mutationRecordPositionZeroThrows) {
       []() {
          (void)parseFilter(
             "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
-            "mutations:={{position:=0, symbol:='A'}})"
+            "mutations:={{position:=0, symbol:='A'}})",
+            SEQUENCE_SCHEMA
          );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("value 0 is not allowed"))
@@ -135,7 +145,8 @@ TEST(AstToQueryMutationProfile, mutationRecordMissingPositionThrows) {
       []() {
          (void)parseFilter(
             "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
-            "mutations:={{symbol:='A'}})"
+            "mutations:={{symbol:='A'}})",
+            SEQUENCE_SCHEMA
          );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("must have a 'position' field"))
@@ -147,7 +158,8 @@ TEST(AstToQueryMutationProfile, mutationRecordMissingSymbolThrows) {
       []() {
          (void)parseFilter(
             "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
-            "mutations:={{position:=1}})"
+            "mutations:={{position:=1}})",
+            SEQUENCE_SCHEMA
          );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("must have a 'symbol' field"))
@@ -159,7 +171,8 @@ TEST(AstToQueryMutationProfile, mutationRecordMultiCharSymbolThrows) {
       []() {
          (void)parseFilter(
             "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
-            "mutations:={{position:=1, symbol:='AB'}})"
+            "mutations:={{position:=1, symbol:='AB'}})",
+            SEQUENCE_SCHEMA
          );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("must be a single character"))
@@ -171,7 +184,8 @@ TEST(AstToQueryMutationProfile, mutationRecordInvalidSymbolThrows) {
       []() {
          (void)parseFilter(
             "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
-            "mutations:={{position:=1, symbol:='Q'}})"
+            "mutations:={{position:=1, symbol:='Q'}})",
+            SEQUENCE_SCHEMA
          );
       },
       ThrowsMessage<IllegalQueryException>(
@@ -185,7 +199,8 @@ TEST(AstToQueryMutationProfile, mutationListElementNotRecordThrows) {
       []() {
          (void)parseFilter(
             "nucleotideMutationProfile(distance:=1, sequenceName:='segment1', "
-            "mutations:={'A123T'})"
+            "mutations:={'A123T'})",
+            SEQUENCE_SCHEMA
          );
       },
       ThrowsMessage<IllegalQueryException>(

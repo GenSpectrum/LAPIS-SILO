@@ -38,19 +38,19 @@ class SymbolOrDot {
 
 template <typename SymbolType>
 class SymbolEquals : public ScalarExpression {
-   std::string sequence_name;
+   schema::ColumnIdentifier column;
    uint32_t position_idx;
    SymbolOrDot<SymbolType> value;
 
   public:
    explicit SymbolEquals(
-      std::string sequence_name,
+      schema::ColumnIdentifier column,
       uint32_t position_idx,
       SymbolOrDot<SymbolType> value
    );
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
-      return std::make_unique<SymbolEquals>(sequence_name, position_idx, value);
+      return std::make_unique<SymbolEquals>(column, position_idx, value);
    }
 
    [[nodiscard]] std::string toString() const override;
