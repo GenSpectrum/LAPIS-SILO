@@ -5,6 +5,7 @@
 #include <memory>
 #include <numeric>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <arrow/compute/initialize.h>
@@ -71,7 +72,7 @@ BenchmarkResult runBenchmark(
 // sequence).  This exercises the single-pass NOf optimisation at large scale.
 std::string buildMutationProfileQuery(const std::string& query_sequence, uint32_t distance) {
    return fmt::format(
-      "default.filter(nucleotideMutationProfile(distance:={}, querySequence:='{}'))"
+      "default.filter(nucleotideMutationProfile(distance:={}, sequenceName:='main', querySequence:='{}'))"
       ".groupBy({{count:=count()}})",
       distance,
       query_sequence
@@ -80,21 +81,24 @@ std::string buildMutationProfileQuery(const std::string& query_sequence, uint32_
 
 // ---- Database setup ----
 
-std::shared_ptr<Database> setupShortReadDatabase(const std::string& reference, size_t read_count) {
-   SPDLOG_INFO("Generating {} short reads (length {})...", read_count, DEFAULT_READ_LENGTH);
-   auto ndjson = generateShortReadNdjson(reference, read_count);
+std::shared_ptr<Database> loadShortReadDatabase(
+   const std::string& reference,
+   std::string_view path
+) {
+   SPDLOG_INFO("Loading short reads from {}...", path);
+   auto ndjson = openTestDataInput(path);
    auto database = initializeDatabaseWithShortReadSchema(reference);
    database->appendData(silo::schema::TableName::getDefault(), ndjson);
    SPDLOG_INFO("Short-read database ready.");
    return database;
 }
 
-std::shared_ptr<Database> setupFullSequenceDatabase(
+std::shared_ptr<Database> loadFullSequenceDatabase(
    const std::string& reference,
-   size_t read_count
+   std::string_view path
 ) {
-   SPDLOG_INFO("Generating {} full-length sequences...", read_count);
-   auto ndjson = generateFullSequenceNdjson(reference, read_count);
+   SPDLOG_INFO("Loading full-length sequences from {}...", path);
+   auto ndjson = openTestDataInput(path);
    auto database = initializeDatabaseWithFullSequenceSchema(reference);
    database->appendData(silo::schema::TableName::getDefault(), ndjson);
    SPDLOG_INFO("Full-sequence database ready.");
@@ -151,9 +155,9 @@ void run() {
    );
    SPDLOG_INFO("");
 
-   const auto short_read_db = setupShortReadDatabase(reference, DEFAULT_FULL_SEQ_COUNT);
-   const auto short_read_db_large = setupShortReadDatabase(reference, DEFAULT_READ_COUNT);
-   const auto full_seq_db = setupFullSequenceDatabase(reference, DEFAULT_FULL_SEQ_COUNT);
+   const auto short_read_db = loadShortReadDatabase(reference, SHORT_READ_SMALL_NDJSON_PATH);
+   const auto short_read_db_large = loadShortReadDatabase(reference, SHORT_READ_LARGE_NDJSON_PATH);
+   const auto full_seq_db = loadFullSequenceDatabase(reference, FULL_SEQUENCE_NDJSON_PATH);
 
    // distance=0 tests the "almost nothing matches" extreme (exact profile match).
    // Large distances test the "almost everything matches" extreme.

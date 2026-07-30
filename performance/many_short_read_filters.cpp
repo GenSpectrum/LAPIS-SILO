@@ -33,11 +33,11 @@ TestDatabaseResult setupTestDatabase() {
    SPDLOG_INFO("Read reference sequence of length {}", reference.size());
    const size_t ref_length = reference.size();
 
-   auto input_buffer = generateShortReadNdjson(reference);
-   SPDLOG_INFO("Generated short read NDJSON data");
+   auto input_file = openTestDataInput(SHORT_READ_LARGE_NDJSON_PATH);
+   SPDLOG_INFO("Reading short read NDJSON data from {}", SHORT_READ_LARGE_NDJSON_PATH);
 
    auto database = initializeDatabaseWithShortReadSchema(reference);
-   database->appendData(silo::schema::TableName::getDefault(), input_buffer);
+   database->appendData(silo::schema::TableName::getDefault(), input_file);
 
    return {database, ref_length};
 }
@@ -64,11 +64,11 @@ class QueryGenerator {
             "default.filter("
             "locationName = 'generated' && "
             "samplingDate.between('2024-01-01'::date, '2024-01-07'::date) && "
-            "(nucleotideEquals(position:={0}, symbol:='A') || "
-            "nucleotideEquals(position:={0}, symbol:='C') || "
-            "nucleotideEquals(position:={0}, symbol:='G') || "
-            "nucleotideEquals(position:={0}, symbol:='T') || "
-            "nucleotideEquals(position:={0}, symbol:='-')) && "
+            "(nucleotideEquals(position:={0}, symbol:='A', sequenceName:='main') || "
+            "nucleotideEquals(position:={0}, symbol:='C', sequenceName:='main') || "
+            "nucleotideEquals(position:={0}, symbol:='G', sequenceName:='main') || "
+            "nucleotideEquals(position:={0}, symbol:='T', sequenceName:='main') || "
+            "nucleotideEquals(position:={0}, symbol:='-', sequenceName:='main')) && "
             "samplingDate.between('2024-01-01'::date, '2024-01-07'::date)"
             ").groupBy({{count:=count()}})",
             position
@@ -80,7 +80,7 @@ class QueryGenerator {
          "default.filter("
          "locationName = 'generated' && "
          "samplingDate.between('2024-01-01'::date, '2024-01-07'::date) && "
-         "nucleotideEquals(position:={}, symbol:='{}') && "
+         "nucleotideEquals(position:={}, symbol:='{}', sequenceName:='main') && "
          "samplingDate.between('2024-01-01'::date, '2024-01-07'::date)"
          ").groupBy({{count:=count()}})",
          position,

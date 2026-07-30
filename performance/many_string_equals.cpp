@@ -2,11 +2,13 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_set>
 #include <vector>
 
 #include <fmt/format.h>
 
+#include "sequence_generator.h"
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
@@ -82,23 +84,9 @@ schema:
    return database;
 }
 
-/// Create a database with `num_records` records, each with a unique accession
-std::shared_ptr<Database> setupTestDatabase(size_t num_records) {
-   std::stringstream input_buffer;
-
-   std::vector<std::string> countries = {"USA", "Germany", "France", "UK", "China", "Japan"};
-
-   for (size_t i = 0; i < num_records; ++i) {
-      std::string accession = fmt::format("ACC{:06}", i);
-      std::string country = countries[i % countries.size()];
-      input_buffer << fmt::format(
-         R"({{"accession":"{}","country":"{}"}}
-)",
-         accession,
-         country
-      );
-   }
-
+/// Create a database from the generated accession/country records on disk
+std::shared_ptr<Database> setupTestDatabase() {
+   auto input_buffer = openTestDataInput(STRING_EQUALS_NDJSON_PATH);
    auto database = initializeDatabase();
    database->appendData(silo::schema::TableName::getDefault(), input_buffer);
 
@@ -214,15 +202,16 @@ BenchmarkResult runBenchmark(
 }  // namespace
 
 int main() {
+   changeCwdToTestFolder();
    SPDLOG_INFO("=== StringInSet vs Many StringEquals Performance Benchmark ===");
    SPDLOG_INFO("");
 
-   constexpr size_t NUM_RECORDS = 100000;
+   constexpr size_t NUM_RECORDS = STRING_EQUALS_RECORD_COUNT;
    constexpr int ITERATIONS = 5;
 
    SPDLOG_INFO("Setting up test database with {} records...", NUM_RECORDS);
    auto start_setup = std::chrono::high_resolution_clock::now();
-   auto database = setupTestDatabase(NUM_RECORDS);
+   auto database = setupTestDatabase();
    auto end_setup = std::chrono::high_resolution_clock::now();
    auto setup_duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(end_setup - start_setup).count();
@@ -293,7 +282,10 @@ int main() {
    SPDLOG_INFO("=== Testing on INDEXED column (country) ===");
    SPDLOG_INFO("");
 
-   std::vector<std::string> all_countries = {"USA", "Germany", "France", "UK", "China", "Japan"};
+   std::vector<std::string> all_countries;
+   for (const auto country : STRING_EQUALS_COUNTRIES) {
+      all_countries.emplace_back(country);
+   }
 
    for (size_t num_values : test_sizes) {
       SPDLOG_INFO("--- Benchmark with {} country values (indexed column) ---", num_values);

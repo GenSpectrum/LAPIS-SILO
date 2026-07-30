@@ -1,5 +1,10 @@
+#include <chrono>
+#include <memory>
+#include <sstream>
+#include <string>
 #include <utility>
 
+#include "sequence_generator.h"
 #include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
 #include "silo/initialize/initializer.h"
@@ -37,46 +42,10 @@ schema:
    return database;
 }
 
-size_t current_id = 0;
-
-void addThousandShortReads(std::stringstream& buffer, size_t offset) {
-   for (size_t i = 0; i < 1000; ++i) {
-      std::string sequence = "ACGT";
-      buffer << fmt::format(
-         R"({{"key":"{}","main":{{"sequence":"{}","offset":{},"insertions":[]}}}}
-)",
-         current_id++,
-         sequence,
-         offset
-      );
-   }
-}
-
 std::shared_ptr<Database> setupTestDatabase() {
-   const std::string pattern = "ACGT";
-   std::string reference;
-   reference.reserve(4000);
-   for (int i = 0; i < 1000; ++i) {
-      reference += pattern;
-   }
+   const std::string reference = buildMutationBenchmarkReference();
 
-   std::stringstream input_buffer;
-
-   for (size_t i = 0; i < 1000; ++i) {
-      addThousandShortReads(input_buffer, 0);
-   }
-   for (size_t i = 0; i < 1000; ++i) {
-      addThousandShortReads(input_buffer, 4);
-   }
-   for (size_t i = 0; i < 100; ++i) {
-      addThousandShortReads(input_buffer, 99);
-   }
-   for (size_t i = 0; i < 100; ++i) {
-      addThousandShortReads(input_buffer, 100 + i);
-   }
-   for (size_t i = 0; i < 1000; ++i) {
-      addThousandShortReads(input_buffer, 2000);
-   }
+   auto input_buffer = openTestDataInput(MUTATION_READS_NDJSON_PATH);
 
    auto database = initializeDatabaseWithSingleReference(reference);
 
@@ -136,6 +105,7 @@ void executeMutationsAlmostAllQuery(const std::shared_ptr<Database>& database) {
 }  // namespace
 
 int main() {
+   changeCwdToTestFolder();
    SPDLOG_INFO("Starting micro benchmark:");
 
    auto start0 = std::chrono::high_resolution_clock::now();

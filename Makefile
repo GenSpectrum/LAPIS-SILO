@@ -73,6 +73,30 @@ ${SILO_RELEASE_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src -typ
 ${SILO_RELEASE_APP_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_app_test
 
+GENERATE_TEST_DATA_EXECUTABLE=./build/Release/performance/generate_test_data
+
+${GENERATE_TEST_DATA_EXECUTABLE}: build/Release/build.ninja $(shell find src performance -type f \( -name '*.cpp' -o -name '*.h' \))
+	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target generate_test_data
+
+# Generate the datasets consumed by the performance benchmarks and write them to disk under
+# localTestData/performance/ (see the *_NDJSON_PATH constants in performance/sequence_generator.h).
+# Run this once before running any performance benchmark.
+.PHONY: generateTestData
+generateTestData: ${GENERATE_TEST_DATA_EXECUTABLE}
+	${GENERATE_TEST_DATA_EXECUTABLE}
+
+PERFORMANCE_TEST_DATA_SENTINEL=localTestData/performance/.generated
+
+${PERFORMANCE_TEST_DATA_SENTINEL}: ${GENERATE_TEST_DATA_EXECUTABLE}
+	${GENERATE_TEST_DATA_EXECUTABLE}
+	@mkdir -p $(@D)
+	touch $@
+
+.PHONY: benchmarks
+benchmarks: ${PERFORMANCE_TEST_DATA_SENTINEL}
+	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target build_benchmarks
+	bash performance/run_benchmarks.sh build/Release/performance
+
 # Only the compiled sources trigger a rebuild; wasm/CMakeLists.txt is already a
 # prerequisite of build/wasm/build.ninja. Non-source assets (wasm/example,
 # wasm/README.md, ...) intentionally do not force a rebuild of the binary.
