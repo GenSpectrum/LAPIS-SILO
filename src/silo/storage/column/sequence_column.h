@@ -182,6 +182,8 @@ class SequenceColumnBuilder {
    // rows share the same reference basis as the already-stored ones.
    std::string local_reference;
 
+   bool local_reference_contains_missing_symbol;
+
   public:
    // Decompresses 'sequenceCompressed' input during phase-1 extraction. Uses the
    // initial (unadapted) reference, which is what inputs are compressed against.

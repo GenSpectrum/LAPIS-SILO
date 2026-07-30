@@ -144,6 +144,70 @@ TEST(AlignedSequence, leadingGapStartsCoverage) {
    EXPECT_EQ(result.mutations.mutations.at(0).second, Symbol::GAP);
 }
 
+TEST(AlignedSequence, charactersEncodingTheReferenceSymbolAreNoMutation) {
+   // 'a' and 'U' encode the same symbols as the reference 'A' and 'T'
+   const auto result = extractNuc("aCGU", 0, "ACGT");
+
+   EXPECT_EQ(result.coverage.start, 0);
+   EXPECT_EQ(result.coverage.end, 4);
+   EXPECT_TRUE(result.mutations.mutations.empty());
+}
+
+TEST(AlignedSequence, lowerCaseMissingSymbolIsMissing) {
+   const auto result = extractNuc("AnGT", 0, "ACGT");
+
+   EXPECT_EQ(result.coverage.start, 0);
+   EXPECT_EQ(result.coverage.end, 4);
+   EXPECT_EQ(result.coverage.missing_positions, std::vector<uint32_t>{1});
+   EXPECT_TRUE(result.mutations.mutations.empty());
+}
+
+TEST(AlignedSequence, positionsWhereTheReferenceIsMissingAreMissing) {
+   // A reference that is itself missing at a position makes an equal character missing too
+   const auto result = extractNuc("ANGT", 0, "ANGT");
+
+   EXPECT_EQ(result.coverage.start, 0);
+   EXPECT_EQ(result.coverage.end, 4);
+   EXPECT_EQ(result.coverage.missing_positions, std::vector<uint32_t>{1});
+   EXPECT_TRUE(result.mutations.mutations.empty());
+}
+
+TEST(AlignedSequence, mutationAgainstAMissingReferenceSymbolIsRecorded) {
+   const auto result = extractNuc("ACGT", 0, "ANGT");
+
+   EXPECT_EQ(result.coverage.start, 0);
+   EXPECT_EQ(result.coverage.end, 4);
+   EXPECT_TRUE(result.coverage.missing_positions.empty());
+   ASSERT_EQ(result.mutations.mutations.size(), 1);
+   EXPECT_EQ(result.mutations.mutations.at(0).first, 1);
+   EXPECT_EQ(result.mutations.mutations.at(0).second, Symbol::C);
+}
+
+TEST(AlignedSequence, sequencesLongerThanOneWordAreDiffed) {
+   // The comparison against the reference proceeds in 8 byte words, so cover a sequence that
+   // spans several words with deviations in the first, a middle and the last, partial word.
+   const std::string reference(30, 'A');
+   std::string sequence(30, 'A');
+   sequence.at(0) = 'N';
+   sequence.at(3) = 'C';
+   sequence.at(15) = 'G';
+   sequence.at(28) = 'N';
+   sequence.at(29) = 'T';
+
+   const auto result = extractNuc(sequence, 0, reference);
+
+   EXPECT_EQ(result.coverage.start, 1);
+   EXPECT_EQ(result.coverage.end, 30);
+   EXPECT_EQ(result.coverage.missing_positions, std::vector<uint32_t>{28});
+   ASSERT_EQ(result.mutations.mutations.size(), 3);
+   EXPECT_EQ(result.mutations.mutations.at(0).first, 3);
+   EXPECT_EQ(result.mutations.mutations.at(0).second, Symbol::C);
+   EXPECT_EQ(result.mutations.mutations.at(1).first, 15);
+   EXPECT_EQ(result.mutations.mutations.at(1).second, Symbol::G);
+   EXPECT_EQ(result.mutations.mutations.at(2).first, 29);
+   EXPECT_EQ(result.mutations.mutations.at(2).second, Symbol::T);
+}
+
 TEST(AlignedSequence, illegalCharacterHasError) {
    auto result = extractCoverageAndMutationsFromSequence<Nucleotide>("ACXT", 0, "ACGT");
    ASSERT_FALSE(result.has_value());
@@ -228,6 +292,57 @@ TEST(AlignedSequence, largeOffsetShiftsCoverageRange) {
    EXPECT_EQ(result.mutations.mutations.at(0).first, 51);
    EXPECT_EQ(result.mutations.mutations.at(1).first, 52);
    EXPECT_EQ(result.mutations.mutations.at(2).first, 53);
+}
+
+TEST(AlignedSequence, sequencesLongerThanOneWordAreDiffedWithOffset) {
+   // Same as sequencesLongerThanOneWordAreDiffed, but shifted by a non word aligned offset so
+   // that the position arithmetic inside the word wise comparison is exercised as well.
+   const std::string reference(85, 'A');
+   std::string sequence(30, 'A');
+   sequence.at(0) = 'N';
+   sequence.at(3) = 'C';
+   sequence.at(15) = 'G';
+   sequence.at(20) = 'N';
+   sequence.at(29) = 'T';
+
+   const auto result = extractNuc(sequence, 51, reference);
+
+   // the leading N at global position 51 is trimmed, the N at global position 71 is kept
+   EXPECT_EQ(result.coverage.start, 52);
+   EXPECT_EQ(result.coverage.end, 81);
+   EXPECT_EQ(result.coverage.missing_positions, std::vector<uint32_t>{71});
+   ASSERT_EQ(result.mutations.mutations.size(), 3);
+   EXPECT_EQ(result.mutations.mutations.at(0).first, 54);
+   EXPECT_EQ(result.mutations.mutations.at(0).second, Symbol::C);
+   EXPECT_EQ(result.mutations.mutations.at(1).first, 66);
+   EXPECT_EQ(result.mutations.mutations.at(1).second, Symbol::G);
+   EXPECT_EQ(result.mutations.mutations.at(2).first, 80);
+   EXPECT_EQ(result.mutations.mutations.at(2).second, Symbol::T);
+}
+
+TEST(AlignedSequence, aminoAcidSequencesLongerThanOneWordAreDiffed) {
+   // The word wise comparison is symbol type agnostic; verify it for AminoAcid, whose missing
+   // symbol is X, on a sequence spanning several words.
+   const std::string reference(30, 'A');
+   std::string sequence(30, 'A');
+   sequence.at(2) = 'K';
+   sequence.at(11) = 'X';
+   sequence.at(25) = 'W';
+   sequence.at(29) = 'X';
+
+   auto result = extractCoverageAndMutationsFromSequence<AminoAcid>(sequence, 0, reference);
+   ASSERT_TRUE(result.has_value());
+   const auto& value = result.value();
+
+   // the trailing X at position 29 is trimmed, the X at position 11 is kept
+   EXPECT_EQ(value.coverage.start, 0);
+   EXPECT_EQ(value.coverage.end, 29);
+   EXPECT_EQ(value.coverage.missing_positions, std::vector<uint32_t>{11});
+   ASSERT_EQ(value.mutations.mutations.size(), 2);
+   EXPECT_EQ(value.mutations.mutations.at(0).first, 2);
+   EXPECT_EQ(value.mutations.mutations.at(0).second, AminoAcid::Symbol::K);
+   EXPECT_EQ(value.mutations.mutations.at(1).first, 25);
+   EXPECT_EQ(value.mutations.mutations.at(1).second, AminoAcid::Symbol::W);
 }
 
 TEST(AlignedSequence, worksForAminoAcidSymbolType) {
