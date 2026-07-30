@@ -8,13 +8,44 @@
 
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
+#include <arrow/compute/ordering.h>
+#include <arrow/util/async_generator_fwd.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/query_engine/illegal_query_exception.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
 namespace silo::query_engine::operators {
+
+namespace {
+
+// Re-emits the batches of a node through a sink/source pair, with the resulting source declaring
+// the given ordering. Used to attach a fabricated ordering to (and later strip it back off) an
+// otherwise unordered result so that arrow's fetch node accepts it.
+arrow::Result<arrow::acero::ExecNode*> resequenceWithOrdering(
+   arrow::acero::ExecPlan& plan,
+   arrow::acero::ExecNode* child_node,
+   arrow::Ordering ordering,
+   const std::string& label
+) {
+   auto schema = child_node->output_schema();
+   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> generator;
+   ARROW_ASSIGN_OR_RAISE(
+      auto* sink_node,
+      arrow::acero::MakeExecNode(
+         "sink", &plan, {child_node}, arrow::acero::SinkNodeOptions{&generator}
+      )
+   );
+   sink_node->SetLabel(label);
+   return arrow::acero::MakeExecNode(
+      "source",
+      &plan,
+      {},
+      arrow::acero::SourceNodeOptions{std::move(schema), std::move(generator), std::move(ordering)}
+   );
+}
+
+}  // namespace
 
 FetchNode::FetchNode(
    QueryNodePtr child,
@@ -36,19 +67,38 @@ arrow::Result<arrow::acero::ExecNode*> FetchNode::addToExecPlan(
 ) const {
    ARROW_ASSIGN_OR_RAISE(auto* child_node, child->addToExecPlan(plan, tables, query_options));
 
-   CHECK_SILO_QUERY(
-      !child_node->ordering().is_unordered(),
-      "Offset and limit can only be applied if the output of the operation has some ordering. "
-      "Implicit ordering such as in the case of Details/Fasta is also allowed, Aggregated "
-      "however produces unordered results."
-   );
+   // arrow's fetch node requires an ordered input so that limit/offset is well-defined. If the
+   // child produces an unordered result (e.g. an aggregation/group-by), the user is nonetheless
+   // allowed to request a limit: we mark the result as implicitly ordered, accepting that the
+   // retained rows are an arbitrary subset.
+   const bool child_unordered = child_node->ordering().is_unordered();
+   if (child_unordered) {
+      ARROW_ASSIGN_OR_RAISE(
+         child_node,
+         resequenceWithOrdering(
+            plan, child_node, arrow::Ordering::Implicit(), "resequence for limit/offset"
+         )
+      );
+   }
 
    const arrow::acero::FetchNodeOptions fetch_options(
       offset.value_or(0), count.value_or(std::numeric_limits<int64_t>::max())
    );
-   return arrow::acero::MakeExecNode(
-      std::string{arrow::acero::FetchNodeOptions::kName}, &plan, {child_node}, fetch_options
+   ARROW_ASSIGN_OR_RAISE(
+      auto* fetch_node,
+      arrow::acero::MakeExecNode(
+         std::string{arrow::acero::FetchNodeOptions::kName}, &plan, {child_node}, fetch_options
+      )
    );
+
+   // The implicit ordering above was fabricated purely to satisfy the fetch node; the retained
+   // rows are an arbitrary subset, so restore the unordered contract for downstream nodes.
+   if (child_unordered) {
+      return resequenceWithOrdering(
+         plan, fetch_node, arrow::Ordering::Unordered(), "unordered result of limit/offset"
+      );
+   }
+   return fetch_node;
 }
 
 nlohmann::json FetchNode::toJson() const {

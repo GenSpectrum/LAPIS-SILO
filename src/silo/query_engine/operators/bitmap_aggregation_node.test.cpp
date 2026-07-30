@@ -111,6 +111,19 @@ const QueryTestScenario CO_OCCURRENCE_VIA_MAP_NON_SEQUENCE_NOT_REWRITTEN = {
    ])")
 };
 
+// A limit applied to a generic (unordered) aggregation used to be rejected outright because the
+// group-by output carries no ordering. The FetchNode now marks such a result as implicitly ordered
+// so the limit is honoured, accepting that the retained rows are an arbitrary subset. Grouping on
+// primaryKey.at(1) stays on the generic (non-bitmap) path and the single resulting group keeps the
+// truncated result deterministic.
+const QueryTestScenario LIMIT_ON_UNORDERED_AGGREGATION = {
+   .name = "LIMIT_ON_UNORDERED_AGGREGATION",
+   .query = "default.map({first := primaryKey.at(1)}).groupBy({count:=count()}, {first}).limit(1)",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"first": "i", "count": 4}
+   ])")
+};
+
 // The reference is only 5 symbols long, so position 6 is out of range. The rewritten bitmap
 // aggregation node reports this when it builds the per-symbol bitmaps.
 const QueryTestScenario CO_OCCURRENCE_VIA_MAP_POSITION_OUT_OF_RANGE = {
@@ -276,6 +289,7 @@ QUERY_TEST(
       CO_OCCURRENCE_VIA_MAP_WITH_FILTER,
       CO_OCCURRENCE_VIA_MAP_AMINO_ACID,
       CO_OCCURRENCE_VIA_MAP_NON_SEQUENCE_NOT_REWRITTEN,
+      LIMIT_ON_UNORDERED_AGGREGATION,
       CO_OCCURRENCE_VIA_MAP_POSITION_OUT_OF_RANGE,
       INDEXED_COLUMN_SINGLE,
       MIXED_SEQUENCE_AND_INDEXED_COLUMN
