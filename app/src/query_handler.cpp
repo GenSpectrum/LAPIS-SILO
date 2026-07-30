@@ -60,6 +60,9 @@ void QueryHandler::post(
       );
 
       response.set("data-version", database->getDataVersionTimestamp().value);
+      response.set(
+         "result-ordering", silo::query_engine::serializeResultOrdering(query_plan.result_ordering)
+      );
 
       const std::string accept_header = request.has("Accept") ? request.get("Accept") : "";
       const bool use_arrow_ipc =
