@@ -91,6 +91,14 @@ schema::ColumnIdentifier resolveSequenceColumn(
    const std::string& sequence_name,
    const std::vector<schema::ColumnIdentifier>& schema
 ) {
+   // We only check existence by name here, not the column type. The scan is wrapped in a
+   // decompression MapNode (see wrapWithDecompressIfNeeded) whose output re-types every
+   // sequence column as STRING, so this filter-input schema reports sequence columns as
+   // STRING rather than SymbolType::COLUMN_TYPE. A `found->type == SymbolType::COLUMN_TYPE`
+   // check would therefore reject every valid sequence. The real type check happens later in
+   // each sequence expression's rewrite(), via validateSequenceName() against the true table
+   // schema (which retains the sequence type). We build the identifier with
+   // SymbolType::COLUMN_TYPE so freeIUs() reports the underlying sequence column.
    const auto found =
       std::ranges::find_if(schema, [&](const auto& col) { return col.name == sequence_name; });
    CHECK_SILO_QUERY(
