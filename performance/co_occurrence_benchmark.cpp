@@ -10,15 +10,14 @@
 #include <array>
 #include <chrono>
 #include <memory>
-#include <random>
 #include <sstream>
 #include <string>
-#include <vector>
 
 #include <arrow/compute/api.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
+#include "sequence_generator.h"
 #include "silo/config/database_config.h"
 #include "silo/config/runtime_config.h"
 #include "silo/database.h"
@@ -37,23 +36,10 @@ using silo::query_engine::Planner;
 
 // --- Benchmark parameters ---
 
-constexpr size_t REFERENCE_LENGTH = 100;
-constexpr size_t NUM_SEQUENCES = 2'000'000;
-constexpr double MUTATION_RATE = 0.1;
-// Six 1-based positions to co-group on.
+// Six 1-based positions to co-group on. The dataset shape (reference length, sequence count,
+// mutation rate) lives with the generator in sequence_generator.h.
 constexpr std::array<size_t, 6> POSITIONS{5, 10, 20, 30, 40, 50};
 constexpr int ITERATIONS = 5;
-
-constexpr std::array<char, 4> BASES{'A', 'C', 'G', 'T'};
-
-std::string makeRandomReference(std::mt19937& rng) {
-   std::uniform_int_distribution<size_t> base_dist(0, BASES.size() - 1);
-   std::string reference(REFERENCE_LENGTH, 'A');
-   for (char& base : reference) {
-      base = BASES.at(base_dist(rng));
-   }
-   return reference;
-}
 
 std::shared_ptr<Database> setupDatabase(const std::string& reference) {
    auto database_config = silo::config::DatabaseConfig::getValidatedConfig(R"(
@@ -79,28 +65,7 @@ schema:
       )
    );
 
-   std::mt19937 rng{1234};
-   std::uniform_int_distribution<size_t> base_dist(0, BASES.size() - 1);
-   std::binomial_distribution<size_t> mutation_count(REFERENCE_LENGTH, MUTATION_RATE);
-   std::uniform_int_distribution<size_t> pos_dist(0, REFERENCE_LENGTH - 1);
-
-   std::stringstream ndjson;
-   std::string sequence;
-   sequence.reserve(REFERENCE_LENGTH);
-   for (size_t row = 0; row < NUM_SEQUENCES; ++row) {
-      sequence.assign(reference);
-      const size_t mutations = mutation_count(rng);
-      for (size_t i = 0; i < mutations; ++i) {
-         sequence[pos_dist(rng)] = BASES.at(base_dist(rng));
-      }
-      ndjson << fmt::format(
-                   R"({{"primaryKey":"id_{}","main":{{"sequence":"{}","insertions":[]}}}})",
-                   row,
-                   sequence
-                )
-             << '\n';
-   }
-
+   auto ndjson = openTestDataInput(CO_OCCURRENCE_NDJSON_PATH);
    database->appendData(silo::schema::TableName::getDefault(), ndjson);
    return database;
 }
@@ -146,6 +111,7 @@ size_t planAndExecute(
 }  // namespace
 
 int main() {
+   changeCwdToTestFolder();
    // Register Arrow's compute kernels (e.g. utf8_slice_codeunits, used by the `at` scalar function).
    if (!arrow::compute::Initialize().ok()) {
       SPDLOG_ERROR("Failed to initialize Arrow compute");
@@ -154,15 +120,14 @@ int main() {
 
    const auto query_options = silo::config::RuntimeConfig::withDefaults().query_options;
 
-   std::mt19937 reference_rng{42};
-   const std::string reference = makeRandomReference(reference_rng);
+   const std::string reference = makeCoOccurrenceReference();
 
    SPDLOG_INFO(
       "Co-occurrence query benchmark: {} sequences, reference length {}, mutation rate {}, {} "
       "positions",
-      NUM_SEQUENCES,
-      REFERENCE_LENGTH,
-      MUTATION_RATE,
+      CO_OCCURRENCE_NUM_SEQUENCES,
+      CO_OCCURRENCE_REFERENCE_LENGTH,
+      CO_OCCURRENCE_MUTATION_RATE,
       POSITIONS.size()
    );
 
