@@ -314,6 +314,8 @@ SequenceColumnBuilder<SymbolType>::SequenceColumnBuilder(
       )) {
    SILO_ASSERT_GT(metadata->reference_sequence.size(), 0ULL);
    SILO_ASSERT_EQ(this->local_reference.size(), metadata->reference_sequence.size());
+   local_reference_contains_missing_symbol =
+      referenceContainsMissingSymbol<SymbolType>(this->local_reference);
 }
 
 template <typename SymbolType>
@@ -335,7 +337,7 @@ void SequenceColumnBuilder<SymbolType>::insert(
    SILO_ASSERT(sequence.size() + offset < UINT32_MAX);
 
    auto coverage_mutations = extractCoverageAndMutationsFromSequence<SymbolType>(
-      sequence, offset, std::string_view{local_reference}
+      sequence, offset, std::string_view{local_reference}, local_reference_contains_missing_symbol
    );
    if (!coverage_mutations.has_value()) {
       SPDLOG_INFO("{}", coverage_mutations.error());
