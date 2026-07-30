@@ -86,30 +86,6 @@ schema::ColumnIdentifier resolveColumn(
    return *found;
 }
 
-template <typename SymbolType>
-schema::ColumnIdentifier resolveSequenceColumn(
-   const std::string& sequence_name,
-   const std::vector<schema::ColumnIdentifier>& schema
-) {
-   // We only check existence by name here, not the column type. The scan is wrapped in a
-   // decompression MapNode (see wrapWithDecompressIfNeeded) whose output re-types every
-   // sequence column as STRING, so this filter-input schema reports sequence columns as
-   // STRING rather than SymbolType::COLUMN_TYPE. A `found->type == SymbolType::COLUMN_TYPE`
-   // check would therefore reject every valid sequence. The real type check happens later in
-   // each sequence expression's rewrite(), via validateSequenceName() against the true table
-   // schema (which retains the sequence type). We build the identifier with
-   // SymbolType::COLUMN_TYPE so freeIUs() reports the underlying sequence column.
-   const auto found =
-      std::ranges::find_if(schema, [&](const auto& col) { return col.name == sequence_name; });
-   CHECK_SILO_QUERY(
-      found != schema.end(),
-      "Database does not contain the {} Sequence with name: '{}'",
-      SymbolType::SYMBOL_NAME,
-      sequence_name
-   );
-   return schema::ColumnIdentifier{sequence_name, SymbolType::COLUMN_TYPE};
-}
-
 ScalarExpressionPtr convertEqualsToFilter(
    const std::string& column_name,
    const ast::Expression& value_expr,
@@ -491,7 +467,7 @@ ScalarExpressionPtr handleSymbolEquals(
       symbol_str.size() == 1, "{}() symbol must be a single character", args.functionName()
    );
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
-   auto column = resolveSequenceColumn<SymbolType>(sequence_name, schema);
+   auto column = resolveColumn(sequence_name, schema);
    char symbol_char = symbol_str[0];
    if (symbol_char == '.') {
       return std::make_unique<scalar_expressions::SymbolEquals<SymbolType>>(
@@ -515,7 +491,7 @@ ScalarExpressionPtr handleHasMutation(
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_SILO_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
-   auto column = resolveSequenceColumn<SymbolType>(sequence_name, schema);
+   auto column = resolveColumn(sequence_name, schema);
    return std::make_unique<scalar_expressions::HasMutation<SymbolType>>(
       std::move(column), position - 1
    );
@@ -533,7 +509,7 @@ ScalarExpressionPtr handleInsertionContains(
       "The field 'value' in an InsertionContains expression must not be an empty string"
    );
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
-   auto column = resolveSequenceColumn<SymbolType>(sequence_name, schema);
+   auto column = resolveColumn(sequence_name, schema);
    return std::make_unique<scalar_expressions::InsertionContains<SymbolType>>(
       std::move(column), position, std::move(value)
    );
@@ -698,7 +674,7 @@ ScalarExpressionPtr handleMutationProfile(
 ) {
    const uint32_t distance = extractUint32Literal(args.at("distance"));
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
-   auto column = resolveSequenceColumn<SymbolType>(sequence_name, schema);
+   auto column = resolveColumn(sequence_name, schema);
 
    const auto* query_seq_expr = args.get("querySequence");
    const auto* sequence_id_expr = args.get("sequenceId");
