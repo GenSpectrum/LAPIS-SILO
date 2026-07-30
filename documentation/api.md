@@ -32,6 +32,8 @@ Every response includes:
 | `X-Request-Id` | Echoes the request's `X-Request-Id`, or a generated UUID v4 if none was provided. Useful for correlating logs. |
 | `data-version` | A 10-digit Unix timestamp identifying the database snapshot used to serve the request. Allows clients to detect when the underlying data has changed between requests. |
 
+The `POST /query` endpoint additionally returns an [`ordering`](#response-headers) header describing the sort order of the result rows.
+
 ## Endpoints
 
 ### `GET /health`
@@ -109,6 +111,30 @@ Both `filterExpression` and `action` are required.
 ```
 
 Queries time out after 120 seconds.
+
+#### Response Headers
+
+In addition to the [common response headers](#common-response-headers), a successful (200) query response carries an `ordering` header describing the order in which the result rows are returned.
+
+| Header | Description |
+|--------|-------------|
+| `result-ordering` | JSON array describing the sort order of the returned rows, one element per sort key. |
+
+**Format.** The value is a JSON array. Each element describes one sort key, from most to least significant, with these fields:
+
+| Field | Values | Description |
+|-------|--------|-------------|
+| `field` | column name | The column the rows are sorted by. |
+| `order` | `"ascending"` \| `"descending"` | Sort direction. |
+| `nullPlacement` | `"atStart"` \| `"atEnd"` | Whether null values sort before or after non-null values. |
+
+Examples:
+
+| Query | `result-ordering` header |
+|-------|-------------------|
+| `orderBy({date})` | `[{"field":"date","order":"ascending","nullPlacement":"atStart"}]` |
+| `orderBy({country, date.desc()})` | `[{"field":"country","order":"ascending","nullPlacement":"atStart"},{"field":"date","order":"descending","nullPlacement":"atEnd"}]` |
+| no `orderBy` (e.g. an aggregation) | `[]` |
 
 #### Output Format Negotiation
 

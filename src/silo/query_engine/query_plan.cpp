@@ -2,7 +2,9 @@
 
 #include <arrow/acero/query_context.h>
 #include <arrow/array.h>
+#include <arrow/compute/ordering.h>
 #include <arrow/record_batch.h>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
@@ -11,6 +13,21 @@
 
 namespace silo::query_engine {
 
+std::string serializeResultOrdering(const arrow::compute::Ordering& ordering) {
+   auto sort_keys = nlohmann::json::array();
+   for (const auto& sort_key : ordering.sort_keys()) {
+      const std::string* field_name = sort_key.target.name();
+      sort_keys.push_back(
+         {{"field", field_name != nullptr ? *field_name : sort_key.target.ToString()},
+          {"order",
+           sort_key.order == arrow::compute::SortOrder::Ascending ? "ascending" : "descending"},
+          {"nullPlacement",
+           sort_key.null_placement == arrow::compute::NullPlacement::AtStart ? "atStart" : "atEnd"}}
+      );
+   }
+   return sort_keys.dump();
+}
+
 arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
    std::shared_ptr<arrow::acero::ExecPlan> arrow_plan,
    arrow::acero::ExecNode* root,
@@ -18,6 +35,7 @@ arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
 ) {
    arrow::acero::BackpressureMonitor* backpressure_monitor;
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> results_generator;
+   arrow::compute::Ordering result_ordering = root->ordering();
    ARROW_ASSIGN_OR_RAISE(
       backpressure_monitor, createGenerator(arrow_plan.get(), root, &results_generator)
    );
@@ -25,6 +43,7 @@ arrow::Result<QueryPlan> QueryPlan::makeQueryPlan(
       std::move(arrow_plan), std::move(results_generator), backpressure_monitor, request_id
    };
    query_plan.results_schema = root->output_schema();
+   query_plan.result_ordering = std::move(result_ordering);
    ARROW_RETURN_NOT_OK(query_plan.arrow_plan->Validate());
    return query_plan;
 }
