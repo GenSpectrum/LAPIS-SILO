@@ -244,8 +244,7 @@ const QueryTestScenario AA_INVALID_SEQUENCE_NAME = {
    .query =
       "default.filter(aminoAcidMutationProfile(distance:=0, sequenceName:='nonexistent_gene', "
       "mutations:={})).project(primaryKey)",
-   .expected_error_message =
-      "Database does not contain the AminoAcid Sequence with name: 'nonexistent_gene'"
+   .expected_error_message = "The database does not contain the column 'nonexistent_gene'"
 };
 
 // No sequenceName provided → error (a sequence name is always required)

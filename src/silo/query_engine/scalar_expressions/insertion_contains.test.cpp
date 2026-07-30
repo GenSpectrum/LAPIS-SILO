@@ -86,8 +86,7 @@ const QueryTestScenario INSERTION_CONTAINS_WITH_UNKNOWN_SEGMENT_SCENARIO = {
    .query =
       "default.filter(insertionContains(position:=12, value:='A', "
       "sequenceName:='unknownSegmentName'))",
-   .expected_error_message =
-      "Database does not contain the Nucleotide Sequence with name: 'unknownSegmentName'"
+   .expected_error_message = "The database does not contain the column 'unknownSegmentName'"
 };
 
 const QueryTestScenario INSERTION_CONTAINS_POSITION_OUT_OF_RANGE = {
