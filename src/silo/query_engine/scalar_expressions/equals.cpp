@@ -111,7 +111,7 @@ std::unique_ptr<ScalarExpression> Equals::rewrite(
          );
          if (table.columns.string_columns.contains(column_name)) {
             return std::make_unique<StringInSet>(
-               column_name, std::unordered_set<std::string>{string_value->value}
+               split->column->column, std::unordered_set<std::string>{string_value->value}
             );
          }
       }

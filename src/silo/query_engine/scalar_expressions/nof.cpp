@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "silo/common/string_utils.h"
 #include "silo/query_engine/filter/operators/complement.h"
@@ -167,6 +168,16 @@ std::string NOf::toString() const {
    res += joinWithLimit(children);
    res += "]";
    return res;
+}
+
+std::vector<schema::ColumnIdentifier> NOf::freeIUs() const {
+   std::vector<schema::ColumnIdentifier> result;
+   for (const auto& child : children) {
+      for (auto& column : child->freeIUs()) {
+         result.push_back(std::move(column));
+      }
+   }
+   return result;
 }
 
 std::tuple<filter::operators::OperatorVector, filter::operators::OperatorVector, int> NOf::

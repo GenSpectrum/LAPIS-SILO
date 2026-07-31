@@ -4,11 +4,13 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <type_traits>
 
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
+#include "silo/schema/database_schema.h"
 
 namespace silo {
 class Nucleotide;
@@ -36,19 +38,19 @@ class SymbolOrDot {
 
 template <typename SymbolType>
 class SymbolEquals : public ScalarExpression {
-   std::string sequence_name;
+   schema::ColumnIdentifier column;
    uint32_t position_idx;
    SymbolOrDot<SymbolType> value;
 
   public:
    explicit SymbolEquals(
-      std::string sequence_name,
+      schema::ColumnIdentifier column,
       uint32_t position_idx,
       SymbolOrDot<SymbolType> value
    );
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
-      return std::make_unique<SymbolEquals>(sequence_name, position_idx, value);
+      return std::make_unique<SymbolEquals>(column, position_idx, value);
    }
 
    [[nodiscard]] std::string toString() const override;
@@ -56,6 +58,8 @@ class SymbolEquals : public ScalarExpression {
                                    ? Kind::SYMBOL_EQUALS_NUCLEOTIDE
                                    : Kind::SYMBOL_EQUALS_AMINO_ACID;
    [[nodiscard]] Kind kind() const override { return KIND; }
+
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> rewrite(
       const storage::Table& table,

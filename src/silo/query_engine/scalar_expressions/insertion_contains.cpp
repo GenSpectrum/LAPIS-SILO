@@ -1,6 +1,7 @@
 #include "silo/query_engine/scalar_expressions/insertion_contains.h"
 
 #include <utility>
+#include <vector>
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -17,19 +18,24 @@ namespace silo::query_engine::scalar_expressions {
 
 template <typename SymbolType>
 InsertionContains<SymbolType>::InsertionContains(
-   std::string sequence_name,
+   schema::ColumnIdentifier column,
    uint32_t position_idx,
    std::string value
 )
-    : sequence_name(std::move(sequence_name)),
+    : column(std::move(column)),
       position_idx(position_idx),
       value(std::move(value)) {}
 
 template <typename SymbolType>
 std::string InsertionContains<SymbolType>::toString() const {
-   const std::string sequence_string = "The sequence '" + sequence_name + "'";
+   const std::string sequence_string = "The sequence '" + column.name + "'";
 
    return sequence_string + " has insertion '" + value + "'";
+}
+
+template <typename SymbolType>
+std::vector<schema::ColumnIdentifier> InsertionContains<SymbolType>::freeIUs() const {
+   return {column};
 }
 
 template <typename SymbolType>
@@ -37,14 +43,14 @@ std::unique_ptr<ScalarExpression> InsertionContains<SymbolType>::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
 ) const {
-   return std::make_unique<InsertionContains<SymbolType>>(sequence_name, position_idx, value);
+   return std::make_unique<InsertionContains<SymbolType>>(column, position_idx, value);
 }
 
 template <typename SymbolType>
 std::unique_ptr<filter::operators::Operator> InsertionContains<SymbolType>::compile(
    const storage::Table& table
 ) const {
-   const auto valid_sequence_name = validateSequenceName<SymbolType>(sequence_name, *table.schema);
+   const auto valid_sequence_name = validateSequenceName<SymbolType>(column.name, *table.schema);
 
    const std::map<std::string, storage::column::SequenceColumn<SymbolType>>& sequence_stores =
       table.columns.getColumns<typename SymbolType::Column>();

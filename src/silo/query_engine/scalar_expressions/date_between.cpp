@@ -22,12 +22,12 @@ using silo::storage::column::Date32Column;
 namespace silo::query_engine::scalar_expressions {
 
 DateBetween::DateBetween(
-   std::string column_name,
+   schema::ColumnIdentifier column,
    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
    std::optional<Date32> date_from,
    std::optional<Date32> date_to
 )
-    : column_name(std::move(column_name)),
+    : column(std::move(column)),
       date_from(date_from),
       date_to(date_to) {}
 
@@ -40,11 +40,15 @@ std::string DateBetween::toString() const {
    return res;
 }
 
+std::vector<schema::ColumnIdentifier> DateBetween::freeIUs() const {
+   return {column};
+}
+
 std::unique_ptr<ScalarExpression> DateBetween::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
 ) const {
-   return std::make_unique<DateBetween>(column_name, date_from, date_to);
+   return std::make_unique<DateBetween>(column, date_from, date_to);
 }
 
 using filter::operators::Comparator;
@@ -56,17 +60,17 @@ using filter::operators::Selection;
 
 std::unique_ptr<Operator> DateBetween::compile(const storage::Table& table) const {
    CHECK_SILO_QUERY(
-      table.schema->getColumn(column_name).has_value(),
+      table.schema->getColumn(column.name).has_value(),
       "The database does not contain the column '{}'",
-      column_name
+      column.name
    );
    CHECK_SILO_QUERY(
-      table.columns.date32_columns.contains(column_name),
+      table.columns.date32_columns.contains(column.name),
       "The column '{}' is not of type date",
-      column_name
+      column.name
    );
 
-   const auto& date_column = table.columns.date32_columns.at(column_name);
+   const auto& date_column = table.columns.date32_columns.at(column.name);
 
    if (date_column.isSorted()) {
       return std::make_unique<RangeSelection>(

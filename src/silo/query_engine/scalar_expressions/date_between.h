@@ -9,13 +9,14 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/filter/operators/range_selection.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
+#include "silo/schema/database_schema.h"
 #include "silo/storage/column/date32_column.h"
 
 namespace silo::query_engine::scalar_expressions {
 
 class DateBetween : public ScalarExpression {
   private:
-   std::string column_name;
+   schema::ColumnIdentifier column;
    std::optional<silo::common::Date32> date_from;
    std::optional<silo::common::Date32> date_to;
 
@@ -24,18 +25,20 @@ class DateBetween : public ScalarExpression {
 
   public:
    explicit DateBetween(
-      std::string column_name,
+      schema::ColumnIdentifier column,
       std::optional<silo::common::Date32> date_from,
       std::optional<silo::common::Date32> date_to
    );
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
-      return std::make_unique<DateBetween>(column_name, date_from, date_to);
+      return std::make_unique<DateBetween>(column, date_from, date_to);
    }
 
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::DATE_BETWEEN;
    [[nodiscard]] Kind kind() const override { return KIND; }
+
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> rewrite(
       const storage::Table& table,

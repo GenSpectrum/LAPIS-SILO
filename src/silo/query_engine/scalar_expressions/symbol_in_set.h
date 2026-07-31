@@ -4,11 +4,13 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <type_traits>
 
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
+#include "silo/schema/database_schema.h"
 #include "silo/storage/column/row_layout.h"
 #include "silo/storage/column/sequence_column.h"
 
@@ -37,19 +39,19 @@ template <typename SymbolType>
 class SymbolInSet : public ScalarExpression {
    friend class Or;  // For optimization under Or
 
-   std::string sequence_name;
+   schema::ColumnIdentifier column;
    uint32_t position_idx;
    std::vector<typename SymbolType::Symbol> symbols;
 
   public:
    explicit SymbolInSet(
-      std::string sequence_name,
+      schema::ColumnIdentifier column,
       uint32_t position_idx,
       std::vector<typename SymbolType::Symbol> symbols
    );
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
-      return std::make_unique<SymbolInSet>(sequence_name, position_idx, symbols);
+      return std::make_unique<SymbolInSet>(column, position_idx, symbols);
    }
 
    [[nodiscard]] std::string toString() const override;
@@ -57,6 +59,8 @@ class SymbolInSet : public ScalarExpression {
                                    ? Kind::SYMBOL_IN_SET_NUCLEOTIDE
                                    : Kind::SYMBOL_IN_SET_AMINO_ACID;
    [[nodiscard]] Kind kind() const override { return KIND; }
+
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> rewrite(
       const storage::Table& table,

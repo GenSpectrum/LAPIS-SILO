@@ -4,11 +4,13 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <type_traits>
 
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
+#include "silo/schema/database_schema.h"
 
 namespace silo {
 class Nucleotide;
@@ -19,14 +21,14 @@ namespace silo::query_engine::scalar_expressions {
 template <typename SymbolType>
 class HasMutation : public ScalarExpression {
   private:
-   std::string sequence_name;
+   schema::ColumnIdentifier column;
    uint32_t position_idx;
 
   public:
-   explicit HasMutation(std::string sequence_name, uint32_t position_idx);
+   explicit HasMutation(schema::ColumnIdentifier column, uint32_t position_idx);
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
-      return std::make_unique<HasMutation>(sequence_name, position_idx);
+      return std::make_unique<HasMutation>(column, position_idx);
    }
 
    [[nodiscard]] std::string toString() const override;
@@ -34,6 +36,8 @@ class HasMutation : public ScalarExpression {
                                    ? Kind::HAS_MUTATION_NUCLEOTIDE
                                    : Kind::HAS_MUTATION_AMINO_ACID;
    [[nodiscard]] Kind kind() const override { return KIND; }
+
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> rewrite(
       const storage::Table& table,

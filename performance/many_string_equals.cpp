@@ -142,8 +142,11 @@ std::unique_ptr<ScalarExpression> buildStringInSet(
    const std::string& column,
    const std::vector<std::string>& values
 ) {
+   const silo::schema::ColumnIdentifier column_identifier{
+      .name = column, .type = silo::schema::ColumnType::STRING
+   };
    std::unordered_set<std::string> value_set(values.begin(), values.end());
-   return std::make_unique<StringInSet>(column, std::move(value_set));
+   return std::make_unique<StringInSet>(column_identifier, std::move(value_set));
 }
 
 void executeCountWithFilter(

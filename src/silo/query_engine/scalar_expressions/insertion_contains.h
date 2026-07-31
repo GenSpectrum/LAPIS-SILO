@@ -4,11 +4,13 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <type_traits>
 
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
+#include "silo/schema/database_schema.h"
 
 namespace silo {
 class Nucleotide;
@@ -19,15 +21,19 @@ namespace silo::query_engine::scalar_expressions {
 template <typename SymbolType>
 class InsertionContains : public ScalarExpression {
   private:
-   std::string sequence_name;
+   schema::ColumnIdentifier column;
    uint32_t position_idx;
    std::string value;
 
   public:
-   explicit InsertionContains(std::string sequence_name, uint32_t position_idx, std::string value);
+   explicit InsertionContains(
+      schema::ColumnIdentifier column,
+      uint32_t position_idx,
+      std::string value
+   );
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
-      return std::make_unique<InsertionContains>(sequence_name, position_idx, value);
+      return std::make_unique<InsertionContains>(column, position_idx, value);
    }
 
    [[nodiscard]] std::string toString() const override;
@@ -35,6 +41,8 @@ class InsertionContains : public ScalarExpression {
                                    ? Kind::INSERTION_CONTAINS_NUCLEOTIDE
                                    : Kind::INSERTION_CONTAINS_AMINO_ACID;
    [[nodiscard]] Kind kind() const override { return KIND; }
+
+   [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> rewrite(
       const storage::Table& table,

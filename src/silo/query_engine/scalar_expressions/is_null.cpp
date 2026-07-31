@@ -13,33 +13,37 @@
 
 namespace silo::query_engine::scalar_expressions {
 
-IsNull::IsNull(std::string column_name)
-    : column_name(std::move(column_name)) {}
+IsNull::IsNull(schema::ColumnIdentifier column)
+    : column(std::move(column)) {}
 
 std::string IsNull::toString() const {
-   return fmt::format("{} IS NULL", column_name);
+   return fmt::format("{} IS NULL", column.name);
+}
+
+std::vector<schema::ColumnIdentifier> IsNull::freeIUs() const {
+   return {column};
 }
 
 std::unique_ptr<ScalarExpression> IsNull::rewrite(
    const storage::Table& /*table*/,
    ScalarExpression::AmbiguityMode /*mode*/
 ) const {
-   return std::make_unique<IsNull>(column_name);
+   return std::make_unique<IsNull>(column);
 }
 
 std::unique_ptr<filter::operators::Operator> IsNull::compile(const storage::Table& table) const {
-   const auto& maybe_target_column = table.schema->getColumn(column_name);
+   const auto& maybe_target_column = table.schema->getColumn(column.name);
    CHECK_SILO_QUERY(
       maybe_target_column.has_value(),
       "The column '{}' is not contained in the database",
-      column_name
+      column.name
    );
    auto target_column = maybe_target_column.value();
 
    return silo::storage::column::visit(target_column.type, [&]<storage::column::Column Column>() {
-      const auto& column = table.columns.getColumns<Column>().at(column_name);
+      const auto& value_column = table.columns.getColumns<Column>().at(column.name);
       return std::make_unique<filter::operators::IndexScan>(
-         CopyOnWriteBitmap{&column.null_bitmap}, table.row_layout
+         CopyOnWriteBitmap{&value_column.null_bitmap}, table.row_layout
       );
    });
 }

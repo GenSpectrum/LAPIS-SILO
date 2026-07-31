@@ -16,12 +16,12 @@ namespace silo::query_engine::scalar_expressions {
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters,readability-identifier-length)
 FloatBetween::FloatBetween(
-   std::string column_name,
+   schema::ColumnIdentifier column,
    std::optional<double> from,
    std::optional<double> to
 )
     // NOLINTEND(bugprone-easily-swappable-parameters,readability-identifier-length)
-    : column_name(std::move(column_name)),
+    : column(std::move(column)),
       from(from),
       to(to) {}
 
@@ -32,21 +32,25 @@ std::string FloatBetween::toString() const {
    return "[FloatBetween " + from_string + " - " + to_string + "]";
 }
 
+std::vector<schema::ColumnIdentifier> FloatBetween::freeIUs() const {
+   return {column};
+}
+
 std::unique_ptr<ScalarExpression> FloatBetween::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
 ) const {
-   return std::make_unique<FloatBetween>(column_name, from, to);
+   return std::make_unique<FloatBetween>(column, from, to);
 }
 
 std::unique_ptr<filter::operators::Operator> FloatBetween::compile(const storage::Table& table
 ) const {
    CHECK_SILO_QUERY(
-      table.columns.float_columns.contains(column_name),
+      table.columns.float_columns.contains(column.name),
       "The database does not contain the float column '{}'",
-      column_name
+      column.name
    );
-   const auto& float_column = table.columns.float_columns.at(column_name);
+   const auto& float_column = table.columns.float_columns.at(column.name);
 
    filter::operators::PredicateVector predicates;
    if (from.has_value()) {

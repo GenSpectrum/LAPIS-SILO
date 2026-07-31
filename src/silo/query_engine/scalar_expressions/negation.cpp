@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -17,6 +18,10 @@ Negation::Negation(std::unique_ptr<ScalarExpression> child)
 
 std::string Negation::toString() const {
    return "!(" + child->toString() + ")";
+}
+
+std::vector<schema::ColumnIdentifier> Negation::freeIUs() const {
+   return child->freeIUs();
 }
 
 std::unique_ptr<ScalarExpression> Negation::rewrite(const storage::Table& table, AmbiguityMode mode)

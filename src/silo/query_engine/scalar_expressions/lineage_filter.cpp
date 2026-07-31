@@ -19,11 +19,11 @@ using silo::common::RecombinantEdgeFollowingMode;
 using silo::storage::column::IndexedStringColumn;
 
 LineageFilter::LineageFilter(
-   std::string column_name,
+   schema::ColumnIdentifier column,
    std::optional<std::string> lineage,
    std::optional<RecombinantEdgeFollowingMode> sublineage_mode
 )
-    : column_name(std::move(column_name)),
+    : column(std::move(column)),
       lineage(std::move(lineage)),
       sublineage_mode(sublineage_mode) {}
 
@@ -35,6 +35,10 @@ std::string LineageFilter::toString() const {
       return "'" + lineage.value() + "*'";
    }
    return "'" + lineage.value() + "'";
+}
+
+std::vector<schema::ColumnIdentifier> LineageFilter::freeIUs() const {
+   return {column};
 }
 
 std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
@@ -50,7 +54,7 @@ std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
       value_id_opt.has_value(),
       "The lineage '{}' is not a valid lineage for column '{}'.",
       lineage.value(),
-      column_name
+      column.name
    );
 
    const Idx value_id = value_id_opt.value();
@@ -67,28 +71,28 @@ std::unique_ptr<ScalarExpression> LineageFilter::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
 ) const {
-   return std::make_unique<LineageFilter>(column_name, lineage, sublineage_mode);
+   return std::make_unique<LineageFilter>(column, lineage, sublineage_mode);
 }
 
 std::unique_ptr<filter::operators::Operator> LineageFilter::compile(const storage::Table& table
 ) const {
    CHECK_SILO_QUERY(
-      table.schema->getColumn(column_name).has_value(),
+      table.schema->getColumn(column.name).has_value(),
       "The database does not contain the column '{}'",
-      column_name
+      column.name
    );
    CHECK_SILO_QUERY(
-      table.columns.indexed_string_columns.contains(column_name),
+      table.columns.indexed_string_columns.contains(column.name),
       "The column '{}' is not of type indexed string",
-      column_name
+      column.name
    );
    CHECK_SILO_QUERY(
-      table.columns.indexed_string_columns.at(column_name).getLineageIndex().has_value(),
+      table.columns.indexed_string_columns.at(column.name).getLineageIndex().has_value(),
       "The database does not contain a lineage index for the column '{}'",
-      column_name
+      column.name
    );
 
-   const auto& lineage_column = table.columns.indexed_string_columns.at(column_name);
+   const auto& lineage_column = table.columns.indexed_string_columns.at(column.name);
    std::optional<const roaring::Roaring*> bitmap = getBitmapForValue(lineage_column);
 
    if (bitmap == std::nullopt) {

@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -18,6 +19,10 @@ Exact::Exact(std::unique_ptr<ScalarExpression> child)
 
 std::string Exact::toString() const {
    return fmt::format("Exact ({})", child->toString());
+}
+
+std::vector<schema::ColumnIdentifier> Exact::freeIUs() const {
+   return child->freeIUs();
 }
 
 std::unique_ptr<ScalarExpression> Exact::rewrite(

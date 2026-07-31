@@ -16,13 +16,18 @@
 namespace silo::query_engine::scalar_expressions {
 
 template <typename SymbolType>
-HasMutation<SymbolType>::HasMutation(std::string sequence_name, uint32_t position_idx)
-    : sequence_name(std::move(sequence_name)),
+HasMutation<SymbolType>::HasMutation(schema::ColumnIdentifier column, uint32_t position_idx)
+    : column(std::move(column)),
       position_idx(position_idx) {}
 
 template <typename SymbolType>
 std::string HasMutation<SymbolType>::toString() const {
-   return sequence_name + ":" + std::to_string(position_idx);
+   return column.name + ":" + std::to_string(position_idx);
+}
+
+template <typename SymbolType>
+std::vector<schema::ColumnIdentifier> HasMutation<SymbolType>::freeIUs() const {
+   return {column};
 }
 
 template <typename SymbolType>
@@ -30,7 +35,7 @@ std::unique_ptr<ScalarExpression> HasMutation<SymbolType>::rewrite(
    const storage::Table& table,
    AmbiguityMode mode
 ) const {
-   const auto valid_sequence_name = validateSequenceName<SymbolType>(sequence_name, *table.schema);
+   const auto valid_sequence_name = validateSequenceName<SymbolType>(column.name, *table.schema);
 
    const auto& sequence_column =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
@@ -58,9 +63,7 @@ std::unique_ptr<ScalarExpression> HasMutation<SymbolType>::rewrite(
          std::erase(symbols, symbol);
       }
    }
-   return std::make_unique<SymbolInSet<SymbolType>>(
-      valid_sequence_name, position_idx, std::move(symbols)
-   );
+   return std::make_unique<SymbolInSet<SymbolType>>(column, position_idx, std::move(symbols));
 }
 
 template <typename SymbolType>

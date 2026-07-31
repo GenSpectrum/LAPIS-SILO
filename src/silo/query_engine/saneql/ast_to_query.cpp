@@ -73,13 +73,27 @@ namespace silo::query_engine::saneql {
 
 namespace {
 
+/// Resolves a column name against the input's output schema so that filter leaf
+/// expressions can carry the column's actual {name, type}.
+schema::ColumnIdentifier resolveColumn(
+   const std::string& column_name,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   const auto found =
+      std::ranges::find_if(schema, [&](const auto& col) { return col.name == column_name; });
+   CHECK_SILO_QUERY(
+      found != schema.end(), "The database does not contain the column '{}'", column_name
+   );
+   return *found;
+}
+
 ScalarExpressionPtr convertEqualsToFilter(
    const std::string& column_name,
    const ast::Expression& value_expr,
    const std::vector<schema::ColumnIdentifier>& schema
 ) {
    if (isNullLiteral(value_expr)) {
-      return std::make_unique<scalar_expressions::IsNull>(column_name);
+      return std::make_unique<scalar_expressions::IsNull>(resolveColumn(column_name, schema));
    }
 
    // Build the value operand first so parse-time value errors (e.g. an invalid
@@ -125,17 +139,19 @@ ScalarExpressionPtr convertEqualsToFilter(
 ScalarExpressionPtr convertIntComparison(
    const std::string& column_name,
    ast::BinaryOp binary_op,
-   uint32_t value
+   uint32_t value,
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
+   auto column = resolveColumn(column_name, schema);
    switch (binary_op) {
       case ast::BinaryOp::LESS_THAN:
          throw IllegalQueryException("less than is not implemented for integer expressions");
       case ast::BinaryOp::LESS_EQUAL:
-         return std::make_unique<scalar_expressions::IntBetween>(column_name, std::nullopt, value);
+         return std::make_unique<scalar_expressions::IntBetween>(column, std::nullopt, value);
       case ast::BinaryOp::GREATER_THAN:
          throw IllegalQueryException("greater than is not implemented for integer expressions");
       case ast::BinaryOp::GREATER_EQUAL:
-         return std::make_unique<scalar_expressions::IntBetween>(column_name, value, std::nullopt);
+         return std::make_unique<scalar_expressions::IntBetween>(column, value, std::nullopt);
       default:
          throw IllegalQueryException("unexpected operator for integer comparison");
    }
@@ -144,21 +160,19 @@ ScalarExpressionPtr convertIntComparison(
 ScalarExpressionPtr convertFloatComparison(
    const std::string& column_name,
    ast::BinaryOp binary_op,
-   double value
+   double value,
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
+   auto column = resolveColumn(column_name, schema);
    switch (binary_op) {
       case ast::BinaryOp::LESS_THAN:
-         return std::make_unique<scalar_expressions::FloatBetween>(
-            column_name, std::nullopt, value
-         );
+         return std::make_unique<scalar_expressions::FloatBetween>(column, std::nullopt, value);
       case ast::BinaryOp::LESS_EQUAL:
          throw IllegalQueryException("less equal is not implemented for float expressions");
       case ast::BinaryOp::GREATER_THAN:
          throw IllegalQueryException("greater than is not implemented for float expressions");
       case ast::BinaryOp::GREATER_EQUAL:
-         return std::make_unique<scalar_expressions::FloatBetween>(
-            column_name, value, std::nullopt
-         );
+         return std::make_unique<scalar_expressions::FloatBetween>(column, value, std::nullopt);
       default:
          throw IllegalQueryException("unexpected operator for float comparison");
    }
@@ -167,22 +181,20 @@ ScalarExpressionPtr convertFloatComparison(
 ScalarExpressionPtr convertDateComparison(
    const std::string& column_name,
    ast::BinaryOp binary_op,
-   const ast::Expression& value_expr
+   const ast::Expression& value_expr,
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
+   auto column = resolveColumn(column_name, schema);
    auto date_val = extractOptionalDateValue(value_expr);
    switch (binary_op) {
       case ast::BinaryOp::LESS_THAN:
          throw IllegalQueryException("less than is not implemented for date expressions");
       case ast::BinaryOp::LESS_EQUAL:
-         return std::make_unique<scalar_expressions::DateBetween>(
-            column_name, std::nullopt, date_val
-         );
+         return std::make_unique<scalar_expressions::DateBetween>(column, std::nullopt, date_val);
       case ast::BinaryOp::GREATER_THAN:
          throw IllegalQueryException("greater than is not implemented for date expressions");
       case ast::BinaryOp::GREATER_EQUAL:
-         return std::make_unique<scalar_expressions::DateBetween>(
-            column_name, date_val, std::nullopt
-         );
+         return std::make_unique<scalar_expressions::DateBetween>(column, date_val, std::nullopt);
       default:
          throw IllegalQueryException("unexpected operator for date comparison");
    }
@@ -191,18 +203,19 @@ ScalarExpressionPtr convertDateComparison(
 ScalarExpressionPtr convertComparisonToFilter(
    const std::string& column_name,
    ast::BinaryOp binary_op,
-   const ast::Expression& value_expr
+   const ast::Expression& value_expr,
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    if (isDateExpression(value_expr)) {
-      return convertDateComparison(column_name, binary_op, value_expr);
+      return convertDateComparison(column_name, binary_op, value_expr, schema);
    }
    if (isFloatLiteral(value_expr)) {
       return convertFloatComparison(
-         column_name, binary_op, extractNumericAsFloatLiteral(value_expr)
+         column_name, binary_op, extractNumericAsFloatLiteral(value_expr), schema
       );
    }
    if (isIntLiteral(value_expr)) {
-      return convertIntComparison(column_name, binary_op, extractInt32Literal(value_expr));
+      return convertIntComparison(column_name, binary_op, extractInt32Literal(value_expr), schema);
    }
    throw IllegalQueryException(
       "unsupported value type in comparison at {}:{}",
@@ -273,7 +286,7 @@ ScalarExpressionPtr convertBinaryExprToFilter(
             bin_expr.left->location.column
          );
          return convertComparisonToFilter(
-            extractIdentifierName(*bin_expr.left), bin_expr.op, *bin_expr.right
+            extractIdentifierName(*bin_expr.left), bin_expr.op, *bin_expr.right, schema
          );
       }
    }
@@ -286,7 +299,7 @@ ScalarExpressionPtr convertBinaryExprToFilter(
 
 ScalarExpressionPtr handleBetween(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
    const auto& from_expr = args.at("from");
@@ -294,7 +307,9 @@ ScalarExpressionPtr handleBetween(
 
    if (isDateExpression(from_expr) || isDateExpression(to_expr)) {
       return std::make_unique<scalar_expressions::DateBetween>(
-         column_name, extractOptionalDateValue(from_expr), extractOptionalDateValue(to_expr)
+         resolveColumn(column_name, schema),
+         extractOptionalDateValue(from_expr),
+         extractOptionalDateValue(to_expr)
       );
    }
    if (isFloatLiteral(from_expr) || isFloatLiteral(to_expr)) {
@@ -306,7 +321,9 @@ ScalarExpressionPtr handleBetween(
       if (!isNullLiteral(to_expr)) {
          to_val = extractNumericAsFloatLiteral(to_expr);
       }
-      return std::make_unique<scalar_expressions::FloatBetween>(column_name, from_val, to_val);
+      return std::make_unique<scalar_expressions::FloatBetween>(
+         resolveColumn(column_name, schema), from_val, to_val
+      );
    }
    if (isIntLiteral(from_expr) || isIntLiteral(to_expr)) {
       std::optional<int32_t> from_val;
@@ -317,7 +334,9 @@ ScalarExpressionPtr handleBetween(
       if (!isNullLiteral(to_expr)) {
          to_val = extractInt32Literal(to_expr);
       }
-      return std::make_unique<scalar_expressions::IntBetween>(column_name, from_val, to_val);
+      return std::make_unique<scalar_expressions::IntBetween>(
+         resolveColumn(column_name, schema), from_val, to_val
+      );
    }
    throw IllegalQueryException(
       "Could not infer type of between expression. From-value or to-value needs to be a typed "
@@ -329,7 +348,7 @@ ScalarExpressionPtr handleBetween(
 
 ScalarExpressionPtr handleIn(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
    const auto& set_expr = args.at("values");
@@ -344,28 +363,34 @@ ScalarExpressionPtr handleIn(
    for (const auto& elem : set.elements) {
       values.insert(extractStringLiteral(*elem));
    }
-   return std::make_unique<scalar_expressions::StringInSet>(column_name, std::move(values));
+   return std::make_unique<scalar_expressions::StringInSet>(
+      resolveColumn(column_name, schema), std::move(values)
+   );
 }
 
 ScalarExpressionPtr handleIsNull(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
-   return std::make_unique<scalar_expressions::IsNull>(extractIdentifierName(args.at("column")));
+   return std::make_unique<scalar_expressions::IsNull>(
+      resolveColumn(extractIdentifierName(args.at("column")), schema)
+   );
 }
 
 ScalarExpressionPtr handleIsNotNull(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    return std::make_unique<scalar_expressions::Negation>(
-      std::make_unique<scalar_expressions::IsNull>(extractIdentifierName(args.at("column")))
+      std::make_unique<scalar_expressions::IsNull>(
+         resolveColumn(extractIdentifierName(args.at("column")), schema)
+      )
    );
 }
 
 ScalarExpressionPtr handleLineage(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
    const auto& value_expr = args.at("value");
@@ -398,22 +423,23 @@ ScalarExpressionPtr handleLineage(
       }
    }
    return std::make_unique<scalar_expressions::LineageFilter>(
-      column_name, lineage_value, sublineage_mode
+      resolveColumn(column_name, schema), lineage_value, sublineage_mode
    );
 }
 
 ScalarExpressionPtr handlePhyloDescendantOf(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    return std::make_unique<scalar_expressions::PhyloChildFilter>(
-      extractIdentifierName(args.at("column")), extractStringLiteral(args.at("node"))
+      resolveColumn(extractIdentifierName(args.at("column")), schema),
+      extractStringLiteral(args.at("node"))
    );
 }
 
 ScalarExpressionPtr handleLike(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
    auto pattern = extractStringLiteral(args.at("pattern"));
@@ -424,13 +450,15 @@ ScalarExpressionPtr handleLike(
       "error '{}'. See https://github.com/google/re2/wiki/Syntax for a Syntax specification.",
       regex->error()
    );
-   return std::make_unique<scalar_expressions::StringSearch>(column_name, std::move(regex));
+   return std::make_unique<scalar_expressions::StringSearch>(
+      resolveColumn(column_name, schema), std::move(regex)
+   );
 }
 
 template <typename SymbolType>
 ScalarExpressionPtr handleSymbolEquals(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_SILO_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
@@ -440,10 +468,11 @@ ScalarExpressionPtr handleSymbolEquals(
       symbol_str.size() == 1, "{}() symbol must be a single character", args.functionName()
    );
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
+   auto column = resolveColumn(sequence_name, schema);
    char symbol_char = symbol_str[0];
    if (symbol_char == '.') {
       return std::make_unique<scalar_expressions::SymbolEquals<SymbolType>>(
-         sequence_name, position_idx, scalar_expressions::SymbolOrDot<SymbolType>::dot()
+         column, position_idx, scalar_expressions::SymbolOrDot<SymbolType>::dot()
       );
    }
    auto symbol = SymbolType::charToSymbol(symbol_char);
@@ -451,27 +480,28 @@ ScalarExpressionPtr handleSymbolEquals(
       symbol.has_value(), "{}() invalid symbol '{}'", args.functionName(), symbol_char
    );
    return std::make_unique<scalar_expressions::SymbolEquals<SymbolType>>(
-      sequence_name, position_idx, scalar_expressions::SymbolOrDot<SymbolType>(symbol.value())
+      column, position_idx, scalar_expressions::SymbolOrDot<SymbolType>(symbol.value())
    );
 }
 
 template <typename SymbolType>
 ScalarExpressionPtr handleHasMutation(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_SILO_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
+   auto column = resolveColumn(sequence_name, schema);
    return std::make_unique<scalar_expressions::HasMutation<SymbolType>>(
-      std::move(sequence_name), position - 1
+      std::move(column), position - 1
    );
 }
 
 template <typename SymbolType>
 ScalarExpressionPtr handleInsertionContains(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    auto position = extractUint32Literal(args.at("position"));
    auto value = extractStringLiteral(args.at("value"));
@@ -480,8 +510,9 @@ ScalarExpressionPtr handleInsertionContains(
       "The field 'value' in an InsertionContains expression must not be an empty string"
    );
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
+   auto column = resolveColumn(sequence_name, schema);
    return std::make_unique<scalar_expressions::InsertionContains<SymbolType>>(
-      sequence_name, position, std::move(value)
+      std::move(column), position, std::move(value)
    );
 }
 
@@ -640,10 +671,11 @@ std::vector<typename scalar_expressions::MutationProfile<SymbolType>::Mutation> 
 template <typename SymbolType>
 ScalarExpressionPtr handleMutationProfile(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& /*schema*/
+   const std::vector<schema::ColumnIdentifier>& schema
 ) {
    const uint32_t distance = extractUint32Literal(args.at("distance"));
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
+   auto column = resolveColumn(sequence_name, schema);
 
    const auto* query_seq_expr = args.get("querySequence");
    const auto* sequence_id_expr = args.get("sequenceId");
@@ -663,16 +695,12 @@ ScalarExpressionPtr handleMutationProfile(
 
    if (query_seq_expr != nullptr) {
       return std::make_unique<MP>(
-         sequence_name,
-         distance,
-         typename MP::QuerySequenceInput{extractStringLiteral(*query_seq_expr)}
+         column, distance, typename MP::QuerySequenceInput{extractStringLiteral(*query_seq_expr)}
       );
    }
    if (sequence_id_expr != nullptr) {
       return std::make_unique<MP>(
-         sequence_name,
-         distance,
-         typename MP::SequenceIdInput{extractStringLiteral(*sequence_id_expr)}
+         column, distance, typename MP::SequenceIdInput{extractStringLiteral(*sequence_id_expr)}
       );
    }
 
@@ -684,7 +712,7 @@ ScalarExpressionPtr handleMutationProfile(
    auto parsed_mutations =
       parseMutationList<SymbolType>(std::get<ast::SetLiteral>(mutations_expr->value));
    return std::make_unique<MP>(
-      sequence_name, distance, typename MP::MutationsInput{std::move(parsed_mutations)}
+      std::move(column), distance, typename MP::MutationsInput{std::move(parsed_mutations)}
    );
 }
 

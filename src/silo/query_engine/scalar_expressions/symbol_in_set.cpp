@@ -25,11 +25,11 @@ namespace silo::query_engine::scalar_expressions {
 
 template <typename SymbolType>
 SymbolInSet<SymbolType>::SymbolInSet(
-   std::string sequence_name,
+   schema::ColumnIdentifier column,
    uint32_t position_idx,
    std::vector<typename SymbolType::Symbol> symbols
 )
-    : sequence_name(std::move(sequence_name)),
+    : column(std::move(column)),
       position_idx(position_idx),
       symbols(std::move(symbols)) {}
 
@@ -46,8 +46,13 @@ std::string SymbolInSet<SymbolType>::toString() const {
    );
 
    return fmt::format(
-      "({}:symbol at position {} in {{{}}})", sequence_name, position_idx + 1, symbols_string
+      "({}:symbol at position {} in {{{}}})", column.name, position_idx + 1, symbols_string
    );
+}
+
+template <typename SymbolType>
+std::vector<schema::ColumnIdentifier> SymbolInSet<SymbolType>::freeIUs() const {
+   return {column};
 }
 
 namespace {
@@ -287,7 +292,7 @@ template <typename SymbolType>
 std::unique_ptr<filter::operators::Operator> SymbolInSet<SymbolType>::compile(
    const storage::Table& table
 ) const {
-   const auto valid_sequence_name = validateSequenceName<SymbolType>(sequence_name, *table.schema);
+   const auto valid_sequence_name = validateSequenceName<SymbolType>(column.name, *table.schema);
 
    const auto& sequence_column =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
