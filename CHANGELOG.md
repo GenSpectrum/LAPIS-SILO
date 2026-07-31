@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.13.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.13.0...v0.13.1) (2026-07-31)
+
+
+### Features
+
+* **app:** add the plan Ordering as an http header to the response ([4b501d5](https://github.com/GenSpectrum/LAPIS-SILO/commit/4b501d562cb2e4f763ef7dc9767c299afaea58cf))
+* **query_engine:** add a specialized OrderByWithLimit node ([34d3814](https://github.com/GenSpectrum/LAPIS-SILO/commit/34d38148611ba68e5ecac1ae461912b7412b3d62))
+* **query_engine:** implement free IUs for boolean expressions ([#1377](https://github.com/GenSpectrum/LAPIS-SILO/issues/1377)) ([f366c81](https://github.com/GenSpectrum/LAPIS-SILO/commit/f366c811e9d10daf407554928b34c24ab1a7a87e))
+
+
+### Bug Fixes
+
+* **silo:** allow `limit` on `groupBy` ([035e244](https://github.com/GenSpectrum/LAPIS-SILO/commit/035e2442d6944936a9f3a73c8aee39c4c24f32e6))
+
 ## [0.13.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.12.1...v0.13.0) (2026-07-29)
 
 
