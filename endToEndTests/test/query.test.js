@@ -1,4 +1,4 @@
-import { expectHeaderToHaveDataVersion, getOrdering, server } from './common.js';
+import { expectHeaderToHaveDataVersion, getResultOrdering, server } from './common.js';
 import { expect } from 'chai';
 import { describe, it } from 'node:test';
 import fs from 'fs';
@@ -146,13 +146,13 @@ describe('The /query endpoint', () => {
     );
   });
 
-  describe('the ordering response header', () => {
+  describe('the result-ordering response header', () => {
     const postQuery = query => server.post('/query').set('Content-Type', 'text/plain').send(query);
 
     it('serializes the sort key for an explicit ascending order by', async () => {
       const response = await postQuery('default.orderBy({primary_key}).project({primary_key})');
       expect(response.status).to.equal(200);
-      expect(getOrdering(response)).to.deep.equal([
+      expect(getResultOrdering(response)).to.deep.equal([
         { field: 'primary_key', order: 'ascending', nullPlacement: 'atStart' },
       ]);
     });
@@ -160,7 +160,7 @@ describe('The /query endpoint', () => {
     it('reflects the sort direction and null placement for a descending order by', async () => {
       const response = await postQuery('default.orderBy({primary_key.desc()}).project({primary_key})');
       expect(response.status).to.equal(200);
-      expect(getOrdering(response)).to.deep.equal([
+      expect(getResultOrdering(response)).to.deep.equal([
         { field: 'primary_key', order: 'descending', nullPlacement: 'atEnd' },
       ]);
     });
@@ -168,7 +168,7 @@ describe('The /query endpoint', () => {
     it('has no explicit ordering for a query without an order by', async () => {
       const response = await postQuery('default.groupBy({count:=count()})');
       expect(response.status).to.equal(200);
-      expect(getOrdering(response)).to.deep.equal([]);
+      expect(getResultOrdering(response)).to.deep.equal([]);
     });
   });
 

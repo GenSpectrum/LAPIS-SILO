@@ -32,7 +32,7 @@ Every response includes:
 | `X-Request-Id` | Echoes the request's `X-Request-Id`, or a generated UUID v4 if none was provided. Useful for correlating logs. |
 | `data-version` | A 10-digit Unix timestamp identifying the database snapshot used to serve the request. Allows clients to detect when the underlying data has changed between requests. |
 
-The `POST /query` endpoint additionally returns an [`ordering`](#response-headers) header describing the sort order of the result rows.
+The `POST /query` endpoint additionally returns an [`result-ordering`](#response-headers) header describing the sort order of the result rows.
 
 ## Endpoints
 
@@ -114,7 +114,7 @@ Queries time out after 120 seconds.
 
 #### Response Headers
 
-In addition to the [common response headers](#common-response-headers), a successful (200) query response carries an `ordering` header describing the order in which the result rows are returned.
+In addition to the [common response headers](#common-response-headers), a successful (200) query response carries an `result-ordering` header describing the order in which the result rows are returned.
 
 | Header | Description |
 |--------|-------------|
