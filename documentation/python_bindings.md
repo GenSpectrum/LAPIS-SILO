@@ -1,12 +1,12 @@
 # Python Bindings (`silodb`)
 
-`silodb` is a Python package that embeds SILO in-process, exposing the `Database` class. It lets you build or load a SILO database, run [SaneQL](query_documentation.md) queries, edit scalar values, and persist state — all without running the HTTP API server.
+`silodb` is a Python package that embeds RhyDB in-process, exposing the `Database` class. It lets you build or load a RhyDB database, run [SaneQL](query_documentation.md) queries, edit scalar values, and persist state — all without running the HTTP API server.
 
 Queries return [Apache Arrow](https://arrow.apache.org/) tables (`pyarrow`), and filter results are returned as [Roaring bitmaps](https://roaringbitmap.org/) (`pyroaring`), so results integrate directly with the scientific Python stack.
 
 ## Installation
 
-The package is built from this repository with a C++ toolchain (the same one used to build SILO) and Cython. From the repository root:
+The package is built from this repository with a C++ toolchain (the same one used to build RhyDB) and Cython. From the repository root:
 
 ```bash
 make python-tests   # builds silodb into a virtualenv and runs the test suite

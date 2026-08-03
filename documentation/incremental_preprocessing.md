@@ -1,10 +1,10 @@
 # Incremental Preprocessing with `silo append`
 
-The `silo append` command adds new records to an existing SILO database without requiring a full preprocessing run. It reads data in NDJSON format, appends it to a previously built database state, and writes the resulting updated state to the silo-directory.
+The `silo append` command adds new records to an existing RhyDB database without requiring a full preprocessing run. It reads data in NDJSON format, appends it to a previously built database state, and writes the resulting updated state to the silo-directory.
 
 ## Overview
 
-A typical SILO workflow begins with `silo preprocessing`, which builds a database from scratch. As new data becomes available, `silo append` can be used to incorporate it incrementally. The command loads an existing database state, parses the new records from an NDJSON source, validates and inserts them, and then persists the updated database as a new versioned state in the silo-directory.
+A typical RhyDB workflow begins with `silo preprocessing`, which builds a database from scratch. As new data becomes available, `silo append` can be used to incorporate it incrementally. The command loads an existing database state, parses the new records from an NDJSON source, validates and inserts them, and then persists the updated database as a new versioned state in the silo-directory.
 
 The append operation is atomic in the sense that the new state is only written after all records have been successfully inserted and validated. If any record fails validation (for example, due to a schema mismatch or a duplicate primary key), the operation aborts and the existing state remains untouched.
 
@@ -34,7 +34,7 @@ Environment variable: `SILO_SILO_DATA_SOURCE`. YAML key: `siloDataSource`.
 
 The input must be in Newline-Delimited JSON (NDJSON) format: one JSON object per line. Each object represents a single record and must contain all columns defined in the database schema. Unknown fields are ignored with a warning; missing required fields cause an error.
 
-The field order is determined from the first line and reused for all subsequent lines. For best performance, all lines should use the same field ordering. If a line deviates, SILO falls back to an unordered lookup and logs a warning.
+The field order is determined from the first line and reused for all subsequent lines. For best performance, all lines should use the same field ordering. If a line deviates, RhyDB falls back to an unordered lookup and logs a warning.
 
 See `input_format.md` for further details.
 

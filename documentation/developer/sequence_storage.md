@@ -1,10 +1,10 @@
 # Sequence Storage
 
-This document explains the fundamental concepts of how sequences are stored in SILO.
+This document explains the fundamental concepts of how sequences are stored in RhyDB.
 
 ## Overview
 
-SILO uses a hybrid storage approach that separates:
+RhyDB uses a hybrid storage approach that separates:
 - **Columnar storage** for mutations (differences from reference sequences)
 - **Row-wise storage** for coverage data (location of the N symbols in nucleotides or X symbols in amino acids)
 

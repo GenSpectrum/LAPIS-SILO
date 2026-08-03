@@ -91,4 +91,4 @@ E:
 
 - Alias Flexibility: Use aliases to standardize alternative names for lineages.
 - Root Lineages: Specify root lineages with `parents: null`, `parents: []`, or by omitting the key `parents`
-- Minimal assumptions: SILO verifies that the lineage labels are unique and the edges contain no cycles. No further assumptions about the lineage system are made
+- Minimal assumptions: RhyDB verifies that the lineage labels are unique and the edges contain no cycles. No further assumptions about the lineage system are made
