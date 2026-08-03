@@ -46,6 +46,10 @@ size_t RoaringContainer::sizeInBytes() const {
    return roaring::internal::container_size_in_bytes(container, typecode);
 }
 
+size_t RoaringContainerView::sizeInBytes() const {
+   return roaring::internal::container_size_in_bytes(container, typecode);
+}
+
 void RoaringContainer::runOptimizeAndShrink() {
    uint8_t new_typecode;
    auto* new_container =

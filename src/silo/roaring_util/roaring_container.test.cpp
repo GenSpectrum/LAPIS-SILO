@@ -11,6 +11,7 @@
 
 using silo::roaring_util::BitmapBuilderByContainer;
 using silo::roaring_util::RoaringContainer;
+using silo::roaring_util::RoaringContainerView;
 
 namespace {
 
@@ -83,6 +84,41 @@ TEST(RoaringContainer, runOptimizeAndShrinkPreservesContents) {
    container.runOptimizeAndShrink();
    EXPECT_EQ(container.getCardinality(), 100);
    EXPECT_EQ(toRoaring(container), before);
+}
+
+TEST(RoaringContainerView, mirrorsOwnerAndDoesNotFree) {
+   auto owner = RoaringContainer::withCapacity(4);
+   owner.add(3);
+   owner.add(7);
+
+   const RoaringContainerView view{owner};
+   EXPECT_EQ(view.getCardinality(), 2);
+   EXPECT_FALSE(view.empty());
+   EXPECT_EQ(view.rawContainer(), owner.rawContainer());
+   EXPECT_EQ(view.getTypecode(), owner.getTypecode());
+
+   // The view is non-owning: when it goes out of scope the owner's container stays valid.
+   {
+      const RoaringContainerView scoped{owner};
+      EXPECT_EQ(scoped.getCardinality(), 2);
+   }
+   EXPECT_EQ(toRoaring(owner), (roaring::Roaring{3, 7}));
+}
+
+TEST(RoaringContainerView, toOwningDeepCopies) {
+   auto owner = RoaringContainer::withCapacity(4);
+   owner.add(1);
+   owner.add(2);
+
+   const RoaringContainerView view{owner};
+   RoaringContainer owned = view.toOwning();
+   EXPECT_EQ(owned.getCardinality(), 2);
+
+   // Mutating the deep copy must not affect the original owner.
+   owned.add(3);
+   EXPECT_EQ(owned.getCardinality(), 3);
+   EXPECT_EQ(owner.getCardinality(), 2);
+   EXPECT_EQ(toRoaring(owner), (roaring::Roaring{1, 2}));
 }
 
 TEST(RoaringContainer, serializationRoundTrip) {

@@ -151,4 +151,41 @@ class RoaringContainer {
 // On 64-bit systems we expect a 16 byte struct, on 32-bit a 12 byte struct
 static_assert(sizeof(RoaringContainer) == (sizeof(void*) == 8 ? 16 : 12));
 
+/// Non-owning view into a single roaring bitmap container.
+/// The view is invalidated if the owner is destroyed or mutates the container.
+class RoaringContainerView {
+   const roaring::internal::container_t* container = nullptr;
+   uint32_t cardinality = 0;
+   uint8_t typecode = 0;
+
+  public:
+   RoaringContainerView(
+      const roaring::internal::container_t* container,
+      uint32_t cardinality,
+      uint8_t typecode
+   )
+       : container(container),
+         cardinality(cardinality),
+         typecode(typecode) {}
+
+   explicit RoaringContainerView(const RoaringContainer& owner)
+       : container(owner.rawContainer()),
+         cardinality(owner.getCardinality()),
+         typecode(owner.getTypecode()) {}
+
+   [[nodiscard]] const roaring::internal::container_t* rawContainer() const { return container; }
+
+   [[nodiscard]] uint8_t getTypecode() const { return typecode; }
+
+   [[nodiscard]] uint32_t getCardinality() const { return cardinality; }
+
+   [[nodiscard]] bool empty() const { return cardinality == 0; }
+
+   [[nodiscard]] size_t sizeInBytes() const;
+
+   [[nodiscard]] RoaringContainer toOwning() const {
+      return RoaringContainer::clonedFrom(container, typecode);
+   }
+};
+
 }  // namespace silo::roaring_util
