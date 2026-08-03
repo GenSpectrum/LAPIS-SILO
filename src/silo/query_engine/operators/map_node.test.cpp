@@ -208,9 +208,9 @@ const QueryTestScenario FILTER_NUCLEOTIDE_EQUALS_OVER_DECOMPRESS_MAP_SCENARIO = 
    .query =
       "default.filter(nucleotideEquals(position := 1, symbol := 'A', sequenceName := 'segment1'))"
       ".project({primaryKey, segment1, unaligned_segment1})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"segment1", "ACGT"}, {"unaligned_segment1", "ACGT"}}}
-   )
+   .expected_query_result =
+      nlohmann::json({{{"primaryKey", "id_0"}, {"segment1", "ACGT"}, {"unaligned_segment1", "ACGT"}}
+      })
 };
 
 // Regression guard: selecting the (zstd-compressed) sequence column together with a
