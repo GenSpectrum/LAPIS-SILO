@@ -253,15 +253,7 @@ void SequenceColumn<SymbolType>::fillIndexes() {
 template <typename SymbolType>
 void SequenceColumn<SymbolType>::optimizeBitmaps() {
    for (auto& [sequence_diff_key, sequence_diff] : vertical_sequence_index.vertical_bitmaps) {
-      uint8_t new_container_type;
-      auto new_container = roaring::internal::convert_run_optimize(
-         sequence_diff.container, sequence_diff.typecode, &new_container_type
-      );
-      if (new_container != sequence_diff.container) {
-         sequence_diff.container = new_container;
-         sequence_diff.typecode = new_container_type;
-      }
-      roaring::internal::container_shrink_to_fit(sequence_diff.container, sequence_diff.typecode);
+      sequence_diff.runOptimizeAndShrink();
    }
 }
 
@@ -279,9 +271,7 @@ template <typename SymbolType>
 size_t SequenceColumn<SymbolType>::computeVerticalBitmapsSize() const {
    size_t result = 0;
    for (const auto& [_pos, sequence_diff] : vertical_sequence_index.vertical_bitmaps) {
-      result += roaring::internal::container_size_in_bytes(
-         sequence_diff.container, sequence_diff.typecode
-      );
+      result += sequence_diff.sizeInBytes();
    }
    return result;
 }

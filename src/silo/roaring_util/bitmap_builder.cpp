@@ -4,7 +4,7 @@ namespace silo::roaring_util {
 
 void BitmapBuilderByContainer::addContainer(
    uint16_t v_index,
-   roaring::internal::container_t* container,
+   const roaring::internal::container_t* container,
    uint8_t typecode
 ) {
    if (current_v_tile_index > v_index) {

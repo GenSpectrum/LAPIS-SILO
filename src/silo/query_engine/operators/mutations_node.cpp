@@ -144,8 +144,9 @@ void countActualMutations(
    EVOBENCH_SCOPE("Mutations", "countActualMutations");
    for (const auto& [sequence_diff_key, sequence_diff] : vertical_bitmaps) {
       count_of_mutations_per_position[sequence_diff_key.symbol][sequence_diff_key.position] +=
-         sequence_diff.cardinality;
-      count_per_local_reference_position[sequence_diff_key.position] -= sequence_diff.cardinality;
+         sequence_diff.getCardinality();
+      count_per_local_reference_position[sequence_diff_key.position] -=
+         sequence_diff.getCardinality();
    }
 }
 
@@ -176,8 +177,8 @@ void countActualFilteredMutations(
          auto contained_count = roaring::internal::container_and_cardinality(
             filter_container,
             filter_container_typecode,
-            sequence_diff.container,
-            sequence_diff.typecode
+            sequence_diff.rawContainer(),
+            sequence_diff.getTypecode()
          );
 
          count_of_mutations_per_position[sequence_diff_key.symbol][sequence_diff_key.position] +=
