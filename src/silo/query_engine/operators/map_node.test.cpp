@@ -269,12 +269,62 @@ const QueryTestScenario FILTER_MAP_DECOMPRESS_LIMIT_SCENARIO = {
       nlohmann::json({{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}, {"tag", 7}}})
 };
 
-// A filter that references a column the map produces (`a`) is not yet supported
+// A filter that references a column the map produces (`a`) is not yet executable. The optimizer
+// must NOT push such a filter below the map; instead the FilterNode is left above the
+// map and surfaces the expected runtime error.
 const QueryTestScenario FILTER_ON_MAPPED_COLUMN_SCENARIO = {
    .name = "FILTER_ON_MAPPED_COLUMN",
    .query = "default.map({a := 3}).filter(a = 3).project({primaryKey})",
    .expected_query_result = {},
-   .expected_error_message = "The database does not contain the column 'a'"
+   .expected_error_message =
+      "FilterNode must be eliminated during pushdown before query plan generation"
+};
+
+// #1371 verbatim: filtering on an isoWeek-derived column must not be reordered below the map. The
+// FilterNode stays above the map and the query fails with the expected runtime error rather than
+// producing an invalid plan.
+const QueryTestScenario FILTER_ON_ISO_WEEK_MAPPED_COLUMN_SCENARIO = {
+   .name = "FILTER_ON_ISO_WEEK_MAPPED_COLUMN",
+   .query = "default.map({week := date.isoWeek()}).filter(week = 1).project({primaryKey})",
+   .expected_query_result = {},
+   .expected_error_message =
+      "FilterNode must be eliminated during pushdown before query plan generation"
+};
+
+// A filter on a column the map REPLACES in place with a value-changing expression (`str_value :=
+// str_value.at(1)`) must also stay above the map. Pushing it into the scan would filter on the
+// original, unmodified `str_value` - a silent miscompile - so it must error instead.
+const QueryTestScenario FILTER_ON_REPLACED_MAPPED_COLUMN_SCENARIO = {
+   .name = "FILTER_ON_REPLACED_MAPPED_COLUMN",
+   .query =
+      "default.map({str_value := str_value.at(1)}).filter(str_value = 's').project({primaryKey})",
+   .expected_query_result = {},
+   .expected_error_message =
+      "FilterNode must be eliminated during pushdown before query plan generation"
+};
+
+// A conjunction mixing a pushable sequence predicate (hasMutation) with a non-pushable derived
+// column (`week`). Because the whole filter references `week`, it must stay above the map - and
+// the pushable `segment1` reference must NOT trick column narrowing into pruning the producing
+// map. The query errors rather than producing a wrong answer or crashing.
+const QueryTestScenario FILTER_MIXED_PUSHABLE_AND_DERIVED_SCENARIO = {
+   .name = "FILTER_MIXED_PUSHABLE_AND_DERIVED",
+   .query =
+      "default.map({week := date.isoWeek()})"
+      ".filter(hasMutation(sequenceName := 'segment1', position := 1) && week = 1)"
+      ".project({primaryKey})",
+   .expected_query_result = {},
+   .expected_error_message =
+      "FilterNode must be eliminated during pushdown before query plan generation"
+};
+
+// A filter on a passed-through column (`int_value`) stacked above a map that produces an
+// UNRELATED derived column (`week`). The filter is pushed to the scan and the unused `week` map
+// is pruned by column narrowing; the query succeeds. Guards against over-eager map retention.
+const QueryTestScenario FILTER_PUSHED_PAST_UNRELATED_DERIVED_MAP_SCENARIO = {
+   .name = "FILTER_PUSHED_PAST_UNRELATED_DERIVED_MAP",
+   .query = "default.map({week := date.isoWeek()}).filter(int_value = 1).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
 };
 
 // `isoWeek` maps a date column to its ISO 8601 week number as an integer.
@@ -313,6 +363,10 @@ QUERY_TEST(
       FILTER_OVER_DECOMPRESS_MAP_SCENARIO,
       FILTER_MAP_DECOMPRESS_LIMIT_SCENARIO,
       FILTER_ON_MAPPED_COLUMN_SCENARIO,
+      FILTER_ON_ISO_WEEK_MAPPED_COLUMN_SCENARIO,
+      FILTER_ON_REPLACED_MAPPED_COLUMN_SCENARIO,
+      FILTER_MIXED_PUSHABLE_AND_DERIVED_SCENARIO,
+      FILTER_PUSHED_PAST_UNRELATED_DERIVED_MAP_SCENARIO,
       MAP_ISO_WEEK_SCENARIO
    )
 );

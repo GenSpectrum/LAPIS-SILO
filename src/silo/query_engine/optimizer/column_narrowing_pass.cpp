@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "silo/query_engine/operators/aggregate_node.h"
+#include "silo/query_engine/operators/filter_node.h"
 #include "silo/query_engine/operators/join_node.h"
 #include "silo/query_engine/operators/map_node.h"
 #include "silo/query_engine/operators/order_by_node.h"
@@ -16,6 +17,21 @@ namespace silo::query_engine::optimizer {
 
 ColumnNarrowingPass ColumnNarrowingPass::makePass(const operators::QueryNodePtr& node) {
    return ColumnNarrowingPass{node->getOutputSchema()};
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::FilterNode& node) {
+   // A filter needs every column its predicate references from its child, in addition to the
+   // columns the parent requires. FilterPushdownPass runs before this pass, so the only
+   // FilterNodes still present are ones that could not be pushed below a producing map (e.g.
+   // filter on an isoWeek/at column).
+   for (const auto& column : node.filter->freeIUs()) {
+      if (std::ranges::find(required, column) == required.end()) {
+         required.push_back(column);
+      }
+   }
+   propagateToNode(node.child);
+   return nullptr;
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static,misc-no-recursion)

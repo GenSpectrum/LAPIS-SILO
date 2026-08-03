@@ -156,6 +156,158 @@ TEST(FilterPushdownPass, pushesFilterThroughDecompressMapIntoTableScan) {
    EXPECT_EQ(table_scan->filter->toString(), "And(true & true)");
 }
 
+// --- FilterNode(MapNode(TableScanNode)) referencing a map-produced column ---
+//
+// Regression test for #1371: a filter that references a column produced by the map (here `x`)
+// must NOT be pushed below the map, since `x` does not exist beneath it. The optimizer must not
+// turn this valid plan into an invalid one; the FilterNode is kept above the MapNode instead.
+TEST(FilterPushdownPass, doesNotPushFilterReferencingMapProducedColumnBelowMap) {
+   using silo::schema::ColumnIdentifier;
+   using silo::schema::ColumnType;
+
+   auto table = makeTable();
+   auto scan = std::make_unique<operators::TableScanNode>(
+      table, makeDummyFilter(), std::vector<ColumnIdentifier>{}
+   );
+
+   const ColumnIdentifier produced_column{.name = "x", .type = ColumnType::INT64};
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = produced_column,
+       .expression = std::make_unique<scalar_expressions::Int64Literal>(3)}
+   );
+   auto map_node = std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
+
+   // filter references the map-produced column `x`
+   auto filter_node = std::make_unique<operators::FilterNode>(
+      std::move(map_node), std::make_unique<scalar_expressions::FieldRef>(produced_column)
+   );
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   // The FilterNode stays on top of the MapNode; nothing was pushed into the TableScan.
+   ASSERT_EQ(result->kind(), operators::NodeKind::FILTER);
+   auto* filter = dynamic_cast<operators::FilterNode*>(result.get());
+   EXPECT_EQ(filter->filter->toString(), "And(x)");
+   ASSERT_EQ(filter->child->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(filter->child.get());
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
+   // Only the scan's own filter remains; the outer filter was not pushed in.
+   EXPECT_EQ(table_scan->filter->toString(), "And(true)");
+}
+
+// A filter that references only columns the map passes through (not any map-produced column)
+// is still pushed below the map into the TableScan.
+TEST(FilterPushdownPass, pushesFilterReferencingPassThroughColumnBelowMap) {
+   using silo::schema::ColumnIdentifier;
+   using silo::schema::ColumnType;
+
+   auto table = makeTable();
+   auto scan = std::make_unique<operators::TableScanNode>(
+      table, makeDummyFilter(), std::vector<ColumnIdentifier>{}
+   );
+
+   const ColumnIdentifier produced_column{.name = "x", .type = ColumnType::INT64};
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = produced_column,
+       .expression = std::make_unique<scalar_expressions::Int64Literal>(3)}
+   );
+   auto map_node = std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
+
+   // filter references `id`, a pass-through column the map does not produce
+   const ColumnIdentifier pass_through_column{.name = "id", .type = ColumnType::STRING};
+   auto filter_node = std::make_unique<operators::FilterNode>(
+      std::move(map_node), std::make_unique<scalar_expressions::FieldRef>(pass_through_column)
+   );
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   // The MapNode is retained; the filter was pushed below it into the TableScan.
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
+   EXPECT_EQ(table_scan->filter->toString(), "And(id & true)");
+}
+
+// A filter referencing a column produced by a pushdown-transparent assignment (a zstd
+// decompression of the same-named column) IS pushed below the map into the TableScan, where the
+// filter compiles against the physical column. This is the shape the compiler inserts for
+// `segment1 := zstd_decompress(segment1)`; the co-occurrence-with-filter query relies on it.
+TEST(FilterPushdownPass, pushesFilterThroughTransparentDecompressMapIntoTableScan) {
+   using silo::schema::ColumnIdentifier;
+   using silo::schema::ColumnType;
+
+   const ColumnIdentifier compressed_column{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
+   auto scan = std::make_unique<operators::TableScanNode>(
+      makeTable(), makeDummyFilter(), std::vector<ColumnIdentifier>{compressed_column}
+   );
+
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = {.name = "seq", .type = ColumnType::STRING},
+       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
+          std::make_unique<scalar_expressions::FieldRef>(compressed_column), "A"
+       )}
+   );
+   auto map_node = std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
+
+   // filter references the decompressed column `seq` {seq, STRING} - same identifier the map
+   // produces, but the assignment is a transparent realization so the filter can be pushed down.
+   const ColumnIdentifier decompressed_column{.name = "seq", .type = ColumnType::STRING};
+   auto filter_node = std::make_unique<operators::FilterNode>(
+      std::move(map_node), std::make_unique<scalar_expressions::FieldRef>(decompressed_column)
+   );
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(result.get());
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
+   EXPECT_EQ(table_scan->filter->toString(), "And(seq & true)");
+}
+
+// A filter referencing a column that a map REPLACES in place with a value-changing (non
+// transparent) expression must NOT be pushed below the map. Pushing it into the scan would
+// filter on the original physical value instead of the map's computed one - a silent miscompile.
+// This mirrors e.g. `map({primaryKey := primaryKey.at(1)}).filter(primaryKey = 'i')`; here a
+// literal assignment stands in for any non-transparent expression.
+TEST(FilterPushdownPass, doesNotPushFilterThroughValueChangingReplaceInPlaceMap) {
+   using silo::schema::ColumnIdentifier;
+   using silo::schema::ColumnType;
+
+   auto scan = std::make_unique<operators::TableScanNode>(
+      makeTable(), makeDummyFilter(), std::vector<ColumnIdentifier>{}
+   );
+
+   // replace the existing pass-through column `id` with a computed value
+   const ColumnIdentifier replaced_column{.name = "id", .type = ColumnType::INT64};
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = replaced_column,
+       .expression = std::make_unique<scalar_expressions::Int64Literal>(3)}
+   );
+   auto map_node = std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
+
+   auto filter_node = std::make_unique<operators::FilterNode>(
+      std::move(map_node), std::make_unique<scalar_expressions::FieldRef>(replaced_column)
+   );
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   // The FilterNode is retained above the map; nothing was pushed into the TableScan.
+   ASSERT_EQ(result->kind(), operators::NodeKind::FILTER);
+   auto* filter = dynamic_cast<operators::FilterNode*>(result.get());
+   ASSERT_EQ(filter->child->kind(), operators::NodeKind::MAP);
+   auto* map = dynamic_cast<operators::MapNode*>(filter->child.get());
+   ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
+   EXPECT_EQ(table_scan->filter->toString(), "And(true)");
+}
+
 // --- FilterNode(ProjectNode(MapNode(FilterNode(TableScanNode)))) ---
 TEST(FilterPushdownPass, pushesFilterThroughProjectAndMapIntoTableScan) {
    auto inner_filter = makeFilteredScan(false);

@@ -7,6 +7,7 @@
 #include "silo/schema/database_schema.h"
 
 namespace silo::query_engine::operators {
+class FilterNode;
 class TableScanNode;
 class AggregateNode;
 class ProjectNode;
@@ -37,6 +38,7 @@ class ColumnNarrowingPass : public PipelinePassBase<ColumnNarrowingPass> {
 
    using PipelinePassBase<ColumnNarrowingPass>::operator();
 
+   operators::QueryNodePtr operator()(operators::FilterNode& node);
    operators::QueryNodePtr operator()(operators::TableScanNode& node);
    operators::QueryNodePtr operator()(operators::AggregateNode& node);
    operators::QueryNodePtr operator()(operators::ProjectNode& node);
