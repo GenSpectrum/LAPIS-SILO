@@ -14,7 +14,12 @@ tableName
   .operator2(...)
 ```
 
-The table name is `default` for now.
+The table holding the sequences and their metadata is named `default`.
+
+Additional tables exist if the database config declares columns with `lineageIndexType: table` or
+`both`: each such column gets a companion table named after the column, holding the edges of its
+lineage tree. These are queried like any other table — see
+[lineage_definitions.md](lineage_definitions.md#lineage-relation-tables) for their schema.
 
 ### Tabular data model
 
@@ -544,7 +549,10 @@ primary_key.like('key_[0-9]+')
 
 ### `lineage(column, value [, includeSublineages:=bool] [, recombinantFollowingMode:=string])`
 
-True if the lineage column matches `value`. Column must have `generateLineageIndex: true` in the schema.
+True if the lineage column matches `value`. The column must have `generateLineageIndex` set in the
+schema, with a `lineageIndexType` of `columnMetadata` (the default) or `both` — with
+`lineageIndexType: table` the lineage tree is not attached to the column and this filter is
+unavailable on it.
 
 `includeSublineages` (default `false`) also matches sublineages of `value`. `value` may be `null` to match NULL rows.
 

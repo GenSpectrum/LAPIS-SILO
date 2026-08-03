@@ -56,6 +56,8 @@ class BidirectionalStringMap {
 
    [[nodiscard]] std::string_view getValue(Idx idx) const { return id_to_value.at(idx); }
 
+   [[nodiscard]] size_t size() const { return id_to_value.size(); }
+
    [[nodiscard]] std::optional<Idx> getId(std::string_view value) const {
       if (value_to_id.contains(value)) {
          return value_to_id.at(value);

@@ -1,17 +1,28 @@
 #include "silo/initialize/initializer.h"
 
+#include <ranges>
+#include <sstream>
+#include <string>
+#include <vector>
+
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
-#include <boost/algorithm/string/join.hpp>
+#include <nlohmann/json.hpp>
 
 #include "evobench/evobench.hpp"
+#include "silo/append/ndjson_line_reader.h"
+#include "silo/append/table_inserter.h"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/panic.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/database.h"
 #include "silo/initialize/initialize_exception.h"
+#include "silo/initialize/lineage_relation_table.h"
+#include "silo/storage/column/column_metadata.h"
 #include "silo/storage/column/column_type_visitor.h"
+#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/string_column.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 #include "silo/storage/reference_genomes.h"
 
@@ -35,18 +46,133 @@ void Initializer::createTableInDatabase(
       phylo_tree_file = common::PhyloTree::fromFile(opt_path.value());
    }
 
-   auto validated_config = config::DatabaseConfig::getValidatedConfigFromFile(
-      initialization_files.getDatabaseConfigFilepath()
-   );
-
-   auto table_schema = createSchemaFromConfigFiles(
-      validated_config,
+   createTableInDatabase(
+      std::move(table_name),
+      config::DatabaseConfig::getValidatedConfigFromFile(
+         initialization_files.getDatabaseConfigFilepath()
+      ),
       ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilepath()),
       lineage_trees,
       phylo_tree_file,
-      initialization_files.without_unaligned_sequences
+      initialization_files.without_unaligned_sequences,
+      database
+   );
+}
+
+void Initializer::createTableInDatabase(
+   schema::TableName table_name,
+   const config::DatabaseConfig& database_config,
+   const ReferenceGenomes& reference_genomes,
+   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
+   const common::PhyloTree& phylo_tree,
+   bool without_unaligned_sequences,
+   Database& database
+) {
+   auto table_schema = createSchemaFromConfigFiles(
+      database_config, reference_genomes, lineage_trees, phylo_tree, without_unaligned_sequences
    );
    database.createTable(std::move(table_name), std::move(table_schema));
+
+   // Materialize a companion lineage relation table for every column configured with
+   // `lineageIndexType` 'table' or 'both'. The tree name is resolved against the loaded lineage
+   // definitions the same way the column's in-memory index is.
+   for (const auto& config_metadata : database_config.schema.metadata) {
+      if (!config_metadata.generatesLineageTable()) {
+         continue;
+      }
+      auto lineage_tree =
+         findLineageTreeForName(lineage_trees, config_metadata.generate_lineage_index.value());
+      if (!lineage_tree.has_value()) {
+         auto keys =
+            lineage_trees | std::views::keys |
+            std::views::transform([](const std::filesystem::path& path) { return path.string(); });
+         throw InitializeException(
+            "Column '{}' has lineage tree '{}' configured, but did not find corresponding lineage "
+            "tree in the provided lineageDefinitionFilenames: {}",
+            config_metadata.name,
+            config_metadata.generate_lineage_index.value(),
+            fmt::join(keys, ",")
+         );
+      }
+      createLineageRelationTable(config_metadata.name, lineage_tree.value(), database);
+   }
+}
+
+void Initializer::createLineageRelationTable(
+   std::string_view column_name,
+   const common::LineageTreeAndIdMap& lineage_tree,
+   Database& database
+) {
+   const std::string table_name_string{column_name};
+   const schema::TableName table_name{table_name_string};
+   if (database.tables.contains(table_name)) {
+      throw InitializeException(
+         "Cannot create lineage relation table '{}': a table with that name already exists.",
+         table_name_string
+      );
+   }
+
+   const schema::ColumnIdentifier id_column{.name = "id", .type = schema::ColumnType::STRING};
+   const schema::ColumnIdentifier lineage_column{
+      .name = "lineage", .type = schema::ColumnType::STRING
+   };
+   // The direct parent of `lineage` (null for a root). The transitive ancestry is walked from
+   // these edges at query time rather than materialized.
+   const schema::ColumnIdentifier parent_column{
+      .name = "parent", .type = schema::ColumnType::STRING
+   };
+   // True when `lineage` has more than one direct parent (an edge into a recombinant node).
+   const schema::ColumnIdentifier is_recombinant_edge_column{
+      .name = "is_recombinant_edge", .type = schema::ColumnType::BOOL
+   };
+   // For a recombinant `lineage`, the most-recent common ancestor of its parents; null
+   // otherwise.
+   const schema::ColumnIdentifier recombinant_clade_ancestor_column{
+      .name = "recombinant_clade_ancestor", .type = schema::ColumnType::STRING
+   };
+   auto table_schema = std::make_shared<schema::TableSchema>();
+   table_schema->column_metadata.emplace(
+      id_column, std::make_shared<storage::column::StringColumnMetadata>(id_column.name)
+   );
+   table_schema->column_metadata.emplace(
+      lineage_column, std::make_shared<storage::column::StringColumnMetadata>(lineage_column.name)
+   );
+   table_schema->column_metadata.emplace(
+      parent_column, std::make_shared<storage::column::StringColumnMetadata>(parent_column.name)
+   );
+   table_schema->column_metadata.emplace(
+      is_recombinant_edge_column,
+      std::make_shared<storage::column::ColumnMetadata>(is_recombinant_edge_column.name)
+   );
+   table_schema->column_metadata.emplace(
+      recombinant_clade_ancestor_column,
+      std::make_shared<storage::column::StringColumnMetadata>(recombinant_clade_ancestor_column.name
+      )
+   );
+   table_schema->primary_key = id_column;
+   database.createTable(table_name, std::move(table_schema));
+
+   const auto rows = buildLineageRelationRows(lineage_tree);
+   std::string ndjson;
+   size_t row_id = 0;
+   for (const auto& row : rows) {
+      const nlohmann::json line{
+         {"id", std::to_string(row_id++)},
+         {"lineage", row.lineage},
+         {"parent", row.parent.has_value() ? nlohmann::json(*row.parent) : nlohmann::json(nullptr)},
+         {"is_recombinant_edge", row.is_recombinant_edge},
+         {"recombinant_clade_ancestor",
+          row.recombinant_clade_ancestor.has_value()
+             ? nlohmann::json(*row.recombinant_clade_ancestor)
+             : nlohmann::json(nullptr)}
+      };
+      ndjson += line.dump();
+      ndjson += '\n';
+   }
+   std::stringstream ndjson_stream{ndjson};
+   silo::append::NdjsonLineReader ndjson_reader{ndjson_stream};
+   silo::append::appendDataToTable(database.tables.at(table_name), ndjson_reader);
+   SPDLOG_INFO("Built lineage relation table '{}' with {} rows", table_name_string, rows.size());
 }
 
 struct ColumnMetadataInitializer {
@@ -68,14 +194,14 @@ void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumn>
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
-   if (config_metadata.generate_lineage_index.has_value()) {
+   if (config_metadata.generatesLineageColumnIndex()) {
       auto lineage_tree_name = config_metadata.generate_lineage_index.value();
       auto lineage_tree = Initializer::findLineageTreeForName(lineage_trees, lineage_tree_name);
       if (not lineage_tree.has_value()) {
          auto keys =
             lineage_trees | std::views::keys |
             std::views::transform([](const std::filesystem::path& path) { return path.string(); });
-         throw silo::initialize::InitializeException(
+         throw InitializeException(
             "Column '{}' has lineage tree '{}' configured, but did not find corresponding lineage "
             "tree in the provided lineageDefinitionFilenames: {}",
             config_metadata.name,
@@ -163,9 +289,7 @@ void assertPrimaryKeyInMetadata(const silo::config::DatabaseConfig& database_con
       }
    );
    if (primary_key_metadata == database_config.schema.metadata.end()) {
-      throw silo::initialize::InitializeException(
-         "The primary key is not contained in the metadata."
-      );
+      throw InitializeException("The primary key is not contained in the metadata.");
    }
 }
 
@@ -178,7 +302,7 @@ void assertPrimaryKeyOfTypeString(const silo::config::DatabaseConfig& database_c
    );
    auto primary_key_type = primary_key_metadata->getColumnType();
    if (primary_key_type != schema::ColumnType::STRING) {
-      throw silo::initialize::InitializeException(
+      throw InitializeException(
          "The primary key must be of type STRING but it is of type {}",
          columnTypeToString(primary_key_type)
       );
