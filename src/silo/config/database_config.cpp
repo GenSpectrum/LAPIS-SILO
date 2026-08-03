@@ -34,6 +34,34 @@ ValueType silo::config::toDatabaseValueType(std::string_view type) {
    throw silo::config::ConfigException("Unknown metadata type: " + std::string(type));
 }
 
+silo::config::LineageIndexType silo::config::toLineageIndexType(std::string_view type) {
+   if (type == "columnMetadata") {
+      return LineageIndexType::COLUMN_METADATA;
+   }
+   if (type == "table") {
+      return LineageIndexType::TABLE;
+   }
+   if (type == "both") {
+      return LineageIndexType::BOTH;
+   }
+   throw silo::config::ConfigException(
+      "Unknown lineageIndexType: '" + std::string(type) +
+      "'. Must be one of 'columnMetadata', 'table', 'both'."
+   );
+}
+
+std::string_view silo::config::lineageIndexTypeToString(LineageIndexType type) {
+   switch (type) {
+      case LineageIndexType::COLUMN_METADATA:
+         return "columnMetadata";
+      case LineageIndexType::TABLE:
+         return "table";
+      case LineageIndexType::BOTH:
+         return "both";
+   }
+   SILO_UNREACHABLE();
+}
+
 namespace {
 
 std::string toString(ValueType type) {
@@ -49,7 +77,7 @@ std::string toString(ValueType type) {
       case ValueType::FLOAT:
          return "float";
    }
-   throw std::runtime_error("Non-exhausting switch should be covered by linter");
+   SILO_UNREACHABLE();
 }
 }  // namespace
 
@@ -115,6 +143,12 @@ bool YAML::convert<silo::config::DatabaseMetadata>::decode(
    } else {
       metadata.generate_lineage_index = std::nullopt;
    }
+   if (node["lineageIndexType"].IsDefined()) {
+      metadata.lineage_index_type =
+         silo::config::toLineageIndexType(node["lineageIndexType"].as<std::string>());
+   } else {
+      metadata.lineage_index_type = silo::config::LineageIndexType::COLUMN_METADATA;
+   }
    if (node["isPhyloTreeField"].IsDefined()) {
       metadata.phylo_tree_node_identifier = node["isPhyloTreeField"].as<bool>();
    } else {
@@ -135,7 +169,8 @@ YAML::Node YAML::convert<silo::config::DatabaseMetadata>::encode(
    node["type"] = toString(metadata.type);
    node["generateIndex"] = metadata.generate_index;
    if (metadata.generate_lineage_index) {
-      node["generateLineageIndex"] = true;
+      node["generateLineageIndex"] = metadata.generate_lineage_index.value();
+      node["lineageIndexType"] = std::string{lineageIndexTypeToString(metadata.lineage_index_type)};
    }
    if (metadata.phylo_tree_node_identifier) {
       node["isPhyloTreeField"] = true;
@@ -168,6 +203,15 @@ schema::ColumnType DatabaseMetadata::getColumnType() const {
       return schema::ColumnType::FLOAT;
    }
    throw std::runtime_error("Did not find metadata with name: " + std::string(name));
+}
+
+bool DatabaseMetadata::generatesLineageColumnIndex() const {
+   return generate_lineage_index.has_value() && lineage_index_type != LineageIndexType::TABLE;
+}
+
+bool DatabaseMetadata::generatesLineageTable() const {
+   return generate_lineage_index.has_value() &&
+          lineage_index_type != LineageIndexType::COLUMN_METADATA;
 }
 
 std::optional<DatabaseMetadata> DatabaseConfig::getMetadata(const std::string& name) const {
@@ -255,6 +299,15 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
          throw ConfigException(
             "Metadata '" + metadata.name +
             "' generateLineageIndex is set, generateIndex must also be set."
+         );
+      }
+
+      if (!generate_lineage_indexed_field &&
+          metadata.lineage_index_type != LineageIndexType::COLUMN_METADATA) {
+         throw ConfigException(
+            "Metadata '" + metadata.name + "' lineageIndexType is set to '" +
+            std::string(lineageIndexTypeToString(metadata.lineage_index_type)) +
+            "', but generateLineageIndex is not set."
          );
       }
 

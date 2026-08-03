@@ -1,7 +1,5 @@
 #include "silo/database.h"
 
-#include <array>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -38,6 +36,7 @@
 #include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/sequence_column.h"
+#include "silo/storage/column/string_column.h"
 
 namespace {
 template <typename SymbolType>
@@ -336,8 +335,9 @@ DatabaseInfo Database::getDatabaseInfo() const {
       .vertical_bitmaps_size = 0,
       .horizontal_bitmaps_size = 0
    };
-   for (const auto& [_, table] : tables) {
-      addTableStatisticsToDatabaseInfo(database_info, *table);
+   const auto default_table = tables.find(schema::TableName::getDefault());
+   if (default_table != tables.end()) {
+      addTableStatisticsToDatabaseInfo(database_info, *default_table->second);
    }
    return database_info;
 }
@@ -442,6 +442,7 @@ Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_sourc
    SPDLOG_INFO(
       "Finished loading data_version from {}", (save_directory / DATA_VERSION_FILENAME).string()
    );
+
    SPDLOG_INFO("Database info after loading: {}", database.getDatabaseInfo());
 
    return database;

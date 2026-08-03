@@ -299,6 +299,120 @@ schema:
    );
 }
 
+TEST(DatabaseConfig, lineageIndexTypeDefaultsToColumnMetadata) {
+   const char* const config_yaml =
+      R"(
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "lineage"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: lineage
+  primaryKey: "testPrimaryKey"
+)";
+
+   const auto config = DatabaseConfig::getValidatedConfig(config_yaml);
+   const auto metadata = config.getMetadata("lineage").value();
+   ASSERT_EQ(metadata.lineage_index_type, silo::config::LineageIndexType::COLUMN_METADATA);
+   ASSERT_TRUE(metadata.generatesLineageColumnIndex());
+   ASSERT_FALSE(metadata.generatesLineageTable());
+}
+
+TEST(DatabaseConfig, lineageIndexTypeTableIsParsedAndTogglesTableOnly) {
+   const char* const config_yaml =
+      R"(
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "lineage"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: lineage
+      lineageIndexType: table
+  primaryKey: "testPrimaryKey"
+)";
+
+   const auto config = DatabaseConfig::getValidatedConfig(config_yaml);
+   const auto metadata = config.getMetadata("lineage").value();
+   ASSERT_EQ(metadata.lineage_index_type, silo::config::LineageIndexType::TABLE);
+   ASSERT_FALSE(metadata.generatesLineageColumnIndex());
+   ASSERT_TRUE(metadata.generatesLineageTable());
+}
+
+TEST(DatabaseConfig, lineageIndexTypeBothTogglesBoth) {
+   const char* const config_yaml =
+      R"(
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "lineage"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: lineage
+      lineageIndexType: both
+  primaryKey: "testPrimaryKey"
+)";
+
+   const auto config = DatabaseConfig::getValidatedConfig(config_yaml);
+   const auto metadata = config.getMetadata("lineage").value();
+   ASSERT_EQ(metadata.lineage_index_type, silo::config::LineageIndexType::BOTH);
+   ASSERT_TRUE(metadata.generatesLineageColumnIndex());
+   ASSERT_TRUE(metadata.generatesLineageTable());
+}
+
+TEST(DatabaseConfig, givenUnknownLineageIndexTypeThenThrows) {
+   const char* const config_yaml =
+      R"(
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "lineage"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: lineage
+      lineageIndexType: nonsense
+  primaryKey: "testPrimaryKey"
+)";
+
+   EXPECT_THAT(
+      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
+      ThrowsMessage<ConfigException>(::testing::HasSubstr("Unknown lineageIndexType: 'nonsense'"))
+   );
+}
+
+TEST(DatabaseConfig, givenLineageIndexTypeWithoutGenerateLineageIndexThenThrows) {
+   const char* const config_yaml =
+      R"(
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "lineage"
+      type: "string"
+      generateIndex: true
+      lineageIndexType: table
+  primaryKey: "testPrimaryKey"
+)";
+
+   EXPECT_THAT(
+      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("Metadata 'lineage' lineageIndexType is set to 'table', but "
+                              "generateLineageIndex is not set")
+      )
+   );
+}
+
 TEST(DatabaseConfig, givenPhyloTreeIndexAndGenerateThenThrows) {
    const char* const config_yaml =
       R"(
