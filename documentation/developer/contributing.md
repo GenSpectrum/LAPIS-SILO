@@ -1,10 +1,10 @@
-# Contributing to LAPIS-SILO
+# Contributing to RhyDB
 
-All commands (except linting) which are regularly invoked when working with the SILO source are contained in `Makefile`.
+All commands (except linting) which are regularly invoked when working with the RhyDB source are contained in `Makefile`.
 
 ## Build Requirements
 
-For building SILO you require the following tools:
+For building RhyDB you require the following tools:
 - cmake (installable via apt / homebrew)
 - uv (installable via pip, or see https://docs.astral.sh/uv/)
   - used to install the build tool conan which we use to install dependencies
@@ -14,7 +14,7 @@ For building SILO you require the following tools:
 
 ## Building
 
-Use `make build/Debug/silo` or `make build/Release/silo` to build SILO.
+Use `make build/Debug/silo` or `make build/Release/silo` to build RhyDB.
 
 To limit the number of threads during build use e.g. `export CMAKE_BUILD_PARALLEL_LEVEL=4;` before invoking the Makefile targets. We default to using 16 threads
 
@@ -52,7 +52,7 @@ make dependencies
 
 ## Building for WebAssembly (Browser)
 
-SILO can be compiled to WebAssembly to run preprocessing and SaneQL queries in the browser.
+RhyDB can be compiled to WebAssembly to run preprocessing and SaneQL queries in the browser.
 
 ### Prerequisites
 
@@ -82,7 +82,7 @@ cross-origin isolation headers required to serve the pthread-enabled build.
 
 ## Building Python Bindings
 
-SILO provides Python bindings via Cython. The bindings wrap the core C++ `Database` class.
+RhyDB provides Python bindings via Cython. The bindings wrap the core C++ `Database` class.
 
 ### Prerequisites
 
@@ -116,7 +116,7 @@ The build process:
 3. Builds the C++ library and Cython extension
 4. Installs to your Python environment
 
-## Running SILO Locally with CLion
+## Running RhyDB Locally with CLion
 
 `.run` contains run configurations for CLion that are ready to use.
 They assume that you configured CMake in CLion to use `./build` as build directory.
@@ -151,10 +151,10 @@ building with clang-tidy under alpine was not possible yet. Should be changed in
 
 ### Functional End-To-End Tests
 
-End-to-end tests are located in `/endToEndTests`. Those tests are used to verify the overall functionality of the SILO
+End-to-end tests are located in `/endToEndTests`. Those tests are used to verify the overall functionality of the RhyDB
 queries. To execute the tests:
 
-- have a running SILO instance with preprocessed data e.g. via
+- have a running RhyDB instance with preprocessed data e.g. via
   - `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing.yml up`
   - `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d wait`
 - `cd endToEndTests`
@@ -188,7 +188,7 @@ When the PR is merged, the release will be created.
 Creating a release means:
 
 - A new Git tag is created.
-- The Docker images of SILO are tagged with the new version.
+- The Docker images of RhyDB are tagged with the new version.
   - Suppose the created version is `2.4.5`, then it creates the tags `2`, `2.4` and `2.4.5` on the current `latest` image.
 
 The changelog and the version number are determined by the commit messages.

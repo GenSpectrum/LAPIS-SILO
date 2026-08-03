@@ -1,6 +1,6 @@
 # How the configuration system works
 
-SILO takes configuration information from three sources:
+RhyDB takes configuration information from three sources:
 YAML files, environment variables, and command line arguments. The
 same variables can be defined via any of them (except the path to the
 config file only makes sense to be defined via environment variable or
@@ -55,7 +55,7 @@ There are some complications:
   option, to avoid erroring out and stopping while reading environment
   variables.
 
-* SILO needs to be able to receive two config files: one with default
+* RhyDB needs to be able to receive two config files: one with default
   values for an environment (for a Docker image), and another one
   optionally provided by the user of a Docker image; values in the latter
   should shadow values in the former. For this reason,

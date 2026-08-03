@@ -1,10 +1,10 @@
-# SILO Input Format Documentation
+# RhyDB Input Format Documentation
 
-This document describes the NDJSON input format used by SILO for ingesting genomic sequence data and associated metadata.
+This document describes the NDJSON input format used by RhyDB for ingesting genomic sequence data and associated metadata.
 
 ## Overview
 
-SILO expects input data in **NDJSON format** (Newline Delimited JSON), where each line contains a complete JSON object representing one record/sequence. The format is parsed using the simdjson library for high-performance streaming.
+RhyDB expects input data in **NDJSON format** (Newline Delimited JSON), where each line contains a complete JSON object representing one record/sequence. The format is parsed using the simdjson library for high-performance streaming.
 
 ## File Structure
 
@@ -25,7 +25,7 @@ SILO expects input data in **NDJSON format** (Newline Delimited JSON), where eac
 
 ### database_config.yaml
 
-Defines the schema for your SILO database:
+Defines the schema for your RhyDB database:
 
 ```yaml
 schema:

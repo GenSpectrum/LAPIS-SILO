@@ -1,12 +1,16 @@
-# LAPIS-SILO
+# RhyDB
 
 High-performance analytical database for sequence alignment data
 
-For information on how to build, test, and contribute to SILO, see [Contributing](documentation/developer/contributing.md).
+RhyDB was formerly named SILO. The rename is currently limited to the product name: the executable is still `silo`, the
+Python package is still `silodb`, environment variables still use the `SILO_` prefix, and the repository is still
+`GenSpectrum/LAPIS-SILO`. Documentation refers to those by their actual names.
+
+For information on how to build, test, and contribute to RhyDB, see [Contributing](documentation/developer/contributing.md).
 
 ## Python Bindings
 
-SILO provides Python bindings via Cython. The bindings wrap the core C++ `Database` and are installable by `pip install silodb`.
+RhyDB provides Python bindings via Cython. The bindings wrap the core C++ `Database` and are installable by `pip install silodb`.
 
 See [Contributing](documentation/developer/contributing.md#building-python-bindings) for build instructions.
 
@@ -50,7 +54,7 @@ db.print_all_data("sequences")
 
 ## Configuration Files
 
-For SILO, there are three different configuration files:
+For RhyDB, there are three different configuration files:
 
 - `DatabaseConfig` described in
   file [database_config.h](src/silo/config/database_config.h)
@@ -62,7 +66,7 @@ For SILO, there are three different configuration files:
   For details see `silo api --help`.
 
 The database config contains the schema of the database and is always required when preprocessing data. The database
-config will be saved together with the output of the preprocessing and is therefore not required when starting SILO as
+config will be saved together with the output of the preprocessing and is therefore not required when starting RhyDB as
 an API.
 
 An example configuration file can be seen
@@ -84,7 +88,7 @@ The preprocessing acts as a program that takes an input directory that contains 
 and an output directory where the processed data will be stored.
 Both need to be mounted to the container.
 
-SILO expects a preprocessing config that can to be mounted to the default location `/app/preprocessing_config.yaml`.
+RhyDB expects a preprocessing config that can be mounted to the default location `/app/preprocessing_config.yaml`.
 
 Additionally, a database config and a ndjson file containing the data are required. They should typically be mounted in `/preprocessing/input`.
 
@@ -102,7 +106,7 @@ Both config files can also be provided in custom locations:
 silo preprocessing --preprocessing-config=./custom/preprocessing_config.yaml --database-config=./custom/database_config.yaml
 ```
 
-The Docker image contains a default preprocessing config that sets defaults specific for running SILO in Docker.
+The Docker image contains a default preprocessing config that sets defaults specific for running RhyDB in Docker.
 Apart from that, there are default values if neither user-provided nor default config specify fields.
 The user-provided preprocessing config can be used to overwrite the default values. For a full reference,
 see the help text.
@@ -118,7 +122,7 @@ docker run
   silo api
 ```
 
-The directory where SILO expects the preprocessing output can be overwritten via
+The directory where RhyDB expects the preprocessing output can be overwritten via
 `silo api --data-directory=/custom/data/directory` or in a corresponding
 [configuration file](#configuration-files).
 

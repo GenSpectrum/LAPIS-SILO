@@ -1,6 +1,6 @@
-# SILO HTTP API Reference
+# RhyDB HTTP API Reference
 
-SILO includes an HTTP API for querying preprocessed outputs.
+RhyDB includes an HTTP API for querying preprocessed outputs.
 
 ## Running the API Server
 
@@ -65,7 +65,7 @@ Returns metadata about the loaded database.
 
 | Field | Description |
 |-------|-------------|
-| `version` | SILO software version |
+| `version` | RhyDB software version |
 | `sequenceCount` | Total number of sequences in the database |
 | `horizontalBitmapsSize` | Size of horizontal bitmap indexes (bytes) |
 | `verticalBitmapsSize` | Size of vertical bitmap indexes (bytes) |

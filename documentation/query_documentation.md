@@ -1,4 +1,4 @@
-# SILO Query Documentation
+# RhyDB Query Documentation
 
 All queries are sent to the `/query` endpoint as a plain-text request body containing a [SaneQL](https://www.cidrdb.org/cidr2024/papers/p48-neumann.pdf) expression.
 
