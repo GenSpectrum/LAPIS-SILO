@@ -11,7 +11,11 @@ class BitmapBuilderByContainer {
    uint8_t current_typecode = 0;
 
   public:
-   void addContainer(uint16_t v_index, roaring::internal::container_t* container, uint8_t typecode);
+   void addContainer(
+      uint16_t v_index,
+      const roaring::internal::container_t* container,
+      uint8_t typecode
+   );
 
    roaring::Roaring getBitmap() &&;
 };
