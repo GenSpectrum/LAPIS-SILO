@@ -196,6 +196,23 @@ const QueryTestScenario DECOMPRESS_WITH_USER_MAP_SCENARIO = {
    )
 };
 
+// A nucleotide-symbol filter stacked on top of the implicit decompression MapNode for a
+// sequence column, while ALSO projecting the (decompressed) aligned and unaligned sequences:
+// Filter(nucleotideEquals(segment1)) -> Map(segment1/unaligned_segment1 := zstd_decompress(...)).
+// Projecting the sequences keeps the decompression assignments alive through column narrowing,
+// so the decompression map genuinely materializes them. The assignment is pushdown-transparent,
+// so FilterPushdownPass still pushes the sequence predicate below the map into the scan, where
+// SymbolEquals resolves `segment1` by name to the physical NUCLEOTIDE_SEQUENCE column.
+const QueryTestScenario FILTER_NUCLEOTIDE_EQUALS_OVER_DECOMPRESS_MAP_SCENARIO = {
+   .name = "FILTER_NUCLEOTIDE_EQUALS_OVER_DECOMPRESS_MAP",
+   .query =
+      "default.filter(nucleotideEquals(position := 1, symbol := 'A', sequenceName := 'segment1'))"
+      ".project({primaryKey, segment1, unaligned_segment1})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"segment1", "ACGT"}, {"unaligned_segment1", "ACGT"}}}
+   )
+};
+
 // Regression guard: selecting the (zstd-compressed) sequence column together with a
 // `limit` must still return the correct, order-stable result.
 const QueryTestScenario DECOMPRESS_SEQUENCE_WITH_LIMIT_SCENARIO = {
@@ -355,6 +372,7 @@ QUERY_TEST(
       MAP_DUPLICATE_OUTPUT_NAME_SCENARIO,
       DECOMPRESS_SEQUENCE_SCENARIO,
       DECOMPRESS_WITH_USER_MAP_SCENARIO,
+      FILTER_NUCLEOTIDE_EQUALS_OVER_DECOMPRESS_MAP_SCENARIO,
       DECOMPRESS_SEQUENCE_WITH_LIMIT_SCENARIO,
       MAP_WITH_LIMIT_TRIGGERS_PULLUP_SCENARIO,
       FILTER_ON_TOP_OF_MAP_SCENARIO,
