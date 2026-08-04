@@ -108,6 +108,9 @@ wasm: ${SILO_WASM_EXECUTABLE}
 	mkdir -p ${SILO_WASM_DIST_DIR}
 	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm ${SILO_WASM_DIST_DIR}/
 	@if [ -f build/wasm/rhydb_wasm.worker.js ]; then cp build/wasm/rhydb_wasm.worker.js ${SILO_WASM_DIST_DIR}/; fi
+	# Stage artifacts next to wasm/package.json so `npm publish` (run in wasm/) includes them.
+	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm wasm/
+	@if [ -f build/wasm/rhydb_wasm.worker.js ]; then cp build/wasm/rhydb_wasm.worker.js wasm/; fi
 
 .PHONY: wasm-test
 wasm-test: wasm

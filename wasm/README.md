@@ -30,6 +30,26 @@ Building the WASM target creates these files relative to the SILO repository roo
 
 Both files must be served by the web app. The JavaScript loader fetches the `.wasm` file at runtime.
 
+## Install from NPM
+
+The WASM build is also published as an NPM package. The package name is currently a placeholder (`@genspectrum/silo-wasm-PLACEHOLDER`) and will be renamed later:
+
+```sh
+npm install @genspectrum/silo-wasm-PLACEHOLDER
+```
+
+The package is an ES module. Import the loader as a default import:
+
+```js
+import createSiloModule from "@genspectrum/silo-wasm-PLACEHOLDER";
+
+const silo = await createSiloModule();
+```
+
+The `.wasm` file (and `.worker.js` when present) ships alongside `rhydb_wasm.js` and must be resolvable by your bundler so the loader can fetch them at runtime. The package version matches the SILO release version.
+
+As with a self-hosted build, the page must be cross-origin isolated (COOP/COEP headers) because the module uses pthreads and therefore `SharedArrayBuffer`.
+
 The current build uses pthreads, so the page serving the module must be cross-origin isolated. Pthreads are the POSIX thread API that Emscripten maps to Web Workers, and SILO uses them because its dependencies and query execution are built around threaded native code. Serve it over HTTP with these headers:
 
 ```text

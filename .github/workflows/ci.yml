@@ -627,6 +627,7 @@ jobs:
     name: Build WebAssembly
     runs-on: ubuntu-latest
     permissions:
+      id-token: write # NPM OIDC trusted publishing
       contents: write # Upload artifacts to GitHub Releases
     steps:
       - uses: actions/checkout@v7
@@ -684,6 +685,22 @@ jobs:
             VERSION=$(git describe --tags --exact-match | sed 's/^v//')
             echo "SILO_VERSION=${VERSION}" >> $GITHUB_ENV
           fi
+
+      # Publish the WASM package to NPM using OIDC trusted publishing
+      # (no NODE_AUTH_TOKEN secret needed). provenance is set in package.json.
+      - name: Set up Node.js for NPM publish
+        if: env.SILO_VERSION != ''
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: latest
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish WASM package to NPM
+        if: env.SILO_VERSION != ''
+        working-directory: wasm
+        run: |
+          npm version "$SILO_VERSION" --no-git-tag-version
+          npm publish
 
       - name: Package WASM artifacts for release
         if: env.SILO_VERSION != ''
