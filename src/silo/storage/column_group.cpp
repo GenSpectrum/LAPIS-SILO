@@ -77,7 +77,8 @@ const std::map<std::string, column::StringColumn>& ColumnGroup::getColumns<colum
 }
 
 template <>
-const std::map<std::string, column::Int32Column>& ColumnGroup::getColumns<column::Int32Column>() const {
+const std::map<std::string, column::Int32Column>& ColumnGroup::getColumns<column::Int32Column>(
+) const {
    return int32_columns;
 }
 

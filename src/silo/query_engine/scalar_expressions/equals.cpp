@@ -23,13 +23,12 @@
 #include "silo/storage/column/bool_column.h"
 #include "silo/storage/column/date32_column.h"
 #include "silo/storage/column/float_column.h"
-#include "silo/storage/column/int64_column.h"
 #include "silo/storage/column/int_column.h"
 
 using silo::storage::column::Date32Column;
 using silo::storage::column::FloatColumn;
-using silo::storage::column::Int64Column;
 using silo::storage::column::Int32Column;
+using silo::storage::column::Int64Column;
 
 namespace silo::query_engine::scalar_expressions {
 
@@ -81,9 +80,7 @@ std::unique_ptr<filter::operators::Operator> compileEquals(
    const auto& column = columns.at(column_name);
    return std::make_unique<filter::operators::Selection>(
       std::make_unique<filter::operators::CompareToValueSelection<ColumnT>>(
-         column,
-         filter::operators::Comparator::EQUALS,
-         static_cast<ColumnT::value_type>(value)
+         column, filter::operators::Comparator::EQUALS, static_cast<ColumnT::value_type>(value)
       ),
       table.row_layout
    );
@@ -182,7 +179,9 @@ std::unique_ptr<filter::operators::Operator> Equals::compile(const storage::Tabl
    }
 
    if (const auto* int_value = dynCast<Int32Literal>(value)) {
-      return compileEquals(table, table.columns.int32_columns, column_name, "int32", int_value->value);
+      return compileEquals(
+         table, table.columns.int32_columns, column_name, "int32", int_value->value
+      );
    }
 
    if (const auto* int64_value = dynCast<Int64Literal>(value)) {

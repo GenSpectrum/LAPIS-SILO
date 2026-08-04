@@ -86,9 +86,7 @@ const QueryTestScenario INT64_GREATER_EQUAL_SCENARIO = {
    .name = "INT64_GREATER_EQUAL_SCENARIO",
    .query = "default.filter(int64_value >= 5000000000)",
    .expected_query_result = nlohmann::json(
-      {row("id_0", VALUE_IN_FILTER),
-       row("id_1", VALUE_IN_FILTER),
-       row("id_3", VALUE_ABOVE_FILTER)}
+      {row("id_0", VALUE_IN_FILTER), row("id_1", VALUE_IN_FILTER), row("id_3", VALUE_ABOVE_FILTER)}
    )
 };
 

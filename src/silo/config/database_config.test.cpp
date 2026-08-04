@@ -111,13 +111,12 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
-   DatabaseConfig config = DatabaseConfig::getValidatedConfigFromFile(
-      "testBaseData/test_database_config.yaml"
-   );
+   DatabaseConfig config =
+      DatabaseConfig::getValidatedConfigFromFile("testBaseData/test_database_config.yaml");
 
    ASSERT_EQ(config.schema.instance_name, "sars_cov-2_minimal_test_config");
    ASSERT_EQ(config.schema.primary_key, "primary_key");
-   ASSERT_EQ(config.schema.metadata.size(), 9);
+   ASSERT_EQ(config.schema.metadata.size(), 11);
    ASSERT_EQ(config.schema.metadata[0].name, "primary_key");
    ASSERT_EQ(config.schema.metadata[0].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[0].generate_index, false);
@@ -161,9 +160,7 @@ TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
 TEST(DatabaseConfig, shouldThrowExceptionWhenConfigFileDoesNotExist) {
    EXPECT_THAT(
       []() {
-         (void)DatabaseConfig::getValidatedConfigFromFile(
-            "testBaseData/does_not_exist.yaml"
-         );
+         (void)DatabaseConfig::getValidatedConfigFromFile("testBaseData/does_not_exist.yaml");
       },
       ThrowsMessage<std::runtime_error>(::testing::HasSubstr("Failed to read database config"))
    );

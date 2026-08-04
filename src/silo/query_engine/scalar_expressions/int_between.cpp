@@ -12,12 +12,11 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
-#include "silo/storage/column/int64_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/table.h"
 
-using silo::storage::column::Int64Column;
 using silo::storage::column::Int32Column;
+using silo::storage::column::Int64Column;
 
 namespace silo::query_engine::scalar_expressions {
 
