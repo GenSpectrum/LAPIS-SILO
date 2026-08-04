@@ -1,8 +1,24 @@
 #pragma once
 
-#include <fmt/format.h>
+#include <iterator>
+#include <string>
+#include <utility>
+
+#include <fmt/base.h>
 
 namespace silo::common {
+
+/// Formats like `fmt::format` but only requires the lightweight <fmt/base.h>
+/// (which declares `format_to`) instead of the heavy <fmt/format.h> (which is
+/// the only header that declares the std::string-returning `fmt::format`).
+/// Pulling just base.h here keeps this ubiquitously-included assertion header
+/// cheap to compile. Used by the panicking/asserting macros below.
+template <typename... Args>
+[[nodiscard]] std::string panicFormat(fmt::format_string<Args...> format_str, Args&&... args) {
+   std::string out;
+   fmt::format_to(std::back_inserter(out), format_str, std::forward<Args>(args)...);
+   return out;
+}
 
 /// ** This is the basic building block for the various panicking
 /// features offered in this file. You probably want to use the
@@ -29,7 +45,8 @@ namespace silo::common {
 /// Passes arguments to `fmt::format` (at least a format string
 /// argument is required) and adds file and line information, then
 /// calls `panic`.
-#define SILO_PANIC(...) silo::common::panic(fmt::format(__VA_ARGS__), __FILE__, __LINE__)
+#define SILO_PANIC(...) \
+   silo::common::panic(silo::common::panicFormat(__VA_ARGS__), __FILE__, __LINE__)
 
 /// Denotes a place that isn't implemented *yet*, during
 /// development. Follows the same path as `PANIC` when reached.
@@ -73,7 +90,7 @@ namespace silo::common {
             #e1,                                                                         \
             #op,                                                                         \
             #e2,                                                                         \
-            fmt::format(                                                                 \
+            silo::common::panicFormat(                                                   \
                "{} " #op " {}", silo_internal_assert_op__v1, silo_internal_assert_op__v2 \
             ),                                                                           \
             __FILE__,                                                                    \

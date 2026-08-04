@@ -70,9 +70,9 @@ class SymbolEquals : public ScalarExpression {
    ) const override;
 
   private:
-   static std::string getFilterName() {
-      return fmt::format("SymbolEquals<{}>", SymbolType::SYMBOL_NAME);
-   }
+   // Defined in symbol_equals.cpp (instantiated there for both symbol types) so
+   // this header need not include the heavy <fmt/format.h>.
+   static std::string getFilterName();
 };
 
 }  // namespace silo::query_engine::scalar_expressions

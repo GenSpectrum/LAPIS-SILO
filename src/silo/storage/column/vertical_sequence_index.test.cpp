@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 

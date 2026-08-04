@@ -4,6 +4,7 @@
 
 #include <arrow/acero/exec_plan.h>
 #include <fmt/format.h>
+#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
 #include "silo/query_engine/optimizer/bitmap_aggregation_rewrite_pass.h"

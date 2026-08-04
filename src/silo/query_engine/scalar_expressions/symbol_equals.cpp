@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 #include "silo/common/aa_symbols.h"
@@ -50,6 +51,11 @@ SymbolEquals<SymbolType>::SymbolEquals(
     : column(std::move(column)),
       position_idx(position_idx),
       value(value) {}
+
+template <typename SymbolType>
+std::string SymbolEquals<SymbolType>::getFilterName() {
+   return fmt::format("SymbolEquals<{}>", SymbolType::SYMBOL_NAME);
+}
 
 template <typename SymbolType>
 std::string SymbolEquals<SymbolType>::toString() const {

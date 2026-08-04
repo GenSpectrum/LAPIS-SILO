@@ -6,7 +6,6 @@
 #include <ranges>
 #include <vector>
 
-#include <spdlog/spdlog.h>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/split_member.hpp>
@@ -116,11 +115,6 @@ class TableSchema {
          return metadata_pair.first.name == name;
       });
       if (iter == column_metadata.end() || iter->first.type != ColumnType::TYPE) {
-         SPDLOG_INFO(
-            "Mismatching type found: expected {} vs actual {}",
-            columnTypeToString(ColumnType::TYPE),
-            columnTypeToString(iter->first.type)
-         );
          return std::nullopt;
       }
       auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(iter->second.get());
