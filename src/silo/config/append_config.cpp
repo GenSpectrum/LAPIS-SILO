@@ -33,13 +33,13 @@ AppendConfig AppendConfig::withDefaults() {
 
 ConfigSpecification AppendConfig::getConfigSpecification() {
    return ConfigSpecification{
-      .program_name = "silo append",
+      .program_name = "rhydb append",
       .attribute_specifications{
          ConfigAttributeSpecification::createWithDefault(
             siloDirectoryOptionKey(),
             ConfigValue::fromPath("."),
             "The path to a silo-directory, a directory that contains silo outputs. This may be "
-            "used for input (see `silo api --help`) and will be used for the output of the new "
+            "used for input (see `rhydb api --help`) and will be used for the output of the new "
             "silo state"
          ),
          ConfigAttributeSpecification::createWithoutDefault(
