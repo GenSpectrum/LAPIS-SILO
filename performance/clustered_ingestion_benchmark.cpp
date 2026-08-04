@@ -16,7 +16,7 @@
 #include <fmt/format.h>
 
 #include "sequence_generator.h"
-#include "silo/append/database_inserter.h"
+#include "silo/append/table_inserter.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/planner.h"
 

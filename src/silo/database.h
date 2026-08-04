@@ -2,10 +2,9 @@
 
 #include <filesystem>
 
-#include "silo/append/database_inserter.h"
+#include "silo/append/table_inserter.h"
 #include "silo/common/data_version.h"
 #include "silo/common/silo_directory.h"
-#include "silo/config/runtime_config.h"
 #include "silo/database_info.h"
 #include "silo/query_engine/query_plan.h"
 #include "silo/schema/database_schema.h"

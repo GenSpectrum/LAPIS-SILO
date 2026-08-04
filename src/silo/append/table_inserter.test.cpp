@@ -1,4 +1,4 @@
-#include "silo/append/database_inserter.h"
+#include "silo/append/table_inserter.h"
 
 #include <algorithm>
 #include <cstdint>

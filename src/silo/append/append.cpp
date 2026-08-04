@@ -1,7 +1,7 @@
 #include "silo/append/append.h"
 
-#include "silo/append/database_inserter.h"
 #include "silo/append/ndjson_line_reader.h"
+#include "silo/append/table_inserter.h"
 #include "silo/common/input_stream_wrapper.h"
 #include "silo/common/silo_directory.h"
 #include "silo/database.h"

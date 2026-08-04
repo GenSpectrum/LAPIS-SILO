@@ -17,7 +17,7 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
-#include "silo/append/database_inserter.h"
+#include "silo/append/table_inserter.h"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/data_version.h"
 #include "silo/common/nucleotide_symbols.h"
