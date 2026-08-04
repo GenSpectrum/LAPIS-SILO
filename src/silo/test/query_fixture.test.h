@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-#include "silo/append/database_inserter.h"
+#include "silo/append/table_inserter.h"
 #include "silo/common/lineage_tree.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/config/database_config.h"
