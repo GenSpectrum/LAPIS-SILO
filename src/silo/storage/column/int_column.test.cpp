@@ -1,7 +1,5 @@
 #include "silo/storage/column/int_column.h"
 
-#include <cstdint>
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
