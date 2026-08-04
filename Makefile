@@ -1,10 +1,10 @@
 ## While this script is running, you will see a file `running_silo.flag` created in the current directory.
 ## It will contain the PID of the running silo API server.
 ## If something fails during execution, it might be necessary to kill the daemon using `make clean-api`.
-SILO_DEBUG_EXECUTABLE=./build/Debug/silo
+SILO_DEBUG_EXECUTABLE=./build/Debug/rhydb
 SILO_DEBUG_TEST_EXECUTABLE=./build/Debug/silo_test
 SILO_DEBUG_APP_TEST_EXECUTABLE=./build/Debug/silo_app_test
-SILO_RELEASE_EXECUTABLE=./build/Release/silo
+SILO_RELEASE_EXECUTABLE=./build/Release/rhydb
 SILO_RELEASE_TEST_EXECUTABLE=./build/Release/silo_test
 SILO_RELEASE_APP_TEST_EXECUTABLE=./build/Release/silo_app_test
 SILO_WASM_EXECUTABLE=./build/wasm/silo_wasm.js
@@ -56,7 +56,7 @@ build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) CMakeLists.tx
 	emcmake cmake -G Ninja -S . -B build/wasm -D CMAKE_BUILD_TYPE=Release -D BUILD_UNIT_TESTS=OFF
 
 ${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
-	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo
+	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb
 
 ${SILO_DEBUG_TEST_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test
@@ -65,7 +65,7 @@ ${SILO_DEBUG_APP_TEST_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_app_test
 
 ${SILO_RELEASE_EXECUTABLE}: build/Release/build.ninja $(shell find src app/src -type f)
-	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo
+	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb
 
 ${SILO_RELEASE_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
 	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test

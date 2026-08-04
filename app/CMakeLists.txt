@@ -1,4 +1,4 @@
-# The native SILO command-line application: the `silo` executable and the
+# The native RhyDB command-line application: the `rhydb` executable and the
 # Poco-based HTTP API layer it serves. This is a consumer of the portable silolib
 # and built by the root CMakeLists before this subproject is added
 #
@@ -45,7 +45,7 @@ list(REMOVE_ITEM SILO_APP_SOURCES ${SILO_APP_TESTS} ${SILO_APP_MAIN})
 # linked, so it stays a leaf dependency of the HTTP API code.
 add_library(silo_app OBJECT ${SILO_APP_SOURCES})
 set_target_properties(silo_app PROPERTIES POSITION_INDEPENDENT_CODE ON)
-# PUBLIC so consumers (the silo executable, silo_app_test) also see the app/src
+# PUBLIC so consumers (the rhydb executable, silo_app_test) also see the app/src
 # include root and can resolve the app layer's `#include "..."` headers.
 target_include_directories(silo_app PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(
@@ -62,12 +62,12 @@ target_link_libraries(
 # silo_app gets the whole native engine (core + layer) from one edge.
 target_sources(silo_app INTERFACE $<TARGET_OBJECTS:silolib>)
 
-add_executable(silo ${SILO_APP_MAIN})
-# Keep the binary at build/<cfg>/silo (not build/<cfg>/cli/silo) so tooling,
-# Docker, and the Makefile find it at the historical path.
-set_target_properties(silo PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+add_executable(rhydb ${SILO_APP_MAIN})
+# Keep the binary at build/<cfg>/rhydb (not build/<cfg>/cli/rhydb) so tooling,
+# Docker, and the Makefile find it at the top-level build directory.
+set_target_properties(rhydb PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 target_link_libraries(
-        silo
+        rhydb
         PUBLIC
         ${MIMALLOC_LIB} # this should be first
         silo_app

@@ -10,8 +10,8 @@ Documentation (for devs and users) in `documentation/`.
 
 ```bash
 # Build
-make build/Debug/silo              # Debug build (includes ASAN)
-make build/Release/silo            # Release build (includes mimalloc on Linux)
+make build/Debug/rhydb             # Debug build (includes ASAN)
+make build/Release/rhydb           # Release build (includes mimalloc on Linux)
 
 # Test
 make test                          # Build and run C++ unit tests
