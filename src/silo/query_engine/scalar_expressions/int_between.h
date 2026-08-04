@@ -17,14 +17,20 @@ namespace silo::query_engine::scalar_expressions {
 class IntBetween : public ScalarExpression {
   private:
    schema::ColumnIdentifier column;
-   std::optional<int32_t> from;
-   std::optional<int32_t> to;
+   std::optional<int64_t> from;
+   std::optional<int64_t> to;
+
+   template <typename ColumnT>
+   [[nodiscard]] std::unique_ptr<filter::operators::Operator> compileFor(
+      const ColumnT& column_ref,
+      const storage::Table& table
+   ) const;
 
   public:
    explicit IntBetween(
       schema::ColumnIdentifier column,
-      std::optional<int32_t> from,
-      std::optional<int32_t> to
+      std::optional<int64_t> from,
+      std::optional<int64_t> to
    );
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {

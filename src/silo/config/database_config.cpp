@@ -24,8 +24,11 @@ ValueType silo::config::toDatabaseValueType(std::string_view type) {
    if (type == "boolean") {
       return ValueType::BOOL;
    }
-   if (type == "int") {
-      return ValueType::INT;
+   if (type == "int" || type == "int32") {
+      return ValueType::INT32;
+   }
+   if (type == "int64") {
+      return ValueType::INT64;
    }
    if (type == "float") {
       return ValueType::FLOAT;
@@ -44,8 +47,10 @@ std::string toString(ValueType type) {
          return "date";
       case ValueType::BOOL:
          return "boolean";
-      case ValueType::INT:
+      case ValueType::INT32:
          return "int";
+      case ValueType::INT64:
+         return "int64";
       case ValueType::FLOAT:
          return "float";
    }
@@ -161,8 +166,11 @@ schema::ColumnType DatabaseMetadata::getColumnType() const {
    if (type == ValueType::BOOL) {
       return schema::ColumnType::BOOL;
    }
-   if (type == ValueType::INT) {
+   if (type == ValueType::INT32) {
       return schema::ColumnType::INT32;
+   }
+   if (type == ValueType::INT64) {
+      return schema::ColumnType::INT64;
    }
    if (type == ValueType::FLOAT) {
       return schema::ColumnType::FLOAT;
@@ -320,20 +328,22 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
    );
 }
 
-[[maybe_unused]] auto fmt::formatter<silo::config::ValueType>::format(
-   const silo::config::ValueType& value_type,
+[[maybe_unused]] auto fmt::formatter<ValueType>::format(
+   const ValueType& value_type,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    switch (value_type) {
-      case silo::config::ValueType::STRING:
+      case ValueType::STRING:
          return fmt::format_to(ctx.out(), "string");
-      case silo::config::ValueType::DATE:
+      case ValueType::DATE:
          return fmt::format_to(ctx.out(), "date");
-      case silo::config::ValueType::BOOL:
+      case ValueType::BOOL:
          return fmt::format_to(ctx.out(), "bool");
-      case silo::config::ValueType::INT:
+      case ValueType::INT32:
          return fmt::format_to(ctx.out(), "int");
-      case silo::config::ValueType::FLOAT:
+      case ValueType::INT64:
+         return fmt::format_to(ctx.out(), "int64");
+      case ValueType::FLOAT:
          return fmt::format_to(ctx.out(), "float");
    }
    return fmt::format_to(ctx.out(), "unknown");

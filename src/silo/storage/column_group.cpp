@@ -8,6 +8,8 @@
 
 namespace silo::storage {
 
+// TODO using columns
+
 template <>
 std::map<std::string, column::IndexedStringColumn>& ColumnGroup::getColumns<
    column::IndexedStringColumn>() {
@@ -20,8 +22,13 @@ std::map<std::string, column::StringColumn>& ColumnGroup::getColumns<column::Str
 }
 
 template <>
-std::map<std::string, column::IntColumn>& ColumnGroup::getColumns<column::IntColumn>() {
-   return int_columns;
+std::map<std::string, column::Int32Column>& ColumnGroup::getColumns<column::Int32Column>() {
+   return int32_columns;
+}
+
+template <>
+std::map<std::string, column::Int64Column>& ColumnGroup::getColumns<column::Int64Column>() {
+   return int64_columns;
 }
 
 template <>
@@ -70,8 +77,14 @@ const std::map<std::string, column::StringColumn>& ColumnGroup::getColumns<colum
 }
 
 template <>
-const std::map<std::string, column::IntColumn>& ColumnGroup::getColumns<column::IntColumn>() const {
-   return int_columns;
+const std::map<std::string, column::Int32Column>& ColumnGroup::getColumns<column::Int32Column>() const {
+   return int32_columns;
+}
+
+template <>
+const std::map<std::string, column::Int64Column>& ColumnGroup::getColumns<column::Int64Column>(
+) const {
+   return int64_columns;
 }
 
 template <>

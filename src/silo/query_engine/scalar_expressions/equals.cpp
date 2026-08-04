@@ -23,11 +23,13 @@
 #include "silo/storage/column/bool_column.h"
 #include "silo/storage/column/date32_column.h"
 #include "silo/storage/column/float_column.h"
+#include "silo/storage/column/int64_column.h"
 #include "silo/storage/column/int_column.h"
 
 using silo::storage::column::Date32Column;
 using silo::storage::column::FloatColumn;
-using silo::storage::column::IntColumn;
+using silo::storage::column::Int64Column;
+using silo::storage::column::Int32Column;
 
 namespace silo::query_engine::scalar_expressions {
 
@@ -61,6 +63,30 @@ std::optional<ColumnAndValue> splitColumnAndValue(
       "An Equals expression can only be compiled to a filter when exactly one side is a column "
       "reference and the other a literal value"
    };
+}
+
+/// Builds an EQUALS filter for a scalar (non-string, non-bool) column type. Validates that the
+/// named column exists in `columns` and emits a Selection with a CompareToValueSelection predicate.
+template <typename ColumnT, typename ValueT>
+std::unique_ptr<filter::operators::Operator> compileEquals(
+   const storage::Table& table,
+   const std::map<std::string, ColumnT>& columns,
+   const std::string& column_name,
+   std::string_view type_name,
+   ValueT value
+) {
+   CHECK_SILO_QUERY(
+      columns.contains(column_name), "The column '{}' is not of type {}", column_name, type_name
+   );
+   const auto& column = columns.at(column_name);
+   return std::make_unique<filter::operators::Selection>(
+      std::make_unique<filter::operators::CompareToValueSelection<ColumnT>>(
+         column,
+         filter::operators::Comparator::EQUALS,
+         static_cast<ColumnT::value_type>(value)
+      ),
+      table.row_layout
+   );
 }
 
 }  // namespace
@@ -150,47 +176,24 @@ std::unique_ptr<filter::operators::Operator> Equals::compile(const storage::Tabl
    }
 
    if (const auto* date_value = dynCast<DateLiteral>(value)) {
-      CHECK_SILO_QUERY(
-         table.columns.date32_columns.contains(column_name),
-         "The column '{}' is not of type date",
-         column_name
-      );
-      const auto& date_column = table.columns.date32_columns.at(column_name);
-      return std::make_unique<filter::operators::Selection>(
-         std::make_unique<filter::operators::CompareToValueSelection<Date32Column>>(
-            date_column, filter::operators::Comparator::EQUALS, date_value->value
-         ),
-         table.row_layout
+      return compileEquals(
+         table, table.columns.date32_columns, column_name, "date", date_value->value
       );
    }
 
    if (const auto* int_value = dynCast<Int32Literal>(value)) {
-      CHECK_SILO_QUERY(
-         table.columns.int_columns.contains(column_name),
-         "The column '{}' is not of type int",
-         column_name
-      );
-      const auto& int_column = table.columns.int_columns.at(column_name);
-      return std::make_unique<filter::operators::Selection>(
-         std::make_unique<filter::operators::CompareToValueSelection<IntColumn>>(
-            int_column, filter::operators::Comparator::EQUALS, int_value->value
-         ),
-         table.row_layout
+      return compileEquals(table, table.columns.int32_columns, column_name, "int32", int_value->value);
+   }
+
+   if (const auto* int64_value = dynCast<Int64Literal>(value)) {
+      return compileEquals(
+         table, table.columns.int64_columns, column_name, "int64", int64_value->value
       );
    }
 
    if (const auto* float_value = dynCast<FloatLiteral>(value)) {
-      CHECK_SILO_QUERY(
-         table.columns.float_columns.contains(column_name),
-         "The column '{}' is not of type float",
-         column_name
-      );
-      const auto& float_column = table.columns.float_columns.at(column_name);
-      return std::make_unique<filter::operators::Selection>(
-         std::make_unique<filter::operators::CompareToValueSelection<FloatColumn>>(
-            float_column, filter::operators::Comparator::EQUALS, float_value->value
-         ),
-         table.row_layout
+      return compileEquals(
+         table, table.columns.float_columns, column_name, "float", float_value->value
       );
    }
 

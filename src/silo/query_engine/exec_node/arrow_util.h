@@ -11,6 +11,7 @@
 #include "silo/storage/column/date32_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int64_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/string_column.h"
@@ -70,9 +71,15 @@ struct ArrowBuilderSelector<storage::column::BoolColumn> {
 };
 
 template <>
-struct ArrowBuilderSelector<storage::column::IntColumn> {
+struct ArrowBuilderSelector<storage::column::Int32Column> {
    using builder_type = arrow::Int32Builder;
    using value_type = int32_t;
+};
+
+template <>
+struct ArrowBuilderSelector<storage::column::Int64Column> {
+   using builder_type = arrow::Int64Builder;
+   using value_type = int64_t;
 };
 
 template <>

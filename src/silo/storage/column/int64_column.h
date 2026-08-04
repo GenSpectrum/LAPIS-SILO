@@ -6,8 +6,7 @@
 
 namespace silo::storage::column {
 
-// TODO put into a single `int_column.h` file
-using Int32Column = NumericColumn<int32_t>;
-using Int32ColumnBuilder = NumericColumnBuilder<int32_t>;
+using Int64Column = NumericColumn<int64_t>;
+using Int64ColumnBuilder = NumericColumnBuilder<int64_t>;
 
 }  // namespace silo::storage::column

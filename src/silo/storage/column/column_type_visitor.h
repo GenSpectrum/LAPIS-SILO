@@ -7,6 +7,7 @@
 #include "silo/storage/column/date32_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int64_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/string_column.h"
@@ -26,9 +27,9 @@ static decltype(auto) visit(schema::ColumnType type, VisitorFunction&& func, Arg
       case schema::ColumnType::BOOL:
          return func.template operator()<BoolColumn>(std::forward<Args>(args)...);
       case schema::ColumnType::INT32:
-         return func.template operator()<IntColumn>(std::forward<Args>(args)...);
+         return func.template operator()<Int32Column>(std::forward<Args>(args)...);
       case schema::ColumnType::INT64:
-         SILO_UNIMPLEMENTED();
+         return func.template operator()<Int64Column>(std::forward<Args>(args)...);
       case schema::ColumnType::FLOAT:
          return func.template operator()<FloatColumn>(std::forward<Args>(args)...);
       case schema::ColumnType::NUCLEOTIDE_SEQUENCE:

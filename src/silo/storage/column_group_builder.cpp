@@ -30,9 +30,15 @@ std::map<std::string, column::StringColumn::Builder>& ColumnGroupBuilder::getCol
 }
 
 template <>
-std::map<std::string, column::IntColumn::Builder>& ColumnGroupBuilder::getColumnBuilders<
-   column::IntColumn>() {
+std::map<std::string, column::Int32Column::Builder>& ColumnGroupBuilder::getColumnBuilders<
+   column::Int32Column>() {
    return int_column_builders;
+}
+
+template <>
+std::map<std::string, column::Int64Column::Builder>& ColumnGroupBuilder::getColumnBuilders<
+   column::Int64Column>() {
+   return int64_column_builders;
 }
 
 template <>
@@ -182,6 +188,8 @@ class ColumnValueExtractor {
          return "boolean";
       } else if constexpr (std::is_same_v<T, int32_t>) {
          return "int32";
+      } else if constexpr (std::is_same_v<T, int64_t>) {
+         return "int64";
       } else if constexpr (std::is_same_v<T, double>) {
          return "double";
       } else if constexpr (std::is_same_v<T, std::string_view>) {

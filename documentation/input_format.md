@@ -52,7 +52,7 @@ schema:
 
 **Metadata Field Options**:
 - `name`: Field name (must match JSON key)
-- `type`: One of `string`, `int`, `float`, `date`, `boolean`
+- `type`: One of `string`, `int` (alias `int32`, 32-bit integer), `int64` (64-bit integer), `float`, `date`, `boolean`
 - `generateIndex`: Set to `true` to create a bitmap index for fast equality lookups. This is only valid for `string` columns
 - `generateLineageIndex`: Path to lineage definition file for hierarchical queries. This is only possible if `generateIndex` is also set
 - `treatUnknownLineagesAsNull`: Treats unknown lineage values as null when adding them to the lineage index

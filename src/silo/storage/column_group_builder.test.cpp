@@ -32,7 +32,7 @@ using silo::storage::column::Column;
 using silo::storage::column::ColumnMetadata;
 using silo::storage::column::Date32Column;
 using silo::storage::column::FloatColumn;
-using silo::storage::column::IntColumn;
+using silo::storage::column::Int32Column;
 using silo::storage::column::SequenceColumn;
 using silo::storage::column::SequenceColumnMetadata;
 using silo::storage::column::StringColumn;
@@ -124,7 +124,7 @@ TEST(ColumnGroupBuilder, givenIntegerValueForBoolColumn_returnsColumnInsertError
 }
 
 TEST(ColumnGroupBuilder, givenStringValueForIntColumn_returnsColumnInsertError) {
-   const auto result = setupColumnAndInsertJson<IntColumn>("int_col", R"({"int_col": "hello"})");
+   const auto result = setupColumnAndInsertJson<Int32Column>("int_col", R"({"int_col": "hello"})");
 
    ASSERT_FALSE(result.has_value());
    EXPECT_THAT(

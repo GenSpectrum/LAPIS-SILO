@@ -14,6 +14,7 @@
 #include "silo/storage/column/date32_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int64_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/string_column.h"
@@ -34,7 +35,8 @@ class ColumnGroupBuilder {
    std::map<std::string, column::StringColumn::Builder> string_column_builders;
    std::map<std::string, column::IndexedStringColumn::Builder> indexed_string_column_builders;
    std::map<std::string, column::BoolColumn::Builder> bool_column_builders;
-   std::map<std::string, column::IntColumn::Builder> int_column_builders;
+   std::map<std::string, column::Int32Column::Builder> int_column_builders;
+   std::map<std::string, column::Int64Column::Builder> int64_column_builders;
    std::map<std::string, column::FloatColumn::Builder> float_column_builders;
    std::map<std::string, column::Date32Column::Builder> date32_column_builders;
    std::map<std::string, column::SequenceColumn<Nucleotide>::Builder> nuc_column_builders;
@@ -71,8 +73,11 @@ template <>
 std::map<std::string, column::BoolColumn::Builder>& ColumnGroupBuilder::getColumnBuilders<
    column::BoolColumn>();
 template <>
-std::map<std::string, column::IntColumn::Builder>& ColumnGroupBuilder::getColumnBuilders<
-   column::IntColumn>();
+std::map<std::string, column::Int32Column::Builder>& ColumnGroupBuilder::getColumnBuilders<
+   column::Int32Column>();
+template <>
+std::map<std::string, column::Int64Column::Builder>& ColumnGroupBuilder::getColumnBuilders<
+   column::Int64Column>();
 template <>
 std::map<std::string, column::FloatColumn::Builder>& ColumnGroupBuilder::getColumnBuilders<
    column::FloatColumn>();

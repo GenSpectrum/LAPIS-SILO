@@ -14,6 +14,7 @@
 #include "silo/storage/column/date32_column.h"
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/int64_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/string_column.h"
@@ -36,7 +37,7 @@ class ColumnGroup {
       for(auto& [name, store] : bool_columns){
          archive & store;
       }
-      for(auto& [name, store] : int_columns){
+      for(auto& [name, store] : int32_columns){
          archive & store;
       }
       for(auto& [name, store] : float_columns){
@@ -54,6 +55,9 @@ class ColumnGroup {
       for(auto& [name, store] : zstd_compressed_string_columns){
          archive & store;
       }
+      for(auto& [name, store] : int64_columns){
+         archive & store;
+      }
       // clang-format on
    }
 
@@ -63,7 +67,8 @@ class ColumnGroup {
    std::map<std::string, column::StringColumn> string_columns;
    std::map<std::string, column::IndexedStringColumn> indexed_string_columns;
    std::map<std::string, column::BoolColumn> bool_columns;
-   std::map<std::string, column::IntColumn> int_columns;
+   std::map<std::string, column::Int32Column> int32_columns;
+   std::map<std::string, column::Int64Column> int64_columns;
    std::map<std::string, column::FloatColumn> float_columns;
    std::map<std::string, column::Date32Column> date32_columns;
    std::map<std::string, column::SequenceColumn<Nucleotide>> nuc_columns;
