@@ -28,20 +28,12 @@ namespace silo::query_engine::optimizer {
 
 namespace {
 
-/// An assignment `out := expr` is "pushdown-transparent" when a filter that references `out` can
-/// be evaluated by the table scan directly on the physical same-named column. That holds when
-/// `expr` is merely a physical realization (zstd decompression) or identity pass-through of the
-/// same-named column: sequence predicates (e.g. hasMutation) and string filters rewrite and
-/// compile by column NAME against the physical column, so pushing them below such a map is sound.
-///
-/// Genuinely derived expressions (isoWeek, at, ...) are NOT transparent: the produced value does
-/// not exist physically below the map, so a filter referencing it must stay above the map (where
-/// it surfaces the expected runtime error for cases like map().filter(); see #1371). Recognising
-/// transparency structurally means any unknown/new expression kind defaults to non-transparent,
-/// i.e. correct-but-conservative rather than a silent miscompile.
-bool isPushdownTransparent(const operators::MapNode::Assignment& assignment) {
+bool isFieldRef(const operators::MapNode::Assignment& assignment) {
    const scalar_expressions::ScalarExpression* expression = assignment.expression.get();
-   // See through nested physical realizations down to the underlying column reference.
+   // Sequence columns cannot be read into an arrow plan directly: they are stored zstd-compressed
+   // and decompressed on demand, so as a hack we treat a zstd-decompression as an identity here.
+   // A filter referencing such a column is then pushed down and compiles against the physical
+   // (compressed) column by name. This may produce misleading error messages in edge cases.
    while (const auto* decompress =
              scalar_expressions::dynCast<scalar_expressions::ZstdDecompressScalar>(expression)) {
       expression = decompress->input.get();
@@ -63,18 +55,20 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::FilterNode& no
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::MapNode& node) {
    // The columns this map produces that a filter may NOT be pushed past, keyed by name. A
-   // produced column blocks pushdown unless its assignment is pushdown-transparent (a physical
-   // realization or identity of the same-named column, which the scan can still evaluate). A
-   // filter referencing a blocking column reads a value that does not exist physically below the
-   // map, so pushing it down would turn a valid plan into an invalid one (see #1371).
+   // produced column blocks pushdown unless its assignment just reproduces the same-named column,
+   // which the scan can still evaluate by name. A filter referencing a blocking
+   // column reads a value that does not exist physically below the map, so pushing it down would
+   // turn a valid plan into an invalid one (see #1371).
    //
    // Matching is by NAME: the produced column and a referencing filter carry identical
    // {name, type} identifiers (e.g. a decompression map's {segment1, STRING} output and a
-   // hasMutation predicate resolved against it), so only the assignment's expression kind can
-   // distinguish a transparent realization from a genuinely derived value.
+   // hasMutation predicate resolved against it), so only the assignment's expression can
+   // distinguish an unchanged column from a genuinely derived value.
+   //
+   // TODO(#1433): instead of blocking, fold the producing map's expression into the filter
    std::unordered_set<std::string> blocking_columns;
    for (const auto& assignment : node.assignments) {
-      if (!isPushdownTransparent(assignment)) {
+      if (!isFieldRef(assignment)) {
          blocking_columns.insert(assignment.output_column.name);
       }
    }

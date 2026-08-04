@@ -22,9 +22,8 @@ ColumnNarrowingPass ColumnNarrowingPass::makePass(const operators::QueryNodePtr&
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::FilterNode& node) {
    // A filter needs every column its predicate references from its child, in addition to the
-   // columns the parent requires. FilterPushdownPass runs before this pass, so the only
-   // FilterNodes still present are ones that could not be pushed below a producing map (e.g.
-   // filter on an isoWeek/at column).
+   // columns the parent requires. Keeping them required prevents a node below the filter that
+   // produces such a column (e.g. a map) from being pruned away while the filter still needs it.
    for (const auto& column : node.filter->freeIUs()) {
       if (std::ranges::find(required, column) == required.end()) {
          required.push_back(column);
