@@ -45,7 +45,7 @@ namespace silo::config {
 // Specification of the fields in inputs to the PreprocessingConfig struct
 ConfigSpecification InitializeConfig::getConfigSpecification() {
    return ConfigSpecification{
-      .program_name = "silo initialize",
+      .program_name = "rhydb initialize",
       .attribute_specifications{
          ConfigAttributeSpecification::createWithoutDefault(
             initializeConfigOptionKey(),

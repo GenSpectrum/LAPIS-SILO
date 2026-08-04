@@ -55,7 +55,7 @@ const uint32_t DEFAULT_ARROW_BATCH_SIZE = 32767;
 
 ConfigSpecification RuntimeConfig::getConfigSpecification() {
    return {
-      .program_name = "silo api",
+      .program_name = "rhydb api",
       .attribute_specifications =
          {
             ConfigAttributeSpecification::createWithoutDefault(

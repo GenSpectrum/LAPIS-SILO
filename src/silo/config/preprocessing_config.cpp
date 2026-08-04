@@ -50,7 +50,7 @@ namespace silo::config {
 // Specification of the fields in inputs to the PreprocessingConfig struct
 ConfigSpecification PreprocessingConfig::getConfigSpecification() {
    return ConfigSpecification{
-      .program_name = "silo preprocessing",
+      .program_name = "rhydb preprocessing",
       .attribute_specifications{
          ConfigAttributeSpecification::createWithoutDefault(
             preprocessingConfigOptionKey(),
