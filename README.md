@@ -60,10 +60,10 @@ For RhyDB, there are three different configuration files:
   file [database_config.h](src/silo/config/database_config.h)
 - `PreprocessingConfig` used when started with `preprocessing` and described in
   file [preprocessing_config.h](src/silo/config/preprocessing_config.h).
-  For details see `silo preprocessing --help`.
+  For details see `rhydb preprocessing --help`.
 - `RuntimeConfig` used when started with `api` and described in
   file [runtime_config.h](src/silo/config/runtime_config.h)
-  For details see `silo api --help`.
+  For details see `rhydb api --help`.
 
 The database config contains the schema of the database and is always required when preprocessing data. The database
 config will be saved together with the output of the preprocessing and is therefore not required when starting RhyDB as
@@ -96,14 +96,14 @@ Additionally, a database config and a ndjson file containing the data are requir
 docker run \
   -v your/input/directory:/preprocessing/input \
   -v your/preprocessing/output:/preprocessing/output \
-  -v your/preprocessing_config.yaml:/app/preprocessing_config.yaml
-  silo preprocessing
+  -v your/preprocessing_config.yaml:/app/preprocessing_config.yaml \
+  ghcr.io/genspectrum/lapis-silo preprocessing
 ```
 
 Both config files can also be provided in custom locations:
 
 ```shell
-silo preprocessing --preprocessing-config=./custom/preprocessing_config.yaml --database-config=./custom/database_config.yaml
+rhydb preprocessing --preprocessing-config=./custom/preprocessing_config.yaml --database-config=./custom/database_config.yaml
 ```
 
 The Docker image contains a default preprocessing config that sets defaults specific for running RhyDB in Docker.
@@ -116,14 +116,14 @@ see the help text.
 After preprocessing the data, the api can be started with the following command:
 
 ```shell
-docker run
-  -p 8081:8081
-  -v your/preprocessing/output:/data
-  silo api
+docker run \
+  -p 8081:8081 \
+  -v your/preprocessing/output:/data \
+  ghcr.io/genspectrum/lapis-silo api
 ```
 
 The directory where RhyDB expects the preprocessing output can be overwritten via
-`silo api --data-directory=/custom/data/directory` or in a corresponding
+`rhydb api --data-directory=/custom/data/directory` or in a corresponding
 [configuration file](#configuration-files).
 
 # Acknowledgments

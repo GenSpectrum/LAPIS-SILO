@@ -323,22 +323,31 @@ jobs:
             PLATFORM="linux/$arch"
             echo "Extracting from $IMAGE ($PLATFORM)"
 
-            binary="silo-linux-$arch"
+            binary="rhydb-linux-$arch"
 
             docker create --platform $PLATFORM --name extract-$arch $IMAGE
-            docker cp extract-$arch:/app/silo "./$binary"
+            docker cp extract-$arch:/app/rhydb "./$binary"
             docker rm extract-$arch
 
             chmod +x "./$binary"
 
-            echo "Verifying $binary ..."
-            [ -x "$binary" ] || { echo "  ✗ FAILED: File does not exist or is not executable"; exit 1; }
-            file "$binary" | grep -q ELF || { echo "  ✗ FAILED: File is not an ELF binary"; exit 1; }
-            echo "✓ Verified: $binary"
+            # Deprecation compatibility: the released binary was renamed silo -> rhydb.
+            # Keep publishing an identical silo-named copy during the deprecation
+            # period so existing consumers that download `silo-linux-<arch>` do not
+            # break. Remove this once the deprecation period ends.
+            legacy_binary="silo-linux-$arch"
+            cp "./$binary" "./$legacy_binary"
 
-            sha256sum "$binary" > "$binary.sha256sum"
-            # Create tar archive so that the file is executable when downloaded from GitHub Releases
-            tar -czf "$binary.tar.gz" "$binary"
+            for b in "$binary" "$legacy_binary"; do
+              echo "Verifying $b ..."
+              [ -x "$b" ] || { echo "  ✗ FAILED: File does not exist or is not executable"; exit 1; }
+              file "$b" | grep -q ELF || { echo "  ✗ FAILED: File is not an ELF binary"; exit 1; }
+              echo "✓ Verified: $b"
+
+              sha256sum "$b" > "$b.sha256sum"
+              # Create tar archive so that the file is executable when downloaded from GitHub Releases
+              tar -czf "$b.tar.gz" "$b"
+            done
           done
 
           echo "Files in artifacts/ after extraction:"
@@ -524,7 +533,7 @@ jobs:
 
               # Build the C++ project once
               export CMAKE_BUILD_PARALLEL_LEVEL=4
-              make build/Release/silo
+              make build/Release/rhydb
 
               # Build wheels for all supported Python versions
               mkdir -p wheelhouse
