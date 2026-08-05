@@ -22,40 +22,21 @@ namespace {
 }
 }  // namespace
 
-Int32Literal::Int32Literal(int32_t value)
+IntLiteral::IntLiteral(int64_t value)
     : value(value) {}
 
-std::string Int32Literal::toString() const {
+std::string IntLiteral::toString() const {
    return fmt::format("{}", value);
 }
 
-std::unique_ptr<ScalarExpression> Int32Literal::rewrite(
+std::unique_ptr<ScalarExpression> IntLiteral::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
 ) const {
-   return std::make_unique<Int32Literal>(value);
+   return std::make_unique<IntLiteral>(value);
 }
 
-std::unique_ptr<filter::operators::Operator> Int32Literal::compile(const storage::Table& /*table*/)
-   const {
-   compileNonBooleanLiteral();
-}
-
-Int64Literal::Int64Literal(int64_t value)
-    : value(value) {}
-
-std::string Int64Literal::toString() const {
-   return fmt::format("{}", value);
-}
-
-std::unique_ptr<ScalarExpression> Int64Literal::rewrite(
-   const storage::Table& /*table*/,
-   AmbiguityMode /*mode*/
-) const {
-   return std::make_unique<Int64Literal>(value);
-}
-
-std::unique_ptr<filter::operators::Operator> Int64Literal::compile(const storage::Table& /*table*/)
+std::unique_ptr<filter::operators::Operator> IntLiteral::compile(const storage::Table& /*table*/)
    const {
    compileNonBooleanLiteral();
 }

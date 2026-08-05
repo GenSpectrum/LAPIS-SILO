@@ -1,5 +1,6 @@
 #include "silo/query_engine/scalar_expressions/equals.h"
 
+#include <limits>
 #include <memory>
 #include <optional>
 #include <set>
@@ -84,6 +85,32 @@ std::unique_ptr<filter::operators::Operator> compileEquals(
       ),
       table.row_layout
    );
+}
+
+/// Builds an EQUALS filter for a width-agnostic integer literal. The literal carries no width, so
+/// the target column decides it: an int64 column takes the value directly, while an int32 column
+/// requires the value to fit int32 range (raising the same out-of-range error the build step used
+/// to raise for an out-of-range int32 literal).
+std::unique_ptr<filter::operators::Operator> compileIntEquals(
+   const storage::Table& table,
+   const std::string& column_name,
+   int64_t value
+) {
+   if (table.columns.int64_columns.contains(column_name)) {
+      return compileEquals(table, table.columns.int64_columns, column_name, "int64", value);
+   }
+   CHECK_SILO_QUERY(
+      table.columns.int32_columns.contains(column_name),
+      "The column '{}' is not of type int",
+      column_name
+   );
+   CHECK_SILO_QUERY(
+      value >= std::numeric_limits<int32_t>::min() &&
+         value <= std::numeric_limits<int32_t>::max(),
+      "Cannot cast {} to int32. Value out of range",
+      value
+   );
+   return compileEquals(table, table.columns.int32_columns, column_name, "int", value);
 }
 
 }  // namespace
@@ -178,16 +205,8 @@ std::unique_ptr<filter::operators::Operator> Equals::compile(const storage::Tabl
       );
    }
 
-   if (const auto* int_value = dynCast<Int32Literal>(value)) {
-      return compileEquals(
-         table, table.columns.int32_columns, column_name, "int32", int_value->value
-      );
-   }
-
-   if (const auto* int64_value = dynCast<Int64Literal>(value)) {
-      return compileEquals(
-         table, table.columns.int64_columns, column_name, "int64", int64_value->value
-      );
+   if (const auto* int_value = dynCast<IntLiteral>(value)) {
+      return compileIntEquals(table, column_name, int_value->value);
    }
 
    if (const auto* float_value = dynCast<FloatLiteral>(value)) {

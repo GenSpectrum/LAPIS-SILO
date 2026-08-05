@@ -29,7 +29,7 @@ using scalar_expressions::BoolLiteral;
 using scalar_expressions::dynCast;
 using scalar_expressions::FieldRef;
 using scalar_expressions::FloatLiteral;
-using scalar_expressions::Int64Literal;
+using scalar_expressions::IntLiteral;
 using scalar_expressions::IsoWeek;
 using scalar_expressions::ScalarExpression;
 using scalar_expressions::StringLiteral;
@@ -41,7 +41,7 @@ namespace {
 /// projection.
 arrow::Result<arrow::compute::Expression> scalarToArrowExpression(const ScalarExpression& expression
 ) {
-   if (const auto* literal = dynCast<Int64Literal>(&expression)) {
+   if (const auto* literal = dynCast<IntLiteral>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
    if (const auto* literal = dynCast<FloatLiteral>(&expression)) {

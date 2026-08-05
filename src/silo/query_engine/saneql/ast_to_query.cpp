@@ -112,23 +112,15 @@ ScalarExpressionPtr convertEqualsToFilter(
    }
 
    // Build the value operand first so parse-time value errors (e.g. an invalid
-   // date literal, an out-of-range integer, or an unsupported value type) are
-   // reported before the column is resolved. The previous per-type equals nodes
-   // deferred the column existence check to compile time; here the column is
-   // resolved eagerly to build a typed FieldRef, but the value-before-column
-   // error ordering is preserved.
+   // date literal or an unsupported value type) are reported before the column is
+   // resolved. Integer literals are width-agnostic here: the value is kept as a
+   // full-range int64 and the int32 range check (and column routing) happens at
+   // compile time, once the actual column type is known.
    std::unique_ptr<scalar_expressions::ScalarExpression> value;
    if (isStringLiteral(value_expr)) {
       value = std::make_unique<scalar_expressions::StringLiteral>(extractStringLiteral(value_expr));
    } else if (isIntLiteral(value_expr)) {
-      // TODO really need that?
-      if (findColumnType(column_name, schema) == schema::ColumnType::INT64) {
-         value =
-            std::make_unique<scalar_expressions::Int64Literal>(extractInt64Literal(value_expr));
-      } else {
-         value =
-            std::make_unique<scalar_expressions::Int32Literal>(extractInt32Literal(value_expr));
-      }
+      value = std::make_unique<scalar_expressions::IntLiteral>(extractInt64Literal(value_expr));
    } else if (isFloatLiteral(value_expr)) {
       value =
          std::make_unique<scalar_expressions::FloatLiteral>(extractNumericAsFloatLiteral(value_expr)
@@ -1195,7 +1187,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
       return std::make_unique<scalar_expressions::FieldRef>(*found);
    }
    if (std::holds_alternative<ast::IntLiteral>(value)) {
-      return std::make_unique<scalar_expressions::Int64Literal>(
+      return std::make_unique<scalar_expressions::IntLiteral>(
          std::get<ast::IntLiteral>(value).value
       );
    }
