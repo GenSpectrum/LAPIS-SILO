@@ -87,21 +87,6 @@ schema::ColumnIdentifier resolveColumn(
    return *found;
 }
 
-/// Non-throwing column type lookup used to pick int32 vs int64 literal handling without
-/// disturbing the documented value-before-column error ordering (an unknown column is reported
-/// later by the eager resolve, after any value parse error).
-std::optional<schema::ColumnType> findColumnType(
-   const std::string& column_name,
-   const std::vector<schema::ColumnIdentifier>& schema
-) {
-   const auto found =
-      std::ranges::find_if(schema, [&](const auto& col) { return col.name == column_name; });
-   if (found == schema.end()) {
-      return std::nullopt;
-   }
-   return found->type;
-}
-
 ScalarExpressionPtr convertEqualsToFilter(
    const std::string& column_name,
    const ast::Expression& value_expr,
@@ -229,10 +214,9 @@ ScalarExpressionPtr convertComparisonToFilter(
       );
    }
    if (isIntLiteral(value_expr)) {
-      const int64_t value = findColumnType(column_name, schema) == schema::ColumnType::INT64
-                               ? extractInt64Literal(value_expr)
-                               : extractInt32Literal(value_expr);
-      return convertIntComparison(column_name, binary_op, value, schema);
+      // Width-agnostic: keep the full-range int64 value; IntBetween::compile applies the int32
+      // range check once the actual column type is known.
+      return convertIntComparison(column_name, binary_op, extractInt64Literal(value_expr), schema);
    }
    throw IllegalQueryException(
       "unsupported value type in comparison at {}:{}",
@@ -343,14 +327,13 @@ ScalarExpressionPtr handleBetween(
       );
    }
    if (isIntLiteral(from_expr) || isIntLiteral(to_expr)) {
-      const bool is_int64 = findColumnType(column_name, schema) == schema::ColumnType::INT64;
       std::optional<int64_t> from_val;
       std::optional<int64_t> to_val;
       if (!isNullLiteral(from_expr)) {
-         from_val = is_int64 ? extractInt64Literal(from_expr) : extractInt32Literal(from_expr);
+         from_val = extractInt64Literal(from_expr);
       }
       if (!isNullLiteral(to_expr)) {
-         to_val = is_int64 ? extractInt64Literal(to_expr) : extractInt32Literal(to_expr);
+         to_val = extractInt64Literal(to_expr);
       }
       return std::make_unique<scalar_expressions::IntBetween>(
          resolveColumn(column_name, schema), from_val, to_val

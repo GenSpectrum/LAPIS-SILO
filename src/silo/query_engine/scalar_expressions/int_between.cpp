@@ -1,6 +1,8 @@
 #include "silo/query_engine/scalar_expressions/int_between.h"
 
+#include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include <fmt/format.h>
@@ -19,6 +21,22 @@ using silo::storage::column::Int32Column;
 using silo::storage::column::Int64Column;
 
 namespace silo::query_engine::scalar_expressions {
+
+namespace {
+/// An integer bound is kept as a full-range int64; when the target column is int32 it must fit
+/// int32 range. Raises the same out-of-range error the build step used to raise for an int32
+/// literal.
+void checkBoundFitsInt32(std::optional<int64_t> bound) {
+   if (bound.has_value()) {
+      CHECK_SILO_QUERY(
+         bound.value() >= std::numeric_limits<int32_t>::min() &&
+            bound.value() <= std::numeric_limits<int32_t>::max(),
+         "Cannot cast {} to int32. Value out of range",
+         bound.value()
+      );
+   }
+}
+}  // namespace
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters,readability-identifier-length)
 IntBetween::IntBetween(
@@ -105,6 +123,8 @@ std::unique_ptr<filter::operators::Operator> IntBetween::compile(const storage::
    if (table.columns.int64_columns.contains(column.name)) {
       return compileFor<Int64Column>(table.columns.int64_columns.at(column.name), table);
    }
+   checkBoundFitsInt32(from);
+   checkBoundFitsInt32(to);
    return compileFor<Int32Column>(table.columns.int32_columns.at(column.name), table);
 }
 
