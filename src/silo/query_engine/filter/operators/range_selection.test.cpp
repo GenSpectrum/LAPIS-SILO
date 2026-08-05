@@ -16,9 +16,9 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValues) {
    );
 
    auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_layout);
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 3, 4}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({0, 1, 3, 4}));
    auto negated = RangeSelection::negate(std::move(under_test));
-   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({2, 5, 6, 7}));
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring({2, 5, 6, 7}));
 }
 
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesEmptyDatabase) {
@@ -26,9 +26,9 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesEmptyDatabase) {
    const auto row_layout = RowLayout::of();
 
    auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_layout);
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring());
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring());
    auto negated = RangeSelection::negate(std::move(under_test));
-   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring());
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring());
 }
 
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesEmptyRanges) {
@@ -39,11 +39,9 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesEmptyRanges) {
    const auto row_layout = RowLayout::of(9);
 
    auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_layout);
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring());
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring());
    auto negated = RangeSelection::negate(std::move(under_test));
-   ASSERT_EQ(
-      negated->evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3, 4, 5, 6, 7, 8})
-   );
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring({0, 1, 2, 3, 4, 5, 6, 7, 8}));
 }
 
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesFullRange) {
@@ -55,11 +53,9 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesFullRange) {
    }}});
 
    auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_layout);
-   ASSERT_EQ(
-      under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3, 4, 5, 6, 7})
-   );
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({0, 1, 2, 3, 4, 5, 6, 7}));
    auto negated = RangeSelection::negate(std::move(under_test));
-   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring());
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring());
 }
 
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesMeetingRanges) {
@@ -70,9 +66,9 @@ TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValuesMeetingRanges) {
    const auto row_layout = RowLayout::of(9);
 
    auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_layout);
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({0, 1, 2, 3}));
    auto negated = RangeSelection::negate(std::move(under_test));
-   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({4, 5, 6, 7, 8}));
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring({4, 5, 6, 7, 8}));
 }
 
 TEST(OperatorRangeSelection, evaluateExpandsRangeSpanningMultipleChunks) {
@@ -95,7 +91,7 @@ TEST(OperatorRangeSelection, evaluateExpandsRangeSpanningMultipleChunks) {
       RowId{.chunk_id = 2, .row_in_chunk = 0}.toGlobal(),  // partial last chunk
       RowId{.chunk_id = 2, .row_in_chunk = 1}.toGlobal(),
    });
-   ASSERT_EQ(under_test->evaluate().getConstReference(), expected);
+   ASSERT_EQ(under_test->evaluate().toRoaring(), expected);
 
    // The complement covers every other valid row id, including the cross-chunk ranges at the edges.
    auto negated = RangeSelection::negate(std::move(under_test));
@@ -106,7 +102,7 @@ TEST(OperatorRangeSelection, evaluateExpandsRangeSpanningMultipleChunks) {
       RowId{.chunk_id = 2, .row_in_chunk = 3}.toGlobal(),
       RowId{.chunk_id = 2, .row_in_chunk = 4}.toGlobal(),
    });
-   ASSERT_EQ(negated->evaluate().getConstReference(), expected_negated);
+   ASSERT_EQ(negated->evaluate().toRoaring(), expected_negated);
 }
 
 TEST(OperatorRangeSelection, returnsCorrectTypeInfo) {

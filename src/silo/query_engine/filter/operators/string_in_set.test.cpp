@@ -62,7 +62,7 @@ TEST(OperatorStringInSet, matchReturnsCorrectValuesForStringColumn) {
       row_layout
    );
 
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 3, 5}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({0, 1, 3, 5}));
 }
 
 TEST(OperatorStringInSet, matchReturnsCorrectValuesForDictionaryEncodedColumn) {
@@ -81,7 +81,7 @@ TEST(OperatorStringInSet, matchReturnsCorrectValuesForDictionaryEncodedColumn) {
       row_layout
    );
 
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 3, 5}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({0, 1, 3, 5}));
 }
 
 TEST(OperatorStringInSet, matchReturnsEmptyForNoMatches) {
@@ -100,7 +100,7 @@ TEST(OperatorStringInSet, matchReturnsEmptyForNoMatches) {
       row_layout
    );
 
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring());
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring());
 }
 
 TEST(OperatorStringInSet, matchReturnsEmptyForEmptySet) {
@@ -117,7 +117,7 @@ TEST(OperatorStringInSet, matchReturnsEmptyForEmptySet) {
       row_layout
    );
 
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring());
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring());
 }
 
 TEST(OperatorStringInSet, negationWorksCorrectly) {
@@ -136,10 +136,10 @@ TEST(OperatorStringInSet, negationWorksCorrectly) {
       row_layout
    );
 
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 3, 5}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({0, 1, 3, 5}));
 
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({2, 4}));
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring({2, 4}));
 }
 
 TEST(OperatorStringInSet, notInComparatorWorksCorrectly) {
@@ -158,7 +158,7 @@ TEST(OperatorStringInSet, notInComparatorWorksCorrectly) {
       row_layout
    );
 
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({2, 4}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({2, 4}));
 }
 
 TEST(OperatorStringInSet, toStringReturnsCorrectFormat) {
@@ -213,7 +213,7 @@ TEST(OperatorStringInSet, matchSingleValue) {
       row_layout
    );
 
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 3}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({0, 3}));
 }
 
 TEST(OperatorStringInSet, returnsCorrectTypeInfo) {

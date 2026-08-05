@@ -11,9 +11,9 @@
 
 #include <arrow/result.h>
 #include <nlohmann/json_fwd.hpp>
-#include <roaring/roaring.hh>
 
 #include "silo/config/runtime_config.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
@@ -29,7 +29,7 @@ namespace silo::query_engine::operators {
 /// work — are bounded by the filtered row set rather than the whole table. Together the groups are
 /// disjoint and cover every filtered row. The value is rendered as a string because the aggregation
 /// node emits every grouping column as STRING (a null group becomes a SQL null).
-using GroupBitmaps = std::vector<std::pair<std::optional<std::string>, roaring::Roaring>>;
+using GroupBitmaps = std::vector<std::pair<std::optional<std::string>, CopyOnWriteBitmap>>;
 
 /// Groups rows by the symbol they carry at a fixed sequence position, e.g. `main.at(123)`.
 struct SequencePositionDimension {
@@ -49,7 +49,7 @@ struct SequencePositionDimension {
    /// `GroupBitmaps`), reading the relevant column from `table`.
    [[nodiscard]] GroupBitmaps buildGroups(
       const storage::Table& table,
-      const roaring::Roaring& filter_bitmap
+      const CopyOnWriteBitmap& filter_bitmap
    ) const;
 
    /// The STRING output column this dimension contributes to the result schema.
@@ -67,7 +67,7 @@ struct IndexedColumnDimension {
 
    [[nodiscard]] GroupBitmaps buildGroups(
       const storage::Table& table,
-      const roaring::Roaring& filter_bitmap
+      const CopyOnWriteBitmap& filter_bitmap
    ) const;
 
    [[nodiscard]] schema::ColumnIdentifier outputColumn() const;
