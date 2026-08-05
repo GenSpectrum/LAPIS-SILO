@@ -82,12 +82,8 @@ std::unique_ptr<filter::operators::Operator> LineageFilter::compile(const storag
       column.name
    );
    CHECK_SILO_QUERY(
-      table.columns.dictionary_encoded_columns.contains(column.name),
-      "The column '{}' is not of type indexed string",
-      column.name
-   );
-   CHECK_SILO_QUERY(
-      table.columns.dictionary_encoded_columns.at(column.name).getLineageIndex().has_value(),
+      table.columns.dictionary_encoded_columns.contains(column.name) &&
+         table.columns.dictionary_encoded_columns.at(column.name).getLineageIndex().has_value(),
       "The database does not contain a lineage index for the column '{}'",
       column.name
    );

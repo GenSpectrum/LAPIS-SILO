@@ -10,7 +10,7 @@ using silo::test::QueryTestScenario;
 nlohmann::json createData(
    const std::string& primary_key,
    const std::optional<std::string>& string_field,
-   const std::optional<std::string>& indexed_string_field,
+   const std::optional<std::string>& dictionary_encoded_string_field,
    const std::optional<int>& int_field,
    const std::optional<double>& float_field,
    const std::optional<bool>& bool_field,
@@ -20,9 +20,10 @@ nlohmann::json createData(
    result["primaryKey"] = primary_key;
    result["stringField"] =
       string_field.has_value() ? nlohmann::json(string_field.value()) : nlohmann::json(nullptr);
-   result["indexedStringField"] = indexed_string_field.has_value()
-                                     ? nlohmann::json(indexed_string_field.value())
-                                     : nlohmann::json(nullptr);
+   result["dictionaryEncodedStringField"] =
+      dictionary_encoded_string_field.has_value()
+         ? nlohmann::json(dictionary_encoded_string_field.value())
+         : nlohmann::json(nullptr);
    result["intField"] =
       int_field.has_value() ? nlohmann::json(int_field.value()) : nlohmann::json(nullptr);
    result["floatField"] =
@@ -43,7 +44,7 @@ schema:
      type: "string"
    - name: "stringField"
      type: "string"
-   - name: "indexedStringField"
+   - name: "dictionaryEncodedStringField"
      type: "string"
      generateIndex: true
    - name: "intField"
@@ -92,7 +93,7 @@ const QueryTestScenario IS_NULL_STRING_COLUMN = {
 
 const QueryTestScenario IS_NULL_DICTIONARY_ENCODED_COLUMN = {
    .name = "IS_NULL_DICTIONARY_ENCODED_COLUMN",
-   .query = "default.filter(indexedStringField.isNull()).project(primaryKey)",
+   .query = "default.filter(dictionaryEncodedStringField.isNull()).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_2"},{"primaryKey":"id_7"}])")
 };

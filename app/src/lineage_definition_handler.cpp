@@ -42,7 +42,7 @@ void LineageDefinitionHandler::get(
       throw BadRequest("The column {} does not exist in this instance.", column_name);
    }
    if (column_identifier.value().type != silo::schema::ColumnType::DICTIONARY_ENCODED) {
-      throw BadRequest("The column {} is not of type indexed-string.", column_name);
+      throw BadRequest("The column {} is not of type dictionary-encoded string.", column_name);
    }
    auto* metadata =
       table->second->schema

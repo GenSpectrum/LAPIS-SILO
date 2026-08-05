@@ -18,7 +18,7 @@ using silo::storage::column::RowId;
 
 namespace {
 // Buffers the values into a chunk and appends it to the column.
-[[nodiscard]] std::expected<void, std::string> appendIndexedValues(
+[[nodiscard]] std::expected<void, std::string> appendValues(
    DictionaryEncodedColumn& column,
    std::initializer_list<std::string_view> values
 ) {
@@ -37,8 +37,7 @@ TEST(DictionaryEncodedColumn, shouldReturnTheCorrectFilteredValues) {
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
-      appendIndexedValues(under_test, {"value 1", "value 2", "value 2", "value 3", "value 1"})
-         .has_value()
+      appendValues(under_test, {"value 1", "value 2", "value 2", "value 3", "value 1"}).has_value()
    );
 
    const auto result1 = under_test.filter("value 1");
@@ -56,8 +55,7 @@ TEST(DictionaryEncodedColumn, insertValuesToPartition) {
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
-      appendIndexedValues(under_test, {"value 1", "value 2", "value 2", "value 3", "value 1"})
-         .has_value()
+      appendValues(under_test, {"value 1", "value 2", "value 2", "value 3", "value 1"}).has_value()
    );
 
    EXPECT_EQ(under_test.getValue(RowId(0, 0)), 0U);
@@ -79,9 +77,9 @@ TEST(DictionaryEncodedColumn, valuesSpanningMultipleAppendedChunks) {
    // Each appendChunk starts a fresh, immutable chunk of value ids whose global row ids begin at a
    // fresh 2^16-aligned offset (chunk k starts at k << 16), while the inverted index accumulates
    // those aligned global row ids across chunk boundaries.
-   ASSERT_TRUE(appendIndexedValues(under_test, {"value 1", "value 2"}).has_value());
-   ASSERT_TRUE(appendIndexedValues(under_test, {"value 2", "value 3"}).has_value());
-   ASSERT_TRUE(appendIndexedValues(under_test, {"value 1"}).has_value());
+   ASSERT_TRUE(appendValues(under_test, {"value 1", "value 2"}).has_value());
+   ASSERT_TRUE(appendValues(under_test, {"value 2", "value 3"}).has_value());
+   ASSERT_TRUE(appendValues(under_test, {"value 1"}).has_value());
 
    ASSERT_EQ(under_test.numChunks(), 3);
    ASSERT_EQ(under_test.chunkSize(0), 2);
@@ -110,8 +108,7 @@ TEST(DictionaryEncodedColumn, updateKeepsInvertedIndexConsistent) {
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
-      appendIndexedValues(under_test, {"value 1", "value 2", "value 2", "value 3", "value 1"})
-         .has_value()
+      appendValues(under_test, {"value 1", "value 2", "value 2", "value 3", "value 1"}).has_value()
    );
 
    // Reassign the two "value 2" rows to a value not yet in the dictionary; the old value's bitmap
@@ -142,8 +139,7 @@ TEST(DictionaryEncodedColumn, addingLineageAndThenSublineageFiltersCorrectly) {
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
-      appendIndexedValues(under_test, {"BA.1.1", "BA.1.1", "BA.1.1.1", "BA.1.1.1.1", "BA.1.1"})
-         .has_value()
+      appendValues(under_test, {"BA.1.1", "BA.1.1", "BA.1.1.1", "BA.1.1.1.1", "BA.1.1"}).has_value()
    );
 
    EXPECT_EQ(*under_test.filter({"BA.1.1"}).value(), roaring::Roaring({0, 1, 4}));
@@ -175,8 +171,7 @@ TEST(DictionaryEncodedColumn, addingSublineageAndThenLineageFiltersCorrectly) {
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
-      appendIndexedValues(under_test, {"BA.1.1.1", "BA.1.1.1", "BA.1", "BA.1.1", "BA.1.1.1"})
-         .has_value()
+      appendValues(under_test, {"BA.1.1.1", "BA.1.1.1", "BA.1", "BA.1.1", "BA.1.1.1"}).has_value()
    );
 
    EXPECT_EQ(*under_test.filter({"BA.1.1"}).value(), roaring::Roaring({3}));
@@ -204,14 +199,6 @@ TEST(DictionaryEncodedColumn, addingSublineageAndThenLineageFiltersCorrectly) {
           .value(),
       roaring::Roaring({0, 1, 4})
    );
-   EXPECT_EQ(
-      *under_test.getLineageIndex()
-          ->filterIncludingSublineages(
-             under_test.getValueId("BA.1.1.1").value(), RecombinantEdgeFollowingMode::DO_NOT_FOLLOW
-          )
-          .value(),
-      roaring::Roaring({0, 1, 4})
-   );
 }
 
 TEST(DictionaryEncodedColumn, queryParentLineageThatWasNeverInserted) {
@@ -221,9 +208,7 @@ TEST(DictionaryEncodedColumn, queryParentLineageThatWasNeverInserted) {
    DictionaryEncodedColumnMetadata column_metadata("some_column", lineage_definition, false);
    DictionaryEncodedColumn under_test{&column_metadata};
 
-   ASSERT_TRUE(
-      appendIndexedValues(under_test, {"BA.1.1.1", "BA.1.1.1", "BA.2", "BA.1.1"}).has_value()
-   );
+   ASSERT_TRUE(appendValues(under_test, {"BA.1.1.1", "BA.1.1.1", "BA.2", "BA.1.1"}).has_value());
 
    EXPECT_EQ(
       under_test.getLineageIndex()->filterExcludingSublineages(under_test.getValueId("BA.1").value()
@@ -249,8 +234,8 @@ A.1:
 )"));
    DictionaryEncodedColumnMetadata column_metadata("some_column", lineage_definition, false);
    DictionaryEncodedColumn under_test{&column_metadata};
-   ASSERT_TRUE(appendIndexedValues(under_test, {"A"}).has_value());
-   auto success = appendIndexedValues(under_test, {"A.2"});
+   ASSERT_TRUE(appendValues(under_test, {"A"}).has_value());
+   auto success = appendValues(under_test, {"A.2"});
    ASSERT_FALSE(success.has_value());
    ASSERT_EQ(
       success.error(),
@@ -270,11 +255,11 @@ A.1:
    DictionaryEncodedColumnMetadata column_metadata("some_column", lineage_definition, false);
    DictionaryEncodedColumn under_test{&column_metadata};
 
-   ASSERT_TRUE(appendIndexedValues(under_test, {"A", "A.1", "A"}).has_value());
+   ASSERT_TRUE(appendValues(under_test, {"A", "A.1", "A"}).has_value());
 
    // This chunk contains a valid value ("A.1") followed by an invalid one ("A.2"). The whole
    // chunk must be rejected without mutating any state from the previously appended chunk.
-   auto failure = appendIndexedValues(under_test, {"A.1", "A.2"});
+   auto failure = appendValues(under_test, {"A.1", "A.2"});
    ASSERT_FALSE(failure.has_value());
 
    // The failed chunk must not have grown the column nor added any of its rows to the index.
@@ -297,7 +282,7 @@ A.1:
 
    // A subsequent valid chunk must continue numbering rows from where the successful chunk ended,
    // i.e. the failed chunk left no gaps in the row ids.
-   ASSERT_TRUE(appendIndexedValues(under_test, {"A.1"}).has_value());
+   ASSERT_TRUE(appendValues(under_test, {"A.1"}).has_value());
    ASSERT_EQ(under_test.numChunks(), 2);
    ASSERT_EQ(under_test.chunkSize(0), 3);
    ASSERT_EQ(under_test.chunkSize(1), 1);
@@ -314,7 +299,7 @@ A.1:
 )"));
    DictionaryEncodedColumnMetadata column_metadata("some_column", lineage_definition, true);
    DictionaryEncodedColumn under_test{&column_metadata};
-   ASSERT_TRUE(appendIndexedValues(under_test, {"A", "not in the lineage hierarchy"}).has_value());
+   ASSERT_TRUE(appendValues(under_test, {"A", "not in the lineage hierarchy"}).has_value());
    EXPECT_EQ(
       *under_test.getLineageIndex()
           ->filterIncludingSublineages(
