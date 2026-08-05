@@ -302,7 +302,7 @@ const QueryTestScenario FILTER_ON_MAPPED_COLUMN_SCENARIO = {
 // producing an invalid plan.
 const QueryTestScenario FILTER_ON_ISO_WEEK_MAPPED_COLUMN_SCENARIO = {
    .name = "FILTER_ON_ISO_WEEK_MAPPED_COLUMN",
-   .query = "default.map({week := date.isoWeek()}).filter(week = 1).project({primaryKey})",
+   .query = "default.map({week := date.isoWeek()}).filter(week = '2023-W01').project({primaryKey})",
    .expected_query_result = {},
    .expected_error_message =
       "FilterNode must be eliminated during pushdown before query plan generation"
@@ -328,7 +328,7 @@ const QueryTestScenario FILTER_MIXED_PUSHABLE_AND_DERIVED_SCENARIO = {
    .name = "FILTER_MIXED_PUSHABLE_AND_DERIVED",
    .query =
       "default.map({week := date.isoWeek()})"
-      ".filter(hasMutation(sequenceName := 'segment1', position := 1) && week = 1)"
+      ".filter(hasMutation(sequenceName := 'segment1', position := 1) && week = '2023-W01')"
       ".project({primaryKey})",
    .expected_query_result = {},
    .expected_error_message =
@@ -344,13 +344,14 @@ const QueryTestScenario FILTER_PUSHED_PAST_UNRELATED_DERIVED_MAP_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
 };
 
-// `isoWeek` maps a date column to its ISO 8601 week number as an integer.
+// `isoWeek` maps a date column to its ISO 8601 week date, `<ISO-year>-W<ISO-week>`, as a string.
 const QueryTestScenario MAP_ISO_WEEK_SCENARIO = {
    .name = "MAP_ISO_WEEK",
    .query = "default.map({week := date.isoWeek()}).project({primaryKey, week})",
-   .expected_query_result =
-      nlohmann::json({{{"primaryKey", "id_0"}, {"week", 1}}, {{"primaryKey", "id_1"}, {"week", 52}}}
-      )
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"week", "2023-W01"}},
+       {{"primaryKey", "id_1"}, {"week", "2023-W52"}}}
+   )
 };
 
 }  // namespace
@@ -406,7 +407,7 @@ const QueryTestScenario MAP_ISO_WEEK_NULL_SCENARIO = {
    .name = "MAP_ISO_WEEK_NULL",
    .query = "default.map({week := date.isoWeek()}).project({primaryKey, week})",
    .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"week", nullptr}}, {{"primaryKey", "id_1"}, {"week", 53}}}
+      {{{"primaryKey", "id_0"}, {"week", nullptr}}, {{"primaryKey", "id_1"}, {"week", "2020-W53"}}}
    )
 };
 

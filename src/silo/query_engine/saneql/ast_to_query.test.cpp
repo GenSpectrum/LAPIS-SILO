@@ -496,7 +496,7 @@ TEST(AstToQueryMap, isoWeekResolvesToWeekOfDateColumn) {
    const auto found =
       std::ranges::find_if(output_schema, [](const auto& col) { return col.name == "w"; });
    ASSERT_NE(found, output_schema.end());
-   EXPECT_EQ(found->type, silo::schema::ColumnType::INT64);
+   EXPECT_EQ(found->type, silo::schema::ColumnType::STRING);
 }
 
 TEST(AstToQueryMap, isoWeekOnUnknownColumnThrows) {
