@@ -626,6 +626,8 @@ jobs:
   wasmBuild:
     name: Build WebAssembly
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Upload artifacts to GitHub Releases
     steps:
       - uses: actions/checkout@v7
 
@@ -699,5 +701,6 @@ jobs:
             artifacts/*.tar.gz
             artifacts/*.sha256sum
           tag_name: v${{ env.SILO_VERSION }}
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
