@@ -357,11 +357,11 @@ TEST(ColumnNarrowingPassMap, preservesAssignmentOrderForAddedColumns) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = col("x"),
-       .expression = std::make_unique<silo::query_engine::scalar_expressions::IntLiteral>(1)}
+       .expression = std::make_unique<silo::query_engine::scalar_expressions::Int64Literal>(1)}
    );
    assignments.push_back(
       {.output_column = col("y"),
-       .expression = std::make_unique<silo::query_engine::scalar_expressions::IntLiteral>(2)}
+       .expression = std::make_unique<silo::query_engine::scalar_expressions::Int64Literal>(2)}
    );
    operators::QueryNodePtr node =
       std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));

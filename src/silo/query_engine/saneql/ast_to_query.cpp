@@ -105,7 +105,7 @@ ScalarExpressionPtr convertEqualsToFilter(
    if (isStringLiteral(value_expr)) {
       value = std::make_unique<scalar_expressions::StringLiteral>(extractStringLiteral(value_expr));
    } else if (isIntLiteral(value_expr)) {
-      value = std::make_unique<scalar_expressions::IntLiteral>(extractInt64Literal(value_expr));
+      value = std::make_unique<scalar_expressions::Int64Literal>(extractInt64Literal(value_expr));
    } else if (isFloatLiteral(value_expr)) {
       value =
          std::make_unique<scalar_expressions::FloatLiteral>(extractNumericAsFloatLiteral(value_expr)
@@ -1170,7 +1170,8 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
       return std::make_unique<scalar_expressions::FieldRef>(*found);
    }
    if (std::holds_alternative<ast::IntLiteral>(value)) {
-      return std::make_unique<scalar_expressions::IntLiteral>(std::get<ast::IntLiteral>(value).value
+      return std::make_unique<scalar_expressions::Int64Literal>(
+         std::get<ast::IntLiteral>(value).value
       );
    }
    if (std::holds_alternative<ast::FloatLiteral>(value)) {

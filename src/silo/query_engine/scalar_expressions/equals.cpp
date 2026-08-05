@@ -198,7 +198,11 @@ std::unique_ptr<filter::operators::Operator> Equals::compile(const storage::Tabl
       );
    }
 
-   if (const auto* int_value = dynCast<IntLiteral>(value)) {
+   if (const auto* int_value = dynCast<Int32Literal>(value)) {
+      return compileIntEquals(table, column_name, int_value->value);
+   }
+
+   if (const auto* int_value = dynCast<Int64Literal>(value)) {
       return compileIntEquals(table, column_name, int_value->value);
    }
 

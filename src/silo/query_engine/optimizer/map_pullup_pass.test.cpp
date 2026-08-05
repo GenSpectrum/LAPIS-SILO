@@ -61,7 +61,7 @@ operators::QueryNodePtr makeMap(operators::QueryNodePtr child) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "x", .type = ColumnType::INT64},
-       .expression = std::make_unique<scalar_expressions::IntLiteral>(3)}
+       .expression = std::make_unique<scalar_expressions::Int64Literal>(3)}
    );
    return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
 }
