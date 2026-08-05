@@ -50,9 +50,9 @@ Type Complement::type() const {
 
 CopyOnWriteBitmap Complement::evaluate() const {
    EVOBENCH_SCOPE("Complement", "evaluate");
-   auto result = child->evaluate();
-   row_layout.complementInPlace(result.getMutable());
-   return result;
+   roaring::Roaring result = child->evaluate().toRoaring();
+   row_layout.complementInPlace(result);
+   return CopyOnWriteBitmap{std::move(result)};
 }
 
 std::unique_ptr<Operator> Complement::negate(std::unique_ptr<Complement>&& complement) {

@@ -56,24 +56,6 @@ Type Intersection::type() const {
    return INTERSECTION;
 }
 
-namespace {
-
-CopyOnWriteBitmap intersectTwo(CopyOnWriteBitmap first, CopyOnWriteBitmap second) {
-   CopyOnWriteBitmap result;
-   if (first.isMutable()) {
-      result = std::move(first);
-      result.getMutable() &= second.getConstReference();
-   } else if (second.isMutable()) {
-      result = std::move(second);
-      result.getMutable() &= first.getConstReference();
-   } else {
-      result = CopyOnWriteBitmap(first.getConstReference() & second.getConstReference());
-   }
-   return result;
-}
-
-}  // namespace
-
 CopyOnWriteBitmap Intersection::evaluate() const {
    EVOBENCH_SCOPE("Intersection", "evaluate");
    std::vector<CopyOnWriteBitmap> children_bm;
@@ -92,34 +74,33 @@ CopyOnWriteBitmap Intersection::evaluate() const {
    std::ranges::sort(
       children_bm,
       [](const CopyOnWriteBitmap& expression1, const CopyOnWriteBitmap& expression2) {
-         return expression1.getConstReference().cardinality() <
-                expression2.getConstReference().cardinality();
+         return expression1.cardinality() < expression2.cardinality();
       }
    );
    // Sort negated children descending by size
    std::ranges::sort(
       negated_children_bm,
       [](const CopyOnWriteBitmap& expression_result1, const CopyOnWriteBitmap& expression_result2) {
-         return expression_result1.getConstReference().cardinality() >
-                expression_result2.getConstReference().cardinality();
+         return expression_result1.cardinality() > expression_result2.cardinality();
       }
    );
 
    // children_bm > 0 as asserted in constructor
    if (children_bm.size() == 1) {
       // negated_children_bm cannot be empty because of size assertion in constructor
-      CopyOnWriteBitmap& result = children_bm[0];
+      CopyOnWriteBitmap result = std::move(children_bm[0]);
       for (auto& neg_bm : negated_children_bm) {
-         result.getMutable() -= neg_bm.getConstReference();
+         result -= neg_bm;
       }
-      return std::move(result);
+      return result;
    }
-   auto result = intersectTwo(std::move(children_bm[0]), std::move(children_bm[1]));
+   CopyOnWriteBitmap result = std::move(children_bm[0]);
+   result &= children_bm[1];
    for (uint32_t i = 2; i < children.size(); i++) {
-      result.getMutable() &= children_bm[i].getConstReference();
+      result &= children_bm[i];
    }
    for (auto& neg_bm : negated_children_bm) {
-      result.getMutable() -= neg_bm.getConstReference();
+      result -= neg_bm;
    }
    return result;
 }

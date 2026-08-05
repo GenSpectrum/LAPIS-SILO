@@ -17,7 +17,7 @@ TEST(OperatorComplement, evaluateShouldReturnCorrectValues) {
    const Complement under_test(
       std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout
    );
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({0, 4}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({0, 4}));
 }
 
 TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenEmptyInput) {
@@ -27,7 +27,7 @@ TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenEmptyInput) {
    const Complement under_test(
       std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout
    );
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({0, 1, 2}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({0, 1, 2}));
 }
 
 TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenEmptyDatabase) {
@@ -37,7 +37,7 @@ TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenEmptyDatabase) {
    const Complement under_test(
       std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout
    );
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({}));
 }
 
 TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenFullInput) {
@@ -47,7 +47,7 @@ TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenFullInput) {
    const Complement under_test(
       std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout
    );
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({}));
 }
 
 TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenSingleInput) {
@@ -57,7 +57,7 @@ TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenSingleInput) {
    const Complement under_test(
       std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout
    );
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({0, 2, 3, 4}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({0, 2, 3, 4}));
 }
 
 TEST(OperatorComplement, correctTypeInfo) {

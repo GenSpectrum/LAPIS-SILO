@@ -8,7 +8,7 @@ using silo::storage::column::RowLayout;
 
 TEST(OperatorEmpty, evaluateShouldReturnNoValues) {
    const Empty under_test(RowLayout::of(1));
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring());
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring());
 }
 
 TEST(OperatorEmpty, correctTypeInfo) {

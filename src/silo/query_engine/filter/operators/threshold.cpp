@@ -71,11 +71,10 @@ CopyOnWriteBitmap Threshold::evaluate() const {
       dp_table_size = number_of_matchers;
    }
    std::vector<roaring::Roaring> bitmaps(dp_table_size);
-   // Copy bitmap of first child if immutable, otherwise use it directly
    if (non_negated_children.empty()) {
-      bitmaps[0] = negated_children[0]->evaluate().getConstReference();
+      bitmaps[0] = negated_children[0]->evaluate().toRoaring();
    } else {
-      bitmaps[0] = non_negated_children[0]->evaluate().getConstReference();
+      bitmaps[0] = non_negated_children[0]->evaluate().toRoaring();
    }
 
    if (non_negated_children.empty()) {
@@ -92,16 +91,16 @@ CopyOnWriteBitmap Threshold::evaluate() const {
    );  // Number of loop iterations
 
    for (int i = 1; i < non_negated_child_count; ++i) {
-      const auto bitmap = non_negated_children[i]->evaluate();
+      const roaring::Roaring bitmap = non_negated_children[i]->evaluate().toRoaring();
       // positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
       // conjunction would return 0
       // positions lower than n - k + i - 1 are unable to affect the result, because only (k - i)
       // iterations are left
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
-         bitmaps[j] |= bitmaps[j - 1] & bitmap.getConstReference();
+         bitmaps[j] |= bitmaps[j - 1] & bitmap;
       }
       if (k - i > n - 1) {
-         bitmaps[0] |= bitmap.getConstReference();
+         bitmaps[0] |= bitmap;
       }
    }
 
@@ -113,18 +112,18 @@ CopyOnWriteBitmap Threshold::evaluate() const {
    // (Number of children left is less than the distance we need to cross to reach the result)
    const int took_first_offset = non_negated_children.empty() ? 1 : 0;
    for (int local_i = took_first_offset; local_i < negated_child_count; ++local_i) {
-      auto bitmap = negated_children[local_i]->evaluate();
+      roaring::Roaring bitmap = negated_children[local_i]->evaluate().toRoaring();
       const int i = local_i + non_negated_child_count;
       // positions higher than (i-1) cannot have been reached yet, are therefore all 0s and the
       // conjunction would return 0
       // positions lower than (n-1) - (k-i) are unable to affect the result, because only (k-i)
       // iterations are left
       for (int j = std::min(max_table_index, i); j > std::max(0, n - k + i - 1); --j) {
-         bitmaps[j] |= bitmaps[j - 1] - bitmap.getConstReference();
+         bitmaps[j] |= bitmaps[j - 1] - bitmap;
       }
       if (k - i > n - 1) {
-         row_layout.complementInPlace(bitmap.getMutable());
-         bitmaps[0] |= bitmap.getConstReference();
+         row_layout.complementInPlace(bitmap);
+         bitmaps[0] |= bitmap;
       }
    }
    // NOLINTEND(readability-identifier-length)

@@ -98,19 +98,19 @@ CopyOnWriteBitmap Selection::evaluate() const {
    // sorted most-selective-first at construction
    roaring::Roaring candidates;
    if (child_operator.has_value()) {
-      CopyOnWriteBitmap child_result = (*child_operator)->evaluate();
+      roaring::Roaring child_bitmap = (*child_operator)->evaluate().toRoaring();
       // For a small child, matching each of its rows against every predicate is cheaper than
       // materializing the first predicate over the whole partition.
-      if (child_result.getConstReference().cardinality() <= row_layout.numRows() / 10) {
+      if (child_bitmap.cardinality() <= row_layout.numRows() / 10) {
          roaring::Roaring result;
-         for (const uint32_t row : child_result.getConstReference()) {
+         for (const uint32_t row : child_bitmap) {
             if (matchesPredicates(predicates, row)) {
                result.add(row);
             }
          }
          return CopyOnWriteBitmap{std::move(result)};
       }
-      candidates = std::move(child_result.getMutable());
+      candidates = std::move(child_bitmap);
       candidates &= predicates.front()->makeBitmap(row_layout);
    } else {
       candidates = predicates.front()->makeBitmap(row_layout);

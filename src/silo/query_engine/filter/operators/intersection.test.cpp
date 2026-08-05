@@ -73,7 +73,7 @@ TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesNoNegated) {
    OperatorVector non_negated = generateTestInput(test_bitmaps, row_layout);
    OperatorVector negated;
    const Intersection under_test(std::move(non_negated), std::move(negated), row_layout);
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1, 3}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({1, 3}));
 }
 
 TEST(OperatorIntersection, evaluateShouldReturnCorrectValues) {
@@ -88,7 +88,7 @@ TEST(OperatorIntersection, evaluateShouldReturnCorrectValues) {
    OperatorVector non_negated = generateTestInput(test_bitmaps, row_layout);
    OperatorVector negated = generateTestInput(test_negated_bitmaps, row_layout);
    const Intersection under_test(std::move(non_negated), std::move(negated), row_layout);
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({1}));
 }
 
 TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesManyNegated) {
@@ -104,7 +104,7 @@ TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesManyNegated) {
    OperatorVector non_negated = generateTestInput(test_bitmaps, row_layout);
    OperatorVector negated = generateTestInput(test_negated_bitmaps, row_layout);
    const Intersection under_test(std::move(non_negated), std::move(negated), row_layout);
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({1}));
 }
 
 TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesEmptyInput) {
@@ -119,7 +119,7 @@ TEST(OperatorIntersection, evaluateShouldReturnCorrectValuesEmptyInput) {
    OperatorVector non_negated = generateTestInput(test_bitmaps, row_layout);
    OperatorVector negated = generateTestInput(test_negated_bitmaps, row_layout);
    const Intersection under_test(std::move(non_negated), std::move(negated), row_layout);
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring());
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring());
 }
 
 TEST(OperatorIntersection, correctTypeInfo) {
