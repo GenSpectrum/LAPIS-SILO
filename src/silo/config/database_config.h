@@ -17,16 +17,31 @@ enum class ValueType : uint8_t { STRING, DATE, BOOL, INT32, INT64, FLOAT };
 
 ValueType toDatabaseValueType(std::string_view type);
 
+enum class LineageIndexType : uint8_t { COLUMN_METADATA, TABLE, BOTH };
+
+LineageIndexType toLineageIndexType(std::string_view type);
+
+std::string_view lineageIndexTypeToString(LineageIndexType type);
+
 class DatabaseMetadata {
   public:
    std::string name;
    ValueType type;
    bool generate_index;
    std::optional<std::string> generate_lineage_index;
+   LineageIndexType lineage_index_type = LineageIndexType::COLUMN_METADATA;
    bool phylo_tree_node_identifier;
    bool treat_unknown_lineages_as_null;
 
    [[nodiscard]] schema::ColumnType getColumnType() const;
+
+   /// Whether the column itself should carry the in-memory lineage index (i.e. the lineage tree is
+   /// attached to the column metadata). True for `COLUMN_METADATA` and `BOTH`.
+   [[nodiscard]] bool generatesLineageColumnIndex() const;
+
+   /// Whether preprocessing should materialize a companion lineage relation table for this column.
+   /// True for `TABLE` and `BOTH`.
+   [[nodiscard]] bool generatesLineageTable() const;
 };
 
 class DatabaseSchema {

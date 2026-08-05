@@ -15,7 +15,7 @@
 #include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/query_engine/scalar_expressions/or.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
-#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/string_column.h"
 
 namespace silo::query_engine::scalar_expressions {
@@ -48,7 +48,7 @@ std::unique_ptr<ScalarExpression> StringInSet::rewrite(
    );
    CHECK_SILO_QUERY(
       table.columns.string_columns.contains(column.name) ||
-         table.columns.indexed_string_columns.contains(column.name),
+         table.columns.dictionary_encoded_columns.contains(column.name),
       "The column '{}' is not of type string",
       column.name
    );
@@ -58,7 +58,8 @@ std::unique_ptr<ScalarExpression> StringInSet::rewrite(
       return std::make_unique<StringInSet>(column, values);
    }
 
-   // We want to improve IndexedStringColumn by using our Indexes directly -> one Equals per value
+   // We want to improve DictionaryEncodedColumn by using our Indexes directly -> one Equals per
+   // value
    std::vector<std::unique_ptr<ScalarExpression>> string_equal_expressions;
    string_equal_expressions.reserve(values.size());
    for (const auto& value : values) {

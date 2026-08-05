@@ -46,7 +46,7 @@ docker run --rm \
       elif [[ $file == app/*.test.cpp ]]; then
         targets+=(--target "app/CMakeFiles/silo_app_test.dir/${file#app/}.o")
       elif [[ $file == app/src/main.cpp ]]; then
-        targets+=(--target "app/CMakeFiles/silo.dir/${file#app/}.o")
+        targets+=(--target "app/CMakeFiles/rhydb.dir/${file#app/}.o")
       elif [[ $file == app/*.cpp ]]; then
         targets+=(--target "app/CMakeFiles/silo_app.dir/${file#app/}.o")
       fi

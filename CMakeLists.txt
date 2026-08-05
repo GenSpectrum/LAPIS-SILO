@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(SILO)
+project(RHYDB)
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
@@ -156,7 +156,7 @@ if(EMSCRIPTEN)
     # The browser embind module, a consumer of the shared silolib declaration.
     add_subdirectory(wasm)
 else()
-    # The native command-line application (the `silo` executable) is a consumer
+    # The native command-line application (the `rhydb` executable) is a consumer
     # of the shared silolib declaration
     add_subdirectory(app)
 

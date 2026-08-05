@@ -79,7 +79,7 @@ INSTANTIATE_TEST_SUITE_P(
       TestParameter{
          .value_type = ValueType::STRING,
          .generate_index = true,
-         .expected_column_type = ColumnType::INDEXED_STRING
+         .expected_column_type = ColumnType::DICTIONARY_ENCODED
       },
       TestParameter{
          .value_type = ValueType::DATE,
@@ -90,7 +90,7 @@ INSTANTIATE_TEST_SUITE_P(
          .value_type = ValueType::STRING,
          .generate_index = true,
          .generate_lineage_index = true,
-         .expected_column_type = ColumnType::INDEXED_STRING
+         .expected_column_type = ColumnType::DICTIONARY_ENCODED
       },
       TestParameter{
          .value_type = ValueType::INT32,
@@ -306,6 +306,120 @@ schema:
       ThrowsMessage<ConfigException>(
          ::testing::HasSubstr("Metadata 'some lineage' generateLineageIndex is set, "
                               "generateIndex must also be set")
+      )
+   );
+}
+
+TEST(DatabaseConfig, lineageIndexTypeDefaultsToColumnMetadata) {
+   const char* const config_yaml =
+      R"(
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "lineage"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: lineage
+  primaryKey: "testPrimaryKey"
+)";
+
+   const auto config = DatabaseConfig::getValidatedConfig(config_yaml);
+   const auto metadata = config.getMetadata("lineage").value();
+   ASSERT_EQ(metadata.lineage_index_type, silo::config::LineageIndexType::COLUMN_METADATA);
+   ASSERT_TRUE(metadata.generatesLineageColumnIndex());
+   ASSERT_FALSE(metadata.generatesLineageTable());
+}
+
+TEST(DatabaseConfig, lineageIndexTypeTableIsParsedAndTogglesTableOnly) {
+   const char* const config_yaml =
+      R"(
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "lineage"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: lineage
+      lineageIndexType: table
+  primaryKey: "testPrimaryKey"
+)";
+
+   const auto config = DatabaseConfig::getValidatedConfig(config_yaml);
+   const auto metadata = config.getMetadata("lineage").value();
+   ASSERT_EQ(metadata.lineage_index_type, silo::config::LineageIndexType::TABLE);
+   ASSERT_FALSE(metadata.generatesLineageColumnIndex());
+   ASSERT_TRUE(metadata.generatesLineageTable());
+}
+
+TEST(DatabaseConfig, lineageIndexTypeBothTogglesBoth) {
+   const char* const config_yaml =
+      R"(
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "lineage"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: lineage
+      lineageIndexType: both
+  primaryKey: "testPrimaryKey"
+)";
+
+   const auto config = DatabaseConfig::getValidatedConfig(config_yaml);
+   const auto metadata = config.getMetadata("lineage").value();
+   ASSERT_EQ(metadata.lineage_index_type, silo::config::LineageIndexType::BOTH);
+   ASSERT_TRUE(metadata.generatesLineageColumnIndex());
+   ASSERT_TRUE(metadata.generatesLineageTable());
+}
+
+TEST(DatabaseConfig, givenUnknownLineageIndexTypeThenThrows) {
+   const char* const config_yaml =
+      R"(
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "lineage"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: lineage
+      lineageIndexType: nonsense
+  primaryKey: "testPrimaryKey"
+)";
+
+   EXPECT_THAT(
+      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
+      ThrowsMessage<ConfigException>(::testing::HasSubstr("Unknown lineageIndexType: 'nonsense'"))
+   );
+}
+
+TEST(DatabaseConfig, givenLineageIndexTypeWithoutGenerateLineageIndexThenThrows) {
+   const char* const config_yaml =
+      R"(
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "testPrimaryKey"
+      type: "string"
+    - name: "lineage"
+      type: "string"
+      generateIndex: true
+      lineageIndexType: table
+  primaryKey: "testPrimaryKey"
+)";
+
+   EXPECT_THAT(
+      [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
+      ThrowsMessage<ConfigException>(
+         ::testing::HasSubstr("Metadata 'lineage' lineageIndexType is set to 'table', but "
+                              "generateLineageIndex is not set")
       )
    );
 }

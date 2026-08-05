@@ -68,8 +68,16 @@ class LineageTree {
    LineageTree& operator=(const LineageTree& other) = default;
    LineageTree& operator=(LineageTree&& other) = default;
 
-   const std::vector<std::vector<Idx>>& getChildToParentRelation() {
+   [[nodiscard]] const std::vector<std::vector<Idx>>& getChildToParentRelation() const {
       return child_to_parent_relation;
+   }
+
+   /// For every recombinant node (a node with more than one parent), the most-recent common
+   /// ancestor of its parents (or `nullopt` when the parents share no common ancestor). Nodes that
+   /// are not recombinant do not appear. Used by the `FOLLOW_IF_FULLY_CONTAINED_IN_CLADE` walk.
+   [[nodiscard]] const std::unordered_map<Idx, std::optional<Idx>>& getRecombinantCladeAncestors(
+   ) const {
+      return recombinant_clade_ancestors;
    }
 
    static std::unordered_map<Idx, std::optional<Idx>> computeRecombinantCladeAncestors(

@@ -5,7 +5,7 @@ namespace silo::query_engine::exec_node {
 std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column_type) {
    switch (column_type) {
       case schema::ColumnType::STRING:
-      case schema::ColumnType::INDEXED_STRING:
+      case schema::ColumnType::DICTIONARY_ENCODED:
          return arrow::utf8();
       case schema::ColumnType::DATE32:
          return arrow::date32();

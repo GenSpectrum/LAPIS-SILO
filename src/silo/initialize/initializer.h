@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 #include "silo/common/lineage_tree.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/config/database_config.h"
@@ -17,6 +19,16 @@ class Initializer {
       Database& database
    );
 
+   static void createTableInDatabase(
+      schema::TableName table_name,
+      const config::DatabaseConfig& database_config,
+      const ReferenceGenomes& reference_genomes,
+      const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
+      const common::PhyloTree& phylo_tree,
+      bool without_unaligned_sequences,
+      Database& database
+   );
+
    static std::shared_ptr<schema::TableSchema> createSchemaFromConfigFiles(
       const config::DatabaseConfig& database_config,
       ReferenceGenomes reference_genomes,
@@ -28,6 +40,13 @@ class Initializer {
    static std::optional<common::LineageTreeAndIdMap> findLineageTreeForName(
       const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
       const std::string& lineage_tree_name
+   );
+
+  private:
+   static void createLineageRelationTable(
+      std::string_view column_name,
+      const common::LineageTreeAndIdMap& lineage_tree,
+      Database& database
    );
 };
 }  // namespace silo::initialize

@@ -8,10 +8,10 @@ RUN  \
     export CMAKE_BUILD_PARALLEL_LEVEL=4; \
     make build/Release/silo_test \
     && make build/Release/silo_app_test \
-    && make build/Release/silo \
+    && make build/Release/rhydb \
     && cp build/Release/silo_test . \
     && cp build/Release/silo_app_test . \
-    && cp build/Release/silo .
+    && cp build/Release/rhydb .
 
 
 FROM ubuntu:26.04 AS server
@@ -19,7 +19,13 @@ FROM ubuntu:26.04 AS server
 WORKDIR /app
 COPY docker_default_preprocessing_config.yaml ./default_preprocessing_config.yaml
 COPY docker_runtime_config.yaml ./default_runtime_config.yaml
-COPY --from=builder /src/silo ./
+COPY --from=builder /src/rhydb ./
+
+# Deprecation compatibility: the binary was renamed silo -> rhydb. Keep a
+# `silo` shim in the image during the deprecation period so consumers that
+# invoke the binary by its old name (e.g. `--entrypoint ./silo` or scripts
+# that exec /app/silo) keep working. Remove once the deprecation period ends.
+RUN ln -s rhydb /app/silo
 
 RUN apt update && apt dist-upgrade -y \
     &&  apt install -y curl jq
@@ -29,7 +35,7 @@ HEALTHCHECK --start-period=20s CMD curl --fail --silent localhost:8081/info | jq
 
 EXPOSE 8081
 
-ENTRYPOINT ["./silo"]
+ENTRYPOINT ["./rhydb"]
 
 ENV SILO_PREPROCESSING_CONFIG="/app/preprocessing_config.yaml"
 ENV SILO_DEFAULT_PREPROCESSING_CONFIG="/app/default_preprocessing_config.yaml"

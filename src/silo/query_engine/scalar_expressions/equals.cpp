@@ -148,7 +148,7 @@ std::unique_ptr<ScalarExpression> Equals::rewrite(
          );
          CHECK_SILO_QUERY(
             table.columns.string_columns.contains(column_name) ||
-               table.columns.indexed_string_columns.contains(column_name),
+               table.columns.dictionary_encoded_columns.contains(column_name),
             "The column '{}' is not of type string",
             column_name
          );
@@ -181,8 +181,8 @@ std::unique_ptr<filter::operators::Operator> Equals::compile(const storage::Tabl
       // rewrite() validates the string column type and converts a non-indexed
       // string column into a StringInSet, so only an indexed string column can
       // reach compile() here.
-      SILO_ASSERT(table.columns.indexed_string_columns.contains(column_name));
-      const auto& string_column = table.columns.indexed_string_columns.at(column_name);
+      SILO_ASSERT(table.columns.dictionary_encoded_columns.contains(column_name));
+      const auto& string_column = table.columns.dictionary_encoded_columns.at(column_name);
       const auto bitmap = string_column.filter(string_value->value);
       if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
          return std::make_unique<filter::operators::Empty>(table.row_layout);

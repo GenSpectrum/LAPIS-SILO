@@ -41,12 +41,13 @@ void LineageDefinitionHandler::get(
    if (column_identifier == std::nullopt) {
       throw BadRequest("The column {} does not exist in this instance.", column_name);
    }
-   if (column_identifier.value().type != silo::schema::ColumnType::INDEXED_STRING) {
-      throw BadRequest("The column {} is not of type indexed-string.", column_name);
+   if (column_identifier.value().type != silo::schema::ColumnType::DICTIONARY_ENCODED) {
+      throw BadRequest("The column {} is not of type dictionary-encoded string.", column_name);
    }
-   auto* metadata = table->second->schema
-                       ->getColumnMetadata<silo::storage::column::IndexedStringColumn>(column_name)
-                       .value();
+   auto* metadata =
+      table->second->schema
+         ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>(column_name)
+         .value();
    if (!metadata->lineage_tree.has_value()) {
       throw BadRequest("The column {} does not have a lineageIndex defined.", column_name);
    }

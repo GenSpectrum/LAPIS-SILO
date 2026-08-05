@@ -69,13 +69,13 @@ std::unique_ptr<filter::operators::Operator> StringSearch::compile(const storage
    );
    CHECK_SILO_QUERY(
       table.columns.string_columns.contains(column.name) ||
-         table.columns.indexed_string_columns.contains(column.name),
+         table.columns.dictionary_encoded_columns.contains(column.name),
       "The column '{}' is not of type string",
       column.name
    );
 
-   if (table.columns.indexed_string_columns.contains(column.name)) {
-      const auto& string_column = table.columns.indexed_string_columns.at(column.name);
+   if (table.columns.dictionary_encoded_columns.contains(column.name)) {
+      const auto& string_column = table.columns.dictionary_encoded_columns.at(column.name);
       return createMatchingBitmap(string_column, *search_expression, table.row_layout);
    }
    SILO_ASSERT(table.columns.string_columns.contains(column.name));

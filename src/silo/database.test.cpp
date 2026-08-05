@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include "config/source/yaml_file.h"
+#include "silo/common/lineage_tree.h"
 #include "silo/common/phylo_tree.h"
 #include "silo/config/preprocessing_config.h"
 #include "silo/database_info.h"

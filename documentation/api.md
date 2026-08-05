@@ -5,7 +5,7 @@ RhyDB includes an HTTP API for querying preprocessed outputs.
 ## Running the API Server
 
 ```bash
-silo api \
+rhydb api \
   --database-config database_config.yaml \
   --runtime-config runtime_config.yaml
 ```

@@ -16,7 +16,7 @@
 namespace silo::query_engine::scalar_expressions {
 
 using silo::common::RecombinantEdgeFollowingMode;
-using silo::storage::column::IndexedStringColumn;
+using silo::storage::column::DictionaryEncodedColumn;
 
 LineageFilter::LineageFilter(
    schema::ColumnIdentifier column,
@@ -42,7 +42,7 @@ std::vector<schema::ColumnIdentifier> LineageFilter::freeIUs() const {
 }
 
 std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
-   const IndexedStringColumn& lineage_column
+   const DictionaryEncodedColumn& lineage_column
 ) const {
    if (lineage == std::nullopt) {
       return lineage_column.filter(std::nullopt);
@@ -82,17 +82,13 @@ std::unique_ptr<filter::operators::Operator> LineageFilter::compile(const storag
       column.name
    );
    CHECK_SILO_QUERY(
-      table.columns.indexed_string_columns.contains(column.name),
-      "The column '{}' is not of type indexed string",
-      column.name
-   );
-   CHECK_SILO_QUERY(
-      table.columns.indexed_string_columns.at(column.name).getLineageIndex().has_value(),
+      table.columns.dictionary_encoded_columns.contains(column.name) &&
+         table.columns.dictionary_encoded_columns.at(column.name).getLineageIndex().has_value(),
       "The database does not contain a lineage index for the column '{}'",
       column.name
    );
 
-   const auto& lineage_column = table.columns.indexed_string_columns.at(column.name);
+   const auto& lineage_column = table.columns.dictionary_encoded_columns.at(column.name);
    std::optional<const roaring::Roaring*> bitmap = getBitmapForValue(lineage_column);
 
    if (bitmap == std::nullopt) {

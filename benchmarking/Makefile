@@ -58,7 +58,7 @@ export BUILD
 
 # ---- General -----------------------------------------------------------------
 
-SILO=../build/$(BUILD)/silo_$(COMMIT_ID)
+SILO=../build/$(BUILD)/rhydb_$(COMMIT_ID)
 export SILO
 PREPROCESSING_STAMP = $(OUTPUT_DIR)/.done
 export PREPROCESSING_STAMP

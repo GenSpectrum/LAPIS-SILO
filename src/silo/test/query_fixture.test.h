@@ -53,9 +53,9 @@ namespace silo::test {
 struct QueryTestData {
    const std::vector<nlohmann::json> ndjson_input_data;
    const std::string database_config;
-   const silo::ReferenceGenomes reference_genomes;
-   const std::map<std::filesystem::path, silo::common::LineageTreeAndIdMap> lineage_trees;
-   const silo::common::PhyloTree phylo_tree_file;
+   const ReferenceGenomes reference_genomes;
+   const std::map<std::filesystem::path, common::LineageTreeAndIdMap> lineage_trees;
+   const common::PhyloTree phylo_tree_file;
    const bool without_unaligned_sequences = false;
 };
 
@@ -64,7 +64,7 @@ struct QueryTestScenario {
    std::string query;
    nlohmann::json expected_query_result;
    std::string expected_error_message;
-   std::optional<silo::config::QueryOptions> query_options;
+   std::optional<config::QueryOptions> query_options;
 };
 
 std::string printScenarioName(const ::testing::TestParamInfo<QueryTestScenario>& scenario);
@@ -77,21 +77,22 @@ nlohmann::json executeQueryToJsonArray(
 template <typename DataContainer>
 class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
   public:
-   static std::shared_ptr<silo::Database> shared_database;
+   static std::shared_ptr<Database> shared_database;
 
    static void SetUpTestSuite() {
       const DataContainer data_container;
       const QueryTestData& test_data = data_container.test_data;
 
       auto database = std::make_shared<Database>();
-      auto table_schema = silo::initialize::Initializer::createSchemaFromConfigFiles(
-         silo::config::DatabaseConfig::getValidatedConfig(test_data.database_config),
+      initialize::Initializer::createTableInDatabase(
+         schema::TableName::getDefault(),
+         config::DatabaseConfig::getValidatedConfig(test_data.database_config),
          test_data.reference_genomes,
          test_data.lineage_trees,
          test_data.phylo_tree_file,
-         test_data.without_unaligned_sequences
+         test_data.without_unaligned_sequences,
+         *database
       );
-      database->createTable(schema::TableName::getDefault(), table_schema);
 
       std::stringstream ndjson_objects;
       for (const auto& object : test_data.ndjson_input_data) {

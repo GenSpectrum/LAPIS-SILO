@@ -14,7 +14,7 @@ For building RhyDB you require the following tools:
 
 ## Building
 
-Use `make build/Debug/silo` or `make build/Release/silo` to build RhyDB.
+Use `make build/Debug/rhydb` or `make build/Release/rhydb` to build RhyDB.
 
 To limit the number of threads during build use e.g. `export CMAKE_BUILD_PARALLEL_LEVEL=4;` before invoking the Makefile targets. We default to using 16 threads
 

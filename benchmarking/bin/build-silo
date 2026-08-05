@@ -8,10 +8,10 @@ set -x
 
 case "$BUILD" in
     Release)
-        make build/Release/silo
+        make build/Release/rhydb
         ;;
     Debug)
-        make build/Debug/silo
+        make build/Debug/rhydb
         ;;
     *)
         echo "invalid BUILD value '$BUILD'"
@@ -20,4 +20,4 @@ esac
 
 # `ln` works, too, currently (the SILO build does not overwrite the
 # original file in place), but it's dicey, so better use 'cp'
-cp build/"$BUILD"/silo{,_"$COMMIT_ID"}
+cp build/"$BUILD"/rhydb{,_"$COMMIT_ID"}

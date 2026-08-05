@@ -92,3 +92,47 @@ E:
 - Alias Flexibility: Use aliases to standardize alternative names for lineages.
 - Root Lineages: Specify root lineages with `parents: null`, `parents: []`, or by omitting the key `parents`
 - Minimal assumptions: RhyDB verifies that the lineage labels are unique and the edges contain no cycles. No further assumptions about the lineage system are made
+
+## Lineage Relation Tables
+
+A lineage definition is attached to a metadata column via `generateLineageIndex` in the database
+config. The `lineageIndexType` option of that column controls how it is made available:
+
+- `columnMetadata` (default): the lineage tree lives in the column's metadata and is used by the
+  `lineage(...)` filter, documented in [query_documentation.md](query_documentation.md).
+- `table`: preprocessing materializes the tree as a separate table, and the column carries no
+  lineage tree — `lineage(...)` is not available on it.
+- `both`: both of the above.
+
+For `table` and `both`, the materialized table is named after the column, so a column
+`pango_lineage` yields a table `pango_lineage` that is queried like any other table:
+
+```
+pango_lineage
+  .filter(parent = 'B.1')
+```
+
+### Schema
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | string | Primary key. An opaque row identifier, not a lineage name |
+| `lineage` | string | The canonical lineage name |
+| `parent` | string | One direct parent of `lineage`, or `null` if `lineage` is a root |
+| `is_recombinant_edge` | boolean | `true` if `lineage` has more than one direct parent |
+| `recombinant_clade_ancestor` | string | For a recombinant `lineage`, the most recent common ancestor of its parents. `null` for non-recombinants, and also for a recombinant whose parents share no common ancestor |
+
+### Semantics
+
+- **Direct edges only.** The table holds one row per lineage and each of its immediate parents. The
+  transitive ancestry is walked from these edges at query time rather than being materialized, so
+  the table has no rows for grandparent relationships.
+- **Recombinants yield several rows.** A lineage with *n* parents contributes *n* rows, one per
+  parent, each with `is_recombinant_edge` set to `true` and the same
+  `recombinant_clade_ancestor`.
+- **Roots get a row too.** A root has no parent edge, so it gets a single row with a `null` `parent`
+  instead — this both terminates an upward walk and keeps the root present in the table.
+- **Derived from the definition, not the data.** The rows come from the lineage definition file, so
+  every canonical lineage appears whether or not any sequence carries it.
+- **Aliases are not rows.** An alias resolves to its canonical lineage; only canonical lineage names
+  appear in `lineage` and `parent`.
