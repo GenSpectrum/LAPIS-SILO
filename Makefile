@@ -7,7 +7,7 @@ SILO_DEBUG_APP_TEST_EXECUTABLE=./build/Debug/silo_app_test
 SILO_RELEASE_EXECUTABLE=./build/Release/rhydb
 SILO_RELEASE_TEST_EXECUTABLE=./build/Release/silo_test
 SILO_RELEASE_APP_TEST_EXECUTABLE=./build/Release/silo_app_test
-SILO_WASM_EXECUTABLE=./build/wasm/silo_wasm.js
+SILO_WASM_EXECUTABLE=./build/wasm/rhydb_wasm.js
 SILO_WASM_DIST_DIR=dist/wasm
 RUNNING_SILO_FLAG=running_silo.flag
 DEPENDENCIES_FLAG=dependencies
@@ -101,13 +101,13 @@ benchmarks: ${PERFORMANCE_TEST_DATA_SENTINEL}
 # prerequisite of build/wasm/build.ninja. Non-source assets (wasm/example,
 # wasm/README.md, ...) intentionally do not force a rebuild of the binary.
 ${SILO_WASM_EXECUTABLE}: build/wasm/build.ninja $(shell find src wasm/src -type f)
-	$(CMAKE) --build build/wasm --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_wasm
+	$(CMAKE) --build build/wasm --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_wasm
 
 .PHONY: wasm
 wasm: ${SILO_WASM_EXECUTABLE}
 	mkdir -p ${SILO_WASM_DIST_DIR}
-	cp build/wasm/silo_wasm.js build/wasm/silo_wasm.wasm ${SILO_WASM_DIST_DIR}/
-	@if [ -f build/wasm/silo_wasm.worker.js ]; then cp build/wasm/silo_wasm.worker.js ${SILO_WASM_DIST_DIR}/; fi
+	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm ${SILO_WASM_DIST_DIR}/
+	@if [ -f build/wasm/rhydb_wasm.worker.js ]; then cp build/wasm/rhydb_wasm.worker.js ${SILO_WASM_DIST_DIR}/; fi
 
 .PHONY: wasm-test
 wasm-test: wasm
