@@ -150,7 +150,7 @@ std::optional<operators::GroupingDimension> matchIndexedColumnDimension(
       return std::nullopt;  // produced by the map, not a plain scan column
    }
    const auto column = source.scan.table->schema->getColumn(group_by_field.name);
-   if (!column.has_value() || column->type != schema::ColumnType::INDEXED_STRING) {
+   if (!column.has_value() || column->type != schema::ColumnType::DICTIONARY_ENCODED) {
       return std::nullopt;
    }
    return operators::IndexedColumnDimension{column.value(), group_by_field.name};

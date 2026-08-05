@@ -9,8 +9,8 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/bool_column.h"
 #include "silo/storage/column/date32_column.h"
+#include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/float_column.h"
-#include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/string_column.h"
@@ -34,7 +34,7 @@ struct ArrowBuilderSelector<storage::column::StringColumn> {
 };
 
 template <>
-struct ArrowBuilderSelector<storage::column::IndexedStringColumn> {
+struct ArrowBuilderSelector<storage::column::DictionaryEncodedColumn> {
    using builder_type = arrow::StringBuilder;
    using value_type = std::string;
 };

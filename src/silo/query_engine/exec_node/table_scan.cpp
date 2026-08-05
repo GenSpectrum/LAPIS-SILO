@@ -161,7 +161,7 @@ arrow::Status ColumnEntryAppender::operator()(
          if constexpr (std::is_same_v<Column, storage::column::StringColumn>) {
             auto value = column.getValueString(row_id);
             ARROW_RETURN_NOT_OK(array->Append(value));
-         } else if constexpr (std::is_same_v<Column, storage::column::IndexedStringColumn>) {
+         } else if constexpr (std::is_same_v<Column, storage::column::DictionaryEncodedColumn>) {
             auto value = column.getValueString(row_id);
             ARROW_RETURN_NOT_OK(array->Append(value));
          } else {

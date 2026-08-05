@@ -18,9 +18,9 @@
 namespace silo::storage {
 
 template <>
-std::map<std::string, column::IndexedStringColumn::Builder>& ColumnGroupBuilder::getColumnBuilders<
-   column::IndexedStringColumn>() {
-   return indexed_string_column_builders;
+std::map<std::string, column::DictionaryEncodedColumn::Builder>& ColumnGroupBuilder::
+   getColumnBuilders<column::DictionaryEncodedColumn>() {
+   return dictionary_encoded_column_builders;
 }
 
 template <>

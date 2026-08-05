@@ -9,9 +9,9 @@
 namespace silo::storage {
 
 template <>
-std::map<std::string, column::IndexedStringColumn>& ColumnGroup::getColumns<
-   column::IndexedStringColumn>() {
-   return indexed_string_columns;
+std::map<std::string, column::DictionaryEncodedColumn>& ColumnGroup::getColumns<
+   column::DictionaryEncodedColumn>() {
+   return dictionary_encoded_columns;
 }
 
 template <>
@@ -58,9 +58,9 @@ std::map<std::string, column::ZstdCompressedStringColumn>& ColumnGroup::getColum
 }
 
 template <>
-const std::map<std::string, column::IndexedStringColumn>& ColumnGroup::getColumns<
-   column::IndexedStringColumn>() const {
-   return indexed_string_columns;
+const std::map<std::string, column::DictionaryEncodedColumn>& ColumnGroup::getColumns<
+   column::DictionaryEncodedColumn>() const {
+   return dictionary_encoded_columns;
 }
 
 template <>

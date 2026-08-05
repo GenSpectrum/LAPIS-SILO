@@ -19,7 +19,7 @@
 #include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/column_metadata.h"
-#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
@@ -35,20 +35,20 @@ namespace {
 
 const ColumnIdentifier NUC_COLUMN{.name = "nuc", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
 const ColumnIdentifier ID_COLUMN{.name = "id", .type = ColumnType::STRING};
-const ColumnIdentifier DIVISION_COLUMN{.name = "division", .type = ColumnType::INDEXED_STRING};
+const ColumnIdentifier DIVISION_COLUMN{.name = "division", .type = ColumnType::DICTIONARY_ENCODED};
 
 /// A table whose schema carries a nucleotide sequence column "nuc", an indexed string column
 /// "division" and the "id" primary key, so the pass can resolve every kind of grouping key against
 /// it. The columns hold no data: the pass only reads the schema, it never executes the node.
 std::shared_ptr<silo::storage::Table> tableWithColumns() {
    using silo::storage::column::ColumnMetadata;
-   using silo::storage::column::IndexedStringColumnMetadata;
+   using silo::storage::column::DictionaryEncodedColumnMetadata;
    using silo::storage::column::SequenceColumnMetadata;
    using silo::storage::column::StringColumnMetadata;
 
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {ID_COLUMN, std::make_shared<StringColumnMetadata>(ID_COLUMN.name)},
-      {DIVISION_COLUMN, std::make_shared<IndexedStringColumnMetadata>(DIVISION_COLUMN.name)},
+      {DIVISION_COLUMN, std::make_shared<DictionaryEncodedColumnMetadata>(DIVISION_COLUMN.name)},
       {NUC_COLUMN,
        std::make_shared<SequenceColumnMetadata<Nucleotide>>(
           NUC_COLUMN.name, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}

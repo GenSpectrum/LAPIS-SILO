@@ -90,8 +90,8 @@ const QueryTestScenario IS_NULL_STRING_COLUMN = {
       nlohmann::json::parse(R"([{"primaryKey":"id_1"},{"primaryKey":"id_7"}])")
 };
 
-const QueryTestScenario IS_NULL_INDEXED_STRING_COLUMN = {
-   .name = "IS_NULL_INDEXED_STRING_COLUMN",
+const QueryTestScenario IS_NULL_DICTIONARY_ENCODED_COLUMN = {
+   .name = "IS_NULL_DICTIONARY_ENCODED_COLUMN",
    .query = "default.filter(indexedStringField.isNull()).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_2"},{"primaryKey":"id_7"}])")
@@ -154,7 +154,7 @@ QUERY_TEST(
    TEST_DATA,
    ::testing::Values(
       IS_NULL_STRING_COLUMN,
-      IS_NULL_INDEXED_STRING_COLUMN,
+      IS_NULL_DICTIONARY_ENCODED_COLUMN,
       IS_NULL_INT_COLUMN,
       IS_NULL_FLOAT_COLUMN,
       IS_NULL_BOOL_COLUMN,

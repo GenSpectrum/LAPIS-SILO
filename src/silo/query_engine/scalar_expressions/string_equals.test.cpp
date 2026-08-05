@@ -59,8 +59,8 @@ const QueryTestScenario STRING_EQUALS_NULL_STRING_COLUMN = {
       nlohmann::json::parse(R"([{"primaryKey":"id_1"},{"primaryKey":"id_4"}])")
 };
 
-const QueryTestScenario STRING_EQUALS_NULL_INDEXED_STRING_COLUMN = {
-   .name = "STRING_EQUALS_NULL_INDEXED_STRING_COLUMN",
+const QueryTestScenario STRING_EQUALS_NULL_DICTIONARY_ENCODED_COLUMN = {
+   .name = "STRING_EQUALS_NULL_DICTIONARY_ENCODED_COLUMN",
    .query = "default.filter(indexedStringField = null).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_2"},{"primaryKey":"id_4"}])")
@@ -99,7 +99,7 @@ QUERY_TEST(
    TEST_DATA,
    ::testing::Values(
       STRING_EQUALS_NULL_STRING_COLUMN,
-      STRING_EQUALS_NULL_INDEXED_STRING_COLUMN,
+      STRING_EQUALS_NULL_DICTIONARY_ENCODED_COLUMN,
       STRING_EQUALS_NULL_NEGATED,
       STRING_EQUALS_VALUE,
       STRING_EQUALS_INDEXED_VALUE,

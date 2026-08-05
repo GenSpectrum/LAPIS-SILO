@@ -69,18 +69,18 @@ A.11:
    ASSERT_EQ(table_schema->getColumn("age").value().type, ColumnType::INT32);
 
    ASSERT_TRUE(table_schema->getColumn("country").has_value());
-   ASSERT_EQ(table_schema->getColumn("country").value().type, ColumnType::INDEXED_STRING);
+   ASSERT_EQ(table_schema->getColumn("country").value().type, ColumnType::DICTIONARY_ENCODED);
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::IndexedStringColumn>("country")
+                  ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("country")
                   .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("date").has_value());
    ASSERT_EQ(table_schema->getColumn("date").value().type, ColumnType::DATE32);
 
    ASSERT_TRUE(table_schema->getColumn("division").has_value());
-   ASSERT_EQ(table_schema->getColumn("division").value().type, ColumnType::INDEXED_STRING);
+   ASSERT_EQ(table_schema->getColumn("division").value().type, ColumnType::DICTIONARY_ENCODED);
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::IndexedStringColumn>("division")
+                  ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("division")
                   .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("main").has_value());
@@ -99,12 +99,15 @@ A.11:
    );
 
    ASSERT_TRUE(table_schema->getColumn("pango_lineage").has_value());
-   ASSERT_EQ(table_schema->getColumn("pango_lineage").value().type, ColumnType::INDEXED_STRING);
-   ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::IndexedStringColumn>("pango_lineage")
-                  .has_value());
+   ASSERT_EQ(table_schema->getColumn("pango_lineage").value().type, ColumnType::DICTIONARY_ENCODED);
+   ASSERT_TRUE(
+      table_schema
+         ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("pango_lineage")
+         .has_value()
+   );
    auto* pango_metadata =
-      table_schema->getColumnMetadata<silo::storage::column::IndexedStringColumn>("pango_lineage")
+      table_schema
+         ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("pango_lineage")
          .value();
    ASSERT_EQ(pango_metadata->dictionary.getValue(0), "A");
    ASSERT_EQ(pango_metadata->dictionary.getValue(1), "A.1");
@@ -123,8 +126,9 @@ A.11:
    ASSERT_EQ(table_schema->getColumn("qc_value").value().type, ColumnType::FLOAT);
 
    ASSERT_TRUE(table_schema->getColumn("region").has_value());
-   ASSERT_EQ(table_schema->getColumn("region").value().type, ColumnType::INDEXED_STRING);
-   ASSERT_TRUE(table_schema->getColumnMetadata<silo::storage::column::IndexedStringColumn>("region")
+   ASSERT_EQ(table_schema->getColumn("region").value().type, ColumnType::DICTIONARY_ENCODED);
+   ASSERT_TRUE(table_schema
+                  ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("region")
                   .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("testSecondSequence").has_value());

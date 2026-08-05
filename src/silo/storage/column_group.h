@@ -12,8 +12,8 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/bool_column.h"
 #include "silo/storage/column/date32_column.h"
+#include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/float_column.h"
-#include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/string_column.h"
@@ -30,7 +30,7 @@ class ColumnGroup {
       for(auto& [name, store] : string_columns){
          archive & store;
       }
-      for(auto& [name, store] : indexed_string_columns){
+      for(auto& [name, store] : dictionary_encoded_columns){
          archive & store;
       }
       for(auto& [name, store] : bool_columns){
@@ -61,7 +61,7 @@ class ColumnGroup {
    std::vector<silo::schema::ColumnIdentifier> metadata;
 
    std::map<std::string, column::StringColumn> string_columns;
-   std::map<std::string, column::IndexedStringColumn> indexed_string_columns;
+   std::map<std::string, column::DictionaryEncodedColumn> dictionary_encoded_columns;
    std::map<std::string, column::BoolColumn> bool_columns;
    std::map<std::string, column::IntColumn> int_columns;
    std::map<std::string, column::FloatColumn> float_columns;

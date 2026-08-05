@@ -8,7 +8,7 @@
 #include <roaring/roaring.hh>
 
 #include "silo/query_engine/filter/operators/selection.h"
-#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/string_column.h"
 
 namespace silo::query_engine::filter::operators {
@@ -59,6 +59,6 @@ std::unique_ptr<Predicate> StringInSet<ColumnType>::negate() const {
 }
 
 template class StringInSet<storage::column::StringColumn>;
-template class StringInSet<storage::column::IndexedStringColumn>;
+template class StringInSet<storage::column::DictionaryEncodedColumn>;
 
 }  // namespace silo::query_engine::filter::operators

@@ -6,13 +6,13 @@
 #include <roaring/roaring.hh>
 
 #include "silo/query_engine/filter/operators/selection.h"
-#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/string_column.h"
 
 using silo::query_engine::filter::operators::Selection;
 using silo::query_engine::filter::operators::StringInSet;
-using silo::storage::column::IndexedStringColumn;
-using silo::storage::column::IndexedStringColumnMetadata;
+using silo::storage::column::DictionaryEncodedColumn;
+using silo::storage::column::DictionaryEncodedColumnMetadata;
 using silo::storage::column::RowLayout;
 using silo::storage::column::StringColumn;
 using silo::storage::column::StringColumnMetadata;
@@ -32,11 +32,11 @@ std::pair<std::shared_ptr<StringColumnMetadata>, StringColumn> makeTestStringCol
    return {metadata, std::move(test_column)};
 }
 
-std::pair<std::shared_ptr<IndexedStringColumnMetadata>, IndexedStringColumn>
-makeTestIndexedStringColumn(const std::vector<std::string>& values) {
-   auto metadata = std::make_shared<IndexedStringColumnMetadata>("test_indexed");
-   IndexedStringColumn test_column{metadata.get()};
-   IndexedStringColumn::Builder builder;
+std::pair<std::shared_ptr<DictionaryEncodedColumnMetadata>, DictionaryEncodedColumn>
+makeTestDictionaryEncodedColumn(const std::vector<std::string>& values) {
+   auto metadata = std::make_shared<DictionaryEncodedColumnMetadata>("test_indexed");
+   DictionaryEncodedColumn test_column{metadata.get()};
+   DictionaryEncodedColumn::Builder builder;
    for (const auto& value : values) {
       builder.insert(value);
    }
@@ -65,17 +65,17 @@ TEST(OperatorStringInSet, matchReturnsCorrectValuesForStringColumn) {
    ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 3, 5}));
 }
 
-TEST(OperatorStringInSet, matchReturnsCorrectValuesForIndexedStringColumn) {
+TEST(OperatorStringInSet, matchReturnsCorrectValuesForDictionaryEncodedColumn) {
    const std::vector<std::string> values{
       {"Switzerland", "Germany", "USA", "Switzerland", "France", "Germany"}
    };
-   auto [metadata, test_column] = makeTestIndexedStringColumn(values);
+   auto [metadata, test_column] = makeTestDictionaryEncodedColumn(values);
    const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<StringInSet<IndexedStringColumn>>(
+      std::make_unique<StringInSet<DictionaryEncodedColumn>>(
          &test_column,
-         StringInSet<IndexedStringColumn>::Comparator::IN,
+         StringInSet<DictionaryEncodedColumn>::Comparator::IN,
          std::unordered_set<std::string>{"Switzerland", "Germany"}
       ),
       row_layout
