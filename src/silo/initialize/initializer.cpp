@@ -21,7 +21,7 @@
 #include "silo/initialize/lineage_relation_table.h"
 #include "silo/storage/column/column_metadata.h"
 #include "silo/storage/column/column_type_visitor.h"
-#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 #include "silo/storage/reference_genomes.h"
