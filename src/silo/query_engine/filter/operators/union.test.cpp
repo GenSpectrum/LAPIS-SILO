@@ -29,7 +29,7 @@ TEST(OperatorUnion, evaluatesCorrectOnEmptyInput) {
    const auto row_layout = RowLayout::of(5);
 
    const Union under_test(std::move(input), row_layout);
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring());
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring());
 }
 
 TEST(OperatorUnion, evaluatesCorrectOnOneInput) {
@@ -38,7 +38,7 @@ TEST(OperatorUnion, evaluatesCorrectOnOneInput) {
 
    OperatorVector input = generateTestInput(test_bitmaps, row_layout);
    const Union under_test(std::move(input), row_layout);
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1, 3, 5}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({1, 3, 5}));
 }
 
 TEST(OperatorUnion, evaluateShouldReturnCorrectValues1) {
@@ -49,7 +49,7 @@ TEST(OperatorUnion, evaluateShouldReturnCorrectValues1) {
 
    OperatorVector input = generateTestInput(test_bitmaps, row_layout);
    const Union under_test(std::move(input), row_layout);
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1, 2, 3}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({1, 2, 3}));
 }
 
 TEST(OperatorUnion, evaluateShouldReturnCorrectValues2) {
@@ -60,7 +60,7 @@ TEST(OperatorUnion, evaluateShouldReturnCorrectValues2) {
 
    OperatorVector input = generateTestInput(test_bitmaps, row_layout);
    const Union under_test(std::move(input), row_layout);
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1, 3, 7}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({1, 3, 7}));
 }
 
 TEST(OperatorUnion, evaluateShouldReturnCorrectValuesMany) {
@@ -84,7 +84,7 @@ TEST(OperatorUnion, evaluateShouldReturnCorrectValuesMany) {
 
    OperatorVector input = generateTestInput(test_bitmaps, row_layout);
    const Union under_test(std::move(input), row_layout);
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({2, 3, 4}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({2, 3, 4}));
 }
 
 TEST(OperatorUnion, evaluateShouldReturnCorrectValuesEmptyInput) {
@@ -93,7 +93,7 @@ TEST(OperatorUnion, evaluateShouldReturnCorrectValuesEmptyInput) {
 
    OperatorVector input = generateTestInput(test_bitmaps, row_layout);
    const Union under_test(std::move(input), row_layout);
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring());
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring());
 }
 
 TEST(OperatorUnion, correctTypeInfo) {

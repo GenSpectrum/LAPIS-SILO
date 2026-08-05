@@ -62,7 +62,8 @@ arrow::Status addAggregatedInsertionsToInsertionCounts(
    const auto& sequence_column =
       table.columns.getColumns<storage::column::SequenceColumn<SymbolType>>().at(sequence_name);
    std::unordered_map<PositionAndInsertionKey, uint32_t> all_insertions;
-   auto bitmap_cardinality = bitmap_filter.getConstReference().cardinality();
+   const roaring::Roaring filter_bitmap = bitmap_filter.toRoaring();
+   auto bitmap_cardinality = filter_bitmap.cardinality();
    if (bitmap_cardinality == 0) {
       return arrow::Status::OK();
    }
@@ -78,8 +79,7 @@ arrow::Status addAggregatedInsertionsToInsertionCounts(
       for (const auto& [position, insertions_at_position] :
            sequence_column.insertion_index.getInsertionPositions()) {
          for (const auto& insertion : insertions_at_position.insertions) {
-            const uint32_t count =
-               insertion.row_ids.and_cardinality(bitmap_filter.getConstReference());
+            const uint32_t count = insertion.row_ids.and_cardinality(filter_bitmap);
             if (count > 0) {
                all_insertions[PositionAndInsertionKey{position, insertion.value}] += count;
             }

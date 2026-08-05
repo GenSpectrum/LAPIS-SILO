@@ -110,7 +110,7 @@ __attribute__((noinline)) void subtractStartAndEndNCounts(
 
 __attribute__((noinline)) void subtractFilteredNCounts(
    std::vector<uint32_t>& count_per_local_reference_position,
-   const CopyOnWriteBitmap& filter,
+   const roaring::Roaring& filter,
    size_t sequence_length,
    const storage::column::HorizontalCoverageIndex& coverage_index
 ) {
@@ -118,7 +118,7 @@ __attribute__((noinline)) void subtractFilteredNCounts(
    const auto& horizontal_bitmaps = coverage_index.horizontal_bitmaps;
    std::vector<size_t> cumulative_starts(sequence_length + 1);
    std::vector<size_t> cumulative_ends(sequence_length + 1);
-   for (const uint32_t idx : filter.getConstReference()) {
+   for (const uint32_t idx : filter) {
       auto iter = horizontal_bitmaps.find(idx);
       if (iter != horizontal_bitmaps.end()) {
          const roaring::Roaring& n_bitmap = iter->second;
@@ -154,11 +154,11 @@ template <typename SymbolType>
 void countActualFilteredMutations(
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position,
    std::vector<uint32_t>& count_per_local_reference_position,
-   const CopyOnWriteBitmap& filter,
+   const roaring::Roaring& filter,
    const std::map<SequenceDiffKey<SymbolType>, SequenceDiff<SymbolType>>& vertical_bitmaps
 ) {
    EVOBENCH_SCOPE("Mutations", "countActualFilteredMutations");
-   const auto& filter_roaring_array = filter.getConstReference().roaring.high_low_container;
+   const auto& filter_roaring_array = filter.roaring.high_low_container;
    std::map<size_t, roaring::internal::container_t*> filter_containers;
    std::map<size_t, uint8_t> filter_container_typecodes;
    for (int32_t idx = 0; idx < filter_roaring_array.size; ++idx) {
@@ -212,19 +212,23 @@ void addMutationCountsForMixedBitmaps(
    const size_t sequence_length = local_reference.size();
    std::vector<uint32_t> count_per_local_reference_position(sequence_length);
 
+   // Terminal consumer of the filter's bitmap: the counting below reads its containers directly,
+   // so materialize it once here.
+   const roaring::Roaring filter_bitmap = bitmap_filter.toRoaring();
+
    initializeCountsWithSequenceCount(
-      count_per_local_reference_position, bitmap_filter.getConstReference().cardinality()
+      count_per_local_reference_position, filter_bitmap.cardinality()
    );
    subtractFilteredNCounts(
       count_per_local_reference_position,
-      bitmap_filter,
+      filter_bitmap,
       sequence_length,
       sequence_column.horizontal_coverage_index
    );
    countActualFilteredMutations(
       count_of_mutations_per_position,
       count_per_local_reference_position,
-      bitmap_filter,
+      filter_bitmap,
       sequence_column.vertical_sequence_index.vertical_bitmaps
    );
    accumulateFinalCounts(
@@ -272,9 +276,10 @@ SymbolMap<SymbolType, std::vector<uint32_t>> calculateMutationsPerPosition(
    for (const auto symbol : SymbolType::SYMBOLS) {
       count_of_mutations_per_position[symbol] = std::vector<uint32_t>(sequence_length, 0);
    }
-   if (bitmap_filter.getConstReference().cardinality() == sequence_count_in_column) {
+   const uint64_t filter_cardinality = bitmap_filter.cardinality();
+   if (filter_cardinality == sequence_count_in_column) {
       addMutationCountsForFullBitmaps<SymbolType>(sequence_column, count_of_mutations_per_position);
-   } else if (bitmap_filter.getConstReference().cardinality() > 0) {
+   } else if (filter_cardinality > 0) {
       addMutationCountsForMixedBitmaps<SymbolType>(
          sequence_column, bitmap_filter, count_of_mutations_per_position
       );

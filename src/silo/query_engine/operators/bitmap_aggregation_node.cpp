@@ -18,6 +18,7 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/operators/compute_filter.h"
 #include "silo/query_engine/scalar_expressions/symbol_in_set.h"
@@ -53,20 +54,20 @@ GroupBitmaps buildSymbolBitmaps(
    const storage::column::SequenceColumn<SymbolType>& column,
    uint32_t position_idx,
    const storage::column::RowLayout& row_layout,
-   const roaring::Roaring& filter_bitmap
+   const CopyOnWriteBitmap& filter_bitmap
 ) {
    GroupBitmaps result;
    for (const auto symbol : SymbolType::SYMBOLS) {
       auto compiled = scalar_expressions::compileSymbolInSet<SymbolType>(
          column, position_idx, std::vector<typename SymbolType::Symbol>{symbol}, row_layout
       );
-      roaring::Roaring bitmap = compiled->evaluate().getConstReference();
+      CopyOnWriteBitmap bitmap = compiled->evaluate();
       // Restrict each group to the filtered set: the returned bitmaps and every downstream
       // intersection then scale with the filter rather than the whole table, and symbols that no
       // filtered sequence carries drop out (fewer partition branches).
       bitmap &= filter_bitmap;
       if (!bitmap.isEmpty()) {
-         result.emplace_back(std::string(1, SymbolType::symbolToChar(symbol)), std::move(bitmap));
+         result.emplace_back(std::string(1, SymbolType::symbolToChar(symbol)), bitmap.toRoaring());
       }
    }
    // The per-symbol filters exclude sequences that are absent at this position (`SymbolInSet` does
@@ -74,9 +75,10 @@ GroupBitmaps buildSymbolBitmaps(
    // This keeps the groups a partition of the filtered rows and mirrors how the generic
    // `at()`/groupBy path emits a null key for such rows. Appended last so the depth-first output
    // order stays deterministic with the null group after every symbol.
-   roaring::Roaring null_group = column.null_bitmap & filter_bitmap;
-   if (!null_group.isEmpty()) {
-      result.emplace_back(std::nullopt, std::move(null_group));
+
+   CopyOnWriteBitmap intersection = filter_bitmap & CopyOnWriteBitmap{&column.null_bitmap};
+   if (!intersection.isEmpty()) {
+      result.emplace_back(std::nullopt, intersection.toRoaring());
    }
    return result;
 }
@@ -87,7 +89,7 @@ GroupBitmaps buildSymbolBitmaps(
 /// bitmaps and their indices, so it is agnostic to the kind of each dimension.
 // NOLINTNEXTLINE(misc-no-recursion)
 void partition(
-   const roaring::Roaring& current,
+   const CopyOnWriteBitmap& current,
    size_t depth,
    const std::vector<GroupBitmaps>& group_bitmaps_per_dimension,
    std::vector<size_t>& accumulated_indices,
@@ -101,8 +103,7 @@ void partition(
    }
    const auto& dimension = group_bitmaps_per_dimension[depth];
    for (size_t group_index = 0; group_index < dimension.size(); ++group_index) {
-      roaring::Roaring intersection = current;
-      intersection &= dimension[group_index].second;
+      CopyOnWriteBitmap intersection = current & dimension[group_index].second;
       if (intersection.isEmpty()) {
          continue;
       }
@@ -119,7 +120,7 @@ void partition(
 /// non-empty combinations are visited (their number is bounded by the count of matching rows), so
 /// this scales to many dimensions without the exponential blow-up of a full Cartesian product.
 std::vector<GroupCombination> computeCombinations(
-   const roaring::Roaring& filter_bitmap,
+   const CopyOnWriteBitmap& filter_bitmap,
    const std::vector<GroupBitmaps>& group_bitmaps_per_dimension
 ) {
    std::vector<GroupCombination> combinations;
@@ -187,7 +188,7 @@ SequencePositionDimension::SequencePositionDimension(
 
 GroupBitmaps SequencePositionDimension::buildGroups(
    const storage::Table& table,
-   const roaring::Roaring& filter_bitmap
+   const CopyOnWriteBitmap& filter_bitmap
 ) const {
    if (is_nucleotide) {
       const auto& sequence_column = table.columns.getColumns<Nucleotide::Column>().at(column.name);
@@ -224,7 +225,7 @@ IndexedColumnDimension::IndexedColumnDimension(
 
 GroupBitmaps IndexedColumnDimension::buildGroups(
    const storage::Table& table,
-   const roaring::Roaring& filter_bitmap
+   const CopyOnWriteBitmap& filter_bitmap
 ) const {
    const auto& indexed_column =
       table.columns.getColumns<storage::column::DictionaryEncodedColumn>().at(column.name);
@@ -233,7 +234,7 @@ GroupBitmaps IndexedColumnDimension::buildGroups(
    // (its dictionary entry's bitmap does not contain it), so the null group below stays disjoint
    // from the value groups and no row is double-counted.
    for (const auto& [value_id, value_bitmap] : indexed_column.getIndexedValues()) {
-      roaring::Roaring group = value_bitmap & filter_bitmap;
+      CopyOnWriteBitmap group = filter_bitmap & CopyOnWriteBitmap{&value_bitmap};
       if (group.isEmpty()) {
          continue;
       }
@@ -244,7 +245,7 @@ GroupBitmaps IndexedColumnDimension::buildGroups(
    std::ranges::sort(result, [](const auto& lhs, const auto& rhs) {
       return lhs.first < rhs.first;
    });
-   roaring::Roaring null_group = indexed_column.null_bitmap & filter_bitmap;
+   CopyOnWriteBitmap null_group = CopyOnWriteBitmap{&indexed_column.null_bitmap} & filter_bitmap;
    if (!null_group.isEmpty()) {
       result.emplace_back(std::nullopt, std::move(null_group));
    }
@@ -252,7 +253,7 @@ GroupBitmaps IndexedColumnDimension::buildGroups(
 }
 
 schema::ColumnIdentifier IndexedColumnDimension::outputColumn() const {
-   return {output_name, schema::ColumnType::STRING};
+   return {.name = output_name, .type = schema::ColumnType::STRING};
 }
 
 nlohmann::json IndexedColumnDimension::toJson() const {
@@ -306,18 +307,17 @@ arrow::Result<arrow::acero::ExecNode*> BitmapAggregationNode::addToExecPlan(
    const config::QueryOptions& query_options
 ) const {
    auto filter_bitmap = computeFilter(filter, *table);
-   const roaring::Roaring& filter_bitmap_ref = filter_bitmap.getConstReference();
 
    std::vector<GroupBitmaps> group_bitmaps_per_dimension;
    group_bitmaps_per_dimension.reserve(dimensions.size());
    for (const auto& dimension : dimensions) {
       group_bitmaps_per_dimension.push_back(std::visit(
-         [&](const auto& dim) { return dim.buildGroups(*table, filter_bitmap_ref); }, dimension
+         [&](const auto& dim) { return dim.buildGroups(*table, filter_bitmap); }, dimension
       ));
    }
 
    std::vector<GroupCombination> combinations =
-      computeCombinations(filter_bitmap_ref, group_bitmaps_per_dimension);
+      computeCombinations(filter_bitmap, group_bitmaps_per_dimension);
 
    const size_t dimension_count = dimensions.size();
 

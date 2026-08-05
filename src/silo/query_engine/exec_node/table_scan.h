@@ -58,8 +58,7 @@ class TableScanGenerator {
        : exec_batch_builder(columns),
          bitmap_filter(std::move(bitmap_filter_)),
          table(std::move(table)) {
-      current_bitmap_reader =
-         BatchedBitmapReader{bitmap_filter.getConstReference(), batch_size_cutoff};
+      current_bitmap_reader = BatchedBitmapReader{bitmap_filter.toRoaring(), batch_size_cutoff};
    }
 
    arrow::Future<std::optional<arrow::ExecBatch>> operator()() {

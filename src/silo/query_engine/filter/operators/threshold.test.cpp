@@ -46,12 +46,12 @@ TEST(OperatorThreshold, evaluatesCorrectOnlyNegated) {
    const Threshold under_test_1_exact(
       OperatorVector(), generateTestInput(test_negated_bitmaps, row_layout), 1, true, row_layout
    );
-   ASSERT_EQ(under_test_1_exact.evaluate().getConstReference(), roaring::Roaring({2}));
+   ASSERT_EQ(under_test_1_exact.evaluate().toRoaring(), roaring::Roaring({2}));
 
    const Threshold under_test_1_or_more(
       OperatorVector(), generateTestInput(test_negated_bitmaps, row_layout), 1, false, row_layout
    );
-   ASSERT_EQ(under_test_1_or_more.evaluate().getConstReference(), roaring::Roaring({0, 2}));
+   ASSERT_EQ(under_test_1_or_more.evaluate().toRoaring(), roaring::Roaring({0, 2}));
 }
 
 TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesNoNegated) {
@@ -63,22 +63,22 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesNoNegated) {
    const Threshold under_test_1_exact(
       generateTestInput(test_bitmaps, row_layout), OperatorVector(), 1, true, row_layout
    );
-   ASSERT_EQ(under_test_1_exact.evaluate().getConstReference(), roaring::Roaring({}));
+   ASSERT_EQ(under_test_1_exact.evaluate().toRoaring(), roaring::Roaring({}));
 
    const Threshold under_test_2_exact(
       generateTestInput(test_bitmaps, row_layout), OperatorVector(), 2, true, row_layout
    );
-   ASSERT_EQ(under_test_2_exact.evaluate().getConstReference(), roaring::Roaring({2, 3}));
+   ASSERT_EQ(under_test_2_exact.evaluate().toRoaring(), roaring::Roaring({2, 3}));
 
    const Threshold under_test_1_or_more(
       generateTestInput(test_bitmaps, row_layout), OperatorVector(), 1, false, row_layout
    );
-   ASSERT_EQ(under_test_1_or_more.evaluate().getConstReference(), roaring::Roaring({1, 2, 3}));
+   ASSERT_EQ(under_test_1_or_more.evaluate().toRoaring(), roaring::Roaring({1, 2, 3}));
 
    const Threshold under_test_2_or_more(
       generateTestInput(test_bitmaps, row_layout), OperatorVector(), 2, false, row_layout
    );
-   ASSERT_EQ(under_test_2_or_more.evaluate().getConstReference(), roaring::Roaring({1, 2, 3}));
+   ASSERT_EQ(under_test_2_or_more.evaluate().toRoaring(), roaring::Roaring({1, 2, 3}));
 }
 
 TEST(OperatorThreshold, evaluateShouldReturnCorrectValues) {
@@ -97,7 +97,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValues) {
       true,
       row_layout
    );
-   ASSERT_EQ(under_test_1_exact.evaluate().getConstReference(), roaring::Roaring({}));
+   ASSERT_EQ(under_test_1_exact.evaluate().toRoaring(), roaring::Roaring({}));
 
    const Threshold under_test_2_exact(
       generateTestInput(test_bitmaps, row_layout),
@@ -106,7 +106,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValues) {
       true,
       row_layout
    );
-   ASSERT_EQ(under_test_2_exact.evaluate().getConstReference(), roaring::Roaring({0}));
+   ASSERT_EQ(under_test_2_exact.evaluate().toRoaring(), roaring::Roaring({0}));
 
    const Threshold under_test_3_exact(
       generateTestInput(test_bitmaps, row_layout),
@@ -115,7 +115,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValues) {
       true,
       row_layout
    );
-   ASSERT_EQ(under_test_3_exact.evaluate().getConstReference(), roaring::Roaring({}));
+   ASSERT_EQ(under_test_3_exact.evaluate().toRoaring(), roaring::Roaring({}));
 
    const Threshold under_test_4_exact(
       generateTestInput(test_bitmaps, row_layout),
@@ -124,7 +124,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValues) {
       true,
       row_layout
    );
-   ASSERT_EQ(under_test_4_exact.evaluate().getConstReference(), roaring::Roaring({2, 3}));
+   ASSERT_EQ(under_test_4_exact.evaluate().toRoaring(), roaring::Roaring({2, 3}));
 
    const Threshold under_test_1_or_more(
       generateTestInput(test_bitmaps, row_layout),
@@ -133,7 +133,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValues) {
       false,
       row_layout
    );
-   ASSERT_EQ(under_test_1_or_more.evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3}));
+   ASSERT_EQ(under_test_1_or_more.evaluate().toRoaring(), roaring::Roaring({0, 1, 2, 3}));
 
    const Threshold under_test_2_or_more(
       generateTestInput(test_bitmaps, row_layout),
@@ -142,7 +142,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValues) {
       false,
       row_layout
    );
-   ASSERT_EQ(under_test_2_or_more.evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3}));
+   ASSERT_EQ(under_test_2_or_more.evaluate().toRoaring(), roaring::Roaring({0, 1, 2, 3}));
 
    const Threshold under_test_3_or_more(
       generateTestInput(test_bitmaps, row_layout),
@@ -151,7 +151,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValues) {
       false,
       row_layout
    );
-   ASSERT_EQ(under_test_3_or_more.evaluate().getConstReference(), roaring::Roaring({1, 2, 3}));
+   ASSERT_EQ(under_test_3_or_more.evaluate().toRoaring(), roaring::Roaring({1, 2, 3}));
 
    const Threshold under_test_4_or_more(
       generateTestInput(test_bitmaps, row_layout),
@@ -160,7 +160,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValues) {
       false,
       row_layout
    );
-   ASSERT_EQ(under_test_4_or_more.evaluate().getConstReference(), roaring::Roaring({1, 2, 3}));
+   ASSERT_EQ(under_test_4_or_more.evaluate().toRoaring(), roaring::Roaring({1, 2, 3}));
 }
 
 TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesManyNegated) {
@@ -180,7 +180,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesManyNegated) {
       true,
       row_layout
    );
-   ASSERT_EQ(under_test_1_exact.evaluate().getConstReference(), roaring::Roaring({}));
+   ASSERT_EQ(under_test_1_exact.evaluate().toRoaring(), roaring::Roaring({}));
 
    const Threshold under_test_2_exact(
       generateTestInput(test_bitmaps, row_layout),
@@ -189,7 +189,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesManyNegated) {
       true,
       row_layout
    );
-   ASSERT_EQ(under_test_2_exact.evaluate().getConstReference(), roaring::Roaring({4}));
+   ASSERT_EQ(under_test_2_exact.evaluate().toRoaring(), roaring::Roaring({4}));
 
    const Threshold under_test_3_exact(
       generateTestInput(test_bitmaps, row_layout),
@@ -198,7 +198,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesManyNegated) {
       true,
       row_layout
    );
-   ASSERT_EQ(under_test_3_exact.evaluate().getConstReference(), roaring::Roaring({}));
+   ASSERT_EQ(under_test_3_exact.evaluate().toRoaring(), roaring::Roaring({}));
 
    const Threshold under_test_4_exact(
       generateTestInput(test_bitmaps, row_layout),
@@ -207,7 +207,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesManyNegated) {
       true,
       row_layout
    );
-   ASSERT_EQ(under_test_4_exact.evaluate().getConstReference(), roaring::Roaring({0, 2, 3}));
+   ASSERT_EQ(under_test_4_exact.evaluate().toRoaring(), roaring::Roaring({0, 2, 3}));
 
    const Threshold under_test_1_or_more(
       generateTestInput(test_bitmaps, row_layout),
@@ -216,9 +216,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesManyNegated) {
       false,
       row_layout
    );
-   ASSERT_EQ(
-      under_test_1_or_more.evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3, 4})
-   );
+   ASSERT_EQ(under_test_1_or_more.evaluate().toRoaring(), roaring::Roaring({0, 1, 2, 3, 4}));
 
    const Threshold under_test_2_or_more(
       generateTestInput(test_bitmaps, row_layout),
@@ -227,9 +225,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesManyNegated) {
       false,
       row_layout
    );
-   ASSERT_EQ(
-      under_test_2_or_more.evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3, 4})
-   );
+   ASSERT_EQ(under_test_2_or_more.evaluate().toRoaring(), roaring::Roaring({0, 1, 2, 3, 4}));
 
    const Threshold under_test_3_or_more(
       generateTestInput(test_bitmaps, row_layout),
@@ -238,7 +234,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesManyNegated) {
       false,
       row_layout
    );
-   ASSERT_EQ(under_test_3_or_more.evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3}));
+   ASSERT_EQ(under_test_3_or_more.evaluate().toRoaring(), roaring::Roaring({0, 1, 2, 3}));
 
    const Threshold under_test_4_or_more(
       generateTestInput(test_bitmaps, row_layout),
@@ -247,7 +243,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesManyNegated) {
       false,
       row_layout
    );
-   ASSERT_EQ(under_test_4_or_more.evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3}));
+   ASSERT_EQ(under_test_4_or_more.evaluate().toRoaring(), roaring::Roaring({0, 1, 2, 3}));
 }
 
 TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesEmptyInput) {
@@ -266,7 +262,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesEmptyInput) {
       true,
       row_layout
    );
-   ASSERT_EQ(under_test_1_exact.evaluate().getConstReference(), roaring::Roaring({4}));
+   ASSERT_EQ(under_test_1_exact.evaluate().toRoaring(), roaring::Roaring({4}));
 
    const Threshold under_test_2_exact(
       generateTestInput(test_bitmaps, row_layout),
@@ -275,7 +271,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesEmptyInput) {
       true,
       row_layout
    );
-   ASSERT_EQ(under_test_2_exact.evaluate().getConstReference(), roaring::Roaring({2, 3}));
+   ASSERT_EQ(under_test_2_exact.evaluate().toRoaring(), roaring::Roaring({2, 3}));
 
    const Threshold under_test_3_exact(
       generateTestInput(test_bitmaps, row_layout),
@@ -284,7 +280,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesEmptyInput) {
       true,
       row_layout
    );
-   ASSERT_EQ(under_test_3_exact.evaluate().getConstReference(), roaring::Roaring({0, 1}));
+   ASSERT_EQ(under_test_3_exact.evaluate().toRoaring(), roaring::Roaring({0, 1}));
 
    const Threshold under_test_1_or_more(
       generateTestInput(test_bitmaps, row_layout),
@@ -293,9 +289,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesEmptyInput) {
       false,
       row_layout
    );
-   ASSERT_EQ(
-      under_test_1_or_more.evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3, 4})
-   );
+   ASSERT_EQ(under_test_1_or_more.evaluate().toRoaring(), roaring::Roaring({0, 1, 2, 3, 4}));
 
    const Threshold under_test_2_or_more(
       generateTestInput(test_bitmaps, row_layout),
@@ -304,7 +298,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesEmptyInput) {
       false,
       row_layout
    );
-   ASSERT_EQ(under_test_2_or_more.evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3}));
+   ASSERT_EQ(under_test_2_or_more.evaluate().toRoaring(), roaring::Roaring({0, 1, 2, 3}));
 
    const Threshold under_test_3_or_more(
       generateTestInput(test_bitmaps, row_layout),
@@ -313,7 +307,7 @@ TEST(OperatorThreshold, evaluateShouldReturnCorrectValuesEmptyInput) {
       false,
       row_layout
    );
-   ASSERT_EQ(under_test_3_or_more.evaluate().getConstReference(), roaring::Roaring({0, 1}));
+   ASSERT_EQ(under_test_3_or_more.evaluate().toRoaring(), roaring::Roaring({0, 1}));
 }
 
 TEST(OperatorThreshold, correctTypeInfo) {

@@ -45,9 +45,9 @@ TEST(OperatorSelection, equalsShouldReturnCorrectValues) {
       row_layout
    );
 
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({0, 2, 3, 4}));
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring({0, 2, 3, 4}));
 }
 
 TEST(OperatorSelection, notEqualsShouldReturnCorrectValues) {
@@ -60,9 +60,9 @@ TEST(OperatorSelection, notEqualsShouldReturnCorrectValues) {
       row_layout
    );
 
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 2, 3, 4}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({0, 2, 3, 4}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
 }
 
 TEST(OperatorSelection, lessShouldReturnCorrectValues) {
@@ -75,11 +75,9 @@ TEST(OperatorSelection, lessShouldReturnCorrectValues) {
       row_layout
    );
 
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({0}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(
-      negated->evaluate().getConstReference(), roaring::Roaring({1, 2, 3, 4, 5, 6, 7, 8, 9})
-   );
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring({1, 2, 3, 4, 5, 6, 7, 8, 9}));
 }
 
 TEST(OperatorSelection, lessOrEqualsShouldReturnCorrectValues) {
@@ -94,9 +92,9 @@ TEST(OperatorSelection, lessOrEqualsShouldReturnCorrectValues) {
       row_layout
    );
 
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 1, 5, 6, 7, 8, 9}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({0, 1, 5, 6, 7, 8, 9}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({2, 3, 4}));
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring({2, 3, 4}));
 }
 
 TEST(OperatorSelection, higherOrEqualsShouldReturnCorrectValues) {
@@ -111,11 +109,9 @@ TEST(OperatorSelection, higherOrEqualsShouldReturnCorrectValues) {
       row_layout
    );
 
-   ASSERT_EQ(
-      under_test->evaluate().getConstReference(), roaring::Roaring({1, 2, 3, 4, 5, 6, 7, 8, 9})
-   );
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({1, 2, 3, 4, 5, 6, 7, 8, 9}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({0}));
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring({0}));
 }
 
 TEST(OperatorSelection, higherShouldReturnCorrectValues) {
@@ -128,9 +124,9 @@ TEST(OperatorSelection, higherShouldReturnCorrectValues) {
       row_layout
    );
 
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({2, 3, 4}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({2, 3, 4}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({0, 1, 5, 6, 7, 8, 9}));
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring({0, 1, 5, 6, 7, 8, 9}));
 }
 
 TEST(OperatorSelection, correctWithNegativeNumbers) {
@@ -143,7 +139,7 @@ TEST(OperatorSelection, correctWithNegativeNumbers) {
       row_layout
    );
 
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({1, 5, 6, 7, 8, 9}));
 }
 
 TEST(OperatorSelection, returnsCorrectTypeInfo) {
@@ -197,7 +193,7 @@ TEST(OperatorSelection, multiplePredicatesWithoutChildReturnCorrectValues) {
 
    const Selection under_test(makeRangePredicates(test_column), row_layout);
 
-   ASSERT_EQ(under_test.evaluate().getConstReference(), rangeBitmap(10, 50));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), rangeBitmap(10, 50));
 }
 
 TEST(OperatorSelection, multiplePredicatesWithLargeChildReturnCorrectValues) {
@@ -214,7 +210,7 @@ TEST(OperatorSelection, multiplePredicatesWithLargeChildReturnCorrectValues) {
    const Selection under_test(std::move(child), makeRangePredicates(test_column), row_layout);
 
    // child [5, 80) intersected with [10, 50) == [10, 50).
-   ASSERT_EQ(under_test.evaluate().getConstReference(), rangeBitmap(10, 50));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), rangeBitmap(10, 50));
 }
 
 TEST(OperatorSelection, multiplePredicatesWithSmallChildReturnCorrectValues) {
@@ -230,5 +226,5 @@ TEST(OperatorSelection, multiplePredicatesWithSmallChildReturnCorrectValues) {
 
    const Selection under_test(std::move(child), makeRangePredicates(test_column), row_layout);
 
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({15, 45}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({15, 45}));
 }

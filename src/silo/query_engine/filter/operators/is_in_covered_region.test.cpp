@@ -51,9 +51,9 @@ TEST(IsInCoveredRegion, containsCheckShouldReturnCorrectValues) {
       std::make_unique<IsInCoveredRegion>(&coverage_index, 2, Comparator::IS_COVERED),
       RowLayout::of(coverage_index.start_end.at(0).size())
    );
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({1, 3, 4, 5, 6}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({1, 3, 4, 5, 6}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({0, 2, 7}));
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring({0, 2, 7}));
 }
 
 TEST(IsInCoveredRegion, notContainsCheckShouldReturnCorrectValues) {
@@ -95,7 +95,7 @@ TEST(IsInCoveredRegion, notContainsCheckShouldReturnCorrectValues) {
       std::make_unique<IsInCoveredRegion>(&coverage_index, 2, Comparator::IS_NOT_COVERED),
       RowLayout::of(coverage_index.start_end.at(0).size())
    );
-   ASSERT_EQ(under_test->evaluate().getConstReference(), roaring::Roaring({0, 2, 7}));
+   ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({0, 2, 7}));
    auto negated = Selection::negate(std::move(under_test));
-   ASSERT_EQ(negated->evaluate().getConstReference(), roaring::Roaring({1, 3, 4, 5, 6}));
+   ASSERT_EQ(negated->evaluate().toRoaring(), roaring::Roaring({1, 3, 4, 5, 6}));
 }
