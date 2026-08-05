@@ -10,15 +10,16 @@ using silo::test::QueryTestScenario;
 nlohmann::json createData(
    const std::string& primary_key,
    const std::optional<std::string>& string_field,
-   const std::optional<std::string>& indexed_string_field
+   const std::optional<std::string>& dictionary_encoded_string_field
 ) {
    nlohmann::json result;
    result["primaryKey"] = primary_key;
    result["stringField"] =
       string_field.has_value() ? nlohmann::json(string_field.value()) : nlohmann::json(nullptr);
-   result["indexedStringField"] = indexed_string_field.has_value()
-                                     ? nlohmann::json(indexed_string_field.value())
-                                     : nlohmann::json(nullptr);
+   result["dictionaryEncodedStringField"] =
+      dictionary_encoded_string_field.has_value()
+         ? nlohmann::json(dictionary_encoded_string_field.value())
+         : nlohmann::json(nullptr);
    return result;
 }
 
@@ -31,7 +32,7 @@ schema:
      type: "string"
    - name: "stringField"
      type: "string"
-   - name: "indexedStringField"
+   - name: "dictionaryEncodedStringField"
      type: "string"
      generateIndex: true
   primaryKey: "primaryKey"
@@ -61,7 +62,7 @@ const QueryTestScenario STRING_EQUALS_NULL_STRING_COLUMN = {
 
 const QueryTestScenario STRING_EQUALS_NULL_DICTIONARY_ENCODED_COLUMN = {
    .name = "STRING_EQUALS_NULL_DICTIONARY_ENCODED_COLUMN",
-   .query = "default.filter(indexedStringField = null).project(primaryKey)",
+   .query = "default.filter(dictionaryEncodedStringField = null).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_2"},{"primaryKey":"id_4"}])")
 };
@@ -82,7 +83,7 @@ const QueryTestScenario STRING_EQUALS_VALUE = {
 
 const QueryTestScenario STRING_EQUALS_INDEXED_VALUE = {
    .name = "STRING_EQUALS_INDEXED_VALUE",
-   .query = "default.filter(indexedStringField = 'indexed1').project(primaryKey)",
+   .query = "default.filter(dictionaryEncodedStringField = 'indexed1').project(primaryKey)",
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_0"}])")
 };
 

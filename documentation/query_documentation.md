@@ -445,10 +445,10 @@ default.mutations(minProportion:=0.1).schema()
 
 **Output:** one row per field of the described result, with two columns:
 
-| Field       | Type   | Description                                  |
-|-------------|--------|----------------------------------------------|
-| `fieldName` | string | Name of the field                            |
-| `type`      | string | Type of the field (e.g. `STRING`, `INT32`, `INT64`, `DATE32`, `BOOL`, `FLOAT`, `INDEXED_STRING`) |
+| Field       | Type   | Description                                                                                          |
+|-------------|--------|------------------------------------------------------------------------------------------------------|
+| `fieldName` | string | Name of the field                                                                                    |
+| `type`      | string | Type of the field (e.g. `STRING`, `INT32`, `INT64`, `DATE32`, `BOOL`, `FLOAT`, `DICTIONARY_ENCODED`) |
 
 ```json
 {"fieldName": "age", "type": "INT32"}
