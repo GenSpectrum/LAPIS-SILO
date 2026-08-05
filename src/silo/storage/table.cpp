@@ -178,7 +178,7 @@ void Table::validateColumnsHaveSize(
 void Table::validateMetadataColumns() const {
    validateColumnsHaveSize(columns.date32_columns, "date32_columns");
    validateColumnsHaveSize(columns.bool_columns, "bool_columns");
-   validateColumnsHaveSize(columns.int32_columns, "int_columns");
+   validateColumnsHaveSize(columns.int32_columns, "int32_columns");
    validateColumnsHaveSize(columns.int64_columns, "int64_columns");
    validateColumnsHaveSize(columns.indexed_string_columns, "indexed_string_columns");
    validateColumnsHaveSize(columns.string_columns, "string_columns");
