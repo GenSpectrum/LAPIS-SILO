@@ -96,7 +96,7 @@ CopyOnWriteBitmap Intersection::evaluate() const {
    }
    CopyOnWriteBitmap result = std::move(children_bm[0]);
    result &= children_bm[1];
-   for (uint32_t i = 2; i < children.size(); i++) {
+   for (uint32_t i = 2; i < children_bm.size(); i++) {
       result &= children_bm[i];
    }
    for (auto& neg_bm : negated_children_bm) {

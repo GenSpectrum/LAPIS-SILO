@@ -18,6 +18,7 @@
 
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
+#include "silo/query_engine/copy_on_write_bitmap.h"
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/query_engine/operators/compute_filter.h"
 #include "silo/query_engine/scalar_expressions/symbol_in_set.h"
@@ -102,7 +103,7 @@ void partition(
    }
    const auto& dimension = group_bitmaps_per_dimension[depth];
    for (size_t group_index = 0; group_index < dimension.size(); ++group_index) {
-      CopyOnWriteBitmap intersection = current & CopyOnWriteBitmap{&dimension[group_index].second};
+      CopyOnWriteBitmap intersection = current & dimension[group_index].second;
       if (intersection.isEmpty()) {
          continue;
       }
@@ -233,8 +234,7 @@ GroupBitmaps IndexedColumnDimension::buildGroups(
    // (its dictionary entry's bitmap does not contain it), so the null group below stays disjoint
    // from the value groups and no row is double-counted.
    for (const auto& [value_id, value_bitmap] : indexed_column.getIndexedValues()) {
-      roaring::Roaring group = filter_bitmap.toRoaring();
-      group &= value_bitmap;
+      CopyOnWriteBitmap group = filter_bitmap & CopyOnWriteBitmap{&value_bitmap};
       if (group.isEmpty()) {
          continue;
       }
@@ -245,7 +245,7 @@ GroupBitmaps IndexedColumnDimension::buildGroups(
    std::ranges::sort(result, [](const auto& lhs, const auto& rhs) {
       return lhs.first < rhs.first;
    });
-   roaring::Roaring null_group = indexed_column.null_bitmap & filter_bitmap.toRoaring();
+   CopyOnWriteBitmap null_group = CopyOnWriteBitmap{&indexed_column.null_bitmap} & filter_bitmap;
    if (!null_group.isEmpty()) {
       result.emplace_back(std::nullopt, std::move(null_group));
    }
@@ -253,7 +253,7 @@ GroupBitmaps IndexedColumnDimension::buildGroups(
 }
 
 schema::ColumnIdentifier IndexedColumnDimension::outputColumn() const {
-   return {output_name, schema::ColumnType::STRING};
+   return {.name = output_name, .type = schema::ColumnType::STRING};
 }
 
 nlohmann::json IndexedColumnDimension::toJson() const {
