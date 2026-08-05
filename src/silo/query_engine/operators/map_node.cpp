@@ -39,6 +39,7 @@ namespace {
 
 /// Translates a scalar expression into an Arrow compute expression for use in a
 /// projection.
+// NOLINTNEXTLINE(misc-no-recursion)
 arrow::Result<arrow::compute::Expression> scalarToArrowExpression(const ScalarExpression& expression
 ) {
    if (const auto* literal = dynCast<IntLiteral>(&expression)) {
@@ -83,6 +84,7 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(const ScalarEx
 /// Sums the dictionary sizes of every `ZstdDecompressScalar` anywhere in `expression`'s tree. A
 /// decompress may be nested inside another scalar expression (e.g. `At(ZstdDecompress(...))` after
 /// a map merge), so the whole tree is traversed rather than just the top node.
+// NOLINTNEXTLINE(misc-no-recursion)
 size_t sumDecompressDictionarySizes(const ScalarExpression& expression) {
    if (const auto* zstd = dynCast<ZstdDecompressScalar>(&expression)) {
       return zstd->dictionary_string.size() + sumDecompressDictionarySizes(*zstd->input);
