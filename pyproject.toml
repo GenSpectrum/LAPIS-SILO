@@ -7,9 +7,9 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "silodb"
+name = "rhydb"
 dynamic = ["version"]
-description = "Python bindings for SILO - high-performance sequence database"
+description = "Python bindings for RhyDB - high-performance sequence database"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "AGPL 3.0"}
