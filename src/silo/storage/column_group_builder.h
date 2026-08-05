@@ -36,7 +36,7 @@ class ColumnGroupBuilder {
    std::map<std::string, column::StringColumn::Builder> string_column_builders;
    std::map<std::string, column::IndexedStringColumn::Builder> indexed_string_column_builders;
    std::map<std::string, column::BoolColumn::Builder> bool_column_builders;
-   std::map<std::string, column::Int32Column::Builder> int_column_builders;
+   std::map<std::string, column::Int32Column::Builder> int32_column_builders;
    std::map<std::string, column::Int64Column::Builder> int64_column_builders;
    std::map<std::string, column::FloatColumn::Builder> float_column_builders;
    std::map<std::string, column::Date32Column::Builder> date32_column_builders;

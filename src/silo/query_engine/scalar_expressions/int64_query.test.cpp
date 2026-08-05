@@ -103,6 +103,20 @@ const QueryTestScenario INT64_EQUALS_NULL_SCENARIO = {
    .expected_query_result = nlohmann::json({row("id_4", nullptr)})
 };
 
+const QueryTestScenario INT64_NEGATED_EQUALS_SCENARIO = {
+   .name = "INT64_NEGATED_EQUALS_SCENARIO",
+   .query = "default.filter(!(int64_value = 5000000000))",
+   .expected_query_result = nlohmann::json(
+      {row("id_2", VALUE_BELOW_FILTER), row("id_3", VALUE_ABOVE_FILTER), row("id_4", nullptr)}
+   )
+};
+
+const QueryTestScenario INT64_EQUALS_INT32_RANGE_VALUE_SCENARIO = {
+   .name = "INT64_EQUALS_INT32_RANGE_VALUE_SCENARIO",
+   .query = "default.filter(int64_value = 100)",
+   .expected_query_result = nlohmann::json::array()
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -112,6 +126,8 @@ QUERY_TEST(
       INT64_EQUALS_VALUE_SCENARIO,
       INT64_GREATER_EQUAL_SCENARIO,
       INT64_BETWEEN_SCENARIO,
-      INT64_EQUALS_NULL_SCENARIO
+      INT64_EQUALS_NULL_SCENARIO,
+      INT64_NEGATED_EQUALS_SCENARIO,
+      INT64_EQUALS_INT32_RANGE_VALUE_SCENARIO
    )
 );

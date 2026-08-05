@@ -32,7 +32,7 @@ std::map<std::string, column::StringColumn::Builder>& ColumnGroupBuilder::getCol
 template <>
 std::map<std::string, column::Int32Column::Builder>& ColumnGroupBuilder::getColumnBuilders<
    column::Int32Column>() {
-   return int_column_builders;
+   return int32_column_builders;
 }
 
 template <>

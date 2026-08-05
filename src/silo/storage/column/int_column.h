@@ -136,9 +136,6 @@ class NumericColumnBuilder {
 };
 
 using Int32Column = NumericColumn<int32_t>;
-using Int32ColumnBuilder = NumericColumnBuilder<int32_t>;
-
 using Int64Column = NumericColumn<int64_t>;
-using Int64ColumnBuilder = NumericColumnBuilder<int64_t>;
 
 }  // namespace silo::storage::column
