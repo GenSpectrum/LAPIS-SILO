@@ -26,6 +26,9 @@
 
 namespace silo::storage {
 
+using schema::ColumnIdentifier;
+using schema::TableSchema;
+
 namespace {
 class BulkInsertVisitor {
   public:
@@ -47,8 +50,8 @@ Table::Table(schema::TableName table_name, std::shared_ptr<schema::TableSchema> 
       schema(std::move(schema)) {
    auto column_initializer = []<column::Column ColumnType>(
                                 ColumnGroup& column_group,
-                                const silo::schema::ColumnIdentifier& column_identifier,
-                                silo::schema::TableSchema& table_schema
+                                const ColumnIdentifier& column_identifier,
+                                TableSchema& table_schema
                              ) {
       ColumnType column(table_schema.getColumnMetadata<ColumnType>(column_identifier.name).value());
       column_group.metadata.emplace_back(column_identifier);
