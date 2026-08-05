@@ -3,18 +3,15 @@
 #include <fstream>
 #include <random>
 #include <sstream>
-#include <stdexcept>
 
 #include <arrow/compute/initialize.h>
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
-#include "silo/append/database_inserter.h"
-#include "silo/append/ndjson_line_reader.h"
+#include "silo/append/table_inserter.h"
 #include "silo/initialize/initializer.h"
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/planner.h"
-#include "silo/storage/reference_genomes.h"
 
 using silo::Database;
 using silo::query_engine::Planner;

@@ -94,6 +94,10 @@ class BoolColumnBuilder {
 
    void insertNull() { buffer.emplace_back(std::nullopt); }
 
+   void moveRowTo(size_t index, BoolColumnBuilder& destination) {
+      destination.buffer.push_back(buffer.at(index));
+   }
+
    [[nodiscard]] size_t numValues() const { return buffer.size(); }
 
    [[nodiscard]] BoolColumn::Buffer finalize() {

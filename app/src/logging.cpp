@@ -8,8 +8,6 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#include <silo/common/log.h>
-
 static const int MAX_FILES_7 = 7;
 static const int AT_MIDNIGHT = 0;
 static const int AT_0_MINUTES = 0;
@@ -27,13 +25,4 @@ void setupLogger() {
    logger->sinks().push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
 
    spdlog::set_default_logger(logger);
-
-   spdlog::daily_logger_mt(
-      silo::PERFORMANCE_LOGGER_NAME,
-      "logs/performance.log",
-      AT_MIDNIGHT,
-      AT_0_MINUTES,
-      DONT_TRUNCATE,
-      MAX_FILES_7
-   );
 }

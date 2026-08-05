@@ -40,6 +40,16 @@ void run() {
       writeShortReadNdjson(out, reference, DEFAULT_READ_COUNT);
    });
 
+   // Amplicon-coverage short reads for many_short_read_filters, emitted both amplicon-sorted and
+   // randomly shuffled. The two files hold the same reads, so ingesting either builds the same
+   // database; only their on-disk order (and hence the coverage layout ingestion sees) differs.
+   writeDataset(SHORT_READ_AMPLICON_SORTED_NDJSON_PATH, [&](std::ostream& out) {
+      writeAmpliconShortReadNdjson(out, reference, /*shuffle=*/false);
+   });
+   writeDataset(SHORT_READ_AMPLICON_SHUFFLED_NDJSON_PATH, [&](std::ostream& out) {
+      writeAmpliconShortReadNdjson(out, reference, /*shuffle=*/true);
+   });
+
    // Full-length sequences for nof_sequence_filter.
    writeDataset(FULL_SEQUENCE_NDJSON_PATH, [&](std::ostream& out) {
       writeFullSequenceNdjson(out, reference);

@@ -122,6 +122,10 @@ class NumericColumnBuilder {
 
    void insertNull() { buffer.emplace_back(std::nullopt); }
 
+   void moveRowTo(size_t index, NumericColumnBuilder& destination) {
+      destination.buffer.push_back(buffer.at(index));
+   }
+
    [[nodiscard]] size_t numValues() const { return buffer.size(); }
 
    [[nodiscard]] NumericColumn<T>::Buffer finalize() {

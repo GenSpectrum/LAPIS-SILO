@@ -66,6 +66,13 @@ constexpr std::string_view SHORT_READ_SMALL_NDJSON_PATH =
    "localTestData/performance/short_reads_100k.ndjson";
 constexpr std::string_view SHORT_READ_LARGE_NDJSON_PATH =
    "localTestData/performance/short_reads_5m.ndjson";
+// Amplicon-coverage short reads for many_short_read_filters: the same set of reads in emission
+// (amplicon-sorted) order and in a random order. Comparing ingestion of the two, with and without
+// clustered buffering, is what that benchmark measures.
+constexpr std::string_view SHORT_READ_AMPLICON_SORTED_NDJSON_PATH =
+   "localTestData/performance/short_reads_amplicon_sorted_5m.ndjson";
+constexpr std::string_view SHORT_READ_AMPLICON_SHUFFLED_NDJSON_PATH =
+   "localTestData/performance/short_reads_amplicon_shuffled_5m.ndjson";
 constexpr std::string_view FULL_SEQUENCE_NDJSON_PATH =
    "localTestData/performance/full_sequences_100k.ndjson";
 constexpr std::string_view MUTATION_READS_NDJSON_PATH =
@@ -181,6 +188,11 @@ class SequenceTreeGenerator {
 
 constexpr size_t DEFAULT_READ_COUNT = 5'000'000;
 constexpr size_t DEFAULT_READ_LENGTH = 200;
+// Real amplicon / targeted-panel sequencing produces reads from a fixed set of primer-defined
+// windows, not uniformly across the genome. Modeling that yields concrete coverage classes: every
+// read of a given amplicon shares the same covered range. This is the coverage structure clustered
+// ingestion is designed for, so the amplicon datasets are generated with this many coverage classes.
+constexpr size_t DEFAULT_NUM_AMPLICONS = 100;
 
 struct ShortRead {
    size_t id;
@@ -195,6 +207,9 @@ class ShortReadGenerator {
    size_t count;
    size_t read_length;
    size_t num_positions;
+   // Engaged => amplicon mode: reads are drawn only from these fixed window start offsets instead of
+   // tiling every position uniformly. Empty => uniform whole-genome tiling.
+   std::vector<size_t> amplicon_starts;
 
   public:
    class iterator {
@@ -224,10 +239,14 @@ class ShortReadGenerator {
       bool operator!=(const iterator& other) const { return current_id != other.current_id; }
    };
 
+   // num_amplicons == 0 selects uniform whole-genome tiling (every position is covered). A positive
+   // value draws reads from that many evenly-spaced fixed amplicon windows instead, modelling
+   // targeted/amplicon sequencing.
    ShortReadGenerator(
       const std::string& reference,
       size_t count,
       size_t read_length,
+      size_t num_amplicons = 0,
       uint64_t seed = 42
    )
        : count(count),
@@ -239,14 +258,40 @@ class ShortReadGenerator {
       }
       SequenceTreeGenerator tree_gen(reference, seed);
       evolved_sequences = tree_gen.generateEvolvedSequences();
-      SPDLOG_INFO("Generated {} evolved sequences from tree model", evolved_sequences.size());
       num_positions = reference.size() - read_length + 1;
+      if (num_amplicons == 0) {
+         SPDLOG_INFO("Generated {} evolved sequences from tree model", evolved_sequences.size());
+      } else {
+         // Evenly tile num_amplicons fixed windows across [0, reference - read_length]. These are
+         // the concrete coverage classes: reads are drawn only from these window starts.
+         const size_t max_start = reference.size() - read_length;
+         amplicon_starts.reserve(num_amplicons);
+         for (size_t i = 0; i < num_amplicons; ++i) {
+            amplicon_starts.push_back(num_amplicons == 1 ? 0 : (i * max_start) / (num_amplicons - 1)
+            );
+         }
+         SPDLOG_INFO(
+            "Generated {} evolved sequences from tree model; tiling {} amplicons of length {}",
+            evolved_sequences.size(),
+            num_amplicons,
+            read_length
+         );
+      }
       rng.seed(seed + 1000);
       seq_dist = std::uniform_int_distribution<size_t>(0, evolved_sequences.size() - 1);
    }
 
    ShortRead generateAt(size_t read_id) {
-      const size_t offset = (read_id * num_positions) / count;
+      size_t offset;
+      if (amplicon_starts.empty()) {
+         offset = (read_id * num_positions) / count;
+      } else {
+         // Assign reads to amplicons monotonically in read_id, so the default emission order is
+         // amplicon- (hence offset-) sorted. All reads of an amplicon share its covered window.
+         const size_t amplicon =
+            std::min((read_id * amplicon_starts.size()) / count, amplicon_starts.size() - 1);
+         offset = amplicon_starts[amplicon];
+      }
       const auto& source_seq = evolved_sequences[seq_dist(rng)];
       return {read_id, offset, source_seq.substr(offset, read_length)};
    }
@@ -276,6 +321,46 @@ void writeShortReadNdjson(
                 read.sequence
              )
           << "\n";
+   }
+}
+
+// Writes amplicon-coverage short reads (see DEFAULT_NUM_AMPLICONS). With shuffle=false the reads are
+// emitted in amplicon-sorted order, so ingestion sees coverage windows contiguously; with
+// shuffle=true the exact same reads are emitted in a random order, scattering every amplicon across
+// all ingestion chunks. The two orderings share the same seed, so the shuffled file is a true
+// permutation of the sorted one and the databases they build are identical.
+void writeAmpliconShortReadNdjson(
+   std::ostream& out,
+   const std::string& reference,
+   bool shuffle,
+   size_t count = DEFAULT_READ_COUNT,
+   size_t read_length = DEFAULT_READ_LENGTH,
+   size_t num_amplicons = DEFAULT_NUM_AMPLICONS
+) {
+   ShortReadGenerator generator(reference, count, read_length, num_amplicons);
+   const auto formatRead = [](const ShortRead& read) {
+      return fmt::format(
+         R"({{"readId":"read_{}","samplingDate":"2024-01-01","locationName":"generated","main":{{"insertions":[],"offset":{},"sequence":"{}"}}}})",
+         read.id,
+         read.offset,
+         read.sequence
+      );
+   };
+   if (!shuffle) {
+      for (const auto& read : generator) {
+         out << formatRead(read) << "\n";
+      }
+      return;
+   }
+   std::vector<std::string> lines;
+   lines.reserve(count);
+   for (const auto& read : generator) {
+      lines.push_back(formatRead(read));
+   }
+   std::mt19937 shuffle_rng(12345);
+   std::ranges::shuffle(lines, shuffle_rng);
+   for (const auto& line : lines) {
+      out << line << "\n";
    }
 }
 

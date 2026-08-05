@@ -31,16 +31,7 @@ void VerticalSequenceIndex<SymbolType>::addSymbolsToPositions(
             getContainerOrCreateWithCapacity(key, lower_bits_vector.size());
 
          for (auto id_lower_bits : lower_bits_vector) {
-            uint8_t new_container_type;
-            auto new_container = roaring::internal::container_add(
-               sequence_diff.container, id_lower_bits, sequence_diff.typecode, &new_container_type
-            );
-            if (new_container != sequence_diff.container) {
-               roaring::internal::container_free(sequence_diff.container, sequence_diff.typecode);
-               sequence_diff.container = new_container;
-               sequence_diff.typecode = new_container_type;
-            }
-            sequence_diff.cardinality += 1;
+            sequence_diff.add(id_lower_bits);
          }
       }
    }
@@ -78,8 +69,8 @@ SymbolMap<SymbolType, uint32_t> VerticalSequenceIndex<SymbolType>::computeSymbol
    for (auto it = start; it != end; ++it) {
       const auto& [sequence_diff_key, sequence_diff] = *it;
       SILO_ASSERT(sequence_diff_key.symbol != current_local_reference_symbol);
-      symbol_counts[sequence_diff_key.symbol] += sequence_diff.cardinality;
-      symbol_counts[current_local_reference_symbol] -= sequence_diff.cardinality;
+      symbol_counts[sequence_diff_key.symbol] += sequence_diff.getCardinality();
+      symbol_counts[current_local_reference_symbol] -= sequence_diff.getCardinality();
    }
    return symbol_counts;
 }
@@ -150,14 +141,12 @@ std::optional<typename SymbolType::Symbol> VerticalSequenceIndex<SymbolType>::ad
    auto num_containers = static_cast<uint16_t>(roaring_array.size);
    for (uint16_t container_idx = 0; container_idx < num_containers; ++container_idx) {
       const uint8_t typecode = roaring_array.typecodes[container_idx];
-      auto* container =
-         roaring::internal::container_clone(roaring_array.containers[container_idx], typecode);
-      const uint32_t cardinality =
-         roaring::internal::container_get_cardinality(container, typecode);
       const uint16_t v_index = roaring_array.keys[container_idx];
 
       auto key = SequenceDiffKey{position_idx, v_index, current_local_reference_symbol};
-      vertical_bitmaps.insert({key, SequenceDiff(container, cardinality, typecode)});
+      vertical_bitmaps.insert(
+         {key, SequenceDiff::clonedFrom(roaring_array.containers[container_idx], typecode)}
+      );
    }
 
    std::vector<uint16_t> v_indices_to_remove;
@@ -181,18 +170,7 @@ VerticalSequenceIndex<SymbolType>::SequenceDiff& VerticalSequenceIndex<
    if (iter != vertical_bitmaps.end()) {
       return iter->second;
    }
-   roaring::internal::container_t* container;
-   uint8_t typecode;
-   // If roaring::internal::DEFAULT_MAX_SIZE specifies the maximum size for array containers
-   if (capacity <= roaring::internal::DEFAULT_MAX_SIZE) {
-      container = roaring::internal::array_container_create_given_capacity(capacity);
-      typecode = ARRAY_CONTAINER_TYPE;
-   } else {
-      container = roaring::internal::bitset_container_create();
-      typecode = BITSET_CONTAINER_TYPE;
-   }
-   SILO_ASSERT(container != nullptr);
-   return vertical_bitmaps.insert({key, SequenceDiff(container, 0, typecode)}).first->second;
+   return vertical_bitmaps.insert({key, SequenceDiff::withCapacity(capacity)}).first->second;
 }
 
 using silo::roaring_util::BitmapBuilderByContainer;
@@ -211,14 +189,14 @@ roaring::Roaring VerticalSequenceIndex<SymbolType>::getMatchingContainersAsBitma
 
    for (auto it = start; it != end; ++it) {
       const auto& [sequence_diff_key, sequence_diff] = *it;
-      SILO_ASSERT(sequence_diff.cardinality > 0);
+      SILO_ASSERT(!sequence_diff.empty());
 
       // Only consider when the symbol is in the requested set
       if (std::find(symbols.begin(), symbols.end(), sequence_diff_key.symbol) == symbols.end()) {
          continue;
       }
       builder.addContainer(
-         sequence_diff_key.v_index, sequence_diff.container, sequence_diff.typecode
+         sequence_diff_key.v_index, sequence_diff.rawContainer(), sequence_diff.getTypecode()
       );
    }
    return std::move(builder).getBitmap();
@@ -270,8 +248,8 @@ void VerticalSequenceIndex<SymbolType>::overwriteSymbolsInSequences(
       auto ranks_in_reconstructed_sequences = roaringSubsetRanks(
          roaring_containers_by_v_index.at(v_index),
          roaring_typecodes_by_v_index.at(v_index),
-         sequence_diff.container,
-         sequence_diff.typecode,
+         sequence_diff.rawContainer(),
+         sequence_diff.getTypecode(),
          /*base=*/0  // Base rank is 0, because we have a slice per container
       );
 

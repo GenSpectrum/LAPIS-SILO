@@ -51,10 +51,16 @@ QueryPlan Planner::planQuery(
       }
    };
    log_plan("initial");
-   node = ColumnNarrowingPass::run(std::move(node));
-   log_plan("after ColumnNarrowingPass");
+   // FilterPushdownPass must run before ColumnNarrowingPass: it is the single owner of the
+   // filter/map interaction. Running it first means a filter that cannot be pushed below a map
+   // is left as a FilterNode above that map (with the producing assignments intact), while a
+   // pushable filter is moved into the scan. ColumnNarrowingPass then prunes safely: it only
+   // keeps a producing map alive when a non-eliminable FilterNode still references its output,
+   // and still drops maps whose filters were pushed to the scan (preserving #1343).
    node = FilterPushdownPass::run(std::move(node));
    log_plan("after FilterPushdownPass");
+   node = ColumnNarrowingPass::run(std::move(node));
+   log_plan("after ColumnNarrowingPass");
    node = MapPullupPass::run(std::move(node));
    log_plan("after MapPullupPass");
    node = SelectKRewritePass::run(std::move(node));

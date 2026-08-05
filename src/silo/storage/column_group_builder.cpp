@@ -347,4 +347,52 @@ std::expected<void, std::string> ColumnGroupBuilder::addJsonValueToColumn(
    return success;
 }
 
+namespace {
+class MoveRowVisitor {
+  public:
+   template <column::Column ColumnType>
+   void operator()(
+      ColumnGroupBuilder& source,
+      ColumnGroupBuilder& destination,
+      const std::string& name,
+      size_t index
+   ) {
+      source.getColumnBuilders<ColumnType>().at(name).moveRowTo(
+         index, destination.getColumnBuilders<ColumnType>().at(name)
+      );
+   }
+};
+
+class ClearVisitor {
+  public:
+   template <column::Column ColumnType>
+   void operator()(ColumnGroupBuilder& builders, const std::string& name) {
+      // finalize() moves the buffer out and clears it; discarding the result drops the rows.
+      static_cast<void>(builders.getColumnBuilders<ColumnType>().at(name).finalize());
+   }
+};
+}  // namespace
+
+void ColumnGroupBuilder::moveRowTo(size_t index, ColumnGroupBuilder& destination) {
+   for (const auto& column : metadata) {
+      column::visit(column.type, MoveRowVisitor{}, *this, destination, column.name, index);
+   }
+}
+
+void ColumnGroupBuilder::clear() {
+   for (const auto& column : metadata) {
+      column::visit(column.type, ClearVisitor{}, *this, column.name);
+   }
+}
+
+std::optional<std::pair<uint32_t, uint32_t>> ColumnGroupBuilder::coverageRangeAt(
+   const schema::ColumnIdentifier& sequence_column,
+   size_t index
+) const {
+   if (sequence_column.type == schema::ColumnType::NUCLEOTIDE_SEQUENCE) {
+      return nuc_column_builders.at(sequence_column.name).coverageRangeAt(index);
+   }
+   return aa_column_builders.at(sequence_column.name).coverageRangeAt(index);
+}
+
 }  // namespace silo::storage

@@ -17,7 +17,7 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
-#include "silo/append/database_inserter.h"
+#include "silo/append/table_inserter.h"
 #include "silo/common/aa_symbols.h"
 #include "silo/common/data_version.h"
 #include "silo/common/nucleotide_symbols.h"
@@ -90,11 +90,15 @@ void Database::createTable(
    schema.tables.emplace(std::move(table_name), std::move(table_schema));
 }
 
-void Database::appendData(const schema::TableName& table_name, std::istream& input_stream) {
+void Database::appendData(
+   const schema::TableName& table_name,
+   std::istream& input_stream,
+   append::ClusteredBufferingOptions clustering_options
+) {
    silo::append::NdjsonLineReader input_data{input_stream};
    SILO_ASSERT(tables.contains(table_name));
    auto& table = tables.at(table_name);
-   silo::append::appendDataToTable(table, input_data);
+   silo::append::appendDataToTable(table, input_data, std::move(clustering_options));
    updateDataVersion();
    SPDLOG_INFO("Database info: {}", getDatabaseInfo());
 }

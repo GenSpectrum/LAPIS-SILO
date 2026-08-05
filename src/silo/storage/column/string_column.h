@@ -159,6 +159,10 @@ class StringColumnBuilder {
 
    void insertNull();
 
+   void moveRowTo(size_t index, StringColumnBuilder& destination) {
+      destination.buffer.push_back(std::move(buffer.at(index)));
+   }
+
    [[nodiscard]] size_t numValues() const;
 
    [[nodiscard]] StringColumn::Buffer finalize();
