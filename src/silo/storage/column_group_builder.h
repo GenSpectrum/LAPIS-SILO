@@ -14,8 +14,8 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/bool_column.h"
 #include "silo/storage/column/date32_column.h"
+#include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/float_column.h"
-#include "silo/storage/column/indexed_string_column.h"
 #include "silo/storage/column/int_column.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/string_column.h"
@@ -34,7 +34,8 @@ class ColumnGroupBuilder {
    std::vector<schema::ColumnIdentifier> metadata;
 
    std::map<std::string, column::StringColumn::Builder> string_column_builders;
-   std::map<std::string, column::IndexedStringColumn::Builder> indexed_string_column_builders;
+   std::map<std::string, column::DictionaryEncodedColumn::Builder>
+      dictionary_encoded_column_builders;
    std::map<std::string, column::BoolColumn::Builder> bool_column_builders;
    std::map<std::string, column::IntColumn::Builder> int_column_builders;
    std::map<std::string, column::FloatColumn::Builder> float_column_builders;
@@ -83,8 +84,8 @@ template <>
 std::map<std::string, column::StringColumn::Builder>& ColumnGroupBuilder::getColumnBuilders<
    column::StringColumn>();
 template <>
-std::map<std::string, column::IndexedStringColumn::Builder>& ColumnGroupBuilder::getColumnBuilders<
-   column::IndexedStringColumn>();
+std::map<std::string, column::DictionaryEncodedColumn::Builder>& ColumnGroupBuilder::
+   getColumnBuilders<column::DictionaryEncodedColumn>();
 template <>
 std::map<std::string, column::BoolColumn::Builder>& ColumnGroupBuilder::getColumnBuilders<
    column::BoolColumn>();

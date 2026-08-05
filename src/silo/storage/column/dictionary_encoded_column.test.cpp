@@ -1,4 +1,4 @@
-#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/dictionary_encoded_column.h"
 
 #include <expected>
 #include <initializer_list>
@@ -12,17 +12,17 @@
 using silo::common::LineageTreeAndIdMap;
 using silo::common::RecombinantEdgeFollowingMode;
 using silo::preprocessing::LineageDefinitionFile;
-using silo::storage::column::IndexedStringColumn;
-using silo::storage::column::IndexedStringColumnMetadata;
+using silo::storage::column::DictionaryEncodedColumn;
+using silo::storage::column::DictionaryEncodedColumnMetadata;
 using silo::storage::column::RowId;
 
 namespace {
 // Buffers the values into a chunk and appends it to the column.
 [[nodiscard]] std::expected<void, std::string> appendIndexedValues(
-   IndexedStringColumn& column,
+   DictionaryEncodedColumn& column,
    std::initializer_list<std::string_view> values
 ) {
-   IndexedStringColumn::Builder builder;
+   DictionaryEncodedColumn::Builder builder;
    for (const auto& value : values) {
       builder.insert(value);
    }
@@ -32,9 +32,9 @@ namespace {
 
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
-TEST(IndexedStringColumn, shouldReturnTheCorrectFilteredValues) {
-   IndexedStringColumnMetadata column_metadata("some_column");
-   IndexedStringColumn under_test{&column_metadata};
+TEST(DictionaryEncodedColumn, shouldReturnTheCorrectFilteredValues) {
+   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
       appendIndexedValues(under_test, {"value 1", "value 2", "value 2", "value 3", "value 1"})
@@ -51,9 +51,9 @@ TEST(IndexedStringColumn, shouldReturnTheCorrectFilteredValues) {
    ASSERT_EQ(result3, std::nullopt);
 }
 
-TEST(IndexedStringColumn, insertValuesToPartition) {
-   IndexedStringColumnMetadata column_metadata("some_column");
-   IndexedStringColumn under_test{&column_metadata};
+TEST(DictionaryEncodedColumn, insertValuesToPartition) {
+   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
       appendIndexedValues(under_test, {"value 1", "value 2", "value 2", "value 3", "value 1"})
@@ -72,9 +72,9 @@ TEST(IndexedStringColumn, insertValuesToPartition) {
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(IndexedStringColumn, valuesSpanningMultipleAppendedChunks) {
-   IndexedStringColumnMetadata column_metadata("some_column");
-   IndexedStringColumn under_test{&column_metadata};
+TEST(DictionaryEncodedColumn, valuesSpanningMultipleAppendedChunks) {
+   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   DictionaryEncodedColumn under_test{&column_metadata};
 
    // Each appendChunk starts a fresh, immutable chunk of value ids whose global row ids begin at a
    // fresh 2^16-aligned offset (chunk k starts at k << 16), while the inverted index accumulates
@@ -105,9 +105,9 @@ TEST(IndexedStringColumn, valuesSpanningMultipleAppendedChunks) {
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(IndexedStringColumn, updateKeepsInvertedIndexConsistent) {
-   IndexedStringColumnMetadata column_metadata("some_column");
-   IndexedStringColumn under_test{&column_metadata};
+TEST(DictionaryEncodedColumn, updateKeepsInvertedIndexConsistent) {
+   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
       appendIndexedValues(under_test, {"value 1", "value 2", "value 2", "value 3", "value 1"})
@@ -134,12 +134,12 @@ TEST(IndexedStringColumn, updateKeepsInvertedIndexConsistent) {
    EXPECT_FALSE(under_test.isNull(RowId(0, 0)));
 }
 
-TEST(IndexedStringColumn, addingLineageAndThenSublineageFiltersCorrectly) {
+TEST(DictionaryEncodedColumn, addingLineageAndThenSublineageFiltersCorrectly) {
    auto lineage_definition = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
       "testBaseData/exampleDataset/lineage_definition.yaml"
    );
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
-   IndexedStringColumn under_test{&column_metadata};
+   DictionaryEncodedColumnMetadata column_metadata("some_column", lineage_definition, false);
+   DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
       appendIndexedValues(under_test, {"BA.1.1", "BA.1.1", "BA.1.1.1", "BA.1.1.1.1", "BA.1.1"})
@@ -167,12 +167,12 @@ TEST(IndexedStringColumn, addingLineageAndThenSublineageFiltersCorrectly) {
    );
 }
 
-TEST(IndexedStringColumn, addingSublineageAndThenLineageFiltersCorrectly) {
+TEST(DictionaryEncodedColumn, addingSublineageAndThenLineageFiltersCorrectly) {
    auto lineage_definition = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
       "testBaseData/exampleDataset/lineage_definition.yaml"
    );
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
-   IndexedStringColumn under_test{&column_metadata};
+   DictionaryEncodedColumnMetadata column_metadata("some_column", lineage_definition, false);
+   DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
       appendIndexedValues(under_test, {"BA.1.1.1", "BA.1.1.1", "BA.1", "BA.1.1", "BA.1.1.1"})
@@ -214,12 +214,12 @@ TEST(IndexedStringColumn, addingSublineageAndThenLineageFiltersCorrectly) {
    );
 }
 
-TEST(IndexedStringColumn, queryParentLineageThatWasNeverInserted) {
+TEST(DictionaryEncodedColumn, queryParentLineageThatWasNeverInserted) {
    auto lineage_definition = LineageTreeAndIdMap::fromLineageDefinitionFilePath(
       "testBaseData/exampleDataset/lineage_definition.yaml"
    );
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
-   IndexedStringColumn under_test{&column_metadata};
+   DictionaryEncodedColumnMetadata column_metadata("some_column", lineage_definition, false);
+   DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
       appendIndexedValues(under_test, {"BA.1.1.1", "BA.1.1.1", "BA.2", "BA.1.1"}).has_value()
@@ -240,15 +240,15 @@ TEST(IndexedStringColumn, queryParentLineageThatWasNeverInserted) {
    );
 }
 
-TEST(IndexedStringColumn, errorWhenInsertingIncorrectLineages) {
+TEST(DictionaryEncodedColumn, errorWhenInsertingIncorrectLineages) {
    auto lineage_definition =
       LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 A: {}
 A.1:
   parents: ["A"]
 )"));
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
-   IndexedStringColumn under_test{&column_metadata};
+   DictionaryEncodedColumnMetadata column_metadata("some_column", lineage_definition, false);
+   DictionaryEncodedColumn under_test{&column_metadata};
    ASSERT_TRUE(appendIndexedValues(under_test, {"A"}).has_value());
    auto success = appendIndexedValues(under_test, {"A.2"});
    ASSERT_FALSE(success.has_value());
@@ -260,15 +260,15 @@ A.1:
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(IndexedStringColumn, failingChunkDoesNotMutatePreviouslyAppendedChunks) {
+TEST(DictionaryEncodedColumn, failingChunkDoesNotMutatePreviouslyAppendedChunks) {
    auto lineage_definition =
       LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 A: {}
 A.1:
   parents: ["A"]
 )"));
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, false);
-   IndexedStringColumn under_test{&column_metadata};
+   DictionaryEncodedColumnMetadata column_metadata("some_column", lineage_definition, false);
+   DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(appendIndexedValues(under_test, {"A", "A.1", "A"}).has_value());
 
@@ -305,15 +305,15 @@ A.1:
    EXPECT_EQ(*under_test.filter({"A.1"}).value(), roaring::Roaring({1, RowId(1, 0).toGlobal()}));
 }
 
-TEST(IndexedStringColumn, ignoringErrorWhenInsertingIncorrectLineagesIfSpecified) {
+TEST(DictionaryEncodedColumn, ignoringErrorWhenInsertingIncorrectLineagesIfSpecified) {
    auto lineage_definition =
       LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 A: {}
 A.1:
   parents: ["A"]
 )"));
-   IndexedStringColumnMetadata column_metadata("some_column", lineage_definition, true);
-   IndexedStringColumn under_test{&column_metadata};
+   DictionaryEncodedColumnMetadata column_metadata("some_column", lineage_definition, true);
+   DictionaryEncodedColumn under_test{&column_metadata};
    ASSERT_TRUE(appendIndexedValues(under_test, {"A", "not in the lineage hierarchy"}).has_value());
    EXPECT_EQ(
       *under_test.getLineageIndex()

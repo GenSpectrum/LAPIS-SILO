@@ -48,7 +48,7 @@ std::unique_ptr<ScalarExpression> makeStringEquals(
 ) {
    return std::make_unique<Equals>(
       std::make_unique<FieldRef>(silo::schema::ColumnIdentifier{
-         .name = column, .type = silo::schema::ColumnType::INDEXED_STRING
+         .name = column, .type = silo::schema::ColumnType::DICTIONARY_ENCODED
       }),
       std::make_unique<StringLiteral>(value)
    );

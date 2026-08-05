@@ -63,14 +63,14 @@ void assignScalarLiteralToColumn(
          );
          return;
       }
-      case schema::ColumnType::INDEXED_STRING: {
-         auto& indexed_string_column = columns.indexed_string_columns.at(column.name);
-         if (indexed_string_column.getLineageIndex().has_value()) {
+      case schema::ColumnType::DICTIONARY_ENCODED: {
+         auto& dictionary_encoded_column = columns.dictionary_encoded_columns.at(column.name);
+         if (dictionary_encoded_column.getLineageIndex().has_value()) {
             throw IllegalQueryException(fmt::format(
                "Column '{}' is backed by a lineage index and cannot be updated", column.name
             ));
          }
-         indexed_string_column.update(
+         dictionary_encoded_column.update(
             row_ids, is_null ? std::nullopt : std::optional{ast::extractStringLiteral(*literal)}
          );
          return;

@@ -76,7 +76,7 @@ INSTANTIATE_TEST_SUITE_P(
       TestParameter{
          .value_type = ValueType::STRING,
          .generate_index = true,
-         .expected_column_type = ColumnType::INDEXED_STRING
+         .expected_column_type = ColumnType::DICTIONARY_ENCODED
       },
       TestParameter{
          .value_type = ValueType::DATE,
@@ -87,7 +87,7 @@ INSTANTIATE_TEST_SUITE_P(
          .value_type = ValueType::STRING,
          .generate_index = true,
          .generate_lineage_index = true,
-         .expected_column_type = ColumnType::INDEXED_STRING
+         .expected_column_type = ColumnType::DICTIONARY_ENCODED
       },
       TestParameter{
          .value_type = ValueType::INT,

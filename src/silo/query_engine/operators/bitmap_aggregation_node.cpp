@@ -22,7 +22,7 @@
 #include "silo/query_engine/operators/compute_filter.h"
 #include "silo/query_engine/scalar_expressions/symbol_in_set.h"
 #include "silo/schema/database_schema.h"
-#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table.h"
 
@@ -227,7 +227,7 @@ GroupBitmaps IndexedColumnDimension::buildGroups(
    const roaring::Roaring& filter_bitmap
 ) const {
    const auto& indexed_column =
-      table.columns.getColumns<storage::column::IndexedStringColumn>().at(column.name);
+      table.columns.getColumns<storage::column::DictionaryEncodedColumn>().at(column.name);
    GroupBitmaps result;
    // One group per distinct value in the inverted index. A null row is held in `null_bitmap` only
    // (its dictionary entry's bitmap does not contain it), so the null group below stays disjoint

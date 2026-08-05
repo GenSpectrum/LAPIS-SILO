@@ -25,51 +25,52 @@
 
 namespace silo::storage::column {
 
-class IndexedStringColumnBuilder;
+class DictionaryEncodedColumnBuilder;
 
-class IndexedStringColumnMetadata : public ColumnMetadata {
+class DictionaryEncodedColumnMetadata : public ColumnMetadata {
   public:
    common::BidirectionalStringMap dictionary;
    std::optional<common::LineageTreeAndIdMap> lineage_tree;
    bool treat_unknown_lineages_as_null = false;
 
-   explicit IndexedStringColumnMetadata(std::string column_name)
+   explicit DictionaryEncodedColumnMetadata(std::string column_name)
        : ColumnMetadata(std::move(column_name)) {}
 
-   IndexedStringColumnMetadata(
+   DictionaryEncodedColumnMetadata(
       std::string column_name,
       silo::common::BidirectionalStringMap dictionary
    )
        : ColumnMetadata(std::move(column_name)),
          dictionary(std::move(dictionary)) {}
 
-   IndexedStringColumnMetadata(
+   DictionaryEncodedColumnMetadata(
       std::string column_name,
       common::LineageTreeAndIdMap lineage_tree_and_id_map,
       bool treat_unknown_lineages_as_null
    );
 
-   IndexedStringColumnMetadata(
+   DictionaryEncodedColumnMetadata(
       std::string column_name,
       silo::common::BidirectionalStringMap dictionary,
       common::LineageTreeAndIdMap lineage_tree_and_id_map,
       bool treat_unknown_lineages_as_null
    );
 
-   IndexedStringColumnMetadata() = delete;
-   IndexedStringColumnMetadata(const IndexedStringColumnMetadata& other) = delete;
-   IndexedStringColumnMetadata(IndexedStringColumnMetadata&& other) = delete;
-   IndexedStringColumnMetadata& operator=(const IndexedStringColumnMetadata& other) = delete;
-   IndexedStringColumnMetadata& operator=(IndexedStringColumnMetadata&& other) = delete;
+   DictionaryEncodedColumnMetadata() = delete;
+   DictionaryEncodedColumnMetadata(const DictionaryEncodedColumnMetadata& other) = delete;
+   DictionaryEncodedColumnMetadata(DictionaryEncodedColumnMetadata&& other) = delete;
+   DictionaryEncodedColumnMetadata& operator=(const DictionaryEncodedColumnMetadata& other
+   ) = delete;
+   DictionaryEncodedColumnMetadata& operator=(DictionaryEncodedColumnMetadata&& other) = delete;
 };
 
-class IndexedStringColumn {
+class DictionaryEncodedColumn {
   public:
-   using Metadata = IndexedStringColumnMetadata;
-   using Builder = IndexedStringColumnBuilder;
+   using Metadata = DictionaryEncodedColumnMetadata;
+   using Builder = DictionaryEncodedColumnBuilder;
    using Buffer = std::vector<std::optional<std::string>>;
 
-   static constexpr schema::ColumnType TYPE = schema::ColumnType::INDEXED_STRING;
+   static constexpr schema::ColumnType TYPE = schema::ColumnType::DICTIONARY_ENCODED;
    using value_type = std::string_view;
 
    Metadata* metadata;
@@ -81,7 +82,7 @@ class IndexedStringColumn {
    std::optional<LineageIndex> lineage_index;
 
   public:
-   explicit IndexedStringColumn(Metadata* metadata);
+   explicit DictionaryEncodedColumn(Metadata* metadata);
 
    [[nodiscard]] std::optional<const roaring::Roaring*> filter(silo::Idx value_id) const;
 
@@ -137,22 +138,22 @@ class IndexedStringColumn {
    }
 };
 
-class IndexedStringColumnBuilder {
-   IndexedStringColumn::Buffer buffer;
+class DictionaryEncodedColumnBuilder {
+   DictionaryEncodedColumn::Buffer buffer;
 
   public:
    void insert(std::string_view value) { buffer.emplace_back(std::string{value}); }
 
    void insertNull() { buffer.emplace_back(std::nullopt); }
 
-   void moveRowTo(size_t index, IndexedStringColumnBuilder& destination) {
+   void moveRowTo(size_t index, DictionaryEncodedColumnBuilder& destination) {
       destination.buffer.push_back(std::move(buffer.at(index)));
    }
 
    [[nodiscard]] size_t numValues() const { return buffer.size(); }
 
-   [[nodiscard]] IndexedStringColumn::Buffer finalize() {
-      IndexedStringColumn::Buffer result = std::move(buffer);
+   [[nodiscard]] DictionaryEncodedColumn::Buffer finalize() {
+      DictionaryEncodedColumn::Buffer result = std::move(buffer);
       buffer.clear();
       return result;
    }
@@ -160,12 +161,12 @@ class IndexedStringColumnBuilder {
 
 }  // namespace silo::storage::column
 
-BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::IndexedStringColumnMetadata);
+BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::DictionaryEncodedColumnMetadata);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void save(
    Archive& archive,
-   const silo::storage::column::IndexedStringColumnMetadata& object,
+   const silo::storage::column::DictionaryEncodedColumnMetadata& object,
    [[maybe_unused]] const uint32_t version
 ) {
    archive & object.column_name;
@@ -175,12 +176,13 @@ template <class Archive>
 }
 }  // namespace boost::serialization
 
-BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<silo::storage::column::IndexedStringColumnMetadata>);
+BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<
+                               silo::storage::column::DictionaryEncodedColumnMetadata>);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void load(
    Archive& archive,
-   std::shared_ptr<silo::storage::column::IndexedStringColumnMetadata>& object,
+   std::shared_ptr<silo::storage::column::DictionaryEncodedColumnMetadata>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
@@ -192,14 +194,14 @@ template <class Archive>
    archive & lineage_tree;
    archive & treat_unknown_lineages_as_null;
    if (lineage_tree.has_value()) {
-      object = std::make_shared<silo::storage::column::IndexedStringColumnMetadata>(
+      object = std::make_shared<silo::storage::column::DictionaryEncodedColumnMetadata>(
          std::move(column_name),
          std::move(dictionary),
          std::move(lineage_tree.value()),
          treat_unknown_lineages_as_null
       );
    } else {
-      object = std::make_shared<silo::storage::column::IndexedStringColumnMetadata>(
+      object = std::make_shared<silo::storage::column::DictionaryEncodedColumnMetadata>(
          std::move(column_name), std::move(dictionary)
       );
    }

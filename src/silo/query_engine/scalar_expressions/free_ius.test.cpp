@@ -23,7 +23,7 @@ namespace {
 using silo::schema::ColumnIdentifier;
 using silo::schema::ColumnType;
 
-const ColumnIdentifier COLUMN_A{.name = "country", .type = ColumnType::INDEXED_STRING};
+const ColumnIdentifier COLUMN_A{.name = "country", .type = ColumnType::DICTIONARY_ENCODED};
 const ColumnIdentifier COLUMN_B{.name = "age", .type = ColumnType::INT32};
 const ColumnIdentifier COLUMN_C{.name = "date", .type = ColumnType::DATE32};
 

@@ -19,7 +19,7 @@ namespace silo::schema {
 
 enum class ColumnType : uint8_t {
    STRING,
-   INDEXED_STRING,
+   DICTIONARY_ENCODED,
    DATE32,
    BOOL,
    INT32,
@@ -34,8 +34,8 @@ constexpr std::string_view columnTypeToString(ColumnType type) {
    switch (type) {
       case ColumnType::STRING:
          return "STRING";
-      case ColumnType::INDEXED_STRING:
-         return "INDEXED_STRING";
+      case ColumnType::DICTIONARY_ENCODED:
+         return "DICTIONARY_ENCODED";
       case ColumnType::DATE32:
          return "DATE32";
       case ColumnType::BOOL:

@@ -187,7 +187,7 @@ struct ColumnMetadataInitializer {
 };
 
 template <>
-void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumn>(
+void ColumnMetadataInitializer::operator()<storage::column::DictionaryEncodedColumn>(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& /*reference_genomes*/,
@@ -209,12 +209,12 @@ void ColumnMetadataInitializer::operator()<storage::column::IndexedStringColumn>
             fmt::join(keys, ",")
          );
       }
-      metadata = std::make_shared<storage::column::IndexedStringColumn::Metadata>(
+      metadata = std::make_shared<storage::column::DictionaryEncodedColumn::Metadata>(
          config_metadata.name, lineage_tree.value(), config_metadata.treat_unknown_lineages_as_null
       );
    } else {
       metadata =
-         std::make_shared<storage::column::IndexedStringColumn::Metadata>(config_metadata.name);
+         std::make_shared<storage::column::DictionaryEncodedColumn::Metadata>(config_metadata.name);
    }
 }
 

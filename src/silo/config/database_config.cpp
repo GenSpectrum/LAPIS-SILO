@@ -186,7 +186,7 @@ namespace silo::config {
 schema::ColumnType DatabaseMetadata::getColumnType() const {
    if (type == ValueType::STRING) {
       if (generate_index) {
-         return schema::ColumnType::INDEXED_STRING;
+         return schema::ColumnType::DICTIONARY_ENCODED;
       }
       return schema::ColumnType::STRING;
    }

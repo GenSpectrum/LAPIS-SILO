@@ -141,8 +141,9 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
             break;
          }
       }
-   } else if (primary_key_type == schema::ColumnType::INDEXED_STRING) {
-      const auto& primary_key_column = table.columns.indexed_string_columns.at(primary_key_name);
+   } else if (primary_key_type == schema::ColumnType::DICTIONARY_ENCODED) {
+      const auto& primary_key_column =
+         table.columns.dictionary_encoded_columns.at(primary_key_name);
       const auto bitmap_opt = primary_key_column.filter(std::optional<std::string>(seq_id));
       if (bitmap_opt.has_value() && !bitmap_opt.value()->isEmpty()) {
          found_row_id = RowId::fromGlobal(bitmap_opt.value()->minimum());

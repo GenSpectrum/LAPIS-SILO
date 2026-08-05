@@ -1,4 +1,4 @@
-#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/dictionary_encoded_column.h"
 
 #include <optional>
 
@@ -9,7 +9,7 @@
 
 namespace silo::storage::column {
 
-IndexedStringColumnMetadata::IndexedStringColumnMetadata(
+DictionaryEncodedColumnMetadata::DictionaryEncodedColumnMetadata(
    std::string column_name,
    common::LineageTreeAndIdMap lineage_tree_and_id_map,
    bool treat_unknown_lineages_as_null
@@ -19,7 +19,7 @@ IndexedStringColumnMetadata::IndexedStringColumnMetadata(
       lineage_tree(std::move(lineage_tree_and_id_map)),
       treat_unknown_lineages_as_null(treat_unknown_lineages_as_null) {}
 
-IndexedStringColumnMetadata::IndexedStringColumnMetadata(
+DictionaryEncodedColumnMetadata::DictionaryEncodedColumnMetadata(
    std::string column_name,
    common::BidirectionalStringMap dictionary,
    common::LineageTreeAndIdMap lineage_tree_and_id_map,
@@ -30,21 +30,21 @@ IndexedStringColumnMetadata::IndexedStringColumnMetadata(
       lineage_tree(std::move(lineage_tree_and_id_map)),
       treat_unknown_lineages_as_null(treat_unknown_lineages_as_null) {}
 
-IndexedStringColumn::IndexedStringColumn(IndexedStringColumnMetadata* metadata)
+DictionaryEncodedColumn::DictionaryEncodedColumn(DictionaryEncodedColumnMetadata* metadata)
     : metadata(metadata) {
    if (metadata->lineage_tree.has_value()) {
       lineage_index = LineageIndex{&metadata->lineage_tree->lineage_tree};
    }
 }
 
-std::optional<const roaring::Roaring*> IndexedStringColumn::filter(Idx value_id) const {
+std::optional<const roaring::Roaring*> DictionaryEncodedColumn::filter(Idx value_id) const {
    if (indexed_values.contains(value_id)) {
       return &indexed_values.at(value_id);
    }
    return std::nullopt;
 }
 
-std::optional<const roaring::Roaring*> IndexedStringColumn::filter(
+std::optional<const roaring::Roaring*> DictionaryEncodedColumn::filter(
    const std::optional<std::string>& value
 ) const {
    if (value == std::nullopt) {
@@ -57,7 +57,7 @@ std::optional<const roaring::Roaring*> IndexedStringColumn::filter(
    return filter(value_id.value());
 }
 
-std::expected<void, std::string> IndexedStringColumn::appendChunk(const Buffer& buffer) {
+std::expected<void, std::string> DictionaryEncodedColumn::appendChunk(const Buffer& buffer) {
    // Validate whole buffer before mutating anything
    if (lineage_index.has_value() && !metadata->treat_unknown_lineages_as_null) {
       for (const auto& maybe_value : buffer) {
@@ -107,7 +107,7 @@ std::expected<void, std::string> IndexedStringColumn::appendChunk(const Buffer& 
    return {};
 }
 
-void IndexedStringColumn::update(
+void DictionaryEncodedColumn::update(
    const roaring::Roaring& row_ids,
    const std::optional<std::string>& value
 ) {
@@ -142,15 +142,15 @@ void IndexedStringColumn::update(
    }
 }
 
-bool IndexedStringColumn::isNull(RowId row_id) const {
+bool DictionaryEncodedColumn::isNull(RowId row_id) const {
    return null_bitmap.contains(row_id.toGlobal());
 }
 
-std::optional<silo::Idx> IndexedStringColumn::getValueId(const std::string& value) const {
+std::optional<silo::Idx> DictionaryEncodedColumn::getValueId(const std::string& value) const {
    return metadata->dictionary.getId(value);
 }
 
-const std::optional<LineageIndex>& IndexedStringColumn::getLineageIndex() const {
+const std::optional<LineageIndex>& DictionaryEncodedColumn::getLineageIndex() const {
    return lineage_index;
 }
 
