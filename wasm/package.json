@@ -1,21 +1,21 @@
 {
   "name": "@genspectrum/silo-wasm-PLACEHOLDER",
-  "version": "0.0.0",
+  "version": "0.13.1",
   "description": "WebAssembly build of SILO (LAPIS-SILO) for running preprocessing and SaneQL queries in the browser or Node.",
   "type": "module",
-  "main": "silo_wasm.js",
-  "module": "silo_wasm.js",
+  "main": "rhydb_wasm.js",
+  "module": "rhydb_wasm.js",
   "exports": {
     ".": {
-      "import": "./silo_wasm.js"
+      "import": "./rhydb_wasm.js"
     },
-    "./silo_wasm.wasm": "./silo_wasm.wasm",
+    "./rhydb_wasm.wasm": "./rhydb_wasm.wasm",
     "./package.json": "./package.json"
   },
   "files": [
-    "silo_wasm.js",
-    "silo_wasm.wasm",
-    "silo_wasm.worker.js",
+    "rhydb_wasm.js",
+    "rhydb_wasm.wasm",
+    "rhydb_wasm.worker.js",
     "README.md"
   ],
   "publishConfig": {

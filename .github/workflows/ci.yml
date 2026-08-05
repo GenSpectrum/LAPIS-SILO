@@ -627,7 +627,7 @@ jobs:
     name: Build WebAssembly
     runs-on: ubuntu-latest
     permissions:
-      id-token: write # NPM OIDC trusted publishing
+      id-token: write # Required for OIDC to NPM - https://docs.npmjs.com/trusted-publishers#supported-cicd-providers
       contents: write # Upload artifacts to GitHub Releases
     steps:
       - uses: actions/checkout@v7
@@ -698,9 +698,7 @@ jobs:
       - name: Publish WASM package to NPM
         if: env.SILO_VERSION != ''
         working-directory: wasm
-        run: |
-          npm version "$SILO_VERSION" --no-git-tag-version
-          npm publish
+        run: npm publish
 
       - name: Package WASM artifacts for release
         if: env.SILO_VERSION != ''
