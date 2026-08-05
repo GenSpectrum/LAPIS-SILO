@@ -69,7 +69,7 @@ std::vector<operators::MapNode::Assignment> makeMapAssignments() {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
-       .expression = std::make_unique<silo::query_engine::scalar_expressions::Int64Literal>(3)}
+       .expression = std::make_unique<silo::query_engine::scalar_expressions::IntLiteral>(3)}
    );
    return assignments;
 }

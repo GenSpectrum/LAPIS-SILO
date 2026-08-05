@@ -105,8 +105,7 @@ std::unique_ptr<filter::operators::Operator> compileIntEquals(
       column_name
    );
    CHECK_SILO_QUERY(
-      value >= std::numeric_limits<int32_t>::min() &&
-         value <= std::numeric_limits<int32_t>::max(),
+      value >= std::numeric_limits<int32_t>::min() && value <= std::numeric_limits<int32_t>::max(),
       "Cannot cast {} to int32. Value out of range",
       value
    );

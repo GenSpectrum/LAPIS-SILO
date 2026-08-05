@@ -1187,8 +1187,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
       return std::make_unique<scalar_expressions::FieldRef>(*found);
    }
    if (std::holds_alternative<ast::IntLiteral>(value)) {
-      return std::make_unique<scalar_expressions::IntLiteral>(
-         std::get<ast::IntLiteral>(value).value
+      return std::make_unique<scalar_expressions::IntLiteral>(std::get<ast::IntLiteral>(value).value
       );
    }
    if (std::holds_alternative<ast::FloatLiteral>(value)) {

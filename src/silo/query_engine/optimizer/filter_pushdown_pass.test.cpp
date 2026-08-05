@@ -101,7 +101,7 @@ TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
-       .expression = std::make_unique<scalar_expressions::Int64Literal>(3)}
+       .expression = std::make_unique<scalar_expressions::IntLiteral>(3)}
    );
    auto map_node =
       std::make_unique<operators::MapNode>(std::move(filter_node), std::move(assignments));
@@ -163,7 +163,7 @@ TEST(FilterPushdownPass, pushesFilterThroughProjectAndMapIntoTableScan) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
-       .expression = std::make_unique<scalar_expressions::Int64Literal>(3)}
+       .expression = std::make_unique<scalar_expressions::IntLiteral>(3)}
    );
    auto map_node =
       std::make_unique<operators::MapNode>(std::move(inner_filter), std::move(assignments));
