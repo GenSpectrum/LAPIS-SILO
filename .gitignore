@@ -13,7 +13,6 @@
 # WASM build artifacts staged into wasm/ for npm publish
 /wasm/rhydb_wasm.js
 /wasm/rhydb_wasm.wasm
-/wasm/rhydb_wasm.worker.js
 
 # Conan
 conanprofile

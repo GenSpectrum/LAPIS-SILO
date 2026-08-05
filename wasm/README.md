@@ -46,7 +46,7 @@ import createSiloModule from "@genspectrum/silo-wasm-PLACEHOLDER";
 const silo = await createSiloModule();
 ```
 
-The `.wasm` file (and `.worker.js` when present) ships alongside `rhydb_wasm.js` and must be resolvable by your bundler so the loader can fetch them at runtime. The package version matches the SILO release version.
+The `.wasm` file ships alongside `rhydb_wasm.js` and must be resolvable by your bundler so the loader can fetch it at runtime. The package version matches the SILO release version.
 
 As with a self-hosted build, the page must be cross-origin isolated (COOP/COEP headers) because the module uses pthreads and therefore `SharedArrayBuffer`.
 

@@ -1,7 +1,7 @@
 {
-  "name": "@genspectrum/silo-wasm-PLACEHOLDER",
+  "name": "@rhydb/rhydb-wasm",
   "version": "0.13.1",
-  "description": "WebAssembly build of SILO (LAPIS-SILO) for running preprocessing and SaneQL queries in the browser or Node.",
+  "description": "WebAssembly build of RhyDB for running preprocessing and SaneQL queries in the browser or Node.",
   "type": "module",
   "main": "rhydb_wasm.js",
   "module": "rhydb_wasm.js",
@@ -15,7 +15,6 @@
   "files": [
     "rhydb_wasm.js",
     "rhydb_wasm.wasm",
-    "rhydb_wasm.worker.js",
     "README.md"
   ],
   "publishConfig": {
