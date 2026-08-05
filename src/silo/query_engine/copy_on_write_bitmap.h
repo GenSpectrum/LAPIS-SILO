@@ -39,6 +39,12 @@ class CopyOnWriteBitmap {
 
    [[nodiscard]] bool isEmpty() const;
 
+   /// Iterates the contained row ids in ascending order, enabling range-based for over the bitmap.
+   /// The iterators borrow the underlying bitmap, so it must outlive them and must not be mutated
+   /// while an iteration is in progress.
+   [[nodiscard]] roaring::Roaring::const_iterator begin() const;
+   [[nodiscard]] roaring::Roaring::const_iterator end() const;
+
    /// Cardinality of the intersection with `other`, without materializing it.
    [[nodiscard]] uint64_t andCardinality(const CopyOnWriteBitmap& other) const;
 

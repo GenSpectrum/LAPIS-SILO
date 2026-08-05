@@ -82,6 +82,20 @@ TEST(CopyOnWriteBitmap, unionInPlaceAndFastUnion) {
    EXPECT_EQ(CopyOnWriteBitmap::fastUnion(bitmaps).toRoaring(), first | second | third);
 }
 
+TEST(CopyOnWriteBitmap, iteratesRowIdsInAscendingOrder) {
+   const roaring::Roaring source = multiContainer();
+   const CopyOnWriteBitmap under_test{&source};
+
+   std::vector<uint32_t> iterated;
+   for (const uint32_t row : under_test) {
+      iterated.push_back(row);
+   }
+   EXPECT_EQ(iterated, (std::vector<uint32_t>{1, 5, 100, (1U << 16) + 3, (3U << 16) + 7}));
+
+   const CopyOnWriteBitmap empty;
+   EXPECT_EQ(empty.begin(), empty.end());
+}
+
 TEST(CopyOnWriteBitmap, mutatingAViewDoesNotDisturbTheSource) {
    // A bitmap constructed from a pointer is copy-on-write: the first mutation must clone rather
    // than write through to the borrowed source.

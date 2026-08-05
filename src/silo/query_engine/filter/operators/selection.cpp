@@ -96,9 +96,9 @@ CopyOnWriteBitmap Selection::evaluate() const {
 
    // Build the candidate rows that already satisfy the most selective predicate. Predicates are
    // sorted most-selective-first at construction
-   roaring::Roaring candidates;
+   CopyOnWriteBitmap candidates;
    if (child_operator.has_value()) {
-      roaring::Roaring child_bitmap = (*child_operator)->evaluate().toRoaring();
+      CopyOnWriteBitmap child_bitmap = (*child_operator)->evaluate();
       // For a small child, matching each of its rows against every predicate is cheaper than
       // materializing the first predicate over the whole partition.
       if (child_bitmap.cardinality() <= row_layout.numRows() / 10) {
@@ -111,9 +111,9 @@ CopyOnWriteBitmap Selection::evaluate() const {
          return CopyOnWriteBitmap{std::move(result)};
       }
       candidates = std::move(child_bitmap);
-      candidates &= predicates.front()->makeBitmap(row_layout);
+      candidates &= CopyOnWriteBitmap{predicates.front()->makeBitmap(row_layout)};
    } else {
-      candidates = predicates.front()->makeBitmap(row_layout);
+      candidates = CopyOnWriteBitmap{predicates.front()->makeBitmap(row_layout)};
    }
 
    // `candidates` already satisfies predicates.front(); apply the remaining predicates row by row.

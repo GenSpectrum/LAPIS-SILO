@@ -44,6 +44,14 @@ bool CopyOnWriteBitmap::isEmpty() const {
    return getConstReference().isEmpty();
 }
 
+roaring::Roaring::const_iterator CopyOnWriteBitmap::begin() const {
+   return getConstReference().begin();
+}
+
+roaring::Roaring::const_iterator CopyOnWriteBitmap::end() const {
+   return getConstReference().end();
+}
+
 uint64_t CopyOnWriteBitmap::andCardinality(const CopyOnWriteBitmap& other) const {
    return getConstReference().and_cardinality(other.getConstReference());
 }
