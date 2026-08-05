@@ -674,3 +674,30 @@ jobs:
         with:
           name: silo-wasm
           path: dist/wasm/*
+
+      - name: Determine release version
+        run: |
+          git fetch origin 'refs/tags/*:refs/tags/*'
+          if git describe --tags --exact-match >/dev/null 2>&1; then
+            VERSION=$(git describe --tags --exact-match | sed 's/^v//')
+            echo "SILO_VERSION=${VERSION}" >> $GITHUB_ENV
+          fi
+
+      - name: Package WASM artifacts for release
+        if: env.SILO_VERSION != ''
+        run: |
+          mkdir -p artifacts
+          archive="silo-wasm-${SILO_VERSION}.tar.gz"
+          tar -czf "artifacts/${archive}" -C dist/wasm .
+          (cd artifacts && sha256sum "${archive}" > "${archive}.sha256sum")
+
+      - name: Upload WASM artifacts to GitHub release
+        if: env.SILO_VERSION != ''
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            artifacts/*.tar.gz
+            artifacts/*.sha256sum
+          tag_name: v${{ env.SILO_VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
