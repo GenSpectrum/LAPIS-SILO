@@ -117,9 +117,9 @@ String values for textual data which is stored compressed by a common dictionary
 {"unaligned_main": null}
 ```
 
-### INT
+### INT32
 
-32-bit signed integers.
+32-bit signed integers. Configured as `int32` (or the alias `int`).
 
 | Property | Value |
 |----------|-------|
@@ -130,6 +130,21 @@ String values for textual data which is stored compressed by a common dictionary
 ```json
 {"age": 54}
 {"age": null}
+```
+
+### INT64
+
+64-bit signed integers. Configured as `int64`. Use this when values may exceed the 32-bit `int` range.
+
+| Property | Value |
+|----------|-------|
+| JSON Type | Integer |
+| Null | `null` |
+| Range | -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807 |
+
+```json
+{"count": 5000000000}
+{"count": null}
 ```
 
 ### FLOAT

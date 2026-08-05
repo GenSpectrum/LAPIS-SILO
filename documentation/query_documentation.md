@@ -137,7 +137,8 @@ default.map({second_char := primary_key.at(2)})
 
 All input columns are passed through unchanged and the new columns are appended. An assignment whose name matches an existing column replaces that column in place.
 
-**Output:** one row per input row containing all input columns plus the assigned columns. Integer literals become `INT32` (or `INT64` when out of `INT32` range), floats become `FLOAT`, single-quoted literals become `STRING`, and `true`/`false` become `BOOL`.
+**Output:** one row per input row containing all input columns plus the assigned columns.
+Integer literals become `INT64`, floats become `FLOAT`, single-quoted literals become `STRING`, and `true`/`false` become `BOOL`.
 
 ```json
 {"primary_key": "key_31", "x": 3, "label": "cohort A", "active": true, "copy": "Switzerland"}
