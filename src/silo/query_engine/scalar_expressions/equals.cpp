@@ -65,8 +65,6 @@ std::optional<ColumnAndValue> splitColumnAndValue(
    };
 }
 
-/// Builds an EQUALS filter for a scalar (non-string, non-bool) column type. Validates that the
-/// named column exists in `columns` and emits a Selection with a CompareToValueSelection predicate.
 template <typename ColumnT, typename ValueT>
 std::unique_ptr<filter::operators::Operator> compileEquals(
    const storage::Table& table,
@@ -87,10 +85,6 @@ std::unique_ptr<filter::operators::Operator> compileEquals(
    );
 }
 
-/// Builds an EQUALS filter for a width-agnostic integer literal. The literal carries no width, so
-/// the target column decides it: an int64 column takes the value directly, while an int32 column
-/// requires the value to fit int32 range (raising the same out-of-range error the build step used
-/// to raise for an out-of-range int32 literal).
 std::unique_ptr<filter::operators::Operator> compileIntEquals(
    const storage::Table& table,
    const std::string& column_name,

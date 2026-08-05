@@ -45,6 +45,9 @@ class ColumnGroup {
       for(auto& [name, store] : date32_columns){
          archive & store;
       }
+      for(auto& [name, store] : int64_columns){
+         archive & store;
+      }
       for(auto& [name, store] : nuc_columns){
          archive & store;
       }
@@ -52,9 +55,6 @@ class ColumnGroup {
          archive & store;
       }
       for(auto& [name, store] : zstd_compressed_string_columns){
-         archive & store;
-      }
-      for(auto& [name, store] : int64_columns){
          archive & store;
       }
       // clang-format on
