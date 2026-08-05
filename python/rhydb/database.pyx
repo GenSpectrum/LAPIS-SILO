@@ -1,4 +1,4 @@
-# python/silodb/database.pyx
+# python/rhydb/database.pyx
 from libcpp.string cimport string
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair

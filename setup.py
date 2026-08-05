@@ -67,7 +67,7 @@ class build_ext(_build_ext):
 
         # Install directly to setuptools' build_lib directory
         # This way setuptools finds the files without manual copying
-        install_prefix = pjoin(build_lib, "silodb")
+        install_prefix = pjoin(build_lib, "rhydb")
 
         # Configuration name (e.g., Debug, Release)
         config_name = self.build_type.capitalize()
@@ -127,7 +127,7 @@ class build_ext(_build_ext):
     def _get_build_dir(self):
         """Get the package directory from build_py command"""
         build_py = self.get_finalized_command('build_py')
-        return build_py.get_package_dir('silodb')
+        return build_py.get_package_dir('rhydb')
 
     def get_outputs(self):
         """Returns the list of built extension files (.so/.pyd)"""
@@ -143,13 +143,13 @@ class BinaryDistribution(Distribution):
         return True
 
 setup(
-    name="silodb",
+    name="rhydb",
     version="0.1.0",
-    packages=["silodb"],
-    package_dir={"silodb": "python/silodb"},
+    packages=["rhydb"],
+    package_dir={"rhydb": "python/rhydb"},
     
     package_data={
-        "silodb": [
+        "rhydb": [
             "*.so", "*.pyd", # Compiled extensions
             "*.pxd", "*.pyx", # Cython source headers
             "libsilolib.so" # Core C++ library

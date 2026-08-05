@@ -1,6 +1,6 @@
-# Python Bindings (`silodb`)
+# Python Bindings (`rhydb`)
 
-`silodb` is a Python package that embeds RhyDB in-process, exposing the `Database` class. It lets you build or load a RhyDB database, run [SaneQL](query_documentation.md) queries, edit scalar values, and persist state — all without running the HTTP API server.
+`rhydb` is a Python package that embeds RhyDB in-process, exposing the `Database` class. It lets you build or load a RhyDB database, run [SaneQL](query_documentation.md) queries, edit scalar values, and persist state — all without running the HTTP API server.
 
 Queries return [Apache Arrow](https://arrow.apache.org/) tables (`pyarrow`), and filter results are returned as [Roaring bitmaps](https://roaringbitmap.org/) (`pyroaring`), so results integrate directly with the scientific Python stack.
 
@@ -9,7 +9,7 @@ Queries return [Apache Arrow](https://arrow.apache.org/) tables (`pyarrow`), and
 The package is built from this repository with a C++ toolchain (the same one used to build RhyDB) and Cython. From the repository root:
 
 ```bash
-make python-tests   # builds silodb into a virtualenv and runs the test suite
+make python-tests   # builds rhydb into a virtualenv and runs the test suite
 ```
 
 or build a wheel directly:
@@ -23,7 +23,7 @@ The bindings depend on `pyarrow` and `pyroaring`, which are installed automatica
 ## Quick Start
 
 ```python
-from silodb import Database
+from rhydb import Database
 
 # Load a preprocessed database state from a silo-directory
 db = Database("path/to/silo-directory")
@@ -38,7 +38,7 @@ db.update_column("default", "age", "0", filter_expression="age = 4")
 
 ## The `Database` Class
 
-`from silodb import Database`
+`from rhydb import Database`
 
 ### Constructing and loading
 
@@ -189,7 +189,7 @@ except ValueError as e:
 ## Complete Example
 
 ```python
-from silodb import Database
+from rhydb import Database
 
 with Database("path/to/silo-dir") as db:
     # Count the rows we are about to change

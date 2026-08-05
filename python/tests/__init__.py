@@ -1,1 +1,1 @@
-# Python tests for silodb
+# Python tests for rhydb
