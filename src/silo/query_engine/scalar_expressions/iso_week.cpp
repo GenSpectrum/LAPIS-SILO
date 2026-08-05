@@ -32,7 +32,6 @@ std::unique_ptr<ScalarExpression> IsoWeek::rewrite(const storage::Table& table, 
 
 std::unique_ptr<filter::operators::Operator> IsoWeek::compile(const storage::Table& /*table*/)
    const {
-   // `isoWeek` yields an int scalar value, not a filter predicate.
    SILO_UNIMPLEMENTED();
 }
 

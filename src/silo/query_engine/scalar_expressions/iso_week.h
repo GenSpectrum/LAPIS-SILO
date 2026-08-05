@@ -10,17 +10,15 @@
 
 namespace silo::query_engine::scalar_expressions {
 
-/// A scalar expression that evaluates to the ISO week number (int) of the date its child expression
-/// evaluates to, e.g. `myDate.isoWeek()`. The child is usually a `FieldRef` to a date column. Its
-/// value is an int, so it is not a filter predicate; compile() is unimplemented and it is only
-/// meaningful as a scalar expression (e.g. in a map() assignment).
+/// A scalar expression that evaluates to the ISO 8601 week date of the date its child expression
+/// evaluates to, formatted as `<ISO-year>-W<ISO-week>`, e.g. `2026-W12`
 class IsoWeek : public ScalarExpression {
   public:
    std::unique_ptr<ScalarExpression> input;
 
    explicit IsoWeek(std::unique_ptr<ScalarExpression> input);
 
-   [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::INT64; }
+   [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::STRING; }
 
    static constexpr Kind KIND = Kind::ISO_WEEK;
    [[nodiscard]] Kind kind() const override { return KIND; }
