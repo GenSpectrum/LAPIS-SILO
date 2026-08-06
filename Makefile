@@ -8,7 +8,7 @@ SILO_RELEASE_EXECUTABLE=./build/Release/rhydb
 SILO_RELEASE_TEST_EXECUTABLE=./build/Release/silo_test
 SILO_RELEASE_APP_TEST_EXECUTABLE=./build/Release/silo_app_test
 SILO_WASM_EXECUTABLE=./build/wasm/rhydb_wasm.js
-SILO_WASM_DIST_DIR=dist/wasm
+SILO_WASM_DIST_DIR=wasm/dist
 RUNNING_SILO_FLAG=running_silo.flag
 DEPENDENCIES_FLAG=dependencies
 WASM_DEPENDENCIES_FLAG=build/wasm/dependencies
@@ -109,8 +109,6 @@ ${SILO_WASM_EXECUTABLE}: build/wasm/build.ninja $(shell find src wasm/src -type 
 wasm: ${SILO_WASM_EXECUTABLE}
 	mkdir -p ${SILO_WASM_DIST_DIR}
 	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm build/wasm/rhydb_wasm.d.ts ${SILO_WASM_DIST_DIR}/
-	# Stage artifacts next to wasm/package.json so `npm publish` (run in wasm/) includes them.
-	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm build/wasm/rhydb_wasm.d.ts wasm/
 
 .PHONY: wasm-test
 wasm-test: wasm

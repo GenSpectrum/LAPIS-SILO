@@ -681,7 +681,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: rhydb-wasm
-          path: dist/wasm/*
+          path: wasm/dist/*
 
       - name: Determine release version
         run: |
@@ -710,7 +710,7 @@ jobs:
         run: |
           mkdir -p artifacts
           archive="rhydb-wasm-${SILO_VERSION}.tar.gz"
-          tar -czf "artifacts/${archive}" -C dist/wasm .
+          tar -czf "artifacts/${archive}" -C wasm/dist .
           (cd artifacts && sha256sum "${archive}" > "${archive}.sha256sum")
 
       - name: Upload WASM artifacts to GitHub release

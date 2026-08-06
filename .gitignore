@@ -10,11 +10,6 @@
 /dependencies
 /.src_file_list
 
-# WASM build artifacts staged into wasm/ for npm publish
-/wasm/rhydb_wasm.js
-/wasm/rhydb_wasm.wasm
-/wasm/rhydb_wasm.d.ts
-
 # Conan
 conanprofile
 
@@ -36,6 +31,7 @@ conanprofile
 
 # CMake Build folders
 /build
+/wasm/dist/
 
 # Compiled Object files
 *.slo
@@ -69,7 +65,6 @@ conanprofile
 silodb.egg-info/
 *.pyc
 wheelhouse/*
-dist/*
 
 # --------------------
 # OS-specific files
