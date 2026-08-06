@@ -64,7 +64,6 @@ nlohmann::json Table::logTable() const {
 }
 
 void Table::validate() const {
-   validatePrimaryKeyUnique();
    validateNucleotideSequences();
    validateAminoAcidSequences();
    validateMetadataColumns();
