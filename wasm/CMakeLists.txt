@@ -26,6 +26,9 @@ target_link_options(rhydb_wasm
     -sEXIT_RUNTIME=0
     -sEXPORT_ES6=1
     -sEXPORT_NAME=createSiloModule
+    # Emit TypeScript declarations (rhydb_wasm.d.ts) next to the module.
+    --emit-tsd
+    rhydb_wasm.d.ts
     -sEXPORTED_RUNTIME_METHODS=FS,getExceptionMessage
     -sFORCE_FILESYSTEM=1
     -sMODULARIZE=1

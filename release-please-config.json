@@ -1,7 +1,14 @@
 {
     "packages": {
         ".": {
-            "release-type": "simple"
+            "release-type": "simple",
+            "extra-files": [
+                {
+                    "type": "json",
+                    "path": "wasm/package.json",
+                    "jsonpath": "$.version"
+                }
+            ]
         }
     },
     "bump-minor-pre-major": true,

@@ -31,6 +31,7 @@ conanprofile
 
 # CMake Build folders
 /build
+/wasm/dist/
 
 # Compiled Object files
 *.slo
@@ -64,7 +65,6 @@ conanprofile
 silodb.egg-info/
 *.pyc
 wheelhouse/*
-dist/*
 
 # --------------------
 # OS-specific files

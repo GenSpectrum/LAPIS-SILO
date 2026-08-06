@@ -8,7 +8,7 @@ SILO_RELEASE_EXECUTABLE=./build/Release/rhydb
 SILO_RELEASE_TEST_EXECUTABLE=./build/Release/silo_test
 SILO_RELEASE_APP_TEST_EXECUTABLE=./build/Release/silo_app_test
 SILO_WASM_EXECUTABLE=./build/wasm/rhydb_wasm.js
-SILO_WASM_DIST_DIR=dist/wasm
+SILO_WASM_DIST_DIR=wasm/dist
 RUNNING_SILO_FLAG=running_silo.flag
 DEPENDENCIES_FLAG=dependencies
 WASM_DEPENDENCIES_FLAG=build/wasm/dependencies
@@ -101,17 +101,18 @@ benchmarks: ${PERFORMANCE_TEST_DATA_SENTINEL}
 # prerequisite of build/wasm/build.ninja. Non-source assets (wasm/example,
 # wasm/README.md, ...) intentionally do not force a rebuild of the binary.
 ${SILO_WASM_EXECUTABLE}: build/wasm/build.ninja $(shell find src wasm/src -type f)
-	$(CMAKE) --build build/wasm --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_wasm
+	# Emscripten's --emit-tsd (see wasm/CMakeLists.txt) invokes `tsc`; make the
+	# repo-local TypeScript (devDependency) discoverable on PATH for the link step.
+	PATH="$(CURDIR)/node_modules/.bin:$$PATH" $(CMAKE) --build build/wasm --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_wasm
 
 .PHONY: wasm
 wasm: ${SILO_WASM_EXECUTABLE}
 	mkdir -p ${SILO_WASM_DIST_DIR}
-	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm ${SILO_WASM_DIST_DIR}/
-	@if [ -f build/wasm/rhydb_wasm.worker.js ]; then cp build/wasm/rhydb_wasm.worker.js ${SILO_WASM_DIST_DIR}/; fi
+	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm build/wasm/rhydb_wasm.d.ts ${SILO_WASM_DIST_DIR}/
 
 .PHONY: wasm-test
 wasm-test: wasm
-	node --test wasm/test/*.test.mjs
+	node --test wasm/test/*.test.mts
 
 .PHONY: output
 output: ${SILO_DEBUG_EXECUTABLE}
