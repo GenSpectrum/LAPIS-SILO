@@ -11,7 +11,6 @@
 #include "silo/common/error.h"
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/panic.h"
-#include "silo/schema/duplicate_primary_key_exception.h"
 #include "silo/storage/column/sequence_column.h"
 
 namespace silo::append {
@@ -351,13 +350,9 @@ TableInserter::Commit TableInserter::commit() {
    for (auto& buffer : output_buffers) {
       flush_buffer(buffer);
    }
-   try {
-      table->finalize();
-      table->validate();
-      return Commit{};
-   } catch (const schema::DuplicatePrimaryKeyException& exception) {
-      throw AppendException(exception.what());
-   }
+   table->finalize();
+   table->validate();
+   return Commit{};
 }
 
 TableInserter::Commit appendDataToTable(
