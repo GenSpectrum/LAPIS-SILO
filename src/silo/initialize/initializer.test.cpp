@@ -3,7 +3,7 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include "silo/storage/column/indexed_string_column.h"
+#include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 
@@ -238,7 +238,7 @@ A.1:
       database_config, reference_genomes, lineage_trees, PhyloTree{}, false
    );
    auto* metadata =
-      table_schema->getColumnMetadata<silo::storage::column::IndexedStringColumn>("lineage").value(
+      table_schema->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("lineage").value(
       );
    return metadata->lineage_tree.has_value();
 }
