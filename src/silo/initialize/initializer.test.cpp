@@ -238,8 +238,8 @@ A.1:
       database_config, reference_genomes, lineage_trees, PhyloTree{}, false
    );
    auto* metadata =
-      table_schema->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("lineage").value(
-      );
+      table_schema->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("lineage")
+         .value();
    return metadata->lineage_tree.has_value();
 }
 }  // namespace
