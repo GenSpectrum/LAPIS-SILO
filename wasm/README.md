@@ -2,7 +2,7 @@
 
 This directory builds a browser-usable version of SILO using WebAssembly (WASM). It uses Emscripten to compile the C++ sources to a `.wasm` binary and generates a small JavaScript loader that lets browser code call selected C++ functions.
 
-`CMakeLists.txt` collects SILO core sources, excludes the CLI, HTTP API, tests, and benchmark code, and links the dependencies needed for preprocessing and SaneQL query execution. `src/silo_wasm.cpp` is the boundary between JavaScript and C++.
+`CMakeLists.txt` collects SILO core sources, excludes the CLI, HTTP API, tests, and benchmark code, and links the dependencies needed for preprocessing and SaneQL query execution. `src/rhydb_wasm.cpp` is the boundary between JavaScript and C++.
 
 ## What It Exposes
 

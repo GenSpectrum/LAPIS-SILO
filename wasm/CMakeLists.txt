@@ -6,7 +6,7 @@
 # core dependencies, source globbing, and the NO_EVOBENCH define and
 # -fexceptions/-pthread compile flags all come from silolib / silolib_deps.
 
-add_executable(rhydb_wasm src/silo_wasm.cpp)
+add_executable(rhydb_wasm src/rhydb_wasm.cpp)
 # Emit rhydb_wasm.js/.wasm at build/wasm/ (not build/wasm/wasm/) so the Makefile
 # `wasm` target, dist copy, and node test find them at the historical path.
 set_target_properties(rhydb_wasm PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
