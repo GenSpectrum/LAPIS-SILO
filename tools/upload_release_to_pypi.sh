@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Upload silodb wheels from a GitHub release to PyPI
+# Upload rhydb wheels from a GitHub release to PyPI
 #
 # This script downloads all wheel files from a GitHub release and uploads
 # them to PyPI in a single operation. This ensures all platform wheels are
@@ -33,7 +33,7 @@ fi
 
 TAG="v$VERSION"
 
-echo "=== Uploading silodb $VERSION to PyPI ==="
+echo "=== Uploading rhydb $VERSION to PyPI ==="
 echo ""
 
 # Check if release exists
@@ -87,7 +87,7 @@ echo "Step 3: Uploading to PyPI..."
 twine upload "$WHEEL_DIR"/*.whl
 
 echo ""
-echo "✓ Successfully uploaded silodb $VERSION to PyPI!"
+echo "✓ Successfully uploaded rhydb $VERSION to PyPI!"
 echo ""
 echo "Install with:"
-echo "  pip install silodb==$VERSION"
+echo "  pip install rhydb==$VERSION"

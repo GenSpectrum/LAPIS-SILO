@@ -61,7 +61,7 @@ conanprofile
 
 # Python build output files
 .venv/
-silodb.egg-info/
+rhydb.egg-info/
 *.pyc
 wheelhouse/*
 dist/*
