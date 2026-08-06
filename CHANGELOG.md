@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.13.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.13.1...v0.13.2) (2026-08-06)
+
+
+### Features
+
+* **silo:** add opt-in N-way clustered ingestion buffering ([eae375f](https://github.com/GenSpectrum/LAPIS-SILO/commit/eae375f9f20c65c79fbe15f9a107eeae806518d6))
+* **silo:** materialize per-lineage relation tables during preprocessing ([3cafccb](https://github.com/GenSpectrum/LAPIS-SILO/commit/3cafccb72e091670ed3a896ed06af142c9dba986))
+
+
+### Bug Fixes
+
+* **query_engine:** do not invalidly reorder filter nodes ([#1431](https://github.com/GenSpectrum/LAPIS-SILO/issues/1431)) ([be8e0d7](https://github.com/GenSpectrum/LAPIS-SILO/commit/be8e0d7a6bf86e31bb79a88d71f313c7bddb5883))
+
+
+### Performance Improvements
+
+* **silo:** add clustered-ingestion benchmark modelling amplicon coverage classes ([d68cd98](https://github.com/GenSpectrum/LAPIS-SILO/commit/d68cd9862eca5f714bc0ea3b1cbca6176bd2dcfd))
+* **silo:** process input sequences word-at-a-time ([b92fbb0](https://github.com/GenSpectrum/LAPIS-SILO/commit/b92fbb05fbf5d4f138887ee3e236617e2c631d51))
+
 ## [0.13.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.13.0...v0.13.1) (2026-07-31)
 
 
