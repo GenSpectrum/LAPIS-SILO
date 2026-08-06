@@ -9,7 +9,7 @@
     "@commitlint/config-conventional": "^21.0.2",
     "@commitlint/types": "^21.0.0",
     "release-please": "^17.11.1",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.0"
   },
   "scripts": {
     "commitlint:last-commit": "commitlint --from=HEAD~1 --verbose",
