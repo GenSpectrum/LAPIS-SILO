@@ -52,9 +52,7 @@ When `rhydb append` is invoked, the following steps are performed:
 
 5. Each subsequent line is parsed and its values are inserted into the database. Progress is logged every 10,000 records.
 
-6. After all records have been inserted, the database is finalized and validated. This includes checking for duplicate primary keys across both old and new data.
-
-7. A new data version is assigned, and the updated database state is saved as a new timestamped subdirectory within the silo-directory.
+6. A new data version is assigned, and the updated database state is saved as a new timestamped subdirectory within the silo-directory.
 
 ## Examples
 
