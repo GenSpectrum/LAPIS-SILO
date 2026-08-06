@@ -1,4 +1,4 @@
-import createSiloModule from "../../dist/wasm/rhydb_wasm.js";
+import createSiloModule from "../rhydb_wasm";
 
 const $ = (selector) => document.querySelector(selector);
 const logEl = $("#log");

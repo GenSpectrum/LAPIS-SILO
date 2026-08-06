@@ -101,18 +101,20 @@ benchmarks: ${PERFORMANCE_TEST_DATA_SENTINEL}
 # prerequisite of build/wasm/build.ninja. Non-source assets (wasm/example,
 # wasm/README.md, ...) intentionally do not force a rebuild of the binary.
 ${SILO_WASM_EXECUTABLE}: build/wasm/build.ninja $(shell find src wasm/src -type f)
-	$(CMAKE) --build build/wasm --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_wasm
+	# Emscripten's --emit-tsd (see wasm/CMakeLists.txt) invokes `tsc`; make the
+	# repo-local TypeScript (devDependency) discoverable on PATH for the link step.
+	PATH="$(CURDIR)/node_modules/.bin:$$PATH" $(CMAKE) --build build/wasm --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_wasm
 
 .PHONY: wasm
 wasm: ${SILO_WASM_EXECUTABLE}
 	mkdir -p ${SILO_WASM_DIST_DIR}
-	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm ${SILO_WASM_DIST_DIR}/
+	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm build/wasm/rhydb_wasm.d.ts ${SILO_WASM_DIST_DIR}/
 	# Stage artifacts next to wasm/package.json so `npm publish` (run in wasm/) includes them.
-	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm wasm/
+	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm build/wasm/rhydb_wasm.d.ts wasm/
 
 .PHONY: wasm-test
 wasm-test: wasm
-	node --test wasm/test/*.test.mjs
+	node --test wasm/test/*.test.mts
 
 .PHONY: output
 output: ${SILO_DEBUG_EXECUTABLE}

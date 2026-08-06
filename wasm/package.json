@@ -5,9 +5,12 @@
   "type": "module",
   "main": "rhydb_wasm.js",
   "module": "rhydb_wasm.js",
+  "types": "rhydb_wasm.d.ts",
   "exports": {
     ".": {
-      "import": "./rhydb_wasm.js"
+      "types": "./rhydb_wasm.d.ts",
+      "import": "./rhydb_wasm.js",
+      "default": "./rhydb_wasm.js"
     },
     "./rhydb_wasm.wasm": "./rhydb_wasm.wasm",
     "./package.json": "./package.json"
@@ -15,6 +18,7 @@
   "files": [
     "rhydb_wasm.js",
     "rhydb_wasm.wasm",
+    "rhydb_wasm.d.ts",
     "README.md"
   ],
   "publishConfig": {

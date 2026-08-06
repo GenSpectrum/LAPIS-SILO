@@ -669,6 +669,11 @@ jobs:
         with:
           node-version: latest
 
+      # TypeScript (devDependency) provides the `tsc` that Emscripten's
+      # --emit-tsd needs to generate rhydb_wasm.d.ts during the WASM link.
+      - name: Install npm dependencies
+        run: npm ci
+
       - name: Build and test WASM target
         run: make wasm-test
 
