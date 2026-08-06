@@ -33,15 +33,12 @@ Type Union::type() const {
 
 CopyOnWriteBitmap Union::evaluate() const {
    EVOBENCH_SCOPE("Union", "evaluate");
-   const uint32_t size_of_children = children.size();
-   std::vector<const roaring::Roaring*> union_tmp(size_of_children);
-   std::vector<CopyOnWriteBitmap> child_res(size_of_children);
-   for (uint32_t i = 0; i < size_of_children; i++) {
-      child_res[i] = children[i]->evaluate();
-      const roaring::Roaring& const_bitmap = child_res[i].getConstReference();
-      union_tmp[i] = &const_bitmap;
+   std::vector<CopyOnWriteBitmap> child_res;
+   child_res.reserve(children.size());
+   for (const auto& child : children) {
+      child_res.push_back(child->evaluate());
    }
-   return CopyOnWriteBitmap(roaring::Roaring::fastunion(union_tmp.size(), union_tmp.data()));
+   return CopyOnWriteBitmap::fastUnion(child_res);
 }
 
 std::unique_ptr<Operator> Union::negate(std::unique_ptr<Union>&& union_operator) {

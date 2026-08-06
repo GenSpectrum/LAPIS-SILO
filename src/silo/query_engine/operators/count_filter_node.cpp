@@ -48,7 +48,7 @@ arrow::Result<arrow::acero::ExecNode*> CountFilterNode::addToExecPlan(
       }
       already_produced = true;
 
-      auto result_count = static_cast<int64_t>(filter_bitmap.getConstReference().cardinality());
+      auto result_count = static_cast<int64_t>(filter_bitmap.cardinality());
 
       arrow::Int64Builder result_builder{};
       ARROW_RETURN_NOT_OK(result_builder.Append(result_count));

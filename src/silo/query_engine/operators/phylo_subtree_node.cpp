@@ -36,14 +36,15 @@ NodeValuesResult getNodeValuesFromTable(
    const std::string& column_name,
    silo::query_engine::CopyOnWriteBitmap& bitmap_filter
 ) {
-   const size_t num_rows = bitmap_filter.getConstReference().cardinality();
+   const roaring::Roaring filter_bitmap = bitmap_filter.toRoaring();
+   const size_t num_rows = filter_bitmap.cardinality();
    std::unordered_set<std::string> all_tree_node_ids;
    uint32_t num_empty = 0;
    all_tree_node_ids.reserve(num_rows);
 
    const auto& string_column = table.columns.string_columns.at(column_name);
 
-   for (const uint32_t row_in_table : bitmap_filter.getConstReference()) {
+   for (const uint32_t row_in_table : filter_bitmap) {
       const auto row_id = silo::storage::column::RowId::fromGlobal(row_in_table);
       if (!string_column.isNull(row_id)) {
          auto value = string_column.getValueString(row_id);

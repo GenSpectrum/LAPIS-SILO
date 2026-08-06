@@ -8,12 +8,12 @@ using silo::storage::column::RowLayout;
 
 TEST(OperatorFull, containsCheckShouldReturnCorrectValues) {
    const Full under_test(RowLayout::of(5));
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring({0, 1, 2, 3, 4}));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({0, 1, 2, 3, 4}));
 }
 
 TEST(OperatorFull, containsCheckShouldReturnCorrectValuesWhenEmptyDatabase) {
    const Full under_test(RowLayout::of());
-   ASSERT_EQ(under_test.evaluate().getConstReference(), roaring::Roaring());
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring());
 }
 
 TEST(OperatorFull, correctTypeInfo) {
