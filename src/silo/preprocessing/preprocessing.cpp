@@ -6,6 +6,7 @@
 #include "silo/initialize/initialize_exception.h"
 #include "silo/initialize/initializer.h"
 #include "silo/preprocessing/preprocessing_exception.h"
+#include "silo/schema/duplicate_primary_key_exception.h"
 
 namespace silo::preprocessing {
 
@@ -23,15 +24,22 @@ Database preprocessing(const config::PreprocessingConfig& preprocessing_config) 
       SPDLOG_INFO("preprocessing - appending data to Database");
       database.appendData(schema::TableName::getDefault(), input.getInputStream());
 
+      SPDLOG_INFO("preprocessing - validating primary key uniqueness");
+      database.tables.at(schema::TableName::getDefault())->validatePrimaryKeyUnique();
+
       SPDLOG_INFO("preprocessing - finished preprocessing");
       return database;
    } catch (const initialize::InitializeException& exception) {
-      throw preprocessing::PreprocessingException(
+      throw PreprocessingException(
          "preprocessing - exception when initializing database: {}", exception.what()
       );
    } catch (const append::AppendException& exception) {
-      throw preprocessing::PreprocessingException(
+      throw PreprocessingException(
          "preprocessing - exception when appending data: {}", exception.what()
+      );
+   } catch (const schema::DuplicatePrimaryKeyException& exception) {
+      throw PreprocessingException(
+         "preprocessing - exception when validating data: {}", exception.what()
       );
    }
 }
