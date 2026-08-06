@@ -97,16 +97,15 @@ ScalarExpressionPtr convertEqualsToFilter(
    }
 
    // Build the value operand first so parse-time value errors (e.g. an invalid
-   // date literal, an out-of-range integer, or an unsupported value type) are
-   // reported before the column is resolved. The previous per-type equals nodes
-   // deferred the column existence check to compile time; here the column is
-   // resolved eagerly to build a typed FieldRef, but the value-before-column
-   // error ordering is preserved.
+   // date literal or an unsupported value type) are reported before the column is
+   // resolved. Integer literals are width-agnostic here: the value is kept as a
+   // full-range int64 and the int32 range check (and column routing) happens at
+   // compile time, once the actual column type is known.
    std::unique_ptr<scalar_expressions::ScalarExpression> value;
    if (isStringLiteral(value_expr)) {
       value = std::make_unique<scalar_expressions::StringLiteral>(extractStringLiteral(value_expr));
    } else if (isIntLiteral(value_expr)) {
-      value = std::make_unique<scalar_expressions::Int32Literal>(extractInt32Literal(value_expr));
+      value = std::make_unique<scalar_expressions::Int64Literal>(extractInt64Literal(value_expr));
    } else if (isFloatLiteral(value_expr)) {
       value =
          std::make_unique<scalar_expressions::FloatLiteral>(extractNumericAsFloatLiteral(value_expr)
@@ -139,7 +138,7 @@ ScalarExpressionPtr convertEqualsToFilter(
 ScalarExpressionPtr convertIntComparison(
    const std::string& column_name,
    ast::BinaryOp binary_op,
-   uint32_t value,
+   int64_t value,
    const std::vector<schema::ColumnIdentifier>& schema
 ) {
    auto column = resolveColumn(column_name, schema);
@@ -215,7 +214,9 @@ ScalarExpressionPtr convertComparisonToFilter(
       );
    }
    if (isIntLiteral(value_expr)) {
-      return convertIntComparison(column_name, binary_op, extractInt32Literal(value_expr), schema);
+      // Width-agnostic: keep the full-range int64 value; IntBetween::compile applies the int32
+      // range check once the actual column type is known.
+      return convertIntComparison(column_name, binary_op, extractInt64Literal(value_expr), schema);
    }
    throw IllegalQueryException(
       "unsupported value type in comparison at {}:{}",
@@ -326,13 +327,13 @@ ScalarExpressionPtr handleBetween(
       );
    }
    if (isIntLiteral(from_expr) || isIntLiteral(to_expr)) {
-      std::optional<int32_t> from_val;
-      std::optional<int32_t> to_val;
+      std::optional<int64_t> from_val;
+      std::optional<int64_t> to_val;
       if (!isNullLiteral(from_expr)) {
-         from_val = extractInt32Literal(from_expr);
+         from_val = extractInt64Literal(from_expr);
       }
       if (!isNullLiteral(to_expr)) {
-         to_val = extractInt32Literal(to_expr);
+         to_val = extractInt64Literal(to_expr);
       }
       return std::make_unique<scalar_expressions::IntBetween>(
          resolveColumn(column_name, schema), from_val, to_val

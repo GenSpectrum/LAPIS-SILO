@@ -70,9 +70,15 @@ struct ArrowBuilderSelector<storage::column::BoolColumn> {
 };
 
 template <>
-struct ArrowBuilderSelector<storage::column::IntColumn> {
+struct ArrowBuilderSelector<storage::column::Int32Column> {
    using builder_type = arrow::Int32Builder;
    using value_type = int32_t;
+};
+
+template <>
+struct ArrowBuilderSelector<storage::column::Int64Column> {
+   using builder_type = arrow::Int64Builder;
+   using value_type = int64_t;
 };
 
 template <>

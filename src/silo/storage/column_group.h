@@ -36,13 +36,16 @@ class ColumnGroup {
       for(auto& [name, store] : bool_columns){
          archive & store;
       }
-      for(auto& [name, store] : int_columns){
+      for(auto& [name, store] : int32_columns){
          archive & store;
       }
       for(auto& [name, store] : float_columns){
          archive & store;
       }
       for(auto& [name, store] : date32_columns){
+         archive & store;
+      }
+      for(auto& [name, store] : int64_columns){
          archive & store;
       }
       for(auto& [name, store] : nuc_columns){
@@ -63,7 +66,8 @@ class ColumnGroup {
    std::map<std::string, column::StringColumn> string_columns;
    std::map<std::string, column::DictionaryEncodedColumn> dictionary_encoded_columns;
    std::map<std::string, column::BoolColumn> bool_columns;
-   std::map<std::string, column::IntColumn> int_columns;
+   std::map<std::string, column::Int32Column> int32_columns;
+   std::map<std::string, column::Int64Column> int64_columns;
    std::map<std::string, column::FloatColumn> float_columns;
    std::map<std::string, column::Date32Column> date32_columns;
    std::map<std::string, column::SequenceColumn<Nucleotide>> nuc_columns;

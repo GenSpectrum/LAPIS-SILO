@@ -29,6 +29,7 @@ using scalar_expressions::BoolLiteral;
 using scalar_expressions::dynCast;
 using scalar_expressions::FieldRef;
 using scalar_expressions::FloatLiteral;
+using scalar_expressions::Int32Literal;
 using scalar_expressions::Int64Literal;
 using scalar_expressions::IsoWeek;
 using scalar_expressions::ScalarExpression;
@@ -39,8 +40,12 @@ namespace {
 
 /// Translates a scalar expression into an Arrow compute expression for use in a
 /// projection.
+// NOLINTNEXTLINE(misc-no-recursion)
 arrow::Result<arrow::compute::Expression> scalarToArrowExpression(const ScalarExpression& expression
 ) {
+   if (const auto* literal = dynCast<Int32Literal>(&expression)) {
+      return arrow::compute::literal(arrow::Datum(literal->value));
+   }
    if (const auto* literal = dynCast<Int64Literal>(&expression)) {
       return arrow::compute::literal(arrow::Datum(literal->value));
    }
@@ -83,6 +88,7 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(const ScalarEx
 /// Sums the dictionary sizes of every `ZstdDecompressScalar` anywhere in `expression`'s tree. A
 /// decompress may be nested inside another scalar expression (e.g. `At(ZstdDecompress(...))` after
 /// a map merge), so the whole tree is traversed rather than just the top node.
+// NOLINTNEXTLINE(misc-no-recursion)
 size_t sumDecompressDictionarySizes(const ScalarExpression& expression) {
    if (const auto* zstd = dynCast<ZstdDecompressScalar>(&expression)) {
       return zstd->dictionary_string.size() + sumDecompressDictionarySizes(*zstd->input);

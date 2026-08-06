@@ -32,7 +32,7 @@ using silo::storage::column::Column;
 using silo::storage::column::ColumnMetadata;
 using silo::storage::column::Date32Column;
 using silo::storage::column::FloatColumn;
-using silo::storage::column::IntColumn;
+using silo::storage::column::Int32Column;
 using silo::storage::column::SequenceColumn;
 using silo::storage::column::SequenceColumnMetadata;
 using silo::storage::column::StringColumn;
@@ -43,12 +43,12 @@ namespace {
 // Builds a single-column TableSchema (the column also serves as primary key, as
 // the schema only requires the primary key to be present in the metadata map).
 TableSchema makeSingleColumnSchema(
-   const ColumnIdentifier& id,
+   const ColumnIdentifier& column_id,
    std::shared_ptr<ColumnMetadata> metadata
 ) {
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata;
-   column_metadata.emplace(id, std::move(metadata));
-   return TableSchema{std::move(column_metadata), id};
+   column_metadata.emplace(column_id, std::move(metadata));
+   return TableSchema{std::move(column_metadata), column_id};
 }
 
 template <Column ColumnType>
@@ -64,9 +64,9 @@ std::expected<void, std::string> setupColumnAndInsertJson(
    } else {
       meta = std::make_shared<typename ColumnType::Metadata>(column_name);
    }
-   const ColumnIdentifier id{column_name, ColumnType::TYPE};
-   auto schema = std::make_shared<TableSchema>(makeSingleColumnSchema(id, meta));
-   silo::storage::Table table{silo::schema::TableName::getDefault(), schema};
+   const ColumnIdentifier column_id{column_name, ColumnType::TYPE};
+   auto schema = std::make_shared<TableSchema>(makeSingleColumnSchema(column_id, meta));
+   const silo::storage::Table table{silo::schema::TableName::getDefault(), schema};
    ColumnGroupBuilder builder{*schema, table.columns};
 
    simdjson::ondemand::parser parser;
@@ -74,7 +74,7 @@ std::expected<void, std::string> setupColumnAndInsertJson(
    auto doc = parser.iterate(json).value_unsafe();
    simdjson::ondemand::value val = doc[column_name].value_unsafe();
 
-   return builder.addJsonValueToColumn(id, val);
+   return builder.addJsonValueToColumn(column_id, val);
 }
 
 std::expected<void, std::string> setupNucleotideColumnAndInsertJson(
@@ -85,9 +85,9 @@ std::expected<void, std::string> setupNucleotideColumnAndInsertJson(
    auto meta = std::make_shared<SequenceColumnMetadata<Nucleotide>>(
       column_name, std::vector<Nucleotide::Symbol>{reference}
    );
-   const ColumnIdentifier id{.name = column_name, .type = SequenceColumn<Nucleotide>::TYPE};
-   auto schema = std::make_shared<TableSchema>(makeSingleColumnSchema(id, meta));
-   silo::storage::Table table{silo::schema::TableName::getDefault(), schema};
+   const ColumnIdentifier column_id{.name = column_name, .type = SequenceColumn<Nucleotide>::TYPE};
+   auto schema = std::make_shared<TableSchema>(makeSingleColumnSchema(column_id, meta));
+   const silo::storage::Table table{silo::schema::TableName::getDefault(), schema};
    ColumnGroupBuilder builder{*schema, table.columns};
 
    simdjson::ondemand::parser parser;
@@ -95,7 +95,7 @@ std::expected<void, std::string> setupNucleotideColumnAndInsertJson(
    auto doc = parser.iterate(json).value_unsafe();
    simdjson::ondemand::value val = doc[column_name].value_unsafe();
 
-   return builder.addJsonValueToColumn(id, val);
+   return builder.addJsonValueToColumn(column_id, val);
 }
 
 std::string compressAndBase64Encode(std::string_view sequence, const std::string& reference) {
@@ -124,7 +124,7 @@ TEST(ColumnGroupBuilder, givenIntegerValueForBoolColumn_returnsColumnInsertError
 }
 
 TEST(ColumnGroupBuilder, givenStringValueForIntColumn_returnsColumnInsertError) {
-   const auto result = setupColumnAndInsertJson<IntColumn>("int_col", R"({"int_col": "hello"})");
+   const auto result = setupColumnAndInsertJson<Int32Column>("int_col", R"({"int_col": "hello"})");
 
    ASSERT_FALSE(result.has_value());
    EXPECT_THAT(
@@ -268,9 +268,9 @@ TEST(ColumnGroupBuilder, givenSequenceCompressedMultipleRows_succeeds) {
 
    auto meta =
       std::make_shared<SequenceColumnMetadata<Nucleotide>>("nuc_col", std::move(reference));
-   const ColumnIdentifier id{.name = "nuc_col", .type = SequenceColumn<Nucleotide>::TYPE};
-   auto schema = std::make_shared<TableSchema>(makeSingleColumnSchema(id, meta));
-   silo::storage::Table table{silo::schema::TableName::getDefault(), schema};
+   const ColumnIdentifier column_id{.name = "nuc_col", .type = SequenceColumn<Nucleotide>::TYPE};
+   auto schema = std::make_shared<TableSchema>(makeSingleColumnSchema(column_id, meta));
+   const silo::storage::Table table{silo::schema::TableName::getDefault(), schema};
    ColumnGroupBuilder builder{*schema, table.columns};
 
    for (const std::string_view sequence : {"ACGT", "ATGT", "ACGT"}) {
@@ -283,7 +283,7 @@ TEST(ColumnGroupBuilder, givenSequenceCompressedMultipleRows_succeeds) {
       auto doc = parser.iterate(padded).value_unsafe();
       simdjson::ondemand::value val = doc["nuc_col"].value_unsafe();
 
-      const auto result = builder.addJsonValueToColumn(id, val);
+      const auto result = builder.addJsonValueToColumn(column_id, val);
       ASSERT_TRUE(result.has_value());
    }
 }

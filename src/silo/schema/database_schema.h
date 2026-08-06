@@ -23,11 +23,11 @@ enum class ColumnType : uint8_t {
    DATE32,
    BOOL,
    INT32,
+   INT64,
    FLOAT,
    AMINO_ACID_SEQUENCE,
    NUCLEOTIDE_SEQUENCE,
    ZSTD_COMPRESSED_STRING,
-   INT64
 };
 
 constexpr std::string_view columnTypeToString(ColumnType type) {

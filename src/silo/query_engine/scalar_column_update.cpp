@@ -27,9 +27,15 @@ void assignScalarLiteralToColumn(
 
    switch (column.type) {
       case schema::ColumnType::INT32:
-         columns.int_columns.at(column.name)
+         columns.int32_columns.at(column.name)
             .update(
                row_ids, is_null ? std::nullopt : std::optional{ast::extractInt32Literal(*literal)}
+            );
+         return;
+      case schema::ColumnType::INT64:
+         columns.int64_columns.at(column.name)
+            .update(
+               row_ids, is_null ? std::nullopt : std::optional{ast::extractInt64Literal(*literal)}
             );
          return;
       case schema::ColumnType::FLOAT:

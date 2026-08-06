@@ -14,11 +14,14 @@ using silo::schema::ColumnType;
 TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
    ASSERT_TRUE(toDatabaseValueType("string") == ValueType::STRING);
    ASSERT_TRUE(toDatabaseValueType("date") == ValueType::DATE);
+   ASSERT_TRUE(toDatabaseValueType("int") == ValueType::INT32);
+   ASSERT_TRUE(toDatabaseValueType("int32") == ValueType::INT32);
+   ASSERT_TRUE(toDatabaseValueType("int64") == ValueType::INT64);
    ASSERT_THROW(toDatabaseValueType("unknown"), ConfigException);
 }
 
 TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
-   const DatabaseConfig config = silo::config::DatabaseConfig::getValidatedConfig(
+   const DatabaseConfig config = DatabaseConfig::getValidatedConfig(
       R"(
 schema:
   instanceName: "testInstanceName"
@@ -90,9 +93,14 @@ INSTANTIATE_TEST_SUITE_P(
          .expected_column_type = ColumnType::DICTIONARY_ENCODED
       },
       TestParameter{
-         .value_type = ValueType::INT,
+         .value_type = ValueType::INT32,
          .generate_index = false,
          .expected_column_type = ColumnType::INT32
+      },
+      TestParameter{
+         .value_type = ValueType::INT64,
+         .generate_index = false,
+         .expected_column_type = ColumnType::INT64
       },
       TestParameter{
          .value_type = ValueType::FLOAT,
@@ -103,13 +111,12 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
-   DatabaseConfig config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
-      "testBaseData/test_database_config.yaml"
-   );
+   DatabaseConfig config =
+      DatabaseConfig::getValidatedConfigFromFile("testBaseData/test_database_config.yaml");
 
    ASSERT_EQ(config.schema.instance_name, "sars_cov-2_minimal_test_config");
    ASSERT_EQ(config.schema.primary_key, "primary_key");
-   ASSERT_EQ(config.schema.metadata.size(), 9);
+   ASSERT_EQ(config.schema.metadata.size(), 11);
    ASSERT_EQ(config.schema.metadata[0].name, "primary_key");
    ASSERT_EQ(config.schema.metadata[0].type, ValueType::STRING);
    ASSERT_EQ(config.schema.metadata[0].generate_index, false);
@@ -137,19 +144,23 @@ TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
    ASSERT_EQ(config.schema.metadata[6].generate_index, true);
    ASSERT_EQ(config.schema.metadata[6].generate_lineage_index, std::nullopt);
    ASSERT_EQ(config.schema.metadata[7].name, "age");
-   ASSERT_EQ(config.schema.metadata[7].type, ValueType::INT);
+   ASSERT_EQ(config.schema.metadata[7].type, ValueType::INT32);
    ASSERT_EQ(config.schema.metadata[7].generate_index, false);
-   ASSERT_EQ(config.schema.metadata[8].name, "qc_value");
-   ASSERT_EQ(config.schema.metadata[8].type, ValueType::FLOAT);
+   ASSERT_EQ(config.schema.metadata[8].name, "age_32");
+   ASSERT_EQ(config.schema.metadata[8].type, ValueType::INT32);
    ASSERT_EQ(config.schema.metadata[8].generate_index, false);
+   ASSERT_EQ(config.schema.metadata[9].name, "age_64");
+   ASSERT_EQ(config.schema.metadata[9].type, ValueType::INT64);
+   ASSERT_EQ(config.schema.metadata[9].generate_index, false);
+   ASSERT_EQ(config.schema.metadata[10].name, "qc_value");
+   ASSERT_EQ(config.schema.metadata[10].type, ValueType::FLOAT);
+   ASSERT_EQ(config.schema.metadata[10].generate_index, false);
 }
 
 TEST(DatabaseConfig, shouldThrowExceptionWhenConfigFileDoesNotExist) {
    EXPECT_THAT(
       []() {
-         (void)silo::config::DatabaseConfig::getValidatedConfigFromFile(
-            "testBaseData/does_not_exist.yaml"
-         );
+         (void)DatabaseConfig::getValidatedConfigFromFile("testBaseData/does_not_exist.yaml");
       },
       ThrowsMessage<std::runtime_error>(::testing::HasSubstr("Failed to read database config"))
    );
@@ -165,7 +176,7 @@ schema:
   primaryKey: primary_key
 )-";
 
-   ASSERT_THROW((void)silo::config::DatabaseConfig::getValidatedConfig(yaml), ConfigException);
+   ASSERT_THROW((void)DatabaseConfig::getValidatedConfig(yaml), ConfigException);
 }
 
 TEST(DatabaseConfig, shouldNotThrowIfThereAreAdditionalEntries) {
@@ -180,7 +191,7 @@ schema:
     - name: this is unknown to SILO
 )-";
 
-   ASSERT_NO_THROW((void)silo::config::DatabaseConfig::getValidatedConfig(yaml));
+   ASSERT_NO_THROW((void)DatabaseConfig::getValidatedConfig(yaml));
 }
 
 TEST(DatabaseConfig, shouldThrowIfTheConfigHasAnInvalidStructure) {
@@ -191,7 +202,7 @@ schema:
 )-";
 
    EXPECT_THAT(
-      [yaml]() { (void)silo::config::DatabaseConfig::getValidatedConfig(yaml); },
+      [yaml]() { (void)DatabaseConfig::getValidatedConfig(yaml); },
       ThrowsMessage<std::runtime_error>(
          ::testing::HasSubstr("invalid node; first invalid key: \"metadata\"")
       )

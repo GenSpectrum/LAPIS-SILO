@@ -174,6 +174,16 @@ int32_t extractInt32Literal(const Expression& expression) {
    return static_cast<int32_t>(parsed_value);
 }
 
+int64_t extractInt64Literal(const Expression& expression) {
+   CHECK_SILO_QUERY(
+      std::holds_alternative<IntLiteral>(expression.value),
+      "expected integer literal at {}:{}",
+      expression.location.line,
+      expression.location.column
+   );
+   return std::get<IntLiteral>(expression.value).value;
+}
+
 double extractNumericAsFloatLiteral(const Expression& expression) {
    if (std::holds_alternative<FloatLiteral>(expression.value)) {
       return std::get<FloatLiteral>(expression.value).value;

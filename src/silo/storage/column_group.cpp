@@ -8,105 +8,120 @@
 
 namespace silo::storage {
 
+using column::BoolColumn;
+using column::Date32Column;
+using column::DictionaryEncodedColumn;
+using column::FloatColumn;
+using column::Int32Column;
+using column::Int64Column;
+using column::SequenceColumn;
+using column::StringColumn;
+using column::ZstdCompressedStringColumn;
+
 template <>
-std::map<std::string, column::DictionaryEncodedColumn>& ColumnGroup::getColumns<
-   column::DictionaryEncodedColumn>() {
+std::map<std::string, DictionaryEncodedColumn>& ColumnGroup::getColumns<DictionaryEncodedColumn>() {
    return dictionary_encoded_columns;
 }
 
 template <>
-std::map<std::string, column::StringColumn>& ColumnGroup::getColumns<column::StringColumn>() {
+std::map<std::string, StringColumn>& ColumnGroup::getColumns<StringColumn>() {
    return string_columns;
 }
 
 template <>
-std::map<std::string, column::IntColumn>& ColumnGroup::getColumns<column::IntColumn>() {
-   return int_columns;
+std::map<std::string, Int32Column>& ColumnGroup::getColumns<Int32Column>() {
+   return int32_columns;
 }
 
 template <>
-std::map<std::string, column::BoolColumn>& ColumnGroup::getColumns<column::BoolColumn>() {
+std::map<std::string, Int64Column>& ColumnGroup::getColumns<Int64Column>() {
+   return int64_columns;
+}
+
+template <>
+std::map<std::string, BoolColumn>& ColumnGroup::getColumns<BoolColumn>() {
    return bool_columns;
 }
 
 template <>
-std::map<std::string, column::FloatColumn>& ColumnGroup::getColumns<column::FloatColumn>() {
+std::map<std::string, FloatColumn>& ColumnGroup::getColumns<FloatColumn>() {
    return float_columns;
 }
 
 template <>
-std::map<std::string, column::Date32Column>& ColumnGroup::getColumns<column::Date32Column>() {
+std::map<std::string, Date32Column>& ColumnGroup::getColumns<Date32Column>() {
    return date32_columns;
 }
 
 template <>
-std::map<std::string, column::SequenceColumn<Nucleotide>>& ColumnGroup::getColumns<
-   column::SequenceColumn<Nucleotide>>() {
+std::map<std::string, SequenceColumn<Nucleotide>>& ColumnGroup::getColumns<
+   SequenceColumn<Nucleotide>>() {
    return nuc_columns;
 }
 
 template <>
-std::map<std::string, column::SequenceColumn<AminoAcid>>& ColumnGroup::getColumns<
-   column::SequenceColumn<AminoAcid>>() {
+std::map<std::string, SequenceColumn<AminoAcid>>& ColumnGroup::getColumns<
+   SequenceColumn<AminoAcid>>() {
    return aa_columns;
 }
 
 template <>
-std::map<std::string, column::ZstdCompressedStringColumn>& ColumnGroup::getColumns<
-   column::ZstdCompressedStringColumn>() {
+std::map<std::string, ZstdCompressedStringColumn>& ColumnGroup::getColumns<
+   ZstdCompressedStringColumn>() {
    return zstd_compressed_string_columns;
 }
 
 template <>
-const std::map<std::string, column::DictionaryEncodedColumn>& ColumnGroup::getColumns<
-   column::DictionaryEncodedColumn>() const {
+const std::map<std::string, DictionaryEncodedColumn>& ColumnGroup::getColumns<
+   DictionaryEncodedColumn>() const {
    return dictionary_encoded_columns;
 }
 
 template <>
-const std::map<std::string, column::StringColumn>& ColumnGroup::getColumns<column::StringColumn>(
-) const {
+const std::map<std::string, StringColumn>& ColumnGroup::getColumns<StringColumn>() const {
    return string_columns;
 }
 
 template <>
-const std::map<std::string, column::IntColumn>& ColumnGroup::getColumns<column::IntColumn>() const {
-   return int_columns;
+const std::map<std::string, Int32Column>& ColumnGroup::getColumns<Int32Column>() const {
+   return int32_columns;
 }
 
 template <>
-const std::map<std::string, column::BoolColumn>& ColumnGroup::getColumns<column::BoolColumn>(
-) const {
+const std::map<std::string, Int64Column>& ColumnGroup::getColumns<Int64Column>() const {
+   return int64_columns;
+}
+
+template <>
+const std::map<std::string, BoolColumn>& ColumnGroup::getColumns<BoolColumn>() const {
    return bool_columns;
 }
 
 template <>
-const std::map<std::string, column::FloatColumn>& ColumnGroup::getColumns<column::FloatColumn>(
-) const {
+const std::map<std::string, FloatColumn>& ColumnGroup::getColumns<FloatColumn>() const {
    return float_columns;
 }
 
 template <>
-const std::map<std::string, column::Date32Column>& ColumnGroup::getColumns<column::Date32Column>(
-) const {
+const std::map<std::string, Date32Column>& ColumnGroup::getColumns<Date32Column>() const {
    return date32_columns;
 }
 
 template <>
-const std::map<std::string, column::SequenceColumn<Nucleotide>>& ColumnGroup::getColumns<
-   column::SequenceColumn<Nucleotide>>() const {
+const std::map<std::string, SequenceColumn<Nucleotide>>& ColumnGroup::getColumns<
+   SequenceColumn<Nucleotide>>() const {
    return nuc_columns;
 }
 
 template <>
-const std::map<std::string, column::SequenceColumn<AminoAcid>>& ColumnGroup::getColumns<
-   column::SequenceColumn<AminoAcid>>() const {
+const std::map<std::string, SequenceColumn<AminoAcid>>& ColumnGroup::getColumns<
+   SequenceColumn<AminoAcid>>() const {
    return aa_columns;
 }
 
 template <>
-const std::map<std::string, column::ZstdCompressedStringColumn>& ColumnGroup::getColumns<
-   column::ZstdCompressedStringColumn>() const {
+const std::map<std::string, ZstdCompressedStringColumn>& ColumnGroup::getColumns<
+   ZstdCompressedStringColumn>() const {
    return zstd_compressed_string_columns;
 }
 

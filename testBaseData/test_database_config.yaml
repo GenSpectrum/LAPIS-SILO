@@ -23,6 +23,10 @@ schema:
       generateIndex: true
     - name: age
       type: int
+    - name: age_32
+      type: int32
+    - name: age_64
+      type: int64
     - name: qc_value
       type: float
   primaryKey: primary_key
