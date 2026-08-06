@@ -18,7 +18,7 @@ make test                          # Build and run C++ unit tests
 make all-tests                     # Run C++, Python, and E2E tests
 
 # WebAssembly (browser) build (see wasm/README.md)
-make wasm                          # Build silo_wasm.js/.wasm into dist/wasm (requires Emscripten)
+make wasm                          # Build rhydb_wasm.js/.wasm into dist/wasm (requires Emscripten)
 make wasm-test                     # Build wasm and run wasm/test
 
 # Run specific tests

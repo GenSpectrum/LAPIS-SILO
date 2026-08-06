@@ -1,6 +1,6 @@
-// Smoke/integration test for the SILO WebAssembly build.
+// Smoke/integration test for the RhyDB WebAssembly build.
 //
-// Requires `dist/wasm/silo_wasm.js` / `.wasm` to already be built, e.g. via
+// Requires `dist/wasm/rhydb_wasm.js` / `.wasm` to already be built, e.g. via
 // `make wasm`. `make wasm-test` builds it first.
 
 import assert from "node:assert/strict";
@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import createSiloModule from "../../dist/wasm/silo_wasm.js";
+import createRhyDbModule from "../../dist/wasm/rhydb_wasm.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..", "..");
@@ -105,7 +105,7 @@ referenceGenomeFilename: "reference_genomes.json"
 }
 
 test("preprocess, query, save, and load a database end-to-end", async () => {
-    const module = await createSiloModule();
+    const module = await createRhyDbModule();
 
     writeFixture(module, "/input");
     module.FS.chdir("/input");
@@ -141,7 +141,7 @@ test("preprocess, query, save, and load a database end-to-end", async () => {
 });
 
 test("save/query/info reject an unknown database handle", async () => {
-    const module = await createSiloModule();
+    const module = await createRhyDbModule();
 
     const unknownHandle = 999999;
     for (const call of [
@@ -155,7 +155,7 @@ test("save/query/info reject an unknown database handle", async () => {
 });
 
 test("load rejects a directory without a compatible SILO state", async () => {
-    const module = await createSiloModule();
+    const module = await createRhyDbModule();
 
     mkdirp(module, "/empty-state");
     const message = expectThrows(
@@ -167,7 +167,7 @@ test("load rejects a directory without a compatible SILO state", async () => {
 });
 
 test("dispose invalidates the handle and is idempotent", async () => {
-    const module = await createSiloModule();
+    const module = await createRhyDbModule();
 
     writeFixture(module, "/dispose-input");
     module.FS.chdir("/dispose-input");
@@ -192,7 +192,7 @@ test("dispose invalidates the handle and is idempotent", async () => {
 });
 
 test("preprocess reads a .zst-compressed NDJSON input", async () => {
-    const module = await createSiloModule();
+    const module = await createRhyDbModule();
 
     const inputDir = "/zst-input";
     mkdirp(module, inputDir);
