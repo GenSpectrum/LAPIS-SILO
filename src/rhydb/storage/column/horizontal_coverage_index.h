@@ -67,7 +67,10 @@ class HorizontalCoverageIndex {
       const uint32_t range_end = position + BatchSize;
 
       using roaring_util::BitmapBuilderByRange;
-      std::array<BitmapBuilderByRange, BatchSize> result_builders;
+      // Rows of partially-covered chunks are added one at a time (coalesced into ranges by the
+      // builder); fully-covered chunks are bulk-added to `result` directly with `addRange`.
+      std::array<BitmapBuilderByRange, BatchSize> partial_builders;
+      std::array<roaring::Roaring, BatchSize> result;
 
       for (size_t chunk_id = 0; chunk_id < starts.size(); ++chunk_id) {
          if (batch_max_end.at(chunk_id) <= range_start ||
@@ -77,20 +80,30 @@ class HorizontalCoverageIndex {
          const uint32_t base_row_id = static_cast<uint32_t>(chunk_id) << 16;
          const auto& chunk_starts = starts[chunk_id];
          const auto& chunk_ends = ends[chunk_id];
+
+         // Fast path: if the whole batch range lies within the chunk's intersection envelope
+         // `[batch_max_start, batch_min_end)`, every row in the chunk covers every position of the
+         // batch, so add the entire chunk to each position in one range operation.
+         if (batch_max_start.at(chunk_id) <= range_start && range_end <= batch_min_end.at(chunk_id)) {
+            for (auto& bitmap : result) {
+               bitmap.addRange(base_row_id, base_row_id + chunk_starts.size());
+            }
+            continue;
+         }
+
          for (size_t row_in_chunk = 0; row_in_chunk < chunk_starts.size(); ++row_in_chunk) {
             const uint32_t row_id = base_row_id | static_cast<uint32_t>(row_in_chunk);
             for (uint32_t pos = std::max(range_start, chunk_starts[row_in_chunk]);
                  pos < std::min(range_end, chunk_ends[row_in_chunk]);
                  ++pos) {
-               result_builders[pos - range_start].add(row_id);
+               partial_builders[pos - range_start].add(row_id);
             }
          }
       }
 
-      std::array<roaring::Roaring, BatchSize> result;
-      std::ranges::transform(result_builders, result.begin(), [](BitmapBuilderByRange& builder) {
-         return std::move(builder).getBitmap();
-      });
+      for (size_t i = 0; i < BatchSize; ++i) {
+         result[i] |= std::move(partial_builders[i]).getBitmap();
+      }
 
       roaring::Roaring range_bitmap;
       range_bitmap.addRange(range_start, range_end);
