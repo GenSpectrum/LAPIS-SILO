@@ -31,7 +31,7 @@ class IsInCoveredRegion : public Predicate {
 
    [[nodiscard]] std::string toString() const override;
    [[nodiscard]] bool isCovered(uint32_t row_id) const;
-   [[nodiscard]] bool match(uint32_t row_id) const override;
+   [[nodiscard]] bool match(storage::column::RowId row_id) const override;
    [[nodiscard]] roaring::Roaring makeBitmap(const storage::column::RowLayout& row_layout
    ) const override;
    [[nodiscard]] double estimateSelectivity(uint32_t row_count) const override;

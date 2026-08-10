@@ -1,49 +1,123 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
-#include <memory>
+#include <iterator>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include <roaring/roaring.hh>
 
+#include "rhydb/roaring_util/roaring_container.h"
+
 namespace rhydb::query_engine {
 
-/// The return value of the Operator::evaluate method.
-/// May return either a mutable or immutable bitmap.
+/// The return value of the Operator::evaluate method: a full row-id set represented as a sorted
+/// list of 2^16-keyed containers -- the same decomposition a `roaring::Roaring` uses internally.
+/// Each container is either a non-owning `RoaringContainerView` into a container owned elsewhere (a
+/// column index, or another bitmap that outlives this one) or an owning `RoaringContainer`. A
+/// bitmap constructed from an existing `roaring::Roaring` starts as all views; the first set
+/// operation that has to change a container replaces that view with a private owning copy --
+/// copy-on-write, at the granularity of a single container.
 ///
-/// Set-algebra (AND, OR, ANDNOT and the matching cardinalities) is exposed as member operators so
-/// callers never have to reach for the underlying `roaring::Roaring` -- `toRoaring` materializes a
-/// standalone copy only at the very end of a query, where the result leaves the engine. The
-/// operators are currently thin wrappers over `roaring::Roaring`; keeping every caller on this API
-/// lets the internal representation change later without touching call sites.
+/// Set-algebra (AND, OR, ANDNOT and the matching cardinalities) is computed directly on these
+/// container lists through the roaring container-level C API, so intermediate query results never
+/// round-trip through a `roaring::Roaring`. Materialization back into a `roaring::Roaring`
+/// (`toRoaring`) is meant only for the end of a query, when the result leaves the engine.
 class CopyOnWriteBitmap {
-   std::shared_ptr<roaring::Roaring> mutable_bitmap;
-   const roaring::Roaring* immutable_bitmap;
+   /// A single 2^16 block's container, either a non-owning view or a privately-owned copy.
+   using Container =
+      std::variant<roaring_util::RoaringContainerView, roaring_util::RoaringContainer>;
 
-   [[nodiscard]] roaring::Roaring& getMutable();
+   /// Struct-of-arrays: `keys[i]` is the 2^16 block key of the container held in `containers[i]`,
+   /// so the two vectors always have the same length. `keys` is sorted strictly ascending and no
+   /// container is ever empty
+   std::vector<uint16_t> keys;
+   std::vector<Container> containers;
 
-   [[nodiscard]] const roaring::Roaring& getConstReference() const;
+   /// read-only handle onto a container, regardless of ownership.
+   static roaring_util::RoaringContainerView viewOf(const Container& container);
 
-   [[nodiscard]] bool isMutable() const;
+   /// Deep-copies a container: view alternatives are copied as views, owning alternatives are
+   /// cloned into independent owning containers.
+   static Container copyContainer(const Container& container);
+
+   /// Appends a freshly produced container (and its key) to the parallel output arrays, taking
+   /// ownership -- or frees it if empty, preserving roaring's "no empty containers" invariant.
+   static void pushIfNonEmpty(
+      std::vector<uint16_t>& out_keys,
+      std::vector<Container>& out_containers,
+      uint16_t key,
+      roaring::internal::container_t* container,
+      uint8_t typecode
+   );
 
   public:
-   CopyOnWriteBitmap();
+   CopyOnWriteBitmap() = default;
 
-   // A CopyOnWriteBitmap pointing into an immutable bitmap should only be constructed
-   // when the CopyOnWriteBitmap's lifetime is contained by bitmap
+   /// Views the containers of an externally owned bitmap. The pointee must outlive this object and
+   /// must not be mutated while views onto it exist.
    explicit CopyOnWriteBitmap(const roaring::Roaring* bitmap);
 
+   /// Takes ownership of the containers of `bitmap`, leaving `bitmap` empty.
    explicit CopyOnWriteBitmap(roaring::Roaring&& bitmap);
+
+   CopyOnWriteBitmap(const CopyOnWriteBitmap& other);
+   CopyOnWriteBitmap& operator=(const CopyOnWriteBitmap& other);
+   CopyOnWriteBitmap(CopyOnWriteBitmap&&) noexcept = default;
+   CopyOnWriteBitmap& operator=(CopyOnWriteBitmap&&) noexcept = default;
+   ~CopyOnWriteBitmap() = default;
 
    [[nodiscard]] uint64_t cardinality() const;
 
    [[nodiscard]] bool isEmpty() const;
 
-   /// Iterates the contained row ids in ascending order, enabling range-based for over the bitmap.
-   /// The iterators borrow the underlying bitmap, so it must outlive them and must not be mutated
-   /// while an iteration is in progress.
-   [[nodiscard]] roaring::Roaring::const_iterator begin() const;
-   [[nodiscard]] roaring::Roaring::const_iterator end() const;
+   /// Forward iterator over the bitmap's containers in ascending key order. Dereferencing yields a
+   /// `{key, view}` pair by value - the 2^16 block key (the high 16 bits of the row ids it holds)
+   /// and a non-owning view of its container - without materializing any intermediate collection.
+   /// Iterating the view in turn yields the low 16 bits of each contained row id
+   class ConstIterator {
+      const CopyOnWriteBitmap* bitmap = nullptr;
+      size_t index = 0;
+
+     public:
+      // The dereferenced pair is a value, not an lvalue in a container, so this is an input
+      // iterator; it is nonetheless multi-pass (nothing is consumed) and safe to traverse
+      // repeatedly.
+      using iterator_category = std::input_iterator_tag;
+      using value_type = std::pair<uint16_t, roaring_util::RoaringContainerView>;
+      using difference_type = std::ptrdiff_t;
+      using pointer = void;
+      using reference = value_type;
+
+      ConstIterator() = default;
+
+      ConstIterator(const CopyOnWriteBitmap* bitmap, size_t index)
+          : bitmap(bitmap),
+            index(index) {}
+
+      value_type operator*() const {
+         return {bitmap->keys[index], viewOf(bitmap->containers[index])};
+      }
+
+      ConstIterator& operator++() {
+         ++index;
+         return *this;
+      }
+
+      ConstIterator operator++(int) {
+         ConstIterator copy = *this;
+         ++index;
+         return copy;
+      }
+
+      bool operator==(const ConstIterator& other) const { return index == other.index; }
+      bool operator!=(const ConstIterator& other) const { return index != other.index; }
+   };
+
+   [[nodiscard]] ConstIterator begin() const { return ConstIterator{this, 0}; }
+   [[nodiscard]] ConstIterator end() const { return ConstIterator{this, keys.size()}; }
 
    /// Cardinality of the intersection with `other`, without materializing it.
    [[nodiscard]] uint64_t andCardinality(const CopyOnWriteBitmap& other) const;
@@ -55,8 +129,17 @@ class CopyOnWriteBitmap {
    [[nodiscard]] CopyOnWriteBitmap operator&(const CopyOnWriteBitmap& other) const;
    [[nodiscard]] CopyOnWriteBitmap operator-(const CopyOnWriteBitmap& other) const;
 
-   /// Union of many bitmaps.
+   /// Union of many bitmaps, computed container-by-container in a single k-way merge.
    [[nodiscard]] static CopyOnWriteBitmap fastUnion(const std::vector<CopyOnWriteBitmap>& bitmaps);
+
+   /// Builds a bitmap that *views* externally-owned containers (e.g. a column index's stored
+   /// containers) rather than cloning them: a key with a single container becomes a zero-copy
+   /// view, and keys shared by several containers are OR-ed into one owning container. The viewed
+   /// containers must outlive the returned bitmap and must not be mutated while it exists. Input
+   /// order does not matter.
+   [[nodiscard]] static CopyOnWriteBitmap fromContainerViews(
+      std::vector<std::pair<uint16_t, roaring_util::RoaringContainerView>> container_views
+   );
 
    /// Materializes into a standalone `roaring::Roaring`. Intended for the end of a query only,
    /// where the result is handed to a consumer -- not for intermediate computation.

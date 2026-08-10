@@ -46,8 +46,8 @@ bool IsInCoveredRegion::isCovered(uint32_t row_id) const {
    return true;
 }
 
-bool IsInCoveredRegion::match(uint32_t row_id) const {
-   return isCovered(row_id) == (comparator == Comparator::IS_COVERED);
+bool IsInCoveredRegion::match(storage::column::RowId row_id) const {
+   return isCovered(row_id.toGlobal()) == (comparator == Comparator::IS_COVERED);
 }
 
 roaring::Roaring IsInCoveredRegion::makeBitmap(const storage::column::RowLayout& row_layout) const {

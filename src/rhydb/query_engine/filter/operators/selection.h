@@ -26,16 +26,15 @@ class Predicate {
    virtual ~Predicate() noexcept = default;
 
    [[nodiscard]] virtual std::string toString() const = 0;
-   [[nodiscard]] virtual bool match(uint32_t row_id) const = 0;
+   [[nodiscard]] virtual bool match(storage::column::RowId row_id) const = 0;
    // Often there are faster ways to generate the results, than calling match on each row.
    // Optimise that case by overriding this method
    [[nodiscard]] virtual roaring::Roaring makeBitmap(const storage::column::RowLayout& row_layout
    ) const {
       roaring::Roaring result;
       for (const storage::column::RowId row_id : row_layout) {
-         const uint32_t row = row_id.toGlobal();
-         if (match(row)) {
-            result.add(row);
+         if (match(row_id)) {
+            result.add(row_id.toGlobal());
          }
       }
       return result;
@@ -110,8 +109,7 @@ class CompareToValueSelection : public Predicate {
       );
    }
 
-   [[nodiscard]] bool match(uint32_t global_row_id) const override {
-      const storage::column::RowId row_id = storage::column::RowId::fromGlobal(global_row_id);
+   [[nodiscard]] bool match(storage::column::RowId row_id) const override {
       if (column.isNull(row_id)) {
          return with_nulls;
       }
@@ -168,7 +166,9 @@ class CompareToValueSelection : public Predicate {
 };
 
 template <>
-bool CompareToValueSelection<rhydb::storage::column::StringColumn>::match(uint32_t row_id) const;
+bool CompareToValueSelection<rhydb::storage::column::StringColumn>::match(
+   rhydb::storage::column::RowId row_id
+) const;
 
 class Selection : public Operator {
    friend class scalar_expressions::And;
@@ -216,9 +216,12 @@ class Selection : public Operator {
 
   private:
    template <std::ranges::range PredicateRange>
-   [[nodiscard]] static bool matchesPredicates(const PredicateRange& predicates, uint32_t row) {
-      return std::ranges::all_of(predicates, [row](const auto& predicate) {
-         return predicate->match(row);
+   [[nodiscard]] static bool matchesPredicates(
+      const PredicateRange& predicates,
+      storage::column::RowId row_id
+   ) {
+      return std::ranges::all_of(predicates, [row_id](const auto& predicate) {
+         return predicate->match(row_id);
       });
    }
 };

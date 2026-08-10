@@ -202,6 +202,30 @@ roaring::Roaring VerticalSequenceIndex<SymbolType>::getMatchingContainersAsBitma
    return std::move(builder).getBitmap();
 }
 
+template <typename SymbolType>
+std::vector<std::pair<uint16_t, rhydb::roaring_util::RoaringContainerView>> VerticalSequenceIndex<
+   SymbolType>::
+   getMatchingContainerViews(
+      uint32_t position_idx,
+      const std::vector<typename SymbolType::Symbol>& symbols
+   ) const {
+   auto [start, end] = getRangeForPosition(position_idx);
+
+   std::vector<std::pair<uint16_t, roaring_util::RoaringContainerView>> result;
+   for (auto it = start; it != end; ++it) {
+      const auto& [sequence_diff_key, sequence_diff] = *it;
+      SILO_ASSERT(!sequence_diff.empty());
+
+      if (std::find(symbols.begin(), symbols.end(), sequence_diff_key.symbol) == symbols.end()) {
+         continue;
+      }
+      result.emplace_back(
+         sequence_diff_key.v_index, roaring_util::RoaringContainerView{sequence_diff}
+      );
+   }
+   return result;
+}
+
 using rhydb::roaring_util::roaringSubsetRanks;
 
 template <typename SymbolType>

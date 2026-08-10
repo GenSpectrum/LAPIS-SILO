@@ -13,6 +13,7 @@ using rhydb::query_engine::filter::operators::Selection;
 using rhydb::query_engine::filter::operators::StringInSet;
 using rhydb::storage::column::DictionaryEncodedColumn;
 using rhydb::storage::column::DictionaryEncodedColumnMetadata;
+using rhydb::storage::column::RowId;
 using rhydb::storage::column::RowLayout;
 using rhydb::storage::column::StringColumn;
 using rhydb::storage::column::StringColumnMetadata;
@@ -195,8 +196,8 @@ TEST(OperatorStringInSet, copyCreatesIndependentCopy) {
    auto copy = original->copy();
 
    ASSERT_EQ(original->toString(), copy->toString());
-   ASSERT_EQ(original->match(0), copy->match(0));
-   ASSERT_EQ(original->match(1), copy->match(1));
+   ASSERT_EQ(original->match(RowId::fromGlobal(0)), copy->match(RowId::fromGlobal(0)));
+   ASSERT_EQ(original->match(RowId::fromGlobal(1)), copy->match(RowId::fromGlobal(1)));
 }
 
 TEST(OperatorStringInSet, matchSingleValue) {

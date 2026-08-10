@@ -18,6 +18,7 @@
 #include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/filter/operators/complement.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
+#include "rhydb/roaring_util/roaring_container.h"
 
 namespace rhydb::query_engine::filter::operators {
 
@@ -103,9 +104,14 @@ CopyOnWriteBitmap Selection::evaluate() const {
       // materializing the first predicate over the whole partition.
       if (child_bitmap.cardinality() <= row_layout.numRows() / 10) {
          roaring::Roaring result;
-         for (const uint32_t row : child_bitmap) {
-            if (matchesPredicates(predicates, row)) {
-               result.add(row);
+         for (const auto& [chunk_id, container_view] : child_bitmap) {
+            for (const uint16_t row_in_chunk : container_view) {
+               const storage::column::RowId row_id{
+                  .chunk_id = chunk_id, .row_in_chunk = row_in_chunk
+               };
+               if (matchesPredicates(predicates, row_id)) {
+                  result.add(row_id.toGlobal());
+               }
             }
          }
          return CopyOnWriteBitmap{std::move(result)};
@@ -123,9 +129,12 @@ CopyOnWriteBitmap Selection::evaluate() const {
    const auto remaining_predicates =
       std::ranges::subrange(predicates.begin() + 1, predicates.end());
    roaring::Roaring result;
-   for (const uint32_t row : candidates) {
-      if (matchesPredicates(remaining_predicates, row)) {
-         result.add(row);
+   for (const auto& [chunk_id, container_view] : candidates) {
+      for (const uint16_t row_in_chunk : container_view) {
+         const storage::column::RowId row_id{.chunk_id = chunk_id, .row_in_chunk = row_in_chunk};
+         if (matchesPredicates(remaining_predicates, row_id)) {
+            result.add(row_id.toGlobal());
+         }
       }
    }
    return CopyOnWriteBitmap{std::move(result)};
@@ -162,8 +171,7 @@ bool strongOrderingMatchesComparator(std::strong_ordering strong_ordering, Compa
 }  // namespace
 
 template <>
-bool CompareToValueSelection<StringColumn>::match(uint32_t global_row_id) const {
-   const storage::column::RowId row_id = storage::column::RowId::fromGlobal(global_row_id);
+bool CompareToValueSelection<StringColumn>::match(storage::column::RowId row_id) const {
    if (column.isNull(row_id)) {
       return with_nulls;
    }
