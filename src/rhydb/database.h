@@ -12,6 +12,16 @@
 
 namespace rhydb {
 
+/// Describes a single non-primary-key column for the generic `createTableFromColumns` API.
+/// `type` is a lowercase type name (e.g. "string", "indexed_string", "date", "bool", "int",
+/// "float", "nucleotide_sequence", "amino_acid_sequence", "zstd_compressed_string"). Columns that
+/// need a reference (the two sequence types and "zstd_compressed_string") take it from the
+/// `references` table rather than from this struct (see `createTableFromColumns`).
+struct ColumnDefinition {
+   std::string name;
+   std::string type;
+};
+
 class Database {
   public:
    schema::DatabaseSchema schema;
@@ -54,6 +64,20 @@ class Database {
       const std::string& sequence_name,
       const std::string& reference_sequence,
       const std::vector<std::string>& extra_string_columns = {}
+   );
+
+   /// Generic table creation: builds a table whose columns can be of any supported type. The first
+   /// entry of `columns` becomes the table's primary key, so `columns` must be non-empty and its
+   /// first entry must be of type "string". Every entry describes one column via its `type` name.
+   /// Columns that need a reference (the two sequence types and "zstd_compressed_string") take it
+   /// from the `references` table, which the caller must have created and populated beforehand: it
+   /// must have STRING columns `name` and `reference`, and its entry whose `name` equals the column
+   /// name supplies that column's reference. Throws if `columns` is empty, its first entry is not a
+   /// string, a type name is unknown, a required reference is missing/invalid, or a column name is
+   /// duplicated.
+   void createTableFromColumns(
+      const std::string& table_name,
+      const std::vector<ColumnDefinition>& columns
    );
 
    void appendDataFromFile(const std::string& table_name, const std::string& file_path);
@@ -104,6 +128,11 @@ class Database {
 
   private:
    [[nodiscard]] arrow::Result<std::string> getTablesAsArrowIpcImpl() const;
+
+   /// Looks up the reference string for `column_name` in the `references` table (see
+   /// `createTableFromColumns`). Throws if the table is missing, malformed, or has no matching
+   /// entry.
+   std::string lookupReferenceForColumn(const std::string& column_name);
 };
 
 }  // namespace rhydb

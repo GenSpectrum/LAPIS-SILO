@@ -4,6 +4,7 @@
 #include <fstream>
 #include <map>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -35,8 +36,11 @@
 #include "rhydb/query_engine/scalar_column_update.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/schema/database_schema.h"
+#include "rhydb/storage/column/dictionary_encoded_column.h"
+#include "rhydb/storage/column/row_id.h"
 #include "rhydb/storage/column/sequence_column.h"
 #include "rhydb/storage/column/string_column.h"
+#include "rhydb/storage/column/zstd_compressed_string_column.h"
 
 namespace {
 template <typename SymbolType>
@@ -69,6 +73,95 @@ std::string symbolVectorToString(const std::vector<typename SymbolType::Symbol>&
       result += character;
    }
    return result;
+}
+
+silo::schema::ColumnType parseColumnTypeName(const std::string& type_name) {
+   using silo::schema::ColumnType;
+   static const std::map<std::string, ColumnType> TYPE_NAMES{
+      {"string", ColumnType::STRING},
+      {"indexed_string", ColumnType::DICTIONARY_ENCODED},
+      {"date", ColumnType::DATE32},
+      {"bool", ColumnType::BOOL},
+      {"int", ColumnType::INT32},
+      {"float", ColumnType::FLOAT},
+      {"nucleotide_sequence", ColumnType::NUCLEOTIDE_SEQUENCE},
+      {"amino_acid_sequence", ColumnType::AMINO_ACID_SEQUENCE},
+      {"zstd_compressed_string", ColumnType::ZSTD_COMPRESSED_STRING},
+   };
+   auto iter = TYPE_NAMES.find(type_name);
+   if (iter == TYPE_NAMES.end()) {
+      throw std::runtime_error(fmt::format(
+         "Unknown column type '{}'. Supported types are: string, indexed_string, date, bool, int, "
+         "float, nucleotide_sequence, amino_acid_sequence, zstd_compressed_string.",
+         type_name
+      ));
+   }
+   return iter->second;
+}
+
+/// The column types whose metadata requires a reference string (looked up in the `references`
+/// table): the two sequence types and the zstd-compressed unaligned sequence type.
+bool columnTypeNeedsReference(silo::schema::ColumnType type) {
+   using silo::schema::ColumnType;
+   return type == ColumnType::NUCLEOTIDE_SEQUENCE || type == ColumnType::AMINO_ACID_SEQUENCE ||
+          type == ColumnType::ZSTD_COMPRESSED_STRING;
+}
+
+std::shared_ptr<silo::storage::column::ColumnMetadata> makeColumnMetadata(
+   const std::string& name,
+   silo::schema::ColumnType type,
+   const std::string& details
+) {
+   using silo::schema::ColumnType;
+   namespace column = silo::storage::column;
+   switch (type) {
+      case ColumnType::STRING:
+         return std::make_shared<column::StringColumnMetadata>(name);
+      case ColumnType::DICTIONARY_ENCODED:
+         return std::make_shared<column::DictionaryEncodedColumnMetadata>(name);
+      case ColumnType::DATE32:
+      case ColumnType::BOOL:
+      case ColumnType::INT32:
+      case ColumnType::FLOAT:
+         return std::make_shared<column::ColumnMetadata>(name);
+      case ColumnType::NUCLEOTIDE_SEQUENCE: {
+         if (details.empty()) {
+            throw std::runtime_error(
+               fmt::format("Column '{}' requires a non-empty reference sequence", name)
+            );
+         }
+         auto reference = stringToSymbolVector<silo::Nucleotide>(details);
+         if (!reference.has_value()) {
+            throw std::runtime_error(
+               fmt::format("Column '{}' has an invalid nucleotide reference sequence", name)
+            );
+         }
+         return std::make_shared<column::SequenceColumnMetadata<silo::Nucleotide>>(
+            name, std::move(reference.value())
+         );
+      }
+      case ColumnType::AMINO_ACID_SEQUENCE: {
+         if (details.empty()) {
+            throw std::runtime_error(
+               fmt::format("Column '{}' requires a non-empty reference sequence", name)
+            );
+         }
+         auto reference = stringToSymbolVector<silo::AminoAcid>(details);
+         if (!reference.has_value()) {
+            throw std::runtime_error(
+               fmt::format("Column '{}' has an invalid amino acid reference sequence", name)
+            );
+         }
+         return std::make_shared<column::SequenceColumnMetadata<silo::AminoAcid>>(
+            name, std::move(reference.value())
+         );
+      }
+      case ColumnType::ZSTD_COMPRESSED_STRING:
+         return std::make_shared<column::ZstdCompressedStringColumnMetadata>(name, details);
+      case ColumnType::INT64:
+         throw std::runtime_error("INT64 columns cannot be created");
+   }
+   SILO_UNREACHABLE();
 }
 }  // namespace
 
@@ -166,6 +259,95 @@ void Database::createGeneTable(
    }
    table_schema->primary_key = primary_key;
    createTable(schema::TableName(table_name), std::move(table_schema));
+}
+
+void Database::createTableFromColumns(
+   const std::string& table_name,
+   const std::vector<ColumnDefinition>& columns
+) {
+   if (columns.empty()) {
+      throw std::runtime_error(
+         "Cannot create a table without columns: the first column becomes the primary key."
+      );
+   }
+   auto table_schema = std::make_shared<schema::TableSchema>();
+   std::optional<schema::ColumnIdentifier> primary_key;
+   std::set<std::string> seen_names;
+   for (const auto& column : columns) {
+      if (!seen_names.insert(column.name).second) {
+         throw std::runtime_error(fmt::format("Duplicate column name '{}'.", column.name));
+      }
+      const auto type = parseColumnTypeName(column.type);
+      if (!primary_key.has_value()) {
+         // The first column listed becomes the table's primary key, which must be a string (the
+         // same constraint the config-driven preprocessing path enforces on its primary key).
+         if (type != schema::ColumnType::STRING) {
+            throw std::runtime_error(fmt::format(
+               "The first column '{}' becomes the primary key and must be of type 'string', but "
+               "has "
+               "type '{}'.",
+               column.name,
+               column.type
+            ));
+         }
+         primary_key = schema::ColumnIdentifier{.name = column.name, .type = type};
+      }
+      std::string reference;
+      if (columnTypeNeedsReference(type)) {
+         reference = lookupReferenceForColumn(column.name);
+      }
+      const schema::ColumnIdentifier column_identifier{.name = column.name, .type = type};
+      table_schema->column_metadata.emplace(
+         column_identifier, makeColumnMetadata(column.name, type, reference)
+      );
+   }
+   table_schema->primary_key = primary_key.value();
+   createTable(schema::TableName(table_name), std::move(table_schema));
+}
+
+std::string Database::lookupReferenceForColumn(const std::string& column_name) {
+   static constexpr std::string_view REFERENCES_TABLE_NAME = "references";
+
+   auto table_iter = tables.find(schema::TableName{std::string{REFERENCES_TABLE_NAME}});
+   if (table_iter == tables.end()) {
+      throw std::runtime_error(fmt::format(
+         "Cannot create sequence column '{}': no '{}' table exists. Create a '{}' table with "
+         "string columns 'name' and 'reference' and populate it before creating sequence columns.",
+         column_name,
+         REFERENCES_TABLE_NAME,
+         REFERENCES_TABLE_NAME
+      ));
+   }
+   const auto& reference_columns = table_iter->second->columns.string_columns;
+   auto name_column_iter = reference_columns.find("name");
+   auto reference_column_iter = reference_columns.find("reference");
+   if (name_column_iter == reference_columns.end() ||
+       reference_column_iter == reference_columns.end()) {
+      throw std::runtime_error(fmt::format(
+         "The '{}' table must have string columns 'name' and 'reference'.", REFERENCES_TABLE_NAME
+      ));
+   }
+   const auto& name_column = name_column_iter->second;
+   const auto& reference_column = reference_column_iter->second;
+
+   const roaring::Roaring all_rows = getFilteredBitmap(std::string{REFERENCES_TABLE_NAME}, "true");
+   for (const uint32_t global_row_id : all_rows) {
+      const auto row_id = storage::column::RowId::fromGlobal(global_row_id);
+      if (name_column.isNull(row_id) || name_column.getValueString(row_id) != column_name) {
+         continue;
+      }
+      if (reference_column.isNull(row_id)) {
+         throw std::runtime_error(fmt::format(
+            "The '{}' entry named '{}' has a null reference.", REFERENCES_TABLE_NAME, column_name
+         ));
+      }
+      return reference_column.getValueString(row_id);
+   }
+   throw std::runtime_error(fmt::format(
+      "The '{}' table has no entry named '{}' for the sequence column being created.",
+      REFERENCES_TABLE_NAME,
+      column_name
+   ));
 }
 
 void Database::appendDataFromFile(const std::string& table_name, const std::string& file_path) {

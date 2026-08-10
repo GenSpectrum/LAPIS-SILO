@@ -6,7 +6,7 @@ from libcpp.optional cimport optional
 from libc.stdint cimport uint64_t, uint32_t
 from libc.stdlib cimport malloc, free
 from cython.operator cimport dereference as deref
-from database cimport Database as CppDatabase, Roaring as CppRoaring
+from database cimport Database as CppDatabase, Roaring as CppRoaring, ColumnDefinition
 import os
 import pyroaring
 import pyarrow as pa
@@ -166,7 +166,106 @@ cdef class PyDatabase:
             self.c_database.createGeneTable(cpp_table_name, cpp_primary_key_name, cpp_gene_name, cpp_reference_sequence, cpp_extra_columns)
         except Exception as e:
             raise RuntimeError(f"Failed to create table '{table_name}': {e}")
-    
+
+    # Column types accepted by :meth:`create_table`.
+    _COLUMN_TYPES = frozenset({
+        "string",
+        "indexed_string",
+        "date",
+        "bool",
+        "int",
+        "float",
+        "nucleotide_sequence",
+        "amino_acid_sequence",
+        "zstd_compressed_string",
+    })
+
+    def create_table(self, str table_name, list columns=None):
+        """
+        Create a new table with columns of arbitrary supported types.
+
+        This is the generic counterpart to :meth:`create_nucleotide_sequence_table` and
+        :meth:`create_gene_table`: it lets you declare a table with any mix of scalar, string and
+        sequence columns. The first column in ``columns`` becomes the table's primary key, so at
+        least one column must be provided and its first entry must be of type ``"string"``.
+
+        Columns of type ``"nucleotide_sequence"``, ``"amino_acid_sequence"`` and
+        ``"zstd_compressed_string"`` need a reference sequence. Rather than passing it inline, the
+        reference is taken from a table named ``references`` that you must create and populate
+        beforehand. That table must have string columns ``name`` and ``reference``; the entry whose
+        ``name`` equals the column name supplies that column's reference, and creation fails if no
+        such entry exists.
+
+        Parameters
+        ----------
+        table_name : str
+            Name of the table
+        columns : list of dict
+            The table's columns; the first one becomes the primary key. Each dict has:
+
+            - ``name`` (str): the column name
+            - ``type`` (str): one of ``"string"``, ``"indexed_string"``, ``"date"``, ``"bool"``,
+              ``"int"``, ``"float"``, ``"nucleotide_sequence"``, ``"amino_acid_sequence"``,
+              ``"zstd_compressed_string"``
+
+        Example
+        -------
+        >>> # Provide references for the sequence columns first.
+        >>> db.create_table("references",
+        ...     [{"name": "name", "type": "string"}, {"name": "reference", "type": "string"}])
+        >>> db.append_data_from_string("references",
+        ...     '{"name": "main", "reference": "ACGT"}')
+        >>> db.create_table(
+        ...     table_name="samples",
+        ...     columns=[
+        ...         {"name": "id", "type": "string"},  # first column -> primary key
+        ...         {"name": "age", "type": "int"},
+        ...         {"name": "qc", "type": "float"},
+        ...         {"name": "collected", "type": "date"},
+        ...         {"name": "passed", "type": "bool"},
+        ...         {"name": "country", "type": "string"},
+        ...         {"name": "lineage", "type": "indexed_string"},
+        ...         {"name": "main", "type": "nucleotide_sequence"},
+        ...     ],
+        ... )
+        """
+        if not table_name or not table_name.strip():
+            raise ValueError("table_name cannot be empty")
+        if columns is None:
+            columns = []
+        if not columns:
+            raise ValueError("columns must contain at least one column (the first is the primary key)")
+
+        cdef string cpp_table_name = table_name.encode('utf-8')
+        cdef vector[ColumnDefinition] cpp_columns
+        cdef ColumnDefinition cpp_column
+
+        for column in columns:
+            if not isinstance(column, dict):
+                raise TypeError(f"each column must be a dict, got {type(column)}")
+
+            name = column.get("name")
+            if not isinstance(name, str) or not name or not name.strip():
+                raise ValueError("each column must have a non-empty string 'name'")
+
+            column_type = column.get("type")
+            if not isinstance(column_type, str):
+                raise ValueError(f"column '{name}' must have a string 'type'")
+            if column_type not in self._COLUMN_TYPES:
+                raise ValueError(
+                    f"column '{name}' has unknown type '{column_type}'; "
+                    f"supported types are: {', '.join(sorted(self._COLUMN_TYPES))}"
+                )
+
+            cpp_column.name = name.encode('utf-8')
+            cpp_column.type = column_type.encode('utf-8')
+            cpp_columns.push_back(cpp_column)
+
+        try:
+            self.c_database.createTableFromColumns(cpp_table_name, cpp_columns)
+        except Exception as e:
+            raise RuntimeError(f"Failed to create table '{table_name}': {e}")
+
     def append_data_from_file(self, str table_name, str file_name):
         """
         Append data from file to table

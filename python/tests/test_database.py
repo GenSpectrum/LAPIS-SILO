@@ -14,9 +14,9 @@ REFERENCE_GENOMES_FILE = os.path.join(TEST_DATA_DIR, 'reference_genomes.json')
 INPUT_FILE = os.path.join(TEST_DATA_DIR, 'input_file.ndjson')
 
 # A serialized database (checked into the repo) whose schema has scalar value columns
-# (age:int, qc_value:float, date:date, test_boolean_column:bool). These cannot be created
-# through the Python table-creation API, so loading this state is how the Python tests exercise
-# a real scalar update.
+# (age:int, qc_value:float, date:date, test_boolean_column:bool). Scalar columns can now also be
+# created directly through create_table; loading this state additionally exercises the on-disk
+# load path for such columns.
 SERIALIZED_STATE_DIR = os.path.join(
     os.path.dirname(__file__), '..', '..', 'testBaseData', 'siloSerializedState'
 )
@@ -549,6 +549,165 @@ class TestExtraColumns:
         # If no exception, table was created
 
 
+class TestCreateTable:
+    """Test the generic create_table method that accepts columns of any supported type."""
+
+    @staticmethod
+    def _create_references_table(db, entries):
+        """Create and populate the `references` table create_table reads sequence references from.
+
+        `entries` maps a sequence column name to its reference string.
+        """
+        db.create_table(
+            "references",
+            [{"name": "name", "type": "string"}, {"name": "reference", "type": "string"}],
+        )
+        for name, reference in entries.items():
+            db.append_data_from_string(
+                "references", json.dumps({"name": name, "reference": reference})
+            )
+
+    def test_create_table_with_all_column_types(self):
+        """A table can be created with every supported column type and populated."""
+        from rhydb import Database
+
+        db = Database()
+        self._create_references_table(db, {"seq": "ACGT", "gene": "MFV"})
+        db.create_table(
+            table_name="samples",
+            columns=[
+                {"name": "id", "type": "string"},  # first column -> primary key
+                {"name": "age", "type": "int"},
+                {"name": "qc", "type": "float"},
+                {"name": "collected", "type": "date"},
+                {"name": "passed", "type": "bool"},
+                {"name": "country", "type": "string"},
+                {"name": "lineage", "type": "indexed_string"},
+                {"name": "seq", "type": "nucleotide_sequence"},
+                {"name": "gene", "type": "amino_acid_sequence"},
+            ],
+        )
+        db.append_data_from_string(
+            "samples",
+            json.dumps(
+                {
+                    "id": "s1",
+                    "age": 42,
+                    "qc": 0.5,
+                    "collected": "2021-03-15",
+                    "passed": True,
+                    "country": "Switzerland",
+                    "lineage": "B.1",
+                    "seq": {"sequence": "ACGT", "insertions": []},
+                    "gene": {"sequence": "MFV", "insertions": []},
+                }
+            ),
+        )
+
+        result = db.query("samples.project({id, age, qc, country, lineage})")
+        data = result.to_pydict()
+        assert data["id"] == ["s1"]
+        assert data["age"] == [42]
+        assert data["qc"] == [0.5]
+        assert data["country"] == ["Switzerland"]
+        assert data["lineage"] == ["B.1"]
+        # The sequence column's reference was resolved from the `references` table by column name.
+        assert db.get_nucleotide_reference_sequence("samples", "seq") == "ACGT"
+        assert db.get_amino_acid_reference_sequence("samples", "gene") == "MFV"
+
+    def test_create_table_reference_looked_up_by_column_name(self):
+        """A sequence column's reference is taken from the matching `references` entry."""
+        from rhydb import Database
+
+        db = Database()
+        self._create_references_table(db, {"main": "ACGTACGT"})
+        db.create_table(
+            "sequences",
+            [{"name": "id", "type": "string"}, {"name": "main", "type": "nucleotide_sequence"}],
+        )
+
+        assert db.get_nucleotide_reference_sequence("sequences", "main") == "ACGTACGT"
+
+    def test_create_table_missing_references_table_raises(self, empty_database):
+        """Creating a sequence column without a `references` table fails."""
+        with pytest.raises(RuntimeError, match="no 'references' table"):
+            empty_database.create_table(
+                "samples",
+                [{"name": "id", "type": "string"}, {"name": "seq", "type": "nucleotide_sequence"}],
+            )
+
+    def test_create_table_missing_reference_entry_raises(self):
+        """Creating a sequence column with no matching `references` entry fails."""
+        from rhydb import Database
+
+        db = Database()
+        self._create_references_table(db, {"other": "ACGT"})
+        with pytest.raises(RuntimeError, match="no entry named 'seq'"):
+            db.create_table(
+                "samples",
+                [{"name": "id", "type": "string"}, {"name": "seq", "type": "nucleotide_sequence"}],
+            )
+
+    def test_create_table_scalar_columns_are_updatable(self):
+        """Scalar columns created via create_table support update_column end to end."""
+        from rhydb import Database
+
+        db = Database()
+        db.create_table(
+            table_name="samples",
+            columns=[{"name": "id", "type": "string"}, {"name": "age", "type": "int"}],
+        )
+        db.append_data_from_string("samples", '{"id": "s1", "age": 1}')
+        db.append_data_from_string("samples", '{"id": "s2", "age": 2}')
+
+        db.update_column("samples", "age", "99", "age = 1")
+
+        assert len(db.get_filtered_bitmap("samples", "age = 99")) == 1
+        assert len(db.get_filtered_bitmap("samples", "age = 2")) == 1
+
+    def test_create_table_single_column_is_primary_key(self):
+        """A table can be created with a single column, which becomes the primary key."""
+        from rhydb import Database
+
+        db = Database()
+        db.create_table(table_name="samples", columns=[{"name": "id", "type": "string"}])
+        db.append_data_from_string("samples", '{"id": "s1"}')
+
+        result = db.query("samples")
+        assert result.num_rows == 1
+        assert "id" in result.column_names
+
+    def test_create_table_empty_table_name_raises(self, empty_database):
+        with pytest.raises(ValueError, match="table_name cannot be empty"):
+            empty_database.create_table("", [{"name": "id", "type": "string"}])
+
+    def test_create_table_no_columns_raises(self, empty_database):
+        with pytest.raises(ValueError, match="at least one column"):
+            empty_database.create_table("samples", [])
+
+    def test_create_table_non_string_primary_key_raises(self, empty_database):
+        with pytest.raises(RuntimeError, match="must be of type 'string'"):
+            empty_database.create_table("samples", [{"name": "id", "type": "int"}])
+
+    def test_create_table_unknown_type_raises(self, empty_database):
+        with pytest.raises(ValueError, match="unknown type"):
+            empty_database.create_table("samples", [{"name": "x", "type": "nonsense"}])
+
+    def test_create_table_missing_name_raises(self, empty_database):
+        with pytest.raises(ValueError, match="non-empty string 'name'"):
+            empty_database.create_table("samples", [{"type": "int"}])
+
+    def test_create_table_column_not_dict_raises(self, empty_database):
+        with pytest.raises(TypeError, match="each column must be a dict"):
+            empty_database.create_table("samples", ["age"])
+
+    def test_create_table_duplicate_column_raises(self, empty_database):
+        with pytest.raises(RuntimeError, match="Duplicate column name"):
+            empty_database.create_table(
+                "samples", [{"name": "x", "type": "string"}, {"name": "x", "type": "int"}]
+            )
+
+
 class TestGetTables:
     """Test the get_tables method."""
 
@@ -788,12 +947,12 @@ class TestQuery:
 class TestUpdateColumn:
     """Test the update_column binding.
 
-    Extra columns created through the Python table-creation API are plain (non-indexed, non-phylo)
-    string columns, so these tests cover both the binding layer itself (argument validation,
-    marshalling, translation of C++ errors into Python exceptions) and the end-to-end update of a
-    string column. Scalar value columns (int/float/date/bool) and indexed string columns cannot be
-    created through this API; their update behavior is covered by TestUpdateColumnOnLoadedDatabase
-    and the C++ unit tests.
+    Extra columns created through create_nucleotide_sequence_table are plain (non-indexed,
+    non-phylo) string columns, so these tests cover both the binding layer itself (argument
+    validation, marshalling, translation of C++ errors into Python exceptions) and the end-to-end
+    update of a string column. Scalar value column updates are additionally exercised via
+    create_table in TestCreateTable and against the loaded database in
+    TestUpdateColumnOnLoadedDatabase.
     """
 
     def _database_with_string_column(self, main_reference_sequence):
@@ -872,9 +1031,9 @@ class TestUpdateColumnOnLoadedDatabase:
     """End-to-end update_column tests against the serialized database checked into the repo.
 
     That database has real scalar value columns (age:int, qc_value:float, date:date,
-    test_boolean_column:bool), which the Python table-creation API cannot produce. update_column
-    mutates only the in-memory database (the on-disk state is never saved), so every test loads its
-    own fresh copy and the repo files are left untouched.
+    test_boolean_column:bool) plus indexed string columns, and exercises the on-disk load path.
+    update_column mutates only the in-memory database (the on-disk state is never saved), so every
+    test loads its own fresh copy and the repo files are left untouched.
     """
 
     @pytest.fixture
