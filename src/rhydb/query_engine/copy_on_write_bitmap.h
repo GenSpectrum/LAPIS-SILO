@@ -141,6 +141,13 @@ class CopyOnWriteBitmap {
       std::vector<std::pair<uint16_t, roaring_util::RoaringContainerView>> container_views
    );
 
+   /// The bitmap's containers as (2^16 chunk key, non-owning view) pairs, ascending by key. Lets a
+   /// caller do container-level work chunk by chunk (e.g. per-chunk aggregation) without
+   /// materializing or copying any container. The views borrow this bitmap's containers, so it must
+   /// outlive them and must not be mutated while they are in use.
+   [[nodiscard]] std::vector<std::pair<uint16_t, roaring_util::RoaringContainerView>>
+   containerViews() const;
+
    /// Materializes into a standalone `roaring::Roaring`. Intended for the end of a query only,
    /// where the result is handed to a consumer -- not for intermediate computation.
    [[nodiscard]] roaring::Roaring toRoaring() const;

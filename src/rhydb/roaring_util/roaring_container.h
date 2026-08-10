@@ -264,6 +264,12 @@ class RoaringContainerView {
    [[nodiscard]] static ConstIterator end() { return ConstIterator{}; }
 };
 
+/// Single-container set algebra producing an owning `RoaringContainer`: `&` intersection, `-`
+/// difference, `|` union. Each treats an empty (null) operand as the empty set -- guarding the
+/// roaring container C API, which has no representation for an empty container -- so callers can
+/// chain them without special-casing, and an empty result is returned as an empty
+/// `RoaringContainer`. Both operands must belong to the same 2^16 chunk (the caller pairs them by
+/// key); these operate purely at the container level and carry no key.
 [[nodiscard]] RoaringContainer operator&(RoaringContainerView lhs, RoaringContainerView rhs);
 [[nodiscard]] RoaringContainer operator-(RoaringContainerView lhs, RoaringContainerView rhs);
 [[nodiscard]] RoaringContainer operator|(RoaringContainerView lhs, RoaringContainerView rhs);
