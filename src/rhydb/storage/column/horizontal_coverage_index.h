@@ -10,6 +10,7 @@
 #include <roaring/roaring.hh>
 
 #include "rhydb/roaring_util/bitmap_builder.h"
+#include "rhydb/roaring_util/roaring_container.h"
 #include "rhydb/storage/column/row_id.h"
 
 namespace rhydb {
@@ -58,6 +59,19 @@ class HorizontalCoverageIndex {
          ends.at(row_id.chunk_id).at(row_id.row_in_chunk)
       };
    }
+
+   /// The rows of a single 2^16 chunk that cover `position` (i.e. `position` lies in the row's
+   /// `[start, end)` and is not one of the row's in-region N positions). This is the single-chunk
+   /// analogue of `getCoverageBitmapForPositions`, kept so the bitmap-aggregation node can compute
+   /// per-symbol groups one filter chunk at a time and skip chunks the filter does not touch. Uses
+   /// the same envelope fast paths (skip a chunk that cannot cover the position; bulk-add a chunk
+   /// that fully covers it) as the batch method. Every matching row lives in the one 2^16 chunk, so
+   /// the result is a single roaring container returned directly (empty if no row covers the
+   /// position), sparing the caller a `roaring::Roaring` wrapper.
+   [[nodiscard]] roaring_util::RoaringContainer coveredRowsInChunk(
+      uint32_t position,
+      uint16_t chunk_id
+   ) const;
 
    template <size_t BatchSize>
    [[nodiscard]] std::array<roaring::Roaring, BatchSize> getCoverageBitmapForPositions(

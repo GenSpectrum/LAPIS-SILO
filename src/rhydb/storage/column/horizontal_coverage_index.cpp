@@ -49,6 +49,71 @@ void HorizontalCoverageIndex::insertCoverage(RowId row_id, const Coverage& cover
    }
 }
 
+roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
+   uint32_t position,
+   uint16_t chunk_id
+) const {
+   roaring::Roaring result;
+   if (chunk_id >= starts.size()) {
+      return roaring_util::RoaringContainer{};
+   }
+
+   // No row in this chunk can cover the position.
+   if (batch_max_end.at(chunk_id) <= position || batch_min_start.at(chunk_id) > position) {
+      return roaring_util::RoaringContainer{};
+   }
+
+   const uint32_t base_row_id = static_cast<uint32_t>(chunk_id) << 16U;
+   const auto& chunk_starts = starts[chunk_id];
+   const auto& chunk_ends = ends[chunk_id];
+
+   // Fast path: if the position lies within the chunk's intersection envelope
+   // `[batch_max_start, batch_min_end)`, every row in the chunk covers it, so add the whole chunk in
+   // one range operation.
+   if (batch_max_start.at(chunk_id) <= position && position < batch_min_end.at(chunk_id)) {
+      result.addRange(base_row_id, base_row_id + chunk_starts.size());
+   } else {
+      roaring_util::BitmapBuilderByRange partial_builder;
+      for (size_t row_in_chunk = 0; row_in_chunk < chunk_starts.size(); ++row_in_chunk) {
+         if (chunk_starts[row_in_chunk] <= position && position < chunk_ends[row_in_chunk]) {
+            partial_builder.add(base_row_id | static_cast<uint32_t>(row_in_chunk));
+         }
+      }
+      result |= std::move(partial_builder).getBitmap();
+   }
+
+   // Remove this chunk's in-region N positions: a row whose covered range includes `position` but
+   // records an N there is not covered at `position` (it belongs to the missing symbol instead).
+   const auto chunk_rows_begin = horizontal_bitmaps.lower_bound(base_row_id);
+   const uint64_t chunk_end_key = static_cast<uint64_t>(base_row_id) + chunk_starts.size();
+   const auto chunk_rows_end =
+      chunk_end_key > UINT32_MAX
+         ? horizontal_bitmaps.end()
+         : horizontal_bitmaps.lower_bound(static_cast<uint32_t>(chunk_end_key));
+   for (auto iter = chunk_rows_begin; iter != chunk_rows_end; ++iter) {
+      if (iter->second.contains(position)) {
+         result.remove(iter->first);
+      }
+   }
+
+   // Every row added above lies in `chunk_id`, so `result` holds at most this one 2^16 container.
+   // Steal it out of the roaring array (no clone) and hand it back on its own; an empty result
+   // becomes an empty container.
+   auto& roaring_array = result.roaring.high_low_container;
+   if (roaring_array.size == 0) {
+      return roaring_util::RoaringContainer{};
+   }
+   SILO_ASSERT_EQ(roaring_array.size, 1);
+   const auto cardinality = static_cast<uint32_t>(roaring::internal::container_get_cardinality(
+      roaring_array.containers[0], roaring_array.typecodes[0]
+   ));
+   roaring_util::RoaringContainer container{
+      roaring_array.containers[0], cardinality, roaring_array.typecodes[0]
+   };
+   roaring::internal::ra_clear_without_containers(&roaring_array);
+   return container;
+}
+
 void HorizontalCoverageIndex::insertNullSequence(RowId row_id) {
    insertCoverage(row_id, Coverage{.start = 0, .end = 0, .missing_positions = {}});
 }
