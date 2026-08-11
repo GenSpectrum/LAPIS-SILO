@@ -279,6 +279,27 @@ const QueryTestScenario CO_OCCURRENCE_AMBIGUOUS_CODES = {
    ])")
 };
 
+// Every row's segment1 is fully missing (all N), so no row covers any position -- an all-N sequence
+// carries a real (fully missing) coverage range, not a null. This exercises the whole-chunk "all
+// missing" fast path: every filtered row collapses to the single missing-symbol group.
+const nlohmann::json ALL_MISSING_ROW_A = createDataWithSequences("NNNNN", "M*", "Europe");
+const nlohmann::json ALL_MISSING_ROW_B = createDataWithSequences("NNNNN", "M*", "Asia");
+const nlohmann::json ALL_MISSING_ROW_C = createDataWithSequences("NNNNN", "M*", "Europe");
+
+const QueryTestData ALL_MISSING_TEST_DATA{
+   .ndjson_input_data = {ALL_MISSING_ROW_A, ALL_MISSING_ROW_B, ALL_MISSING_ROW_C},
+   .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
+};
+
+const QueryTestScenario ALL_ROWS_MISSING_AT_POSITION = {
+   .name = "ALL_ROWS_MISSING_AT_POSITION",
+   .query = "default.map({s1 := segment1.at(1)}).groupBy({count:=count()}, {s1})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"s1": "N", "count": 3}
+   ])")
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -311,4 +332,10 @@ QUERY_TEST(
    BitmapAggregationAmbiguousCodes,
    AMBIGUITY_TEST_DATA,
    ::testing::Values(CO_OCCURRENCE_AMBIGUOUS_CODES)
+);
+
+QUERY_TEST(
+   BitmapAggregationAllMissing,
+   ALL_MISSING_TEST_DATA,
+   ::testing::Values(ALL_ROWS_MISSING_AT_POSITION)
 );
