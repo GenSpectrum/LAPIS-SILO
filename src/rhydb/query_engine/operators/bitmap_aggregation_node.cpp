@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -16,7 +15,6 @@
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
 #include <arrow/builder.h>
-#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 #include <roaring/roaring.hh>
 
@@ -188,8 +186,7 @@ class SequencePositionGrouper : public ChunkGrouper {
       if (!chunk_has_mutations) {
          // No row covers the position -> every row is missing. A null row would form its own group,
          // so only collapse when the chunk has no nulls.
-         if (!null_views.contains(chunk_key) &&
-             coverage.noRowCoversPositionInChunk(position_idx, chunk_key)) {
+         if (!null_views.contains(chunk_key) && coverage.noRowCoversPositionInChunk(position_idx, chunk_key)) {
             return rank_of_symbol.at(missing_symbol);
          }
          // Every row covers the position with no in-region N -> every row is the reference symbol.
@@ -457,13 +454,7 @@ std::vector<GroupCombination> computeCombinations(
    std::map<std::vector<size_t>, uint64_t> counts;
    std::vector<size_t> chosen_indices(num_dimensions);
 
-   // NOLINTBEGIN -- temporary instrumentation: split per-chunk accumulation from post-aggregation.
-   size_t instrumentation_num_chunks = 0;
-   const auto instrumentation_per_chunk_start = std::chrono::steady_clock::now();
-   // NOLINTEND
-
    for (const auto& [chunk_key, filter_view] : filter_bitmap.containerViews()) {
-      ++instrumentation_num_chunks;
       // Build each dimension's groups for this chunk. `scratch` backs the computed (non-view) group
       // containers and must outlive the aggregation below, so it lives for the whole chunk
       // iteration. A filter container is never empty, and each dimension's groups partition its
@@ -487,33 +478,11 @@ std::vector<GroupCombination> computeCombinations(
       );
    }
 
-   // NOLINTBEGIN -- temporary instrumentation.
-   const auto instrumentation_post_start = std::chrono::steady_clock::now();
-   // NOLINTEND
-
    std::vector<GroupCombination> combinations;
    combinations.reserve(counts.size());
    for (const auto& [indices, count] : counts) {
       combinations.push_back(GroupCombination{.group_indices = indices, .count = count});
    }
-
-   // NOLINTBEGIN -- temporary instrumentation.
-   const auto instrumentation_end = std::chrono::steady_clock::now();
-   SPDLOG_INFO(
-      "aggregateCounting: dimensions={}, chunks={}, combinations={}, per-chunk={:.2f} ms, "
-      "post-aggregation={:.2f} ms",
-      num_dimensions,
-      instrumentation_num_chunks,
-      combinations.size(),
-      std::chrono::duration<double, std::milli>(
-         instrumentation_post_start - instrumentation_per_chunk_start
-      )
-         .count(),
-      std::chrono::duration<double, std::milli>(instrumentation_end - instrumentation_post_start)
-         .count()
-   );
-   // NOLINTEND
-
    return combinations;
 }
 
