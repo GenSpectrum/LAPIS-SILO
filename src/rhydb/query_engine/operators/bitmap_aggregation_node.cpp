@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -16,6 +17,7 @@
 #include <arrow/acero/options.h>
 #include <arrow/builder.h>
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 #include <roaring/roaring.hh>
 
 #include "rhydb/common/aa_symbols.h"
@@ -59,7 +61,14 @@ using GroupLabels = std::vector<std::optional<std::string>>;
 /// non-owning container view) pairs. The views are NOT yet intersected with the query filter -- the
 /// aggregation seeds each chunk's recursion with the filter container and intersects it in, so the
 /// views can be handed out straight from the underlying index storage with no copy.
-using DimensionGroupsInChunk = std::vector<std::pair<size_t, RoaringContainerView>>;
+using ChunkGroupList = std::vector<std::pair<size_t, RoaringContainerView>>;
+
+/// One dimension's groups within a single 2^16 chunk. Usually a `ChunkGroupList`, but when *every*
+/// filtered row in the chunk falls into one group -- a fully-covered sequence position with no
+/// mutations (all reference), or a position no row covers (all missing) -- it collapses to just
+/// that group's label index. The aggregation then needs no container intersection for the dimension
+/// at all: the running row set passes straight through with that label fixed.
+using DimensionGroupsInChunk = std::variant<ChunkGroupList, size_t>;
 
 /// A grouping dimension resolved against the table, producing its groups one 2^16 chunk at a time.
 ///
@@ -170,7 +179,26 @@ class SequencePositionGrouper : public ChunkGrouper {
       RoaringContainerView filter_view,
       std::vector<RoaringContainer>& scratch
    ) const override {
-      DimensionGroupsInChunk groups;
+      const auto& coverage = column.horizontal_coverage_index;
+      const bool chunk_has_mutations = mutations_by_chunk.contains(chunk_key);
+
+      // Whole-chunk fast paths: when every filtered row shares one group we skip all per-container
+      // work and just hand back its label (the aggregation then passes the row set straight
+      // through). Both require no mutation recorded at the position in this chunk.
+      if (!chunk_has_mutations) {
+         // No row covers the position -> every row is missing. A null row would form its own group,
+         // so only collapse when the chunk has no nulls.
+         if (!null_views.contains(chunk_key) && coverage.noRowCoversPositionInChunk(position_idx, chunk_key)) {
+            return rank_of_symbol.at(missing_symbol);
+         }
+         // Every row covers the position with no in-region N -> every row is the reference symbol.
+         // (A null row forces the covered envelope empty, so this never fires with nulls.)
+         if (coverage.positionCoveredByWholeChunk(position_idx, chunk_key)) {
+            return rank_of_symbol.at(reference_symbol);
+         }
+      }
+
+      ChunkGroupList groups;
       // At most one computed group per symbol (reference / missing); reserve so the views taken
       // below never dangle across a reallocation.
       scratch.reserve(SYMBOL_COUNT);
@@ -200,8 +228,7 @@ class SequencePositionGrouper : public ChunkGrouper {
 
       // The covered rows come back as a single chunk container; an empty container means the
       // position is not covered anywhere in the chunk.
-      const RoaringContainer covered =
-         column.horizontal_coverage_index.coveredRowsInChunk(position_idx, chunk_key);
+      const RoaringContainer covered = coverage.coveredRowsInChunk(position_idx, chunk_key);
 
       // A null sequence carries no symbol at any position, so it forms its own group and is
       // excluded from the missing symbol. The group itself is a zero-copy view; `null_in_chunk`
@@ -277,7 +304,7 @@ class IndexedColumnGrouper : public ChunkGrouper {
    // chunk key -> the groups holding a container in that chunk. Precomputed once (the inverted
    // index is unordered), so per-chunk grouping is a single map lookup returning views into stored
    // bitmaps.
-   std::map<uint16_t, DimensionGroupsInChunk> groups_by_chunk;
+   std::map<uint16_t, ChunkGroupList> groups_by_chunk;
 
   public:
    explicit IndexedColumnGrouper(const storage::column::DictionaryEncodedColumn& column) {
@@ -316,7 +343,7 @@ class IndexedColumnGrouper : public ChunkGrouper {
       if (auto iter = groups_by_chunk.find(chunk_key); iter != groups_by_chunk.end()) {
          return iter->second;
       }
-      return {};
+      return ChunkGroupList{};
    }
 };
 
@@ -347,7 +374,9 @@ std::unique_ptr<ChunkGrouper> makeGrouper(
 /// container-level intersection of the groups chosen so far; it is seeded with the filter chunk (so
 /// the not-yet-filtered group views are bounded by the filter here) and is only ever a view or a
 /// short-lived owned temporary, so no `CopyOnWriteBitmap` is built and no group container is
-/// copied. Empty intersections are pruned.
+/// copied. Empty intersections are pruned. A dimension whose groups collapsed to a single
+/// whole-chunk label contributes no intersection at all -- the running set passes through unchanged
+/// with that label fixed.
 // NOLINTNEXTLINE(misc-no-recursion)
 void aggregateChunk(
    size_t depth,
@@ -358,7 +387,26 @@ void aggregateChunk(
    std::map<std::vector<size_t>, uint64_t>& counts
 ) {
    const size_t last_dimension = groups_by_dimension.size() - 1;
-   for (const auto& [group_index, view] : *groups_by_dimension[depth]) {
+
+   if (const size_t* whole_chunk_label = std::get_if<size_t>(groups_by_dimension[depth])) {
+      // Every row of the running intersection carries this one label; nothing to intersect.
+      chosen_indices[depth] = *whole_chunk_label;
+      if (depth == last_dimension) {
+         const uint64_t count = static_cast<uint64_t>(
+            roaring::internal::container_get_cardinality(current, current_typecode)
+         );
+         if (count > 0) {
+            counts[chosen_indices] += count;
+         }
+      } else {
+         aggregateChunk(
+            depth + 1, current, current_typecode, groups_by_dimension, chosen_indices, counts
+         );
+      }
+      return;
+   }
+
+   for (const auto& [group_index, view] : std::get<ChunkGroupList>(*groups_by_dimension[depth])) {
       chosen_indices[depth] = group_index;
 
       if (depth == last_dimension) {
@@ -408,28 +456,24 @@ std::vector<GroupCombination> computeCombinations(
    std::map<std::vector<size_t>, uint64_t> counts;
    std::vector<size_t> chosen_indices(num_dimensions);
 
+   // NOLINTBEGIN -- temporary instrumentation: split per-chunk accumulation from post-aggregation.
+   size_t instrumentation_num_chunks = 0;
+   const auto instrumentation_per_chunk_start = std::chrono::steady_clock::now();
+   // NOLINTEND
+
    for (const auto& [chunk_key, filter_view] : filter_bitmap.containerViews()) {
+      ++instrumentation_num_chunks;
       // Build each dimension's groups for this chunk. `scratch` backs the computed (non-view) group
       // containers and must outlive the aggregation below, so it lives for the whole chunk
-      // iteration.
+      // iteration. A filter container is never empty, and each dimension's groups partition its
+      // rows, so every dimension yields at least one group; a dimension that (defensively) produced
+      // none would simply contribute no combinations in `aggregateChunk`.
       std::vector<std::vector<RoaringContainer>> scratch(num_dimensions);
       std::vector<DimensionGroupsInChunk> groups(num_dimensions);
-      bool any_dimension_empty = false;
+      std::vector<const DimensionGroupsInChunk*> groups_at_chunk(num_dimensions);
       for (size_t dimension = 0; dimension < num_dimensions; ++dimension) {
          groups[dimension] =
             groupers[dimension]->groupChunk(chunk_key, filter_view, scratch[dimension]);
-         if (groups[dimension].empty()) {
-            // No group covers this chunk in this dimension -> no combination can survive it.
-            any_dimension_empty = true;
-            break;
-         }
-      }
-      if (any_dimension_empty) {
-         continue;
-      }
-
-      std::vector<const DimensionGroupsInChunk*> groups_at_chunk(num_dimensions);
-      for (size_t dimension = 0; dimension < num_dimensions; ++dimension) {
          groups_at_chunk[dimension] = &groups[dimension];
       }
       aggregateChunk(
@@ -442,11 +486,33 @@ std::vector<GroupCombination> computeCombinations(
       );
    }
 
+   // NOLINTBEGIN -- temporary instrumentation.
+   const auto instrumentation_post_start = std::chrono::steady_clock::now();
+   // NOLINTEND
+
    std::vector<GroupCombination> combinations;
    combinations.reserve(counts.size());
    for (const auto& [indices, count] : counts) {
       combinations.push_back(GroupCombination{.group_indices = indices, .count = count});
    }
+
+   // NOLINTBEGIN -- temporary instrumentation.
+   const auto instrumentation_end = std::chrono::steady_clock::now();
+   SPDLOG_INFO(
+      "aggregateCounting: dimensions={}, chunks={}, combinations={}, per-chunk={:.2f} ms, "
+      "post-aggregation={:.2f} ms",
+      num_dimensions,
+      instrumentation_num_chunks,
+      combinations.size(),
+      std::chrono::duration<double, std::milli>(
+         instrumentation_post_start - instrumentation_per_chunk_start
+      )
+         .count(),
+      std::chrono::duration<double, std::milli>(instrumentation_end - instrumentation_post_start)
+         .count()
+   );
+   // NOLINTEND
+
    return combinations;
 }
 
