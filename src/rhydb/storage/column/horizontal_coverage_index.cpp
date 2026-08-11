@@ -114,6 +114,44 @@ roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
    return container;
 }
 
+bool HorizontalCoverageIndex::noRowCoversPositionInChunk(uint32_t position, uint16_t chunk_id)
+   const {
+   if (chunk_id >= start_end.size()) {
+      return true;
+   }
+   const auto [batch_start, batch_end] = batch_start_ends.at(chunk_id);
+   return batch_end <= position || batch_start > position;
+}
+
+bool HorizontalCoverageIndex::positionCoveredByWholeChunk(uint32_t position, uint16_t chunk_id)
+   const {
+   if (chunk_id >= start_end.size() || batch_covered_intersection.size() != start_end.size()) {
+      return false;
+   }
+   const auto [covered_max_start, covered_min_end] = batch_covered_intersection[chunk_id];
+   // The envelope says every row's covered range includes `position` iff it lies in the
+   // intersection of all those ranges. (A null row has range [0, 0), forcing `covered_min_end` to
+   // 0, so this is always false for a chunk with nulls.)
+   if (position < covered_max_start || position >= covered_min_end) {
+      return false;
+   }
+   // Each row covers `position` only as the reference symbol if it records no in-region N there, so
+   // reject the chunk if any of its in-region-N rows carries an N at `position`.
+   const uint32_t base_row_id = static_cast<uint32_t>(chunk_id) << 16U;
+   const uint64_t chunk_end_key = static_cast<uint64_t>(base_row_id) + start_end[chunk_id].size();
+   const auto chunk_rows_begin = horizontal_bitmaps.lower_bound(base_row_id);
+   const auto chunk_rows_end =
+      chunk_end_key > UINT32_MAX
+         ? horizontal_bitmaps.end()
+         : horizontal_bitmaps.lower_bound(static_cast<uint32_t>(chunk_end_key));
+   for (auto iter = chunk_rows_begin; iter != chunk_rows_end; ++iter) {
+      if (iter->second.contains(position)) {
+         return false;
+      }
+   }
+   return true;
+}
+
 void HorizontalCoverageIndex::insertNullSequence(RowId row_id) {
    insertCoverage(row_id, Coverage{.start = 0, .end = 0, .missing_positions = {}});
 }

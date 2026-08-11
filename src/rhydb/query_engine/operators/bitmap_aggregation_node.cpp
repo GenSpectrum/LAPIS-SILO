@@ -16,8 +16,8 @@
 #include <arrow/acero/exec_plan.h>
 #include <arrow/acero/options.h>
 #include <arrow/builder.h>
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 #include <roaring/roaring.hh>
 
 #include "rhydb/common/aa_symbols.h"
@@ -188,7 +188,8 @@ class SequencePositionGrouper : public ChunkGrouper {
       if (!chunk_has_mutations) {
          // No row covers the position -> every row is missing. A null row would form its own group,
          // so only collapse when the chunk has no nulls.
-         if (!null_views.contains(chunk_key) && coverage.noRowCoversPositionInChunk(position_idx, chunk_key)) {
+         if (!null_views.contains(chunk_key) &&
+             coverage.noRowCoversPositionInChunk(position_idx, chunk_key)) {
             return rank_of_symbol.at(missing_symbol);
          }
          // Every row covers the position with no in-region N -> every row is the reference symbol.
