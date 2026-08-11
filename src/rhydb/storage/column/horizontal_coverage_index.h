@@ -74,12 +74,12 @@ class HorizontalCoverageIndex {
    ) const;
 
    /// True if no row in `chunk_id` covers `position` -- the position lies outside the chunk's
-   /// covered envelope (`batch_start_ends`), so every row is missing there. O(1); lets a caller
-   /// skip building the (empty) covered set for such a chunk.
+   /// covered envelope (`[batch_min_start, batch_max_end)`), so every row is missing there. O(1);
+   /// lets a caller skip building the (empty) covered set for such a chunk.
    [[nodiscard]] bool noRowCoversPositionInChunk(uint32_t position, uint16_t chunk_id) const;
 
    /// True if *every* row in `chunk_id` covers `position` with no in-region N there. It combines
-   /// the covered-range intersection envelope (`batch_covered_intersection`, O(1)) with a scan of
+   /// the covered-range intersection envelope (`[batch_max_start, batch_min_end)`, O(1)) with a scan of
    /// the chunk's in-region-N rows for one carrying an N at `position`. When this holds and no
    /// mutation is recorded at the position, every row carries the reference symbol, so the caller
    /// can treat the whole chunk as one group without materializing the covered set.

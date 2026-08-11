@@ -11,8 +11,8 @@
 // ingestion every run. Set REAL_DB_DIR:
 //   * if it holds a saved database    -> load it and run the query (fast; profile this);
 //   * otherwise                       -> read flat NDJSON from stdin, ingest, and save it there.
-// Ingest:  zstd -dc ~/sorted.ndjson.zst | head -n N | REAL_DB_DIR=/path ./real_data_mutations_benchmark
-// Query:   REAL_DB_DIR=/path ./real_data_mutations_benchmark
+// Ingest:  zstd -dc ~/sorted.ndjson.zst | head -n N | REAL_DB_DIR=/path
+// ./real_data_mutations_benchmark Query:   REAL_DB_DIR=/path ./real_data_mutations_benchmark
 
 #include <algorithm>
 #include <cctype>
@@ -59,7 +59,9 @@ std::vector<uint32_t> readMutationPositions(const std::string& path) {
    if (!input) {
       throw std::runtime_error(fmt::format("could not open {}", path));
    }
-   const std::string content{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
+   const std::string content{
+      std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()
+   };
    std::vector<uint32_t> positions;
    for (size_t i = 0; i < content.size();) {
       if (std::isdigit(static_cast<unsigned char>(content[i])) == 0) {
@@ -120,8 +122,9 @@ schema:
    return database;
 }
 
-// Ingests every record. `ndjson_path` may be a plain .ndjson or a .zst archive -- InputStreamWrapper
-// decompresses on the fly, so nothing is written uncompressed to disk. Empty path -> read stdin.
+// Ingests every record. `ndjson_path` may be a plain .ndjson or a .zst archive --
+// InputStreamWrapper decompresses on the fly, so nothing is written uncompressed to disk. Empty
+// path -> read stdin.
 Database ingest(const std::string& ndjson_path) {
    Database database = makeEmptyDatabase();
 
