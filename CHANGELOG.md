@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.13.2...v0.13.3) (2026-08-12)
+
+
+### Features
+
+* **python:** change pypi package name to `rhydb` ([c4e5e63](https://github.com/GenSpectrum/LAPIS-SILO/commit/c4e5e637f271d75d469c9314a91eb6118012492c))
+
 ## [0.13.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.13.1...v0.13.2) (2026-08-06)
 
 
