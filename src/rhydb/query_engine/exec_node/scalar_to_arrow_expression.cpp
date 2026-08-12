@@ -4,6 +4,7 @@
 
 #include <arrow/compute/api.h>
 #include <arrow/datum.h>
+#include <arrow/type.h>
 
 #include "rhydb/query_engine/exec_node/zstd_decompress_expression.h"
 #include "rhydb/query_engine/scalar_expressions/at.h"
@@ -64,7 +65,29 @@ arrow::Result<arrow::compute::Expression> scalarToArrowExpression(const ScalarEx
    }
    if (const auto* iso_week = dynCast<IsoWeek>(&expression)) {
       ARROW_ASSIGN_OR_RAISE(auto input, scalarToArrowExpression(*iso_week->input));
-      return arrow::compute::call("iso_week", {input});
+      // Render the ISO 8601 week date `<ISO-year>-W<ISO-week>`, e.g. `2026-W12`, from the ISO
+      // week-numbering year and week. Built from `iso_year` / `iso_week` (both operate on the naive
+      // date) rather than `strftime`: strftime's kernel needs the IANA timezone database at runtime
+      // -- it looks up `UTC` even for a timezone-naive date32 -- which is not present in every
+      // deployment (minimal containers, wasm, ...) and fails there with "Cannot locate ... 'UTC'".
+      const auto year_string = arrow::compute::call(
+         "cast",
+         {arrow::compute::call("iso_year", {input})},
+         arrow::compute::CastOptions::Safe(arrow::utf8())
+      );
+      const auto week_string = arrow::compute::call(
+         "cast",
+         {arrow::compute::call("iso_week", {input})},
+         arrow::compute::CastOptions::Safe(arrow::utf8())
+      );
+      // Zero-pad the week to two digits so `2021-W02` sorts before `2021-W10`.
+      const auto week_padded =
+         arrow::compute::call("utf8_lpad", {week_string}, arrow::compute::PadOptions(2, "0"));
+      // Join `<year> + "-W" + <week>` -- for binary_join_element_wise the last argument is the
+      // separator. A null date propagates through iso_year/iso_week to a null result.
+      return arrow::compute::call(
+         "binary_join_element_wise", {year_string, week_padded, arrow::compute::literal("-W")}
+      );
    }
    return arrow::Status::NotImplemented(
       "the scalar expression ", expression.toString(), " is not supported in map() assignments"

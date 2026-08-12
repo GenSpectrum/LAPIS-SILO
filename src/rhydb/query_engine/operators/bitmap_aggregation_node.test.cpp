@@ -40,8 +40,9 @@ nlohmann::json createDataWithSequences(
 // so the (segment1[1], segment1[2]) combinations are (A,T)x2, (N,N)x1, (C,A)x1.
 // The indexed `region` column carries: Europe, Europe, Asia, Europe.
 // The plain (non-indexed) `country` column carries: Germany, France, Japan, Germany.
-// The `date` column carries dates whose ISO weeks are 1, 10, 2, 2 (chosen so numeric ordering -- 1,
-// 2, 10 -- differs from lexicographic ordering of the group keys).
+// The `date` column carries dates in ISO weeks 1, 10, 2, 2 of 2021 -- rendered by `isoWeek()` as
+// the strings "2021-W01", "2021-W10", "2021-W02" (the zero-padded week keeps them chronologically
+// sorted).
 const nlohmann::json ROW_AT =
    createDataWithSequences("ATGCN", "M*", "Europe", "Germany", "2021-01-04");
 const nlohmann::json ROW_AT2 =
@@ -216,36 +217,36 @@ const QueryTestScenario MIXED_SEQUENCE_AND_FIELD_COLUMN = {
 };
 
 // A general map-computed scalar expression: `date.isoWeek()`. The grouper evaluates it per row and
-// buckets by the resulting integer week. The output column keeps its INT type (weeks are numbers,
-// not strings) and the groups come out in numeric order -- 1, 2, 10 -- which is why the dates were
-// picked so this differs from the lexicographic order of the keys ("1", "10", "2").
-//   isoWeek: 1 (ROW_AT), 10 (ROW_AT2), 2 (ROW_NN), 2 (ROW_CA)
+// buckets by the resulting ISO week-date string (`<ISO-year>-W<ISO-week>`). The output column keeps
+// the expression's STRING type, and the zero-padded week means the lexicographic group order is
+// also chronological (W01, W02, W10).
+//   isoWeek: 2021-W01 (ROW_AT), 2021-W10 (ROW_AT2), 2021-W02 (ROW_NN), 2021-W02 (ROW_CA)
 const QueryTestScenario MAP_ISO_WEEK_EXPRESSION = {
    .name = "MAP_ISO_WEEK_EXPRESSION",
    .query = "default.map({week := date.isoWeek()}).groupBy({count:=count()}, {week})",
    .expected_query_result = nlohmann::json::parse(R"([
-      {"week": 1, "count": 1},
-      {"week": 2, "count": 2},
-      {"week": 10, "count": 1}
+      {"week": "2021-W01", "count": 1},
+      {"week": "2021-W02", "count": 2},
+      {"week": "2021-W10", "count": 1}
    ])")
 };
 
 // A sequence position and an isoWeek expression grouped together in one node, mixing the sequence
 // path with the scalar-expression path. Depth-first over segment1[1] (A, C, N), weeks sorted
 // within.
-//   A -> week 1 (ROW_AT), week 10 (ROW_AT2)
-//   C -> week 2 (ROW_CA)
-//   N -> week 2 (ROW_NN)
+//   A -> 2021-W01 (ROW_AT), 2021-W10 (ROW_AT2)
+//   C -> 2021-W02 (ROW_CA)
+//   N -> 2021-W02 (ROW_NN)
 const QueryTestScenario MIXED_SEQUENCE_AND_ISO_WEEK = {
    .name = "MIXED_SEQUENCE_AND_ISO_WEEK",
    .query =
       "default.map({s1 := segment1.at(1), week := date.isoWeek()})"
       ".groupBy({count:=count()}, {s1, week})",
    .expected_query_result = nlohmann::json::parse(R"([
-      {"s1": "A", "week": 1, "count": 1},
-      {"s1": "A", "week": 10, "count": 1},
-      {"s1": "C", "week": 2, "count": 1},
-      {"s1": "N", "week": 2, "count": 1}
+      {"s1": "A", "week": "2021-W01", "count": 1},
+      {"s1": "A", "week": "2021-W10", "count": 1},
+      {"s1": "C", "week": "2021-W02", "count": 1},
+      {"s1": "N", "week": "2021-W02", "count": 1}
    ])")
 };
 
