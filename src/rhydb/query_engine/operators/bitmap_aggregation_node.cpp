@@ -136,7 +136,7 @@ class ChunkGrouper {
    /// dimension's output column type, so `buildBatch` can gather each output column by Take-ing
    /// this array at the combinations' group indices. The default builds a utf8 array from `labels`,
    /// which serves every string-valued dimension; a dimension whose values are of another type
-   /// (e.g. an int from `isoWeek`) overrides this to return an array of that type instead.
+   /// (e.g. an int from a numeric column) overrides this to return an array of that type instead.
    [[nodiscard]] virtual arrow::Result<std::shared_ptr<arrow::Array>> groupValues() const {
       arrow::StringBuilder builder;
       for (const auto& label : labels) {
@@ -876,7 +876,7 @@ std::vector<GroupCombination> computeCombinations(
 /// per dimension (holding that dimension's group value, or null) plus the int64 count column. Each
 /// dimension's output column is gathered by `Take`-ing its value array (`values_per_dimension[i]`,
 /// element = group value) at the combinations' group indices, so the output column has the value
-/// array's type -- utf8 for the string dimensions, int64 for an `isoWeek`, etc.
+/// array's type -- utf8 for the string dimensions, int64 for a numeric column, etc.
 // The cognitive-complexity count comes entirely from the ARROW_RETURN_NOT_OK/ARROW_ASSIGN_OR_RAISE
 // error-check macros, not from real branching; the logic is a straight-line gather loop.
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)

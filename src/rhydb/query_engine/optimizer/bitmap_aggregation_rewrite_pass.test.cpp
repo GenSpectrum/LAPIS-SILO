@@ -96,7 +96,7 @@ operators::QueryNodePtr makeMapWithIsoWeek(
 ) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
-      {.output_column = {.name = field, .type = ColumnType::INT64},
+      {.output_column = {.name = field, .type = ColumnType::STRING},
        .expression = std::make_unique<scalar_expressions::IsoWeek>(
           std::make_unique<scalar_expressions::FieldRef>(date_column)
        )}

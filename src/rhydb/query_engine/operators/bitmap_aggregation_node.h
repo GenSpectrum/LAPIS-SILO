@@ -70,7 +70,8 @@ struct FieldColumnDimension {
 /// `map({week := date.isoWeek()})`. There is no column to read straight off, so the grouper
 /// evaluates the expression over the columns it references -- the same Arrow evaluation the generic
 /// map/groupBy path uses -- and buckets rows by the resulting value. The value keeps its real type
-/// (`output_type`), so grouping on an `isoWeek` yields (and outputs) integers, not strings.
+/// (`output_type`), so grouping on a numeric or date-derived expression yields (and outputs) values
+/// of that type, not strings.
 struct ScalarExpressionDimension {
    std::unique_ptr<scalar_expressions::ScalarExpression> expression;
    schema::ColumnType output_type;
