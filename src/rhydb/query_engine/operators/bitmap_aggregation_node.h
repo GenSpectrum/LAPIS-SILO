@@ -52,13 +52,52 @@ struct IndexedColumnDimension {
    [[nodiscard]] nlohmann::json toJson() const;
 };
 
+/// Groups rows by the value of a plain (non-indexed) string column, e.g. a `map({x := country})`
+/// grouping key. Unlike `IndexedColumnDimension` there is no inverted index to read, so the grouper
+/// builds one by scanning the column for the distinct values it holds.
+struct FieldColumnDimension {
+   schema::ColumnIdentifier column;
+   std::string output_name;
+
+   FieldColumnDimension(schema::ColumnIdentifier column, std::string output_name);
+
+   [[nodiscard]] schema::ColumnIdentifier outputColumn() const;
+
+   [[nodiscard]] nlohmann::json toJson() const;
+};
+
+/// Groups rows by the value of an arbitrary scalar expression a `map()` assignment computes, e.g.
+/// `map({week := date.isoWeek()})`. There is no column to read straight off, so the grouper
+/// evaluates the expression over the columns it references -- the same Arrow evaluation the generic
+/// map/groupBy path uses -- and buckets rows by the resulting value. The value keeps its real type
+/// (`output_type`), so grouping on an `isoWeek` yields (and outputs) integers, not strings.
+struct ScalarExpressionDimension {
+   std::unique_ptr<scalar_expressions::ScalarExpression> expression;
+   schema::ColumnType output_type;
+   std::string output_name;
+
+   ScalarExpressionDimension(
+      std::unique_ptr<scalar_expressions::ScalarExpression> expression,
+      schema::ColumnType output_type,
+      std::string output_name
+   );
+
+   [[nodiscard]] schema::ColumnIdentifier outputColumn() const;
+
+   [[nodiscard]] nlohmann::json toJson() const;
+};
+
 /// One grouping dimension of a `BitmapAggregationNode`: a rule for partitioning a filtered row-set
 /// into disjoint, value-keyed groups directly from roaring bitmaps, plus the STRING output column
 /// it contributes. A variant over the supported kinds lets a single query group on a mix of them;
 /// add an alternative to support another kind. Every alternative offers `outputColumn` and
 /// `toJson` (so a generic `std::visit` dispatches over them) and a `makeGrouper` overload in the
 /// implementation file that resolves it against the table into a per-chunk grouping strategy.
-using GroupingDimension = std::variant<SequencePositionDimension, IndexedColumnDimension>;
+using GroupingDimension = std::variant<
+   SequencePositionDimension,
+   IndexedColumnDimension,
+   FieldColumnDimension,
+   ScalarExpressionDimension>;
 
 /// Resolved bitmap-aggregation operator. Groups the rows matched by `filter` by a set of
 /// `GroupingDimension`s, emitting one row per observed combination of values together with the

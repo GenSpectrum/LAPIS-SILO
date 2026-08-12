@@ -14,6 +14,7 @@
 #include "rhydb/query_engine/operators/table_scan_node.h"
 #include "rhydb/query_engine/scalar_expressions/at.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
+#include "rhydb/query_engine/scalar_expressions/iso_week.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
 #include "rhydb/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 #include "rhydb/schema/database_schema.h"
@@ -156,6 +157,115 @@ std::optional<operators::GroupingDimension> matchIndexedColumnDimension(
    return operators::IndexedColumnDimension{column.value(), group_by_field.name};
 }
 
+/// The dimension for `group_by_field` when the map produces it as a bare field reference
+/// (`field := some_column`), or nullopt otherwise. Only string-valued source columns are supported,
+/// since the bitmap node emits STRING labels: a dictionary-encoded column reuses its inverted index
+/// (`IndexedColumnDimension`), a plain string column is scanned to build one
+/// (`FieldColumnDimension`).
+std::optional<operators::GroupingDimension> matchFieldColumnDimension(
+   const GroupBySource& source,
+   const schema::ColumnIdentifier& group_by_field
+) {
+   const auto assignment = findAssignment(source.map, group_by_field.name);
+   if (!assignment.has_value()) {
+      return std::nullopt;  // a plain scan column, handled by matchIndexedColumnDimension
+   }
+   // Only a *bare* field reference: `x := some_column`. Anything computed (at(), a function, ...)
+   // is not a plain column read and is left to the other matchers or the generic path.
+   const auto* field_ref =
+      scalar_expressions::dynCast<scalar_expressions::FieldRef>(assignment->get().expression.get());
+   if (field_ref == nullptr) {
+      return std::nullopt;
+   }
+   const auto column = source.scan.table->schema->getColumn(field_ref->column.name);
+   if (!column.has_value()) {
+      return std::nullopt;
+   }
+   if (column->type == schema::ColumnType::DICTIONARY_ENCODED) {
+      return operators::IndexedColumnDimension{column.value(), group_by_field.name};
+   }
+   if (column->type == schema::ColumnType::STRING) {
+      return operators::FieldColumnDimension{column.value(), group_by_field.name};
+   }
+   return std::nullopt;
+}
+
+/// A scalar output type the bitmap aggregation can group on (and emit): every value type its output
+/// materialization can build. Sequence / compressed columns are excluded -- they are not a single
+/// groupable value.
+bool isGroupableScalarType(schema::ColumnType type) {
+   switch (type) {
+      case schema::ColumnType::STRING:
+      case schema::ColumnType::DICTIONARY_ENCODED:
+      case schema::ColumnType::INT32:
+      case schema::ColumnType::INT64:
+      case schema::ColumnType::FLOAT:
+      case schema::ColumnType::BOOL:
+      case schema::ColumnType::DATE32:
+         return true;
+      case schema::ColumnType::AMINO_ACID_SEQUENCE:
+      case schema::ColumnType::NUCLEOTIDE_SEQUENCE:
+      case schema::ColumnType::ZSTD_COMPRESSED_STRING:
+         return false;
+   }
+   return false;
+}
+
+/// Whether the grouper can evaluate `expression` per row through Arrow: it must be composed only of
+/// nodes the Arrow translation handles that yield a groupable scalar -- field references to
+/// (non-sequence) scalar columns, literals, `at` and `isoWeek`. This deliberately excludes anything
+/// sequence- or decompression-specific (those are grouped by the dedicated sequence-position path),
+/// so the rewrite only claims expressions the node can actually execute.
+bool isEvaluableGroupableExpression(
+   const scalar_expressions::ScalarExpression& expression,
+   const schema::TableSchema& table_schema
+) {
+   using namespace scalar_expressions;
+   switch (expression.kind()) {
+      case ScalarExpression::Kind::FIELD_REF: {
+         const auto* field_ref = dynCast<FieldRef>(&expression);
+         const auto column = table_schema.getColumn(field_ref->column.name);
+         return column.has_value() && isGroupableScalarType(column->type);
+      }
+      case ScalarExpression::Kind::INT32_LITERAL:
+      case ScalarExpression::Kind::INT64_LITERAL:
+      case ScalarExpression::Kind::FLOAT_LITERAL:
+      case ScalarExpression::Kind::STRING_LITERAL:
+      case ScalarExpression::Kind::BOOL_LITERAL:
+      case ScalarExpression::Kind::DATE_LITERAL:
+         return true;
+      case ScalarExpression::Kind::AT:
+         return isEvaluableGroupableExpression(*dynCast<At>(&expression)->input, table_schema);
+      case ScalarExpression::Kind::ISO_WEEK:
+         return isEvaluableGroupableExpression(*dynCast<IsoWeek>(&expression)->input, table_schema);
+      default:
+         return false;
+   }
+}
+
+/// The dimension for `group_by_field` when the map computes it with a general scalar expression the
+/// grouper can evaluate (e.g. `week := date.isoWeek()`), or nullopt otherwise. This is the
+/// catch-all after the cheaper dedicated matchers: the grouper evaluates the expression over the
+/// rows and buckets by the (typed) result. Declines expressions that read no column -- there is
+/// nothing to materialize per row -- so a pure literal falls back to the generic path.
+std::optional<operators::GroupingDimension> matchScalarExpressionDimension(
+   const GroupBySource& source,
+   const schema::ColumnIdentifier& group_by_field
+) {
+   const auto assignment = findAssignment(source.map, group_by_field.name);
+   if (!assignment.has_value()) {
+      return std::nullopt;  // a plain scan column, not a map-computed expression
+   }
+   const auto& expression = *assignment->get().expression;
+   if (expression.freeIUs().empty() || !isGroupableScalarType(expression.type()) ||
+       !isEvaluableGroupableExpression(expression, *source.scan.table->schema)) {
+      return std::nullopt;
+   }
+   return operators::ScalarExpressionDimension{
+      expression.clone(), expression.type(), group_by_field.name
+   };
+}
+
 /// Resolves one grouping key to its bitmap dimension, or nullopt if no supported dimension matches
 /// (which makes the whole rewrite decline). Add a matcher and one `if` to support another shape.
 std::optional<operators::GroupingDimension> resolveDimension(
@@ -166,6 +276,12 @@ std::optional<operators::GroupingDimension> resolveDimension(
       return dimension;
    }
    if (auto dimension = matchIndexedColumnDimension(source, group_by_field)) {
+      return dimension;
+   }
+   if (auto dimension = matchFieldColumnDimension(source, group_by_field)) {
+      return dimension;
+   }
+   if (auto dimension = matchScalarExpressionDimension(source, group_by_field)) {
       return dimension;
    }
    return std::nullopt;
