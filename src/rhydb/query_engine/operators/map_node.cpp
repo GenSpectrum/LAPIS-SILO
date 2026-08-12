@@ -35,7 +35,6 @@ namespace {
 /// Sums the dictionary sizes of every `ZstdDecompressScalar` anywhere in `expression`'s tree. A
 /// decompress may be nested inside another scalar expression (e.g. `At(ZstdDecompress(...))` after
 /// a map merge), so the whole tree is traversed rather than just the top node.
-// NOLINTNEXTLINE(misc-no-recursion)
 size_t sumDecompressDictionarySizes(const ScalarExpression& expression) {
    if (const auto* zstd = dynCast<ZstdDecompressScalar>(&expression)) {
       return zstd->dictionary_string.size() + sumDecompressDictionarySizes(*zstd->input);

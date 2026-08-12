@@ -17,13 +17,17 @@ using boost::uuids::random_generator;
 nlohmann::json createDataWithSequences(
    const std::string& nucleotideSequence,
    const std::string& aminoAcidSequence,
-   const std::string& region
+   const std::string& region,
+   const std::string& country = "Germany",
+   const std::string& date = "2021-01-04"
 ) {
    random_generator generator;
    const auto primary_key = generator();
    return {
       {"primaryKey", "id_" + to_string(primary_key)},
       {"region", region},
+      {"country", country},
+      {"date", date},
       {"unaligned_segment1", {}},
       {"segment1", {{"sequence", nucleotideSequence}, {"insertions", nlohmann::json::array()}}},
       {"gene1", {{"sequence", aminoAcidSequence}, {"insertions", nlohmann::json::array()}}}
@@ -35,10 +39,16 @@ nlohmann::json createDataWithSequences(
 //   segment1[2]: T, T, N, A
 // so the (segment1[1], segment1[2]) combinations are (A,T)x2, (N,N)x1, (C,A)x1.
 // The indexed `region` column carries: Europe, Europe, Asia, Europe.
-const nlohmann::json ROW_AT = createDataWithSequences("ATGCN", "M*", "Europe");
-const nlohmann::json ROW_AT2 = createDataWithSequences("ATGCN", "C*", "Europe");
-const nlohmann::json ROW_NN = createDataWithSequences("NNNNN", "M*", "Asia");
-const nlohmann::json ROW_CA = createDataWithSequences("CATTT", "X*", "Europe");
+// The plain (non-indexed) `country` column carries: Germany, France, Japan, Germany.
+// The `date` column carries dates whose ISO weeks are 1, 10, 2, 2 (chosen so numeric ordering -- 1,
+// 2, 10 -- differs from lexicographic ordering of the group keys).
+const nlohmann::json ROW_AT =
+   createDataWithSequences("ATGCN", "M*", "Europe", "Germany", "2021-01-04");
+const nlohmann::json ROW_AT2 =
+   createDataWithSequences("ATGCN", "C*", "Europe", "France", "2021-03-08");
+const nlohmann::json ROW_NN = createDataWithSequences("NNNNN", "M*", "Asia", "Japan", "2021-01-11");
+const nlohmann::json ROW_CA =
+   createDataWithSequences("CATTT", "X*", "Europe", "Germany", "2021-01-11");
 
 const auto DATABASE_CONFIG =
    R"(
@@ -50,6 +60,10 @@ schema:
     - name: "region"
       type: "string"
       generateIndex: true
+    - name: "country"
+      type: "string"
+    - name: "date"
+      type: "date"
   primaryKey: "primaryKey"
 )";
 
@@ -100,22 +114,22 @@ const QueryTestScenario CO_OCCURRENCE_VIA_MAP_AMINO_ACID = {
    ])")
 };
 
-// `at` on a non-sequence column must NOT be rewritten into the bitmap engine (which only
-// understands sequence columns); it has to fall back to the generic map/groupBy path. Every primary
-// key starts with "id_", so the first character is 'i' for all four rows.
-const QueryTestScenario CO_OCCURRENCE_VIA_MAP_NON_SEQUENCE_NOT_REWRITTEN = {
-   .name = "CO_OCCURRENCE_VIA_MAP_NON_SEQUENCE_NOT_REWRITTEN",
+// `at` on a non-sequence string column is not a sequence-position lookup, but it is still a general
+// scalar expression the grouper can evaluate (extract a character), so it goes through the bitmap
+// engine via the scalar-expression path. Every primary key starts with "id_", so the first
+// character is 'i' for all four rows -- a single group.
+const QueryTestScenario CO_OCCURRENCE_VIA_MAP_NON_SEQUENCE_STRING_AT = {
+   .name = "CO_OCCURRENCE_VIA_MAP_NON_SEQUENCE_STRING_AT",
    .query = "default.map({first := primaryKey.at(1)}).groupBy({count:=count()}, {first})",
    .expected_query_result = nlohmann::json::parse(R"([
       {"first": "i", "count": 4}
    ])")
 };
 
-// A limit applied to a generic (unordered) aggregation used to be rejected outright because the
-// group-by output carries no ordering. The FetchNode now marks such a result as implicitly ordered
-// so the limit is honoured, accepting that the retained rows are an arbitrary subset. Grouping on
-// primaryKey.at(1) stays on the generic (non-bitmap) path and the single resulting group keeps the
-// truncated result deterministic.
+// A limit applied to an (unordered) aggregation used to be rejected outright because the group-by
+// output carries no ordering. The FetchNode now marks such a result as implicitly ordered so the
+// limit is honoured, accepting that the retained rows are an arbitrary subset. Grouping on
+// primaryKey.at(1) yields a single group, keeping the truncated result deterministic here.
 const QueryTestScenario LIMIT_ON_UNORDERED_AGGREGATION = {
    .name = "LIMIT_ON_UNORDERED_AGGREGATION",
    .query = "default.map({first := primaryKey.at(1)}).groupBy({count:=count()}, {first}).limit(1)",
@@ -160,6 +174,81 @@ const QueryTestScenario MIXED_SEQUENCE_AND_INDEXED_COLUMN = {
    ])")
 };
 
+// A bare field reference produced by the map (`r := region`, no `at`) over an *indexed* column is
+// routed through the bitmap engine using the column's inverted index, exactly like grouping on the
+// scan column directly -- only the output name differs (here `r`).
+const QueryTestScenario MAP_FIELD_REF_INDEXED_COLUMN = {
+   .name = "MAP_FIELD_REF_INDEXED_COLUMN",
+   .query = "default.map({r := region}).groupBy({count:=count()}, {r})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"r": "Asia", "count": 1},
+      {"r": "Europe", "count": 3}
+   ])")
+};
+
+// A bare field reference produced by the map over a *plain, non-indexed* string column. There is no
+// inverted index, so the FieldColumnGrouper scans the column to build one. Value groups come out in
+// sorted order (France, Germany, Japan). Country carries Germany x2, France x1, Japan x1.
+const QueryTestScenario MAP_FIELD_REF_PLAIN_STRING_COLUMN = {
+   .name = "MAP_FIELD_REF_PLAIN_STRING_COLUMN",
+   .query = "default.map({c := country}).groupBy({count:=count()}, {c})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"c": "France", "count": 1},
+      {"c": "Germany", "count": 2},
+      {"c": "Japan", "count": 1}
+   ])")
+};
+
+// A sequence position and a plain (scanned) string column grouped together in one node. Depth-first
+// over the nucleotide symbols at segment1[1] (A, C, N), with the country values sorted within each.
+//   A -> France x1 (ROW_AT2), Germany x1 (ROW_AT)
+//   C -> Germany x1 (ROW_CA)
+//   N -> Japan   x1 (ROW_NN)
+const QueryTestScenario MIXED_SEQUENCE_AND_FIELD_COLUMN = {
+   .name = "MIXED_SEQUENCE_AND_FIELD_COLUMN",
+   .query = "default.map({s1 := segment1.at(1), c := country}).groupBy({count:=count()}, {s1, c})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"s1": "A", "c": "France", "count": 1},
+      {"s1": "A", "c": "Germany", "count": 1},
+      {"s1": "C", "c": "Germany", "count": 1},
+      {"s1": "N", "c": "Japan", "count": 1}
+   ])")
+};
+
+// A general map-computed scalar expression: `date.isoWeek()`. The grouper evaluates it per row and
+// buckets by the resulting integer week. The output column keeps its INT type (weeks are numbers,
+// not strings) and the groups come out in numeric order -- 1, 2, 10 -- which is why the dates were
+// picked so this differs from the lexicographic order of the keys ("1", "10", "2").
+//   isoWeek: 1 (ROW_AT), 10 (ROW_AT2), 2 (ROW_NN), 2 (ROW_CA)
+const QueryTestScenario MAP_ISO_WEEK_EXPRESSION = {
+   .name = "MAP_ISO_WEEK_EXPRESSION",
+   .query = "default.map({week := date.isoWeek()}).groupBy({count:=count()}, {week})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"week": 1, "count": 1},
+      {"week": 2, "count": 2},
+      {"week": 10, "count": 1}
+   ])")
+};
+
+// A sequence position and an isoWeek expression grouped together in one node, mixing the sequence
+// path with the scalar-expression path. Depth-first over segment1[1] (A, C, N), weeks sorted
+// within.
+//   A -> week 1 (ROW_AT), week 10 (ROW_AT2)
+//   C -> week 2 (ROW_CA)
+//   N -> week 2 (ROW_NN)
+const QueryTestScenario MIXED_SEQUENCE_AND_ISO_WEEK = {
+   .name = "MIXED_SEQUENCE_AND_ISO_WEEK",
+   .query =
+      "default.map({s1 := segment1.at(1), week := date.isoWeek()})"
+      ".groupBy({count:=count()}, {s1, week})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"s1": "A", "week": 1, "count": 1},
+      {"s1": "A", "week": 10, "count": 1},
+      {"s1": "C", "week": 2, "count": 1},
+      {"s1": "N", "week": 2, "count": 1}
+   ])")
+};
+
 // A sequence-less row carries no symbol at any position. The generic `at()`/groupBy path emits a
 // null group key for such a row, so the rewritten bitmap aggregation node must do the same instead
 // of dropping the row or folding it into the missing symbol N/X. These scenarios pin that
@@ -182,6 +271,8 @@ nlohmann::json createDataWithOptionalSequences(
    return {
       {"primaryKey", "id_" + to_string(primary_key)},
       {"region", "Europe"},
+      {"country", "Germany"},
+      {"date", "2021-01-04"},
       {"unaligned_segment1", {}},
       {"segment1", sequence_field(nucleotideSequence)},
       {"gene1", sequence_field(aminoAcidSequence)}
@@ -309,11 +400,16 @@ QUERY_TEST(
       CO_OCCURRENCE_VIA_MAP_TWO_POSITIONS,
       CO_OCCURRENCE_VIA_MAP_WITH_FILTER,
       CO_OCCURRENCE_VIA_MAP_AMINO_ACID,
-      CO_OCCURRENCE_VIA_MAP_NON_SEQUENCE_NOT_REWRITTEN,
+      CO_OCCURRENCE_VIA_MAP_NON_SEQUENCE_STRING_AT,
       LIMIT_ON_UNORDERED_AGGREGATION,
       CO_OCCURRENCE_VIA_MAP_POSITION_OUT_OF_RANGE,
       INDEXED_COLUMN_SINGLE,
-      MIXED_SEQUENCE_AND_INDEXED_COLUMN
+      MIXED_SEQUENCE_AND_INDEXED_COLUMN,
+      MAP_FIELD_REF_INDEXED_COLUMN,
+      MAP_FIELD_REF_PLAIN_STRING_COLUMN,
+      MIXED_SEQUENCE_AND_FIELD_COLUMN,
+      MAP_ISO_WEEK_EXPRESSION,
+      MIXED_SEQUENCE_AND_ISO_WEEK
    )
 );
 
