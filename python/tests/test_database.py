@@ -38,6 +38,48 @@ def main_reference_sequence(reference_genomes):
     raise ValueError("No 'main' sequence found in reference genomes")
 
 
+def _register_reference(db, name, reference):
+    """Register a sequence column's reference in the built-in ``_references`` table.
+
+    The generic ``create_table`` interface resolves sequence-column references from the built-in
+    ``_references`` table (string columns ``name`` and ``reference``) rather than inline, so the
+    reference must be present before the sequence table is created. The table always exists, so it
+    only needs to be populated.
+    """
+    db.append_data_from_string("_references", json.dumps({"name": name, "reference": reference}))
+
+
+def create_nucleotide_sequence_table(
+    db, table_name, primary_key_name, sequence_name, reference_sequence, extra_columns=None
+):
+    """Create a nucleotide sequence table through the generic ``create_table`` interface.
+
+    Replaces the removed ``create_nucleotide_sequence_table`` short-hand: the primary key is the
+    first column, followed by any extra string columns and the nucleotide sequence column, whose
+    reference is registered in the built-in ``_references`` table.
+    """
+    _register_reference(db, sequence_name, reference_sequence)
+    columns = [{"name": primary_key_name, "type": "string"}]
+    columns += [{"name": col, "type": "string"} for col in (extra_columns or [])]
+    columns.append({"name": sequence_name, "type": "nucleotide_sequence"})
+    db.create_table(table_name, columns)
+
+
+def create_gene_table(
+    db, table_name, primary_key_name, gene_name, reference_sequence, extra_columns=None
+):
+    """Create an amino acid sequence table through the generic ``create_table`` interface.
+
+    Replaces the removed ``create_gene_table`` short-hand (see
+    :func:`create_nucleotide_sequence_table`), using an amino acid sequence column.
+    """
+    _register_reference(db, gene_name, reference_sequence)
+    columns = [{"name": primary_key_name, "type": "string"}]
+    columns += [{"name": col, "type": "string"} for col in (extra_columns or [])]
+    columns.append({"name": gene_name, "type": "amino_acid_sequence"})
+    db.create_table(table_name, columns)
+
+
 class TestDatabaseImport:
     """Test that the rhydb module can be imported correctly."""
 
@@ -66,8 +108,7 @@ class TestDatabaseCreation:
         expected_methods = [
             'append_data_from_file',
             'append_data_from_string',
-            'create_gene_table',
-            'create_nucleotide_sequence_table',
+            'create_table',
             'query',
             'get_filtered_bitmap',
             'get_nucleotide_reference_sequence',
@@ -97,7 +138,7 @@ class TestCreateNucleotideSequenceTable:
     def test_create_table_with_simple_reference(self, empty_database):
         """Test creating a table with a simple reference sequence."""
         # Table names must be lowercase
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="testtable",
             primary_key_name="id",
             sequence_name="main",
@@ -107,7 +148,7 @@ class TestCreateNucleotideSequenceTable:
 
     def test_create_table_with_real_reference(self, empty_database, main_reference_sequence):
         """Test creating a table with the real SARS-CoV-2 reference sequence."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="gisaidepisl",
             sequence_name="main",
@@ -117,7 +158,7 @@ class TestCreateNucleotideSequenceTable:
 
     def test_get_reference_sequence_after_create(self, empty_database, main_reference_sequence):
         """Test that we can retrieve the reference sequence after creating a table."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -129,7 +170,7 @@ class TestCreateNucleotideSequenceTable:
 
     def test_get_gene_reference_sequence_after_create(self, empty_database):
         """Test that we can retrieve the reference sequence after creating a table."""
-        empty_database.create_gene_table(
+        create_gene_table(empty_database,
             table_name="sequences",
             primary_key_name="key",
             gene_name="main",
@@ -146,7 +187,7 @@ class TestCreateGeneTable:
     def test_create_gene_table(self, empty_database):
         """Test creating a gene table."""
         # Table names must be lowercase
-        empty_database.create_gene_table(
+        create_gene_table(empty_database,
             table_name="genes",
             primary_key_name="id",
             gene_name="S",
@@ -161,7 +202,7 @@ class TestAppendData:
     def test_append_data_from_real_file(self, empty_database, main_reference_sequence):
         """Test appending data from the real test data file."""
         # First create the table
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -178,7 +219,7 @@ class TestGetFilteredBitmap:
 
     def test_get_filtered_bitmap_true_filter(self, empty_database, main_reference_sequence):
         """Test getting a bitmap with True filter (returns all rows)."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -193,7 +234,7 @@ class TestGetFilteredBitmap:
 
     def test_get_filtered_bitmap_returns_bitmap(self, empty_database, main_reference_sequence):
         """Test that get_filtered_bitmap returns a pyroaring.BitMap."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -210,7 +251,7 @@ class TestGetFilteredBitmap:
 
     def test_get_filtered_bitmap_with_none_filter(self, empty_database, main_reference_sequence):
         """Test that None filter defaults to True filter."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -223,7 +264,7 @@ class TestGetFilteredBitmap:
 
     def test_get_filtered_bitmap_with_empty_filter(self, empty_database, main_reference_sequence):
         """Test that empty string filter defaults to True filter."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -237,7 +278,7 @@ class TestGetFilteredBitmap:
 
     def test_get_filtered_bitmap_supports_set_operations(self, empty_database, main_reference_sequence):
         """Test that returned bitmap supports set operations."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -260,7 +301,7 @@ class TestSaveAndLoadCheckpoint:
 
     def test_save_checkpoint(self, empty_database, main_reference_sequence, temp_dir):
         """Test saving a database checkpoint."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -279,7 +320,7 @@ class TestSaveAndLoadCheckpoint:
         from rhydb import Database
 
         # Create and save
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -303,7 +344,7 @@ class TestSaveAndLoadCheckpoint:
         from rhydb import Database
 
         # Create, add data, and save
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -328,46 +369,6 @@ class TestSaveAndLoadCheckpoint:
 
 class TestDatabaseValidation:
     """Test input validation for database methods."""
-
-    def test_create_nucleotide_table_empty_table_name(self, empty_database):
-        """Test that empty table name raises ValueError."""
-        with pytest.raises(ValueError, match="table_name cannot be empty"):
-            empty_database.create_nucleotide_sequence_table(
-                table_name="",
-                primary_key_name="id",
-                sequence_name="main",
-                reference_sequence="ACGT"
-            )
-
-    def test_create_nucleotide_table_empty_primary_key(self, empty_database):
-        """Test that empty primary key name raises ValueError."""
-        with pytest.raises(ValueError, match="primary_key_name cannot be empty"):
-            empty_database.create_nucleotide_sequence_table(
-                table_name="test",
-                primary_key_name="",
-                sequence_name="main",
-                reference_sequence="ACGT"
-            )
-
-    def test_create_nucleotide_table_empty_sequence_name(self, empty_database):
-        """Test that empty sequence name raises ValueError."""
-        with pytest.raises(ValueError, match="sequence_name cannot be empty"):
-            empty_database.create_nucleotide_sequence_table(
-                table_name="test",
-                primary_key_name="id",
-                sequence_name="",
-                reference_sequence="ACGT"
-            )
-
-    def test_create_nucleotide_table_empty_reference(self, empty_database):
-        """Test that empty reference sequence raises ValueError."""
-        with pytest.raises(ValueError, match="reference_sequence cannot be empty"):
-            empty_database.create_nucleotide_sequence_table(
-                table_name="test",
-                primary_key_name="id",
-                sequence_name="main",
-                reference_sequence=""
-            )
 
     def test_append_data_empty_table_name(self, empty_database):
         """Test that empty table name raises ValueError."""
@@ -426,7 +427,7 @@ class TestPrintAllData:
     def test_print_all_data(self, empty_database, main_reference_sequence, capsys):
         """Test that print_all_data outputs something."""
         # Note: printAllData expects sequence_name="sequence" (hardcoded in C++)
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -451,7 +452,7 @@ class TestExtraColumns:
         from rhydb import Database
 
         db = Database()
-        db.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(db,
             table_name="test",
             primary_key_name="id",
             sequence_name="seq",
@@ -465,7 +466,7 @@ class TestExtraColumns:
         from rhydb import Database
 
         db = Database()
-        db.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(db,
             table_name="test",
             primary_key_name="id",
             sequence_name="seq",
@@ -490,7 +491,7 @@ class TestExtraColumns:
 
         db = Database()
         # Call without extra_columns - should work as before
-        db.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(db,
             table_name="test",
             primary_key_name="id",
             sequence_name="seq",
@@ -507,7 +508,7 @@ class TestExtraColumns:
         from rhydb import Database
 
         db = Database()
-        db.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(db,
             table_name="test",
             primary_key_name="id",
             sequence_name="seq",
@@ -521,12 +522,12 @@ class TestExtraColumns:
         assert result.num_rows == 1
 
     def test_extra_columns_invalid_type_raises(self):
-        """Test that non-string extra columns raise TypeError."""
+        """Test that a non-string extra column is rejected by create_table's validation."""
         from rhydb import Database
 
         db = Database()
-        with pytest.raises(TypeError, match="extra_columns must contain strings"):
-            db.create_nucleotide_sequence_table(
+        with pytest.raises(ValueError, match="non-empty string 'name'"):
+            create_nucleotide_sequence_table(db,
                 table_name="test",
                 primary_key_name="id",
                 sequence_name="seq",
@@ -539,7 +540,7 @@ class TestExtraColumns:
         from rhydb import Database
 
         db = Database()
-        db.create_gene_table(
+        create_gene_table(db,
             table_name="genes",
             primary_key_name="id",
             gene_name="spike",
@@ -553,18 +554,14 @@ class TestCreateTable:
     """Test the generic create_table method that accepts columns of any supported type."""
 
     @staticmethod
-    def _create_references_table(db, entries):
-        """Create and populate the `references` table create_table reads sequence references from.
+    def _populate_references(db, entries):
+        """Populate the built-in `_references` table create_table reads sequence references from.
 
         `entries` maps a sequence column name to its reference string.
         """
-        db.create_table(
-            "references",
-            [{"name": "name", "type": "string"}, {"name": "reference", "type": "string"}],
-        )
         for name, reference in entries.items():
             db.append_data_from_string(
-                "references", json.dumps({"name": name, "reference": reference})
+                "_references", json.dumps({"name": name, "reference": reference})
             )
 
     def test_create_table_with_all_column_types(self):
@@ -572,7 +569,7 @@ class TestCreateTable:
         from rhydb import Database
 
         db = Database()
-        self._create_references_table(db, {"seq": "ACGT", "gene": "MFV"})
+        self._populate_references(db, {"seq": "ACGT", "gene": "MFV"})
         db.create_table(
             table_name="samples",
             columns=[
@@ -611,16 +608,16 @@ class TestCreateTable:
         assert data["qc"] == [0.5]
         assert data["country"] == ["Switzerland"]
         assert data["lineage"] == ["B.1"]
-        # The sequence column's reference was resolved from the `references` table by column name.
+        # The sequence column's reference was resolved from the `_references` table by column name.
         assert db.get_nucleotide_reference_sequence("samples", "seq") == "ACGT"
         assert db.get_amino_acid_reference_sequence("samples", "gene") == "MFV"
 
     def test_create_table_reference_looked_up_by_column_name(self):
-        """A sequence column's reference is taken from the matching `references` entry."""
+        """A sequence column's reference is taken from the matching `_references` entry."""
         from rhydb import Database
 
         db = Database()
-        self._create_references_table(db, {"main": "ACGTACGT"})
+        self._populate_references(db, {"main": "ACGTACGT"})
         db.create_table(
             "sequences",
             [{"name": "id", "type": "string"}, {"name": "main", "type": "nucleotide_sequence"}],
@@ -628,20 +625,20 @@ class TestCreateTable:
 
         assert db.get_nucleotide_reference_sequence("sequences", "main") == "ACGTACGT"
 
-    def test_create_table_missing_references_table_raises(self, empty_database):
-        """Creating a sequence column without a `references` table fails."""
-        with pytest.raises(RuntimeError, match="no 'references' table"):
+    def test_create_table_unregistered_reference_raises(self, empty_database):
+        """Creating a sequence column with nothing registered in `_references` fails."""
+        with pytest.raises(RuntimeError, match="no entry named 'seq'"):
             empty_database.create_table(
                 "samples",
                 [{"name": "id", "type": "string"}, {"name": "seq", "type": "nucleotide_sequence"}],
             )
 
     def test_create_table_missing_reference_entry_raises(self):
-        """Creating a sequence column with no matching `references` entry fails."""
+        """Creating a sequence column with no matching `_references` entry fails."""
         from rhydb import Database
 
         db = Database()
-        self._create_references_table(db, {"other": "ACGT"})
+        self._populate_references(db, {"other": "ACGT"})
         with pytest.raises(RuntimeError, match="no entry named 'seq'"):
             db.create_table(
                 "samples",
@@ -720,7 +717,7 @@ class TestGetTables:
 
     def test_get_tables_single_table(self, empty_database, main_reference_sequence):
         """Test get_tables with one table."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -730,19 +727,21 @@ class TestGetTables:
         result = empty_database.get_tables()
         assert isinstance(result, pa.Table)
         assert "table_name" in result.column_names
+        # The built-in `_references` table is internal and hidden from get_tables.
         assert result.num_rows == 1
-        data = result.to_pydict()
-        assert "sequences" in data["table_name"]
+        table_names = set(result.to_pydict()["table_name"])
+        assert "sequences" in table_names
+        assert "_references" not in table_names
 
     def test_get_tables_multiple_tables(self, empty_database, main_reference_sequence):
         """Test get_tables with multiple tables."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
             reference_sequence=main_reference_sequence
         )
-        empty_database.create_gene_table(
+        create_gene_table(empty_database,
             table_name="genes",
             primary_key_name="id",
             gene_name="S",
@@ -751,11 +750,12 @@ class TestGetTables:
 
         result = empty_database.get_tables()
         assert isinstance(result, pa.Table)
+        # The built-in `_references` table is internal and hidden from get_tables.
         assert result.num_rows == 2
-        data = result.to_pydict()
-        table_names = set(data["table_name"])
+        table_names = set(result.to_pydict()["table_name"])
         assert "sequences" in table_names
         assert "genes" in table_names
+        assert "_references" not in table_names
 
 
 class TestQuery:
@@ -763,7 +763,7 @@ class TestQuery:
 
     def test_query_returns_pyarrow_table(self, empty_database, main_reference_sequence):
         """Test that query returns a PyArrow Table."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -779,7 +779,7 @@ class TestQuery:
 
     def test_query_has_correct_schema(self, empty_database, main_reference_sequence):
         """Test that the returned table has expected columns."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -795,7 +795,7 @@ class TestQuery:
 
     def test_query_returns_data(self, empty_database, main_reference_sequence):
         """Test that query returns rows."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -810,7 +810,7 @@ class TestQuery:
 
     def test_query_with_filter(self, empty_database, main_reference_sequence):
         """Test query with a filter expression."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -831,7 +831,7 @@ class TestQuery:
 
     def test_query_to_batches(self, empty_database, main_reference_sequence):
         """Test that the result can be converted to RecordBatches."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -849,7 +849,7 @@ class TestQuery:
 
     def test_query_to_pydict(self, empty_database, main_reference_sequence):
         """Test that the result can be converted to Python dict."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -867,7 +867,7 @@ class TestQuery:
 
     def test_query_empty_query_raises(self, empty_database, main_reference_sequence):
         """Test that empty query raises ValueError."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -879,7 +879,7 @@ class TestQuery:
 
     def test_query_invalid_query_raises(self, empty_database, main_reference_sequence):
         """Test that invalid SaneQL raises an error."""
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -894,7 +894,7 @@ class TestQuery:
         from rhydb import Database
 
         db = Database()
-        db.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(db,
             table_name="test",
             primary_key_name="id",
             sequence_name="seq",
@@ -919,7 +919,7 @@ class TestQuery:
         from rhydb import Database
 
         # Create and populate database
-        empty_database.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(empty_database,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",
@@ -947,19 +947,18 @@ class TestQuery:
 class TestUpdateColumn:
     """Test the update_column binding.
 
-    Extra columns created through create_nucleotide_sequence_table are plain (non-indexed,
-    non-phylo) string columns, so these tests cover both the binding layer itself (argument
-    validation, marshalling, translation of C++ errors into Python exceptions) and the end-to-end
-    update of a string column. Scalar value column updates are additionally exercised via
-    create_table in TestCreateTable and against the loaded database in
-    TestUpdateColumnOnLoadedDatabase.
+    Extra string columns added alongside a sequence column are plain (non-indexed, non-phylo)
+    string columns, so these tests cover both the binding layer itself (argument validation,
+    marshalling, translation of C++ errors into Python exceptions) and the end-to-end update of a
+    string column. Scalar value column updates are additionally exercised via create_table in
+    TestCreateTable and against the loaded database in TestUpdateColumnOnLoadedDatabase.
     """
 
     def _database_with_string_column(self, main_reference_sequence):
         from rhydb import Database
 
         db = Database()
-        db.create_nucleotide_sequence_table(
+        create_nucleotide_sequence_table(db,
             table_name="sequences",
             primary_key_name="primary_key",
             sequence_name="main",

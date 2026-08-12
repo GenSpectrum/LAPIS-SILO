@@ -300,27 +300,26 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
 }
 
 namespace {
-// Builds and populates the `references` table that createTableFromColumns reads sequence
-// references from. Each entry maps a sequence column name to its reference string.
-void createReferencesTable(
+// Populates the built-in `_references` table that createTableFromColumns reads sequence references
+// from. Each entry maps a sequence column name to its reference string.
+void populateReferences(
    silo::Database& database,
    const std::vector<std::pair<std::string, std::string>>& entries
 ) {
-   database.createTableFromColumns(
-      "references", {{.name = "name", .type = "string"}, {.name = "reference", .type = "string"}}
-   );
    std::stringstream data;
    for (const auto& [name, reference] : entries) {
       data << nlohmann::json{{"name", name}, {"reference", reference}}.dump() << "\n";
    }
-   database.appendData(silo::schema::TableName{"references"}, data);
+   database.appendData(
+      silo::schema::TableName{std::string{silo::Database::REFERENCES_TABLE_NAME}}, data
+   );
 }
 }  // namespace
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DatabaseTest, createTableFromColumnsSupportsAllColumnTypes) {
    silo::Database database;
-   createReferencesTable(database, {{"seq", "ACGT"}, {"gene", "MFV"}});
+   populateReferences(database, {{"seq", "ACGT"}, {"gene", "MFV"}});
    database.createTableFromColumns(
       "generic",
       {{.name = "key", .type = "string"},
@@ -360,7 +359,7 @@ TEST(DatabaseTest, createTableFromColumnsSupportsAllColumnTypes) {
 TEST(DatabaseTest, createTableFromColumnsResolvesReferenceByColumnName) {
    silo::Database database;
    // The entry name matches the sequence column name, not the table it ends up in.
-   createReferencesTable(database, {{"main", "ACGTACGT"}});
+   populateReferences(database, {{"main", "ACGTACGT"}});
    database.createTableFromColumns(
       "sequences",
       {{.name = "key", .type = "string"}, {.name = "main", .type = "nucleotide_sequence"}}
@@ -384,14 +383,14 @@ TEST(DatabaseTest, createTableFromColumnsRejectsInvalidRequests) {
       std::runtime_error
    );
 
-   // No `references` table exists yet.
+   // The built-in `_references` table has no entry registered for the sequence column yet.
    EXPECT_THROW(
       database.createTableFromColumns("t", {{.name = "seq", .type = "nucleotide_sequence"}}),
       std::runtime_error
    );
 
-   // A `references` table exists but has no entry for the requested column name.
-   createReferencesTable(database, {{"other", "ACGT"}});
+   // `_references` has entries but none matches the requested column name.
+   populateReferences(database, {{"other", "ACGT"}});
    EXPECT_THROW(
       database.createTableFromColumns("t", {{.name = "seq", .type = "nucleotide_sequence"}}),
       std::runtime_error
@@ -399,7 +398,7 @@ TEST(DatabaseTest, createTableFromColumnsRejectsInvalidRequests) {
 
    // The reference exists but contains invalid symbols for a nucleotide sequence.
    silo::Database database_with_bad_reference;
-   createReferencesTable(database_with_bad_reference, {{"seq", "XYZ"}});
+   populateReferences(database_with_bad_reference, {{"seq", "XYZ"}});
    EXPECT_THROW(
       database_with_bad_reference.createTableFromColumns(
          "t", {{.name = "seq", .type = "nucleotide_sequence"}}

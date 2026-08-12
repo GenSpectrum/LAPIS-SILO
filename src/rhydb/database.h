@@ -12,11 +12,11 @@
 
 namespace rhydb {
 
-/// Describes a single non-primary-key column for the generic `createTableFromColumns` API.
+/// Describes a single column for the generic `createTableFromColumns` API.
 /// `type` is a lowercase type name (e.g. "string", "indexed_string", "date", "bool", "int",
 /// "float", "nucleotide_sequence", "amino_acid_sequence", "zstd_compressed_string"). Columns that
-/// need a reference (the two sequence types and "zstd_compressed_string") take it from the
-/// `references` table rather than from this struct (see `createTableFromColumns`).
+/// need a reference (the two sequence types and "zstd_compressed_string") take it from the built-in
+/// `_references` table rather than from this struct (see `createTableFromColumns`).
 struct ColumnDefinition {
    std::string name;
    std::string type;
@@ -24,6 +24,12 @@ struct ColumnDefinition {
 
 class Database {
   public:
+   /// Name of the built-in table holding reference sequences for sequence / zstd-compressed
+   /// columns. Every Database has it automatically (see `createReferencesTable`); it is populated
+   /// by the caller and read by `createTableFromColumns`. The leading underscore marks it as
+   /// internal and hides it from `getTables`.
+   static constexpr std::string_view REFERENCES_TABLE_NAME = "_references";
+
    schema::DatabaseSchema schema;
    std::map<schema::TableName, std::shared_ptr<storage::Table>> tables;
 
@@ -33,7 +39,7 @@ class Database {
    DataVersion data_version_ = DataVersion::mineDataVersion();
 
   public:
-   Database() = default;
+   Database();
 
    explicit Database(schema::DatabaseSchema database_schema);
 
@@ -50,30 +56,14 @@ class Database {
       append::ClusteredBufferingOptions clustering_options = {}
    );
 
-   void createNucleotideSequenceTable(
-      const std::string& table_name,
-      const std::string& primary_key_name,
-      const std::string& sequence_name,
-      const std::string& reference_sequence,
-      const std::vector<std::string>& extra_string_columns = {}
-   );
-
-   void createGeneTable(
-      const std::string& table_name,
-      const std::string& primary_key_name,
-      const std::string& sequence_name,
-      const std::string& reference_sequence,
-      const std::vector<std::string>& extra_string_columns = {}
-   );
-
    /// Generic table creation: builds a table whose columns can be of any supported type. The first
    /// entry of `columns` becomes the table's primary key, so `columns` must be non-empty and its
    /// first entry must be of type "string". Every entry describes one column via its `type` name.
    /// Columns that need a reference (the two sequence types and "zstd_compressed_string") take it
-   /// from the `references` table, which the caller must have created and populated beforehand: it
-   /// must have STRING columns `name` and `reference`, and its entry whose `name` equals the column
-   /// name supplies that column's reference. Throws if `columns` is empty, its first entry is not a
-   /// string, a type name is unknown, a required reference is missing/invalid, or a column name is
+   /// from the built-in `_references` table (STRING columns `name` and `reference`), which the
+   /// caller must have populated beforehand: its entry whose `name` equals the column name supplies
+   /// that column's reference. Throws if `columns` is empty, its first entry is not a string, a
+   /// type name is unknown, a required reference is missing/invalid, or a column name is
    /// duplicated.
    void createTableFromColumns(
       const std::string& table_name,
@@ -129,9 +119,12 @@ class Database {
   private:
    [[nodiscard]] arrow::Result<std::string> getTablesAsArrowIpcImpl() const;
 
-   /// Looks up the reference string for `column_name` in the `references` table (see
-   /// `createTableFromColumns`). Throws if the table is missing, malformed, or has no matching
-   /// entry.
+   /// Creates the built-in `_references` table (string columns `name` and `reference`, with `name`
+   /// as the primary key). Called from every constructor so the table always exists.
+   void createReferencesTable();
+
+   /// Looks up the reference string for `column_name` in the built-in `_references` table (see
+   /// `createTableFromColumns`). Throws if the table is malformed or has no matching entry.
    std::string lookupReferenceForColumn(const std::string& column_name);
 };
 

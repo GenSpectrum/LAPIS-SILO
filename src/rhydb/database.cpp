@@ -99,8 +99,8 @@ silo::schema::ColumnType parseColumnTypeName(const std::string& type_name) {
    return iter->second;
 }
 
-/// The column types whose metadata requires a reference string (looked up in the `references`
-/// table): the two sequence types and the zstd-compressed unaligned sequence type.
+/// The column types whose metadata requires a reference string (looked up in the built-in
+/// `_references` table): the two sequence types and the zstd-compressed unaligned sequence type.
 bool columnTypeNeedsReference(silo::schema::ColumnType type) {
    using silo::schema::ColumnType;
    return type == ColumnType::NUCLEOTIDE_SEQUENCE || type == ColumnType::AMINO_ACID_SEQUENCE ||
@@ -167,11 +167,32 @@ std::shared_ptr<silo::storage::column::ColumnMetadata> makeColumnMetadata(
 
 namespace rhydb {
 
+Database::Database() {
+   createReferencesTable();
+}
+
 Database::Database(schema::DatabaseSchema database_schema)
     : schema(std::move(database_schema)) {
    for (const auto& [table_name, table_schema] : schema.tables) {
       tables.emplace(table_name, std::make_shared<storage::Table>(table_name, table_schema));
    }
+}
+
+void Database::createReferencesTable() {
+   auto table_schema = std::make_shared<schema::TableSchema>();
+   const schema::ColumnIdentifier name_column{.name = "name", .type = schema::ColumnType::STRING};
+   const schema::ColumnIdentifier reference_column{
+      .name = "reference", .type = schema::ColumnType::STRING
+   };
+   table_schema->column_metadata.emplace(
+      name_column, std::make_shared<storage::column::StringColumnMetadata>(name_column.name)
+   );
+   table_schema->column_metadata.emplace(
+      reference_column,
+      std::make_shared<storage::column::StringColumnMetadata>(reference_column.name)
+   );
+   table_schema->primary_key = name_column;
+   createTable(schema::TableName{std::string{REFERENCES_TABLE_NAME}}, std::move(table_schema));
 }
 
 void Database::createTable(
@@ -193,72 +214,6 @@ void Database::appendData(
    rhydb::append::appendDataToTable(table, input_data, std::move(clustering_options));
    updateDataVersion();
    SPDLOG_INFO("Database info: {}", getDatabaseInfo());
-}
-
-void Database::createNucleotideSequenceTable(
-   const std::string& table_name,
-   const std::string& primary_key_name,
-   const std::string& sequence_name,
-   const std::string& reference_sequence,
-   const std::vector<std::string>& extra_string_columns
-) {
-   auto table_schema = std::make_shared<schema::TableSchema>();
-   const schema::ColumnIdentifier primary_key = {
-      .name = primary_key_name, .type = schema::ColumnType::STRING
-   };
-   table_schema->column_metadata.emplace(
-      primary_key, std::make_shared<storage::column::StringColumnMetadata>(primary_key_name)
-   );
-   auto reference_sequence_vector = stringToSymbolVector<Nucleotide>(reference_sequence).value();
-   table_schema->column_metadata.emplace(
-      schema::ColumnIdentifier{
-         .name = sequence_name, .type = schema::ColumnType::NUCLEOTIDE_SEQUENCE
-      },
-      std::make_shared<storage::column::SequenceColumnMetadata<Nucleotide>>(
-         sequence_name, std::move(reference_sequence_vector)
-      )
-   );
-   for (const auto& column_name : extra_string_columns) {
-      table_schema->column_metadata.emplace(
-         schema::ColumnIdentifier{.name = column_name, .type = schema::ColumnType::STRING},
-         std::make_shared<storage::column::StringColumnMetadata>(column_name)
-      );
-   }
-   table_schema->primary_key = primary_key;
-   createTable(schema::TableName(table_name), std::move(table_schema));
-}
-
-void Database::createGeneTable(
-   const std::string& table_name,
-   const std::string& primary_key_name,
-   const std::string& sequence_name,
-   const std::string& reference_sequence,
-   const std::vector<std::string>& extra_string_columns
-) {
-   auto table_schema = std::make_shared<schema::TableSchema>();
-   const schema::ColumnIdentifier primary_key = {
-      .name = primary_key_name, .type = schema::ColumnType::STRING
-   };
-   table_schema->column_metadata.emplace(
-      primary_key, std::make_shared<storage::column::StringColumnMetadata>(primary_key_name)
-   );
-   auto reference_sequence_vector = stringToSymbolVector<AminoAcid>(reference_sequence).value();
-   table_schema->column_metadata.emplace(
-      schema::ColumnIdentifier{
-         .name = sequence_name, .type = schema::ColumnType::AMINO_ACID_SEQUENCE
-      },
-      std::make_shared<storage::column::SequenceColumnMetadata<AminoAcid>>(
-         sequence_name, std::move(reference_sequence_vector)
-      )
-   );
-   for (const auto& column_name : extra_string_columns) {
-      table_schema->column_metadata.emplace(
-         schema::ColumnIdentifier{.name = column_name, .type = schema::ColumnType::STRING},
-         std::make_shared<storage::column::StringColumnMetadata>(column_name)
-      );
-   }
-   table_schema->primary_key = primary_key;
-   createTable(schema::TableName(table_name), std::move(table_schema));
 }
 
 void Database::createTableFromColumns(
@@ -306,27 +261,17 @@ void Database::createTableFromColumns(
 }
 
 std::string Database::lookupReferenceForColumn(const std::string& column_name) {
-   static constexpr std::string_view REFERENCES_TABLE_NAME = "references";
-
+   // The `_references` table is built-in (see `createReferencesTable`), so it always exists with
+   // its `name` and `reference` string columns.
    auto table_iter = tables.find(schema::TableName{std::string{REFERENCES_TABLE_NAME}});
-   if (table_iter == tables.end()) {
-      throw std::runtime_error(fmt::format(
-         "Cannot create sequence column '{}': no '{}' table exists. Create a '{}' table with "
-         "string columns 'name' and 'reference' and populate it before creating sequence columns.",
-         column_name,
-         REFERENCES_TABLE_NAME,
-         REFERENCES_TABLE_NAME
-      ));
-   }
+   SILO_ASSERT(table_iter != tables.end());
    const auto& reference_columns = table_iter->second->columns.string_columns;
    auto name_column_iter = reference_columns.find("name");
    auto reference_column_iter = reference_columns.find("reference");
-   if (name_column_iter == reference_columns.end() ||
-       reference_column_iter == reference_columns.end()) {
-      throw std::runtime_error(fmt::format(
-         "The '{}' table must have string columns 'name' and 'reference'.", REFERENCES_TABLE_NAME
-      ));
-   }
+   SILO_ASSERT(
+      name_column_iter != reference_columns.end() &&
+      reference_column_iter != reference_columns.end()
+   );
    const auto& name_column = name_column_iter->second;
    const auto& reference_column = reference_column_iter->second;
 
@@ -673,9 +618,13 @@ arrow::Result<std::string> Database::getTablesAsArrowIpcImpl() const {
    // Create schema with a single "table_name" column
    auto arrow_schema = arrow::schema({arrow::field("table_name", arrow::utf8())});
 
-   // Build string array with table names
+   // Build string array with table names, skipping internal tables (those whose name starts with
+   // an underscore, e.g. the built-in `_references` table).
    arrow::StringBuilder builder;
    for (const auto& [table_name, _] : tables) {
+      if (table_name.getName().starts_with('_')) {
+         continue;
+      }
       ARROW_RETURN_NOT_OK(builder.Append(table_name.getName()));
    }
 

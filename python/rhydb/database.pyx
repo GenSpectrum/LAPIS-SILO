@@ -80,92 +80,6 @@ cdef class PyDatabase:
         except Exception as e:
             raise RuntimeError(f"Failed to get tables: {e}")
 
-    
-    def create_nucleotide_sequence_table(self, str table_name, str primary_key_name, str sequence_name, str reference_sequence, list extra_columns=None):
-        """
-        Create a new nucleotide sequence table
-
-        Parameters
-        ----------
-        table_name : str
-            Name of the table
-        primary_key_name : str
-            Name of the primary key column
-        sequence_name : str
-            Name of the nucleotide sequence column
-        reference_sequence : str
-            The reference nucleotide sequence (e.g., "ACGT...")
-        extra_columns : list of str, optional
-            Additional string columns to add to the table (default: None)
-        """
-        if not table_name or not table_name.strip():
-            raise ValueError("table_name cannot be empty")
-        if not primary_key_name or not primary_key_name.strip():
-            raise ValueError("primary_key_name cannot be empty")
-        if not sequence_name or not sequence_name.strip():
-            raise ValueError("sequence_name cannot be empty")
-        if not reference_sequence or not reference_sequence.strip():
-            raise ValueError("reference_sequence cannot be empty")
-
-        cdef string cpp_table_name = table_name.encode('utf-8')
-        cdef string cpp_primary_key_name = primary_key_name.encode('utf-8')
-        cdef string cpp_sequence_name = sequence_name.encode('utf-8')
-        cdef string cpp_reference_sequence = reference_sequence.encode('utf-8')
-        cdef vector[string] cpp_extra_columns
-
-        if extra_columns:
-            for col in extra_columns:
-                if not isinstance(col, str):
-                    raise TypeError(f"extra_columns must contain strings, got {type(col)}")
-                cpp_extra_columns.push_back(col.encode('utf-8'))
-
-        try:
-            self.c_database.createNucleotideSequenceTable(cpp_table_name, cpp_primary_key_name, cpp_sequence_name, cpp_reference_sequence, cpp_extra_columns)
-        except Exception as e:
-            raise RuntimeError(f"Failed to create table '{table_name}': {e}")
-
-    def create_gene_table(self, str table_name, str primary_key_name, str gene_name, str reference_sequence, list extra_columns=None):
-        """
-        Create a new gene (amino acid sequence) table
-
-        Parameters
-        ----------
-        table_name : str
-            Name of the table
-        primary_key_name : str
-            Name of the primary key column
-        gene_name : str
-            Name of the amino acid sequence column
-        reference_sequence : str
-            The reference amino acid sequence
-        extra_columns : list of str, optional
-            Additional string columns to add to the table (default: None)
-        """
-        if not table_name or not table_name.strip():
-            raise ValueError("table_name cannot be empty")
-        if not primary_key_name or not primary_key_name.strip():
-            raise ValueError("primary_key_name cannot be empty")
-        if not gene_name or not gene_name.strip():
-            raise ValueError("gene_name cannot be empty")
-        if not reference_sequence or not reference_sequence.strip():
-            raise ValueError("reference_sequence cannot be empty")
-
-        cdef string cpp_table_name = table_name.encode('utf-8')
-        cdef string cpp_primary_key_name = primary_key_name.encode('utf-8')
-        cdef string cpp_gene_name = gene_name.encode('utf-8')
-        cdef string cpp_reference_sequence = reference_sequence.encode('utf-8')
-        cdef vector[string] cpp_extra_columns
-
-        if extra_columns:
-            for col in extra_columns:
-                if not isinstance(col, str):
-                    raise TypeError(f"extra_columns must contain strings, got {type(col)}")
-                cpp_extra_columns.push_back(col.encode('utf-8'))
-
-        try:
-            self.c_database.createGeneTable(cpp_table_name, cpp_primary_key_name, cpp_gene_name, cpp_reference_sequence, cpp_extra_columns)
-        except Exception as e:
-            raise RuntimeError(f"Failed to create table '{table_name}': {e}")
 
     # Column types accepted by :meth:`create_table`.
     _COLUMN_TYPES = frozenset({
@@ -184,17 +98,16 @@ cdef class PyDatabase:
         """
         Create a new table with columns of arbitrary supported types.
 
-        This is the generic counterpart to :meth:`create_nucleotide_sequence_table` and
-        :meth:`create_gene_table`: it lets you declare a table with any mix of scalar, string and
-        sequence columns. The first column in ``columns`` becomes the table's primary key, so at
-        least one column must be provided and its first entry must be of type ``"string"``.
+        It lets you declare a table with any mix of scalar, string and sequence columns. The first
+        column in ``columns`` becomes the table's primary key, so at least one column must be
+        provided and its first entry must be of type ``"string"``.
 
         Columns of type ``"nucleotide_sequence"``, ``"amino_acid_sequence"`` and
         ``"zstd_compressed_string"`` need a reference sequence. Rather than passing it inline, the
-        reference is taken from a table named ``references`` that you must create and populate
-        beforehand. That table must have string columns ``name`` and ``reference``; the entry whose
-        ``name`` equals the column name supplies that column's reference, and creation fails if no
-        such entry exists.
+        reference is taken from the built-in ``_references`` table (string columns ``name`` and
+        ``reference``), which every database has automatically. Populate it beforehand; the entry
+        whose ``name`` equals the column name supplies that column's reference, and creation fails
+        if no such entry exists.
 
         Parameters
         ----------
@@ -210,10 +123,8 @@ cdef class PyDatabase:
 
         Example
         -------
-        >>> # Provide references for the sequence columns first.
-        >>> db.create_table("references",
-        ...     [{"name": "name", "type": "string"}, {"name": "reference", "type": "string"}])
-        >>> db.append_data_from_string("references",
+        >>> # Register references for the sequence columns in the built-in `_references` table first.
+        >>> db.append_data_from_string("_references",
         ...     '{"name": "main", "reference": "ACGT"}')
         >>> db.create_table(
         ...     table_name="samples",
