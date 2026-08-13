@@ -10,7 +10,7 @@
 #include <boost/serialization/string.hpp>
 #include <roaring/roaring.hh>
 
-namespace silo::roaring_util {
+namespace rhydb::roaring_util {
 
 /// Owning RAII wrapper around a single roaring bitmap container (the 2^16-valued building block a
 /// `roaring::Roaring` is internally composed of). It bundles the raw `roaring::internal` pointer,
@@ -188,4 +188,4 @@ class RoaringContainerView {
    }
 };
 
-}  // namespace silo::roaring_util
+}  // namespace rhydb::roaring_util

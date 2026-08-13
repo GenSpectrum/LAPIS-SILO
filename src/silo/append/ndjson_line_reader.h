@@ -6,7 +6,7 @@
 
 #include "evobench/evobench.hpp"
 
-namespace silo::append {
+namespace rhydb::append {
 
 class NdjsonLineReader {
    std::istream* input_stream;
@@ -108,4 +108,4 @@ class NdjsonLineReader {
    }
 };
 
-}  // namespace silo::append
+}  // namespace rhydb::append

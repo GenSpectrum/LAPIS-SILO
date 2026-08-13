@@ -3,9 +3,9 @@
 #include "silo/test/query_fixture.test.h"
 
 namespace {
-using silo::ReferenceGenomes;
-using silo::test::QueryTestData;
-using silo::test::QueryTestScenario;
+using rhydb::ReferenceGenomes;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
 
 const int VALUE_IN_FILTER = 3;
 const int VALUE_BELOW_FILTER = 1;

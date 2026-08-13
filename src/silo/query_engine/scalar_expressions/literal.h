@@ -9,7 +9,7 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 /// A scalar literal value, e.g. `x := 3`. Literals are scalar expressions whose
 /// value is known up front; their type() reflects the literal's column type.
@@ -172,4 +172,4 @@ class DateLiteral : public ScalarExpression {
    ) const override;
 };
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

@@ -7,7 +7,7 @@
 
 #include "config/config_specification.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 class ApiOptions {
   public:
@@ -46,12 +46,12 @@ class RuntimeConfig {
    void overwriteFrom(const VerifiedConfigAttributes& config_source);
 };
 
-}  // namespace silo::config
+}  // namespace rhydb::config
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::RuntimeConfig> : fmt::formatter<std::string> {
+struct [[maybe_unused]] fmt::formatter<rhydb::config::RuntimeConfig> : fmt::formatter<std::string> {
    [[maybe_unused]] static auto format(
-      const silo::config::RuntimeConfig& runtime_config,
+      const rhydb::config::RuntimeConfig& runtime_config,
       format_context& ctx
    ) -> decltype(ctx.out());
 };

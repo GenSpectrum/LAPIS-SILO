@@ -3,7 +3,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-using silo::append::NdjsonLineReader;
+using rhydb::append::NdjsonLineReader;
 
 TEST(NdjsonLineReader, returnsErrorResultOnInvalidLines) {
    std::string invalid_json = "{}\n{";

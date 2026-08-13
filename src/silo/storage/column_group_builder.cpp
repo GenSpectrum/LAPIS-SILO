@@ -15,7 +15,7 @@
 #include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column_group.h"
 
-namespace silo::storage {
+namespace rhydb::storage {
 
 template <>
 std::map<std::string, column::DictionaryEncodedColumn::Builder>& ColumnGroupBuilder::
@@ -237,7 +237,7 @@ std::expected<void, std::string> ColumnValueExtractor::operator()<column::Date32
       RAISE_STRING_ERROR_WITH_CONTEXT(
          error, value, "error getting value as string: {}. {}", value.raw_json_token()
       );
-      auto date_result = silo::common::stringToDate32(column_value);
+      auto date_result = rhydb::common::stringToDate32(column_value);
       if (!date_result.has_value()) {
          return std::unexpected{date_result.error()};
       }
@@ -387,4 +387,4 @@ std::optional<std::pair<uint32_t, uint32_t>> ColumnGroupBuilder::coverageRangeAt
    return aa_column_builders.at(sequence_column.name).coverageRangeAt(index);
 }
 
-}  // namespace silo::storage
+}  // namespace rhydb::storage

@@ -6,7 +6,7 @@
 #include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/test/query_fixture.test.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 // --- toString tests ---
 
@@ -48,14 +48,14 @@ TEST(NOfToString, shouldHandleEmptyChildren) {
    EXPECT_EQ(nof.toString(), "[0-of:]");
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions
 
 // --- Query integration tests ---
 namespace {
 
-using silo::ReferenceGenomes;
-using silo::test::QueryTestData;
-using silo::test::QueryTestScenario;
+using rhydb::ReferenceGenomes;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
 
 nlohmann::json createNOfData(
    const std::string& primary_key,

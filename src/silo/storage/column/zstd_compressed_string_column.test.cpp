@@ -7,16 +7,18 @@
 
 #include "silo/storage/column/row_id.h"
 
-using silo::storage::column::RowId;
+using rhydb::storage::column::RowId;
 
 TEST(ZstdCompressedStringColumn, insertValuesAndGetThemBack) {
-   silo::storage::column::ZstdCompressedStringColumnMetadata column_metadata{"test_column", "ACGT"};
-   silo::storage::column::ZstdCompressedStringColumn under_test(&column_metadata);
+   rhydb::storage::column::ZstdCompressedStringColumnMetadata column_metadata{
+      "test_column", "ACGT"
+   };
+   rhydb::storage::column::ZstdCompressedStringColumn under_test(&column_metadata);
 
    std::vector<std::optional<std::string>> values_to_add{
       "2020-01-01", "2023-01-05", "2021-12-03", "2025-01-01", std::nullopt, "2021-03-21", "asd"
    };
-   silo::storage::column::ZstdCompressedStringColumn::Builder builder;
+   rhydb::storage::column::ZstdCompressedStringColumn::Builder builder;
    for (const auto& value : values_to_add) {
       if (value.has_value()) {
          builder.insert(value.value());
@@ -36,10 +38,10 @@ TEST(ZstdCompressedStringColumn, insertValuesAndGetThemBack) {
 
 namespace {
 void appendChunk(
-   silo::storage::column::ZstdCompressedStringColumn& column,
+   rhydb::storage::column::ZstdCompressedStringColumn& column,
    const std::vector<std::optional<std::string>>& values
 ) {
-   silo::storage::column::ZstdCompressedStringColumn::Builder builder;
+   rhydb::storage::column::ZstdCompressedStringColumn::Builder builder;
    for (const auto& value : values) {
       if (value.has_value()) {
          builder.insert(value.value());
@@ -53,8 +55,10 @@ void appendChunk(
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(ZstdCompressedStringColumn, updateOverwritesCompressedValuesAcrossChunks) {
-   silo::storage::column::ZstdCompressedStringColumnMetadata column_metadata{"test_column", "ACGT"};
-   silo::storage::column::ZstdCompressedStringColumn under_test(&column_metadata);
+   rhydb::storage::column::ZstdCompressedStringColumnMetadata column_metadata{
+      "test_column", "ACGT"
+   };
+   rhydb::storage::column::ZstdCompressedStringColumn under_test(&column_metadata);
 
    appendChunk(under_test, {"2020-01-01", "2023-01-05"});
    appendChunk(under_test, {std::nullopt, "2021-12-03"});
@@ -83,9 +87,11 @@ TEST(ZstdCompressedStringColumn, updateOverwritesCompressedValuesAcrossChunks) {
 // 2^16-aligned offset (chunk k starts at k << 16); the null bitmap stores those aligned row ids.
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(ZstdCompressedStringColumn, valuesSpanningMultipleAppendedChunks) {
-   using silo::storage::column::RowId;
-   silo::storage::column::ZstdCompressedStringColumnMetadata column_metadata{"test_column", "ACGT"};
-   silo::storage::column::ZstdCompressedStringColumn under_test(&column_metadata);
+   using rhydb::storage::column::RowId;
+   rhydb::storage::column::ZstdCompressedStringColumnMetadata column_metadata{
+      "test_column", "ACGT"
+   };
+   rhydb::storage::column::ZstdCompressedStringColumn under_test(&column_metadata);
 
    const std::vector<std::vector<std::optional<std::string>>> chunks{
       {"2020-01-01", "2023-01-05"},

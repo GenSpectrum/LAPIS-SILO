@@ -11,9 +11,9 @@
 #include "silo/common/tree_node_id.h"
 #include "silo/initialize/initialize_exception.h"
 
-using silo::common::TreeNodeId;
+using rhydb::common::TreeNodeId;
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 size_t StringColumnChunk::insert(std::string_view value) {
    if (value.size() <= SiloString::SHORT_STRING_SIZE) {
@@ -206,4 +206,4 @@ StringColumn::Buffer StringColumnBuilder::finalize() {
    return result;
 }
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

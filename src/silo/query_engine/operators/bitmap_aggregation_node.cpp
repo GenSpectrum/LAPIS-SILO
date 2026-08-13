@@ -27,7 +27,7 @@
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 namespace {
 
@@ -355,4 +355,4 @@ arrow::Result<arrow::acero::ExecNode*> BitmapAggregationNode::addToExecPlan(
    return arrow::acero::MakeExecNode("source", &plan, {}, options);
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

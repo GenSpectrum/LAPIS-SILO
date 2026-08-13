@@ -10,7 +10,7 @@
 #include "silo/common/date32.h"
 #include "silo/query_engine/saneql/source_location.h"
 
-namespace silo::query_engine::saneql::ast {
+namespace rhydb::query_engine::saneql::ast {
 
 struct Expression;
 
@@ -137,4 +137,4 @@ ExpressionPtr makeExpr(ExpressionVariant value, SourceLocation location);
 [[nodiscard]] bool isStringLiteral(const Expression& expression);
 [[nodiscard]] bool isBoolLiteral(const Expression& expression);
 
-}  // namespace silo::query_engine::saneql::ast
+}  // namespace rhydb::query_engine::saneql::ast

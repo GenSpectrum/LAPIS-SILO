@@ -9,10 +9,10 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 
-using silo::AminoAcid;
-using silo::Nucleotide;
-using silo::SymbolMap;
-using silo::storage::column::VerticalSequenceIndex;
+using rhydb::AminoAcid;
+using rhydb::Nucleotide;
+using rhydb::SymbolMap;
+using rhydb::storage::column::VerticalSequenceIndex;
 
 class VerticalSequenceIndexTest : public ::testing::Test {
   protected:
@@ -438,7 +438,7 @@ TEST_F(VerticalSequenceIndexTest, adaptsAndFlipsCorrectlyWithManySymbols) {
    );
 }
 
-using silo::storage::column::splitIdsIntoBatches;
+using rhydb::storage::column::splitIdsIntoBatches;
 
 TEST(splitIdsIntoBatches, EmptyVector) {
    const std::vector<uint32_t> input = {};

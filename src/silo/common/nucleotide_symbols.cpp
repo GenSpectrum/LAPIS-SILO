@@ -2,13 +2,13 @@
 
 #include <algorithm>
 
-namespace silo {
+namespace rhydb {
 
 // Primary definition: what each symbol codes for.
 // Concrete symbols code for themselves. Ambiguity symbols code for
 // the set of concrete symbols they represent per IUPAC conventions.
 // N codes for all symbols (including GAP and other ambiguity codes).
-const silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> Nucleotide::CODES_FOR{{{
+const rhydb::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> Nucleotide::CODES_FOR{{{
    {Symbol::GAP},                      // GAP
    {Symbol::A},                        // A - Adenine
    {Symbol::C},                        // C - Cytosine
@@ -44,8 +44,8 @@ const silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> Nucleotide::C
 }}};
 
 namespace {
-silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> deriveAmbiguitySymbols() {
-   silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> result;
+rhydb::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> deriveAmbiguitySymbols() {
+   rhydb::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> result;
    for (auto symbol : Nucleotide::SYMBOLS) {
       const auto& codes_for_symbol = Nucleotide::CODES_FOR.at(symbol);
       std::vector<Nucleotide::Symbol> ambiguous;
@@ -66,7 +66,7 @@ silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> deriveAmbiguitySymb
 }
 }  // namespace
 
-const silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> Nucleotide::AMBIGUITY_SYMBOLS =
+const rhydb::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> Nucleotide::AMBIGUITY_SYMBOLS =
    deriveAmbiguitySymbols();
 
-}  // namespace silo
+}  // namespace rhydb

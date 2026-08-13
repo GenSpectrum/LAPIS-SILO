@@ -10,7 +10,7 @@
 #include "silo/query_engine/filter/operators/intersection.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 Complement::Complement(std::unique_ptr<Operator> child, storage::column::RowLayout row_layout)
     : child(std::move(child)),
@@ -59,4 +59,4 @@ std::unique_ptr<Operator> Complement::negate(std::unique_ptr<Complement>&& compl
    return std::move(complement->child);
 }
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

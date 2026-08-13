@@ -8,9 +8,9 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace YAML {
-using silo::common::LineageName;
-using silo::preprocessing::LineageDefinition;
-using silo::preprocessing::LineageDefinitionFile;
+using rhydb::common::LineageName;
+using rhydb::preprocessing::LineageDefinition;
+using rhydb::preprocessing::LineageDefinitionFile;
 
 template <>
 struct convert<LineageName> {
@@ -18,7 +18,7 @@ struct convert<LineageName> {
       try {
          lineage_name.string = node.as<std::string>();
       } catch (const YAML::BadConversion& e) {
-         throw silo::preprocessing::PreprocessingException(fmt::format(
+         throw rhydb::preprocessing::PreprocessingException(fmt::format(
             "Could not parse Lineage definition name '{}', as it is not a string.", YAML::Dump(node)
          ));
       }
@@ -43,7 +43,7 @@ LineageDefinition entryToLineageDefinition(const YAML::detail::iterator_value& e
       };
    }
    if (!entry.second.IsMap()) {
-      throw silo::preprocessing::PreprocessingException(fmt::format(
+      throw rhydb::preprocessing::PreprocessingException(fmt::format(
          "The lineage '{}' is not defined as a valid YAML Map in its definition: {}",
          lineage_name,
          YAML::Dump(entry.second)
@@ -53,7 +53,7 @@ LineageDefinition entryToLineageDefinition(const YAML::detail::iterator_value& e
           const auto field_name = element.first.template as<std::string>();
           return field_name != "parents" && field_name != "aliases";
        })) {
-      throw silo::preprocessing::PreprocessingException(fmt::format(
+      throw rhydb::preprocessing::PreprocessingException(fmt::format(
          "The definition of lineage '{}' may only contain the fields 'parents' and 'aliases', it "
          "also contains invalid fields:\n{}",
          lineage_name,
@@ -63,7 +63,7 @@ LineageDefinition entryToLineageDefinition(const YAML::detail::iterator_value& e
    std::vector<LineageName> parents;
    if (entry.second["parents"]) {
       if (!entry.second["parents"].IsSequence()) {
-         throw silo::preprocessing::PreprocessingException(fmt::format(
+         throw rhydb::preprocessing::PreprocessingException(fmt::format(
             "The parents of lineage '{}' are not defined as a YAML Sequence", lineage_name
          ));
       }
@@ -72,7 +72,7 @@ LineageDefinition entryToLineageDefinition(const YAML::detail::iterator_value& e
    std::vector<LineageName> aliases;
    if (entry.second["aliases"]) {
       if (!entry.second["aliases"].IsSequence()) {
-         throw silo::preprocessing::PreprocessingException(fmt::format(
+         throw rhydb::preprocessing::PreprocessingException(fmt::format(
             "The aliases of lineage '{}' are not defined as a YAML Sequence", lineage_name
          ));
       }
@@ -95,12 +95,12 @@ struct convert<LineageDefinitionFile> {
 };
 }  // namespace YAML
 
-namespace silo::preprocessing {
+namespace rhydb::preprocessing {
 
 LineageDefinitionFile LineageDefinitionFile::fromYAMLFile(const std::filesystem::path& yaml_path) {
    std::ifstream file(yaml_path, std::ios::in | std::ios::binary);
    if (!file) {
-      throw silo::preprocessing::PreprocessingException(
+      throw rhydb::preprocessing::PreprocessingException(
          fmt::format("Could not open the YAML file: '{}'", yaml_path.string())
       );
    }
@@ -109,7 +109,7 @@ LineageDefinitionFile LineageDefinitionFile::fromYAMLFile(const std::filesystem:
    if (file.peek() != std::ifstream::traits_type::eof()) {
       contents << file.rdbuf();
       if (contents.fail()) {
-         throw silo::preprocessing::PreprocessingException(
+         throw rhydb::preprocessing::PreprocessingException(
             fmt::format("Error when reading the YAML file: '{}'", yaml_path.string())
          );
       }
@@ -117,7 +117,7 @@ LineageDefinitionFile LineageDefinitionFile::fromYAMLFile(const std::filesystem:
    try {
       return fromYAMLString(contents.str());
    } catch (const YAML::ParserException& parser_exception) {
-      throw silo::preprocessing::PreprocessingException(
+      throw rhydb::preprocessing::PreprocessingException(
          fmt::format("The YAML file '{}' does not contain valid YAML.", yaml_path.string())
       );
    }
@@ -144,4 +144,4 @@ LineageDefinitionFile LineageDefinitionFile::fromYAML(const YAML::Node& yaml_nod
    return file;
 }
 
-}  // namespace silo::preprocessing
+}  // namespace rhydb::preprocessing

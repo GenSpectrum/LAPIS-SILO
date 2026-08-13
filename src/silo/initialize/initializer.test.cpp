@@ -7,14 +7,14 @@
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 
-using silo::ReferenceGenomes;
-using silo::common::LineageTreeAndIdMap;
-using silo::common::PhyloTree;
-using silo::initialize::Initializer;
+using rhydb::ReferenceGenomes;
+using rhydb::common::LineageTreeAndIdMap;
+using rhydb::common::PhyloTree;
+using rhydb::initialize::Initializer;
 
 TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
-   const silo::config::DatabaseConfig database_config =
-      silo::config::DatabaseConfig::getValidatedConfigFromFile(
+   const rhydb::config::DatabaseConfig database_config =
+      rhydb::config::DatabaseConfig::getValidatedConfigFromFile(
          "testBaseData/unitTestDummyDataset/database_config.yaml"
       );
    const ReferenceGenomes reference_genomes =
@@ -24,7 +24,7 @@ TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    const std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees{
       {"test_lineage_definition.yaml",
        LineageTreeAndIdMap::fromLineageDefinitionFile(
-          silo::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
+          rhydb::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
 A:
   aliases:
   - X
@@ -54,17 +54,17 @@ A.11:
    ASSERT_EQ(table_schema->getColumnIdentifiers().size(), expected_number_of_columns);
    ASSERT_EQ(table_schema->primary_key.name, database_config.schema.primary_key);
 
-   using silo::schema::ColumnType;
+   using rhydb::schema::ColumnType;
    ASSERT_TRUE(table_schema->getColumn("M").has_value());
    ASSERT_EQ(table_schema->getColumn("M").value().type, ColumnType::AMINO_ACID_SEQUENCE);
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::SequenceColumn<silo::AminoAcid>>("M")
+                  ->getColumnMetadata<rhydb::storage::column::SequenceColumn<rhydb::AminoAcid>>("M")
                   .has_value());
    ASSERT_EQ(
-      table_schema->getColumnMetadata<silo::storage::column::SequenceColumn<silo::AminoAcid>>("M")
+      table_schema->getColumnMetadata<rhydb::storage::column::SequenceColumn<rhydb::AminoAcid>>("M")
          .value()
          ->reference_sequence,
-      reference_genomes.stringToVector<silo::AminoAcid>("MADS*")
+      reference_genomes.stringToVector<rhydb::AminoAcid>("MADS*")
    );
 
    ASSERT_TRUE(table_schema->getColumn("age").has_value());
@@ -73,7 +73,7 @@ A.11:
    ASSERT_TRUE(table_schema->getColumn("country").has_value());
    ASSERT_EQ(table_schema->getColumn("country").value().type, ColumnType::DICTIONARY_ENCODED);
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("country")
+                  ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("country")
                   .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("date").has_value());
@@ -82,34 +82,34 @@ A.11:
    ASSERT_TRUE(table_schema->getColumn("division").has_value());
    ASSERT_EQ(table_schema->getColumn("division").value().type, ColumnType::DICTIONARY_ENCODED);
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("division")
+                  ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("division")
                   .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("main").has_value());
    ASSERT_EQ(table_schema->getColumn("main").value().type, ColumnType::NUCLEOTIDE_SEQUENCE);
    ASSERT_TRUE(
       table_schema
-         ->getColumnMetadata<silo::storage::column::SequenceColumn<silo::Nucleotide>>("main")
+         ->getColumnMetadata<rhydb::storage::column::SequenceColumn<rhydb::Nucleotide>>("main")
          .has_value()
    );
    ASSERT_EQ(
       table_schema
-         ->getColumnMetadata<silo::storage::column::SequenceColumn<silo::Nucleotide>>("main")
+         ->getColumnMetadata<rhydb::storage::column::SequenceColumn<rhydb::Nucleotide>>("main")
          .value()
          ->reference_sequence,
-      reference_genomes.stringToVector<silo::Nucleotide>("ACGTACGT")
+      reference_genomes.stringToVector<rhydb::Nucleotide>("ACGTACGT")
    );
 
    ASSERT_TRUE(table_schema->getColumn("pango_lineage").has_value());
    ASSERT_EQ(table_schema->getColumn("pango_lineage").value().type, ColumnType::DICTIONARY_ENCODED);
    ASSERT_TRUE(
       table_schema
-         ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("pango_lineage")
+         ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("pango_lineage")
          .has_value()
    );
    auto* pango_metadata =
       table_schema
-         ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("pango_lineage")
+         ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("pango_lineage")
          .value();
    ASSERT_EQ(pango_metadata->dictionary.getValue(0), "A");
    ASSERT_EQ(pango_metadata->dictionary.getValue(1), "A.1");
@@ -120,9 +120,8 @@ A.11:
 
    ASSERT_TRUE(table_schema->getColumn("primaryKey").has_value());
    ASSERT_EQ(table_schema->getColumn("primaryKey").value().type, ColumnType::STRING);
-   ASSERT_TRUE(
-      table_schema->getColumnMetadata<silo::storage::column::StringColumn>("primaryKey").has_value()
-   );
+   ASSERT_TRUE(table_schema->getColumnMetadata<rhydb::storage::column::StringColumn>("primaryKey")
+                  .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("qc_value").has_value());
    ASSERT_EQ(table_schema->getColumn("qc_value").value().type, ColumnType::FLOAT);
@@ -130,7 +129,7 @@ A.11:
    ASSERT_TRUE(table_schema->getColumn("region").has_value());
    ASSERT_EQ(table_schema->getColumn("region").value().type, ColumnType::DICTIONARY_ENCODED);
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("region")
+                  ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("region")
                   .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("testSecondSequence").has_value());
@@ -138,18 +137,18 @@ A.11:
       table_schema->getColumn("testSecondSequence").value().type, ColumnType::NUCLEOTIDE_SEQUENCE
    );
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::SequenceColumn<silo::Nucleotide>>(
+                  ->getColumnMetadata<rhydb::storage::column::SequenceColumn<rhydb::Nucleotide>>(
                      "testSecondSequence"
                   )
                   .has_value());
    ASSERT_EQ(
       table_schema
-         ->getColumnMetadata<silo::storage::column::SequenceColumn<silo::Nucleotide>>(
+         ->getColumnMetadata<rhydb::storage::column::SequenceColumn<rhydb::Nucleotide>>(
             "testSecondSequence"
          )
          .value()
          ->reference_sequence,
-      reference_genomes.stringToVector<silo::Nucleotide>("ACGT")
+      reference_genomes.stringToVector<rhydb::Nucleotide>("ACGT")
    );
 
    ASSERT_TRUE(table_schema->getColumn("test_boolean_column").has_value());
@@ -161,12 +160,12 @@ A.11:
    );
    ASSERT_TRUE(
       table_schema
-         ->getColumnMetadata<silo::storage::column::ZstdCompressedStringColumn>("unaligned_main")
+         ->getColumnMetadata<rhydb::storage::column::ZstdCompressedStringColumn>("unaligned_main")
          .has_value()
    );
    ASSERT_EQ(
       table_schema
-         ->getColumnMetadata<silo::storage::column::ZstdCompressedStringColumn>("unaligned_main")
+         ->getColumnMetadata<rhydb::storage::column::ZstdCompressedStringColumn>("unaligned_main")
          .value()
          ->dictionary_string,
       "ACGTACGT"
@@ -178,13 +177,13 @@ A.11:
       ColumnType::ZSTD_COMPRESSED_STRING
    );
    ASSERT_TRUE(table_schema
-                  ->getColumnMetadata<silo::storage::column::ZstdCompressedStringColumn>(
+                  ->getColumnMetadata<rhydb::storage::column::ZstdCompressedStringColumn>(
                      "unaligned_testSecondSequence"
                   )
                   .has_value());
    ASSERT_EQ(
       table_schema
-         ->getColumnMetadata<silo::storage::column::ZstdCompressedStringColumn>(
+         ->getColumnMetadata<rhydb::storage::column::ZstdCompressedStringColumn>(
             "unaligned_testSecondSequence"
          )
          .value()
@@ -219,13 +218,13 @@ schema:
 )",
       lineage_index_type
    );
-   const auto database_config = silo::config::DatabaseConfig::getValidatedConfig(config_yaml);
+   const auto database_config = rhydb::config::DatabaseConfig::getValidatedConfig(config_yaml);
    const ReferenceGenomes reference_genomes =
       ReferenceGenomes::readFromFile("testBaseData/unitTestDummyDataset/reference_genomes.json");
    const std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees{
       {"test_lineage_definition.yaml",
        LineageTreeAndIdMap::fromLineageDefinitionFile(
-          silo::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
+          rhydb::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
 A:
   parents: []
 A.1:
@@ -238,7 +237,7 @@ A.1:
       database_config, reference_genomes, lineage_trees, PhyloTree{}, false
    );
    auto* metadata =
-      table_schema->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>("lineage")
+      table_schema->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("lineage")
          .value();
    return metadata->lineage_tree.has_value();
 }
@@ -264,14 +263,14 @@ class FindLineageTreeForName : public ::testing::Test {
       // Set up test data
       test_lineage_tree1 = {};
       test_lineage_tree2 = LineageTreeAndIdMap::fromLineageDefinitionFile(
-         silo::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
+         rhydb::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
 some_lineage:
   parents:
     - some_parent
 some_parent: ~)")
       );
       test_lineage_tree3 = LineageTreeAndIdMap::fromLineageDefinitionFile(
-         silo::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
+         rhydb::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
 some_other_lineage:
   parents:
     - some_parent

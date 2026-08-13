@@ -13,7 +13,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query_compilation_exception.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 Intersection::Intersection(
    OperatorVector&& children,
@@ -110,4 +110,4 @@ std::unique_ptr<Operator> Intersection::negate(std::unique_ptr<Intersection>&& i
    return std::make_unique<Complement>(std::move(intersection), std::move(row_layout));
 }
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

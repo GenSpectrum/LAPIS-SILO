@@ -7,7 +7,7 @@
 
 #include "silo/query_engine/operators/query_node.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Placeholder for phyloSubtree action, resolved during pushdown.
 class UnresolvedPhyloSubtreeNode final : public QueryNode {
@@ -59,4 +59,4 @@ class UnresolvedPhyloSubtreeNode final : public QueryNode {
    }
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

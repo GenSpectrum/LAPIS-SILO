@@ -8,7 +8,7 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 /// Equality filter predicate: `left = right`. This unifies the former
 /// per-type equals expressions (string, date, int, float, bool) into a single
@@ -44,4 +44,4 @@ class Equals : public ScalarExpression {
    ) const override;
 };
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

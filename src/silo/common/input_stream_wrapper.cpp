@@ -27,7 +27,7 @@ std::filesystem::path withZSTending(const std::filesystem::path& file_path) {
 
 }  // namespace
 
-namespace silo {
+namespace rhydb {
 InputStreamWrapper::InputStreamWrapper(const std::filesystem::path& file_path) {
    auto boost_input_stream = std::make_unique<boost::iostreams::filtering_istream>();
    if (std::filesystem::is_regular_file(withZSTending(file_path))) {
@@ -42,7 +42,7 @@ InputStreamWrapper::InputStreamWrapper(const std::filesystem::path& file_path) {
 #else
       // The WASM build does not include lzma. Fail fast instead of letting the
       // .xz file fall through and be read as if it were uncompressed.
-      throw silo::preprocessing::PreprocessingException(
+      throw rhydb::preprocessing::PreprocessingException(
          "The WASM build does not support .xz (lzma) inputs; found: " +
          withXZending(file_path).string()
       );
@@ -53,7 +53,7 @@ InputStreamWrapper::InputStreamWrapper(const std::filesystem::path& file_path) {
       );
       file_stream = std::ifstream(file_path, std::ios::binary);
    } else {
-      throw silo::preprocessing::PreprocessingException(
+      throw rhydb::preprocessing::PreprocessingException(
          "Cannot find file with name or associated endings (.xz, .zst): " + file_path.string()
       );
    }
@@ -65,7 +65,7 @@ InputStreamWrapper::InputStreamWrapper(const std::string& content) {
    input_stream = std::make_unique<std::istringstream>(content);
 }
 
-std::istream& silo::InputStreamWrapper::getInputStream() const {
+std::istream& rhydb::InputStreamWrapper::getInputStream() const {
    return *input_stream;
 }
 
@@ -80,4 +80,4 @@ InputStreamWrapper InputStreamWrapper::openFileOrStdIn(
    return InputStreamWrapper{std::make_unique<std::istream>(std::cin.rdbuf())};
 }
 
-}  // namespace silo
+}  // namespace rhydb

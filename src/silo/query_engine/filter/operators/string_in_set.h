@@ -10,7 +10,7 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/storage/column/column.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 template <storage::column::Column ColumnType>
 class StringInSet : public Predicate {
@@ -38,4 +38,4 @@ class StringInSet : public Predicate {
    [[nodiscard]] std::unique_ptr<Predicate> negate() const override;
 };
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

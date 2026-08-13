@@ -6,7 +6,7 @@
 
 #include <arrow/builder.h>
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 class JsonValueTypeArrayBuilder {
    std::variant<
@@ -25,4 +25,4 @@ class JsonValueTypeArrayBuilder {
    arrow::Result<arrow::Datum> toDatum();
 };
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

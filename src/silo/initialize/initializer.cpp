@@ -26,7 +26,7 @@
 #include "silo/storage/column/zstd_compressed_string_column.h"
 #include "silo/storage/reference_genomes.h"
 
-namespace silo::initialize {
+namespace rhydb::initialize {
 
 void Initializer::createTableInDatabase(
    schema::TableName table_name,
@@ -170,8 +170,8 @@ void Initializer::createLineageRelationTable(
       ndjson += '\n';
    }
    std::stringstream ndjson_stream{ndjson};
-   silo::append::NdjsonLineReader ndjson_reader{ndjson_stream};
-   silo::append::appendDataToTable(database.tables.at(table_name), ndjson_reader);
+   rhydb::append::NdjsonLineReader ndjson_reader{ndjson_stream};
+   rhydb::append::appendDataToTable(database.tables.at(table_name), ndjson_reader);
    SPDLOG_INFO("Built lineage relation table '{}' with {} rows", table_name_string, rows.size());
 }
 
@@ -281,7 +281,7 @@ void ColumnMetadataInitializer::operator()(
 
 namespace {
 
-void assertPrimaryKeyInMetadata(const silo::config::DatabaseConfig& database_config) {
+void assertPrimaryKeyInMetadata(const rhydb::config::DatabaseConfig& database_config) {
    auto primary_key_metadata = std::ranges::find_if(
       database_config.schema.metadata,
       [&database_config](const auto& metadata) {
@@ -293,7 +293,7 @@ void assertPrimaryKeyInMetadata(const silo::config::DatabaseConfig& database_con
    }
 }
 
-void assertPrimaryKeyOfTypeString(const silo::config::DatabaseConfig& database_config) {
+void assertPrimaryKeyOfTypeString(const rhydb::config::DatabaseConfig& database_config) {
    auto primary_key_metadata = std::ranges::find_if(
       database_config.schema.metadata,
       [&database_config](const auto& metadata) {
@@ -402,4 +402,4 @@ std::optional<common::LineageTreeAndIdMap> Initializer::findLineageTreeForName(
    return std::nullopt;
 }
 
-}  // namespace silo::initialize
+}  // namespace rhydb::initialize

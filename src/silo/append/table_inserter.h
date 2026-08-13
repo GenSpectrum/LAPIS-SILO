@@ -15,7 +15,7 @@
 #include "silo/storage/column_group_builder.h"
 #include "silo/storage/table.h"
 
-namespace silo::append {
+namespace rhydb::append {
 
 /// Controls the N-way clustered buffering during ingestion. When enabled, rows are routed to one of
 /// `num_buffers` open buffers by the covered range of a single driver sequence column, so that each
@@ -91,7 +91,7 @@ class TableInserter {
    );
 
    struct SniffedField {
-      silo::schema::ColumnIdentifier column_identifier;
+      rhydb::schema::ColumnIdentifier column_identifier;
       // Looking up keys in their escaped form is fastest.
       // As fallback in case we do not find the key in the escaped form
       // in subsequent json elements, will unescape the key.
@@ -113,9 +113,9 @@ class TableInserter {
 };
 
 TableInserter::Commit appendDataToTable(
-   std::shared_ptr<silo::storage::Table> table,
+   std::shared_ptr<rhydb::storage::Table> table,
    NdjsonLineReader& input_data,
    ClusteredBufferingOptions options = {}
 );
 
-}  // namespace silo::append
+}  // namespace rhydb::append

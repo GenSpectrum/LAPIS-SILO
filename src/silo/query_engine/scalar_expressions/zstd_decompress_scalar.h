@@ -8,7 +8,7 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 /// A scalar expression that zstd-decompresses the sequence-typed value its child expression
 /// evaluates to into the STRING value it encodes. The child is usually a `FieldRef` to a compressed
@@ -43,4 +43,4 @@ class ZstdDecompressScalar : public ScalarExpression {
    ) const override;
 };
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

@@ -19,9 +19,9 @@
 #include "silo/common/tree_node_id.h"
 #include "silo/storage/column/row_id.h"
 
-using silo::storage::column::RowId;
-using silo::storage::column::StringColumn;
-using silo::storage::column::StringColumnMetadata;
+using rhydb::storage::column::RowId;
+using rhydb::storage::column::StringColumn;
+using rhydb::storage::column::StringColumnMetadata;
 
 namespace {
 // Buffers the values into a chunk and appends it to the column.
@@ -63,7 +63,7 @@ TEST(StringColumn, rawInsertedValuesRequeried) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumn, serializationOfMetadataWorks) {
-   auto phylo_tree = silo::common::PhyloTree::fromNewickString(
+   auto phylo_tree = rhydb::common::PhyloTree::fromNewickString(
       "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
    );
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
@@ -84,27 +84,27 @@ TEST(StringColumn, serializationOfMetadataWorks) {
 
    EXPECT_EQ(node_dict.size(), 5);
    EXPECT_EQ(
-      node_dict.at(silo::common::TreeNodeId{"CHILD2"})->parent, silo::common::TreeNodeId{"CHILD"}
+      node_dict.at(rhydb::common::TreeNodeId{"CHILD2"})->parent, rhydb::common::TreeNodeId{"CHILD"}
    );
-   EXPECT_EQ(node_dict.at(silo::common::TreeNodeId{"CHILD2"})->row_index, 0);
+   EXPECT_EQ(node_dict.at(rhydb::common::TreeNodeId{"CHILD2"})->row_index, 0);
    EXPECT_EQ(
-      node_dict.at(silo::common::TreeNodeId{"CHILD3"})->parent, silo::common::TreeNodeId{"CHILD"}
+      node_dict.at(rhydb::common::TreeNodeId{"CHILD3"})->parent, rhydb::common::TreeNodeId{"CHILD"}
    );
-   EXPECT_EQ(node_dict.at(silo::common::TreeNodeId{"CHILD3"})->row_index, 1);
+   EXPECT_EQ(node_dict.at(rhydb::common::TreeNodeId{"CHILD3"})->row_index, 1);
    EXPECT_EQ(
-      node_dict.at(silo::common::TreeNodeId{"CHILD"})->parent, silo::common::TreeNodeId{"ROOT"}
+      node_dict.at(rhydb::common::TreeNodeId{"CHILD"})->parent, rhydb::common::TreeNodeId{"ROOT"}
    );
-   EXPECT_EQ(node_dict.at(silo::common::TreeNodeId{"CHILD"})->row_index, std::nullopt);
+   EXPECT_EQ(node_dict.at(rhydb::common::TreeNodeId{"CHILD"})->row_index, std::nullopt);
    EXPECT_EQ(
-      node_dict.at(silo::common::TreeNodeId{"NOT_IN_DATASET"})->parent,
-      silo::common::TreeNodeId{"ROOT"}
+      node_dict.at(rhydb::common::TreeNodeId{"NOT_IN_DATASET"})->parent,
+      rhydb::common::TreeNodeId{"ROOT"}
    );
-   EXPECT_EQ(node_dict.at(silo::common::TreeNodeId{"NOT_IN_DATASET"})->row_index, std::nullopt);
+   EXPECT_EQ(node_dict.at(rhydb::common::TreeNodeId{"NOT_IN_DATASET"})->row_index, std::nullopt);
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumn, rawInsertedValuesWithPhyloTreeRequeried) {
-   auto phylo_tree = silo::common::PhyloTree::fromNewickString(
+   auto phylo_tree = rhydb::common::PhyloTree::fromNewickString(
       "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
    );
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
@@ -130,7 +130,7 @@ TEST(StringColumn, rawInsertedValuesWithPhyloTreeRequeried) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumn, duplicatePhyloLeafLeavesColumnUnmodified) {
-   auto phylo_tree = silo::common::PhyloTree::fromNewickString(
+   auto phylo_tree = rhydb::common::PhyloTree::fromNewickString(
       "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
    );
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
@@ -153,14 +153,14 @@ TEST(StringColumn, duplicatePhyloLeafLeavesColumnUnmodified) {
    EXPECT_TRUE(under_test.null_bitmap.isEmpty());
    // CHILD3 must not have been bound, since the whole buffer was rejected.
    EXPECT_EQ(
-      metadata.phylo_tree->nodes.at(silo::common::TreeNodeId{"CHILD3"})->row_index, std::nullopt
+      metadata.phylo_tree->nodes.at(rhydb::common::TreeNodeId{"CHILD3"})->row_index, std::nullopt
    );
-   EXPECT_EQ(metadata.phylo_tree->nodes.at(silo::common::TreeNodeId{"CHILD2"})->row_index, 0);
+   EXPECT_EQ(metadata.phylo_tree->nodes.at(rhydb::common::TreeNodeId{"CHILD2"})->row_index, 0);
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumn, duplicatePhyloLeafWithinSingleBufferIsRejected) {
-   auto phylo_tree = silo::common::PhyloTree::fromNewickString(
+   auto phylo_tree = rhydb::common::PhyloTree::fromNewickString(
       "((CHILD2:0.5, CHILD3:1)CHILD:0.1, NOT_IN_DATASET:1.5)ROOT;"
    );
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
@@ -173,7 +173,7 @@ TEST(StringColumn, duplicatePhyloLeafWithinSingleBufferIsRejected) {
    ASSERT_FALSE(result.has_value());
    EXPECT_EQ(under_test.numChunks(), 0);
    EXPECT_EQ(
-      metadata.phylo_tree->nodes.at(silo::common::TreeNodeId{"CHILD2"})->row_index, std::nullopt
+      metadata.phylo_tree->nodes.at(rhydb::common::TreeNodeId{"CHILD2"})->row_index, std::nullopt
    );
 }
 

@@ -48,7 +48,7 @@ void changeCwdToTestFolder() {
 
 std::string readReferenceFromFile() {
    auto reference_genomes =
-      silo::ReferenceGenomes::readFromFile("testBaseData/exampleDataset/reference_genomes.json");
+      rhydb::ReferenceGenomes::readFromFile("testBaseData/exampleDataset/reference_genomes.json");
    if (reference_genomes.raw_nucleotide_sequences.empty()) {
       throw std::runtime_error("No nucleotide sequences found in reference_genomes.json");
    }
@@ -127,8 +127,8 @@ class SequenceTreeGenerator {
       std::uniform_int_distribution<size_t> dist(0, 3);
       char new_base;
       do {
-         silo::Nucleotide::Symbol new_symbol = silo::Nucleotide::SYMBOLS.at(dist(rng));
-         new_base = silo::Nucleotide::symbolToChar(new_symbol);
+         rhydb::Nucleotide::Symbol new_symbol = rhydb::Nucleotide::SYMBOLS.at(dist(rng));
+         new_base = rhydb::Nucleotide::symbolToChar(new_symbol);
       } while (new_base == base);
       return new_base;
    }
@@ -527,9 +527,9 @@ void writeCoOccurrenceNdjson(std::ostream& out, const std::string& reference) {
 
 // --- Database initializers ---
 
-std::shared_ptr<silo::Database> initializeDatabaseWithShortReadSchema(const std::string& reference
+std::shared_ptr<rhydb::Database> initializeDatabaseWithShortReadSchema(const std::string& reference
 ) {
-   auto database_config = silo::config::DatabaseConfig::getValidatedConfig(R"(
+   auto database_config = rhydb::config::DatabaseConfig::getValidatedConfig(R"(
 schema:
   instanceName: test
   metadata:
@@ -541,25 +541,25 @@ schema:
       type: string
   primaryKey: readId
 )");
-   silo::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
-   auto database = std::make_shared<silo::Database>();
+   rhydb::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
+   auto database = std::make_shared<rhydb::Database>();
    database->createTable(
-      silo::schema::TableName::getDefault(),
-      silo::initialize::Initializer::createSchemaFromConfigFiles(
+      rhydb::schema::TableName::getDefault(),
+      rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
          std::move(reference_genomes),
          {},
-         silo::common::PhyloTree{},
+         rhydb::common::PhyloTree{},
          /*without_unaligned_sequences=*/true
       )
    );
    return database;
 }
 
-std::shared_ptr<silo::Database> initializeDatabaseWithFullSequenceSchema(
+std::shared_ptr<rhydb::Database> initializeDatabaseWithFullSequenceSchema(
    const std::string& reference
 ) {
-   auto database_config = silo::config::DatabaseConfig::getValidatedConfig(R"(
+   auto database_config = rhydb::config::DatabaseConfig::getValidatedConfig(R"(
 schema:
   instanceName: test
   metadata:
@@ -567,15 +567,15 @@ schema:
       type: string
   primaryKey: key
 )");
-   silo::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
-   auto database = std::make_shared<silo::Database>();
+   rhydb::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
+   auto database = std::make_shared<rhydb::Database>();
    database->createTable(
-      silo::schema::TableName::getDefault(),
-      silo::initialize::Initializer::createSchemaFromConfigFiles(
+      rhydb::schema::TableName::getDefault(),
+      rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
          std::move(reference_genomes),
          {},
-         silo::common::PhyloTree{},
+         rhydb::common::PhyloTree{},
          /*without_unaligned_sequences=*/true
       )
    );

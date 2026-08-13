@@ -18,7 +18,7 @@
 #include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/string_column.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 using storage::column::StringColumn;
 
@@ -82,4 +82,4 @@ std::unique_ptr<filter::operators::Operator> StringInSet::compile(const storage:
    );
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

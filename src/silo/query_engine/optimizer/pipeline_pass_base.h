@@ -18,7 +18,7 @@
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
 
-namespace silo::query_engine::optimizer {
+namespace rhydb::query_engine::optimizer {
 
 /// CRTP base for optimization passes that walk the QueryNode tree.
 ///
@@ -159,4 +159,4 @@ class PipelinePassBase {
    }
 };
 
-}  // namespace silo::query_engine::optimizer
+}  // namespace rhydb::query_engine::optimizer

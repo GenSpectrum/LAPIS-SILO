@@ -21,19 +21,19 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
 
-using silo::Nucleotide;
-using silo::append::appendDataToTable;
-using silo::append::ClusteredBufferingOptions;
-using silo::append::NdjsonLineReader;
-using silo::schema::ColumnIdentifier;
-using silo::schema::ColumnType;
-using silo::schema::TableName;
-using silo::schema::TableSchema;
-using silo::storage::Table;
-using silo::storage::column::ColumnMetadata;
-using silo::storage::column::SequenceColumn;
-using silo::storage::column::SequenceColumnMetadata;
-using silo::storage::column::StringColumnMetadata;
+using rhydb::Nucleotide;
+using rhydb::append::appendDataToTable;
+using rhydb::append::ClusteredBufferingOptions;
+using rhydb::append::NdjsonLineReader;
+using rhydb::schema::ColumnIdentifier;
+using rhydb::schema::ColumnType;
+using rhydb::schema::TableName;
+using rhydb::schema::TableSchema;
+using rhydb::storage::Table;
+using rhydb::storage::column::ColumnMetadata;
+using rhydb::storage::column::SequenceColumn;
+using rhydb::storage::column::SequenceColumnMetadata;
+using rhydb::storage::column::StringColumnMetadata;
 
 namespace {
 
@@ -104,7 +104,7 @@ void appendRows(
    appendDataToTable(table, reader, std::move(options));
 }
 
-const silo::storage::column::HorizontalCoverageIndex& coverageIndex(const Table& table) {
+const rhydb::storage::column::HorizontalCoverageIndex& coverageIndex(const Table& table) {
    return table.columns.getColumns<SequenceColumn<Nucleotide>>()
       .at(std::string{SEQ_COLUMN})
       .horizontal_coverage_index;
@@ -182,7 +182,7 @@ TEST(ClusteredBuffering, nullSequencesClusterSeparatelyFromDataRows) {
 
 TEST(ClusteredBuffering, flushesBufferWhenItReachesChunkSize) {
    auto table = makeTable(1);
-   constexpr size_t CHUNK_SIZE = silo::storage::column::COLUMN_CHUNK_SIZE;
+   constexpr size_t CHUNK_SIZE = rhydb::storage::column::COLUMN_CHUNK_SIZE;
    std::string ndjson;
    ndjson.reserve((CHUNK_SIZE + 1) * 40);
    for (size_t i = 0; i < CHUNK_SIZE + 1; ++i) {

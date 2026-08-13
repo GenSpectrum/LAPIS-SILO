@@ -19,7 +19,7 @@
 namespace silo_app {
 
 SiloRequestHandlerFactory::SiloRequestHandlerFactory(
-   silo::config::RuntimeConfig runtime_config,
+   rhydb::config::RuntimeConfig runtime_config,
    std::shared_ptr<ActiveDatabase> database_handle
 )
     : runtime_config(std::move(runtime_config)),

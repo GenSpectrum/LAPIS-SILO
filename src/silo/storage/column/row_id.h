@@ -4,7 +4,7 @@
 
 #include "silo/storage/column/column.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 /// Decomposition of a 32-bit global row id into the chunk that owns the row (the
 /// high 16 bits) and the row's index within that chunk (the low 16 bits). Each
@@ -38,4 +38,4 @@ struct RowId {
 
 static_assert(COLUMN_CHUNK_SIZE == (1UL << 16), "RowId assumes 2^16-sized chunks");
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

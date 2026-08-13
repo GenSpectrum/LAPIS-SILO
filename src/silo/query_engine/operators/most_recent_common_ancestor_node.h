@@ -14,7 +14,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Finds most recent common ancestor for matching rows.
 class MostRecentCommonAncestorNode final : public QueryNode {
@@ -44,4 +44,4 @@ class MostRecentCommonAncestorNode final : public QueryNode {
    [[nodiscard]] nlohmann::json toJson() const override;
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

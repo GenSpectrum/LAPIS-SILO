@@ -16,7 +16,7 @@
 namespace silo_app {
 ErrorRequestHandler::ErrorRequestHandler(
    std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler,
-   const silo::config::RuntimeConfig& runtime_config
+   const rhydb::config::RuntimeConfig& runtime_config
 )
     : wrapped_handler(std::move(wrapped_handler)),
       runtime_config(runtime_config) {}

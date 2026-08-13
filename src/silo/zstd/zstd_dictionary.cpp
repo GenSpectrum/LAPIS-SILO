@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace silo {
+namespace rhydb {
 
 ZstdCDictionary::ZstdCDictionary(std::string_view data, int compression_level) {
    value = ZSTD_createCDict(data.data(), data.size(), compression_level);
@@ -38,4 +38,4 @@ ZstdDDictionary::~ZstdDDictionary() {
    ZSTD_freeDDict(value);
 }
 
-}  // namespace silo
+}  // namespace rhydb

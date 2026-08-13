@@ -6,7 +6,7 @@
 #include "silo/common/panic.h"
 #include "silo/query_engine/illegal_query_exception.h"
 
-namespace silo::query_engine::saneql::ast {
+namespace rhydb::query_engine::saneql::ast {
 
 std::string binaryOpToString(BinaryOp op) {
    switch (op) {
@@ -284,4 +284,4 @@ bool isBoolLiteral(const Expression& expression) {
    return std::holds_alternative<BoolLiteral>(expression.value);
 }
 
-}  // namespace silo::query_engine::saneql::ast
+}  // namespace rhydb::query_engine::saneql::ast

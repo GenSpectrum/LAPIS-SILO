@@ -9,7 +9,7 @@
 #include "silo/query_engine/saneql/parser.h"
 #include "silo/storage/column_group.h"
 
-namespace silo::query_engine {
+namespace rhydb::query_engine {
 
 void assignScalarLiteralToColumn(
    storage::ColumnGroup& columns,
@@ -90,4 +90,4 @@ void assignScalarLiteralToColumn(
    }
 }
 
-}  // namespace silo::query_engine
+}  // namespace rhydb::query_engine

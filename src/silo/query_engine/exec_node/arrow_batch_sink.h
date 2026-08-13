@@ -5,7 +5,7 @@
 #include <arrow/acero/exec_plan.h>
 #include <arrow/io/interfaces.h>
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 class ArrowBatchSink {
   public:
@@ -15,4 +15,4 @@ class ArrowBatchSink {
    virtual arrow::Status finish() = 0;
 };
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

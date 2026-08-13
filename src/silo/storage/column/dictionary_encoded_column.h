@@ -23,7 +23,7 @@
 #include "silo/storage/column/column_metadata.h"
 #include "silo/storage/column/lineage_index.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 class DictionaryEncodedColumnBuilder;
 
@@ -38,7 +38,7 @@ class DictionaryEncodedColumnMetadata : public ColumnMetadata {
 
    DictionaryEncodedColumnMetadata(
       std::string column_name,
-      silo::common::BidirectionalStringMap dictionary
+      rhydb::common::BidirectionalStringMap dictionary
    )
        : ColumnMetadata(std::move(column_name)),
          dictionary(std::move(dictionary)) {}
@@ -51,7 +51,7 @@ class DictionaryEncodedColumnMetadata : public ColumnMetadata {
 
    DictionaryEncodedColumnMetadata(
       std::string column_name,
-      silo::common::BidirectionalStringMap dictionary,
+      rhydb::common::BidirectionalStringMap dictionary,
       common::LineageTreeAndIdMap lineage_tree_and_id_map,
       bool treat_unknown_lineages_as_null
    );
@@ -84,7 +84,7 @@ class DictionaryEncodedColumn {
   public:
    explicit DictionaryEncodedColumn(Metadata* metadata);
 
-   [[nodiscard]] std::optional<const roaring::Roaring*> filter(silo::Idx value_id) const;
+   [[nodiscard]] std::optional<const roaring::Roaring*> filter(rhydb::Idx value_id) const;
 
    [[nodiscard]] std::optional<const roaring::Roaring*> filter(
       const std::optional<std::string>& value
@@ -119,7 +119,7 @@ class DictionaryEncodedColumn {
       return metadata->dictionary.getValue(dict_id);
    }
 
-   [[nodiscard]] std::optional<silo::Idx> getValueId(const std::string& value) const;
+   [[nodiscard]] std::optional<rhydb::Idx> getValueId(const std::string& value) const;
 
    [[nodiscard]] const std::optional<LineageIndex>& getLineageIndex() const;
 
@@ -159,14 +159,14 @@ class DictionaryEncodedColumnBuilder {
    }
 };
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column
 
-BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::DictionaryEncodedColumnMetadata);
+BOOST_SERIALIZATION_SPLIT_FREE(rhydb::storage::column::DictionaryEncodedColumnMetadata);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void save(
    Archive& archive,
-   const silo::storage::column::DictionaryEncodedColumnMetadata& object,
+   const rhydb::storage::column::DictionaryEncodedColumnMetadata& object,
    [[maybe_unused]] const uint32_t version
 ) {
    archive & object.column_name;
@@ -177,31 +177,31 @@ template <class Archive>
 }  // namespace boost::serialization
 
 BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<
-                               silo::storage::column::DictionaryEncodedColumnMetadata>);
+                               rhydb::storage::column::DictionaryEncodedColumnMetadata>);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void load(
    Archive& archive,
-   std::shared_ptr<silo::storage::column::DictionaryEncodedColumnMetadata>& object,
+   std::shared_ptr<rhydb::storage::column::DictionaryEncodedColumnMetadata>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
-   silo::common::BidirectionalStringMap dictionary;
-   std::optional<silo::common::LineageTreeAndIdMap> lineage_tree;
+   rhydb::common::BidirectionalStringMap dictionary;
+   std::optional<rhydb::common::LineageTreeAndIdMap> lineage_tree;
    bool treat_unknown_lineages_as_null;
    archive & column_name;
    archive & dictionary;
    archive & lineage_tree;
    archive & treat_unknown_lineages_as_null;
    if (lineage_tree.has_value()) {
-      object = std::make_shared<silo::storage::column::DictionaryEncodedColumnMetadata>(
+      object = std::make_shared<rhydb::storage::column::DictionaryEncodedColumnMetadata>(
          std::move(column_name),
          std::move(dictionary),
          std::move(lineage_tree.value()),
          treat_unknown_lineages_as_null
       );
    } else {
-      object = std::make_shared<silo::storage::column::DictionaryEncodedColumnMetadata>(
+      object = std::make_shared<rhydb::storage::column::DictionaryEncodedColumnMetadata>(
          std::move(column_name), std::move(dictionary)
       );
    }

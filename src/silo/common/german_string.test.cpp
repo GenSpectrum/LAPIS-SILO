@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-using silo::GermanString;
-using silo::SiloString;
+using rhydb::GermanString;
+using rhydb::SiloString;
 
 TEST(String, correctToString) {
    const SiloString under_test("value 1");
@@ -19,7 +19,7 @@ TEST(String, correctWithEmptyString) {
    EXPECT_EQ(under_test.getShortString(), "");
 }
 
-using silo::storage::vector::VariableDataRegistry;
+using rhydb::storage::vector::VariableDataRegistry;
 TEST(String, correctlyReturnsSuffixId) {
    const SiloString under_test(
       100, "prfx", VariableDataRegistry::Identifier{.page_id = 0, .offset = 3}

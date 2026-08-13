@@ -9,10 +9,10 @@
 
 #include "config/config_specification.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 class AppendConfig {
-   friend class fmt::formatter<silo::config::AppendConfig>;
+   friend class fmt::formatter<rhydb::config::AppendConfig>;
 
    AppendConfig() = default;
 
@@ -38,12 +38,12 @@ class AppendConfig {
    NLOHMANN_DEFINE_TYPE_INTRUSIVE(AppendConfig, silo_directory, append_file, silo_data_source)
 };
 
-}  // namespace silo::config
+}  // namespace rhydb::config
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::AppendConfig> : fmt::formatter<std::string> {
+struct [[maybe_unused]] fmt::formatter<rhydb::config::AppendConfig> : fmt::formatter<std::string> {
    [[maybe_unused]] static auto format(
-      const silo::config::AppendConfig& append_config,
+      const rhydb::config::AppendConfig& append_config,
       format_context& ctx
    ) -> decltype(ctx.out());
 };

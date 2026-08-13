@@ -14,7 +14,7 @@ namespace roaring {
 class Roaring;
 }
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 /// The shared per-chunk row layout of a table partition. Chunk `k` holds `chunkSize(k)` rows and
 /// occupies the 2^16 block of global ids `[k << 16, (k << 16) + chunkSize(k))` (see `RowId`). Every
@@ -131,4 +131,4 @@ class RowLayout {
    }
 };
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

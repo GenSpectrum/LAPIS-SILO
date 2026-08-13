@@ -8,7 +8,7 @@
 #include "silo/common/panic.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 std::string_view nodeKindToString(NodeKind kind) {
    switch (kind) {
@@ -81,4 +81,4 @@ nlohmann::json columnsToJson(const std::vector<schema::ColumnIdentifier>& column
    return result;
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

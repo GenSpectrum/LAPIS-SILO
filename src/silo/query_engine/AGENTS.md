@@ -45,18 +45,18 @@ schema:
   primaryKey: "primaryKey"
 )";
 
-const auto REFERENCE_GENOMES = silo::ReferenceGenomes{
+const auto REFERENCE_GENOMES = rhydb::ReferenceGenomes{
    {{"segment1", "A"}},
    {{"gene1", "*"}},
 };
 
-const silo::test::QueryTestData TEST_DATA{
+const rhydb::test::QueryTestData TEST_DATA{
    .ndjson_input_data = {/* JSON objects */},
    .database_config = DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES
 };
 
-const silo::test::QueryTestScenario MY_SCENARIO = {
+const rhydb::test::QueryTestScenario MY_SCENARIO = {
    .name = "MY_TEST_NAME",
    .query = R"(default.filter(country='CH').project({primaryKey}))",
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})

@@ -1,6 +1,6 @@
 #include "silo/common/fmt_formatters.h"
 
-namespace silo::common {
+namespace rhydb::common {
 
 std::string toIsoString(
    const std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>& time_point
@@ -24,4 +24,4 @@ std::string toIsoString(
 
    return oss.str();
 }
-}  // namespace silo::common
+}  // namespace rhydb::common

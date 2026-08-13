@@ -10,7 +10,7 @@
 #include "silo/zstd/zstd_context.h"
 #include "silo/zstd/zstd_dictionary.h"
 
-namespace silo {
+namespace rhydb {
 
 class ZstdCompressor {
    std::string buffer;
@@ -25,4 +25,4 @@ class ZstdCompressor {
    std::string_view compress(const char* input_data, size_t input_size);
 };
 
-}  // namespace silo
+}  // namespace rhydb

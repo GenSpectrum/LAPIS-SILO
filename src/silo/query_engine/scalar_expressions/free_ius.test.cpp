@@ -16,12 +16,12 @@
 #include "silo/query_engine/scalar_expressions/string_in_set.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 namespace {
 
-using silo::schema::ColumnIdentifier;
-using silo::schema::ColumnType;
+using rhydb::schema::ColumnIdentifier;
+using rhydb::schema::ColumnType;
 
 const ColumnIdentifier COLUMN_A{.name = "country", .type = ColumnType::DICTIONARY_ENCODED};
 const ColumnIdentifier COLUMN_B{.name = "age", .type = ColumnType::INT32};
@@ -99,4 +99,4 @@ TEST(FreeIUs, nestedBooleanCompositionUnionsAllReferencedColumns) {
    EXPECT_EQ(asSet(and_expression.freeIUs()), (std::set{COLUMN_A, COLUMN_B, COLUMN_C}));
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

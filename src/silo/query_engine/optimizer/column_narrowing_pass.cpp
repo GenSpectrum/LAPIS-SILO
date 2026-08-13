@@ -13,7 +13,7 @@
 #include "silo/query_engine/operators/table_scan_node.h"
 #include "silo/query_engine/operators/union_all_node.h"
 
-namespace silo::query_engine::optimizer {
+namespace rhydb::query_engine::optimizer {
 
 ColumnNarrowingPass ColumnNarrowingPass::makePass(const operators::QueryNodePtr& node) {
    return ColumnNarrowingPass{node->getOutputSchema()};
@@ -214,4 +214,4 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::UnionAllNode&
    return nullptr;
 }
 
-}  // namespace silo::query_engine::optimizer
+}  // namespace rhydb::query_engine::optimizer

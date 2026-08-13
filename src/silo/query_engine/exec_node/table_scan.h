@@ -15,15 +15,15 @@
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 class ExecBatchBuilder {
    std::map<schema::ColumnType, std::map<std::string, std::shared_ptr<arrow::ArrayBuilder>>>
       array_builders;
-   std::vector<silo::schema::ColumnIdentifier> output_fields;
+   std::vector<rhydb::schema::ColumnIdentifier> output_fields;
 
   public:
-   explicit ExecBatchBuilder(std::vector<silo::schema::ColumnIdentifier> output_fields);
+   explicit ExecBatchBuilder(std::vector<rhydb::schema::ColumnIdentifier> output_fields);
 
    template <storage::column::Column Column>
    std::map<std::string, ArrowBuilder<Column>*> getColumnTypeArrayBuilders() {
@@ -50,7 +50,7 @@ class TableScanGenerator {
 
   public:
    TableScanGenerator(
-      const std::vector<silo::schema::ColumnIdentifier>& columns,
+      const std::vector<rhydb::schema::ColumnIdentifier>& columns,
       CopyOnWriteBitmap bitmap_filter_,
       std::shared_ptr<const storage::Table> table,
       size_t batch_size_cutoff
@@ -98,10 +98,10 @@ class TableScanGenerator {
 
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    arrow::acero::ExecPlan* plan,
-   const std::vector<silo::schema::ColumnIdentifier>& columns,
+   const std::vector<rhydb::schema::ColumnIdentifier>& columns,
    CopyOnWriteBitmap bitmap_filter_,
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 );
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

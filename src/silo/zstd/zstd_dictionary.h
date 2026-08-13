@@ -4,13 +4,13 @@
 
 #include <zstd.h>
 
-namespace silo {
+namespace rhydb {
 // Forward declaration for friend class access. Include would introduce cyclic dependency
 class ZstdCompressor;
 class ZstdDecompressor;
-}  // namespace silo
+}  // namespace rhydb
 
-namespace silo {
+namespace rhydb {
 
 class ZstdCDictionary final {
    friend class ZstdCompressor;
@@ -44,4 +44,4 @@ class ZstdDDictionary final {
    ~ZstdDDictionary();
 };
 
-}  // namespace silo
+}  // namespace rhydb

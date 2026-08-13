@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-namespace silo {
+namespace rhydb {
 
 class DataVersion {
    friend class Database;
@@ -60,4 +60,4 @@ class DataVersion {
    explicit DataVersion(Timestamp timestamp, SerializationVersion serialization_version);
 };
 
-}  // namespace silo
+}  // namespace rhydb

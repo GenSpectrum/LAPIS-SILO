@@ -8,7 +8,7 @@
 #include "silo/query_engine/filter/operators/empty.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 Full::Full(storage::column::RowLayout row_layout)
     : row_layout(std::move(row_layout)) {}
@@ -32,4 +32,4 @@ std::unique_ptr<Operator> Full::negate(std::unique_ptr<Full>&& full) {
    return std::make_unique<Empty>(std::move(full->row_layout));
 }
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

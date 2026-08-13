@@ -5,7 +5,7 @@
 
 #include <boost/serialization/access.hpp>
 
-namespace silo {
+namespace rhydb {
 
 template <typename SymbolType, typename T>
 class SymbolMap {
@@ -36,4 +36,4 @@ class SymbolMap {
    }
 };
 
-}  // namespace silo
+}  // namespace rhydb

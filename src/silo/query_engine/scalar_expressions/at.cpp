@@ -10,7 +10,7 @@
 #include "silo/common/panic.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 At::At(std::unique_ptr<ScalarExpression> input, uint32_t position)
     : input(std::move(input)),
@@ -36,4 +36,4 @@ std::unique_ptr<filter::operators::Operator> At::compile(const storage::Table& /
    SILO_UNIMPLEMENTED();
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

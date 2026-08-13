@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 
-namespace silo::common {
+namespace rhydb::common {
 
 std::string formatDuration(int64_t int_microseconds) {
    auto microseconds = std::chrono::microseconds(int_microseconds);
@@ -27,4 +27,4 @@ std::string formatDuration(int64_t int_microseconds) {
    return string_stream.str();
 }
 
-}  // namespace silo::common
+}  // namespace rhydb::common

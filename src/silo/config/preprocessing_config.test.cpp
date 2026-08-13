@@ -6,8 +6,8 @@
 #include "config/source/yaml_file.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
-using silo::config::PreprocessingConfig;
-using silo::config::YamlFile;
+using rhydb::config::PreprocessingConfig;
+using rhydb::config::YamlFile;
 
 TEST(PreprocessingConfig, shouldReadConfigWithCorrectParametersAndDefaults) {
    auto config = PreprocessingConfig::withDefaults();
@@ -58,7 +58,7 @@ TEST(PreprocessingConfig, shouldThrowErrorWhenNdjsonInputFileNameIsNotSet) {
    auto config = PreprocessingConfig::withDefaults();
    EXPECT_THAT(
       [&config]() { config.validate(); },
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(
+      ThrowsMessage<rhydb::preprocessing::PreprocessingException>(
          ::testing::HasSubstr("'ndjsonInputFilename' must be specified as preprocessing option.")
       )
    );

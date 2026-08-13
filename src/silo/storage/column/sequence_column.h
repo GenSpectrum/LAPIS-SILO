@@ -24,7 +24,7 @@
 #include "silo/storage/column/vertical_sequence_index.h"
 #include "silo/zstd/zstd_decompressor.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 template <typename SymbolType>
 class SequenceColumnBuilder;
@@ -229,24 +229,24 @@ class SequenceColumnBuilder {
    }
 };
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column
 
 template <>
-class [[maybe_unused]] fmt::formatter<silo::storage::column::SequenceColumnInfo> {
+class [[maybe_unused]] fmt::formatter<rhydb::storage::column::SequenceColumnInfo> {
   public:
    static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
-      const silo::storage::column::SequenceColumnInfo& sequence_store_info,
+      const rhydb::storage::column::SequenceColumnInfo& sequence_store_info,
       format_context& ctx
    ) -> decltype(ctx.out());
 };
 
-BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>);
+BOOST_SERIALIZATION_SPLIT_FREE(rhydb::storage::column::SequenceColumnMetadata<rhydb::AminoAcid>);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void save(
    Archive& archive,
-   const silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>& object,
+   const rhydb::storage::column::SequenceColumnMetadata<rhydb::AminoAcid>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    archive & object.column_name;
@@ -255,30 +255,30 @@ template <class Archive>
 }  // namespace boost::serialization
 
 BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<
-                               silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>>);
+                               rhydb::storage::column::SequenceColumnMetadata<rhydb::AminoAcid>>);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void load(
    Archive& archive,
-   std::shared_ptr<silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>>& object,
+   std::shared_ptr<rhydb::storage::column::SequenceColumnMetadata<rhydb::AminoAcid>>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
-   std::vector<silo::AminoAcid::Symbol> reference_sequence;
+   std::vector<rhydb::AminoAcid::Symbol> reference_sequence;
    archive & column_name;
    archive & reference_sequence;
-   object = std::make_shared<silo::storage::column::SequenceColumnMetadata<silo::AminoAcid>>(
+   object = std::make_shared<rhydb::storage::column::SequenceColumnMetadata<rhydb::AminoAcid>>(
       std::move(column_name), std::move(reference_sequence)
    );
 }
 }  // namespace boost::serialization
 
-BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>);
+BOOST_SERIALIZATION_SPLIT_FREE(rhydb::storage::column::SequenceColumnMetadata<rhydb::Nucleotide>);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void save(
    Archive& archive,
-   const silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>& object,
+   const rhydb::storage::column::SequenceColumnMetadata<rhydb::Nucleotide>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    archive & object.column_name;
@@ -287,19 +287,19 @@ template <class Archive>
 }  // namespace boost::serialization
 
 BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<
-                               silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>>);
+                               rhydb::storage::column::SequenceColumnMetadata<rhydb::Nucleotide>>);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void load(
    Archive& archive,
-   std::shared_ptr<silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>>& object,
+   std::shared_ptr<rhydb::storage::column::SequenceColumnMetadata<rhydb::Nucleotide>>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
-   std::vector<silo::Nucleotide::Symbol> reference_sequence;
+   std::vector<rhydb::Nucleotide::Symbol> reference_sequence;
    archive & column_name;
    archive & reference_sequence;
-   object = std::make_shared<silo::storage::column::SequenceColumnMetadata<silo::Nucleotide>>(
+   object = std::make_shared<rhydb::storage::column::SequenceColumnMetadata<rhydb::Nucleotide>>(
       std::move(column_name), std::move(reference_sequence)
    );
 }

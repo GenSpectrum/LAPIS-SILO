@@ -12,7 +12,7 @@
 #include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
-namespace silo::storage::insertion {
+namespace rhydb::storage::insertion {
 
 template <typename SymbolType>
 class ThreeMerHash {
@@ -106,4 +106,4 @@ class InsertionIndex {
    ) const;
 };
 
-}  // namespace silo::storage::insertion
+}  // namespace rhydb::storage::insertion

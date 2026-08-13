@@ -13,7 +13,7 @@ class UninitializedDatabaseException : public std::runtime_error {
 };
 
 class ActiveDatabase {
-   std::shared_ptr<silo::Database> database;
+   std::shared_ptr<rhydb::Database> database;
 
   public:
    ActiveDatabase() = default;
@@ -22,9 +22,9 @@ class ActiveDatabase {
    ActiveDatabase& operator=(const ActiveDatabase& other) = delete;
    ActiveDatabase& operator=(ActiveDatabase&& other) = delete;
 
-   void setActiveDatabase(silo::Database&& new_database);
+   void setActiveDatabase(rhydb::Database&& new_database);
 
-   std::shared_ptr<silo::Database> getActiveDatabase();
+   std::shared_ptr<rhydb::Database> getActiveDatabase();
 };
 
 }  // namespace silo_app

@@ -23,7 +23,7 @@
 #include "silo/query_engine/scalar_expressions/literal.h"
 #include "silo/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 using scalar_expressions::At;
 using scalar_expressions::BoolLiteral;
@@ -150,7 +150,7 @@ arrow::Result<std::optional<arrow::acero::ExecNode*>> insertBackpressureForDecom
          arrow::acero::SinkNodeOptions{
             &batch_generator,
             &schema_of_sequence_batches,
-            arrow::acero::BackpressureOptions{silo::common::S_16_KB, silo::common::S_64_MB},
+            arrow::acero::BackpressureOptions{rhydb::common::S_16_KB, rhydb::common::S_64_MB},
             &backpressure_monitor
          }
       )
@@ -160,7 +160,7 @@ arrow::Result<std::optional<arrow::acero::ExecNode*>> insertBackpressureForDecom
    );
 
    const auto maximum_batch_size =
-      static_cast<int64_t>(std::max(silo::common::S_64_MB / sum_of_reference_genome_sizes, 1UL));
+      static_cast<int64_t>(std::max(rhydb::common::S_64_MB / sum_of_reference_genome_sizes, 1UL));
 
    constexpr std::chrono::milliseconds TARGET_BATCH_RATE{667};
 
@@ -172,7 +172,7 @@ arrow::Result<std::optional<arrow::acero::ExecNode*>> insertBackpressureForDecom
          {},
          arrow::acero::SourceNodeOptions{
             schema_of_sequence_batches,
-            silo::query_engine::exec_node::ThrottledBatchReslicer{
+            rhydb::query_engine::exec_node::ThrottledBatchReslicer{
                batch_generator, maximum_batch_size, TARGET_BATCH_RATE, backpressure_monitor
             },
             input_ordering
@@ -262,4 +262,4 @@ nlohmann::json MapNode::toJson() const {
    };
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

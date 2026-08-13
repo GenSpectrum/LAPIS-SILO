@@ -18,26 +18,26 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
 
-using silo::query_engine::OrderByField;
-using silo::query_engine::optimizer::SelectKRewritePass;
-namespace operators = silo::query_engine::operators;
-namespace scalar_expressions = silo::query_engine::scalar_expressions;
+using rhydb::query_engine::OrderByField;
+using rhydb::query_engine::optimizer::SelectKRewritePass;
+namespace operators = rhydb::query_engine::operators;
+namespace scalar_expressions = rhydb::query_engine::scalar_expressions;
 
-using silo::schema::ColumnIdentifier;
-using silo::schema::ColumnType;
+using rhydb::schema::ColumnIdentifier;
+using rhydb::schema::ColumnType;
 
 namespace {
 
-std::shared_ptr<silo::storage::Table> makeTable() {
-   using silo::storage::column::ColumnMetadata;
-   using silo::storage::column::StringColumnMetadata;
+std::shared_ptr<rhydb::storage::Table> makeTable() {
+   using rhydb::storage::column::ColumnMetadata;
+   using rhydb::storage::column::StringColumnMetadata;
 
    ColumnIdentifier primary_key{.name = "id", .type = ColumnType::STRING};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), primary_key);
-   return std::make_shared<silo::storage::Table>(silo::schema::TableName("default"), schema);
+   auto schema = std::make_shared<rhydb::schema::TableSchema>(std::move(col_meta), primary_key);
+   return std::make_shared<rhydb::storage::Table>(rhydb::schema::TableName("default"), schema);
 }
 
 operators::QueryNodePtr makeScan() {

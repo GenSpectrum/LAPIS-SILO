@@ -60,7 +60,7 @@ CMake auto-scans `src/` and `app/src/` directories. The Makefile maintains `.src
 ### `using` statements
 
 Never use `using my::Type` in `.h` files.
-Use `using my::Type` (only in `.cpp` files) deliberately for all `silo::...` types.
+Use `using my::Type` (only in `.cpp` files) deliberately for all `rhydb::...` types.
 
 ### Error handling
 - `std::expected<T, Error>` for recoverable errors.

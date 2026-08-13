@@ -6,7 +6,7 @@
 
 #include "silo/common/lineage_tree.h"
 
-namespace silo::initialize {
+namespace rhydb::initialize {
 
 /// One direct parent->child edge of a lineage tree.
 /// A recombinant node contributes one row per parent
@@ -28,4 +28,4 @@ struct LineageRelationRow {
    const common::LineageTreeAndIdMap& lineage_tree_and_id_map
 );
 
-}  // namespace silo::initialize
+}  // namespace rhydb::initialize

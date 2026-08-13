@@ -4,7 +4,7 @@
 
 #include "silo/query_engine/illegal_query_exception.h"
 
-namespace silo::query_engine::saneql {
+namespace rhydb::query_engine::saneql {
 
 // --- BoundArguments ---
 
@@ -156,4 +156,4 @@ const ScalarFunctionRegistry::Entry* ScalarFunctionRegistry::findFunction(const 
    return &it->second;
 }
 
-}  // namespace silo::query_engine::saneql
+}  // namespace rhydb::query_engine::saneql

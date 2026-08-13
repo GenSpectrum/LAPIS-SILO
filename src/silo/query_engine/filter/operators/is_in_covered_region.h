@@ -9,7 +9,7 @@
 #include "silo/query_engine/filter/operators/selection.h"
 #include "silo/storage/column/horizontal_coverage_index.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 class IsInCoveredRegion : public Predicate {
   public:
@@ -40,4 +40,4 @@ class IsInCoveredRegion : public Predicate {
    [[nodiscard]] std::unique_ptr<Predicate> negate() const override;
 };
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

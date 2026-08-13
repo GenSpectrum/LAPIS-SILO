@@ -11,7 +11,7 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::saneql {
+namespace rhydb::query_engine::saneql {
 
 using Tables = std::map<schema::TableName, std::shared_ptr<storage::Table>>;
 
@@ -122,4 +122,4 @@ class ScalarFunctionRegistry {
    std::map<std::string, Entry> entries_;
 };
 
-}  // namespace silo::query_engine::saneql
+}  // namespace rhydb::query_engine::saneql

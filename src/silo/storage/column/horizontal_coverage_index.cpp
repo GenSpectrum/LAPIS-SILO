@@ -12,7 +12,7 @@
 #include "silo/common/nucleotide_symbols.h"
 #include "silo/common/panic.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 void HorizontalCoverageIndex::insertCoverage(RowId row_id, const Coverage& coverage) {
    if (row_id.chunk_id == batch_start_ends.size()) {
@@ -118,4 +118,4 @@ template void HorizontalCoverageIndex::overwriteCoverageInSequence<AminoAcid>(
    const roaring::Roaring& row_ids
 ) const;
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

@@ -15,7 +15,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Computes SymbolType mutations for matching rows.
 template <typename SymbolType>
@@ -58,7 +58,7 @@ class MutationsNode final : public QueryNode {
          fields(std::move(fields)) {}
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override {
-      using silo::schema::ColumnType;
+      using rhydb::schema::ColumnType;
       std::vector<schema::ColumnIdentifier> output_fields;
       if (std::ranges::find(fields, MUTATION_FROM_FIELD_NAME) != fields.end()) {
          output_fields.emplace_back(std::string(MUTATION_FROM_FIELD_NAME), ColumnType::STRING);
@@ -91,7 +91,7 @@ class MutationsNode final : public QueryNode {
    ) const override;
 
    [[nodiscard]] NodeKind kind() const override {
-      if constexpr (std::is_same_v<SymbolType, silo::Nucleotide>) {
+      if constexpr (std::is_same_v<SymbolType, rhydb::Nucleotide>) {
          return NodeKind::MUTATIONS_NUCLEOTIDE;
       } else {
          return NodeKind::MUTATIONS_AMINO_ACID;
@@ -101,4 +101,4 @@ class MutationsNode final : public QueryNode {
    [[nodiscard]] nlohmann::json toJson() const override;
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

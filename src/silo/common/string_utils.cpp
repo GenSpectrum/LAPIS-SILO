@@ -6,7 +6,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include "silo/common/panic.h"
 
-namespace silo {
+namespace rhydb {
 
 std::vector<std::string> splitBy(const std::string& value, const std::string_view delimiter) {
    std::vector<std::string> splits;
@@ -84,4 +84,4 @@ std::string tieAsString(
    return boost::join(tie(prefix, elements1, delimiter, elements2, suffix), "");
 }
 
-}  // namespace silo
+}  // namespace rhydb

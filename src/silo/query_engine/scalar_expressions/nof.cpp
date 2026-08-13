@@ -20,15 +20,15 @@
 
 namespace {
 
-using Operator = silo::query_engine::filter::operators::Operator;
-using OperatorVector = silo::query_engine::filter::operators::OperatorVector;
-using Empty = silo::query_engine::filter::operators::Empty;
-using Full = silo::query_engine::filter::operators::Full;
-using Complement = silo::query_engine::filter::operators::Complement;
-using Intersection = silo::query_engine::filter::operators::Intersection;
-using Union = silo::query_engine::filter::operators::Union;
-using Threshold = silo::query_engine::filter::operators::Threshold;
-using RowLayout = silo::storage::column::RowLayout;
+using Operator = rhydb::query_engine::filter::operators::Operator;
+using OperatorVector = rhydb::query_engine::filter::operators::OperatorVector;
+using Empty = rhydb::query_engine::filter::operators::Empty;
+using Full = rhydb::query_engine::filter::operators::Full;
+using Complement = rhydb::query_engine::filter::operators::Complement;
+using Intersection = rhydb::query_engine::filter::operators::Intersection;
+using Union = rhydb::query_engine::filter::operators::Union;
+using Threshold = rhydb::query_engine::filter::operators::Threshold;
+using RowLayout = rhydb::storage::column::RowLayout;
 
 std::unique_ptr<Operator> handleTrivialCases(
    const int updated_number_of_matchers,
@@ -151,7 +151,7 @@ std::unique_ptr<Operator> toOperator(
 
 }  // namespace
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 NOf::NOf(ScalarExpressionVector&& children, int number_of_matchers, bool match_exactly)
     : children(std::move(children)),
@@ -276,4 +276,4 @@ std::unique_ptr<filter::operators::Operator> NOf::compile(const storage::Table& 
    );
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

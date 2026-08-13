@@ -1,6 +1,6 @@
 #include "silo/query_engine/exec_node/arrow_util.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column_type) {
    switch (column_type) {
@@ -26,7 +26,7 @@ std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column
 }
 
 std::shared_ptr<arrow::Schema> columnsToArrowSchema(
-   const std::vector<silo::schema::ColumnIdentifier>& columns
+   const std::vector<rhydb::schema::ColumnIdentifier>& columns
 ) {
    std::vector<std::shared_ptr<arrow::Field>> fields;
    for (const auto& [name, type] : columns) {
@@ -36,4 +36,4 @@ std::shared_ptr<arrow::Schema> columnsToArrowSchema(
    return std::make_shared<arrow::Schema>(fields);
 }
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

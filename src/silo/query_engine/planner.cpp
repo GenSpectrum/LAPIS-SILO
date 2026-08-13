@@ -15,7 +15,7 @@
 #include "silo/query_engine/saneql/ast_to_query.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine {
+namespace rhydb::query_engine {
 
 namespace {
 
@@ -88,4 +88,4 @@ QueryPlan Planner::planSaneqlQuery(
    return planQuery(std::move(query_node), tables, query_options, request_id);
 }
 
-}  // namespace silo::query_engine
+}  // namespace rhydb::query_engine

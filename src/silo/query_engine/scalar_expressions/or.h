@@ -8,7 +8,7 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 class Or : public ScalarExpression {
    ScalarExpressionVector children;
@@ -57,4 +57,4 @@ class Or : public ScalarExpression {
    ) const override;
 };
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

@@ -13,7 +13,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/query_compilation_exception.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 Threshold::Threshold(
    OperatorVector&& non_negated_children,
@@ -142,4 +142,4 @@ std::unique_ptr<Operator> Threshold::negate(std::unique_ptr<Threshold>&& thresho
    return std::make_unique<Complement>(std::move(threshold), std::move(row_layout));
 }
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

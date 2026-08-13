@@ -8,7 +8,7 @@
 
 #include "silo/common/panic.h"
 
-namespace silo {
+namespace rhydb {
 
 ZstdDecompressor::ZstdDecompressor(std::shared_ptr<ZstdDDictionary> zstd_dictionary)
     : zstd_dictionary(std::move(zstd_dictionary)) {}
@@ -56,4 +56,4 @@ void ZstdDecompressor::decompress(
    SILO_ASSERT(uncompressed_size == size_or_error_code);
 }
 
-}  // namespace silo
+}  // namespace rhydb

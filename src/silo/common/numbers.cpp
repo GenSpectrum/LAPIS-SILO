@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace silo::common {
+namespace rhydb::common {
 
 uint32_t add1(uint32_t val) {
    if (val < UINT32_MAX) {
@@ -11,4 +11,4 @@ uint32_t add1(uint32_t val) {
    throw std::overflow_error{"add1: uint32 number overflow"};
 }
 
-}  // namespace silo::common
+}  // namespace rhydb::common

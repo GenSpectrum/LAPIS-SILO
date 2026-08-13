@@ -3,7 +3,7 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
-namespace silo {
+namespace rhydb {
 
 struct DatabaseInfo {
    std::string_view version;
@@ -13,15 +13,15 @@ struct DatabaseInfo {
 };
 
 // NOLINTNEXTLINE(readability-identifier-naming,misc-use-internal-linkage)
-void to_json(nlohmann::json& json, const silo::DatabaseInfo& databaseInfo);
+void to_json(nlohmann::json& json, const rhydb::DatabaseInfo& databaseInfo);
 
-}  // namespace silo
+}  // namespace rhydb
 
 template <>
-class [[maybe_unused]] fmt::formatter<silo::DatabaseInfo> {
+class [[maybe_unused]] fmt::formatter<rhydb::DatabaseInfo> {
   public:
    static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-   [[maybe_unused]] static auto format(silo::DatabaseInfo database_info, format_context& ctx)
+   [[maybe_unused]] static auto format(rhydb::DatabaseInfo database_info, format_context& ctx)
       -> decltype(ctx.out()) {
       return fmt::format_to(ctx.out(), "{}", nlohmann::json{database_info}.dump());
    }

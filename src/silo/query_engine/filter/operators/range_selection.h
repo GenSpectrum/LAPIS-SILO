@@ -9,7 +9,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/column/row_layout.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 class RangeSelection : public Operator {
   public:
@@ -38,4 +38,4 @@ class RangeSelection : public Operator {
    static std::unique_ptr<Operator> negate(std::unique_ptr<RangeSelection>&& range_selection);
 };
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

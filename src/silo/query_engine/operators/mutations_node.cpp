@@ -24,11 +24,11 @@
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 namespace {
 
-using silo::storage::column::VerticalSequenceIndex;
+using rhydb::storage::column::VerticalSequenceIndex;
 
 template <typename SymbolType>
 using SequenceDiffKey = typename VerticalSequenceIndex<SymbolType>::SequenceDiffKey;
@@ -450,4 +450,4 @@ nlohmann::json MutationsNode<SymbolType>::toJson() const {
 template class MutationsNode<Nucleotide>;
 template class MutationsNode<AminoAcid>;
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

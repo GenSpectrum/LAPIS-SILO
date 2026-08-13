@@ -16,11 +16,11 @@
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table.h"
 
-namespace silo {
+namespace rhydb {
 class Nucleotide;
 }
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 template <typename SymbolType>
 class MutationProfile : public ScalarExpression {
@@ -86,4 +86,4 @@ class MutationProfile : public ScalarExpression {
    ) const override;
 };
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

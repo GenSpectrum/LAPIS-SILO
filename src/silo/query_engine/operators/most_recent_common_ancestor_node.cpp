@@ -32,9 +32,9 @@ struct NodeValuesResult {
 };
 
 NodeValuesResult getNodeValuesFromTable(
-   const silo::storage::Table& table,
+   const rhydb::storage::Table& table,
    const std::string& column_name,
-   silo::query_engine::CopyOnWriteBitmap& bitmap_filter
+   rhydb::query_engine::CopyOnWriteBitmap& bitmap_filter
 ) {
    const roaring::Roaring filter_bitmap = bitmap_filter.toRoaring();
    const size_t num_rows = filter_bitmap.cardinality();
@@ -45,7 +45,7 @@ NodeValuesResult getNodeValuesFromTable(
    const auto& string_column = table.columns.string_columns.at(column_name);
 
    for (const uint32_t row_in_table : filter_bitmap) {
-      const auto row_id = silo::storage::column::RowId::fromGlobal(row_in_table);
+      const auto row_id = rhydb::storage::column::RowId::fromGlobal(row_in_table);
       if (!string_column.isNull(row_id)) {
          auto value = string_column.getValueString(row_id);
          all_tree_node_ids.insert(value);
@@ -60,7 +60,7 @@ NodeValuesResult getNodeValuesFromTable(
 
 }  // namespace
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 MostRecentCommonAncestorNode::MostRecentCommonAncestorNode(
    std::shared_ptr<storage::Table> table,
@@ -190,4 +190,4 @@ nlohmann::json MostRecentCommonAncestorNode::toJson() const {
    };
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

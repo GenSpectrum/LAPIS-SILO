@@ -20,7 +20,7 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/storage/insertion_format_exception.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 namespace {
 
@@ -44,14 +44,14 @@ InsertionEntry<SymbolType> parseInsertion(const std::string& value) {
       try {
          const auto position_signed = boost::lexical_cast<int64_t>(position_and_insertion[0]);
          if (position_signed < 0) {
-            throw silo::storage::InsertionFormatException(
+            throw rhydb::storage::InsertionFormatException(
                "Failed to parse insertion: position must not be negative, got: '{}'", value
             );
          }
          const auto position = static_cast<uint32_t>(position_signed);
          const auto& insertion = position_and_insertion[1];
          if (insertion.empty()) {
-            throw silo::storage::InsertionFormatException(
+            throw rhydb::storage::InsertionFormatException(
                "Failed to parse insertion due to invalid format. Expected position that is "
                "parsable as an integer, instead got: '{}'",
                value
@@ -70,7 +70,7 @@ InsertionEntry<SymbolType> parseInsertion(const std::string& value) {
          }
          return {.position_idx = position, .insertion = insertion};
       } catch (const boost::bad_lexical_cast& error) {
-         throw silo::storage::InsertionFormatException(
+         throw rhydb::storage::InsertionFormatException(
             "Failed to parse insertion due to invalid format. Expected position that is parsable "
             "as "
             "an integer, instead got: '{}'",
@@ -78,7 +78,7 @@ InsertionEntry<SymbolType> parseInsertion(const std::string& value) {
          );
       }
    }
-   throw silo::storage::InsertionFormatException(
+   throw rhydb::storage::InsertionFormatException(
       "Failed to parse insertion due to invalid format. Expected two parts (position and non-empty "
       "insertion "
       "value), instead got: '{}'",
@@ -210,10 +210,10 @@ void SequenceColumn<SymbolType>::finalize() {
       info_after_optimisation
    );
 }
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column
 
-[[maybe_unused]] auto fmt::formatter<silo::storage::column::SequenceColumnInfo>::format(
-   const silo::storage::column::SequenceColumnInfo& sequence_store_info,
+[[maybe_unused]] auto fmt::formatter<rhydb::storage::column::SequenceColumnInfo>::format(
+   const rhydb::storage::column::SequenceColumnInfo& sequence_store_info,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    return fmt::format_to(
@@ -226,7 +226,7 @@ void SequenceColumn<SymbolType>::finalize() {
    );
 }
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 template <typename SymbolType>
 SequenceColumnInfo SequenceColumn<SymbolType>::calculateInfo() {
@@ -346,4 +346,4 @@ template class SequenceColumnMetadata<Nucleotide>;
 template class SequenceColumnMetadata<AminoAcid>;
 template class SequenceColumnBuilder<Nucleotide>;
 template class SequenceColumnBuilder<AminoAcid>;
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

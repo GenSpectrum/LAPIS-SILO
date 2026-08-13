@@ -11,7 +11,7 @@
 #include "silo/common/types.h"
 #include "silo/preprocessing/lineage_definition_file.h"
 
-namespace silo::common {
+namespace rhydb::common {
 
 /*
  *  subtree(A.1, DO_NOT_FOLLOW) returns A.1
@@ -112,7 +112,7 @@ class LineageTreeAndIdMap {
    LineageTreeAndIdMap& operator=(const LineageTreeAndIdMap& other);
 
    static LineageTreeAndIdMap fromLineageDefinitionFile(
-      silo::preprocessing::LineageDefinitionFile&& file
+      rhydb::preprocessing::LineageDefinitionFile&& file
    );
 
    static LineageTreeAndIdMap fromLineageDefinitionFilePath(const std::filesystem::path& file_path);
@@ -140,4 +140,4 @@ std::optional<std::vector<Idx>> containsCycle(
    const std::vector<std::pair<Idx, Idx>>& edges
 );
 
-}  // namespace silo::common
+}  // namespace rhydb::common

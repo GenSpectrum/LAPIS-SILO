@@ -6,7 +6,7 @@
 
 #include "silo/query_engine/copy_on_write_bitmap.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 enum Type : uint8_t {
    EMPTY,
@@ -38,4 +38,4 @@ class Operator {
 
 using OperatorVector = std::vector<std::unique_ptr<Operator>>;
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

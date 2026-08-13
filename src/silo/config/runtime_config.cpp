@@ -12,8 +12,8 @@
 #include "silo/config/config_defaults.h"
 
 namespace {
-using silo::config::ConfigKeyPath;
-using silo::config::YamlFile;
+using rhydb::config::ConfigKeyPath;
+using rhydb::config::YamlFile;
 
 // Using functions instead of global variables because of
 // initialization order issues.
@@ -48,7 +48,7 @@ ConfigKeyPath queryMaterializationOptionKey() {
 
 }  // namespace
 
-namespace silo::config {
+namespace rhydb::config {
 
 // arrow::acero::SourceNode reslices batches if they are bigger than 32768
 const uint32_t DEFAULT_ARROW_BATCH_SIZE = 32767;
@@ -165,22 +165,22 @@ void RuntimeConfig::overwriteFrom(const VerifiedConfigAttributes& config_source)
    }
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config
 
 namespace nlohmann {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
-   silo::config::ApiOptions,
+   rhydb::config::ApiOptions,
    max_connections,
    parallel_threads,
    port,
    estimated_startup_end
 )
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(silo::config::QueryOptions, materialization_cutoff)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(rhydb::config::QueryOptions, materialization_cutoff)
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
-   silo::config::RuntimeConfig,
+   rhydb::config::RuntimeConfig,
    data_directory,
    api_options,
    query_options
@@ -188,8 +188,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
 
 }  // namespace nlohmann
 
-[[maybe_unused]] auto fmt::formatter<silo::config::RuntimeConfig>::format(
-   const silo::config::RuntimeConfig& runtime_config,
+[[maybe_unused]] auto fmt::formatter<rhydb::config::RuntimeConfig>::format(
+   const rhydb::config::RuntimeConfig& runtime_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    const nlohmann::json json = runtime_config;

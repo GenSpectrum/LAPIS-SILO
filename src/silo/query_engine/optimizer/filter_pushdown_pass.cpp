@@ -22,9 +22,9 @@
 #include "silo/query_engine/scalar_expressions/field_ref.h"
 #include "silo/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 
-using silo::query_engine::scalar_expressions::And;
+using rhydb::query_engine::scalar_expressions::And;
 
-namespace silo::query_engine::optimizer {
+namespace rhydb::query_engine::optimizer {
 
 namespace {
 
@@ -114,7 +114,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::TableScanNode&
 }
 
 operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::MutationsNode<silo::Nucleotide>& node
+   operators::MutationsNode<rhydb::Nucleotide>& node
 ) {
    current_filters.push_back(std::move(node.filter));
    node.filter = std::make_unique<And>(std::move(current_filters));
@@ -122,21 +122,21 @@ operators::QueryNodePtr FilterPushdownPass::operator()(
 }
 
 operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::MutationsNode<silo::AminoAcid>& node
+   operators::MutationsNode<rhydb::AminoAcid>& node
 ) {
    current_filters.push_back(std::move(node.filter));
    node.filter = std::make_unique<And>(std::move(current_filters));
    return nullptr;
 }
 operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::InsertionsNode<silo::Nucleotide>& node
+   operators::InsertionsNode<rhydb::Nucleotide>& node
 ) {
    current_filters.push_back(std::move(node.filter));
    node.filter = std::make_unique<And>(std::move(current_filters));
    return nullptr;
 }
 operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::InsertionsNode<silo::AminoAcid>& node
+   operators::InsertionsNode<rhydb::AminoAcid>& node
 ) {
    current_filters.push_back(std::move(node.filter));
    node.filter = std::make_unique<And>(std::move(current_filters));
@@ -213,4 +213,4 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& 
    return nullptr;
 }
 
-}  // namespace silo::query_engine::optimizer
+}  // namespace rhydb::query_engine::optimizer

@@ -3,7 +3,7 @@
 #include <chrono>
 #include <string>
 
-namespace silo::common {
+namespace rhydb::common {
 
 template <typename Unit = std::chrono::microseconds, typename Clock = std::chrono::steady_clock>
 struct [[nodiscard]] BlockTimer {
@@ -27,4 +27,4 @@ struct [[nodiscard]] BlockTimer {
 
 std::string formatDuration(int64_t int_microseconds);
 
-}  // namespace silo::common
+}  // namespace rhydb::common

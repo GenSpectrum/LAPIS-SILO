@@ -4,7 +4,7 @@
 
 #include "silo/schema/database_schema.h"
 
-namespace silo {
+namespace rhydb {
 
 template <typename SymbolType>
 std::string validateSequenceName(std::string sequence_name, const schema::TableSchema& schema) {
@@ -18,4 +18,4 @@ std::string validateSequenceName(std::string sequence_name, const schema::TableS
    return sequence_name;
 }
 
-}  // namespace silo
+}  // namespace rhydb

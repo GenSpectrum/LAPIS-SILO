@@ -5,7 +5,7 @@
 
 #include <fmt/core.h>
 
-namespace silo::storage {
+namespace rhydb::storage {
 
 class InsertionFormatException : public std::runtime_error {
   public:
@@ -17,4 +17,4 @@ class InsertionFormatException : public std::runtime_error {
        : std::runtime_error(fmt::format(fmt_str, std::forward<Args>(args)...)) {}
 };
 
-}  // namespace silo::storage
+}  // namespace rhydb::storage

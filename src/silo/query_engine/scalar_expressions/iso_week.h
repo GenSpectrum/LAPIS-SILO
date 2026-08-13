@@ -8,7 +8,7 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 /// A scalar expression that evaluates to the ISO 8601 week date of the date its child expression
 /// evaluates to, formatted as `<ISO-year>-W<ISO-week>`, e.g. `2026-W12`
@@ -40,4 +40,4 @@ class IsoWeek : public ScalarExpression {
    ) const override;
 };
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

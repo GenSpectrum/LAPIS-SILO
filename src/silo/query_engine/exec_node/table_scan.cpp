@@ -12,7 +12,7 @@
 #include "silo/query_engine/batched_bitmap_reader.h"
 #include "silo/storage/column/column_type_visitor.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 namespace {
 
@@ -51,8 +51,8 @@ arrow::Status appendSequences(
    ARROW_RETURN_NOT_OK(output_array.Reserve(row_ids.cardinality()));
    auto reference_sequence =
       SymbolType::sequenceToString(sequence_column.metadata->reference_sequence);
-   auto dictionary = std::make_shared<silo::ZstdCDictionary>(reference_sequence, 3);
-   silo::ZstdCompressor compressor{dictionary};
+   auto dictionary = std::make_shared<rhydb::ZstdCDictionary>(reference_sequence, 3);
+   rhydb::ZstdCompressor compressor{dictionary};
 
    auto reconstructed_sequence_iterator = reconstructed_non_null_sequences.begin();
    for (auto row_id : row_ids) {
@@ -175,7 +175,7 @@ arrow::Status ColumnEntryAppender::operator()(
 
 }  // namespace
 
-ExecBatchBuilder::ExecBatchBuilder(std::vector<silo::schema::ColumnIdentifier> output_fields_)
+ExecBatchBuilder::ExecBatchBuilder(std::vector<rhydb::schema::ColumnIdentifier> output_fields_)
     : output_fields(std::move(output_fields_)) {
    for (const auto& [name, type] : output_fields) {
       storage::column::visit(type, [&]<storage::column::Column Column>() {
@@ -230,7 +230,7 @@ arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBa
 
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    arrow::acero::ExecPlan* plan,
-   const std::vector<silo::schema::ColumnIdentifier>& columns,
+   const std::vector<rhydb::schema::ColumnIdentifier>& columns,
    CopyOnWriteBitmap bitmap_filter_,
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
@@ -244,4 +244,4 @@ arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    return arrow::acero::MakeExecNode("source", plan, {}, source_node_options);
 }
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

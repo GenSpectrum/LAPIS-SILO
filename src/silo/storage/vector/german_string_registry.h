@@ -6,7 +6,7 @@
 #include "silo/common/types.h"
 #include "silo/storage/buffer/page.h"
 
-namespace silo::storage::vector {
+namespace rhydb::storage::vector {
 
 class GermanStringPage {
   public:
@@ -99,4 +99,4 @@ class GermanStringRegistry {
    }
 };
 
-}  // namespace silo::storage::vector
+}  // namespace rhydb::storage::vector

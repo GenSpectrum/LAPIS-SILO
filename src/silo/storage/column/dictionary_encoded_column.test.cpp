@@ -9,12 +9,12 @@
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
-using silo::common::LineageTreeAndIdMap;
-using silo::common::RecombinantEdgeFollowingMode;
-using silo::preprocessing::LineageDefinitionFile;
-using silo::storage::column::DictionaryEncodedColumn;
-using silo::storage::column::DictionaryEncodedColumnMetadata;
-using silo::storage::column::RowId;
+using rhydb::common::LineageTreeAndIdMap;
+using rhydb::common::RecombinantEdgeFollowingMode;
+using rhydb::preprocessing::LineageDefinitionFile;
+using rhydb::storage::column::DictionaryEncodedColumn;
+using rhydb::storage::column::DictionaryEncodedColumnMetadata;
+using rhydb::storage::column::RowId;
 
 namespace {
 // Buffers the values into a chunk and appends it to the column.

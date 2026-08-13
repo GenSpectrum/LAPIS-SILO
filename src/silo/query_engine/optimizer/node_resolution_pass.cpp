@@ -16,7 +16,7 @@
 #include "silo/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
 
-namespace silo::query_engine::optimizer {
+namespace rhydb::query_engine::optimizer {
 
 namespace {
 
@@ -171,12 +171,12 @@ operators::QueryNodePtr NodeResolutionPass::operator()(operators::SchemaNode& no
 }
 
 template operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedMutationsNode<
-                                                                silo::Nucleotide>&);
+                                                                rhydb::Nucleotide>&);
 template operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedMutationsNode<
-                                                                silo::AminoAcid>&);
+                                                                rhydb::AminoAcid>&);
 template operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedInsertionsNode<
-                                                                silo::Nucleotide>&);
+                                                                rhydb::Nucleotide>&);
 template operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedInsertionsNode<
-                                                                silo::AminoAcid>&);
+                                                                rhydb::AminoAcid>&);
 
-}  // namespace silo::query_engine::optimizer
+}  // namespace rhydb::query_engine::optimizer

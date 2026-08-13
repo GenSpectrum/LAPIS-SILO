@@ -8,7 +8,7 @@
 #include "silo/common/panic.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 FieldRef::FieldRef(schema::ColumnIdentifier column)
     : column(std::move(column)) {}
@@ -34,4 +34,4 @@ std::unique_ptr<filter::operators::Operator> FieldRef::compile(const storage::Ta
    SILO_UNIMPLEMENTED();
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

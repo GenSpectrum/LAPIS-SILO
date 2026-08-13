@@ -5,7 +5,7 @@
 
 #include <fmt/core.h>
 
-namespace silo::schema {
+namespace rhydb::schema {
 
 class DuplicatePrimaryKeyException : public std::runtime_error {
   public:
@@ -16,4 +16,4 @@ class DuplicatePrimaryKeyException : public std::runtime_error {
        : std::runtime_error(fmt::format(fmt_str, std::forward<Args>(args)...)) {}
 };
 
-}  // namespace silo::schema
+}  // namespace rhydb::schema

@@ -6,7 +6,7 @@
 
 #include <fmt/format.h>
 
-namespace silo {
+namespace rhydb {
 
 struct ReferenceGenomes {
    std::vector<std::string> nucleotide_sequence_names;
@@ -65,4 +65,4 @@ struct ReferenceGenomes {
    }
 };
 
-}  // namespace silo
+}  // namespace rhydb

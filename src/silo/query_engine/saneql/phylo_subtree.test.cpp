@@ -11,27 +11,27 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
 
-using silo::query_engine::saneql::parseAndConvertToQueryTree;
-namespace operators = silo::query_engine::operators;
+using rhydb::query_engine::saneql::parseAndConvertToQueryTree;
+namespace operators = rhydb::query_engine::operators;
 
 namespace {
 
-using Tables = std::map<silo::schema::TableName, std::shared_ptr<silo::storage::Table>>;
+using Tables = std::map<rhydb::schema::TableName, std::shared_ptr<rhydb::storage::Table>>;
 
 Tables makeTablesWithDefault() {
-   using silo::schema::ColumnIdentifier;
-   using silo::schema::ColumnType;
-   using silo::storage::column::ColumnMetadata;
-   using silo::storage::column::StringColumnMetadata;
+   using rhydb::schema::ColumnIdentifier;
+   using rhydb::schema::ColumnType;
+   using rhydb::storage::column::ColumnMetadata;
+   using rhydb::storage::column::StringColumnMetadata;
 
    ColumnIdentifier primary_key{.name = "id", .type = ColumnType::STRING};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), primary_key);
+   auto schema = std::make_shared<rhydb::schema::TableSchema>(std::move(col_meta), primary_key);
    Tables tables;
-   const silo::schema::TableName table_name("default");
-   tables[table_name] = std::make_shared<silo::storage::Table>(table_name, schema);
+   const rhydb::schema::TableName table_name("default");
+   tables[table_name] = std::make_shared<rhydb::storage::Table>(table_name, schema);
    return tables;
 }
 

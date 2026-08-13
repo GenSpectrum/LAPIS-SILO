@@ -24,52 +24,52 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
 
-using silo::AminoAcid;
-using silo::Nucleotide;
-using silo::query_engine::IllegalQueryException;
-using silo::query_engine::optimizer::NodeResolutionPass;
-namespace operators = silo::query_engine::operators;
+using rhydb::AminoAcid;
+using rhydb::Nucleotide;
+using rhydb::query_engine::IllegalQueryException;
+using rhydb::query_engine::optimizer::NodeResolutionPass;
+namespace operators = rhydb::query_engine::operators;
 
 namespace {
 
-std::map<silo::schema::TableName, std::shared_ptr<silo::storage::Table>> makeTablesWithDefault() {
-   using silo::schema::ColumnIdentifier;
-   using silo::schema::ColumnType;
-   using silo::storage::column::ColumnMetadata;
-   using silo::storage::column::StringColumnMetadata;
+std::map<rhydb::schema::TableName, std::shared_ptr<rhydb::storage::Table>> makeTablesWithDefault() {
+   using rhydb::schema::ColumnIdentifier;
+   using rhydb::schema::ColumnType;
+   using rhydb::storage::column::ColumnMetadata;
+   using rhydb::storage::column::StringColumnMetadata;
 
    ColumnIdentifier primary_key{.name = "id", .type = ColumnType::STRING};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), primary_key);
-   std::map<silo::schema::TableName, std::shared_ptr<silo::storage::Table>> tables;
-   tables[silo::schema::TableName::getDefault()] =
-      std::make_shared<silo::storage::Table>(silo::schema::TableName::getDefault(), schema);
+   auto schema = std::make_shared<rhydb::schema::TableSchema>(std::move(col_meta), primary_key);
+   std::map<rhydb::schema::TableName, std::shared_ptr<rhydb::storage::Table>> tables;
+   tables[rhydb::schema::TableName::getDefault()] =
+      std::make_shared<rhydb::storage::Table>(rhydb::schema::TableName::getDefault(), schema);
    return tables;
 }
 
 operators::QueryNodePtr makeTableScan() {
    auto tables = makeTablesWithDefault();
    return std::make_unique<operators::TableScanNode>(
-      tables.at(silo::schema::TableName{"default"}),
-      std::make_unique<silo::query_engine::scalar_expressions::BoolLiteral>(true),
-      std::vector<silo::schema::ColumnIdentifier>{}
+      tables.at(rhydb::schema::TableName{"default"}),
+      std::make_unique<rhydb::query_engine::scalar_expressions::BoolLiteral>(true),
+      std::vector<rhydb::schema::ColumnIdentifier>{}
    );
 }
 
 operators::QueryNodePtr makeNonScanChild() {
    // A FilterNode is not a TableScanNode — used to exercise the "must be a table scan" error path.
    return std::make_unique<operators::FilterNode>(
-      makeTableScan(), std::make_unique<silo::query_engine::scalar_expressions::BoolLiteral>(true)
+      makeTableScan(), std::make_unique<rhydb::query_engine::scalar_expressions::BoolLiteral>(true)
    );
 }
 
 std::vector<operators::MapNode::Assignment> makeMapAssignments() {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
-      {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
-       .expression = std::make_unique<silo::query_engine::scalar_expressions::Int64Literal>(3)}
+      {.output_column = {.name = "x", .type = rhydb::schema::ColumnType::INT64},
+       .expression = std::make_unique<rhydb::query_engine::scalar_expressions::Int64Literal>(3)}
    );
    return assignments;
 }
@@ -78,7 +78,7 @@ std::vector<operators::MapNode::Assignment> makeMapAssignments() {
 operators::QueryNodePtr makeCountStarAggregate(operators::QueryNodePtr child) {
    return std::make_unique<operators::AggregateNode>(
       std::move(child),
-      std::vector<silo::schema::ColumnIdentifier>{},
+      std::vector<rhydb::schema::ColumnIdentifier>{},
       std::vector<operators::AggregateDefinition>{
          {.output_name = "count",
           .function = operators::AggregateFunction::COUNT,

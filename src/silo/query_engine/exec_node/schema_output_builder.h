@@ -13,7 +13,7 @@
 #include "silo/query_engine/exec_node/json_value_type_array_builder.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 class SchemaOutputBuilder {
    std::vector<schema::ColumnIdentifier> schema_;
@@ -30,4 +30,4 @@ class SchemaOutputBuilder {
    arrow::Result<std::vector<arrow::Datum>> finish();
 };
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

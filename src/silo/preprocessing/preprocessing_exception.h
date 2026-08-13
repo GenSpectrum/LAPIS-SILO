@@ -5,7 +5,7 @@
 
 #include <fmt/core.h>
 
-namespace silo::preprocessing {
+namespace rhydb::preprocessing {
 
 class PreprocessingException : public std::runtime_error {
   public:
@@ -16,4 +16,4 @@ class PreprocessingException : public std::runtime_error {
        : std::runtime_error(fmt::format(fmt_str, std::forward<Args>(args)...)) {}
 };
 
-}  // namespace silo::preprocessing
+}  // namespace rhydb::preprocessing

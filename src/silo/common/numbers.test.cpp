@@ -2,7 +2,7 @@
 
 #include "silo/common/numbers.h"
 
-using silo::common::add1;
+using rhydb::common::add1;
 
 TEST(add1, signalsErrorWhenNeeded) {
    EXPECT_EQ(add1(0), 1);

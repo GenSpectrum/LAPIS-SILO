@@ -13,10 +13,10 @@
 #include "silo/storage/reference_genomes.h"
 #include "silo/test/query_fixture.test.h"
 
-using silo::common::LineageTreeAndIdMap;
-using silo::initialize::buildLineageRelationRows;
-using silo::initialize::LineageRelationRow;
-using silo::preprocessing::LineageDefinitionFile;
+using rhydb::common::LineageTreeAndIdMap;
+using rhydb::initialize::buildLineageRelationRows;
+using rhydb::initialize::LineageRelationRow;
+using rhydb::preprocessing::LineageDefinitionFile;
 using ::testing::UnorderedElementsAreArray;
 
 namespace {
@@ -95,9 +95,9 @@ XBB:
 }
 
 namespace {
-using silo::ReferenceGenomes;
-using silo::test::QueryTestData;
-using silo::test::QueryTestScenario;
+using rhydb::ReferenceGenomes;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
 
 // A column with `lineageIndexType: table` gets a companion relation table named after the column.
 const auto DATABASE_CONFIG =

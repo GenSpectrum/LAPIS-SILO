@@ -11,7 +11,7 @@
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 PhyloChildFilter::PhyloChildFilter(schema::ColumnIdentifier column, std::string internal_node)
     : column(std::move(column)),
@@ -80,4 +80,4 @@ std::unique_ptr<filter::operators::Operator> PhyloChildFilter::compile(const sto
    return createMatchingBitmap(string_column, internal_node, table.row_layout);
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

@@ -4,11 +4,11 @@
 #include "silo/test/query_fixture.test.h"
 
 namespace {
-using silo::ReferenceGenomes;
-using silo::common::LineageTreeAndIdMap;
-using silo::preprocessing::LineageDefinitionFile;
-using silo::test::QueryTestData;
-using silo::test::QueryTestScenario;
+using rhydb::ReferenceGenomes;
+using rhydb::common::LineageTreeAndIdMap;
+using rhydb::preprocessing::LineageDefinitionFile;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
 
 const std::string SOME_BASE_LINEAGE = "BASE.1";
 const std::string SOME_SUBLINEAGE = "CHILD";

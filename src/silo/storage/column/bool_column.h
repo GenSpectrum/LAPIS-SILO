@@ -12,7 +12,7 @@
 #include "silo/storage/column/column_metadata.h"
 #include "silo/storage/column/row_id.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 class BoolColumnBuilder;
 
@@ -107,4 +107,4 @@ class BoolColumnBuilder {
    }
 };
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

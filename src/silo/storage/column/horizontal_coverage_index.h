@@ -12,11 +12,11 @@
 #include "silo/roaring_util/bitmap_builder.h"
 #include "silo/storage/column/row_id.h"
 
-namespace silo {
+namespace rhydb {
 class Coverage;
 }
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 class HorizontalCoverageIndex {
   public:
@@ -113,4 +113,4 @@ class HorizontalCoverageIndex {
    }
 };
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

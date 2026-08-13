@@ -3,9 +3,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-using silo::storage::column::ColumnMetadata;
-using silo::storage::column::FloatColumn;
-using silo::storage::column::RowId;
+using rhydb::storage::column::ColumnMetadata;
+using rhydb::storage::column::FloatColumn;
+using rhydb::storage::column::RowId;
 
 TEST(FloatColumn, doesNotErrorOnValidInputs) {
    ColumnMetadata column_metadata("float_column1");

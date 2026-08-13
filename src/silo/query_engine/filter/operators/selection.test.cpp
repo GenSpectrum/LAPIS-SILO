@@ -7,16 +7,16 @@
 #include "silo/query_engine/filter/operators/bitmap_producer.h"
 #include "silo/storage/column/int_column.h"
 
-using silo::query_engine::CopyOnWriteBitmap;
-using silo::query_engine::filter::operators::BitmapProducer;
-using silo::query_engine::filter::operators::Comparator;
-using silo::query_engine::filter::operators::CompareToValueSelection;
-using silo::query_engine::filter::operators::Operator;
-using silo::query_engine::filter::operators::Predicate;
-using silo::query_engine::filter::operators::Selection;
-using silo::storage::column::ColumnMetadata;
-using silo::storage::column::IntColumn;
-using silo::storage::column::RowLayout;
+using rhydb::query_engine::CopyOnWriteBitmap;
+using rhydb::query_engine::filter::operators::BitmapProducer;
+using rhydb::query_engine::filter::operators::Comparator;
+using rhydb::query_engine::filter::operators::CompareToValueSelection;
+using rhydb::query_engine::filter::operators::Operator;
+using rhydb::query_engine::filter::operators::Predicate;
+using rhydb::query_engine::filter::operators::Selection;
+using rhydb::storage::column::ColumnMetadata;
+using rhydb::storage::column::IntColumn;
+using rhydb::storage::column::RowLayout;
 
 namespace {
 
@@ -152,7 +152,7 @@ TEST(OperatorSelection, returnsCorrectTypeInfo) {
       row_layout
    );
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::SELECTION);
+   ASSERT_EQ(under_test.type(), rhydb::query_engine::filter::operators::SELECTION);
 }
 
 namespace {

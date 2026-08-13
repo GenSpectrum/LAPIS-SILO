@@ -9,7 +9,7 @@
 
 #include "silo/common/panic.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 using arrow::acero::JoinType;
 
@@ -105,4 +105,4 @@ nlohmann::json JoinNode::toJson() const {
    };
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

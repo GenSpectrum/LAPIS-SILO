@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace silo::persistence {
+namespace rhydb::persistence {
 
 class LoadDatabaseException : public std::runtime_error {
   public:
@@ -15,4 +15,4 @@ class SaveDatabaseException : public std::runtime_error {
    explicit SaveDatabaseException(const std::string& error_message);
 };
 
-}  // namespace silo::persistence
+}  // namespace rhydb::persistence

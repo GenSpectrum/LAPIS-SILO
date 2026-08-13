@@ -3,11 +3,11 @@
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/optimizer/pipeline_pass_base.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 class AggregateNode;
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators
 
-namespace silo::query_engine::optimizer {
+namespace rhydb::query_engine::optimizer {
 
 /// Optimization pass that recognizes a `groupBy` with a single `count()` whose grouping keys can be
 /// computed directly from roaring bitmaps, and turns it into the dedicated, far cheaper
@@ -45,4 +45,4 @@ class BitmapAggregationRewritePass : public PipelinePassBase<BitmapAggregationRe
    operators::QueryNodePtr operator()(operators::AggregateNode& node);
 };
 
-}  // namespace silo::query_engine::optimizer
+}  // namespace rhydb::query_engine::optimizer

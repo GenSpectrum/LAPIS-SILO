@@ -6,9 +6,9 @@
 #include "silo/query_engine/saneql/ast.h"
 #include "silo/query_engine/saneql/parse_exception.h"
 
-using silo::query_engine::saneql::ParseException;
-using silo::query_engine::saneql::Parser;
-namespace ast = silo::query_engine::saneql::ast;
+using rhydb::query_engine::saneql::ParseException;
+using rhydb::query_engine::saneql::Parser;
+namespace ast = rhydb::query_engine::saneql::ast;
 
 TEST(SaneQLParser, parsesIdentifier) {
    Parser parser("country");

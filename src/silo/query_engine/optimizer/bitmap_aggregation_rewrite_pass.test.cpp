@@ -24,12 +24,12 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
 
-using silo::Nucleotide;
-using silo::query_engine::optimizer::BitmapAggregationRewritePass;
-using silo::schema::ColumnIdentifier;
-using silo::schema::ColumnType;
-namespace scalar_expressions = silo::query_engine::scalar_expressions;
-namespace operators = silo::query_engine::operators;
+using rhydb::Nucleotide;
+using rhydb::query_engine::optimizer::BitmapAggregationRewritePass;
+using rhydb::schema::ColumnIdentifier;
+using rhydb::schema::ColumnType;
+namespace scalar_expressions = rhydb::query_engine::scalar_expressions;
+namespace operators = rhydb::query_engine::operators;
 
 namespace {
 
@@ -40,11 +40,11 @@ const ColumnIdentifier DIVISION_COLUMN{.name = "division", .type = ColumnType::D
 /// A table whose schema carries a nucleotide sequence column "nuc", an indexed string column
 /// "division" and the "id" primary key, so the pass can resolve every kind of grouping key against
 /// it. The columns hold no data: the pass only reads the schema, it never executes the node.
-std::shared_ptr<silo::storage::Table> tableWithColumns() {
-   using silo::storage::column::ColumnMetadata;
-   using silo::storage::column::DictionaryEncodedColumnMetadata;
-   using silo::storage::column::SequenceColumnMetadata;
-   using silo::storage::column::StringColumnMetadata;
+std::shared_ptr<rhydb::storage::Table> tableWithColumns() {
+   using rhydb::storage::column::ColumnMetadata;
+   using rhydb::storage::column::DictionaryEncodedColumnMetadata;
+   using rhydb::storage::column::SequenceColumnMetadata;
+   using rhydb::storage::column::StringColumnMetadata;
 
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {ID_COLUMN, std::make_shared<StringColumnMetadata>(ID_COLUMN.name)},
@@ -54,8 +54,8 @@ std::shared_ptr<silo::storage::Table> tableWithColumns() {
           NUC_COLUMN.name, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
        )}
    };
-   auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), ID_COLUMN);
-   return std::make_shared<silo::storage::Table>(silo::schema::TableName::getDefault(), schema);
+   auto schema = std::make_shared<rhydb::schema::TableSchema>(std::move(col_meta), ID_COLUMN);
+   return std::make_shared<rhydb::storage::Table>(rhydb::schema::TableName::getDefault(), schema);
 }
 
 operators::QueryNodePtr makeScan() {

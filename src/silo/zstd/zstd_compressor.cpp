@@ -5,9 +5,9 @@
 
 #include <spdlog/spdlog.h>
 
-namespace silo {
+namespace rhydb {
 
-ZstdCompressor::ZstdCompressor(std::shared_ptr<silo::ZstdCDictionary> dictionary)
+ZstdCompressor::ZstdCompressor(std::shared_ptr<rhydb::ZstdCDictionary> dictionary)
     : dictionary(std::move(dictionary)) {}
 
 std::string_view ZstdCompressor::compress(const char* input_data, size_t input_size) {
@@ -27,4 +27,4 @@ std::string_view ZstdCompressor::compress(const char* input_data, size_t input_s
    return {buffer.data(), size_or_error_code};
 }
 
-}  // namespace silo
+}  // namespace rhydb

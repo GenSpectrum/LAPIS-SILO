@@ -2,7 +2,7 @@
 
 #include "silo/common/panic.h"
 
-namespace silo::storage::vector {
+namespace rhydb::storage::vector {
 
 VariableDataRegistry::Identifier VariableDataRegistry::insert(std::string_view data) {
    if (variable_data_pages.empty() || offset + sizeof(size_t) > buffer::SILO_PAGE_SIZE) {
@@ -90,4 +90,4 @@ VariableDataRegistry::DataList VariableDataRegistry::get(VariableDataRegistry::I
    return ret;
 }
 
-}  // namespace silo::storage::vector
+}  // namespace rhydb::storage::vector

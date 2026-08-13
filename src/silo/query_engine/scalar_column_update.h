@@ -6,11 +6,11 @@
 
 #include "silo/schema/database_schema.h"
 
-namespace silo::storage {
+namespace rhydb::storage {
 class ColumnGroup;
 }
 
-namespace silo::query_engine {
+namespace rhydb::query_engine {
 
 /// Parses `value` as a SaneQL scalar literal (using the same lexer/parser as queries) and assigns
 /// it to every row in `row_ids` of the column identified by `column` within `columns`. The literal
@@ -24,4 +24,4 @@ void assignScalarLiteralToColumn(
    const roaring::Roaring& row_ids
 );
 
-}  // namespace silo::query_engine
+}  // namespace rhydb::query_engine

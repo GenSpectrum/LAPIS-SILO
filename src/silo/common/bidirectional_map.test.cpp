@@ -7,7 +7,7 @@
 #include <boost/serialization/unordered_map.hpp>
 #include <boost/serialization/vector.hpp>
 
-namespace silo::common {
+namespace rhydb::common {
 
 TEST(BidirectionalMap, correctStdStringDict) {
    BidirectionalStringMap under_test;
@@ -59,4 +59,4 @@ TEST(BidirectionalMap, correctRoundtripOfNonUtf8Data) {
    EXPECT_TRUE(under_test.getId(non_utf8_string).has_value());
 }
 
-}  // namespace silo::common
+}  // namespace rhydb::common

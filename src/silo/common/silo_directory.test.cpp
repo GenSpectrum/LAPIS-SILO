@@ -2,28 +2,28 @@
 
 #include <gtest/gtest.h>
 
-using silo::SiloDirectory;
+using rhydb::SiloDirectory;
 
 TEST(DatabaseDirectoryWatcher, validBackwardsCompatible) {
    auto under_test =
-      silo::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/1234");
+      rhydb::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/1234");
    ASSERT_FALSE(under_test.data_version.isCompatibleVersion());
    ASSERT_EQ(
-      under_test.data_version.getTimestamp(), silo::DataVersion::Timestamp::fromString("1234")
+      under_test.data_version.getTimestamp(), rhydb::DataVersion::Timestamp::fromString("1234")
    );
 }
 
 TEST(DatabaseDirectoryWatcher, validNewFormatOldVersion) {
    auto under_test =
-      silo::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/1235");
+      rhydb::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/1235");
    ASSERT_FALSE(under_test.data_version.isCompatibleVersion());
    ASSERT_EQ(
-      under_test.data_version.getTimestamp(), silo::DataVersion::Timestamp::fromString("1235")
+      under_test.data_version.getTimestamp(), rhydb::DataVersion::Timestamp::fromString("1235")
    );
 }
 
 TEST(DatabaseDirectoryWatcher, validNewFormatCurrentVersion) {
-   auto most_recent = silo::DataVersion::mineDataVersion();
+   auto most_recent = rhydb::DataVersion::mineDataVersion();
 
    std::filesystem::path test_data_directories_dir{"testBaseData/dataDirectories"};
    auto most_recent_save_dir = test_data_directories_dir / most_recent.getTimestamp().value;
@@ -31,7 +31,7 @@ TEST(DatabaseDirectoryWatcher, validNewFormatCurrentVersion) {
 
    most_recent.saveToFile(most_recent_save_dir / "data_version.silo");
 
-   auto under_test = silo::SiloDataSource::checkValidDataSource(most_recent_save_dir);
+   auto under_test = rhydb::SiloDataSource::checkValidDataSource(most_recent_save_dir);
    ASSERT_TRUE(under_test.data_version.isCompatibleVersion());
    ASSERT_EQ(under_test.data_version.getTimestamp(), most_recent.getTimestamp());
 
@@ -40,31 +40,31 @@ TEST(DatabaseDirectoryWatcher, validNewFormatCurrentVersion) {
 
 TEST(DatabaseDirectoryWatcher, validNewFormatIncompatible) {
    auto under_test =
-      silo::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/9999999999991234");
+      rhydb::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/9999999999991234");
    ASSERT_FALSE(under_test.data_version.isCompatibleVersion());
    ASSERT_EQ(
       under_test.data_version.getTimestamp(),
-      silo::DataVersion::Timestamp::fromString("9999999999991234")
+      rhydb::DataVersion::Timestamp::fromString("9999999999991234")
    );
 }
 
 TEST(DatabaseDirectoryWatcher, invalidFormat) {
-   ASSERT_ANY_THROW(silo::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/3123")
+   ASSERT_ANY_THROW(rhydb::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/3123")
    );
 }
 
 TEST(DatabaseDirectoryWatcher, invalidUInt32) {
-   ASSERT_ANY_THROW(silo::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/3124")
+   ASSERT_ANY_THROW(rhydb::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/3124")
    );
 }
 
 TEST(DatabaseDirectoryWatcher, invalidYAML) {
-   ASSERT_ANY_THROW(silo::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/3125")
+   ASSERT_ANY_THROW(rhydb::SiloDataSource::checkValidDataSource("testBaseData/dataDirectories/3125")
    );
 }
 
 TEST(DatabaseDirectoryWatcher, getsMostRecentCompatible) {
-   auto most_recent = silo::DataVersion::mineDataVersion();
+   auto most_recent = rhydb::DataVersion::mineDataVersion();
 
    std::filesystem::path test_data_directories_dir{"testBaseData/dataDirectories"};
    auto most_recent_save_dir = test_data_directories_dir / most_recent.getTimestamp().value;

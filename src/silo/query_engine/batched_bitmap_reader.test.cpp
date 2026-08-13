@@ -4,7 +4,7 @@
 
 #include <roaring/roaring.hh>
 
-using silo::query_engine::BatchedBitmapReader;
+using rhydb::query_engine::BatchedBitmapReader;
 
 TEST(BatchedBitmapReader, batchesCorrectly) {
    roaring::Roaring bitmap{0, 1, 2, 3, 4};

@@ -14,7 +14,7 @@
 #include "silo/common/date32.h"
 #include "silo/common/panic.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 namespace {
 
@@ -221,4 +221,4 @@ arrow::Status NdjsonSink::finish() {
    return arrow::Status::OK();
 }
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

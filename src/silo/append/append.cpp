@@ -6,7 +6,7 @@
 #include "silo/common/silo_directory.h"
 #include "silo/database.h"
 
-using silo::Database;
+using rhydb::Database;
 
 class AppendError : public std::runtime_error {
   public:
@@ -16,12 +16,12 @@ class AppendError : public std::runtime_error {
 
 namespace {
 
-silo::SiloDataSource getMostRecentOrSpecifiedDatabaseState(
-   const silo::SiloDirectory& silo_directory,
+rhydb::SiloDataSource getMostRecentOrSpecifiedDatabaseState(
+   const rhydb::SiloDirectory& silo_directory,
    const std::optional<std::filesystem::path>& specified_directory
 ) {
    if (specified_directory.has_value()) {
-      return silo::SiloDataSource::checkValidDataSource(specified_directory.value());
+      return rhydb::SiloDataSource::checkValidDataSource(specified_directory.value());
    }
    SPDLOG_INFO(
       "No data directory specified, automatically using the most recent one in the silo-directory "
@@ -40,10 +40,10 @@ silo::SiloDataSource getMostRecentOrSpecifiedDatabaseState(
 
 }  // namespace
 
-namespace silo::append {
+namespace rhydb::append {
 
-int runAppend(const silo::config::AppendConfig& append_config) {
-   const silo::SiloDirectory silo_directory{append_config.silo_directory};
+int runAppend(const rhydb::config::AppendConfig& append_config) {
+   const rhydb::SiloDirectory silo_directory{append_config.silo_directory};
 
    const auto database_state_directory =
       getMostRecentOrSpecifiedDatabaseState(silo_directory, append_config.silo_data_source);
@@ -65,4 +65,4 @@ int runAppend(const silo::config::AppendConfig& append_config) {
    return 0;
 }
 
-}  // namespace silo::append
+}  // namespace rhydb::append

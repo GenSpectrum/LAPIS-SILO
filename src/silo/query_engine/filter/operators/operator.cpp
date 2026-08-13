@@ -14,7 +14,7 @@
 #include "silo/query_engine/filter/operators/threshold.h"
 #include "silo/query_engine/filter/operators/union.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 Operator::Operator() = default;
 
@@ -66,4 +66,4 @@ std::unique_ptr<Operator> Operator::negate(std::unique_ptr<Operator>&& some_oper
    SILO_UNREACHABLE();
 }
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

@@ -8,7 +8,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 class ScalarExpression {
   protected:
@@ -119,4 +119,4 @@ void appendVectorToVector(
 
 using ScalarExpressionVector = std::vector<std::unique_ptr<ScalarExpression>>;
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

@@ -3,13 +3,13 @@
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/optimizer/pipeline_pass_base.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 class FetchNode;
 class MapNode;
 class OrderByNode;
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators
 
-namespace silo::query_engine::optimizer {
+namespace rhydb::query_engine::optimizer {
 
 /// Optimization pass that moves a MapNode up the plan tree, so expensive per-row
 /// computation (especially zstd decompression, which lives as a ScalarExpression inside
@@ -45,4 +45,4 @@ class MapPullupPass : public PipelinePassBase<MapPullupPass> {
    operators::QueryNodePtr operator()(operators::MapNode& node);
 };
 
-}  // namespace silo::query_engine::optimizer
+}  // namespace rhydb::query_engine::optimizer

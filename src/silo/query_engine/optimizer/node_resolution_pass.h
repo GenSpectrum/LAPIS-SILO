@@ -3,7 +3,7 @@
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/optimizer/pipeline_pass_base.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 class AggregateNode;
 template <typename SymbolType>
 class UnresolvedMutationsNode;
@@ -12,9 +12,9 @@ class UnresolvedInsertionsNode;
 class UnresolvedMostRecentCommonAncestorNode;
 class UnresolvedPhyloSubtreeNode;
 class SchemaNode;
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators
 
-namespace silo::query_engine::optimizer {
+namespace rhydb::query_engine::optimizer {
 
 /// Optimization pass that resolves placeholder nodes into concrete, table-backed nodes.
 /// - UnresolvedMutationsNode → MutationsNode
@@ -36,4 +36,4 @@ class NodeResolutionPass : public PipelinePassBase<NodeResolutionPass> {
    operators::QueryNodePtr operator()(operators::SchemaNode& node);
 };
 
-}  // namespace silo::query_engine::optimizer
+}  // namespace rhydb::query_engine::optimizer

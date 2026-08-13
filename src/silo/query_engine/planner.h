@@ -5,7 +5,7 @@
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/query_plan.h"
 
-namespace silo::query_engine {
+namespace rhydb::query_engine {
 
 class Planner {
   public:
@@ -24,4 +24,4 @@ class Planner {
    );
 };
 
-}  // namespace silo::query_engine
+}  // namespace rhydb::query_engine

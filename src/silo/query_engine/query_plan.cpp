@@ -11,7 +11,7 @@
 #include "evobench/evobench.hpp"
 #include "silo/common/size_constants.h"
 
-namespace silo::query_engine {
+namespace rhydb::query_engine {
 
 std::string serializeResultOrdering(const arrow::compute::Ordering& ordering) {
    auto sort_keys = nlohmann::json::array();
@@ -193,4 +193,4 @@ arrow::Result<arrow::acero::BackpressureMonitor*> QueryPlan::createGenerator(
    return backpressure_monitor;
 }
 
-}  // namespace silo::query_engine
+}  // namespace rhydb::query_engine

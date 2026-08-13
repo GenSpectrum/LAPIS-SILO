@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-using silo::roaring_util::roaringSubsetRanks;
+using rhydb::roaring_util::roaringSubsetRanks;
 
 namespace {
 

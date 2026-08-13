@@ -7,7 +7,7 @@
 
 #include "silo/storage/column/row_id.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 /// Stores a value column's data as the list of fixed-width buffers in which it was ingested, one
 /// buffer per appended chunk. Appending never touches previously ingested chunks. A row id is
@@ -53,4 +53,4 @@ class ChunkedValueBuffer {
    }
 };
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

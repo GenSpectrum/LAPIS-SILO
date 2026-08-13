@@ -2,7 +2,7 @@
 
 #include "silo/common/panic.h"
 
-namespace silo::roaring_util {
+namespace rhydb::roaring_util {
 
 RoaringContainer RoaringContainer::withCapacity(int32_t capacity) {
    roaring::internal::container_t* container;
@@ -61,4 +61,4 @@ void RoaringContainer::runOptimizeAndShrink() {
    roaring::internal::container_shrink_to_fit(container, typecode);
 }
 
-}  // namespace silo::roaring_util
+}  // namespace rhydb::roaring_util

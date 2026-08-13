@@ -6,11 +6,11 @@
 #include "silo/preprocessing/lineage_definition_file.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
-using silo::Idx;
-using silo::common::LineageTree;
-using silo::common::LineageTreeAndIdMap;
-using silo::common::RecombinantEdgeFollowingMode;
-using silo::preprocessing::LineageDefinitionFile;
+using rhydb::Idx;
+using rhydb::common::LineageTree;
+using rhydb::common::LineageTreeAndIdMap;
+using rhydb::common::RecombinantEdgeFollowingMode;
+using rhydb::preprocessing::LineageDefinitionFile;
 
 TEST(LineageTreeAndIdMap, correctSimpleTree) {
    auto lineage_definition_file = LineageDefinitionFile::fromYAMLString(R"(
@@ -58,7 +58,7 @@ some_lineage:
     - parent_that_does_not_exist
 )"));
       },
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+      ThrowsMessage<rhydb::preprocessing::PreprocessingException>(::testing::HasSubstr(
          "The lineage 'parent_that_does_not_exist' which is specified as the parent of "
          "vertex 'some_lineage' does not have a definition itself."
       ))
@@ -129,7 +129,7 @@ CHILD:
 
    EXPECT_THAT(
       throwing_lambda,
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(
+      ThrowsMessage<rhydb::preprocessing::PreprocessingException>(
          ::testing::HasSubstr("The given LineageTree contains the cycle: BASE -> CHILD -> BASE")
       )
    );
@@ -149,7 +149,7 @@ CHILD:
 
    EXPECT_THAT(
       throwing_lambda,
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+      ThrowsMessage<rhydb::preprocessing::PreprocessingException>(::testing::HasSubstr(
          "The given LineageTree contains the cycle: BASE -> BASE"
 
       ))
@@ -175,7 +175,7 @@ CHILD3:
 
    EXPECT_THAT(
       throwing_lambda,
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+      ThrowsMessage<rhydb::preprocessing::PreprocessingException>(::testing::HasSubstr(
          "The given LineageTree contains the cycle: CHILD1 -> CHILD2 -> CHILD3 -> CHILD1"
       ))
    );
@@ -195,7 +195,7 @@ some_duplicate_lineage:
 
    EXPECT_THAT(
       throwing_lambda,
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+      ThrowsMessage<rhydb::preprocessing::PreprocessingException>(::testing::HasSubstr(
          "The lineage definitions contain the duplicate lineage 'some_duplicate_lineage'"
 
       ))
@@ -220,7 +220,7 @@ lineage3:
 
    EXPECT_THAT(
       throwing_lambda,
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+      ThrowsMessage<rhydb::preprocessing::PreprocessingException>(::testing::HasSubstr(
          "The alias 'duplicate_alias' for lineage 'lineage3' is already defined as a lineage "
          "or another alias."
       ))
@@ -245,7 +245,7 @@ lineage3:
 
    EXPECT_THAT(
       throwing_lambda,
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+      ThrowsMessage<rhydb::preprocessing::PreprocessingException>(::testing::HasSubstr(
          "The alias 'lineage2_also_used_as_alias' for lineage 'lineage3' is already defined "
          "as a lineage or another alias."
       ))
@@ -265,84 +265,84 @@ TEST(containsCycle, doesNotFindCycleInMediumSizedChainGraph) {
    for (size_t i = 0; i + 1 < number_of_edges; i++) {
       chain_edges.emplace_back(i, i + 1);
    }
-   ASSERT_FALSE(silo::common::containsCycle(number_of_edges, chain_edges));
+   ASSERT_FALSE(rhydb::common::containsCycle(number_of_edges, chain_edges));
 }
 
 TEST(containsCycle, findsCycles) {
    // 1. Simple cycle
-   ASSERT_TRUE(silo::common::containsCycle(3, {{0, 1}, {1, 0}}));
+   ASSERT_TRUE(rhydb::common::containsCycle(3, {{0, 1}, {1, 0}}));
 
    // 2. Graph with a cycle and disconnected edges
-   ASSERT_TRUE(silo::common::containsCycle(5, {{0, 1}, {1, 2}, {2, 0}, {3, 4}}));
+   ASSERT_TRUE(rhydb::common::containsCycle(5, {{0, 1}, {1, 2}, {2, 0}, {3, 4}}));
 
    // 3. Complete graph of 3 nodes (cycle)
-   ASSERT_TRUE(silo::common::containsCycle(3, {{0, 1}, {1, 2}, {2, 0}}));
+   ASSERT_TRUE(rhydb::common::containsCycle(3, {{0, 1}, {1, 2}, {2, 0}}));
 
    // 4. Cycle in a large graph
-   ASSERT_TRUE(silo::common::containsCycle(6, {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 0}}));
+   ASSERT_TRUE(rhydb::common::containsCycle(6, {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 0}}));
 
    // 5. Disconnected cycle components
-   ASSERT_TRUE(silo::common::containsCycle(7, {{0, 1}, {1, 2}, {2, 3}, {4, 5}, {5, 6}, {6, 4}}));
+   ASSERT_TRUE(rhydb::common::containsCycle(7, {{0, 1}, {1, 2}, {2, 3}, {4, 5}, {5, 6}, {6, 4}}));
 
    // 6. Self-loop, cycle present
-   ASSERT_TRUE(silo::common::containsCycle(3, {{0, 1}, {1, 2}, {2, 2}}));
+   ASSERT_TRUE(rhydb::common::containsCycle(3, {{0, 1}, {1, 2}, {2, 2}}));
 
    // 7. 4 nodes forming two separate cycles
-   ASSERT_TRUE(silo::common::containsCycle(4, {{0, 1}, {1, 0}, {2, 3}, {3, 2}}));
+   ASSERT_TRUE(rhydb::common::containsCycle(4, {{0, 1}, {1, 0}, {2, 3}, {3, 2}}));
 
    // 8. Tree structure with additional edge forming a cycle
-   ASSERT_TRUE(silo::common::containsCycle(6, {{0, 1}, {0, 2}, {1, 3}, {4, 1}, {3, 5}, {5, 4}}));
+   ASSERT_TRUE(rhydb::common::containsCycle(6, {{0, 1}, {0, 2}, {1, 3}, {4, 1}, {3, 5}, {5, 4}}));
 
    // 9. Fully connected graph of 4 nodes (cycle present)
-   ASSERT_TRUE(silo::common::containsCycle(4, {{0, 1}, {2, 0}, {0, 3}, {1, 2}, {3, 1}, {2, 3}}));
+   ASSERT_TRUE(rhydb::common::containsCycle(4, {{0, 1}, {2, 0}, {0, 3}, {1, 2}, {3, 1}, {2, 3}}));
 
    // 10. Graph with multiple isolated cycles
    ASSERT_TRUE(
-      silo::common::containsCycle(8, {{0, 1}, {1, 2}, {2, 0}, {3, 4}, {4, 5}, {5, 3}, {6, 7}})
+      rhydb::common::containsCycle(8, {{0, 1}, {1, 2}, {2, 0}, {3, 4}, {4, 5}, {5, 3}, {6, 7}})
    );
 
    // 11. Single node with a self-loop (directed cycle)
-   ASSERT_TRUE(silo::common::containsCycle(1, {{0, 0}}));
+   ASSERT_TRUE(rhydb::common::containsCycle(1, {{0, 0}}));
 }
 
 TEST(containsCycle, correctTrees) {
    // 1. No edges, no cycle
-   ASSERT_FALSE(silo::common::containsCycle(5, {}));
+   ASSERT_FALSE(rhydb::common::containsCycle(5, {}));
 
    // 2. Single edge, no cycle
-   ASSERT_FALSE(silo::common::containsCycle(2, {{0, 1}}));
+   ASSERT_FALSE(rhydb::common::containsCycle(2, {{0, 1}}));
 
    // 3. Linear chain of edges, no cycle
-   ASSERT_FALSE(silo::common::containsCycle(4, {{0, 1}, {1, 2}, {2, 3}}));
+   ASSERT_FALSE(rhydb::common::containsCycle(4, {{0, 1}, {1, 2}, {2, 3}}));
 
    // 4. Multiple disconnected edges, no cycle
-   ASSERT_FALSE(silo::common::containsCycle(6, {{0, 1}, {2, 3}, {4, 5}}));
+   ASSERT_FALSE(rhydb::common::containsCycle(6, {{0, 1}, {2, 3}, {4, 5}}));
 
    // 5. Tree structure, no cycle
-   ASSERT_FALSE(silo::common::containsCycle(5, {{0, 1}, {0, 2}, {1, 3}, {1, 4}}));
+   ASSERT_FALSE(rhydb::common::containsCycle(5, {{0, 1}, {0, 2}, {1, 3}, {1, 4}}));
 
    // 6. Graph with a single node and no edges
-   ASSERT_FALSE(silo::common::containsCycle(1, {}));
+   ASSERT_FALSE(rhydb::common::containsCycle(1, {}));
 
    // 7. Two disconnected trees (no cycle)
-   ASSERT_FALSE(silo::common::containsCycle(6, {{0, 1}, {0, 2}, {3, 4}, {3, 5}}));
+   ASSERT_FALSE(rhydb::common::containsCycle(6, {{0, 1}, {0, 2}, {3, 4}, {3, 5}}));
 
    // 8. Star-shaped graph, no cycle
-   ASSERT_FALSE(silo::common::containsCycle(5, {{0, 1}, {0, 2}, {0, 3}, {0, 4}}));
+   ASSERT_FALSE(rhydb::common::containsCycle(5, {{0, 1}, {0, 2}, {0, 3}, {0, 4}}));
 
    // 9. Two disconnected nodes
-   ASSERT_FALSE(silo::common::containsCycle(2, {}));
+   ASSERT_FALSE(rhydb::common::containsCycle(2, {}));
 
    // 10. Chain of 5 nodes
-   ASSERT_FALSE(silo::common::containsCycle(5, {{0, 1}, {1, 2}, {2, 3}, {3, 4}}));
+   ASSERT_FALSE(rhydb::common::containsCycle(5, {{0, 1}, {1, 2}, {2, 3}, {3, 4}}));
 }
 
 TEST(containsCycle, correctDirectedAcyclicGraphs) {
    // 1. Undirected lasso, but no directed cycle
-   ASSERT_FALSE(silo::common::containsCycle(6, {{0, 1}, {0, 2}, {1, 3}, {1, 4}, {3, 5}, {4, 5}}));
+   ASSERT_FALSE(rhydb::common::containsCycle(6, {{0, 1}, {0, 2}, {1, 3}, {1, 4}, {3, 5}, {4, 5}}));
 
    // 2. Chain of 5 nodes and first to last shortcut
-   ASSERT_FALSE(silo::common::containsCycle(5, {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {0, 4}}));
+   ASSERT_FALSE(rhydb::common::containsCycle(5, {{0, 1}, {1, 2}, {2, 3}, {3, 4}, {0, 4}}));
 }
 
 /*        v
@@ -394,22 +394,22 @@ TEST(LineageTree, correctAncestorsInRecombinantGraphWithAllRecombinantEdges) {
    auto lineage_tree = createDiamondLineageTree();
    std::set<Idx> ancestors_of_0{0, 1};
    ASSERT_EQ(
-      lineage_tree.getAllParents(0, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      lineage_tree.getAllParents(0, rhydb::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
       ancestors_of_0
    );
    std::set<Idx> ancestors_of_1{1};
    ASSERT_EQ(
-      lineage_tree.getAllParents(1, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      lineage_tree.getAllParents(1, rhydb::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
       ancestors_of_1
    );
    std::set<Idx> ancestors_of_2{2, 1};
    ASSERT_EQ(
-      lineage_tree.getAllParents(2, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      lineage_tree.getAllParents(2, rhydb::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
       ancestors_of_2
    );
    std::set<Idx> ancestors_of_3{0, 1, 2, 3};
    ASSERT_EQ(
-      lineage_tree.getAllParents(3, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      lineage_tree.getAllParents(3, rhydb::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
       ancestors_of_3
    );
 }
@@ -419,28 +419,28 @@ TEST(LineageTree, correctAncestorsInRecombinantGraphWithCladeRecombinantEdges) {
    std::set<Idx> ancestors_of_0{0, 1};
    ASSERT_EQ(
       lineage_tree.getAllParents(
-         0, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+         0, rhydb::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
       ),
       ancestors_of_0
    );
    std::set<Idx> ancestors_of_1{1};
    ASSERT_EQ(
       lineage_tree.getAllParents(
-         1, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+         1, rhydb::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
       ),
       ancestors_of_1
    );
    std::set<Idx> ancestors_of_2{2, 1};
    ASSERT_EQ(
       lineage_tree.getAllParents(
-         2, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+         2, rhydb::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
       ),
       ancestors_of_2
    );
    std::set<Idx> ancestors_of_3{1, 3};
    ASSERT_EQ(
       lineage_tree.getAllParents(
-         3, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+         3, rhydb::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
       ),
       ancestors_of_3
    );
@@ -509,32 +509,32 @@ TEST(LineageTree, correctAncestorsInRecombinantGraphWithAllRecombinantEdgesCompl
    auto lineage_tree = createDoubleDiamondLineageTree();
    std::set<Idx> ancestors_of_0{0, 1};
    ASSERT_EQ(
-      lineage_tree.getAllParents(0, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      lineage_tree.getAllParents(0, rhydb::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
       ancestors_of_0
    );
    std::set<Idx> ancestors_of_1{1};
    ASSERT_EQ(
-      lineage_tree.getAllParents(1, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      lineage_tree.getAllParents(1, rhydb::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
       ancestors_of_1
    );
    std::set<Idx> ancestors_of_2{2, 1};
    ASSERT_EQ(
-      lineage_tree.getAllParents(2, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      lineage_tree.getAllParents(2, rhydb::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
       ancestors_of_2
    );
    std::set<Idx> ancestors_of_3{0, 1, 2, 3};
    ASSERT_EQ(
-      lineage_tree.getAllParents(3, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      lineage_tree.getAllParents(3, rhydb::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
       ancestors_of_3
    );
    std::set<Idx> ancestors_of_4{0, 1, 2, 3, 4, 5};
    ASSERT_EQ(
-      lineage_tree.getAllParents(4, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      lineage_tree.getAllParents(4, rhydb::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
       ancestors_of_4
    );
    std::set<Idx> ancestors_of_5{0, 1, 5};
    ASSERT_EQ(
-      lineage_tree.getAllParents(5, silo::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
+      lineage_tree.getAllParents(5, rhydb::common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW),
       ancestors_of_5
    );
 }
@@ -544,42 +544,42 @@ TEST(LineageTree, correctAncestorsInRecombinantGraphWithCladeRecombinantEdgesCom
    std::set<Idx> ancestors_of_0{0, 1};
    ASSERT_EQ(
       lineage_tree.getAllParents(
-         0, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+         0, rhydb::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
       ),
       ancestors_of_0
    );
    std::set<Idx> ancestors_of_1{1};
    ASSERT_EQ(
       lineage_tree.getAllParents(
-         1, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+         1, rhydb::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
       ),
       ancestors_of_1
    );
    std::set<Idx> ancestors_of_2{2, 1};
    ASSERT_EQ(
       lineage_tree.getAllParents(
-         2, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+         2, rhydb::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
       ),
       ancestors_of_2
    );
    std::set<Idx> ancestors_of_3{1, 3};
    ASSERT_EQ(
       lineage_tree.getAllParents(
-         3, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+         3, rhydb::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
       ),
       ancestors_of_3
    );
    std::set<Idx> ancestors_of_4{1, 4};
    ASSERT_EQ(
       lineage_tree.getAllParents(
-         4, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+         4, rhydb::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
       ),
       ancestors_of_4
    );
    std::set<Idx> ancestors_of_5{0, 1, 5};
    ASSERT_EQ(
       lineage_tree.getAllParents(
-         5, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+         5, rhydb::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
       ),
       ancestors_of_5
    );
@@ -616,7 +616,7 @@ TEST(LineageTree, correctlyHasNoAncestors) {
    std::set<Idx> ancestors_of_4{4};
    ASSERT_EQ(
       lineage_tree.getAllParents(
-         4, silo::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+         4, rhydb::common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
       ),
       ancestors_of_4
    );

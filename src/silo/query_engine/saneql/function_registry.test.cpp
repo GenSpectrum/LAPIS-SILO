@@ -6,15 +6,15 @@
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/saneql/ast.h"
 
-using silo::query_engine::IllegalQueryException;
-using silo::query_engine::saneql::bindArguments;
-using silo::query_engine::saneql::BoundArguments;
-using silo::query_engine::saneql::FunctionSignature;
-using silo::query_engine::saneql::ParameterDefinition;
-using silo::query_engine::saneql::ast::makeExpr;
-using silo::query_engine::saneql::ast::NamedArgument;
-using silo::query_engine::saneql::ast::PositionalArgument;
-using silo::query_engine::saneql::ast::StringLiteral;
+using rhydb::query_engine::IllegalQueryException;
+using rhydb::query_engine::saneql::bindArguments;
+using rhydb::query_engine::saneql::BoundArguments;
+using rhydb::query_engine::saneql::FunctionSignature;
+using rhydb::query_engine::saneql::ParameterDefinition;
+using rhydb::query_engine::saneql::ast::makeExpr;
+using rhydb::query_engine::saneql::ast::NamedArgument;
+using rhydb::query_engine::saneql::ast::PositionalArgument;
+using rhydb::query_engine::saneql::ast::StringLiteral;
 
 namespace {
 

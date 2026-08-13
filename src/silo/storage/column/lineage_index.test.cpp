@@ -3,10 +3,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-using silo::Idx;
-using silo::common::LineageTree;
-using silo::common::RecombinantEdgeFollowingMode;
-using silo::storage::LineageIndex;
+using rhydb::Idx;
+using rhydb::common::LineageTree;
+using rhydb::common::RecombinantEdgeFollowingMode;
+using rhydb::storage::LineageIndex;
 
 /*      v
  *      1

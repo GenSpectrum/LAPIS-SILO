@@ -14,7 +14,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Computes phylogenetic subtree for matching rows.
 class PhyloSubtreeNode final : public QueryNode {
@@ -46,4 +46,4 @@ class PhyloSubtreeNode final : public QueryNode {
    [[nodiscard]] nlohmann::json toJson() const override;
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

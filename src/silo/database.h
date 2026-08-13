@@ -10,7 +10,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo {
+namespace rhydb {
 
 class Database {
   public:
@@ -106,4 +106,4 @@ class Database {
    [[nodiscard]] arrow::Result<std::string> getTablesAsArrowIpcImpl() const;
 };
 
-}  // namespace silo
+}  // namespace rhydb

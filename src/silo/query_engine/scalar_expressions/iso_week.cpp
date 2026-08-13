@@ -10,7 +10,7 @@
 #include "silo/common/panic.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 IsoWeek::IsoWeek(std::unique_ptr<ScalarExpression> input)
     : input(std::move(input)) {
@@ -35,4 +35,4 @@ std::unique_ptr<filter::operators::Operator> IsoWeek::compile(const storage::Tab
    SILO_UNIMPLEMENTED();
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

@@ -13,7 +13,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 enum class NodeKind : uint8_t {
    AGGREGATE,
@@ -72,4 +72,4 @@ using QueryNodePtr = std::unique_ptr<QueryNode>;
 
 [[nodiscard]] nlohmann::json columnsToJson(const std::vector<schema::ColumnIdentifier>& columns);
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

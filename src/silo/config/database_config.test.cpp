@@ -5,11 +5,11 @@
 
 #include "config/config_exception.h"
 
-using silo::config::ConfigException;
-using silo::config::DatabaseConfig;
-using silo::config::toDatabaseValueType;
-using silo::config::ValueType;
-using silo::schema::ColumnType;
+using rhydb::config::ConfigException;
+using rhydb::config::DatabaseConfig;
+using rhydb::config::toDatabaseValueType;
+using rhydb::config::ValueType;
+using rhydb::schema::ColumnType;
 
 TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
    ASSERT_TRUE(toDatabaseValueType("string") == ValueType::STRING);
@@ -18,7 +18,7 @@ TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
 }
 
 TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
-   const DatabaseConfig config = silo::config::DatabaseConfig::getValidatedConfig(
+   const DatabaseConfig config = rhydb::config::DatabaseConfig::getValidatedConfig(
       R"(
 schema:
   instanceName: "testInstanceName"
@@ -53,7 +53,7 @@ class DatabaseMetadataFixture : public ::testing::TestWithParam<TestParameter> {
 TEST_P(DatabaseMetadataFixture, getColumnTypeShouldReturnCorrectColumnType) {
    const auto test_parameter = GetParam();
 
-   const silo::config::DatabaseMetadata under_test = {
+   const rhydb::config::DatabaseMetadata under_test = {
       .name = "testName",
       .type = test_parameter.value_type,
       .generate_index = test_parameter.generate_index,
@@ -103,7 +103,7 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
-   DatabaseConfig config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
+   DatabaseConfig config = rhydb::config::DatabaseConfig::getValidatedConfigFromFile(
       "testBaseData/test_database_config.yaml"
    );
 
@@ -147,7 +147,7 @@ TEST(DatabaseConfig, shouldReadConfigWithCorrectParameters) {
 TEST(DatabaseConfig, shouldThrowExceptionWhenConfigFileDoesNotExist) {
    EXPECT_THAT(
       []() {
-         (void)silo::config::DatabaseConfig::getValidatedConfigFromFile(
+         (void)rhydb::config::DatabaseConfig::getValidatedConfigFromFile(
             "testBaseData/does_not_exist.yaml"
          );
       },
@@ -165,7 +165,7 @@ schema:
   primaryKey: primary_key
 )-";
 
-   ASSERT_THROW((void)silo::config::DatabaseConfig::getValidatedConfig(yaml), ConfigException);
+   ASSERT_THROW((void)rhydb::config::DatabaseConfig::getValidatedConfig(yaml), ConfigException);
 }
 
 TEST(DatabaseConfig, shouldNotThrowIfThereAreAdditionalEntries) {
@@ -180,7 +180,7 @@ schema:
     - name: this is unknown to SILO
 )-";
 
-   ASSERT_NO_THROW((void)silo::config::DatabaseConfig::getValidatedConfig(yaml));
+   ASSERT_NO_THROW((void)rhydb::config::DatabaseConfig::getValidatedConfig(yaml));
 }
 
 TEST(DatabaseConfig, shouldThrowIfTheConfigHasAnInvalidStructure) {
@@ -191,7 +191,7 @@ schema:
 )-";
 
    EXPECT_THAT(
-      [yaml]() { (void)silo::config::DatabaseConfig::getValidatedConfig(yaml); },
+      [yaml]() { (void)rhydb::config::DatabaseConfig::getValidatedConfig(yaml); },
       ThrowsMessage<std::runtime_error>(
          ::testing::HasSubstr("invalid node; first invalid key: \"metadata\"")
       )
@@ -316,7 +316,7 @@ schema:
 
    const auto config = DatabaseConfig::getValidatedConfig(config_yaml);
    const auto metadata = config.getMetadata("lineage").value();
-   ASSERT_EQ(metadata.lineage_index_type, silo::config::LineageIndexType::COLUMN_METADATA);
+   ASSERT_EQ(metadata.lineage_index_type, rhydb::config::LineageIndexType::COLUMN_METADATA);
    ASSERT_TRUE(metadata.generatesLineageColumnIndex());
    ASSERT_FALSE(metadata.generatesLineageTable());
 }
@@ -339,7 +339,7 @@ schema:
 
    const auto config = DatabaseConfig::getValidatedConfig(config_yaml);
    const auto metadata = config.getMetadata("lineage").value();
-   ASSERT_EQ(metadata.lineage_index_type, silo::config::LineageIndexType::TABLE);
+   ASSERT_EQ(metadata.lineage_index_type, rhydb::config::LineageIndexType::TABLE);
    ASSERT_FALSE(metadata.generatesLineageColumnIndex());
    ASSERT_TRUE(metadata.generatesLineageTable());
 }
@@ -362,7 +362,7 @@ schema:
 
    const auto config = DatabaseConfig::getValidatedConfig(config_yaml);
    const auto metadata = config.getMetadata("lineage").value();
-   ASSERT_EQ(metadata.lineage_index_type, silo::config::LineageIndexType::BOTH);
+   ASSERT_EQ(metadata.lineage_index_type, rhydb::config::LineageIndexType::BOTH);
    ASSERT_TRUE(metadata.generatesLineageColumnIndex());
    ASSERT_TRUE(metadata.generatesLineageTable());
 }

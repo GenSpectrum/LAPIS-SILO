@@ -5,7 +5,7 @@
 #include "silo/common/date32.h"
 #include "silo/storage/column/row_id.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 Date32Column::Date32Column(ColumnMetadata* metadata)
     : metadata(metadata) {}
@@ -68,4 +68,4 @@ void Date32Column::update(const roaring::Roaring& row_ids, std::optional<common:
    }
 }
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

@@ -9,9 +9,9 @@
 
 #include "silo/roaring_util/bitmap_builder.h"
 
-using silo::roaring_util::BitmapBuilderByContainer;
-using silo::roaring_util::RoaringContainer;
-using silo::roaring_util::RoaringContainerView;
+using rhydb::roaring_util::BitmapBuilderByContainer;
+using rhydb::roaring_util::RoaringContainer;
+using rhydb::roaring_util::RoaringContainerView;
 
 namespace {
 

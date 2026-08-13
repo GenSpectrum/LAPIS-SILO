@@ -7,11 +7,11 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 CopyOnWriteBitmap computeFilter(
    const std::unique_ptr<scalar_expressions::ScalarExpression>& filter,
    const storage::Table& table
 );
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

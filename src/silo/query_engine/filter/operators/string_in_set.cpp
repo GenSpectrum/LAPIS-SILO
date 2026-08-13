@@ -11,7 +11,7 @@
 #include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/string_column.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 using storage::column::Column;
 
@@ -61,4 +61,4 @@ std::unique_ptr<Predicate> StringInSet<ColumnType>::negate() const {
 template class StringInSet<storage::column::StringColumn>;
 template class StringInSet<storage::column::DictionaryEncodedColumn>;
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

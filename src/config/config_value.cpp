@@ -6,7 +6,7 @@
 
 #include "silo/common/panic.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 ConfigValueType ConfigValue::getValueType() const {
    if (std::holds_alternative<std::string>(value)) {
@@ -51,4 +51,4 @@ std::string ConfigValue::toString() const {
    );
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config

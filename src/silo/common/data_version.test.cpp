@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-using silo::DataVersion;
+using rhydb::DataVersion;
 
 TEST(DataVersion, shouldMineDataVersionFromUnixTime) {
    const auto mined_version = DataVersion::mineDataVersion();

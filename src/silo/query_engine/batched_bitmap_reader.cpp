@@ -1,7 +1,7 @@
 #include "silo/query_engine/batched_bitmap_reader.h"
 #include "silo/common/panic.h"
 
-namespace silo::query_engine {
+namespace rhydb::query_engine {
 
 std::optional<roaring::Roaring> BatchedBitmapReader::nextBatch() {
    if (bitmap.isEmpty() || num_rows_produced >= cardinality) {
@@ -38,4 +38,4 @@ std::optional<roaring::Roaring> BatchedBitmapReader::nextBatch() {
    return row_ids;
 }
 
-}  // namespace silo::query_engine
+}  // namespace rhydb::query_engine

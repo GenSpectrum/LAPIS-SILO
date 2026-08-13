@@ -6,7 +6,7 @@
 
 #include <roaring/roaring.hh>
 
-namespace silo::query_engine {
+namespace rhydb::query_engine {
 
 /// The return value of the Operator::evaluate method.
 /// May return either a mutable or immutable bitmap.
@@ -63,4 +63,4 @@ class CopyOnWriteBitmap {
    [[nodiscard]] roaring::Roaring toRoaring() const;
 };
 
-}  // namespace silo::query_engine
+}  // namespace rhydb::query_engine

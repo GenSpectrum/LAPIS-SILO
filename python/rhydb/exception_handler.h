@@ -6,7 +6,7 @@
 inline void handle_silo_exception() {
     try {
         throw;  // re-throw current exception
-    } catch (const silo::query_engine::IllegalQueryException& e) {
+    } catch (const rhydb::query_engine::IllegalQueryException& e) {
         PyErr_SetString(PyExc_ValueError, e.what());
     } catch (const std::runtime_error& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());

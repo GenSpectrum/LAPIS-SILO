@@ -3,9 +3,9 @@
 #include "silo/test/query_fixture.test.h"
 
 namespace {
-using silo::ReferenceGenomes;
-using silo::test::QueryTestData;
-using silo::test::QueryTestScenario;
+using rhydb::ReferenceGenomes;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
 
 nlohmann::json createDataWithFloatValue(const std::string& primaryKey, double value) {
    return {

@@ -9,7 +9,7 @@
 #include "silo/database.h"
 #include "silo/storage/reference_genomes.h"
 
-namespace silo::initialize {
+namespace rhydb::initialize {
 
 class Initializer {
   public:
@@ -49,4 +49,4 @@ class Initializer {
       Database& database
    );
 };
-}  // namespace silo::initialize
+}  // namespace rhydb::initialize

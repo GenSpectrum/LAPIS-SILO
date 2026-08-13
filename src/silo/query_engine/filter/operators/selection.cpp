@@ -19,7 +19,7 @@
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 using storage::column::StringColumn;
 
@@ -184,4 +184,4 @@ bool CompareToValueSelection<StringColumn>::match(uint32_t global_row_id) const 
    return strongOrderingMatchesComparator(strong_ordering, comparator);
 }
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

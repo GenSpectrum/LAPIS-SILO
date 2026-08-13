@@ -5,10 +5,10 @@
 
 #include "silo/query_engine/scalar_expressions/literal.h"
 
-using silo::query_engine::CopyOnWriteBitmap;
-using silo::query_engine::filter::operators::IndexScan;
-using silo::query_engine::scalar_expressions::BoolLiteral;
-using silo::storage::column::RowLayout;
+using rhydb::query_engine::CopyOnWriteBitmap;
+using rhydb::query_engine::filter::operators::IndexScan;
+using rhydb::query_engine::scalar_expressions::BoolLiteral;
+using rhydb::storage::column::RowLayout;
 
 TEST(OperatorIndexScan, evaluateShouldReturnCorrectValues) {
    const roaring::Roaring test_bitmap(roaring::Roaring({1, 3}));
@@ -21,7 +21,7 @@ TEST(OperatorIndexScan, correctTypeInfo) {
 
    const IndexScan under_test(CopyOnWriteBitmap{&test_bitmap}, RowLayout::of(5));
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::INDEX_SCAN);
+   ASSERT_EQ(under_test.type(), rhydb::query_engine::filter::operators::INDEX_SCAN);
 }
 
 TEST(OperatorIndexScan, correctLogicalEquivalent) {

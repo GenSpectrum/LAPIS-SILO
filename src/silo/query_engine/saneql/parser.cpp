@@ -6,7 +6,7 @@
 #include "silo/query_engine/saneql/ast.h"
 #include "silo/query_engine/saneql/parse_exception.h"
 
-namespace silo::query_engine::saneql {
+namespace rhydb::query_engine::saneql {
 
 Parser::Parser(std::string_view input)
     : lexer(input),
@@ -412,4 +412,4 @@ Parser::ParsedArgs Parser::parseArgList() {
    return result;
 }
 
-}  // namespace silo::query_engine::saneql
+}  // namespace rhydb::query_engine::saneql

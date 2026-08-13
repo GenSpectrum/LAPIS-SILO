@@ -6,11 +6,11 @@
 
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine {
+namespace rhydb::query_engine {
 
 struct OrderByField {
    schema::ColumnIdentifier field;
    bool ascending;
 };
 
-}  // namespace silo::query_engine
+}  // namespace rhydb::query_engine

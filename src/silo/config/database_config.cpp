@@ -12,9 +12,9 @@
 
 #include "config/config_exception.h"
 
-using silo::config::ValueType;
+using rhydb::config::ValueType;
 
-ValueType silo::config::toDatabaseValueType(std::string_view type) {
+ValueType rhydb::config::toDatabaseValueType(std::string_view type) {
    if (type == "string") {
       return ValueType::STRING;
    }
@@ -31,10 +31,10 @@ ValueType silo::config::toDatabaseValueType(std::string_view type) {
       return ValueType::FLOAT;
    }
 
-   throw silo::config::ConfigException("Unknown metadata type: " + std::string(type));
+   throw rhydb::config::ConfigException("Unknown metadata type: " + std::string(type));
 }
 
-silo::config::LineageIndexType silo::config::toLineageIndexType(std::string_view type) {
+rhydb::config::LineageIndexType rhydb::config::toLineageIndexType(std::string_view type) {
    if (type == "columnMetadata") {
       return LineageIndexType::COLUMN_METADATA;
    }
@@ -44,13 +44,13 @@ silo::config::LineageIndexType silo::config::toLineageIndexType(std::string_view
    if (type == "both") {
       return LineageIndexType::BOTH;
    }
-   throw silo::config::ConfigException(
+   throw rhydb::config::ConfigException(
       "Unknown lineageIndexType: '" + std::string(type) +
       "'. Must be one of 'columnMetadata', 'table', 'both'."
    );
 }
 
-std::string_view silo::config::lineageIndexTypeToString(LineageIndexType type) {
+std::string_view rhydb::config::lineageIndexTypeToString(LineageIndexType type) {
    switch (type) {
       case LineageIndexType::COLUMN_METADATA:
          return "columnMetadata";
@@ -81,18 +81,18 @@ std::string toString(ValueType type) {
 }
 }  // namespace
 
-bool YAML::convert<silo::config::DatabaseConfig>::decode(
+bool YAML::convert<rhydb::config::DatabaseConfig>::decode(
    const Node& node,
-   silo::config::DatabaseConfig& config
+   rhydb::config::DatabaseConfig& config
 ) {
-   config.schema = node["schema"].as<silo::config::DatabaseSchema>();
+   config.schema = node["schema"].as<rhydb::config::DatabaseSchema>();
 
    SPDLOG_TRACE("Resulting database config: {}", config);
 
    return true;
 }
-YAML::Node YAML::convert<silo::config::DatabaseConfig>::encode(
-   const silo::config::DatabaseConfig& config
+YAML::Node YAML::convert<rhydb::config::DatabaseConfig>::encode(
+   const rhydb::config::DatabaseConfig& config
 ) {
    Node node;
    node["schema"] = config.schema;
@@ -100,9 +100,9 @@ YAML::Node YAML::convert<silo::config::DatabaseConfig>::encode(
    return node;
 }
 
-bool YAML::convert<silo::config::DatabaseSchema>::decode(
+bool YAML::convert<rhydb::config::DatabaseSchema>::decode(
    const Node& node,
-   silo::config::DatabaseSchema& schema
+   rhydb::config::DatabaseSchema& schema
 ) {
    schema.instance_name = node["instanceName"].as<std::string>();
    schema.primary_key = node["primaryKey"].as<std::string>();
@@ -112,13 +112,13 @@ bool YAML::convert<silo::config::DatabaseSchema>::decode(
    }
 
    for (const auto& metadata : node["metadata"]) {
-      schema.metadata.push_back(metadata.as<silo::config::DatabaseMetadata>());
+      schema.metadata.push_back(metadata.as<rhydb::config::DatabaseMetadata>());
    }
    return true;
 }
 
-YAML::Node YAML::convert<silo::config::DatabaseSchema>::encode(
-   const silo::config::DatabaseSchema& schema
+YAML::Node YAML::convert<rhydb::config::DatabaseSchema>::encode(
+   const rhydb::config::DatabaseSchema& schema
 ) {
    Node node;
    node["instanceName"] = schema.instance_name;
@@ -127,12 +127,12 @@ YAML::Node YAML::convert<silo::config::DatabaseSchema>::encode(
    return node;
 }
 
-bool YAML::convert<silo::config::DatabaseMetadata>::decode(
+bool YAML::convert<rhydb::config::DatabaseMetadata>::decode(
    const Node& node,
-   silo::config::DatabaseMetadata& metadata
+   rhydb::config::DatabaseMetadata& metadata
 ) {
    metadata.name = node["name"].as<std::string>();
-   metadata.type = silo::config::toDatabaseValueType(node["type"].as<std::string>());
+   metadata.type = rhydb::config::toDatabaseValueType(node["type"].as<std::string>());
    if (node["generateIndex"].IsDefined()) {
       metadata.generate_index = node["generateIndex"].as<bool>();
    } else {
@@ -145,9 +145,9 @@ bool YAML::convert<silo::config::DatabaseMetadata>::decode(
    }
    if (node["lineageIndexType"].IsDefined()) {
       metadata.lineage_index_type =
-         silo::config::toLineageIndexType(node["lineageIndexType"].as<std::string>());
+         rhydb::config::toLineageIndexType(node["lineageIndexType"].as<std::string>());
    } else {
-      metadata.lineage_index_type = silo::config::LineageIndexType::COLUMN_METADATA;
+      metadata.lineage_index_type = rhydb::config::LineageIndexType::COLUMN_METADATA;
    }
    if (node["isPhyloTreeField"].IsDefined()) {
       metadata.phylo_tree_node_identifier = node["isPhyloTreeField"].as<bool>();
@@ -161,8 +161,8 @@ bool YAML::convert<silo::config::DatabaseMetadata>::decode(
    }
    return true;
 }
-YAML::Node YAML::convert<silo::config::DatabaseMetadata>::encode(
-   const silo::config::DatabaseMetadata& metadata
+YAML::Node YAML::convert<rhydb::config::DatabaseMetadata>::encode(
+   const rhydb::config::DatabaseMetadata& metadata
 ) {
    Node node;
    node["name"] = metadata.name;
@@ -181,7 +181,7 @@ YAML::Node YAML::convert<silo::config::DatabaseMetadata>::encode(
    return node;
 }
 
-namespace silo::config {
+namespace rhydb::config {
 
 schema::ColumnType DatabaseMetadata::getColumnType() const {
    if (type == ValueType::STRING) {
@@ -338,17 +338,17 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
    }
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config
 
-[[maybe_unused]] auto fmt::formatter<silo::config::DatabaseConfig>::format(
-   const silo::config::DatabaseConfig& database_config,
+[[maybe_unused]] auto fmt::formatter<rhydb::config::DatabaseConfig>::format(
+   const rhydb::config::DatabaseConfig& database_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    return fmt::format_to(ctx.out(), "{{ schema: {} }}", database_config.schema);
 }
 
-[[maybe_unused]] auto fmt::formatter<silo::config::DatabaseSchema>::format(
-   const silo::config::DatabaseSchema& database_schema,
+[[maybe_unused]] auto fmt::formatter<rhydb::config::DatabaseSchema>::format(
+   const rhydb::config::DatabaseSchema& database_schema,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    return fmt::format_to(
@@ -360,8 +360,8 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
    );
 }
 
-[[maybe_unused]] auto fmt::formatter<silo::config::DatabaseMetadata>::format(
-   const silo::config::DatabaseMetadata& database_metadata,
+[[maybe_unused]] auto fmt::formatter<rhydb::config::DatabaseMetadata>::format(
+   const rhydb::config::DatabaseMetadata& database_metadata,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    return fmt::format_to(
@@ -373,20 +373,20 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
    );
 }
 
-[[maybe_unused]] auto fmt::formatter<silo::config::ValueType>::format(
-   const silo::config::ValueType& value_type,
+[[maybe_unused]] auto fmt::formatter<rhydb::config::ValueType>::format(
+   const rhydb::config::ValueType& value_type,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    switch (value_type) {
-      case silo::config::ValueType::STRING:
+      case rhydb::config::ValueType::STRING:
          return fmt::format_to(ctx.out(), "string");
-      case silo::config::ValueType::DATE:
+      case rhydb::config::ValueType::DATE:
          return fmt::format_to(ctx.out(), "date");
-      case silo::config::ValueType::BOOL:
+      case rhydb::config::ValueType::BOOL:
          return fmt::format_to(ctx.out(), "bool");
-      case silo::config::ValueType::INT:
+      case rhydb::config::ValueType::INT:
          return fmt::format_to(ctx.out(), "int");
-      case silo::config::ValueType::FLOAT:
+      case rhydb::config::ValueType::FLOAT:
          return fmt::format_to(ctx.out(), "float");
    }
    return fmt::format_to(ctx.out(), "unknown");

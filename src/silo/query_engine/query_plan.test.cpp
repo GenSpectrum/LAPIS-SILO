@@ -13,9 +13,9 @@
 
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 
-using silo::query_engine::QueryPlan;
-using silo::query_engine::serializeResultOrdering;
-using silo::query_engine::exec_node::NdjsonSink;
+using rhydb::query_engine::QueryPlan;
+using rhydb::query_engine::serializeResultOrdering;
+using rhydb::query_engine::exec_node::NdjsonSink;
 
 namespace {
 

@@ -7,7 +7,7 @@
 
 #include <boost/iostreams/filtering_stream.hpp>
 
-namespace silo {
+namespace rhydb {
 class InputStreamWrapper {
   private:
    std::ifstream file_stream;
@@ -25,4 +25,4 @@ class InputStreamWrapper {
       const std::optional<std::filesystem::path>& maybe_file_path
    );
 };
-}  // namespace silo
+}  // namespace rhydb

@@ -16,19 +16,19 @@ namespace {
 
 std::unique_ptr<SiloRequestHandlerFactory> createRequestHandlerWithInitializedDatabase() {
    auto handle = std::make_shared<silo_app::ActiveDatabase>();
-   auto table_schema = std::make_shared<silo::schema::TableSchema>();
-   table_schema->primary_key = {.name = "primary_key", .type = silo::schema::ColumnType::STRING};
+   auto table_schema = std::make_shared<rhydb::schema::TableSchema>();
+   table_schema->primary_key = {.name = "primary_key", .type = rhydb::schema::ColumnType::STRING};
    table_schema->column_metadata.emplace(
-      silo::schema::ColumnIdentifier{
-         .name = "primary_key", .type = silo::schema::ColumnType::STRING
+      rhydb::schema::ColumnIdentifier{
+         .name = "primary_key", .type = rhydb::schema::ColumnType::STRING
       },
-      std::make_shared<silo::storage::column::StringColumnMetadata>("primary_key")
+      std::make_shared<rhydb::storage::column::StringColumnMetadata>("primary_key")
    );
-   silo::schema::DatabaseSchema schema;
-   schema.tables.emplace(silo::schema::TableName::getDefault(), table_schema);
-   handle->setActiveDatabase(silo::Database(schema));
+   rhydb::schema::DatabaseSchema schema;
+   schema.tables.emplace(rhydb::schema::TableName::getDefault(), table_schema);
+   handle->setActiveDatabase(rhydb::Database(schema));
    auto request_handler = std::make_unique<SiloRequestHandlerFactory>(
-      silo::config::RuntimeConfig::withDefaults(), handle
+      rhydb::config::RuntimeConfig::withDefaults(), handle
    );
    return request_handler;
 }
@@ -46,7 +46,7 @@ TEST(SiloRequestHandlerFactory, returns503ResponseWhenDatabaseIsNotInitializedOn
    request.setURI("/info");
 
    auto handle = std::make_shared<silo_app::ActiveDatabase>();
-   SiloRequestHandlerFactory under_test{silo::config::RuntimeConfig::withDefaults(), handle};
+   SiloRequestHandlerFactory under_test{rhydb::config::RuntimeConfig::withDefaults(), handle};
 
    std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{under_test.createRequestHandler(request)};
 
@@ -63,7 +63,7 @@ TEST(SiloRequestHandlerFactory, returns503ResponseWhenDatabaseIsNotInitializedOn
    request.setURI("/query");
 
    auto handle = std::make_shared<silo_app::ActiveDatabase>();
-   SiloRequestHandlerFactory under_test{silo::config::RuntimeConfig::withDefaults(), handle};
+   SiloRequestHandlerFactory under_test{rhydb::config::RuntimeConfig::withDefaults(), handle};
 
    std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{under_test.createRequestHandler(request)};
 
@@ -82,7 +82,7 @@ TEST(
    request.setURI("/lineageDefinition/someColumn");
 
    auto handle = std::make_shared<silo_app::ActiveDatabase>();
-   SiloRequestHandlerFactory under_test{silo::config::RuntimeConfig::withDefaults(), handle};
+   SiloRequestHandlerFactory under_test{rhydb::config::RuntimeConfig::withDefaults(), handle};
 
    std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{under_test.createRequestHandler(request)};
 

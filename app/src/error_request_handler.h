@@ -28,12 +28,12 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ErrorResponse, error, message);
 class ErrorRequestHandler : public Poco::Net::HTTPRequestHandler {
   private:
    std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler;
-   const silo::config::RuntimeConfig& runtime_config;
+   const rhydb::config::RuntimeConfig& runtime_config;
 
   public:
    explicit ErrorRequestHandler(
       std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler,
-      const silo::config::RuntimeConfig& runtime_config
+      const rhydb::config::RuntimeConfig& runtime_config
    );
 
    void handleRequest(

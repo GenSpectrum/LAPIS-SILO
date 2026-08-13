@@ -10,7 +10,7 @@
 #include "config/config_specification.h"
 #include "config/verified_config_attributes.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 class PreprocessingConfig;
 
@@ -44,7 +44,7 @@ class InitializationFiles {
 
 class InitializeConfig {
    friend class PreprocessingConfig;
-   friend class fmt::formatter<silo::config::InitializeConfig>;
+   friend class fmt::formatter<rhydb::config::InitializeConfig>;
 
    InitializeConfig() = default;
 
@@ -68,13 +68,13 @@ class InitializeConfig {
    NLOHMANN_DEFINE_TYPE_INTRUSIVE(InitializeConfig, initialization_files, output_directory);
 };
 
-}  // namespace silo::config
+}  // namespace rhydb::config
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::InitializeConfig>
+struct [[maybe_unused]] fmt::formatter<rhydb::config::InitializeConfig>
     : fmt::formatter<std::string> {
    [[maybe_unused]] static auto format(
-      const silo::config::InitializeConfig& initialize_config,
+      const rhydb::config::InitializeConfig& initialize_config,
       format_context& ctx
    ) -> decltype(ctx.out());
 };

@@ -2,7 +2,7 @@
 
 #include <fmt/format.h>
 
-namespace silo::common {
+namespace rhydb::common {
 
 /// ** This is the basic building block for the various panicking
 /// features offered in this file. You probably want to use the
@@ -29,23 +29,23 @@ namespace silo::common {
 /// Passes arguments to `fmt::format` (at least a format string
 /// argument is required) and adds file and line information, then
 /// calls `panic`.
-#define SILO_PANIC(...) silo::common::panic(fmt::format(__VA_ARGS__), __FILE__, __LINE__)
+#define SILO_PANIC(...) rhydb::common::panic(fmt::format(__VA_ARGS__), __FILE__, __LINE__)
 
 /// Denotes a place that isn't implemented *yet*, during
 /// development. Follows the same path as `PANIC` when reached.
-#define SILO_TODO() silo::common::todo(__FILE__, __LINE__)
+#define SILO_TODO() rhydb::common::todo(__FILE__, __LINE__)
 
 [[noreturn]] void todo(const char* file, int line);
 
 /// Denotes a place that theoretically can't be reached. Follows the
 /// same path as `PANIC` when reached.
-#define SILO_UNREACHABLE() silo::common::unreachable(__FILE__, __LINE__)
+#define SILO_UNREACHABLE() rhydb::common::unreachable(__FILE__, __LINE__)
 
 [[noreturn]] void unreachable(const char* file, int line);
 
 /// Denotes a missing implementation. Follows the same path as `PANIC`
 /// when reached.
-#define SILO_UNIMPLEMENTED() silo::common::unimplemented(__FILE__, __LINE__)
+#define SILO_UNIMPLEMENTED() rhydb::common::unimplemented(__FILE__, __LINE__)
 
 [[noreturn]] void unimplemented(const char* file, int line);
 
@@ -53,12 +53,12 @@ namespace silo::common {
 /// calls `panic` with the stringification of the code `e` and
 /// file/line information. `SILO_ASSERT` is always compiled in; if
 /// performance overrides safety, use `SILO_DEBUG_ASSERT` instead.
-#define SILO_ASSERT(e)                                        \
-   do {                                                       \
-      const bool condition = (e);                             \
-      if (!condition) {                                       \
-         silo::common::assertFailure(#e, __FILE__, __LINE__); \
-      }                                                       \
+#define SILO_ASSERT(e)                                         \
+   do {                                                        \
+      const bool condition = (e);                              \
+      if (!condition) {                                        \
+         rhydb::common::assertFailure(#e, __FILE__, __LINE__); \
+      }                                                        \
    } while (0)
 
 [[noreturn]] void assertFailure(const char* msg, const char* file, int line);
@@ -68,7 +68,7 @@ namespace silo::common {
       auto silo_internal_assert_op__v1 = (e1);                                           \
       auto silo_internal_assert_op__v2 = (e2);                                           \
       if (!(silo_internal_assert_op__v1 op silo_internal_assert_op__v2)) {               \
-         silo::common::assertOpFailure(                                                  \
+         rhydb::common::assertOpFailure(                                                 \
             prefix_str,                                                                  \
             #e1,                                                                         \
             #op,                                                                         \
@@ -139,13 +139,13 @@ namespace silo::common {
 #endif
 #endif
 
-#define SILO_DEBUG_ASSERT(e)                                          \
-   do {                                                               \
-      if (SILO_DEBUG_ASSERTIONS) {                                    \
-         if (!(e)) {                                                  \
-            silo::common::debugAssertFailure(#e, __FILE__, __LINE__); \
-         }                                                            \
-      }                                                               \
+#define SILO_DEBUG_ASSERT(e)                                           \
+   do {                                                                \
+      if (SILO_DEBUG_ASSERTIONS) {                                     \
+         if (!(e)) {                                                   \
+            rhydb::common::debugAssertFailure(#e, __FILE__, __LINE__); \
+         }                                                             \
+      }                                                                \
    } while (0)
 
 [[noreturn]] void debugAssertFailure(const char* msg, const char* file, int line);
@@ -176,4 +176,4 @@ namespace silo::common {
 /// Like DEBUG_ASSERT_EQ but asserts that `e1 != e2`.
 #define SILO_DEBUG_ASSERT_NE(e1, e2) SILO_DEBUG_ASSERT_OP_(NE, e1, !=, e2)
 
-}  // namespace silo::common
+}  // namespace rhydb::common

@@ -19,7 +19,7 @@
 #include "silo/storage/column/column_metadata.h"
 #include "silo/storage/column/column_type_visitor.h"
 
-namespace silo::schema {
+namespace rhydb::schema {
 
 bool isSequenceColumn(ColumnType type) {
    return type == ColumnType::NUCLEOTIDE_SEQUENCE || type == ColumnType::AMINO_ACID_SEQUENCE ||
@@ -114,9 +114,9 @@ const TableName& TableName::getDefault() {
    return default_table_name;
 }
 
-}  // namespace silo::schema
+}  // namespace rhydb::schema
 
-namespace silo::schema {
+namespace rhydb::schema {
 
 void DatabaseSchema::saveToFile(const std::filesystem::path& file_path) const {
    std::ofstream database_schema_file{file_path, std::ios::binary};
@@ -132,4 +132,4 @@ DatabaseSchema DatabaseSchema::loadFromFile(const std::filesystem::path& file_pa
    return schema;
 }
 
-}  // namespace silo::schema
+}  // namespace rhydb::schema

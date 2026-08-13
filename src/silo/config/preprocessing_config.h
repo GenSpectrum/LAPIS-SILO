@@ -8,10 +8,10 @@
 
 #include "silo/config/initialize_config.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 class PreprocessingConfig {
-   friend class fmt::formatter<silo::config::PreprocessingConfig>;
+   friend class fmt::formatter<rhydb::config::PreprocessingConfig>;
 
   public:
    InitializationFiles initialization_files;
@@ -37,13 +37,13 @@ class PreprocessingConfig {
    NLOHMANN_DEFINE_TYPE_INTRUSIVE(PreprocessingConfig, initialization_files, input_file)
 };
 
-}  // namespace silo::config
+}  // namespace rhydb::config
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::config::PreprocessingConfig>
+struct [[maybe_unused]] fmt::formatter<rhydb::config::PreprocessingConfig>
     : fmt::formatter<std::string> {
    [[maybe_unused]] static auto format(
-      const silo::config::PreprocessingConfig& preprocessing_config,
+      const rhydb::config::PreprocessingConfig& preprocessing_config,
       format_context& ctx
    ) -> decltype(ctx.out());
 };

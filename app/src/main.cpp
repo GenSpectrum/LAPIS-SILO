@@ -27,41 +27,41 @@
 namespace {
 
 /// Does not throw exceptions
-int runInitializer(const silo::config::InitializeConfig& initialize_config) {
+int runInitializer(const rhydb::config::InitializeConfig& initialize_config) {
    EVOBENCH_SCOPE("top-level", "runInitializer");
    try {
-      auto database = std::make_shared<silo::Database>();
+      auto database = std::make_shared<rhydb::Database>();
       // TODO(#1091) make this configurable
-      const auto& table_name = silo::schema::TableName::getDefault();
-      silo::initialize::Initializer::createTableInDatabase(
+      const auto& table_name = rhydb::schema::TableName::getDefault();
+      rhydb::initialize::Initializer::createTableInDatabase(
          table_name, initialize_config.initialization_files, *database
       );
       database->saveDatabaseState(initialize_config.output_directory);
       return 0;
-   } catch (const silo::initialize::InitializeException& preprocessing_exception) {
+   } catch (const rhydb::initialize::InitializeException& preprocessing_exception) {
       SPDLOG_ERROR("initialize - error: {}", preprocessing_exception.what());
       return 1;
    }
 }
 
-int runPreprocessor(const silo::config::PreprocessingConfig& preprocessing_config) {
+int runPreprocessor(const rhydb::config::PreprocessingConfig& preprocessing_config) {
    EVOBENCH_SCOPE("top-level", "runPreprocessor");
    try {
-      auto database = silo::preprocessing::preprocessing(preprocessing_config);
+      auto database = rhydb::preprocessing::preprocessing(preprocessing_config);
       database.saveDatabaseState(preprocessing_config.output_directory);
       return 0;
-   } catch (const silo::preprocessing::PreprocessingException& preprocessing_exception) {
+   } catch (const rhydb::preprocessing::PreprocessingException& preprocessing_exception) {
       SPDLOG_ERROR("preprocessing - error: {}", preprocessing_exception.what());
       return 1;
    }
 }
 
-int runAppend(const silo::config::AppendConfig& append_config) {
+int runAppend(const rhydb::config::AppendConfig& append_config) {
    EVOBENCH_SCOPE("top-level", "runAppend");
-   return silo::append::runAppend(append_config);
+   return rhydb::append::runAppend(append_config);
 }
 
-int runApi(const silo::config::RuntimeConfig& runtime_config) {
+int runApi(const rhydb::config::RuntimeConfig& runtime_config) {
    silo_app::Api server;
    return server.runApi(runtime_config);
 }
@@ -78,7 +78,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    std::span<const std::string> args(all_args.begin() + 1, all_args.end());
 
    if (!args.empty() && (args[0] == "--version" || args[0] == "-V")) {
-      fmt::print("{} {}\n", program_name, silo::RELEASE_VERSION);
+      fmt::print("{} {}\n", program_name, rhydb::RELEASE_VERSION);
       return 0;
    }
 
@@ -111,20 +111,20 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
       return 1;
    }
 
-   SPDLOG_INFO("Starting SILO (version {})", silo::RELEASE_VERSION);
+   SPDLOG_INFO("Starting SILO (version {})", rhydb::RELEASE_VERSION);
 
    std::vector<std::string> env_allow_list;
    env_allow_list.emplace_back("SILO_PANIC");
    for (auto& field :
-        silo::config::PreprocessingConfig::getConfigSpecification().attribute_specifications) {
+        rhydb::config::PreprocessingConfig::getConfigSpecification().attribute_specifications) {
       env_allow_list.emplace_back(
-         silo::config::EnvironmentVariables::configKeyPathToString(field.key)
+         rhydb::config::EnvironmentVariables::configKeyPathToString(field.key)
       );
    }
    for (auto& field :
-        silo::config::RuntimeConfig::getConfigSpecification().attribute_specifications) {
+        rhydb::config::RuntimeConfig::getConfigSpecification().attribute_specifications) {
       env_allow_list.emplace_back(
-         silo::config::EnvironmentVariables::configKeyPathToString(field.key)
+         rhydb::config::EnvironmentVariables::configKeyPathToString(field.key)
       );
    }
 
@@ -132,46 +132,46 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
       case ExecutionMode::PREPROCESSING:
          return std::visit(
             Overloaded{
-               [&](const silo::config::PreprocessingConfig& preprocessing_config) {
+               [&](const rhydb::config::PreprocessingConfig& preprocessing_config) {
                   SPDLOG_INFO("preprocessing_config = {}", preprocessing_config);
                   return runPreprocessor(preprocessing_config);
                },
                [&](int32_t exit_code) { return exit_code; }
             },
-            silo::config::getConfig<silo::config::PreprocessingConfig>(args, env_allow_list)
+            rhydb::config::getConfig<rhydb::config::PreprocessingConfig>(args, env_allow_list)
          );
       case ExecutionMode::INITIALIZE:
          return std::visit(
             Overloaded{
-               [&](const silo::config::InitializeConfig& initialize_config) {
+               [&](const rhydb::config::InitializeConfig& initialize_config) {
                   SPDLOG_INFO("initialize_config = {}", initialize_config);
                   return runInitializer(initialize_config);
                },
                [&](int32_t exit_code) { return exit_code; }
             },
-            silo::config::getConfig<silo::config::InitializeConfig>(args, env_allow_list)
+            rhydb::config::getConfig<rhydb::config::InitializeConfig>(args, env_allow_list)
          );
       case ExecutionMode::APPEND:
          return std::visit(
             Overloaded{
-               [&](const silo::config::AppendConfig& append_config) {
+               [&](const rhydb::config::AppendConfig& append_config) {
                   SPDLOG_INFO("append_config = {}", append_config);
                   return runAppend(append_config);
                },
                [&](int32_t exit_code) { return exit_code; }
             },
-            silo::config::getConfig<silo::config::AppendConfig>(args, env_allow_list)
+            rhydb::config::getConfig<rhydb::config::AppendConfig>(args, env_allow_list)
          );
       case ExecutionMode::API:
          return std::visit(
             Overloaded{
-               [&](const silo::config::RuntimeConfig& runtime_config) {
+               [&](const rhydb::config::RuntimeConfig& runtime_config) {
                   SPDLOG_INFO("runtime_config = {}", runtime_config);
                   return runApi(runtime_config);
                },
                [&](int32_t exit_code) { return exit_code; }
             },
-            silo::config::getConfig<silo::config::RuntimeConfig>(args, env_allow_list)
+            rhydb::config::getConfig<rhydb::config::RuntimeConfig>(args, env_allow_list)
          );
    }
    SILO_UNREACHABLE();

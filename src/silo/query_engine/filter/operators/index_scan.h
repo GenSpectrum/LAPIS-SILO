@@ -10,12 +10,12 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/column/row_layout.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 // Forward declaration for friend class access. Include would introduce cyclic dependency
 class ScalarExpression;
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 class IndexScan : public Operator {
    friend class Operator;
@@ -45,4 +45,4 @@ class IndexScan : public Operator {
    static std::unique_ptr<Operator> negate(std::unique_ptr<IndexScan>&& index_scan);
 };
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

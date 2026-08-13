@@ -33,8 +33,8 @@ arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable(
        arrow::field("some_zstd_compressed_column", arrow::binary())}
    );
 
-   auto dictionary = std::make_shared<silo::ZstdCDictionary>(dictionary_string, 3);
-   silo::ZstdCompressor compressor{dictionary};
+   auto dictionary = std::make_shared<rhydb::ZstdCDictionary>(dictionary_string, 3);
+   rhydb::ZstdCompressor compressor{dictionary};
 
    arrow::Int32Builder id_builder;
    arrow::BinaryBuilder value_builder;
@@ -53,7 +53,7 @@ arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable(
    return arrow::Table::Make(schema, {id_array, value_array});
 }
 
-using silo::query_engine::exec_node::ZstdDecompressExpression;
+using rhydb::query_engine::exec_node::ZstdDecompressExpression;
 std::shared_ptr<arrow::Table> runValuesThroughProjection(
    std::vector<std::optional<std::string>> values,
    const std::string& dictionary_string

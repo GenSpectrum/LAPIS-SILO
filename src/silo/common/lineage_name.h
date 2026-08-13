@@ -6,7 +6,7 @@
 
 #include <boost/serialization/access.hpp>
 
-namespace silo::common {
+namespace rhydb::common {
 
 class LineageName {
    friend class boost::serialization::access;
@@ -24,19 +24,19 @@ class LineageName {
    bool operator==(const LineageName& other) const;
 };
 
-}  // namespace silo::common
+}  // namespace rhydb::common
 
 namespace std {
 template <>
-struct hash<silo::common::LineageName> {
-   std::size_t operator()(const silo::common::LineageName& lineage_name) const;
+struct hash<rhydb::common::LineageName> {
+   std::size_t operator()(const rhydb::common::LineageName& lineage_name) const;
 };
 }  // namespace std
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::common::LineageName> : fmt::formatter<std::string> {
+struct [[maybe_unused]] fmt::formatter<rhydb::common::LineageName> : fmt::formatter<std::string> {
    [[maybe_unused]] static auto format(
-      const silo::common::LineageName& lineage_name,
+      const rhydb::common::LineageName& lineage_name,
       format_context& ctx
    ) -> decltype(ctx.out()) {
       return fmt::format_to(ctx.out(), "{}", lineage_name.string);

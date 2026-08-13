@@ -45,7 +45,7 @@ foreach(module ${CYTHON_MODULES})
     )
 
     # Link against the portable core directly: the bindings only touch
-    # silo::Database (preprocessing, append, query, save/load), all of which
+    # rhydb::Database (preprocessing, append, query, save/load), all of which
     # live in silolib. They need none of the Poco HTTP API layer, so linking
     # silolib keeps Poco out of the Python extension. Linking the OBJECT
     # library directly pulls in its objects and usage requirements.

@@ -8,7 +8,7 @@
 #include "silo/query_engine/operators/order_by_with_limit_node.h"
 #include "silo/query_engine/operators/query_node.h"
 
-namespace silo::query_engine::optimizer {
+namespace rhydb::query_engine::optimizer {
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr SelectKRewritePass::operator()(operators::FetchNode& node) {
@@ -39,4 +39,4 @@ operators::QueryNodePtr SelectKRewritePass::operator()(operators::FetchNode& nod
    );
 }
 
-}  // namespace silo::query_engine::optimizer
+}  // namespace rhydb::query_engine::optimizer

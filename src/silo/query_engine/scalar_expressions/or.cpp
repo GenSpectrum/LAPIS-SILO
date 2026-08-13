@@ -17,7 +17,7 @@
 #include "silo/query_engine/scalar_expressions/string_in_set.h"
 #include "silo/query_engine/scalar_expressions/symbol_in_set.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 using filter::operators::OperatorVector;
 
@@ -240,4 +240,4 @@ std::unique_ptr<filter::operators::Operator> Or::compile(const storage::Table& t
    );
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

@@ -8,7 +8,7 @@
 #include "silo/query_engine/saneql/lexer.h"
 #include "silo/query_engine/saneql/token.h"
 
-namespace silo::query_engine::saneql {
+namespace rhydb::query_engine::saneql {
 
 class Parser {
    Lexer lexer;
@@ -46,4 +46,4 @@ class Parser {
    [[nodiscard]] ParsedArgs parseArgList();
 };
 
-}  // namespace silo::query_engine::saneql
+}  // namespace rhydb::query_engine::saneql

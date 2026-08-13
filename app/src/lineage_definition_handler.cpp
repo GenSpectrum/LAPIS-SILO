@@ -30,7 +30,7 @@ void LineageDefinitionHandler::get(
 
    response.set("data-version", database->getDataVersionTimestamp().value);
 
-   const silo::schema::TableName& table_name = silo::schema::TableName::getDefault();
+   const rhydb::schema::TableName& table_name = rhydb::schema::TableName::getDefault();
 
    auto table = database->tables.find(table_name);
    if (table == database->tables.end()) {
@@ -41,12 +41,12 @@ void LineageDefinitionHandler::get(
    if (column_identifier == std::nullopt) {
       throw BadRequest("The column {} does not exist in this instance.", column_name);
    }
-   if (column_identifier.value().type != silo::schema::ColumnType::DICTIONARY_ENCODED) {
+   if (column_identifier.value().type != rhydb::schema::ColumnType::DICTIONARY_ENCODED) {
       throw BadRequest("The column {} is not of type dictionary-encoded string.", column_name);
    }
    auto* metadata =
       table->second->schema
-         ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>(column_name)
+         ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>(column_name)
          .value();
    if (!metadata->lineage_tree.has_value()) {
       throw BadRequest("The column {} does not have a lineageIndex defined.", column_name);

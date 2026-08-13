@@ -11,7 +11,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 ZstdDecompressScalar::ZstdDecompressScalar(
    std::unique_ptr<ScalarExpression> input,
@@ -49,4 +49,4 @@ std::unique_ptr<filter::operators::Operator> ZstdDecompressScalar::compile(
    SILO_UNIMPLEMENTED();
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

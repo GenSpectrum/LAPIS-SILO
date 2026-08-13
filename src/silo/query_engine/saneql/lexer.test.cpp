@@ -5,9 +5,9 @@
 
 #include "silo/query_engine/saneql/parse_exception.h"
 
-using silo::query_engine::saneql::Lexer;
-using silo::query_engine::saneql::ParseException;
-using silo::query_engine::saneql::TokenType;
+using rhydb::query_engine::saneql::Lexer;
+using rhydb::query_engine::saneql::ParseException;
+using rhydb::query_engine::saneql::TokenType;
 
 TEST(SaneQLLexer, tokenizesEmptyInput) {
    Lexer lexer("");

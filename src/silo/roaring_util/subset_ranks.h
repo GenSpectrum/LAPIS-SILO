@@ -4,7 +4,7 @@
 
 #include <roaring/roaring.hh>
 
-namespace silo::roaring_util {
+namespace rhydb::roaring_util {
 
 std::vector<uint64_t> roaringSubsetRanks(
    const roaring::internal::container_t* container_a,
@@ -14,4 +14,4 @@ std::vector<uint64_t> roaringSubsetRanks(
    uint32_t base
 );
 
-}  // namespace silo::roaring_util
+}  // namespace rhydb::roaring_util

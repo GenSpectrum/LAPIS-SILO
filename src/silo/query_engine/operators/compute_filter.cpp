@@ -7,7 +7,7 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 using ScalarExpression = scalar_expressions::ScalarExpression;
 
@@ -20,4 +20,4 @@ CopyOnWriteBitmap computeFilter(
    return compiled->evaluate();
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

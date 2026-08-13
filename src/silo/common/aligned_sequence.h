@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-namespace silo {
+namespace rhydb {
 
 class Coverage {
   public:
@@ -64,4 +64,4 @@ extractCoverageAndMutationsFromSequence(
    std::string_view reference
 );
 
-}  // namespace silo
+}  // namespace rhydb

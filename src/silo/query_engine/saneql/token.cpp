@@ -2,7 +2,7 @@
 
 #include <fmt/format.h>
 
-namespace silo::query_engine::saneql {
+namespace rhydb::query_engine::saneql {
 
 std::string tokenTypeToString(TokenType type) {
    switch (type) {
@@ -97,4 +97,4 @@ bool Token::getBoolValue() const {
    return std::get<bool>(value);
 }
 
-}  // namespace silo::query_engine::saneql
+}  // namespace rhydb::query_engine::saneql

@@ -12,7 +12,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 // TODO(#1231) extend with sum, avg, max, min
 enum class AggregateFunction : uint8_t { COUNT };
@@ -50,4 +50,4 @@ class AggregateNode final : public QueryNode {
    [[nodiscard]] nlohmann::json toJson() const override;
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

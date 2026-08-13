@@ -8,7 +8,7 @@
 
 #include "silo/query_engine/exec_node/arrow_batch_sink.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 /// Adapter that wraps a std::ostream as an Arrow OutputStream for IPC writing
 /// This is required by the arrow::ipc::RecordBatchWriter
@@ -56,4 +56,4 @@ class ArrowIpcSink : public ArrowBatchSink {
    arrow::Status finish() override;
 };
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

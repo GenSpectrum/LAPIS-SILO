@@ -8,9 +8,9 @@
 #include "silo/test/query_fixture.test.h"
 
 namespace {
-using silo::ReferenceGenomes;
-using silo::test::QueryTestData;
-using silo::test::QueryTestScenario;
+using rhydb::ReferenceGenomes;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
 
 using boost::uuids::random_generator;
 
@@ -255,7 +255,7 @@ const QueryTestScenario CO_OCCURRENCE_NULL_CHUNKED_OUTPUT = {
       {"s1": "C", "s2": "A", "count": 1},
       {"s1": null, "s2": null, "count": 1}
    ])"),
-   .query_options = silo::config::QueryOptions{.materialization_cutoff = 0}
+   .query_options = rhydb::config::QueryOptions{.materialization_cutoff = 0}
 };
 
 const nlohmann::json AMBIGUITY_ROW_A = createDataWithSequences("ATGCN", "M*", "Europe");

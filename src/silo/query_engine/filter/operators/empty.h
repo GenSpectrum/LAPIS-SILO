@@ -7,7 +7,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/column/row_layout.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 class Empty : public Operator {
   private:
@@ -27,4 +27,4 @@ class Empty : public Operator {
    static std::unique_ptr<Operator> negate(std::unique_ptr<Empty>&& empty);
 };
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

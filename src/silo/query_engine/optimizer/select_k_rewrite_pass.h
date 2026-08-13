@@ -3,11 +3,11 @@
 #include "silo/query_engine/operators/query_node.h"
 #include "silo/query_engine/optimizer/pipeline_pass_base.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 class FetchNode;
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators
 
-namespace silo::query_engine::optimizer {
+namespace rhydb::query_engine::optimizer {
 
 /// Optimization pass that combines a `FetchNode` with a finite limit sitting directly above an
 /// `OrderByNode` into a single `OrderByWithLimitNode`:
@@ -26,4 +26,4 @@ class SelectKRewritePass : public PipelinePassBase<SelectKRewritePass> {
    operators::QueryNodePtr operator()(operators::FetchNode& node);
 };
 
-}  // namespace silo::query_engine::optimizer
+}  // namespace rhydb::query_engine::optimizer

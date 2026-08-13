@@ -7,7 +7,7 @@
 
 #include "config/config_source_interface.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 class YamlFile {
    std::string debug_context;
@@ -35,4 +35,4 @@ class YamlFile {
    [[nodiscard]] VerifiedType verify(const ConfigSpecification& config_specification) const;
 };
 static_assert(ConfigSource<YamlFile>, "YamlFile does not satisfy ConfigSource");
-}  // namespace silo::config
+}  // namespace rhydb::config

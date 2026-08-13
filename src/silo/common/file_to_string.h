@@ -6,7 +6,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-namespace silo::common {
+namespace rhydb::common {
 
 std::optional<std::string> fileToString(const std::filesystem::path& path);
 

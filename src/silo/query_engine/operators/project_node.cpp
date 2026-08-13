@@ -5,7 +5,7 @@
 #include <arrow/compute/api.h>
 #include <nlohmann/json.hpp>
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 ProjectNode::ProjectNode(QueryNodePtr child, std::vector<schema::ColumnIdentifier> fields)
     : child(std::move(child)),
@@ -43,4 +43,4 @@ nlohmann::json ProjectNode::toJson() const {
    };
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

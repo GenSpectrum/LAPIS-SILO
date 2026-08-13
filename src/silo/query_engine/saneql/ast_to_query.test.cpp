@@ -16,34 +16,34 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
 
-using silo::query_engine::IllegalQueryException;
-using silo::query_engine::saneql::convertToFilter;
-using silo::query_engine::saneql::parseAndConvertToQueryTree;
-using silo::query_engine::saneql::Parser;
-namespace ast = silo::query_engine::saneql::ast;
+using rhydb::query_engine::IllegalQueryException;
+using rhydb::query_engine::saneql::convertToFilter;
+using rhydb::query_engine::saneql::parseAndConvertToQueryTree;
+using rhydb::query_engine::saneql::Parser;
+namespace ast = rhydb::query_engine::saneql::ast;
 
 namespace {
 
 auto parseFilter(
    std::string_view query,
-   const std::vector<silo::schema::ColumnIdentifier>& schema = {}
+   const std::vector<rhydb::schema::ColumnIdentifier>& schema = {}
 ) {
    return convertToFilter(*Parser(query).parse(), schema);
 }
 
 // Schema exposing a nucleotide sequence column, so that the sequence leaf expressions can
 // resolve their sequence name against the input schema at parse time.
-const std::vector<silo::schema::ColumnIdentifier> SEQUENCE_SCHEMA{
-   {.name = "segment1", .type = silo::schema::ColumnType::NUCLEOTIDE_SEQUENCE}
+const std::vector<rhydb::schema::ColumnIdentifier> SEQUENCE_SCHEMA{
+   {.name = "segment1", .type = rhydb::schema::ColumnType::NUCLEOTIDE_SEQUENCE}
 };
 
-using Tables = std::map<silo::schema::TableName, std::shared_ptr<silo::storage::Table>>;
+using Tables = std::map<rhydb::schema::TableName, std::shared_ptr<rhydb::storage::Table>>;
 
 Tables makeTablesWithDefault() {
-   using silo::schema::ColumnIdentifier;
-   using silo::schema::ColumnType;
-   using silo::storage::column::ColumnMetadata;
-   using silo::storage::column::StringColumnMetadata;
+   using rhydb::schema::ColumnIdentifier;
+   using rhydb::schema::ColumnType;
+   using rhydb::storage::column::ColumnMetadata;
+   using rhydb::storage::column::StringColumnMetadata;
 
    ColumnIdentifier primary_key{.name = "id", .type = ColumnType::STRING};
    ColumnIdentifier date_column{.name = "date", .type = ColumnType::DATE32};
@@ -51,10 +51,10 @@ Tables makeTablesWithDefault() {
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
       {date_column, std::make_shared<ColumnMetadata>(date_column.name)}
    };
-   auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), primary_key);
+   auto schema = std::make_shared<rhydb::schema::TableSchema>(std::move(col_meta), primary_key);
    Tables tables;
-   const silo::schema::TableName table_name("default");
-   tables[table_name] = std::make_shared<silo::storage::Table>(table_name, schema);
+   const rhydb::schema::TableName table_name("default");
+   tables[table_name] = std::make_shared<rhydb::storage::Table>(table_name, schema);
    return tables;
 }
 
@@ -242,8 +242,8 @@ TEST(AstToQueryConvertToFilter, unsupportedExpressionTypeThrows) {
 // --- integer comparisons ---
 
 TEST(AstToQueryIntComparison, lessThanThrows) {
-   const std::vector<silo::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = silo::schema::ColumnType::INT32}
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
    };
    EXPECT_THAT(
       [&]() { (void)parseFilter("age < 5", schema); },
@@ -254,8 +254,8 @@ TEST(AstToQueryIntComparison, lessThanThrows) {
 }
 
 TEST(AstToQueryIntComparison, greaterThanThrows) {
-   const std::vector<silo::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = silo::schema::ColumnType::INT32}
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
    };
    EXPECT_THAT(
       [&]() { (void)parseFilter("age > 5", schema); },
@@ -268,8 +268,8 @@ TEST(AstToQueryIntComparison, greaterThanThrows) {
 // --- float comparisons ---
 
 TEST(AstToQueryFloatComparison, lessEqualThrows) {
-   const std::vector<silo::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = silo::schema::ColumnType::FLOAT}
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = rhydb::schema::ColumnType::FLOAT}
    };
    EXPECT_THAT(
       [&]() { (void)parseFilter("age <= 5.0", schema); },
@@ -280,8 +280,8 @@ TEST(AstToQueryFloatComparison, lessEqualThrows) {
 }
 
 TEST(AstToQueryFloatComparison, greaterThanThrows) {
-   const std::vector<silo::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = silo::schema::ColumnType::FLOAT}
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = rhydb::schema::ColumnType::FLOAT}
    };
    EXPECT_THAT(
       [&]() { (void)parseFilter("age > 5.0", schema); },
@@ -294,8 +294,8 @@ TEST(AstToQueryFloatComparison, greaterThanThrows) {
 // --- date comparisons ---
 
 TEST(AstToQueryDateComparison, lessThanThrows) {
-   const std::vector<silo::schema::ColumnIdentifier> schema{
-      {.name = "date", .type = silo::schema::ColumnType::DATE32}
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "date", .type = rhydb::schema::ColumnType::DATE32}
    };
    EXPECT_THAT(
       [&]() { (void)parseFilter("date < '2020-01-01'::date", schema); },
@@ -306,8 +306,8 @@ TEST(AstToQueryDateComparison, lessThanThrows) {
 }
 
 TEST(AstToQueryDateComparison, greaterThanThrows) {
-   const std::vector<silo::schema::ColumnIdentifier> schema{
-      {.name = "date", .type = silo::schema::ColumnType::DATE32}
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "date", .type = rhydb::schema::ColumnType::DATE32}
    };
    EXPECT_THAT(
       [&]() { (void)parseFilter("date > '2020-01-01'::date", schema); },
@@ -496,7 +496,7 @@ TEST(AstToQueryMap, isoWeekResolvesToWeekOfDateColumn) {
    const auto found =
       std::ranges::find_if(output_schema, [](const auto& col) { return col.name == "w"; });
    ASSERT_NE(found, output_schema.end());
-   EXPECT_EQ(found->type, silo::schema::ColumnType::STRING);
+   EXPECT_EQ(found->type, rhydb::schema::ColumnType::STRING);
 }
 
 TEST(AstToQueryMap, isoWeekOnUnknownColumnThrows) {
@@ -524,7 +524,7 @@ TEST(AstToQueryMap, isoWeekOnNonDateColumnThrows) {
 TEST(AstToQueryFilter, nonBooleanScalarFunctionRejected) {
    EXPECT_THAT(
       []() {
-         (void)parseFilter("id.at(2)", {{.name = "id", .type = silo::schema::ColumnType::STRING}});
+         (void)parseFilter("id.at(2)", {{.name = "id", .type = rhydb::schema::ColumnType::STRING}});
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
          "scalar function 'at' produces a STRING value and cannot be used as a filter predicate"

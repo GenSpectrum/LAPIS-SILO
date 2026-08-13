@@ -7,7 +7,7 @@
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 BitmapProducer::BitmapProducer(
    std::function<CopyOnWriteBitmap()> producer,
@@ -37,4 +37,4 @@ std::unique_ptr<Operator> BitmapProducer::negate(std::unique_ptr<BitmapProducer>
    return std::make_unique<Complement>(std::move(bitmap_producer), std::move(row_layout));
 }
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

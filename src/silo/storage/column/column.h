@@ -5,11 +5,11 @@
 #include <cstdint>
 #include <type_traits>
 
-namespace silo::schema {
+namespace rhydb::schema {
 enum class ColumnType : uint8_t;
 }
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 /// During ingestion, data is buffered into fixed-size chunks of at most this
 /// many rows. A column builder accumulates one such chunk and the resulting
@@ -37,4 +37,4 @@ concept Column = requires(T column) {
    { T::TYPE } -> std::convertible_to<schema::ColumnType>;
 };
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

@@ -5,10 +5,10 @@
 #include "silo/common/panic.h"
 
 namespace {
-using silo::config::ConfigKeyPath;
-using silo::config::ConfigValue;
-using silo::config::ConfigValueType;
-using silo::config::YamlFile;
+using rhydb::config::ConfigKeyPath;
+using rhydb::config::ConfigValue;
+using rhydb::config::ConfigValueType;
+using rhydb::config::YamlFile;
 
 template <typename T, ConfigValueType ExpectedType>
 std::optional<T> getValue(
@@ -38,7 +38,7 @@ std::optional<T> getValue(
 }
 }  // namespace
 
-namespace silo::config {
+namespace rhydb::config {
 
 std::optional<std::string> VerifiedConfigAttributes::getString(const ConfigKeyPath& config_key_path
 ) const {
@@ -114,4 +114,4 @@ VerifiedCommandLineArguments VerifiedCommandLineArguments::fromConfigValuesAndPo
    return result;
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config

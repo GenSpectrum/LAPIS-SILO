@@ -71,7 +71,7 @@ void MemoryMonitor::checkRssAndLimit(Poco::Timer& /*timer*/) {
       SPDLOG_INFO("Current memory consumption: {} KB", rss.value());
 
       if (soft_memory_limit_in_kb.has_value() && rss.value() > soft_memory_limit_in_kb.value()) {
-         silo::common::Allocator::trim();
+         rhydb::common::Allocator::trim();
       }
    }
 }

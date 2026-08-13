@@ -4,9 +4,9 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-using silo::storage::column::ColumnMetadata;
-using silo::storage::column::IntColumn;
-using silo::storage::column::RowId;
+using rhydb::storage::column::ColumnMetadata;
+using rhydb::storage::column::IntColumn;
+using rhydb::storage::column::RowId;
 
 TEST(IntColumn, doesNotErrorOnValidInputs) {
    ColumnMetadata column_metadata("int_column1");

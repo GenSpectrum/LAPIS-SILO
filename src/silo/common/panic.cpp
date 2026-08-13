@@ -6,7 +6,7 @@
 
 #include <fmt/format.h>
 
-namespace silo::common {
+namespace rhydb::common {
 
 namespace {
 
@@ -75,4 +75,4 @@ namespace {
    panic("DEBUG_ASSERT failure: ", msg, file, line);
 }
 
-}  // namespace silo::common
+}  // namespace rhydb::common

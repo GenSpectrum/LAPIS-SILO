@@ -5,7 +5,7 @@
 
 #include <fmt/format.h>
 
-namespace silo::initialize {
+namespace rhydb::initialize {
 
 class InitializeException : public std::runtime_error {
   public:
@@ -17,4 +17,4 @@ class InitializeException : public std::runtime_error {
        : std::runtime_error(fmt::format(fmt_str, std::forward<Args>(args)...)) {}
 };
 
-}  // namespace silo::initialize
+}  // namespace rhydb::initialize

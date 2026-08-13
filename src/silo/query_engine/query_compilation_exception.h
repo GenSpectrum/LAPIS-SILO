@@ -5,7 +5,7 @@
 
 #include <fmt/format.h>
 
-namespace silo::query_engine {
+namespace rhydb::query_engine {
 
 class [[maybe_unused]] QueryCompilationException : public std::runtime_error {
   public:
@@ -15,4 +15,4 @@ class [[maybe_unused]] QueryCompilationException : public std::runtime_error {
    explicit QueryCompilationException(fmt::format_string<Args...> fmt_str, Args&&... args)
        : std::runtime_error(fmt::format(fmt_str, std::forward<Args>(args)...)) {}
 };
-}  // namespace silo::query_engine
+}  // namespace rhydb::query_engine

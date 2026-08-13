@@ -14,7 +14,7 @@
 #include "silo/storage/column/column.h"
 #include "silo/storage/column/column_metadata.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 class IntColumnBuilder;
 
@@ -87,4 +87,4 @@ class IntColumnBuilder {
    }
 };
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

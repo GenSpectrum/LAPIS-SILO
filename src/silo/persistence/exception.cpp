@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace silo::persistence {
+namespace rhydb::persistence {
 
 LoadDatabaseException::LoadDatabaseException(const std::string& error_message)
     : std::runtime_error(error_message.c_str()) {}
@@ -10,4 +10,4 @@ LoadDatabaseException::LoadDatabaseException(const std::string& error_message)
 SaveDatabaseException::SaveDatabaseException(const std::string& error_message)
     : std::runtime_error(error_message.c_str()) {}
 
-}  // namespace silo::persistence
+}  // namespace rhydb::persistence

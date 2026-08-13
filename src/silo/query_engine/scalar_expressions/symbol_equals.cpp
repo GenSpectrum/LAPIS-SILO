@@ -15,7 +15,7 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/query_engine/scalar_expressions/symbol_in_set.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 template <typename SymbolType>
 SymbolOrDot<SymbolType>::SymbolOrDot(typename SymbolType::Symbol symbol)
@@ -102,4 +102,4 @@ std::unique_ptr<filter::operators::Operator> SymbolEquals<SymbolType>::compile(
 template class SymbolEquals<AminoAcid>;
 template class SymbolEquals<Nucleotide>;
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

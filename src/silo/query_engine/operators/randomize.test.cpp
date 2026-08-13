@@ -5,9 +5,9 @@
 namespace {
 using nlohmann::json;
 
-using silo::ReferenceGenomes;
-using silo::test::QueryTestData;
-using silo::test::QueryTestScenario;
+using rhydb::ReferenceGenomes;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
 
 const auto DATA_JSON = R"(
 [
@@ -115,7 +115,7 @@ const QueryTestScenario RANDOMIZE_INDEPENDENT_ON_BATCH_SIZE = {
           {"key": "id2"},
           {"key": "id3"}])"
    ),
-   .query_options = silo::config::QueryOptions{.materialization_cutoff = 2}
+   .query_options = rhydb::config::QueryOptions{.materialization_cutoff = 2}
 };
 
 const QueryTestScenario DIFFERENT_RANDOMIZE_SEED_DIFFERENT_RESULT = {

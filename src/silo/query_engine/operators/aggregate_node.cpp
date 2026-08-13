@@ -14,8 +14,8 @@
 
 namespace {
 
-using silo::query_engine::operators::AggregateDefinition;
-using silo::query_engine::operators::AggregateFunction;
+using rhydb::query_engine::operators::AggregateDefinition;
+using rhydb::query_engine::operators::AggregateFunction;
 
 std::string arrowFunctionName(AggregateFunction func, bool has_groups) {
    switch (func) {
@@ -26,7 +26,7 @@ std::string arrowFunctionName(AggregateFunction func, bool has_groups) {
 }
 
 arrow::acero::AggregateNodeOptions buildAggregateOptions(
-   const std::vector<silo::schema::ColumnIdentifier>& group_by_fields,
+   const std::vector<rhydb::schema::ColumnIdentifier>& group_by_fields,
    const std::vector<AggregateDefinition>& aggregates,
    const arrow::Schema& input_schema
 ) {
@@ -74,7 +74,7 @@ arrow::acero::AggregateNodeOptions buildAggregateOptions(
    return arrow::acero::AggregateNodeOptions(std::move(arrow_aggregates), std::move(field_refs));
 }
 
-using silo::schema::ColumnType;
+using rhydb::schema::ColumnType;
 ColumnType getType(const AggregateDefinition& aggregate_definition) {
    switch (aggregate_definition.function) {
       case AggregateFunction::COUNT:
@@ -85,7 +85,7 @@ ColumnType getType(const AggregateDefinition& aggregate_definition) {
 
 }  // namespace
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 std::string_view displayName(AggregateFunction aggregate) {
    switch (aggregate) {
@@ -147,4 +147,4 @@ nlohmann::json AggregateNode::toJson() const {
    };
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

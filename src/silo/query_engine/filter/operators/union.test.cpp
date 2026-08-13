@@ -5,11 +5,11 @@
 
 #include "silo/query_engine/filter/operators/index_scan.h"
 
-using silo::query_engine::CopyOnWriteBitmap;
-using silo::query_engine::filter::operators::IndexScan;
-using silo::query_engine::filter::operators::OperatorVector;
-using silo::query_engine::filter::operators::Union;
-using silo::storage::column::RowLayout;
+using rhydb::query_engine::CopyOnWriteBitmap;
+using rhydb::query_engine::filter::operators::IndexScan;
+using rhydb::query_engine::filter::operators::OperatorVector;
+using rhydb::query_engine::filter::operators::Union;
+using rhydb::storage::column::RowLayout;
 
 namespace {
 OperatorVector generateTestInput(
@@ -105,5 +105,5 @@ TEST(OperatorUnion, correctTypeInfo) {
    OperatorVector input = generateTestInput(test_bitmaps, row_layout);
    const Union under_test(std::move(input), row_layout);
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::UNION);
+   ASSERT_EQ(under_test.type(), rhydb::query_engine::filter::operators::UNION);
 }

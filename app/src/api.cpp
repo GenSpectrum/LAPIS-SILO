@@ -15,7 +15,7 @@
 
 namespace silo_app {
 
-int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
+int Api::runApi(const rhydb::config::RuntimeConfig& runtime_config) {
    SPDLOG_INFO("Starting SILO API");
 
    const Poco::Net::SocketAddress address(runtime_config.api_options.port);
@@ -56,7 +56,7 @@ int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
       std::make_unique<silo_app::SiloRequestHandlerFactory>(runtime_config, database);
 
    const silo_app::SiloDirectoryWatcher directory_watcher(
-      silo::SiloDirectory{runtime_config.data_directory}, database
+      rhydb::SiloDirectory{runtime_config.data_directory}, database
    );
 
    const silo_app::MemoryMonitor memory_monitor{runtime_config.api_options.soft_memory_limit};

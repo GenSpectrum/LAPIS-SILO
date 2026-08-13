@@ -4,7 +4,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 FilterNode::FilterNode(
    QueryNodePtr child,
@@ -35,4 +35,4 @@ nlohmann::json FilterNode::toJson() const {
    };
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

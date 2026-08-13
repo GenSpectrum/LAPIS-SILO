@@ -12,7 +12,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 class FetchNode final : public QueryNode {
   public:
@@ -35,4 +35,4 @@ class FetchNode final : public QueryNode {
    [[nodiscard]] nlohmann::json toJson() const override;
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators
