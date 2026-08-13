@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <silo/database.h>
+#include <rhydb/database.h>
 
 namespace silo_app {
 

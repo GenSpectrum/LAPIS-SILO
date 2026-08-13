@@ -10,7 +10,7 @@
 #include <re2/re2.h>
 #include <spdlog/spdlog.h>
 
-#include <silo/common/allocator.h>
+#include <rhydb/common/allocator.h>
 
 namespace {
 

@@ -7,7 +7,7 @@
 #include <nlohmann/json.hpp>
 #include <utility>
 
-#include <silo/query_engine/illegal_query_exception.h>
+#include <rhydb/query_engine/illegal_query_exception.h>
 
 #include "active_database.h"
 #include "bad_request.h"

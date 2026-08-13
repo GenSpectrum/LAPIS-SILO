@@ -6,7 +6,7 @@
 #include <variant>
 #include <vector>
 
-#include "silo/common/panic.h"
+#include "rhydb/common/panic.h"
 
 namespace rhydb::config {
 

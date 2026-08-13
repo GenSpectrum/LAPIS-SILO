@@ -16,12 +16,12 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
-#include "silo/append/ndjson_line_reader.h"
-#include "silo/common/phylo_tree.h"
-#include "silo/config/database_config.h"
-#include "silo/database.h"
-#include "silo/initialize/initializer.h"
-#include "silo/storage/reference_genomes.h"
+#include "rhydb/append/ndjson_line_reader.h"
+#include "rhydb/common/phylo_tree.h"
+#include "rhydb/config/database_config.h"
+#include "rhydb/database.h"
+#include "rhydb/initialize/initializer.h"
+#include "rhydb/storage/reference_genomes.h"
 
 // Header-only utilities shared between performance benchmarks.
 // All definitions live inside an anonymous namespace so that each benchmark

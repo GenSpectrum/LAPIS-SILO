@@ -10,8 +10,8 @@
 #include "config/source/command_line_arguments.h"
 #include "config/source/environment_variables.h"
 #include "config/source/yaml_file.h"
-#include "silo/common/panic.h"
-#include "silo/common/string_utils.h"
+#include "rhydb/common/panic.h"
+#include "rhydb/common/string_utils.h"
 
 namespace {
 std::string indent(std::string_view indentation, const std::string& str) {

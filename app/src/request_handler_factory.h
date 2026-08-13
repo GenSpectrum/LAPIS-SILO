@@ -5,7 +5,7 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/URI.h>
 
-#include <silo/config/runtime_config.h>
+#include <rhydb/config/runtime_config.h>
 
 #include "active_database.h"
 #include "error_request_handler.h"

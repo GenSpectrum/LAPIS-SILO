@@ -18,15 +18,15 @@
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
-#include "silo/config/database_config.h"
-#include "silo/config/runtime_config.h"
-#include "silo/database.h"
-#include "silo/initialize/initializer.h"
-#include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/planner.h"
-#include "silo/query_engine/query_plan.h"
-#include "silo/schema/database_schema.h"
-#include "silo/storage/reference_genomes.h"
+#include "rhydb/config/database_config.h"
+#include "rhydb/config/runtime_config.h"
+#include "rhydb/database.h"
+#include "rhydb/initialize/initializer.h"
+#include "rhydb/query_engine/exec_node/ndjson_sink.h"
+#include "rhydb/query_engine/planner.h"
+#include "rhydb/query_engine/query_plan.h"
+#include "rhydb/schema/database_schema.h"
+#include "rhydb/storage/reference_genomes.h"
 
 namespace {
 

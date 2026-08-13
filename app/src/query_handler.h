@@ -3,7 +3,7 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 
-#include <silo/config/runtime_config.h>
+#include <rhydb/config/runtime_config.h>
 
 #include "active_database.h"
 #include "rest_resource.h"

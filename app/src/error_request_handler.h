@@ -14,7 +14,7 @@
 #include <Poco/Net/HTTPRequestHandler.h>
 #include <nlohmann/json.hpp>
 
-#include <silo/config/runtime_config.h>
+#include <rhydb/config/runtime_config.h>
 
 namespace silo_app {
 

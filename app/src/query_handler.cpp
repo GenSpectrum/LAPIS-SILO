@@ -9,11 +9,11 @@
 #include <Poco/StreamCopier.h>
 #include <spdlog/spdlog.h>
 
-#include <silo/query_engine/exec_node/arrow_ipc_sink.h>
-#include <silo/query_engine/exec_node/ndjson_sink.h>
-#include <silo/query_engine/illegal_query_exception.h>
-#include <silo/query_engine/planner.h>
-#include <silo/query_engine/saneql/parse_exception.h>
+#include <rhydb/query_engine/exec_node/arrow_ipc_sink.h>
+#include <rhydb/query_engine/exec_node/ndjson_sink.h>
+#include <rhydb/query_engine/illegal_query_exception.h>
+#include <rhydb/query_engine/planner.h>
+#include <rhydb/query_engine/saneql/parse_exception.h>
 #include <evobench/evobench.hpp>
 
 #include "active_database.h"

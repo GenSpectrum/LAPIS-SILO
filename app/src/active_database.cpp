@@ -5,8 +5,8 @@
 
 #include <spdlog/spdlog.h>
 
-#include <silo/common/data_version.h>
-#include <silo/database.h>
+#include <rhydb/common/data_version.h>
+#include <rhydb/database.h>
 
 namespace {
 void monitorReferenceCountThenTrimAllocations(

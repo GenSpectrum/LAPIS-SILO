@@ -56,12 +56,12 @@ db.print_all_data("sequences")
 For RhyDB, there are three different configuration files:
 
 - `DatabaseConfig` described in
-  file [database_config.h](src/silo/config/database_config.h)
+  file [database_config.h](src/rhydb/config/database_config.h)
 - `PreprocessingConfig` used when started with `preprocessing` and described in
-  file [preprocessing_config.h](src/silo/config/preprocessing_config.h).
+  file [preprocessing_config.h](src/rhydb/config/preprocessing_config.h).
   For details see `rhydb preprocessing --help`.
 - `RuntimeConfig` used when started with `api` and described in
-  file [runtime_config.h](src/silo/config/runtime_config.h)
+  file [runtime_config.h](src/rhydb/config/runtime_config.h)
   For details see `rhydb api --help`.
 
 The database config contains the schema of the database and is always required when preprocessing data. The database

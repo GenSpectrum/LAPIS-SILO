@@ -4,7 +4,7 @@
 #include <boost/functional/hash.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include "silo/common/panic.h"
+#include "rhydb/common/panic.h"
 
 namespace rhydb::config {
 

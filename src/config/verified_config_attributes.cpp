@@ -2,7 +2,7 @@
 #include <spdlog/spdlog.h>
 
 #include "config/source/yaml_file.h"
-#include "silo/common/panic.h"
+#include "rhydb/common/panic.h"
 
 namespace {
 using rhydb::config::ConfigKeyPath;

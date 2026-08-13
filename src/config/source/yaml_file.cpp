@@ -10,7 +10,7 @@
 #include <boost/algorithm/string/split.hpp>
 
 #include "config/config_exception.h"
-#include "silo/common/cons_list.h"
+#include "rhydb/common/cons_list.h"
 
 using rhydb::config::ConfigKeyPath;
 

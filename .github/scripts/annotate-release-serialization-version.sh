@@ -12,7 +12,7 @@ set -euo pipefail
 #   ./annotate-release-serialization-version.sh --tag=<release-tag>
 #
 # Environment:
-#   SERIALIZATION_VERSION_FILE  path inside the repo (default: src/silo/common/serialization_version.txt)
+#   SERIALIZATION_VERSION_FILE  path inside the repo (default: src/rhydb/common/serialization_version.txt)
 #   DRY_RUN                     if "true", print transformed body but skip gh release edit
 #   GH_TOKEN                    required for gh release view/edit (unless DRY_RUN)
 #                               (GITHUB_TOKEN also works as a fallback)

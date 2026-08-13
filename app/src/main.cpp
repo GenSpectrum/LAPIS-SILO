@@ -6,19 +6,19 @@
 #include <arrow/compute/api.h>
 
 #include <config/config_interface.h>
-#include <silo/append/append.h>
-#include <silo/common/overloaded.h>
-#include <silo/common/panic.h>
-#include <silo/common/version.h>
-#include <silo/config/append_config.h>
-#include <silo/config/initialize_config.h>
-#include <silo/config/preprocessing_config.h>
-#include <silo/config/runtime_config.h>
-#include <silo/database.h>
-#include <silo/initialize/initialize_exception.h>
-#include <silo/initialize/initializer.h>
-#include <silo/preprocessing/preprocessing.h>
-#include <silo/preprocessing/preprocessing_exception.h>
+#include <rhydb/append/append.h>
+#include <rhydb/common/overloaded.h>
+#include <rhydb/common/panic.h>
+#include <rhydb/common/version.h>
+#include <rhydb/config/append_config.h>
+#include <rhydb/config/initialize_config.h>
+#include <rhydb/config/preprocessing_config.h>
+#include <rhydb/config/runtime_config.h>
+#include <rhydb/database.h>
+#include <rhydb/initialize/initialize_exception.h>
+#include <rhydb/initialize/initializer.h>
+#include <rhydb/preprocessing/preprocessing.h>
+#include <rhydb/preprocessing/preprocessing_exception.h>
 #include <evobench/evobench.hpp>
 
 #include "api.h"
