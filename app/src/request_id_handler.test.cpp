@@ -5,7 +5,7 @@
 #include "manual_poco_mocks.test.h"
 #include "request_id_handler.h"
 
-using silo_app::RequestIdHandler;
+using rhydb_app::RequestIdHandler;
 
 namespace {
 
@@ -26,8 +26,8 @@ TEST(RequestIdHandler, givenNoRequestIdIsSet_thenGeneratesOne) {
    EXPECT_CALL(*wrapped_handler_mock, handleRequest);
    auto under_test = RequestIdHandler(std::move(wrapped_handler_mock));
 
-   silo_app::test::MockResponse response;
-   silo_app::test::MockRequest request(response);
+   rhydb_app::test::MockResponse response;
+   rhydb_app::test::MockRequest request(response);
    under_test.handleRequest(request, response);
 
    EXPECT_THAT(response.get("X-Request-Id"), ::testing::ContainsRegex("-[A-Za-z0-9]{4}-"));
@@ -40,8 +40,8 @@ TEST(RequestIdHandler, givenRequestIdIsSet_thenResponseAlsoContainsIt) {
    EXPECT_CALL(*wrapped_handler_mock, handleRequest);
    auto under_test = RequestIdHandler(std::move(wrapped_handler_mock));
 
-   silo_app::test::MockResponse response;
-   silo_app::test::MockRequest request(response);
+   rhydb_app::test::MockResponse response;
+   rhydb_app::test::MockRequest request(response);
    request.set("X-Request-Id", request_id_value);
    under_test.handleRequest(request, response);
 

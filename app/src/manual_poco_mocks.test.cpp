@@ -4,7 +4,7 @@
 #include "Poco/Net/HTTPServerParams.h"
 #include "Poco/Net/SocketAddress.h"
 
-namespace silo_app::test {
+namespace rhydb_app::test {
 
 void MockResponse::sendContinue() {}
 
@@ -52,4 +52,4 @@ bool MockRequest::secure() const {
    return false;
 }
 
-}  // namespace silo_app::test
+}  // namespace rhydb_app::test

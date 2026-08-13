@@ -6,7 +6,7 @@
 #include "active_database.h"
 #include "rest_resource.h"
 
-namespace silo_app {
+namespace rhydb_app {
 
 class LineageDefinitionHandler : public RestResource {
   private:
@@ -23,4 +23,4 @@ class LineageDefinitionHandler : public RestResource {
       override;
 };
 
-}  // namespace silo_app
+}  // namespace rhydb_app

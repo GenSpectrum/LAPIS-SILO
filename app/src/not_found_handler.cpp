@@ -9,7 +9,7 @@
 
 #include "error_request_handler.h"
 
-namespace silo_app {
+namespace rhydb_app {
 void NotFoundHandler::handleRequest(
    Poco::Net::HTTPServerRequest& request,
    Poco::Net::HTTPServerResponse& response
@@ -21,4 +21,4 @@ void NotFoundHandler::handleRequest(
       .error = "Not found", .message = "Resource " + request.getURI() + " does not exist"
    });
 }
-}  // namespace silo_app
+}  // namespace rhydb_app

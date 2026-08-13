@@ -20,7 +20,7 @@
 #include "bad_request.h"
 #include "error_request_handler.h"
 
-namespace silo_app {
+namespace rhydb_app {
 
 QueryHandler::QueryHandler(
    std::shared_ptr<ActiveDatabase> database_handle,
@@ -98,4 +98,4 @@ void QueryHandler::post(
    }
 }
 
-}  // namespace silo_app
+}  // namespace rhydb_app

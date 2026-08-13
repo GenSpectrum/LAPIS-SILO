@@ -6,7 +6,7 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 
-namespace silo_app {
+namespace rhydb_app {
 
 constexpr auto REQUEST_ID_HEADER = "X-Request-Id";
 
@@ -25,4 +25,4 @@ class RequestIdHandler : public Poco::Net::HTTPRequestHandler {
   private:
    static std::string getRequestId(Poco::Net::HTTPServerRequest& request);
 };
-}  // namespace silo_app
+}  // namespace rhydb_app

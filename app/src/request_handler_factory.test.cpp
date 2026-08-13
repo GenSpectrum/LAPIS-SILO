@@ -10,12 +10,12 @@
 #include "query_handler.h"
 #include "request_handler_factory.h"
 
-using silo_app::RhyDBRequestHandlerFactory;
+using rhydb_app::RhyDBRequestHandlerFactory;
 
 namespace {
 
 std::unique_ptr<RhyDBRequestHandlerFactory> createRequestHandlerWithInitializedDatabase() {
-   auto handle = std::make_shared<silo_app::ActiveDatabase>();
+   auto handle = std::make_shared<rhydb_app::ActiveDatabase>();
    auto table_schema = std::make_shared<rhydb::schema::TableSchema>();
    table_schema->primary_key = {.name = "primary_key", .type = rhydb::schema::ColumnType::STRING};
    table_schema->column_metadata.emplace(
@@ -41,11 +41,11 @@ void assertHoldsHandlerType(std::unique_ptr<Poco::Net::HTTPRequestHandler>& hand
 }  // namespace
 
 TEST(RhyDBRequestHandlerFactory, returns503ResponseWhenDatabaseIsNotInitializedOnInfoEndpoint) {
-   silo_app::test::MockResponse response;
-   silo_app::test::MockRequest request(response);
+   rhydb_app::test::MockResponse response;
+   rhydb_app::test::MockRequest request(response);
    request.setURI("/info");
 
-   auto handle = std::make_shared<silo_app::ActiveDatabase>();
+   auto handle = std::make_shared<rhydb_app::ActiveDatabase>();
    RhyDBRequestHandlerFactory under_test{rhydb::config::RuntimeConfig::withDefaults(), handle};
 
    std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{under_test.createRequestHandler(request)};
@@ -57,12 +57,12 @@ TEST(RhyDBRequestHandlerFactory, returns503ResponseWhenDatabaseIsNotInitializedO
 }
 
 TEST(RhyDBRequestHandlerFactory, returns503ResponseWhenDatabaseIsNotInitializedOnQueryEndpoint) {
-   silo_app::test::MockResponse response;
-   silo_app::test::MockRequest request(response);
+   rhydb_app::test::MockResponse response;
+   rhydb_app::test::MockRequest request(response);
    request.setMethod("POST");
    request.setURI("/query");
 
-   auto handle = std::make_shared<silo_app::ActiveDatabase>();
+   auto handle = std::make_shared<rhydb_app::ActiveDatabase>();
    RhyDBRequestHandlerFactory under_test{rhydb::config::RuntimeConfig::withDefaults(), handle};
 
    std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{under_test.createRequestHandler(request)};
@@ -77,11 +77,11 @@ TEST(
    RhyDBRequestHandlerFactory,
    returns503ResponseWhenDatabaseIsNotInitializedOnLineageDefinitionEndpoint
 ) {
-   silo_app::test::MockResponse response;
-   silo_app::test::MockRequest request(response);
+   rhydb_app::test::MockResponse response;
+   rhydb_app::test::MockRequest request(response);
    request.setURI("/lineageDefinition/someColumn");
 
-   auto handle = std::make_shared<silo_app::ActiveDatabase>();
+   auto handle = std::make_shared<rhydb_app::ActiveDatabase>();
    RhyDBRequestHandlerFactory under_test{rhydb::config::RuntimeConfig::withDefaults(), handle};
 
    std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{under_test.createRequestHandler(request)};
@@ -99,7 +99,7 @@ TEST(RhyDBRequestHandlerFactory, routesGetInfoRequest) {
 
    auto handler = under_test->routeRequest(uri);
 
-   assertHoldsHandlerType<silo_app::InfoHandler>(handler);
+   assertHoldsHandlerType<rhydb_app::InfoHandler>(handler);
 }
 
 TEST(RhyDBRequestHandlerFactory, routesLineageDefinitionRequest) {
@@ -109,7 +109,7 @@ TEST(RhyDBRequestHandlerFactory, routesLineageDefinitionRequest) {
 
    auto handler = under_test->routeRequest(uri);
 
-   assertHoldsHandlerType<silo_app::LineageDefinitionHandler>(handler);
+   assertHoldsHandlerType<rhydb_app::LineageDefinitionHandler>(handler);
 }
 
 TEST(RhyDBRequestHandlerFactory, routesPostQueryRequest) {
@@ -119,7 +119,7 @@ TEST(RhyDBRequestHandlerFactory, routesPostQueryRequest) {
 
    auto handler = under_test->routeRequest(uri);
 
-   assertHoldsHandlerType<silo_app::QueryHandler>(handler);
+   assertHoldsHandlerType<rhydb_app::QueryHandler>(handler);
 }
 
 TEST(RhyDBRequestHandlerFactory, routesUnknownUrlToNotFoundHandler) {
@@ -129,7 +129,7 @@ TEST(RhyDBRequestHandlerFactory, routesUnknownUrlToNotFoundHandler) {
 
    auto handler = under_test->routeRequest(uri);
 
-   assertHoldsHandlerType<silo_app::NotFoundHandler>(handler);
+   assertHoldsHandlerType<rhydb_app::NotFoundHandler>(handler);
 }
 
 TEST(RhyDBRequestHandlerFactory, routesToHealth) {
@@ -139,5 +139,5 @@ TEST(RhyDBRequestHandlerFactory, routesToHealth) {
 
    auto handler = under_test->routeRequest(uri);
 
-   assertHoldsHandlerType<silo_app::HealthHandler>(handler);
+   assertHoldsHandlerType<rhydb_app::HealthHandler>(handler);
 }

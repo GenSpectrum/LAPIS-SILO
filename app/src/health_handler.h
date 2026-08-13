@@ -5,7 +5,7 @@
 
 #include "rest_resource.h"
 
-namespace silo_app {
+namespace rhydb_app {
 
 class HealthHandler : public RestResource {
   public:
@@ -14,4 +14,4 @@ class HealthHandler : public RestResource {
    void get(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
       override;
 };
-}  // namespace silo_app
+}  // namespace rhydb_app

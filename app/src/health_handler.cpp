@@ -7,7 +7,7 @@
 #include <Poco/Net/HTTPServerResponse.h>
 #include <Poco/URI.h>
 
-namespace silo_app {
+namespace rhydb_app {
 
 void HealthHandler::get(
    Poco::Net::HTTPServerRequest& /*request*/,
@@ -17,4 +17,4 @@ void HealthHandler::get(
    response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
    response.send() << R"({"status":"UP"})";
 }
-}  // namespace silo_app
+}  // namespace rhydb_app

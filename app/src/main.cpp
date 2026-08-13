@@ -62,7 +62,7 @@ int runAppend(const rhydb::config::AppendConfig& append_config) {
 }
 
 int runApi(const rhydb::config::RuntimeConfig& runtime_config) {
-   silo_app::Api server;
+   rhydb_app::Api server;
    return server.runApi(runtime_config);
 }
 

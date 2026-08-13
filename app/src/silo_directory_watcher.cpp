@@ -12,7 +12,7 @@
 
 #include "active_database.h"
 
-silo_app::RhyDBDirectoryWatcher::RhyDBDirectoryWatcher(
+rhydb_app::RhyDBDirectoryWatcher::RhyDBDirectoryWatcher(
    rhydb::RhyDBDirectory silo_directory,
    std::shared_ptr<ActiveDatabase> database_handle
 )
@@ -24,7 +24,7 @@ silo_app::RhyDBDirectoryWatcher::RhyDBDirectoryWatcher(
    ));
 }
 
-void silo_app::RhyDBDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer*/) {
+void rhydb_app::RhyDBDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer*/) {
    auto maybe_most_recent_database_state = silo_directory.getMostRecentDataDirectory();
 
    if (maybe_most_recent_database_state == std::nullopt) {
@@ -48,7 +48,7 @@ void silo_app::RhyDBDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer
             );
             return;
          }
-      } catch (const silo_app::UninitializedDatabaseException& exception) {
+      } catch (const rhydb_app::UninitializedDatabaseException& exception) {
          SPDLOG_DEBUG("No database loaded yet - loading initial database next.");
       }
    }

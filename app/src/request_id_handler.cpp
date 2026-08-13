@@ -6,7 +6,7 @@
 
 using boost::uuids::random_generator;
 
-namespace silo_app {
+namespace rhydb_app {
 
 RequestIdHandler::RequestIdHandler(std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler)
     : wrapped_handler(std::move(wrapped_handler)) {}
@@ -31,4 +31,4 @@ std::string RequestIdHandler::getRequestId(Poco::Net::HTTPServerRequest& request
    return boost::uuids::to_string(request_id);
 }
 
-}  // namespace silo_app
+}  // namespace rhydb_app
