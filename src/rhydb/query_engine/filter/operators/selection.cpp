@@ -168,7 +168,7 @@ bool CompareToValueSelection<StringColumn>::match(uint32_t global_row_id) const 
       return with_nulls;
    }
 
-   const SiloString row_value = column.getValue(row_id);
+   const RhyDBString row_value = column.getValue(row_id);
 
    auto fast_compare = row_value.fastCompare(value);
    if (fast_compare.has_value()) {

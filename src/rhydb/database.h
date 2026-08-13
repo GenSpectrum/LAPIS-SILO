@@ -92,7 +92,7 @@ class Database {
       const std::filesystem::path& save_directory
    );
 
-   static Database loadDatabaseState(const SiloDataSource& silo_data_source);
+   static Database loadDatabaseState(const RhyDBDataSource& silo_data_source);
 
    [[nodiscard]] virtual DatabaseInfo getDatabaseInfo() const;
 

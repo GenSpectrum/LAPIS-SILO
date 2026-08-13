@@ -12,13 +12,13 @@
 
 namespace silo_app {
 
-class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
+class RhyDBRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
   private:
    const rhydb::config::RuntimeConfig runtime_config;
    std::shared_ptr<ActiveDatabase> database_handle;
 
   public:
-   SiloRequestHandlerFactory(
+   RhyDBRequestHandlerFactory(
       rhydb::config::RuntimeConfig runtime_config,
       std::shared_ptr<ActiveDatabase> database_handle
    );

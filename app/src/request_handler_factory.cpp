@@ -18,14 +18,14 @@
 
 namespace silo_app {
 
-SiloRequestHandlerFactory::SiloRequestHandlerFactory(
+RhyDBRequestHandlerFactory::RhyDBRequestHandlerFactory(
    rhydb::config::RuntimeConfig runtime_config,
    std::shared_ptr<ActiveDatabase> database_handle
 )
     : runtime_config(std::move(runtime_config)),
       database_handle(std::move(database_handle)) {}
 
-Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
+Poco::Net::HTTPRequestHandler* RhyDBRequestHandlerFactory::createRequestHandler(
    const Poco::Net::HTTPServerRequest& request
 ) {
    return new RequestIdHandler(
@@ -35,7 +35,7 @@ Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
    );
 }
 
-std::unique_ptr<Poco::Net::HTTPRequestHandler> SiloRequestHandlerFactory::routeRequest(
+std::unique_ptr<Poco::Net::HTTPRequestHandler> RhyDBRequestHandlerFactory::routeRequest(
    const Poco::URI& uri
 ) {
    const std::string_view path = uri.getPath();

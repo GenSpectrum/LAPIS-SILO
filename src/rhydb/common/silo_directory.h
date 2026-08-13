@@ -21,41 +21,41 @@ class InvalidSiloDataSourceException : public std::runtime_error {
        : std::runtime_error(fmt::format(fmt_str, std::forward<Args>(args)...)) {}
 };
 
-class SiloDataSource {
-   SiloDataSource(std::filesystem::path path, rhydb::DataVersion data_version)
+class RhyDBDataSource {
+   RhyDBDataSource(std::filesystem::path path, rhydb::DataVersion data_version)
        : path(std::move(path)),
          data_version(std::move(data_version)) {}
 
   public:
-   SiloDataSource() = delete;
+   RhyDBDataSource() = delete;
 
    std::filesystem::path path;
    rhydb::DataVersion data_version;
 
-   static SiloDataSource checkValidDataSource(
+   static RhyDBDataSource checkValidDataSource(
       const std::filesystem::path& candidate_data_source_path
    );
 
    [[nodiscard]] std::string toDebugString() const;
 };
 
-class SiloDirectory {
+class RhyDBDirectory {
    std::filesystem::path directory;
 
   public:
-   explicit SiloDirectory(std::filesystem::path directory)
+   explicit RhyDBDirectory(std::filesystem::path directory)
        : directory(std::move(directory)) {}
 
-   [[nodiscard]] std::optional<SiloDataSource> getMostRecentDataDirectory() const;
+   [[nodiscard]] std::optional<RhyDBDataSource> getMostRecentDataDirectory() const;
 
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE(SiloDirectory, directory);
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE(RhyDBDirectory, directory);
 };
 
 }  // namespace rhydb
 
 template <>
-struct [[maybe_unused]] fmt::formatter<rhydb::SiloDirectory> : fmt::formatter<std::string> {
-   [[maybe_unused]] static auto format(const rhydb::SiloDirectory& val, format_context& ctx)
+struct [[maybe_unused]] fmt::formatter<rhydb::RhyDBDirectory> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(const rhydb::RhyDBDirectory& val, format_context& ctx)
       -> decltype(ctx.out()) {
       auto out = ctx.out();
       const nlohmann::json json = val;

@@ -83,11 +83,11 @@ class StringColumnChunk {
 
    [[nodiscard]] size_t numValues() const;
 
-   [[nodiscard]] SiloString getValue(size_t row_in_chunk) const;
+   [[nodiscard]] RhyDBString getValue(size_t row_in_chunk) const;
 
    /// This includes an (re)allocation of the resulting string, one should generally
-   /// work with the SiloString and @getValue instead
-   [[nodiscard]] std::string lookupValue(SiloString string) const;
+   /// work with the RhyDBString and @getValue instead
+   [[nodiscard]] std::string lookupValue(RhyDBString string) const;
 
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /* version */) {
@@ -128,7 +128,7 @@ class StringColumn {
 
    [[nodiscard]] bool isNull(RowId row_id) const;
 
-   [[nodiscard]] SiloString getValue(RowId row_id) const;
+   [[nodiscard]] RhyDBString getValue(RowId row_id) const;
 
    [[nodiscard]] std::string getValueString(RowId row_id) const;
 

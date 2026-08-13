@@ -4,7 +4,7 @@
 
 namespace rhydb {
 
-SiloDataSource SiloDataSource::checkValidDataSource(
+RhyDBDataSource RhyDBDataSource::checkValidDataSource(
    const std::filesystem::path& candidate_data_source_path
 ) {
    if (!std::filesystem::is_directory(candidate_data_source_path)) {
@@ -43,17 +43,17 @@ SiloDataSource SiloDataSource::checkValidDataSource(
          candidate_data_source_path.string()
       );
    }
-   SiloDataSource data_source{candidate_data_source_path, data_version_in_file};
+   RhyDBDataSource data_source{candidate_data_source_path, data_version_in_file};
    return data_source;
 }
 
-std::optional<SiloDataSource> SiloDirectory::getMostRecentDataDirectory() const {
+std::optional<RhyDBDataSource> RhyDBDirectory::getMostRecentDataDirectory() const {
    SPDLOG_TRACE("Scanning path {} for valid data", directory.string());
-   std::vector<SiloDataSource> all_found_data;
+   std::vector<RhyDBDataSource> all_found_data;
    for (const auto& directory_entry : std::filesystem::directory_iterator{directory}) {
       SPDLOG_TRACE("Checking directory entry {}", directory_entry.path().string());
       try {
-         auto silo_data_source = SiloDataSource::checkValidDataSource(directory_entry.path());
+         auto silo_data_source = RhyDBDataSource::checkValidDataSource(directory_entry.path());
          SPDLOG_TRACE(
             "Found candidate data source {} with data version {}",
             directory_entry.path().string(),
@@ -89,7 +89,7 @@ std::optional<SiloDataSource> SiloDirectory::getMostRecentDataDirectory() const 
    return std::nullopt;
 }
 
-std::string SiloDataSource::toDebugString() const {
+std::string RhyDBDataSource::toDebugString() const {
    return fmt::format(
       "{{path: '{}', data_version: {}}}", path.string(), this->data_version.toString()
    );

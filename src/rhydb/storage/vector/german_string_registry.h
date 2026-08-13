@@ -14,9 +14,9 @@ class GermanStringPage {
    //
    //     2B     14B          16B
    //    |---|----------|--------------|--------------|--------------|
-   //    | n | reserved |  SiloString  |  SiloString  |  SiloString  |
+   //    | n | reserved |  RhyDBString |  RhyDBString |  RhyDBString |
    //    |---|----------|--------------|--------------|--------------|
-   //    |  SiloString  |  SiloString  |  SiloString  |              |
+   //    |  RhyDBString |  RhyDBString |  RhyDBString |              |
    //    |--------------|--------------|--------------|              |
    //    |                                                           |
    //    |                                                           |
@@ -24,8 +24,8 @@ class GermanStringPage {
    //    |-----------------------------------------------------------|
    //                                                                `16384
    //
-   // A total of 16384/16 - 1= 1023 SiloStrings would fit on the page
-   static_assert(sizeof(SiloString) == 16);
+   // A total of 16384/16 - 1= 1023 RhyDBStrings would fit on the page
+   static_assert(sizeof(RhyDBString) == 16);
    static constexpr size_t MAX_STRINGS_PER_PAGE = 1023;
    struct Header {
       std::array<uint8_t, 16> bytes;
@@ -41,22 +41,22 @@ class GermanStringPage {
 
    [[nodiscard]] bool full() const { return n() == MAX_STRINGS_PER_PAGE; }
 
-   [[nodiscard]] size_t insert(const SiloString& silo_string) const {
+   [[nodiscard]] size_t insert(const RhyDBString& silo_string) const {
       SILO_ASSERT(full() == false);
       // We need to silence a false-positive warning, where the linter does not realise that
       // the placement-new in the next expression needs a writeable pointer
       // NOLINTNEXTLINE(misc-const-correctness)
       uint8_t* const start_of_next_string_struct =
-         page.buffer + sizeof(Header) + (n() * sizeof(SiloString));
-      new (start_of_next_string_struct) SiloString(silo_string);
+         page.buffer + sizeof(Header) + (n() * sizeof(RhyDBString));
+      new (start_of_next_string_struct) RhyDBString(silo_string);
       return n()++;
    }
 
-   [[nodiscard]] const SiloString& get(const Idx& row_id) const {
+   [[nodiscard]] const RhyDBString& get(const Idx& row_id) const {
       SILO_ASSERT(row_id < n());
       uint8_t* start_of_string_struct =
-         page.buffer + sizeof(Header) + (row_id * sizeof(SiloString));
-      return *reinterpret_cast<SiloString*>(start_of_string_struct);
+         page.buffer + sizeof(Header) + (row_id * sizeof(RhyDBString));
+      return *reinterpret_cast<RhyDBString*>(start_of_string_struct);
    }
 
   private:
@@ -74,9 +74,9 @@ class GermanStringRegistry {
    std::deque<GermanStringPage> german_string_pages;
 
   public:
-   Idx insert(const SiloString& silo_string);
+   Idx insert(const RhyDBString& silo_string);
 
-   [[nodiscard]] SiloString get(Idx row_id) const;
+   [[nodiscard]] RhyDBString get(Idx row_id) const;
 
    [[nodiscard]] size_t numValues() const {
       if (german_string_pages.empty()) {

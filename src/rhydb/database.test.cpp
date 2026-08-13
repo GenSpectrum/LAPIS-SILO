@@ -78,8 +78,8 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
 
    first_database->saveDatabaseState(directory);
 
-   const rhydb::SiloDataSource data_source =
-      rhydb::SiloDataSource::checkValidDataSource(directory / data_version_timestamp.value);
+   const rhydb::RhyDBDataSource data_source =
+      rhydb::RhyDBDataSource::checkValidDataSource(directory / data_version_timestamp.value);
 
    auto database = rhydb::Database::loadDatabaseState(data_source);
 
@@ -101,7 +101,7 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
    // If this load fails, the serialization version likely needs to be increased
    // Run `make bump-serialization-version`
    auto database = rhydb::Database::loadDatabaseState(
-      rhydb::SiloDirectory{"testBaseData/siloSerializedState"}.getMostRecentDataDirectory().value()
+      rhydb::RhyDBDirectory{"testBaseData/siloSerializedState"}.getMostRecentDataDirectory().value()
    );
 
    const auto database_info = database.getDatabaseInfo();

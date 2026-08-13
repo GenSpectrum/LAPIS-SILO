@@ -415,7 +415,7 @@ DataVersion loadDataVersion(const std::filesystem::path& file_path) {
 std::optional<Database> Database::loadDatabaseStateFromPath(
    const std::filesystem::path& save_directory
 ) {
-   const SiloDirectory silo_directory{save_directory};
+   const RhyDBDirectory silo_directory{save_directory};
    auto silo_data_source = silo_directory.getMostRecentDataDirectory();
    if (silo_data_source.has_value()) {
       return loadDatabaseState(silo_data_source.value());
@@ -423,7 +423,7 @@ std::optional<Database> Database::loadDatabaseStateFromPath(
    return std::nullopt;
 }
 
-Database Database::loadDatabaseState(const rhydb::SiloDataSource& silo_data_source) {
+Database Database::loadDatabaseState(const rhydb::RhyDBDataSource& silo_data_source) {
    SPDLOG_INFO("Loading database from data source: {}", silo_data_source.toDebugString());
    const auto save_directory = silo_data_source.path;
 
