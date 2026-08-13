@@ -10,11 +10,11 @@
 #include <nlohmann/json.hpp>
 
 #include <config/source/yaml_file.h>
-#include <silo/config/preprocessing_config.h>
-#include <silo/database.h>
-#include <silo/preprocessing/preprocessing.h>
-#include <silo/query_engine/exec_node/ndjson_sink.h>
-#include <silo/query_engine/planner.h>
+#include <rhydb/config/preprocessing_config.h>
+#include <rhydb/database.h>
+#include <rhydb/preprocessing/preprocessing.h>
+#include <rhydb/query_engine/exec_node/ndjson_sink.h>
+#include <rhydb/query_engine/planner.h>
 
 namespace silo_wasm {
 
@@ -22,7 +22,7 @@ namespace {
 
 constexpr uint64_t QUERY_TIMEOUT_SECONDS = 120;
 // Native SILO defaults to DEFAULT_ARROW_BATCH_SIZE (32767, see
-// src/silo/config/runtime_config.cpp) rows before it stops collecting a query
+// src/rhydb/config/runtime_config.cpp) rows before it stops collecting a query
 // result in memory and starts streaming it instead. Browser memory is far
 // more constrained than a server process, and detail queries that project
 // full nucleotide sequences can materialize large intermediate batches before

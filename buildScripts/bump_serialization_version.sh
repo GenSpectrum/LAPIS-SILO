@@ -7,7 +7,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SERIALIZATION_VERSION_FILE="$REPO_ROOT/src/silo/common/serialization_version.txt"
+SERIALIZATION_VERSION_FILE="$REPO_ROOT/src/rhydb/common/serialization_version.txt"
 SERIALIZED_STATE_DIR="$REPO_ROOT/testBaseData/siloSerializedState"
 
 NEW_VERSION="$(date +%s)"

@@ -6,7 +6,7 @@
 #include <Poco/Net/ServerSocket.h>
 #include <spdlog/spdlog.h>
 
-#include <silo/common/silo_directory.h>
+#include <rhydb/common/silo_directory.h>
 
 #include "active_database.h"
 #include "memory_monitor.h"

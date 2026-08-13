@@ -13,9 +13,9 @@
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
-#include "silo/config/runtime_config.h"
-#include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/planner.h"
+#include "rhydb/config/runtime_config.h"
+#include "rhydb/query_engine/exec_node/ndjson_sink.h"
+#include "rhydb/query_engine/planner.h"
 
 using rhydb::Database;
 using rhydb::query_engine::Planner;

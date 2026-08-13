@@ -12,7 +12,7 @@ set -euo pipefail
 #   ./annotate-changelog-serialization-version.sh --version=<release-version>
 #
 # Environment:
-#   SERIALIZATION_VERSION_FILE  path inside the repo (default: src/silo/common/serialization_version.txt)
+#   SERIALIZATION_VERSION_FILE  path inside the repo (default: src/rhydb/common/serialization_version.txt)
 #   DRY_RUN                     if "true", skip commit+push (useful for local testing)
 
 SCRIPT_DIR="$(unset CDPATH; cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

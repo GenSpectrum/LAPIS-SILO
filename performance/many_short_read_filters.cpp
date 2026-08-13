@@ -8,10 +8,10 @@
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
-#include "silo/append/table_inserter.h"
-#include "silo/initialize/initializer.h"
-#include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/planner.h"
+#include "rhydb/append/table_inserter.h"
+#include "rhydb/initialize/initializer.h"
+#include "rhydb/query_engine/exec_node/ndjson_sink.h"
+#include "rhydb/query_engine/planner.h"
 
 using rhydb::Database;
 using rhydb::query_engine::Planner;

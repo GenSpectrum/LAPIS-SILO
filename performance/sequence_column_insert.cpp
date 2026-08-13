@@ -6,8 +6,8 @@
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
-#include "silo/database.h"
-#include "silo/schema/database_schema.h"
+#include "rhydb/database.h"
+#include "rhydb/schema/database_schema.h"
 
 using rhydb::Database;
 

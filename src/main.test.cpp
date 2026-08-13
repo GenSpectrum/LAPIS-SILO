@@ -6,7 +6,7 @@
 #include <arrow/compute/api.h>
 #include <spdlog/spdlog.h>
 
-#include "silo/common/panic.h"
+#include "rhydb/common/panic.h"
 
 namespace {
 

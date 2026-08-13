@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "config/config_key_path.h"
-#include "silo/common/fmt_formatters.h"
+#include "rhydb/common/fmt_formatters.h"
 
 using rhydb::config::ConfigKeyPath;
 using rhydb::config::YamlFile;

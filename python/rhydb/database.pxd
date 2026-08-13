@@ -13,7 +13,7 @@ cdef extern from "roaring/roaring.hh" namespace "roaring":
         size_t getSizeInBytes() except +
         size_t write(char* buf) except +
 
-cdef extern from "silo/database.h" namespace "rhydb":
+cdef extern from "rhydb/database.h" namespace "rhydb":
     cdef cppclass Database:
         Database() except +
         Database(const Database&) except +  # Copy constructor

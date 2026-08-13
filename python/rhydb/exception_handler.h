@@ -1,7 +1,7 @@
 #pragma once
 #include <Python.h>
 #include <stdexcept>
-#include "silo/query_engine/illegal_query_exception.h"
+#include "rhydb/query_engine/illegal_query_exception.h"
 
 inline void handle_silo_exception() {
     try {
