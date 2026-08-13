@@ -1,6 +1,6 @@
 #include "silo/roaring_util/bitmap_builder.h"
 
-namespace silo::roaring_util {
+namespace rhydb::roaring_util {
 
 void BitmapBuilderByContainer::addContainer(
    uint16_t v_index,
@@ -77,4 +77,4 @@ roaring::Roaring BitmapBuilderByRange::getBitmap() && {
    return std::move(bitmap);
 }
 
-}  // namespace silo::roaring_util
+}  // namespace rhydb::roaring_util

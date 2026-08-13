@@ -4,7 +4,7 @@
 
 #include <roaring/roaring.hh>
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 roaring::Roaring RowLayout::fullBitmap() const {
    roaring::Roaring result;
@@ -22,4 +22,4 @@ void RowLayout::complementInPlace(roaring::Roaring& bitmap) const {
    }
 }
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

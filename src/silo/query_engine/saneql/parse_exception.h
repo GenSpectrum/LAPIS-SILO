@@ -7,7 +7,7 @@
 
 #include "silo/query_engine/saneql/source_location.h"
 
-namespace silo::query_engine::saneql {
+namespace rhydb::query_engine::saneql {
 
 class ParseException : public std::runtime_error {
    SourceLocation location;
@@ -29,4 +29,4 @@ class ParseException : public std::runtime_error {
    [[nodiscard]] SourceLocation getLocation() const { return location; }
 };
 
-}  // namespace silo::query_engine::saneql
+}  // namespace rhydb::query_engine::saneql

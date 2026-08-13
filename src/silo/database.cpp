@@ -72,7 +72,7 @@ std::string symbolVectorToString(const std::vector<typename SymbolType::Symbol>&
 }
 }  // namespace
 
-namespace silo {
+namespace rhydb {
 
 Database::Database(schema::DatabaseSchema database_schema)
     : schema(std::move(database_schema)) {
@@ -94,10 +94,10 @@ void Database::appendData(
    std::istream& input_stream,
    append::ClusteredBufferingOptions clustering_options
 ) {
-   silo::append::NdjsonLineReader input_data{input_stream};
+   rhydb::append::NdjsonLineReader input_data{input_stream};
    SILO_ASSERT(tables.contains(table_name));
    auto& table = tables.at(table_name);
-   silo::append::appendDataToTable(table, input_data, std::move(clustering_options));
+   rhydb::append::appendDataToTable(table, input_data, std::move(clustering_options));
    updateDataVersion();
    SPDLOG_INFO("Database info: {}", getDatabaseInfo());
 }
@@ -170,19 +170,19 @@ void Database::createGeneTable(
 
 void Database::appendDataFromFile(const std::string& table_name, const std::string& file_path) {
    std::ifstream input_stream(file_path);
-   silo::append::NdjsonLineReader input_data{input_stream};
-   silo::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
+   rhydb::append::NdjsonLineReader input_data{input_stream};
+   rhydb::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
    SPDLOG_INFO("Database info: {}", getDatabaseInfo());
 }
 
 void Database::appendDataFromString(const std::string& table_name, std::string json_string) {
    std::stringstream input_stream(std::move(json_string));
-   silo::append::NdjsonLineReader input_data{input_stream};
-   silo::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
+   rhydb::append::NdjsonLineReader input_data{input_stream};
+   rhydb::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
 }
 
-using silo::query_engine::scalar_expressions::BoolLiteral;
-using silo::query_engine::scalar_expressions::ScalarExpression;
+using rhydb::query_engine::scalar_expressions::BoolLiteral;
+using rhydb::query_engine::scalar_expressions::ScalarExpression;
 
 void Database::printAllData(const std::string& table_name) const {
    auto table_iter = tables.find(schema::TableName{table_name});
@@ -330,7 +330,7 @@ void addTableStatisticsToDatabaseInfo(DatabaseInfo& database_info, const storage
 
 DatabaseInfo Database::getDatabaseInfo() const {
    DatabaseInfo database_info{
-      .version = silo::RELEASE_VERSION,
+      .version = rhydb::RELEASE_VERSION,
       .sequence_count = 0,
       .vertical_bitmaps_size = 0,
       .horizontal_bitmaps_size = 0
@@ -423,7 +423,7 @@ std::optional<Database> Database::loadDatabaseStateFromPath(
    return std::nullopt;
 }
 
-Database Database::loadDatabaseState(const silo::SiloDataSource& silo_data_source) {
+Database Database::loadDatabaseState(const rhydb::SiloDataSource& silo_data_source) {
    SPDLOG_INFO("Loading database from data source: {}", silo_data_source.toDebugString());
    const auto save_directory = silo_data_source.path;
 
@@ -511,4 +511,4 @@ arrow::Result<std::string> Database::getTablesAsArrowIpcImpl() const {
    return output_stream.str();
 }
 
-}  // namespace silo
+}  // namespace rhydb

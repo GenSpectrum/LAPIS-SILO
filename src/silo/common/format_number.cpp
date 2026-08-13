@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 
-namespace silo {
+namespace rhydb {
 
 struct ThousandSeparator : std::numpunct<char> {
    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
@@ -22,4 +22,4 @@ std::string formatNumber(uint64_t number) {
    return oss.str();
 }
 
-}  // namespace silo
+}  // namespace rhydb

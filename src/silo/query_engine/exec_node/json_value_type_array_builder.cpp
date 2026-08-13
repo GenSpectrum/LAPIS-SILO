@@ -4,7 +4,7 @@
 
 #include "silo/common/panic.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 JsonValueTypeArrayBuilder::JsonValueTypeArrayBuilder(const std::shared_ptr<arrow::DataType>& type) {
    if (type == arrow::int32()) {
@@ -71,4 +71,4 @@ arrow::Result<arrow::Datum> JsonValueTypeArrayBuilder::toDatum() {
    });
 }
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

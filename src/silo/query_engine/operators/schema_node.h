@@ -10,7 +10,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Source-type node that reports the output schema of its child as data rows,
 /// one row per child field. The child's query plan is never executed; only its
@@ -44,4 +44,4 @@ class SchemaNode final : public QueryNode {
    [[nodiscard]] nlohmann::json toJson() const override;
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

@@ -24,7 +24,7 @@
 #include "silo/storage/column/column_type_visitor.h"
 #include "silo/storage/column_group_builder.h"
 
-namespace silo::storage {
+namespace rhydb::storage {
 
 namespace {
 class BulkInsertVisitor {
@@ -47,8 +47,8 @@ Table::Table(schema::TableName table_name, std::shared_ptr<schema::TableSchema> 
       schema(std::move(schema)) {
    auto column_initializer = []<column::Column ColumnType>(
                                 ColumnGroup& column_group,
-                                const silo::schema::ColumnIdentifier& column_identifier,
-                                silo::schema::TableSchema& table_schema
+                                const rhydb::schema::ColumnIdentifier& column_identifier,
+                                rhydb::schema::TableSchema& table_schema
                              ) {
       ColumnType column(table_schema.getColumnMetadata<ColumnType>(column_identifier.name).value());
       column_group.metadata.emplace_back(column_identifier);
@@ -229,4 +229,4 @@ void Table::loadData(const std::filesystem::path& path) {
    SPDLOG_INFO("Finished loading table data");
 }
 
-}  // namespace silo::storage
+}  // namespace rhydb::storage

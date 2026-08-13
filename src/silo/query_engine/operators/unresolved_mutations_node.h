@@ -10,7 +10,7 @@
 #include "silo/query_engine/operators/mutations_node.h"
 #include "silo/query_engine/operators/query_node.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Placeholder for mutations action, resolved during pushdown.
 template <typename SymbolType>
@@ -33,7 +33,7 @@ class UnresolvedMutationsNode final : public QueryNode {
          fields(std::move(fields)) {}
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override {
-      using silo::schema::ColumnType;
+      using rhydb::schema::ColumnType;
       using MN = MutationsNode<SymbolType>;
       const bool include_all = fields.empty();
       auto has = [&](std::string_view name) -> bool {
@@ -73,7 +73,7 @@ class UnresolvedMutationsNode final : public QueryNode {
    }
 
    [[nodiscard]] NodeKind kind() const override {
-      if constexpr (std::is_same_v<SymbolType, silo::Nucleotide>) {
+      if constexpr (std::is_same_v<SymbolType, rhydb::Nucleotide>) {
          return NodeKind::UNRESOLVED_MUTATIONS_NUCLEOTIDE;
       } else {
          return NodeKind::UNRESOLVED_MUTATIONS_AMINO_ACID;
@@ -91,4 +91,4 @@ class UnresolvedMutationsNode final : public QueryNode {
    }
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

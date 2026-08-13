@@ -13,7 +13,7 @@
 #include "silo/common/panic.h"
 #include "silo/storage/column/sequence_column.h"
 
-namespace silo::append {
+namespace rhydb::append {
 
 namespace {
 
@@ -403,4 +403,4 @@ TableInserter::Commit appendDataToTable(
    return table_inserter.commit();
 }
 
-}  // namespace silo::append
+}  // namespace rhydb::append

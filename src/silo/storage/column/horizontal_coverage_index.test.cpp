@@ -9,7 +9,7 @@
 #include "silo/common/aligned_sequence.h"
 #include "silo/common/nucleotide_symbols.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 // Test fixture for HorizontalCoverageIndex with Nucleotide
 class HorizontalCoverageIndexTest : public ::testing::Test {
@@ -513,4 +513,4 @@ TEST_F(HorizontalCoverageIndexTest, CoverageCardinalitiesAcrossMultipleChunks) {
    }
 }
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

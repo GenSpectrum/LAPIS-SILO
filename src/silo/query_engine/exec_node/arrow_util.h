@@ -16,12 +16,12 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column_type);
 
 std::shared_ptr<arrow::Schema> columnsToArrowSchema(
-   const std::vector<silo::schema::ColumnIdentifier>& columns
+   const std::vector<rhydb::schema::ColumnIdentifier>& columns
 );
 
 template <storage::column::Column Column>
@@ -84,4 +84,4 @@ struct ArrowBuilderSelector<storage::column::Date32Column> {
 template <storage::column::Column ColumnType>
 using ArrowBuilder = typename ArrowBuilderSelector<ColumnType>::builder_type;
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

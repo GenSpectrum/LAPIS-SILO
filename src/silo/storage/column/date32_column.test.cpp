@@ -5,18 +5,18 @@
 #include "silo/common/date32.h"
 #include "silo/storage/column/row_id.h"
 
-using silo::storage::column::RowId;
+using rhydb::storage::column::RowId;
 
 TEST(Date32Column, insertValues) {
-   silo::storage::column::ColumnMetadata column_metadata{"test_column"};
-   silo::storage::column::Date32Column under_test(&column_metadata);
+   rhydb::storage::column::ColumnMetadata column_metadata{"test_column"};
+   rhydb::storage::column::Date32Column under_test(&column_metadata);
 
    std::vector<std::string> values_to_add{
       "2020-01-01", "2023-01-05", "2021-12-03", "2025-01-01", "2021-03-21"
    };
-   silo::storage::column::Date32Column::Builder builder;
+   rhydb::storage::column::Date32Column::Builder builder;
    for (const auto& value : values_to_add) {
-      auto date = silo::common::stringToDate32(value);
+      auto date = rhydb::common::stringToDate32(value);
       ASSERT_TRUE(date.has_value()) << date.error();
       builder.insert(date.value());
    }
@@ -26,16 +26,16 @@ TEST(Date32Column, insertValues) {
    ASSERT_EQ(under_test.chunkSize(0), 5);
 
    for (size_t value_idx = 0; value_idx < values_to_add.size(); ++value_idx) {
-      auto value = silo::common::date32ToString(under_test.getValue(RowId(0, value_idx)));
+      auto value = rhydb::common::date32ToString(under_test.getValue(RowId(0, value_idx)));
       ASSERT_EQ(value, values_to_add.at(value_idx));
    }
 }
 
 TEST(Date32Column, insertNull) {
-   silo::storage::column::ColumnMetadata column_metadata{"test_column"};
-   silo::storage::column::Date32Column under_test(&column_metadata);
+   rhydb::storage::column::ColumnMetadata column_metadata{"test_column"};
+   rhydb::storage::column::Date32Column under_test(&column_metadata);
 
-   silo::storage::column::Date32Column::Builder builder;
+   rhydb::storage::column::Date32Column::Builder builder;
    builder.insertNull();
    SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
 
@@ -47,19 +47,19 @@ TEST(Date32Column, insertNull) {
 TEST(Date32Column, parseInvalidDateReturnsError) {
    // Date parsing happens during phase-1 extraction (see stringToDate32), before
    // values reach the column builder.
-   auto result = silo::common::stringToDate32("not-a-date");
+   auto result = rhydb::common::stringToDate32("not-a-date");
    ASSERT_FALSE(result.has_value());
 }
 
 namespace {
-silo::common::Date32 date(const std::string& value) {
-   const auto parsed = silo::common::stringToDate32(value);
+rhydb::common::Date32 date(const std::string& value) {
+   const auto parsed = rhydb::common::stringToDate32(value);
    SILO_ASSERT(parsed.has_value());
    return parsed.value();
 }
 
-silo::storage::column::Date32Column::Buffer chunkOf(const std::vector<std::string>& values) {
-   silo::storage::column::Date32Column::Builder builder;
+rhydb::storage::column::Date32Column::Buffer chunkOf(const std::vector<std::string>& values) {
+   rhydb::storage::column::Date32Column::Builder builder;
    for (const auto& value : values) {
       if (value.empty()) {
          builder.insertNull();
@@ -73,8 +73,8 @@ silo::storage::column::Date32Column::Buffer chunkOf(const std::vector<std::strin
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(Date32Column, staysSortedWhenChunkBoundaryIsGloballySorted) {
-   silo::storage::column::ColumnMetadata column_metadata{"test_column"};
-   silo::storage::column::Date32Column under_test(&column_metadata);
+   rhydb::storage::column::ColumnMetadata column_metadata{"test_column"};
+   rhydb::storage::column::Date32Column under_test(&column_metadata);
 
    // Each chunk is sorted on its own, and the first value of every later chunk is >= the last
    // value of the previous chunk, so the column is globally sorted across boundaries.
@@ -90,8 +90,8 @@ TEST(Date32Column, staysSortedWhenChunkBoundaryIsGloballySorted) {
 }
 
 TEST(Date32Column, notSortedWhenChunkBoundaryRegresses) {
-   silo::storage::column::ColumnMetadata column_metadata{"test_column"};
-   silo::storage::column::Date32Column under_test(&column_metadata);
+   rhydb::storage::column::ColumnMetadata column_metadata{"test_column"};
+   rhydb::storage::column::Date32Column under_test(&column_metadata);
 
    // Each chunk is sorted in isolation, but the second chunk starts before the first chunk ends.
    // Detecting this requires the cross-chunk ingestion state (last_appended_value); within-chunk
@@ -107,13 +107,13 @@ TEST(Date32Column, notSortedWhenChunkBoundaryRegresses) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(Date32Column, nullBitmapRowIdsAreOffsetAcrossChunks) {
-   silo::storage::column::ColumnMetadata column_metadata{"test_column"};
-   silo::storage::column::Date32Column under_test(&column_metadata);
+   rhydb::storage::column::ColumnMetadata column_metadata{"test_column"};
+   rhydb::storage::column::Date32Column under_test(&column_metadata);
 
    // Nulls appear in every chunk, including at the start of a chunk that is not the first one. Each
    // chunk's global row ids begin at a fresh 2^16-aligned offset (chunk k starts at k << 16), so a
    // missing per-chunk offset would land the null bitmap on the wrong global row ids.
-   using silo::storage::column::RowId;
+   using rhydb::storage::column::RowId;
    SILO_ASSERT(under_test.appendChunk(chunkOf({"2020-01-01", ""})).has_value());
    SILO_ASSERT(under_test.appendChunk(chunkOf({"", "2021-03-21", ""})).has_value());
    SILO_ASSERT(under_test.appendChunk(chunkOf({"2022-01-01"})).has_value());
@@ -137,11 +137,11 @@ TEST(Date32Column, nullBitmapRowIdsAreOffsetAcrossChunks) {
    }
 
    ASSERT_EQ(
-      silo::common::date32ToString(under_test.getValue(RowId{.chunk_id = 1, .row_in_chunk = 1})),
+      rhydb::common::date32ToString(under_test.getValue(RowId{.chunk_id = 1, .row_in_chunk = 1})),
       "2021-03-21"
    );
    ASSERT_EQ(
-      silo::common::date32ToString(under_test.getValue(RowId{.chunk_id = 2, .row_in_chunk = 0})),
+      rhydb::common::date32ToString(under_test.getValue(RowId{.chunk_id = 2, .row_in_chunk = 0})),
       "2022-01-01"
    );
 }

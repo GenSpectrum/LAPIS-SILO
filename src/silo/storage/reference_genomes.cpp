@@ -14,9 +14,12 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 
 template <>
-struct nlohmann::adl_serializer<silo::ReferenceGenomes> {
+struct nlohmann::adl_serializer<rhydb::ReferenceGenomes> {
    // NOLINTNEXTLINE(readability-identifier-naming)
-   static void to_json(nlohmann::json& js_object, const silo::ReferenceGenomes& reference_genomes) {
+   static void to_json(
+      nlohmann::json& js_object,
+      const rhydb::ReferenceGenomes& reference_genomes
+   ) {
       nlohmann::json nucleotide_sequences_json;
       for (size_t sequence_idx = 0;
            sequence_idx < reference_genomes.nucleotide_sequence_names.size();
@@ -38,7 +41,7 @@ struct nlohmann::adl_serializer<silo::ReferenceGenomes> {
    }
 };
 
-namespace silo {
+namespace rhydb {
 
 ReferenceGenomes::ReferenceGenomes(
    const std::vector<std::pair<std::string, std::string>>& nucleotide_sequences_,
@@ -203,4 +206,4 @@ std::vector<std::vector<AminoAcid::Symbol>> ReferenceGenomes::getReferenceSequen
    return result;
 }
 
-}  // namespace silo
+}  // namespace rhydb

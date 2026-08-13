@@ -9,7 +9,7 @@
 #include "silo/storage/column/row_layout.h"
 #include "silo/storage/column_group.h"
 
-namespace silo::storage {
+namespace rhydb::storage {
 
 class ColumnGroupBuilder;
 
@@ -67,4 +67,4 @@ class Table {
    ) const;
 };
 
-}  // namespace silo::storage
+}  // namespace rhydb::storage

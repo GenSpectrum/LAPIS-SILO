@@ -12,7 +12,7 @@
 #include "silo/query_engine/query_compilation_exception.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 Maybe::Maybe(std::unique_ptr<ScalarExpression> child)
     : child(std::move(child)) {}
@@ -37,4 +37,4 @@ std::unique_ptr<filter::operators::Operator> Maybe::compile(const storage::Table
    throw QueryCompilationException{"Maybe expression must be elimitated in query rewrite phase"};
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

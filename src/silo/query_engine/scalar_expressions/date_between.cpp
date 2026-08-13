@@ -15,11 +15,11 @@
 #include "silo/storage/column/column.h"
 #include "silo/storage/column/date32_column.h"
 
-using silo::common::Date32;
-using silo::common::date32ToString;
-using silo::storage::column::Date32Column;
+using rhydb::common::Date32;
+using rhydb::common::date32ToString;
+using rhydb::storage::column::Date32Column;
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 DateBetween::DateBetween(
    schema::ColumnIdentifier column,
@@ -133,4 +133,4 @@ std::vector<RangeSelection::Range> DateBetween::computeRangesOfSortedColumn(
    return ranges;
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

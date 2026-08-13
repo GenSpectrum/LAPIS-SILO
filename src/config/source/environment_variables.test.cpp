@@ -3,8 +3,8 @@
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
-using silo::config::ConfigKeyPath;
-using silo::config::EnvironmentVariables;
+using rhydb::config::ConfigKeyPath;
+using rhydb::config::EnvironmentVariables;
 
 TEST(EnvironmentVariables, correctPrefixedUppercase) {
    ASSERT_EQ(
@@ -49,7 +49,7 @@ TEST(EnvironmentVariables, errorsIfSiloDebugIsProvidedButNotAllowed) {
    auto env_vars = EnvironmentVariables::newWithAllowListAndEnv(allow_list, var_vector.data());
    EXPECT_THAT(
       [&]() { (void)env_vars.verify({.program_name = "some_binary_name"}); },
-      ThrowsMessage<silo::config::ConfigException>(::testing::HasSubstr(
+      ThrowsMessage<rhydb::config::ConfigException>(::testing::HasSubstr(
          "in environment variables: unknown variable SILO_DEBUG for 'some_binary_name'"
       ))
    );
@@ -70,18 +70,18 @@ TEST(EnvironmentVariables, errorsOnWrongType) {
    auto env_vars = EnvironmentVariables::newWithAllowListAndEnv(allow_list, var_vector.data());
    EXPECT_THAT(
       [&]() {
-         (void)env_vars.verify(silo::config::ConfigSpecification{
+         (void)env_vars.verify(rhydb::config::ConfigSpecification{
             .program_name = "test",
             .attribute_specifications =
-               {silo::config::ConfigAttributeSpecification::createWithoutDefault(
+               {rhydb::config::ConfigAttributeSpecification::createWithoutDefault(
                   ConfigKeyPath::tryFrom({{"foo"}}).value(),
-                  silo::config::ConfigValueType::INT32,
+                  rhydb::config::ConfigValueType::INT32,
                   "some help text"
                )}
          });
       },
-      ThrowsMessage<silo::config::ConfigException>(::testing::HasSubstr("cannot parse 'bar' as i32")
-      )
+      ThrowsMessage<rhydb::config::ConfigException>(::testing::HasSubstr("cannot parse 'bar' as i32"
+      ))
    );
 }
 
@@ -91,17 +91,17 @@ TEST(EnvironmentVariables, parsesVariables) {
    const char* env_var2 = "SILO_FOO_INT=1";
    const std::vector<const char*> var_vector = {env_var1, env_var2, nullptr};
    auto env_vars = EnvironmentVariables::newWithAllowListAndEnv(allow_list, var_vector.data());
-   ASSERT_NO_THROW((void)env_vars.verify(silo::config::ConfigSpecification{
+   ASSERT_NO_THROW((void)env_vars.verify(rhydb::config::ConfigSpecification{
       .program_name = "test",
       .attribute_specifications =
-         {silo::config::ConfigAttributeSpecification::createWithoutDefault(
+         {rhydb::config::ConfigAttributeSpecification::createWithoutDefault(
              ConfigKeyPath::tryFrom({{"foo"}}).value(),
-             silo::config::ConfigValueType::STRING,
+             rhydb::config::ConfigValueType::STRING,
              "some help text"
           ),
-          silo::config::ConfigAttributeSpecification::createWithoutDefault(
+          rhydb::config::ConfigAttributeSpecification::createWithoutDefault(
              ConfigKeyPath::tryFrom({{"foo"}, {"int"}}).value(),
-             silo::config::ConfigValueType::INT32,
+             rhydb::config::ConfigValueType::INT32,
              "some help text"
           )}
    }));
@@ -114,12 +114,12 @@ TEST(EnvironmentVariables, parsesVariablesWithDoubleEquals) {
    auto env_vars = EnvironmentVariables::newWithAllowListAndEnv(allow_list, var_vector.data());
    ASSERT_EQ(
       env_vars
-         .verify(silo::config::ConfigSpecification{
+         .verify(rhydb::config::ConfigSpecification{
             .program_name = "test",
             .attribute_specifications =
-               {silo::config::ConfigAttributeSpecification::createWithoutDefault(
+               {rhydb::config::ConfigAttributeSpecification::createWithoutDefault(
                   ConfigKeyPath::tryFrom({{"foo"}}).value(),
-                  silo::config::ConfigValueType::STRING,
+                  rhydb::config::ConfigValueType::STRING,
                   "some help text"
                )}
          })

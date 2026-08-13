@@ -12,7 +12,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Joins two child pipelines on an equality condition (equi-join), backed by
 /// Arrow's hash-join. `left_keys[i]` is compared for equality against
@@ -55,4 +55,4 @@ class JoinNode final : public QueryNode {
 /// Human-readable name for a join type, used in query-plan JSON and diagnostics.
 [[nodiscard]] std::string_view joinTypeToString(arrow::acero::JoinType join_type);
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

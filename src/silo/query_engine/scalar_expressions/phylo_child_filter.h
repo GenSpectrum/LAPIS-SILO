@@ -8,7 +8,7 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 class PhyloChildFilter : public ScalarExpression {
    schema::ColumnIdentifier column;
@@ -37,8 +37,8 @@ class PhyloChildFilter : public ScalarExpression {
 
   private:
    [[nodiscard]] std::optional<const roaring::Roaring*> getBitmapForValue(
-      const silo::storage::column::StringColumn& phylo_tree_index_column
+      const rhydb::storage::column::StringColumn& phylo_tree_index_column
    ) const;
 };
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

@@ -9,13 +9,13 @@
 #include "silo/storage/column/dictionary_encoded_column.h"
 #include "silo/storage/column/string_column.h"
 
-using silo::query_engine::filter::operators::Selection;
-using silo::query_engine::filter::operators::StringInSet;
-using silo::storage::column::DictionaryEncodedColumn;
-using silo::storage::column::DictionaryEncodedColumnMetadata;
-using silo::storage::column::RowLayout;
-using silo::storage::column::StringColumn;
-using silo::storage::column::StringColumnMetadata;
+using rhydb::query_engine::filter::operators::Selection;
+using rhydb::query_engine::filter::operators::StringInSet;
+using rhydb::storage::column::DictionaryEncodedColumn;
+using rhydb::storage::column::DictionaryEncodedColumnMetadata;
+using rhydb::storage::column::RowLayout;
+using rhydb::storage::column::StringColumn;
+using rhydb::storage::column::StringColumnMetadata;
 
 namespace {
 
@@ -230,5 +230,5 @@ TEST(OperatorStringInSet, returnsCorrectTypeInfo) {
       row_layout
    );
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::SELECTION);
+   ASSERT_EQ(under_test.type(), rhydb::query_engine::filter::operators::SELECTION);
 }

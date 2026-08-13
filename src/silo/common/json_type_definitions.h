@@ -77,7 +77,7 @@ inline void to_json(
       std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>& opt_nanos
 ) {
    if (opt_nanos.has_value()) {
-      js_object = silo::common::toIsoString(opt_nanos.value());
+      js_object = rhydb::common::toIsoString(opt_nanos.value());
    } else {
       js_object = nullptr;
    }

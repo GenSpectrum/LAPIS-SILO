@@ -11,7 +11,7 @@
 #include "silo/query_engine/scalar_expressions/symbol_in_set.h"
 #include "silo/test/query_fixture.test.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 namespace {
 
@@ -398,14 +398,14 @@ TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
    EXPECT_EQ(rewritten_or->toString(), "key IN [value_1,value_2,value_3]");
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions
 
 // Query tests for nested Or expressions and compiled trees
 namespace {
 
-using silo::ReferenceGenomes;
-using silo::test::QueryTestData;
-using silo::test::QueryTestScenario;
+using rhydb::ReferenceGenomes;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
 
 nlohmann::json createData(const std::string& primary_key, const std::string& country) {
    return nlohmann::json::parse(fmt::format(

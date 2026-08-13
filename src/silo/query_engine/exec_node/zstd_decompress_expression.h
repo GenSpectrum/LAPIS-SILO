@@ -2,7 +2,7 @@
 
 #include <arrow/compute/expression.h>
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 class ZstdDecompressExpression {
   public:
@@ -12,4 +12,4 @@ class ZstdDecompressExpression {
    );
 };
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

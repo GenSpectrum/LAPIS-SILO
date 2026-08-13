@@ -11,7 +11,7 @@
 #include "silo/roaring_util/bitmap_builder.h"
 #include "silo/roaring_util/subset_ranks.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 template <typename SymbolType>
 void VerticalSequenceIndex<SymbolType>::addSymbolsToPositions(
@@ -173,7 +173,7 @@ VerticalSequenceIndex<SymbolType>::SequenceDiff& VerticalSequenceIndex<
    return vertical_bitmaps.insert({key, SequenceDiff::withCapacity(capacity)}).first->second;
 }
 
-using silo::roaring_util::BitmapBuilderByContainer;
+using rhydb::roaring_util::BitmapBuilderByContainer;
 
 template <typename SymbolType>
 roaring::Roaring VerticalSequenceIndex<SymbolType>::getMatchingContainersAsBitmap(
@@ -202,7 +202,7 @@ roaring::Roaring VerticalSequenceIndex<SymbolType>::getMatchingContainersAsBitma
    return std::move(builder).getBitmap();
 }
 
-using silo::roaring_util::roaringSubsetRanks;
+using rhydb::roaring_util::roaringSubsetRanks;
 
 template <typename SymbolType>
 void VerticalSequenceIndex<SymbolType>::overwriteSymbolsInSequences(
@@ -302,4 +302,4 @@ std::vector<std::pair<uint16_t, std::vector<uint16_t>>> splitIdsIntoBatches(
    return ids_in_batches;
 }
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

@@ -4,8 +4,8 @@
 
 #include "config/source/yaml_file.h"
 
-using silo::config::RuntimeConfig;
-using silo::config::YamlFile;
+using rhydb::config::RuntimeConfig;
+using rhydb::config::YamlFile;
 
 TEST(RuntimeConfig, shouldReadConfig) {
    auto runtime_config = RuntimeConfig::withDefaults();

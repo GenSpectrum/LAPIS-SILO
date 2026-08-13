@@ -20,41 +20,41 @@
 #include "silo/storage/reference_genomes.h"
 #include "silo/test/query_fixture.test.h"
 
-using silo::config::PreprocessingConfig;
+using rhydb::config::PreprocessingConfig;
 
 namespace {
-std::shared_ptr<silo::Database> buildTestDatabase() {
+std::shared_ptr<rhydb::Database> buildTestDatabase() {
    const std::filesystem::path input_directory{"./testBaseData/unitTestDummyDataset/"};
 
    auto config = PreprocessingConfig::withDefaults();
    config.overwriteFrom(
-      silo::config::YamlFile::readFile(input_directory / "preprocessing_config.yaml")
+      rhydb::config::YamlFile::readFile(input_directory / "preprocessing_config.yaml")
          .verify(PreprocessingConfig::getConfigSpecification())
    );
-   auto database_config = silo::config::DatabaseConfig::getValidatedConfigFromFile(
+   auto database_config = rhydb::config::DatabaseConfig::getValidatedConfigFromFile(
       input_directory / "database_config.yaml"
    );
 
    const auto reference_genomes =
-      silo::ReferenceGenomes::readFromFile(config.initialization_files.getReferenceGenomeFilepath()
+      rhydb::ReferenceGenomes::readFromFile(config.initialization_files.getReferenceGenomeFilepath()
       );
 
-   std::map<std::filesystem::path, silo::common::LineageTreeAndIdMap> lineage_trees;
+   std::map<std::filesystem::path, rhydb::common::LineageTreeAndIdMap> lineage_trees;
    for (const auto& file_path : config.initialization_files.getLineageDefinitionFilepaths()) {
       lineage_trees[file_path] =
-         silo::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(file_path);
+         rhydb::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(file_path);
    }
 
-   silo::common::PhyloTree phylo_tree_file;
+   rhydb::common::PhyloTree phylo_tree_file;
    auto opt_path = config.initialization_files.getPhyloTreeFilepath();
    if (opt_path.has_value()) {
-      phylo_tree_file = silo::common::PhyloTree::fromFile(opt_path.value());
+      phylo_tree_file = rhydb::common::PhyloTree::fromFile(opt_path.value());
    }
 
-   auto database = std::make_shared<silo::Database>();
+   auto database = std::make_shared<rhydb::Database>();
    database->createTable(
-      silo::schema::TableName::getDefault(),
-      silo::initialize::Initializer::createSchemaFromConfigFiles(
+      rhydb::schema::TableName::getDefault(),
+      rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          database_config,
          reference_genomes,
          lineage_trees,
@@ -63,7 +63,7 @@ std::shared_ptr<silo::Database> buildTestDatabase() {
       )
    );
    std::ifstream input(input_directory / "input.ndjson");
-   database->appendData(silo::schema::TableName::getDefault(), input);
+   database->appendData(rhydb::schema::TableName::getDefault(), input);
    return database;
 }
 }  // namespace
@@ -73,15 +73,15 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
 
    const std::filesystem::path directory = "testBaseData/siloSerializedState";
 
-   const silo::DataVersion::Timestamp data_version_timestamp =
+   const rhydb::DataVersion::Timestamp data_version_timestamp =
       first_database->getDataVersionTimestamp();
 
    first_database->saveDatabaseState(directory);
 
-   const silo::SiloDataSource data_source =
-      silo::SiloDataSource::checkValidDataSource(directory / data_version_timestamp.value);
+   const rhydb::SiloDataSource data_source =
+      rhydb::SiloDataSource::checkValidDataSource(directory / data_version_timestamp.value);
 
-   auto database = silo::Database::loadDatabaseState(data_source);
+   auto database = rhydb::Database::loadDatabaseState(data_source);
 
    const auto database_info = database.getDatabaseInfo();
 
@@ -100,8 +100,8 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
 TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
    // If this load fails, the serialization version likely needs to be increased
    // Run `make bump-serialization-version`
-   auto database = silo::Database::loadDatabaseState(
-      silo::SiloDirectory{"testBaseData/siloSerializedState"}.getMostRecentDataDirectory().value()
+   auto database = rhydb::Database::loadDatabaseState(
+      rhydb::SiloDirectory{"testBaseData/siloSerializedState"}.getMostRecentDataDirectory().value()
    );
 
    const auto database_info = database.getDatabaseInfo();
@@ -118,7 +118,7 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
 )";
    std::stringstream more_data_stream{more_data};
 
-   database.appendData(silo::schema::TableName::getDefault(), more_data_stream);
+   database.appendData(rhydb::schema::TableName::getDefault(), more_data_stream);
 
    const auto database_info_after_append = database.getDatabaseInfo();
    auto data_version_after_append = database.getDataVersionTimestamp();
@@ -129,14 +129,14 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
 
 namespace {
 // Counts the rows of the default table matching `filter` by running a SaneQL count aggregation.
-int64_t countWhere(silo::Database& database, const std::string& filter) {
-   auto query_plan = silo::query_engine::Planner::planSaneqlQuery(
+int64_t countWhere(rhydb::Database& database, const std::string& filter) {
+   auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
       fmt::format("default.filter({}).groupBy({{count:=count()}})", filter),
       database.tables,
-      silo::config::QueryOptions{},
+      rhydb::config::QueryOptions{},
       "count_query"
    );
-   auto result = silo::test::executeQueryToJsonArray(query_plan);
+   auto result = rhydb::test::executeQueryToJsonArray(query_plan);
    if (result.empty()) {
       return 0;
    }
@@ -146,7 +146,7 @@ int64_t countWhere(silo::Database& database, const std::string& filter) {
 
 TEST(DatabaseTest, updateColumnAssignsScalarValueToMatchingRows) {
    auto database = buildTestDatabase();
-   const std::string table = silo::schema::TableName::getDefault().getName();
+   const std::string table = rhydb::schema::TableName::getDefault().getName();
 
    // Two rows (key1, key4) start with age 4; key3 has a null age.
    ASSERT_EQ(countWhere(*database, "age = 4"), 2);
@@ -196,12 +196,12 @@ TEST(DatabaseTest, updateColumnAssignsScalarValueToMatchingRows) {
 
 TEST(DatabaseTest, updateColumnRejectsInvalidRequests) {
    auto database = buildTestDatabase();
-   const std::string table = silo::schema::TableName::getDefault().getName();
+   const std::string table = rhydb::schema::TableName::getDefault().getName();
 
    // A literal that does not match the column's type is a query error.
    EXPECT_THAT(
       [&]() { database->updateColumn(table, "age", "'not_a_number'", "true"); },
-      ThrowsMessage<silo::query_engine::IllegalQueryException>(
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
          ::testing::HasSubstr("expected integer literal")
       )
    );
@@ -209,7 +209,7 @@ TEST(DatabaseTest, updateColumnRejectsInvalidRequests) {
    // A string literal must be quoted; an int literal is not a valid string value.
    EXPECT_THAT(
       [&]() { database->updateColumn(table, "division", "5", "true"); },
-      ThrowsMessage<silo::query_engine::IllegalQueryException>(
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
          ::testing::HasSubstr("expected string literal")
       )
    );
@@ -217,7 +217,7 @@ TEST(DatabaseTest, updateColumnRejectsInvalidRequests) {
    // A phylogenetic-tree-backed column (primaryKey) cannot be updated.
    EXPECT_THAT(
       [&]() { database->updateColumn(table, "primaryKey", "'new_key'", "true"); },
-      ThrowsMessage<silo::query_engine::IllegalQueryException>(
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
          ::testing::HasSubstr("phylogenetic tree")
       )
    );
@@ -225,29 +225,29 @@ TEST(DatabaseTest, updateColumnRejectsInvalidRequests) {
    // A lineage-indexed column (pango_lineage) cannot be updated.
    EXPECT_THAT(
       [&]() { database->updateColumn(table, "pango_lineage", "'B.1'", "true"); },
-      ThrowsMessage<silo::query_engine::IllegalQueryException>(::testing::HasSubstr("lineage index")
-      )
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(::testing::HasSubstr("lineage index"
+      ))
    );
 
    // Unknown columns and tables are reported.
    EXPECT_THAT(
       [&]() { database->updateColumn(table, "does_not_exist", "1", "true"); },
-      ThrowsMessage<silo::query_engine::IllegalQueryException>(
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
          ::testing::HasSubstr("does not contain a column")
       )
    );
 }
 
-using silo::Nucleotide;
-using silo::schema::ColumnIdentifier;
-using silo::schema::ColumnType;
-using silo::schema::TableSchema;
-using silo::storage::column::ColumnMetadata;
-using silo::storage::column::SequenceColumnMetadata;
-using silo::storage::column::StringColumnMetadata;
+using rhydb::Nucleotide;
+using rhydb::schema::ColumnIdentifier;
+using rhydb::schema::ColumnType;
+using rhydb::schema::TableSchema;
+using rhydb::storage::column::ColumnMetadata;
+using rhydb::storage::column::SequenceColumnMetadata;
+using rhydb::storage::column::StringColumnMetadata;
 
 TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
-   silo::Database database;
+   rhydb::Database database;
    ColumnIdentifier primary_key{.name = "key", .type = ColumnType::STRING};
    ColumnIdentifier sequence_column{.name = "sequence", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
    std::vector<Nucleotide::Symbol> reference_sequence{
@@ -261,11 +261,11 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
           sequence_column.name, std::move(reference_sequence)
        )},
    };
-   const silo::schema::TableName first_table_name{"first"};
+   const rhydb::schema::TableName first_table_name{"first"};
    database.createTable(
       first_table_name, std::make_shared<TableSchema>(column_metadata, primary_key)
    );
-   const silo::schema::TableName second_table_name{"second"};
+   const rhydb::schema::TableName second_table_name{"second"};
    database.createTable(
       second_table_name, std::make_shared<TableSchema>(column_metadata, primary_key)
    );
@@ -273,14 +273,14 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
    std::ifstream first_table_data{"testBaseData/example.ndjson"};
    database.appendData(first_table_name, first_table_data);
 
-   auto query_plan_1 = silo::query_engine::Planner::planSaneqlQuery(
+   auto query_plan_1 = rhydb::query_engine::Planner::planSaneqlQuery(
       "first.groupBy({count:=count()})",
       database.tables,
-      silo::config::QueryOptions{},
+      rhydb::config::QueryOptions{},
       "test_query_1"
    );
    ASSERT_EQ(
-      silo::test::executeQueryToJsonArray(query_plan_1), nlohmann::json::array({{{"count", 20}}})
+      rhydb::test::executeQueryToJsonArray(query_plan_1), nlohmann::json::array({{{"count", 20}}})
    );
 
    std::stringstream second_table_data;
@@ -288,13 +288,13 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
       << R"({"key":"id_1","sequence":{"sequence":"AAAA","insertions":[],"offset":0}})";
    database.appendData(second_table_name, second_table_data);
 
-   auto query_plan_2 = silo::query_engine::Planner::planSaneqlQuery(
+   auto query_plan_2 = rhydb::query_engine::Planner::planSaneqlQuery(
       "second.groupBy({count:=count()})",
       database.tables,
-      silo::config::QueryOptions{},
+      rhydb::config::QueryOptions{},
       "test_query_2"
    );
    ASSERT_EQ(
-      silo::test::executeQueryToJsonArray(query_plan_2), nlohmann::json::array({{{"count", 1}}})
+      rhydb::test::executeQueryToJsonArray(query_plan_2), nlohmann::json::array({{{"count", 1}}})
    );
 }

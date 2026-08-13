@@ -13,7 +13,7 @@
 #include "silo/common/panic.h"
 #include "silo/storage/vector/variable_data_registry.h"
 
-namespace silo {
+namespace rhydb {
 
 // Umbra strings as described in https://www.cidrdb.org/cidr2020/papers/p29-neumann-cidr20.pdf
 // aka GermanString as popularized by Andy Pavlo
@@ -24,7 +24,7 @@ class GermanString {
    static_assert(I > sizeof(suffix_id_type));
 
    friend class boost::serialization::access;
-   friend class std::hash<silo::GermanString<I, suffix_id_type>>;
+   friend class std::hash<rhydb::GermanString<I, suffix_id_type>>;
 
   public:
    using length_type = uint32_t;
@@ -111,4 +111,4 @@ class GermanString {
 
 using SiloString = GermanString<12, storage::vector::VariableDataRegistry::Identifier>;
 
-}  // namespace silo
+}  // namespace rhydb

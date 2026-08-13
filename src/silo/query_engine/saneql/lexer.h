@@ -6,7 +6,7 @@
 #include "silo/query_engine/saneql/source_location.h"
 #include "silo/query_engine/saneql/token.h"
 
-namespace silo::query_engine::saneql {
+namespace rhydb::query_engine::saneql {
 
 class Lexer {
    std::string_view input;
@@ -35,4 +35,4 @@ class Lexer {
    [[nodiscard]] Token readIdentifierOrKeyword();
 };
 
-}  // namespace silo::query_engine::saneql
+}  // namespace rhydb::query_engine::saneql

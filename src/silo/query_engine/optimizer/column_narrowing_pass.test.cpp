@@ -25,10 +25,10 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
 
-using silo::query_engine::optimizer::ColumnNarrowingPass;
-using silo::schema::ColumnIdentifier;
-using silo::schema::ColumnType;
-namespace operators = silo::query_engine::operators;
+using rhydb::query_engine::optimizer::ColumnNarrowingPass;
+using rhydb::schema::ColumnIdentifier;
+using rhydb::schema::ColumnType;
+namespace operators = rhydb::query_engine::operators;
 
 namespace {
 
@@ -40,23 +40,23 @@ ColumnIdentifier colWithType(std::string name, ColumnType type) {
    return ColumnIdentifier{.name = std::move(name), .type = type};
 }
 
-std::shared_ptr<silo::storage::Table> dummyTable() {
-   using silo::storage::column::ColumnMetadata;
-   using silo::storage::column::StringColumnMetadata;
+std::shared_ptr<rhydb::storage::Table> dummyTable() {
+   using rhydb::storage::column::ColumnMetadata;
+   using rhydb::storage::column::StringColumnMetadata;
 
    ColumnIdentifier primary_key = col("id");
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), primary_key);
-   return std::make_shared<silo::storage::Table>(silo::schema::TableName::getDefault(), schema);
+   auto schema = std::make_shared<rhydb::schema::TableSchema>(std::move(col_meta), primary_key);
+   return std::make_shared<rhydb::storage::Table>(rhydb::schema::TableName::getDefault(), schema);
 }
 
 // The narrowing pass only inspects the scan's field list, so the table identity is irrelevant.
 std::unique_ptr<operators::TableScanNode> makeScan(std::vector<ColumnIdentifier> fields) {
    return std::make_unique<operators::TableScanNode>(
       dummyTable(),
-      std::make_unique<silo::query_engine::scalar_expressions::BoolLiteral>(true),
+      std::make_unique<rhydb::query_engine::scalar_expressions::BoolLiteral>(true),
       std::move(fields)
    );
 }
@@ -96,8 +96,8 @@ operators::TableScanNode& leafScan(operators::QueryNode& node) {
 operators::MapNode::Assignment decompressAssignment(const ColumnIdentifier& sequence_col) {
    return {
       .output_column = col(sequence_col.name),
-      .expression = std::make_unique<silo::query_engine::scalar_expressions::ZstdDecompressScalar>(
-         std::make_unique<silo::query_engine::scalar_expressions::FieldRef>(sequence_col), "A"
+      .expression = std::make_unique<rhydb::query_engine::scalar_expressions::ZstdDecompressScalar>(
+         std::make_unique<rhydb::query_engine::scalar_expressions::FieldRef>(sequence_col), "A"
       )
    };
 }
@@ -198,7 +198,7 @@ TEST(ColumnNarrowingPassOrderBy, appendsSortKeyToRequired) {
    auto scan = makeScan({col("a"), col("b"), col("c")});
    auto order = std::make_unique<operators::OrderByNode>(
       std::move(scan),
-      std::vector<silo::query_engine::OrderByField>{{.field = col("c"), .ascending = true}},
+      std::vector<rhydb::query_engine::OrderByField>{{.field = col("c"), .ascending = true}},
       std::nullopt
    );
 
@@ -357,11 +357,11 @@ TEST(ColumnNarrowingPassMap, preservesAssignmentOrderForAddedColumns) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = col("x"),
-       .expression = std::make_unique<silo::query_engine::scalar_expressions::Int64Literal>(1)}
+       .expression = std::make_unique<rhydb::query_engine::scalar_expressions::Int64Literal>(1)}
    );
    assignments.push_back(
       {.output_column = col("y"),
-       .expression = std::make_unique<silo::query_engine::scalar_expressions::Int64Literal>(2)}
+       .expression = std::make_unique<rhydb::query_engine::scalar_expressions::Int64Literal>(2)}
    );
    operators::QueryNodePtr node =
       std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
@@ -396,7 +396,7 @@ TEST(ColumnNarrowingPassFetch, propagatesRequiredThroughFetch) {
 TEST(ColumnNarrowingPassFilter, propagatesRequiredThroughFilter) {
    auto scan = makeScan({col("a"), col("b"), col("c")});
    auto filter = std::make_unique<operators::FilterNode>(
-      std::move(scan), std::make_unique<silo::query_engine::scalar_expressions::BoolLiteral>(true)
+      std::move(scan), std::make_unique<rhydb::query_engine::scalar_expressions::BoolLiteral>(true)
    );
 
    ColumnNarrowingPass pass({col("b")});
@@ -415,7 +415,7 @@ TEST(ColumnNarrowingPassMap, keepsReferencedColumnAndPrunesOthers) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
       {.output_column = col("x"),
-       .expression = std::make_unique<silo::query_engine::scalar_expressions::FieldRef>(col("b"))}
+       .expression = std::make_unique<rhydb::query_engine::scalar_expressions::FieldRef>(col("b"))}
    );
    auto map = std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
 

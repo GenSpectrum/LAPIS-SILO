@@ -18,7 +18,7 @@
 #include "silo/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::optimizer {
+namespace rhydb::query_engine::optimizer {
 
 namespace {
 
@@ -206,4 +206,4 @@ operators::QueryNodePtr BitmapAggregationRewritePass::operator()(operators::Aggr
    );
 }
 
-}  // namespace silo::query_engine::optimizer
+}  // namespace rhydb::query_engine::optimizer

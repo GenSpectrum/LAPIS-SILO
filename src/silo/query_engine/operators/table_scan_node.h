@@ -12,7 +12,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Leaf operator: scans a table applying a filter expression to produce matching rows.
 class TableScanNode final : public QueryNode {
@@ -40,4 +40,4 @@ class TableScanNode final : public QueryNode {
    [[nodiscard]] nlohmann::json toJson() const override;
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

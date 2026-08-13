@@ -19,7 +19,7 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 
-namespace silo::storage {
+namespace rhydb::storage {
 
 class ColumnGroup {
    friend class boost::serialization::access;
@@ -58,7 +58,7 @@ class ColumnGroup {
    }
 
   public:
-   std::vector<silo::schema::ColumnIdentifier> metadata;
+   std::vector<rhydb::schema::ColumnIdentifier> metadata;
 
    std::map<std::string, column::StringColumn> string_columns;
    std::map<std::string, column::DictionaryEncodedColumn> dictionary_encoded_columns;
@@ -77,4 +77,4 @@ class ColumnGroup {
    [[nodiscard]] const std::map<std::string, ColumnType>& getColumns() const;
 };
 
-}  // namespace silo::storage
+}  // namespace rhydb::storage

@@ -5,7 +5,7 @@
 
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 
-namespace silo::test {
+namespace rhydb::test {
 
 std::string printScenarioName(const ::testing::TestParamInfo<QueryTestScenario>& scenario) {
    return scenario.param.name;
@@ -26,4 +26,4 @@ nlohmann::json executeQueryToJsonArray(
    return result;
 }
 
-}  // namespace silo::test
+}  // namespace rhydb::test

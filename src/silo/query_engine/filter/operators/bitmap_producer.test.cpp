@@ -5,9 +5,9 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-using silo::query_engine::CopyOnWriteBitmap;
-using silo::query_engine::filter::operators::BitmapProducer;
-using silo::storage::column::RowLayout;
+using rhydb::query_engine::CopyOnWriteBitmap;
+using rhydb::query_engine::filter::operators::BitmapProducer;
+using rhydb::storage::column::RowLayout;
 
 TEST(OperatorBitmapProducer, evaluateShouldReturnCorrectValues) {
    const roaring::Roaring test_bitmap({1, 2, 3});
@@ -34,7 +34,7 @@ TEST(OperatorBitmapProducer, correctTypeInfo) {
    const auto row_layout = RowLayout::of(5);
 
    const BitmapProducer under_test([&]() { return CopyOnWriteBitmap(&test_bitmap); }, row_layout);
-   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::BITMAP_PRODUCER);
+   ASSERT_EQ(under_test.type(), rhydb::query_engine::filter::operators::BITMAP_PRODUCER);
 }
 
 TEST(OperatorBitmapProducer, correctToString) {

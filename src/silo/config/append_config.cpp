@@ -3,8 +3,8 @@
 #include "config/config_interface.h"
 #include "config/source/yaml_file.h"
 
-using silo::config::ConfigKeyPath;
-using silo::config::YamlFile;
+using rhydb::config::ConfigKeyPath;
+using rhydb::config::YamlFile;
 
 namespace {
 ConfigKeyPath appendConfigOptionKey() {
@@ -21,7 +21,7 @@ ConfigKeyPath siloDataSourceOptionKey() {
 }
 }  // namespace
 
-namespace silo::config {
+namespace rhydb::config {
 
 void AppendConfig::validate() const {}
 
@@ -82,10 +82,10 @@ std::vector<std::filesystem::path> AppendConfig::getConfigFilePaths(
    return result;
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config
 
-[[maybe_unused]] auto fmt::formatter<silo::config::AppendConfig>::format(
-   const silo::config::AppendConfig& append_config,
+[[maybe_unused]] auto fmt::formatter<rhydb::config::AppendConfig>::format(
+   const rhydb::config::AppendConfig& append_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    const nlohmann::json json = append_config;

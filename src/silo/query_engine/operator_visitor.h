@@ -25,7 +25,7 @@
 #include "silo/query_engine/operators/unresolved_mutations_node.h"
 #include "silo/query_engine/operators/unresolved_phylo_subtree_node.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 template <typename Func>
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -47,18 +47,19 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
          return std::forward<Func>(func)(static_cast<FilterNode&>(node));
       case NodeKind::UNRESOLVED_MUTATIONS_NUCLEOTIDE:
          return std::forward<Func>(func)(
-            static_cast<UnresolvedMutationsNode<silo::Nucleotide>&>(node)
+            static_cast<UnresolvedMutationsNode<rhydb::Nucleotide>&>(node)
          );
       case NodeKind::UNRESOLVED_MUTATIONS_AMINO_ACID:
-         return std::forward<Func>(func)(static_cast<UnresolvedMutationsNode<silo::AminoAcid>&>(node
-         ));
+         return std::forward<Func>(func)(
+            static_cast<UnresolvedMutationsNode<rhydb::AminoAcid>&>(node)
+         );
       case NodeKind::UNRESOLVED_INSERTIONS_NUCLEOTIDE:
          return std::forward<Func>(func)(
-            static_cast<UnresolvedInsertionsNode<silo::Nucleotide>&>(node)
+            static_cast<UnresolvedInsertionsNode<rhydb::Nucleotide>&>(node)
          );
       case NodeKind::UNRESOLVED_INSERTIONS_AMINO_ACID:
          return std::forward<Func>(func)(
-            static_cast<UnresolvedInsertionsNode<silo::AminoAcid>&>(node)
+            static_cast<UnresolvedInsertionsNode<rhydb::AminoAcid>&>(node)
          );
       case NodeKind::UNRESOLVED_MOST_RECENT_COMMON_ANCESTOR:
          return std::forward<Func>(func)(static_cast<UnresolvedMostRecentCommonAncestorNode&>(node)
@@ -66,13 +67,13 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
       case NodeKind::UNRESOLVED_PHYLO_SUBTREE:
          return std::forward<Func>(func)(static_cast<UnresolvedPhyloSubtreeNode&>(node));
       case NodeKind::MUTATIONS_NUCLEOTIDE:
-         return std::forward<Func>(func)(static_cast<MutationsNode<silo::Nucleotide>&>(node));
+         return std::forward<Func>(func)(static_cast<MutationsNode<rhydb::Nucleotide>&>(node));
       case NodeKind::MUTATIONS_AMINO_ACID:
-         return std::forward<Func>(func)(static_cast<MutationsNode<silo::AminoAcid>&>(node));
+         return std::forward<Func>(func)(static_cast<MutationsNode<rhydb::AminoAcid>&>(node));
       case NodeKind::INSERTIONS_NUCLEOTIDE:
-         return std::forward<Func>(func)(static_cast<InsertionsNode<silo::Nucleotide>&>(node));
+         return std::forward<Func>(func)(static_cast<InsertionsNode<rhydb::Nucleotide>&>(node));
       case NodeKind::INSERTIONS_AMINO_ACID:
-         return std::forward<Func>(func)(static_cast<InsertionsNode<silo::AminoAcid>&>(node));
+         return std::forward<Func>(func)(static_cast<InsertionsNode<rhydb::AminoAcid>&>(node));
       case NodeKind::MOST_RECENT_COMMON_ANCESTOR:
          return std::forward<Func>(func)(static_cast<MostRecentCommonAncestorNode&>(node));
       case NodeKind::PHYLO_SUBTREE:
@@ -93,4 +94,4 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
    SILO_UNREACHABLE();
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

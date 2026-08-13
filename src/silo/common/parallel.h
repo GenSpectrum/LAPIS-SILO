@@ -10,7 +10,7 @@
 
 #include "panic.h"
 
-namespace silo::common {
+namespace rhydb::common {
 
 class BlockedRange {
    size_t begin_;
@@ -73,4 +73,4 @@ void parallelFor(
    }
 }
 
-}  // namespace silo::common
+}  // namespace rhydb::common

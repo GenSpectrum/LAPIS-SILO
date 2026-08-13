@@ -6,7 +6,7 @@
 #include <arrow/acero/exec_plan.h>
 #include <arrow/result.h>
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Name of the transient uint64 column that carries the per-row random hash used to implement
 /// `randomize`. It is appended to the stream, sorted on, and projected back out again, so it is
@@ -28,4 +28,4 @@ arrow::Result<arrow::acero::ExecNode*> removeRandomizeColumn(
    arrow::acero::ExecNode* top_node
 );
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

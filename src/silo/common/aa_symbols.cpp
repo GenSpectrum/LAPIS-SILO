@@ -4,13 +4,13 @@
 
 #include "silo/common/symbol_map.h"
 
-namespace silo {
+namespace rhydb {
 
 // Primary definition: what each symbol codes for.
 // Concrete amino acids code for themselves.
 // Ambiguity symbols code for the set of amino acids they represent per IUPAC.
 // X codes for all symbols (including GAP, STOP, and other ambiguity codes).
-const silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AminoAcid::CODES_FOR{{{
+const rhydb::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AminoAcid::CODES_FOR{{{
    {Symbol::GAP},           // GAP
    {Symbol::A},             // Alanine
    {Symbol::C},             // Cysteine
@@ -46,8 +46,8 @@ const silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AminoAcid::CODE
 }}};
 
 namespace {
-silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> deriveAmbiguitySymbols() {
-   silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> result;
+rhydb::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> deriveAmbiguitySymbols() {
+   rhydb::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> result;
    for (auto symbol : AminoAcid::SYMBOLS) {
       const auto& codes_for_symbol = AminoAcid::CODES_FOR.at(symbol);
       std::vector<AminoAcid::Symbol> ambiguous;
@@ -68,7 +68,7 @@ silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> deriveAmbiguitySymbol
 }
 }  // namespace
 
-const silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AminoAcid::AMBIGUITY_SYMBOLS =
+const rhydb::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AminoAcid::AMBIGUITY_SYMBOLS =
    deriveAmbiguitySymbols();
 
-}  // namespace silo
+}  // namespace rhydb

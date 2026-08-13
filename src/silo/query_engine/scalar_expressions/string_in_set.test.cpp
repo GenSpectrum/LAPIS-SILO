@@ -3,9 +3,9 @@
 #include "silo/test/query_fixture.test.h"
 
 namespace {
-using silo::ReferenceGenomes;
-using silo::test::QueryTestData;
-using silo::test::QueryTestScenario;
+using rhydb::ReferenceGenomes;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
 
 nlohmann::json createData(const std::string& primary_key, const std::string& country) {
    return nlohmann::json::parse(fmt::format(

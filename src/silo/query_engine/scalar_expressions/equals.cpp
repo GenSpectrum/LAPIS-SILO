@@ -25,11 +25,11 @@
 #include "silo/storage/column/float_column.h"
 #include "silo/storage/column/int_column.h"
 
-using silo::storage::column::Date32Column;
-using silo::storage::column::FloatColumn;
-using silo::storage::column::IntColumn;
+using rhydb::storage::column::Date32Column;
+using rhydb::storage::column::FloatColumn;
+using rhydb::storage::column::IntColumn;
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 namespace {
 
@@ -214,4 +214,4 @@ std::unique_ptr<filter::operators::Operator> Equals::compile(const storage::Tabl
    throwNotCompilable();
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

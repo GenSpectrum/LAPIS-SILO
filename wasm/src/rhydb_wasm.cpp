@@ -36,7 +36,7 @@ constexpr size_t WASM_MATERIALIZATION_CUTOFF = 256;
 // wasm/CMakeLists.txt) is used internally during query execution but never
 // calls back into these functions, so it does not introduce concurrent access
 // here.
-std::map<int, std::unique_ptr<silo::Database>> databases;
+std::map<int, std::unique_ptr<rhydb::Database>> databases;
 int next_database_handle = 1;
 
 // Idempotent: safe to call before every preprocess/load/query. The static
@@ -53,28 +53,28 @@ void initializeArrowCompute() {
    (void)initialized;
 }
 
-silo::config::PreprocessingConfig readPreprocessingConfig(
+rhydb::config::PreprocessingConfig readPreprocessingConfig(
    const std::string& preprocessing_config_path
 ) {
-   auto config = silo::config::PreprocessingConfig::withDefaults();
+   auto config = rhydb::config::PreprocessingConfig::withDefaults();
    const auto config_source =
-      silo::config::YamlFile::readFile(preprocessing_config_path)
-         .verify(silo::config::PreprocessingConfig::getConfigSpecification());
+      rhydb::config::YamlFile::readFile(preprocessing_config_path)
+         .verify(rhydb::config::PreprocessingConfig::getConfigSpecification());
    config.overwriteFrom(config_source);
    config.validate();
    return config;
 }
 
-silo::config::QueryOptions browserQueryOptions() {
-   return silo::config::QueryOptions{.materialization_cutoff = WASM_MATERIALIZATION_CUTOFF};
+rhydb::config::QueryOptions browserQueryOptions() {
+   return rhydb::config::QueryOptions{.materialization_cutoff = WASM_MATERIALIZATION_CUTOFF};
 }
 
 }  // namespace
 
 int preprocess(const std::string& preprocessing_config_path) {
    initializeArrowCompute();
-   auto database = std::make_unique<silo::Database>(
-      silo::preprocessing::preprocessing(readPreprocessingConfig(preprocessing_config_path))
+   auto database = std::make_unique<rhydb::Database>(
+      rhydb::preprocessing::preprocessing(readPreprocessingConfig(preprocessing_config_path))
    );
    const int handle = next_database_handle++;
    databases.emplace(handle, std::move(database));
@@ -91,12 +91,12 @@ void save(int handle, const std::string& output_directory) {
 
 int load(const std::string& state_directory) {
    initializeArrowCompute();
-   auto database = silo::Database::loadDatabaseStateFromPath(state_directory);
+   auto database = rhydb::Database::loadDatabaseStateFromPath(state_directory);
    if (!database.has_value()) {
       throw std::runtime_error("No compatible SILO state found in " + state_directory);
    }
    const int handle = next_database_handle++;
-   databases.emplace(handle, std::make_unique<silo::Database>(std::move(database.value())));
+   databases.emplace(handle, std::make_unique<rhydb::Database>(std::move(database.value())));
    return handle;
 }
 
@@ -107,12 +107,14 @@ std::string query(int handle, const std::string& saneql_query) {
       throw std::runtime_error("Unknown SILO database handle");
    }
 
-   auto query_plan = silo::query_engine::Planner::planSaneqlQuery(
+   auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
       saneql_query, database->second->tables, browserQueryOptions(), "silo-wasm"
    );
 
    std::ostringstream output_stream;
-   silo::query_engine::exec_node::NdjsonSink output_sink{&output_stream, query_plan.results_schema};
+   rhydb::query_engine::exec_node::NdjsonSink output_sink{
+      &output_stream, query_plan.results_schema
+   };
    query_plan.executeAndWrite(output_sink, QUERY_TIMEOUT_SECONDS);
    return output_stream.str();
 }

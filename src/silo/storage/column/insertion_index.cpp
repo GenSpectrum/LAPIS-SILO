@@ -15,7 +15,7 @@
 #include "silo/common/symbol_map.h"
 #include "silo/storage/insertion_format_exception.h"
 
-namespace silo::storage::insertion {
+namespace rhydb::storage::insertion {
 
 namespace {
 constexpr std::string_view REGEX_ANY = ".*";
@@ -292,4 +292,4 @@ template class ThreeMerHash<AminoAcid>;
 template class InsertionIndex<Nucleotide>;
 template class InsertionIndex<AminoAcid>;
 
-}  // namespace silo::storage::insertion
+}  // namespace rhydb::storage::insertion

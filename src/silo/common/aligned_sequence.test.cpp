@@ -7,10 +7,10 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 
-using silo::AminoAcid;
-using silo::CoverageAndMutations;
-using silo::extractCoverageAndMutationsFromSequence;
-using silo::Nucleotide;
+using rhydb::AminoAcid;
+using rhydb::CoverageAndMutations;
+using rhydb::extractCoverageAndMutationsFromSequence;
+using rhydb::Nucleotide;
 using Symbol = Nucleotide::Symbol;
 
 namespace {

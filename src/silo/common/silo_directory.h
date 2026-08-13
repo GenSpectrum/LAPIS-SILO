@@ -9,7 +9,7 @@
 #include <silo/common/data_version.h>
 #include <silo/common/fmt_formatters.h>
 
-namespace silo {
+namespace rhydb {
 
 class InvalidSiloDataSourceException : public std::runtime_error {
   public:
@@ -22,7 +22,7 @@ class InvalidSiloDataSourceException : public std::runtime_error {
 };
 
 class SiloDataSource {
-   SiloDataSource(std::filesystem::path path, silo::DataVersion data_version)
+   SiloDataSource(std::filesystem::path path, rhydb::DataVersion data_version)
        : path(std::move(path)),
          data_version(std::move(data_version)) {}
 
@@ -30,7 +30,7 @@ class SiloDataSource {
    SiloDataSource() = delete;
 
    std::filesystem::path path;
-   silo::DataVersion data_version;
+   rhydb::DataVersion data_version;
 
    static SiloDataSource checkValidDataSource(
       const std::filesystem::path& candidate_data_source_path
@@ -51,11 +51,11 @@ class SiloDirectory {
    NLOHMANN_DEFINE_TYPE_INTRUSIVE(SiloDirectory, directory);
 };
 
-}  // namespace silo
+}  // namespace rhydb
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::SiloDirectory> : fmt::formatter<std::string> {
-   [[maybe_unused]] static auto format(const silo::SiloDirectory& val, format_context& ctx)
+struct [[maybe_unused]] fmt::formatter<rhydb::SiloDirectory> : fmt::formatter<std::string> {
+   [[maybe_unused]] static auto format(const rhydb::SiloDirectory& val, format_context& ctx)
       -> decltype(ctx.out()) {
       auto out = ctx.out();
       const nlohmann::json json = val;

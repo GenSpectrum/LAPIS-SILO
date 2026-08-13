@@ -25,32 +25,32 @@
 #include "silo/storage/vector/german_string_registry.h"
 #include "silo/storage/vector/variable_data_registry.h"
 
-namespace silo::storage::column {
-using silo::common::TreeNodeId;
+namespace rhydb::storage::column {
+using rhydb::common::TreeNodeId;
 
 class StringColumnBuilder;
 
 class StringColumnMetadata : public ColumnMetadata {
   public:
-   silo::common::BidirectionalStringMap dictionary;
+   rhydb::common::BidirectionalStringMap dictionary;
 
-   std::optional<silo::common::PhyloTree> phylo_tree;
+   std::optional<rhydb::common::PhyloTree> phylo_tree;
 
    explicit StringColumnMetadata(std::string column_name)
        : ColumnMetadata(std::move(column_name)) {}
 
-   StringColumnMetadata(std::string column_name, silo::common::PhyloTree phylo_tree)
+   StringColumnMetadata(std::string column_name, rhydb::common::PhyloTree phylo_tree)
        : ColumnMetadata(std::move(column_name)),
          phylo_tree(std::move(phylo_tree)) {}
 
-   StringColumnMetadata(std::string column_name, silo::common::BidirectionalStringMap&& dictionary)
+   StringColumnMetadata(std::string column_name, rhydb::common::BidirectionalStringMap&& dictionary)
        : ColumnMetadata(std::move(column_name)),
          dictionary(std::move(dictionary)) {}
 
    StringColumnMetadata(
       std::string column_name,
-      silo::common::BidirectionalStringMap&& dictionary,
-      silo::common::PhyloTree phylo_tree
+      rhydb::common::BidirectionalStringMap&& dictionary,
+      rhydb::common::PhyloTree phylo_tree
    )
        : ColumnMetadata(std::move(column_name)),
          dictionary(std::move(dictionary)),
@@ -168,14 +168,14 @@ class StringColumnBuilder {
    [[nodiscard]] StringColumn::Buffer finalize();
 };
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column
 
-BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::StringColumnMetadata);
+BOOST_SERIALIZATION_SPLIT_FREE(rhydb::storage::column::StringColumnMetadata);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void save(
    Archive& archive,
-   const silo::storage::column::StringColumnMetadata& object,
+   const rhydb::storage::column::StringColumnMetadata& object,
    [[maybe_unused]] const uint32_t version
 ) {
    archive & object.column_name;
@@ -184,26 +184,26 @@ template <class Archive>
 }
 }  // namespace boost::serialization
 
-BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<silo::storage::column::StringColumnMetadata>);
+BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<rhydb::storage::column::StringColumnMetadata>);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void load(
    Archive& archive,
-   std::shared_ptr<silo::storage::column::StringColumnMetadata>& object,
+   std::shared_ptr<rhydb::storage::column::StringColumnMetadata>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
-   silo::common::BidirectionalStringMap dictionary;
-   std::optional<silo::common::PhyloTree> phylo_tree;
+   rhydb::common::BidirectionalStringMap dictionary;
+   std::optional<rhydb::common::PhyloTree> phylo_tree;
    archive & column_name;
    archive & dictionary;
    archive & phylo_tree;
    if (phylo_tree.has_value()) {
-      object = std::make_shared<silo::storage::column::StringColumnMetadata>(
+      object = std::make_shared<rhydb::storage::column::StringColumnMetadata>(
          std::move(column_name), std::move(dictionary), std::move(phylo_tree.value())
       );
    } else {
-      object = std::make_shared<silo::storage::column::StringColumnMetadata>(
+      object = std::make_shared<rhydb::storage::column::StringColumnMetadata>(
          std::move(column_name), std::move(dictionary)
       );
    }

@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-using silo::common::toIsoString;
+using rhydb::common::toIsoString;
 
 TEST(X, toIsoString) {
    auto specific_time_with_ns =

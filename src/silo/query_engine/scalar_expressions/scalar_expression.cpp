@@ -1,6 +1,6 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 ScalarExpression::ScalarExpression() = default;
 
@@ -14,4 +14,4 @@ ScalarExpression::AmbiguityMode invertMode(ScalarExpression::AmbiguityMode mode)
    return mode;
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

@@ -23,7 +23,7 @@
 #include "silo/zstd/zstd_decompressor.h"
 #include "silo/zstd/zstd_dictionary.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 namespace {
 struct BinaryDecompressKernel {
@@ -57,8 +57,8 @@ struct BinaryDecompressKernel {
       }
       const auto* input_dict = static_cast<const arrow::BinaryScalar*>(input.values[1].scalar);
       SILO_ASSERT(input_dict);
-      auto dictionary = std::make_shared<silo::ZstdDDictionary>(input_dict->view());
-      silo::ZstdDecompressor decompressor{dictionary};
+      auto dictionary = std::make_shared<rhydb::ZstdDDictionary>(input_dict->view());
+      rhydb::ZstdDecompressor decompressor{dictionary};
 
       arrow::StringBuilder builder(context->memory_pool());
       ARROW_RETURN_NOT_OK(builder.Reserve(input_span.length));
@@ -145,4 +145,4 @@ arrow::Expression ZstdDecompressExpression::make(
    );
 }
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

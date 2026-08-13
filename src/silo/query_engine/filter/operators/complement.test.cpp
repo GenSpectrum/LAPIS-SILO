@@ -5,10 +5,10 @@
 
 #include "silo/query_engine/filter/operators/index_scan.h"
 
-using silo::query_engine::CopyOnWriteBitmap;
-using silo::query_engine::filter::operators::Complement;
-using silo::query_engine::filter::operators::IndexScan;
-using silo::storage::column::RowLayout;
+using rhydb::query_engine::CopyOnWriteBitmap;
+using rhydb::query_engine::filter::operators::Complement;
+using rhydb::query_engine::filter::operators::IndexScan;
+using rhydb::storage::column::RowLayout;
 
 TEST(OperatorComplement, evaluateShouldReturnCorrectValues) {
    const roaring::Roaring test_bitmap(roaring::Roaring({1, 2, 3}));
@@ -68,5 +68,5 @@ TEST(OperatorComplement, correctTypeInfo) {
       std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout
    );
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::COMPLEMENT);
+   ASSERT_EQ(under_test.type(), rhydb::query_engine::filter::operators::COMPLEMENT);
 }

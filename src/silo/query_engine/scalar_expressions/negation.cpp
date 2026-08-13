@@ -11,7 +11,7 @@
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 Negation::Negation(std::unique_ptr<ScalarExpression> child)
     : child(std::move(child)) {}
@@ -33,4 +33,4 @@ std::unique_ptr<filter::operators::Operator> Negation::compile(const storage::Ta
    return filter::operators::Operator::negate(child->compile(table));
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

@@ -13,7 +13,7 @@
 #include "silo/query_engine/scalar_expressions/symbol_in_set.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 template <typename SymbolType>
 HasMutation<SymbolType>::HasMutation(schema::ColumnIdentifier column, uint32_t position_idx)
@@ -78,4 +78,4 @@ std::unique_ptr<filter::operators::Operator> HasMutation<SymbolType>::compile(
 template class HasMutation<AminoAcid>;
 template class HasMutation<Nucleotide>;
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

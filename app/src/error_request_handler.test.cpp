@@ -19,16 +19,16 @@ class MockRequestHandler : public Poco::Net::HTTPRequestHandler {
 };
 
 const auto TEST_RUNTIME_CONFIG = [] {
-   auto config = silo::config::RuntimeConfig::withDefaults();
+   auto config = rhydb::config::RuntimeConfig::withDefaults();
    config.api_options.estimated_startup_end = std::chrono::system_clock::now();
    return config;
 }();
 
-silo::config::RuntimeConfig getRuntimeConfigThatEndsInXMinutes(
+rhydb::config::RuntimeConfig getRuntimeConfigThatEndsInXMinutes(
    std::chrono::minutes estimated_time_in_minutes
 ) {
    const std::chrono::time_point point = std::chrono::system_clock::now();
-   auto result = silo::config::RuntimeConfig::withDefaults();
+   auto result = rhydb::config::RuntimeConfig::withDefaults();
    result.api_options.estimated_startup_end = point + estimated_time_in_minutes;
    return result;
 }

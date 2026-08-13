@@ -1,6 +1,6 @@
 #include "silo/query_engine/exec_node/throttled_batch_reslicer.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 // By arrow specification, this function will not be called re-entrantly
 arrow::Future<std::optional<arrow::compute::ExecBatch>> ThrottledBatchReslicer::operator()() {
@@ -75,4 +75,4 @@ arrow::Result<std::optional<arrow::ExecBatch>> ThrottledBatchReslicer::deliverSl
    return batch;
 }
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

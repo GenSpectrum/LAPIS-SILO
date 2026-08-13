@@ -5,7 +5,7 @@
 
 #include <roaring/roaring.h>
 
-namespace silo::query_engine {
+namespace rhydb::query_engine {
 
 class BatchedBitmapReader {
   public:
@@ -30,4 +30,4 @@ class BatchedBitmapReader {
    size_t batch_size_minus_one;
 };
 
-}  // namespace silo::query_engine
+}  // namespace rhydb::query_engine

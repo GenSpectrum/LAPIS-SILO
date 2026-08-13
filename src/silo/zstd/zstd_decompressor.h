@@ -8,7 +8,7 @@
 #include "zstd_context.h"
 #include "zstd_dictionary.h"
 
-namespace silo {
+namespace rhydb {
 
 class ZstdDecompressor {
    std::shared_ptr<ZstdDDictionary> zstd_dictionary;
@@ -22,4 +22,4 @@ class ZstdDecompressor {
    void decompress(const char* input_data, size_t input_length, std::string& buffer);
 };
 
-}  // namespace silo
+}  // namespace rhydb

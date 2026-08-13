@@ -13,7 +13,7 @@
 #include "silo/common/panic.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
-namespace silo::common {
+namespace rhydb::common {
 
 namespace {
 
@@ -326,7 +326,7 @@ void assignLineageIds(
 ) {
    for (const auto& lineage : file.lineages) {
       if (lookup.getId(lineage.lineage_name.string).has_value()) {
-         throw silo::preprocessing::PreprocessingException(fmt::format(
+         throw rhydb::preprocessing::PreprocessingException(fmt::format(
             "The lineage definitions contain the duplicate lineage '{}'", lineage.lineage_name
          ));
       }
@@ -344,7 +344,7 @@ std::unordered_map<Idx, Idx> assignAliasIdsAndGetAliasMapping(
       SILO_ASSERT(lineage_id.has_value());
       for (const auto& alias : lineage.aliases) {
          if (lookup.getId(alias.string).has_value()) {
-            throw silo::preprocessing::PreprocessingException(fmt::format(
+            throw rhydb::preprocessing::PreprocessingException(fmt::format(
                "The alias '{}' for lineage '{}' is already defined as a lineage or another alias.",
                alias,
                lineage.lineage_name
@@ -411,4 +411,4 @@ LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFilePath(
    return fromLineageDefinitionFile(std::move(definition_file));
 }
 
-}  // namespace silo::common
+}  // namespace rhydb::common

@@ -19,9 +19,9 @@
 #include "silo/query_engine/query_compilation_exception.h"
 #include "silo/query_engine/query_parse_sequence_name.h"
 
-using silo::storage::column::SequenceColumn;
+using rhydb::storage::column::SequenceColumn;
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 template <typename SymbolType>
 SymbolInSet<SymbolType>::SymbolInSet(
@@ -303,4 +303,4 @@ std::unique_ptr<filter::operators::Operator> SymbolInSet<SymbolType>::compile(
 template class SymbolInSet<AminoAcid>;
 template class SymbolInSet<Nucleotide>;
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

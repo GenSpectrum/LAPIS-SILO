@@ -6,7 +6,7 @@
 
 #include "silo/storage/column/row_id.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 BoolColumn::BoolColumn(ColumnMetadata* metadata)
     : metadata(metadata) {}
@@ -45,4 +45,4 @@ void BoolColumn::update(const roaring::Roaring& row_ids, std::optional<bool> val
       false_bitmap -= row_ids;
    }
 }
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

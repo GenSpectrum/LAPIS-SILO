@@ -11,7 +11,7 @@
 
 #include "silo/common/panic.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 using arrow::acero::BackpressureMonitor;
 
@@ -50,4 +50,4 @@ class ThrottledBatchReslicer {
    arrow::Result<std::optional<arrow::ExecBatch>> deliverSlicedBatch();
 };
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

@@ -5,7 +5,7 @@
 
 #include <boost/serialization/binary_object.hpp>
 
-namespace silo::storage::buffer {
+namespace rhydb::storage::buffer {
 
 const size_t SILO_PAGE_SIZE = 16384;
 
@@ -51,4 +51,4 @@ class Page {
    }
 };
 
-}  // namespace silo::storage::buffer
+}  // namespace rhydb::storage::buffer

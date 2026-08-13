@@ -2,7 +2,7 @@
 
 #include <roaring/roaring.hh>
 
-namespace silo::roaring_util {
+namespace rhydb::roaring_util {
 
 class BitmapBuilderByContainer {
    roaring::Roaring result_bitmap;
@@ -34,4 +34,4 @@ class BitmapBuilderByRange {
    roaring::Roaring getBitmap() &&;
 };
 
-}  // namespace silo::roaring_util
+}  // namespace rhydb::roaring_util

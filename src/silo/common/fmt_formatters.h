@@ -31,7 +31,7 @@ struct [[maybe_unused]] fmt::formatter<std::filesystem::path> : fmt::formatter<s
    }
 };
 
-namespace silo::common {
+namespace rhydb::common {
 
 std::string toIsoString(
    const std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>& time_point
@@ -47,7 +47,7 @@ struct [[maybe_unused]] fmt::formatter<
       const std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>& val,
       format_context& ctx
    ) -> decltype(ctx.out()) {
-      return fmt::format_to(ctx.out(), "{}", silo::common::toIsoString(val));
+      return fmt::format_to(ctx.out(), "{}", rhydb::common::toIsoString(val));
    }
 };
 

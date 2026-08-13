@@ -7,8 +7,8 @@
 
 #include "silo/common/lineage_name.h"
 
-namespace silo::preprocessing {
-using silo::common::LineageName;
+namespace rhydb::preprocessing {
+using rhydb::common::LineageName;
 
 class LineageDefinition {
   public:
@@ -29,4 +29,4 @@ class LineageDefinitionFile {
    static LineageDefinitionFile fromYAML(const YAML::Node& yaml_node);
 };
 
-}  // namespace silo::preprocessing
+}  // namespace rhydb::preprocessing

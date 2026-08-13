@@ -1,9 +1,9 @@
 #include "config/config_interface.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 std::optional<std::filesystem::path> getConfigFilePath(
-   const silo::config::ConfigKeyPath& config_key_path,
+   const rhydb::config::ConfigKeyPath& config_key_path,
    const VerifiedCommandLineArguments& cmd_source,
    const VerifiedConfigAttributes& env_source
 ) {
@@ -16,4 +16,4 @@ std::optional<std::filesystem::path> getConfigFilePath(
    return std::nullopt;
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config

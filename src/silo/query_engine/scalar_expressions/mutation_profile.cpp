@@ -23,7 +23,7 @@
 #include "silo/storage/column/horizontal_coverage_index.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 template <typename SymbolType>
 MutationProfile<SymbolType>::MutationProfile(
@@ -269,4 +269,4 @@ std::unique_ptr<filter::operators::Operator> MutationProfile<SymbolType>::compil
 template class MutationProfile<AminoAcid>;
 template class MutationProfile<Nucleotide>;
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

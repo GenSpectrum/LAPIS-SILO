@@ -11,7 +11,7 @@
 
 #include "silo/common/types.h"
 
-namespace silo::common {
+namespace rhydb::common {
 
 class BidirectionalStringMap {
    // This is an implicit map from the integers [0, id_to_value.size())
@@ -95,4 +95,4 @@ class BidirectionalStringMap {
    BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
 
-}  // namespace silo::common
+}  // namespace rhydb::common

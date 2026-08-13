@@ -10,9 +10,9 @@
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 
-using silo::storage::column::FloatColumn;
+using rhydb::storage::column::FloatColumn;
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters,readability-identifier-length)
 FloatBetween::FloatBetween(
@@ -81,4 +81,4 @@ std::unique_ptr<filter::operators::Operator> FloatBetween::compile(const storage
    return std::make_unique<filter::operators::Selection>(std::move(predicates), table.row_layout);
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

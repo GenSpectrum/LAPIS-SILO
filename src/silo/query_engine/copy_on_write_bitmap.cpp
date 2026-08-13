@@ -6,7 +6,7 @@
 
 #include <roaring/roaring.hh>
 
-namespace silo::query_engine {
+namespace rhydb::query_engine {
 
 CopyOnWriteBitmap::CopyOnWriteBitmap()
     : mutable_bitmap(std::make_shared<roaring::Roaring>()),
@@ -92,4 +92,4 @@ roaring::Roaring CopyOnWriteBitmap::toRoaring() const {
    return getConstReference();
 }
 
-}  // namespace silo::query_engine
+}  // namespace rhydb::query_engine

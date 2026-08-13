@@ -12,7 +12,7 @@
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 Union::Union(OperatorVector&& children, storage::column::RowLayout row_layout)
     : children(std::move(children)),
@@ -46,4 +46,4 @@ std::unique_ptr<Operator> Union::negate(std::unique_ptr<Union>&& union_operator)
    return std::make_unique<Complement>(std::move(union_operator), std::move(row_layout));
 }
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

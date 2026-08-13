@@ -8,7 +8,7 @@
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/split_free.hpp>
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 class ColumnMetadata {
   public:
@@ -20,29 +20,29 @@ class ColumnMetadata {
    virtual ~ColumnMetadata() = default;
 };
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column
 
-BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::ColumnMetadata);
+BOOST_SERIALIZATION_SPLIT_FREE(rhydb::storage::column::ColumnMetadata);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void save(
    Archive& archive,
-   const silo::storage::column::ColumnMetadata& object,
+   const rhydb::storage::column::ColumnMetadata& object,
    [[maybe_unused]] const uint32_t version
 ) {
    archive & object.column_name;
 }
 }  // namespace boost::serialization
-BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<silo::storage::column::ColumnMetadata>);
+BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<rhydb::storage::column::ColumnMetadata>);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void load(
    Archive& archive,
-   std::shared_ptr<silo::storage::column::ColumnMetadata>& object,
+   std::shared_ptr<rhydb::storage::column::ColumnMetadata>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
    archive & column_name;
-   object = std::make_shared<silo::storage::column::ColumnMetadata>(std::move(column_name));
+   object = std::make_shared<rhydb::storage::column::ColumnMetadata>(std::move(column_name));
 }
 }  // namespace boost::serialization

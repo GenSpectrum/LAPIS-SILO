@@ -2,7 +2,7 @@
 
 #include <filesystem>
 
-namespace silo::config {
+namespace rhydb::config {
 
 static const std::filesystem::path DEFAULT_OUTPUT_DIRECTORY = "./output/";
 

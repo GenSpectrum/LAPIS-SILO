@@ -16,7 +16,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 CountFilterNode::CountFilterNode(
    std::shared_ptr<storage::Table> table,
@@ -78,4 +78,4 @@ nlohmann::json CountFilterNode::toJson() const {
    };
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

@@ -8,8 +8,8 @@
 #include "silo/config/config_defaults.h"
 
 namespace {
-using silo::config::ConfigKeyPath;
-using silo::config::YamlFile;
+using rhydb::config::ConfigKeyPath;
+using rhydb::config::YamlFile;
 
 // Using functions instead of global variables because of
 // initialization order issues.
@@ -40,7 +40,7 @@ ConfigKeyPath withoutUnalignedSequencesOptionKey() {
 }
 }  // namespace
 
-namespace silo::config {
+namespace rhydb::config {
 
 // Specification of the fields in inputs to the PreprocessingConfig struct
 ConfigSpecification InitializeConfig::getConfigSpecification() {
@@ -160,10 +160,10 @@ std::vector<std::filesystem::path> InitializeConfig::getConfigFilePaths(
    return result;
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config
 
-[[maybe_unused]] auto fmt::formatter<silo::config::InitializeConfig>::format(
-   const silo::config::InitializeConfig& initialize_config,
+[[maybe_unused]] auto fmt::formatter<rhydb::config::InitializeConfig>::format(
+   const rhydb::config::InitializeConfig& initialize_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    const nlohmann::json json = initialize_config;

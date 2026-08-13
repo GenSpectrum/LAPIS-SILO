@@ -17,7 +17,7 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 
-namespace silo::query_engine::optimizer {
+namespace rhydb::query_engine::optimizer {
 
 namespace {
 
@@ -189,4 +189,4 @@ operators::QueryNodePtr MapPullupPass::operator()(operators::MapNode& node) {
    return std::make_unique<operators::MapNode>(std::move(lower.child), std::move(merged));
 }
 
-}  // namespace silo::query_engine::optimizer
+}  // namespace rhydb::query_engine::optimizer

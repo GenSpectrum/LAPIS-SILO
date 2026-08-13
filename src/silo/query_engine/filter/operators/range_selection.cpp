@@ -14,7 +14,7 @@
 #include "silo/query_engine/filter/operators/complement.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 using storage::column::RowId;
 
@@ -113,4 +113,4 @@ std::unique_ptr<Operator> RangeSelection::negate(std::unique_ptr<RangeSelection>
    );
 }
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

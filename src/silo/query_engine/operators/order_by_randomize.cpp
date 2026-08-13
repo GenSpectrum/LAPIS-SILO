@@ -16,7 +16,7 @@
 
 #include "silo/common/panic.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 const std::string RANDOMIZE_HASH_FIELD_NAME{"__SILO_RANDOMIZE_HASH"};
 
@@ -122,4 +122,4 @@ arrow::Result<arrow::acero::ExecNode*> addRandomizeColumn(
    return top_node;
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

@@ -2,7 +2,7 @@
 
 #include "silo/storage/column/row_id.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 ZstdCompressedStringColumnMetadata::ZstdCompressedStringColumnMetadata(
    std::string column_name,
@@ -14,7 +14,7 @@ ZstdCompressedStringColumnMetadata::ZstdCompressedStringColumnMetadata(
       dictionary_string(std::move(dictionary_string)) {}
 
 ZstdCompressedStringColumn::ZstdCompressedStringColumn(
-   silo::storage::column::ZstdCompressedStringColumn::Metadata* metadata
+   rhydb::storage::column::ZstdCompressedStringColumn::Metadata* metadata
 )
     : metadata(metadata) {}
 
@@ -75,4 +75,4 @@ std::optional<std::string> ZstdCompressedStringColumn::getCompressed(RowId row_i
    return value;
 }
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

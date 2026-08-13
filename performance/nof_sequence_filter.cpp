@@ -17,8 +17,8 @@
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/planner.h"
 
-using silo::Database;
-using silo::query_engine::Planner;
+using rhydb::Database;
+using rhydb::query_engine::Planner;
 
 namespace {
 
@@ -38,7 +38,7 @@ BenchmarkResult runBenchmark(
    std::vector<int64_t> durations;
    durations.reserve(iterations);
 
-   const auto query_options = silo::config::RuntimeConfig::withDefaults().query_options;
+   const auto query_options = rhydb::config::RuntimeConfig::withDefaults().query_options;
    for (int i = 0; i < iterations; ++i) {
       // rewrite() and compile() — including the full NOf DP pass — happen inside
       // planSaneqlQuery, so the timer must start before it.
@@ -46,7 +46,7 @@ BenchmarkResult runBenchmark(
       auto query_plan =
          Planner::planSaneqlQuery(query_str, database->tables, query_options, "benchmark_query");
       std::ofstream null_output("/dev/null");
-      silo::query_engine::exec_node::NdjsonSink sink{&null_output, query_plan.results_schema};
+      rhydb::query_engine::exec_node::NdjsonSink sink{&null_output, query_plan.results_schema};
       query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/60);
       const auto end = std::chrono::high_resolution_clock::now();
       durations.push_back(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
@@ -88,7 +88,7 @@ std::shared_ptr<Database> loadShortReadDatabase(
    SPDLOG_INFO("Loading short reads from {}...", path);
    auto ndjson = openTestDataInput(path);
    auto database = initializeDatabaseWithShortReadSchema(reference);
-   database->appendData(silo::schema::TableName::getDefault(), ndjson);
+   database->appendData(rhydb::schema::TableName::getDefault(), ndjson);
    SPDLOG_INFO("Short-read database ready.");
    return database;
 }
@@ -100,7 +100,7 @@ std::shared_ptr<Database> loadFullSequenceDatabase(
    SPDLOG_INFO("Loading full-length sequences from {}...", path);
    auto ndjson = openTestDataInput(path);
    auto database = initializeDatabaseWithFullSequenceSchema(reference);
-   database->appendData(silo::schema::TableName::getDefault(), ndjson);
+   database->appendData(rhydb::schema::TableName::getDefault(), ndjson);
    SPDLOG_INFO("Full-sequence database ready.");
    return database;
 }

@@ -10,7 +10,7 @@
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 StringSearch::StringSearch(
    schema::ColumnIdentifier column,
@@ -83,4 +83,4 @@ std::unique_ptr<filter::operators::Operator> StringSearch::compile(const storage
    return createMatchingBitmap(string_column, *search_expression, table.row_layout);
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

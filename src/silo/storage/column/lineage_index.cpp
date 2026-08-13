@@ -2,10 +2,10 @@
 
 #include <spdlog/spdlog.h>
 
-namespace silo::storage {
+namespace rhydb::storage {
 
-using silo::common::ALL_RECOMBINANT_EDGE_FOLLOWING_MODES;
-using silo::common::RecombinantEdgeFollowingMode;
+using rhydb::common::ALL_RECOMBINANT_EDGE_FOLLOWING_MODES;
+using rhydb::common::RecombinantEdgeFollowingMode;
 
 LineageIndex::LineageIndex(const common::LineageTree* lineage_tree)
     : lineage_tree(lineage_tree) {
@@ -44,4 +44,4 @@ std::optional<const roaring::Roaring*> LineageIndex::filterExcludingSublineages(
    return std::nullopt;
 }
 
-}  // namespace silo::storage
+}  // namespace rhydb::storage

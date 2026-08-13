@@ -25,21 +25,21 @@
 
 namespace {
 
-using silo::Database;
-using silo::query_engine::Planner;
-using silo::query_engine::operators::AggregateDefinition;
-using silo::query_engine::operators::AggregateFunction;
-using silo::query_engine::operators::AggregateNode;
-using silo::query_engine::operators::FilterNode;
-using silo::query_engine::operators::TableScanNode;
-using silo::query_engine::scalar_expressions::BoolLiteral;
-using silo::query_engine::scalar_expressions::Equals;
-using silo::query_engine::scalar_expressions::FieldRef;
-using silo::query_engine::scalar_expressions::Or;
-using silo::query_engine::scalar_expressions::ScalarExpression;
-using silo::query_engine::scalar_expressions::ScalarExpressionVector;
-using silo::query_engine::scalar_expressions::StringInSet;
-using silo::query_engine::scalar_expressions::StringLiteral;
+using rhydb::Database;
+using rhydb::query_engine::Planner;
+using rhydb::query_engine::operators::AggregateDefinition;
+using rhydb::query_engine::operators::AggregateFunction;
+using rhydb::query_engine::operators::AggregateNode;
+using rhydb::query_engine::operators::FilterNode;
+using rhydb::query_engine::operators::TableScanNode;
+using rhydb::query_engine::scalar_expressions::BoolLiteral;
+using rhydb::query_engine::scalar_expressions::Equals;
+using rhydb::query_engine::scalar_expressions::FieldRef;
+using rhydb::query_engine::scalar_expressions::Or;
+using rhydb::query_engine::scalar_expressions::ScalarExpression;
+using rhydb::query_engine::scalar_expressions::ScalarExpressionVector;
+using rhydb::query_engine::scalar_expressions::StringInSet;
+using rhydb::query_engine::scalar_expressions::StringLiteral;
 
 /// Build an `Equals` predicate on an indexed string column, i.e. `column = value`.
 std::unique_ptr<ScalarExpression> makeStringEquals(
@@ -47,15 +47,15 @@ std::unique_ptr<ScalarExpression> makeStringEquals(
    const std::string& value
 ) {
    return std::make_unique<Equals>(
-      std::make_unique<FieldRef>(silo::schema::ColumnIdentifier{
-         .name = column, .type = silo::schema::ColumnType::DICTIONARY_ENCODED
+      std::make_unique<FieldRef>(rhydb::schema::ColumnIdentifier{
+         .name = column, .type = rhydb::schema::ColumnType::DICTIONARY_ENCODED
       }),
       std::make_unique<StringLiteral>(value)
    );
 }
 
 std::shared_ptr<Database> initializeDatabase() {
-   auto database_config = silo::config::DatabaseConfig::getValidatedConfig(R"(
+   auto database_config = rhydb::config::DatabaseConfig::getValidatedConfig(R"(
 schema:
   instanceName: test
   metadata:
@@ -67,16 +67,16 @@ schema:
   primaryKey: accession
 )");
 
-   silo::ReferenceGenomes reference_genomes{{}, {}};
+   rhydb::ReferenceGenomes reference_genomes{{}, {}};
 
-   auto database = std::make_shared<silo::Database>();
+   auto database = std::make_shared<rhydb::Database>();
    database->createTable(
-      silo::schema::TableName::getDefault(),
-      silo::initialize::Initializer::createSchemaFromConfigFiles(
+      rhydb::schema::TableName::getDefault(),
+      rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
          std::move(reference_genomes),
          {},
-         silo::common::PhyloTree{},
+         rhydb::common::PhyloTree{},
          /*without_unaligned_sequences=*/true
       )
    );
@@ -87,7 +87,7 @@ schema:
 std::shared_ptr<Database> setupTestDatabase() {
    auto input_buffer = openTestDataInput(STRING_EQUALS_NDJSON_PATH);
    auto database = initializeDatabase();
-   database->appendData(silo::schema::TableName::getDefault(), input_buffer);
+   database->appendData(rhydb::schema::TableName::getDefault(), input_buffer);
 
    return database;
 }
@@ -129,8 +129,8 @@ std::unique_ptr<ScalarExpression> buildStringInSet(
    const std::string& column,
    const std::vector<std::string>& values
 ) {
-   const silo::schema::ColumnIdentifier column_identifier{
-      .name = column, .type = silo::schema::ColumnType::STRING
+   const rhydb::schema::ColumnIdentifier column_identifier{
+      .name = column, .type = rhydb::schema::ColumnType::STRING
    };
    std::unordered_set<std::string> value_set(values.begin(), values.end());
    return std::make_unique<StringInSet>(column_identifier, std::move(value_set));
@@ -140,7 +140,7 @@ void executeCountWithFilter(
    const std::shared_ptr<Database>& database,
    std::unique_ptr<ScalarExpression> filter
 ) {
-   const auto& table_name = silo::schema::TableName::getDefault();
+   const auto& table_name = rhydb::schema::TableName::getDefault();
    auto table = database->tables.at(table_name);
    auto scan = std::make_unique<TableScanNode>(
       table, std::make_unique<BoolLiteral>(true), table->schema->getColumnIdentifiers()
@@ -150,11 +150,11 @@ void executeCountWithFilter(
       {.output_name = "count", .function = AggregateFunction::COUNT, .source_column = std::nullopt}
    };
    auto root = std::make_unique<AggregateNode>(
-      std::move(filter_node), std::vector<silo::schema::ColumnIdentifier>{}, std::move(aggregates)
+      std::move(filter_node), std::vector<rhydb::schema::ColumnIdentifier>{}, std::move(aggregates)
    );
    auto query_plan = Planner::planQuery(std::move(root), database->tables, {}, "benchmark_query");
    std::stringstream result;
-   silo::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
+   rhydb::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
    query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/60);
 }
 

@@ -10,11 +10,11 @@
 #include "silo/append/append_exception.h"
 #include "silo/storage/insertion_format_exception.h"
 
-using silo::Nucleotide;
-using silo::append::AppendException;
-using silo::storage::InsertionFormatException;
-using silo::storage::column::SequenceColumn;
-using silo::storage::column::SequenceColumnMetadata;
+using rhydb::Nucleotide;
+using rhydb::append::AppendException;
+using rhydb::storage::InsertionFormatException;
+using rhydb::storage::column::SequenceColumn;
+using rhydb::storage::column::SequenceColumnMetadata;
 
 namespace {
 // Buffers a single sequence into a chunk and applies it to the column. Parsing

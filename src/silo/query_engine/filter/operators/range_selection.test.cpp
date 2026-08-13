@@ -3,9 +3,9 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-using silo::query_engine::filter::operators::RangeSelection;
-using silo::storage::column::RowId;
-using silo::storage::column::RowLayout;
+using rhydb::query_engine::filter::operators::RangeSelection;
+using rhydb::storage::column::RowId;
+using rhydb::storage::column::RowLayout;
 
 TEST(OperatorRangeSelection, evaluateShouldReturnCorrectValues) {
    const auto row_layout = RowLayout::of(8);
@@ -114,7 +114,7 @@ TEST(OperatorRangeSelection, returnsCorrectTypeInfo) {
 
    auto under_test = std::make_unique<RangeSelection>(std::move(test_ranges), row_layout);
 
-   ASSERT_EQ(under_test->type(), silo::query_engine::filter::operators::RANGE_SELECTION);
+   ASSERT_EQ(under_test->type(), rhydb::query_engine::filter::operators::RANGE_SELECTION);
    auto negated = RangeSelection::negate(std::move(under_test));
-   ASSERT_EQ(negated->type(), silo::query_engine::filter::operators::RANGE_SELECTION);
+   ASSERT_EQ(negated->type(), rhydb::query_engine::filter::operators::RANGE_SELECTION);
 }

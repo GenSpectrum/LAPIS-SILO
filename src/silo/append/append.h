@@ -2,8 +2,8 @@
 
 #include "silo/config/append_config.h"
 
-namespace silo::append {
+namespace rhydb::append {
 
-int runAppend(const silo::config::AppendConfig& append_config);
+int runAppend(const rhydb::config::AppendConfig& append_config);
 
 }

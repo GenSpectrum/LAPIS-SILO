@@ -6,7 +6,7 @@
 
 #include <boost/serialization/access.hpp>
 
-namespace silo::common {
+namespace rhydb::common {
 
 class TreeNodeId {
    friend class boost::serialization::access;
@@ -25,19 +25,19 @@ class TreeNodeId {
    bool operator<(const TreeNodeId& other) const;
 };
 
-}  // namespace silo::common
+}  // namespace rhydb::common
 
 namespace std {
 template <>
-struct hash<silo::common::TreeNodeId> {
-   std::size_t operator()(const silo::common::TreeNodeId& tree_node_id) const;
+struct hash<rhydb::common::TreeNodeId> {
+   std::size_t operator()(const rhydb::common::TreeNodeId& tree_node_id) const;
 };
 }  // namespace std
 
 template <>
-struct [[maybe_unused]] fmt::formatter<silo::common::TreeNodeId> : fmt::formatter<std::string> {
+struct [[maybe_unused]] fmt::formatter<rhydb::common::TreeNodeId> : fmt::formatter<std::string> {
    [[maybe_unused]] static auto format(
-      const silo::common::TreeNodeId& tree_node_id,
+      const rhydb::common::TreeNodeId& tree_node_id,
       format_context& ctx
    ) -> decltype(ctx.out()) {
       return fmt::format_to(ctx.out(), "{}", tree_node_id.string);

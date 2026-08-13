@@ -4,7 +4,7 @@
 #include <arrow/acero/options.h>
 #include <nlohmann/json.hpp>
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 UnionAllNode::UnionAllNode(QueryNodePtr left, QueryNodePtr right)
     : left(std::move(left)),
@@ -32,4 +32,4 @@ nlohmann::json UnionAllNode::toJson() const {
    };
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

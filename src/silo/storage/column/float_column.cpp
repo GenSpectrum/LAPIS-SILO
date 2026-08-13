@@ -4,7 +4,7 @@
 
 #include "silo/storage/column/row_id.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 FloatColumn::FloatColumn(ColumnMetadata* metadata)
     : metadata(metadata) {}
@@ -37,4 +37,4 @@ void FloatColumn::update(const roaring::Roaring& row_ids, std::optional<double> 
    }
 }
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

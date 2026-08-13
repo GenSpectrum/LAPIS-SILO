@@ -25,7 +25,7 @@
 #include "silo/storage/column/insertion_index.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 struct PositionAndInsertionKey {
    uint32_t position_idx;
    std::string_view insertion_value;
@@ -34,11 +34,11 @@ struct PositionAndInsertionKey {
       return position_idx == other.position_idx && insertion_value == other.insertion_value;
    }
 };
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators
 
 template <>
-struct std::hash<silo::query_engine::operators::PositionAndInsertionKey> {
-   std::size_t operator()(const silo::query_engine::operators::PositionAndInsertionKey& key
+struct std::hash<rhydb::query_engine::operators::PositionAndInsertionKey> {
+   std::size_t operator()(const rhydb::query_engine::operators::PositionAndInsertionKey& key
    ) const noexcept {
       std::size_t seed = 0;
       boost::hash_combine(seed, key.position_idx);
@@ -47,7 +47,7 @@ struct std::hash<silo::query_engine::operators::PositionAndInsertionKey> {
    }
 };
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 namespace {
 
@@ -177,4 +177,4 @@ nlohmann::json InsertionsNode<SymbolType>::toJson() const {
 template class InsertionsNode<Nucleotide>;
 template class InsertionsNode<AminoAcid>;
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

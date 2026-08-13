@@ -7,7 +7,7 @@
 
 #include "config/config_exception.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 std::string CommandLineArguments::configKeyPathToString(const ConfigKeyPath& key_path) {
    std::vector<std::string> result;
@@ -19,7 +19,7 @@ std::string CommandLineArguments::configKeyPathToString(const ConfigKeyPath& key
 
 AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::string& option) {
    if (option.size() < 3 || !option.starts_with("--")) {
-      throw silo::config::ConfigException(fmt::format(
+      throw rhydb::config::ConfigException(fmt::format(
          "the provided option '{}' is not a valid command line option"
          " as silo currently only accepts long-form options starting with '--'",
          option
@@ -31,7 +31,7 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::st
    boost::split(delimited_strings, trimmed, boost::is_any_of("-"));
 
    if (std::ranges::any_of(delimited_strings, [](const auto& str) { return str.empty(); })) {
-      throw silo::config::ConfigException(fmt::format(
+      throw rhydb::config::ConfigException(fmt::format(
          "the provided option '{}' is not a valid command line option"
          " because it contains an empty string segment between '-'",
          option
@@ -40,7 +40,7 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::st
 
    auto result = AmbiguousConfigKeyPath::tryFrom(std::move(delimited_strings));
    if (result == std::nullopt) {
-      throw silo::config::ConfigException(fmt::format(
+      throw rhydb::config::ConfigException(fmt::format(
          "the provided option '{}' is not a valid command line option. The string after -- should "
          "be '-' delimited and lower-case",
          option
@@ -70,7 +70,7 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
 ) {
    if (attribute_spec.type == ConfigValueType::BOOL) {
       if (opt_value_string.has_value()) {
-         throw silo::config::ConfigException("'=' not acceptable for boolean option: " + arg);
+         throw rhydb::config::ConfigException("'=' not acceptable for boolean option: " + arg);
       }
       return {ConfigValue::fromBool(true), remaining_args};
    }
@@ -79,7 +79,7 @@ std::tuple<ConfigValue, std::span<const std::string>> parseValueFromArg(
       value_string = opt_value_string.value();
    } else {
       if (remaining_args.empty()) {
-         throw silo::config::ConfigException("missing argument after option " + arg);
+         throw rhydb::config::ConfigException("missing argument after option " + arg);
       }
       value_string = remaining_args[0];
       remaining_args = remaining_args.subspan(1);
@@ -169,7 +169,7 @@ VerifiedCommandLineArguments CommandLineArguments::verify(
 
    if (!invalid_config_keys.empty()) {
       const char* option_or_options = (invalid_config_keys.size() == 1) ? "option" : "options";
-      throw silo::config::ConfigException(fmt::format(
+      throw rhydb::config::ConfigException(fmt::format(
          "in {}: unknown {} {}",
          debugContext(),
          option_or_options,
@@ -182,4 +182,4 @@ VerifiedCommandLineArguments CommandLineArguments::verify(
    );
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config

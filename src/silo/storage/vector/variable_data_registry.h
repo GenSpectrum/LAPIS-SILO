@@ -8,7 +8,7 @@
 
 #include "silo/storage/buffer/page.h"
 
-namespace silo::storage::vector {
+namespace rhydb::storage::vector {
 
 class VariableDataRegistry {
    std::deque<buffer::Page> variable_data_pages;
@@ -40,4 +40,4 @@ class VariableDataRegistry {
       // clang-format on
    }
 };
-}  // namespace silo::storage::vector
+}  // namespace rhydb::storage::vector

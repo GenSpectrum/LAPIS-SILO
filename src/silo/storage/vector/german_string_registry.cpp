@@ -1,8 +1,8 @@
 #include "silo/storage/vector/german_string_registry.h"
 
-namespace silo::storage::vector {
+namespace rhydb::storage::vector {
 
-Idx GermanStringRegistry::insert(const silo::SiloString& silo_string) {
+Idx GermanStringRegistry::insert(const rhydb::SiloString& silo_string) {
    const bool need_new_page = german_string_pages.empty() || german_string_pages.back().full();
    if (need_new_page) {
       german_string_pages.emplace_back();
@@ -18,4 +18,4 @@ SiloString GermanStringRegistry::get(Idx row_id) const {
    return german_string_pages.at(page_id).get(row_in_page);
 }
 
-}  // namespace silo::storage::vector
+}  // namespace rhydb::storage::vector

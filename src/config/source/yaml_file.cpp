@@ -12,7 +12,7 @@
 #include "config/config_exception.h"
 #include "silo/common/cons_list.h"
 
-using silo::config::ConfigKeyPath;
+using rhydb::config::ConfigKeyPath;
 
 namespace {
 
@@ -99,7 +99,7 @@ void yamlToPaths(
             const auto child_node = key_value.second;
             yamlToPaths(debug_context, child_node, parents2, paths);
          } catch (YAML::BadConversion& bad_conversion) {
-            throw silo::config::ConfigException(fmt::format(
+            throw rhydb::config::ConfigException(fmt::format(
                "invalid (non-literal) key in yaml config file '{}': {}",
                debug_context,
                bad_conversion.what()
@@ -117,17 +117,17 @@ void yamlToPaths(
             std::ranges::transform(parents_vector, std::back_inserter(result), joinCamelCase);
             boost::join(result, ".");
          });
-         throw silo::config::ConfigException(
+         throw rhydb::config::ConfigException(
             fmt::format("{}: found invalid key: {}", debug_context, debug_string_parents)
          );
       }
       if (isProperSingularValue(node)) {
          paths.emplace(path.value(), node);
       } else {
-         throw silo::config::ConfigException(fmt::format(
+         throw rhydb::config::ConfigException(fmt::format(
             "{}: found non-usable leaf value at nesting {}",
             debug_context,
-            silo::config::YamlFile::configKeyPathToString(path.value())
+            rhydb::config::YamlFile::configKeyPathToString(path.value())
          ));
       }
    }
@@ -135,7 +135,7 @@ void yamlToPaths(
 
 }  // namespace
 
-namespace silo::config {
+namespace rhydb::config {
 
 std::string YamlFile::configKeyPathToString(const ConfigKeyPath& config_key_path) {
    std::vector<std::string> camel_case_strings;
@@ -247,7 +247,7 @@ VerifiedConfigAttributes YamlFile::verify(const ConfigSpecification& config_spec
 
    if (!invalid_config_keys.empty()) {
       const char* keys_or_options = (invalid_config_keys.size() >= 2) ? "keys" : "key";
-      throw silo::config::ConfigException(fmt::format(
+      throw rhydb::config::ConfigException(fmt::format(
          "in {}: unknown {} {}",
          debugContext(),
          keys_or_options,
@@ -262,4 +262,4 @@ const std::unordered_map<ConfigKeyPath, YAML::Node>& YamlFile::getYamlFields() c
    return yaml_fields;
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config

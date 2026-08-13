@@ -4,7 +4,7 @@
 
 #include <spdlog/spdlog.h>
 
-namespace silo::common {
+namespace rhydb::common {
 
 class Allocator {
   public:
@@ -18,4 +18,4 @@ class Allocator {
 #endif
 };
 
-}  // namespace silo::common
+}  // namespace rhydb::common

@@ -22,24 +22,24 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/table.h"
 
-using silo::query_engine::optimizer::FilterPushdownPass;
-namespace operators = silo::query_engine::operators;
-namespace scalar_expressions = silo::query_engine::scalar_expressions;
+using rhydb::query_engine::optimizer::FilterPushdownPass;
+namespace operators = rhydb::query_engine::operators;
+namespace scalar_expressions = rhydb::query_engine::scalar_expressions;
 
 namespace {
 
-std::shared_ptr<silo::storage::Table> makeTable() {
-   using silo::schema::ColumnIdentifier;
-   using silo::schema::ColumnType;
-   using silo::storage::column::ColumnMetadata;
-   using silo::storage::column::StringColumnMetadata;
+std::shared_ptr<rhydb::storage::Table> makeTable() {
+   using rhydb::schema::ColumnIdentifier;
+   using rhydb::schema::ColumnType;
+   using rhydb::storage::column::ColumnMetadata;
+   using rhydb::storage::column::StringColumnMetadata;
 
    ColumnIdentifier primary_key{.name = "id", .type = ColumnType::STRING};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)}
    };
-   auto schema = std::make_shared<silo::schema::TableSchema>(std::move(col_meta), primary_key);
-   return std::make_shared<silo::storage::Table>(silo::schema::TableName("default"), schema);
+   auto schema = std::make_shared<rhydb::schema::TableSchema>(std::move(col_meta), primary_key);
+   return std::make_shared<rhydb::storage::Table>(rhydb::schema::TableName("default"), schema);
 }
 
 std::unique_ptr<scalar_expressions::ScalarExpression> makeDummyFilter() {
@@ -48,7 +48,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> makeDummyFilter() {
 
 operators::QueryNodePtr makeScan() {
    return std::make_unique<operators::TableScanNode>(
-      makeTable(), makeDummyFilter(), std::vector<silo::schema::ColumnIdentifier>{}
+      makeTable(), makeDummyFilter(), std::vector<rhydb::schema::ColumnIdentifier>{}
    );
 }
 
@@ -63,7 +63,7 @@ operators::QueryNodePtr makeFilteredScan(bool filter_value) {
 TEST(FilterPushdownPass, eliminatesFilterNodeAboveTableScan) {
    auto table = makeTable();
    auto scan = std::make_unique<operators::TableScanNode>(
-      table, makeDummyFilter(), std::vector<silo::schema::ColumnIdentifier>{}
+      table, makeDummyFilter(), std::vector<rhydb::schema::ColumnIdentifier>{}
    );
    auto filter_node = std::make_unique<operators::FilterNode>(std::move(scan), makeDummyFilter());
 
@@ -94,13 +94,13 @@ TEST(FilterPushdownPass, eliminatesStackedFilterNodesAboveTableScan) {
 TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
    auto table = makeTable();
    auto scan = std::make_unique<operators::TableScanNode>(
-      table, makeDummyFilter(), std::vector<silo::schema::ColumnIdentifier>{}
+      table, makeDummyFilter(), std::vector<rhydb::schema::ColumnIdentifier>{}
    );
    auto filter_node = std::make_unique<operators::FilterNode>(std::move(scan), makeDummyFilter());
 
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
-      {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
+      {.output_column = {.name = "x", .type = rhydb::schema::ColumnType::INT64},
        .expression = std::make_unique<scalar_expressions::Int64Literal>(3)}
    );
    auto map_node =
@@ -122,8 +122,8 @@ TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
 // FilterPushdownPass keeps the MapNode on top and pushes the filter down into the TableScan,
 // so only the rows matching the filter are ever decompressed.
 TEST(FilterPushdownPass, pushesFilterThroughDecompressMapIntoTableScan) {
-   using silo::schema::ColumnIdentifier;
-   using silo::schema::ColumnType;
+   using rhydb::schema::ColumnIdentifier;
+   using rhydb::schema::ColumnType;
 
    const ColumnIdentifier seq_column{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
    auto scan = std::make_unique<operators::TableScanNode>(
@@ -162,8 +162,8 @@ TEST(FilterPushdownPass, pushesFilterThroughDecompressMapIntoTableScan) {
 // must NOT be pushed below the map, since `x` does not exist beneath it. The optimizer must not
 // turn this valid plan into an invalid one; the FilterNode is kept above the MapNode instead.
 TEST(FilterPushdownPass, doesNotPushFilterReferencingMapProducedColumnBelowMap) {
-   using silo::schema::ColumnIdentifier;
-   using silo::schema::ColumnType;
+   using rhydb::schema::ColumnIdentifier;
+   using rhydb::schema::ColumnType;
 
    auto table = makeTable();
    auto scan = std::make_unique<operators::TableScanNode>(
@@ -200,8 +200,8 @@ TEST(FilterPushdownPass, doesNotPushFilterReferencingMapProducedColumnBelowMap) 
 // A filter that references only columns the map passes through (not any map-produced column)
 // is still pushed below the map into the TableScan.
 TEST(FilterPushdownPass, pushesFilterReferencingPassThroughColumnBelowMap) {
-   using silo::schema::ColumnIdentifier;
-   using silo::schema::ColumnType;
+   using rhydb::schema::ColumnIdentifier;
+   using rhydb::schema::ColumnType;
 
    auto table = makeTable();
    auto scan = std::make_unique<operators::TableScanNode>(
@@ -237,8 +237,8 @@ TEST(FilterPushdownPass, pushesFilterReferencingPassThroughColumnBelowMap) {
 // filter compiles against the physical column. This is the shape the compiler inserts for
 // `segment1 := zstd_decompress(segment1)`; the co-occurrence-with-filter query relies on it.
 TEST(FilterPushdownPass, pushesFilterThroughTransparentDecompressMapIntoTableScan) {
-   using silo::schema::ColumnIdentifier;
-   using silo::schema::ColumnType;
+   using rhydb::schema::ColumnIdentifier;
+   using rhydb::schema::ColumnType;
 
    const ColumnIdentifier compressed_column{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
    auto scan = std::make_unique<operators::TableScanNode>(
@@ -276,8 +276,8 @@ TEST(FilterPushdownPass, pushesFilterThroughTransparentDecompressMapIntoTableSca
 // This mirrors e.g. `map({primaryKey := primaryKey.at(1)}).filter(primaryKey = 'i')`; here a
 // literal assignment stands in for any non-transparent expression.
 TEST(FilterPushdownPass, doesNotPushFilterThroughValueChangingReplaceInPlaceMap) {
-   using silo::schema::ColumnIdentifier;
-   using silo::schema::ColumnType;
+   using rhydb::schema::ColumnIdentifier;
+   using rhydb::schema::ColumnType;
 
    auto scan = std::make_unique<operators::TableScanNode>(
       makeTable(), makeDummyFilter(), std::vector<ColumnIdentifier>{}
@@ -314,15 +314,15 @@ TEST(FilterPushdownPass, pushesFilterThroughProjectAndMapIntoTableScan) {
 
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back(
-      {.output_column = {.name = "x", .type = silo::schema::ColumnType::INT64},
+      {.output_column = {.name = "x", .type = rhydb::schema::ColumnType::INT64},
        .expression = std::make_unique<scalar_expressions::Int64Literal>(3)}
    );
    auto map_node =
       std::make_unique<operators::MapNode>(std::move(inner_filter), std::move(assignments));
    auto project_node = std::make_unique<operators::ProjectNode>(
       std::move(map_node),
-      std::vector<silo::schema::ColumnIdentifier>{
-         {.name = "x", .type = silo::schema::ColumnType::INT64}
+      std::vector<rhydb::schema::ColumnIdentifier>{
+         {.name = "x", .type = rhydb::schema::ColumnType::INT64}
       }
    );
    auto outer_filter =
@@ -366,8 +366,8 @@ operators::QueryNodePtr makeJoin(operators::QueryNodePtr left, operators::QueryN
    return std::make_unique<operators::JoinNode>(
       std::move(left),
       std::move(right),
-      std::vector<silo::schema::ColumnIdentifier>{},
-      std::vector<silo::schema::ColumnIdentifier>{},
+      std::vector<rhydb::schema::ColumnIdentifier>{},
+      std::vector<rhydb::schema::ColumnIdentifier>{},
       arrow::acero::JoinType::INNER
    );
 }
@@ -380,7 +380,7 @@ TEST(FilterPushdownPass, rejectsFilterAboveJoin) {
 
    EXPECT_THROW(
       { FilterPushdownPass::run(std::move(filter_node)); },
-      silo::query_engine::IllegalQueryException
+      rhydb::query_engine::IllegalQueryException
    );
 }
 

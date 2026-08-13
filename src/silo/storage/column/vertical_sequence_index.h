@@ -11,7 +11,7 @@
 #include "silo/common/symbol_map.h"
 #include "silo/roaring_util/roaring_container.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 // For documentation of this data-structure see:
 // documentation/developer/sequence_storage.md
@@ -104,4 +104,4 @@ std::vector<std::pair<uint16_t, std::vector<uint16_t>>> splitIdsIntoBatches(
    const std::vector<uint32_t>& sorted_ids
 );
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

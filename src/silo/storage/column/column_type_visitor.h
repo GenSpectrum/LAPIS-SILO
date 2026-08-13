@@ -12,7 +12,7 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 template <typename VisitorFunction, typename... Args>
 static decltype(auto) visit(schema::ColumnType type, VisitorFunction&& func, Args&&... args) {
@@ -41,4 +41,4 @@ static decltype(auto) visit(schema::ColumnType type, VisitorFunction&& func, Arg
    SILO_UNREACHABLE();
 }
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

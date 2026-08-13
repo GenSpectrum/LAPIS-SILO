@@ -11,7 +11,7 @@
 
 #include "silo/schema/database_schema.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 enum class ValueType : uint8_t { STRING, DATE, BOOL, INT, FLOAT };
 
@@ -75,65 +75,65 @@ class DatabaseConfig {
    static void validateConfig(const DatabaseConfig& config);
 };
 
-}  // namespace silo::config
+}  // namespace rhydb::config
 
 namespace YAML {
 template <>
-struct convert<silo::config::DatabaseConfig> {
-   static bool decode(const Node& node, silo::config::DatabaseConfig& config);
-   static Node encode(const silo::config::DatabaseConfig& config);
+struct convert<rhydb::config::DatabaseConfig> {
+   static bool decode(const Node& node, rhydb::config::DatabaseConfig& config);
+   static Node encode(const rhydb::config::DatabaseConfig& config);
 };
 
 template <>
-struct convert<silo::config::DatabaseSchema> {
-   static bool decode(const Node& node, silo::config::DatabaseSchema& schema);
-   static Node encode(const silo::config::DatabaseSchema& schema);
+struct convert<rhydb::config::DatabaseSchema> {
+   static bool decode(const Node& node, rhydb::config::DatabaseSchema& schema);
+   static Node encode(const rhydb::config::DatabaseSchema& schema);
 };
 
 template <>
-struct convert<silo::config::DatabaseMetadata> {
-   static bool decode(const Node& node, silo::config::DatabaseMetadata& metadata);
-   static Node encode(const silo::config::DatabaseMetadata& metadata);
+struct convert<rhydb::config::DatabaseMetadata> {
+   static bool decode(const Node& node, rhydb::config::DatabaseMetadata& metadata);
+   static Node encode(const rhydb::config::DatabaseMetadata& metadata);
 };
 
 }  // namespace YAML
 
 template <>
-class [[maybe_unused]] fmt::formatter<silo::config::DatabaseConfig> : fmt::formatter<std::string> {
+class [[maybe_unused]] fmt::formatter<rhydb::config::DatabaseConfig> : fmt::formatter<std::string> {
   public:
    static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
-      const silo::config::DatabaseConfig& database_config,
+      const rhydb::config::DatabaseConfig& database_config,
       fmt::format_context& ctx
    ) -> decltype(ctx.out());
 };
 
 template <>
-class [[maybe_unused]] fmt::formatter<silo::config::DatabaseSchema> {
+class [[maybe_unused]] fmt::formatter<rhydb::config::DatabaseSchema> {
   public:
    static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
-      const silo::config::DatabaseSchema& database_schema,
+      const rhydb::config::DatabaseSchema& database_schema,
       fmt::format_context& ctx
    ) -> decltype(ctx.out());
 };
 
 template <>
-class [[maybe_unused]] fmt::formatter<silo::config::DatabaseMetadata> {
+class [[maybe_unused]] fmt::formatter<rhydb::config::DatabaseMetadata> {
   public:
    static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
-      const silo::config::DatabaseMetadata& database_metadata,
+      const rhydb::config::DatabaseMetadata& database_metadata,
       format_context& ctx
    ) -> decltype(ctx.out());
 };
 
 template <>
-class [[maybe_unused]] fmt::formatter<silo::config::ValueType> {
+class [[maybe_unused]] fmt::formatter<rhydb::config::ValueType> {
   public:
    static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
-      const silo::config::ValueType& value_type,
+      const rhydb::config::ValueType& value_type,
       format_context& ctx
    ) -> decltype(ctx.out());
 };

@@ -7,7 +7,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/storage/column/row_layout.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 class Complement : public Operator {
    friend class Operator;
@@ -34,4 +34,4 @@ class Complement : public Operator {
    static std::unique_ptr<Operator> negate(std::unique_ptr<Complement>&& complement);
 };
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

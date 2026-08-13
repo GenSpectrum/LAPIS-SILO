@@ -21,7 +21,7 @@
 #include "silo/storage/column/string_column.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 
-namespace silo::storage {
+namespace rhydb::storage {
 
 class ColumnGroup;
 
@@ -108,4 +108,4 @@ template <>
 std::map<std::string, column::ZstdCompressedStringColumn::Builder>& ColumnGroupBuilder::
    getColumnBuilders<column::ZstdCompressedStringColumn>();
 
-}  // namespace silo::storage
+}  // namespace rhydb::storage

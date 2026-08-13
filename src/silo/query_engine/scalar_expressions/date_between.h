@@ -12,22 +12,22 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/column/date32_column.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 class DateBetween : public ScalarExpression {
   private:
    schema::ColumnIdentifier column;
-   std::optional<silo::common::Date32> date_from;
-   std::optional<silo::common::Date32> date_to;
+   std::optional<rhydb::common::Date32> date_from;
+   std::optional<rhydb::common::Date32> date_to;
 
-   [[nodiscard]] std::vector<silo::query_engine::filter::operators::RangeSelection::Range>
-   computeRangesOfSortedColumn(const silo::storage::column::Date32Column& date_column) const;
+   [[nodiscard]] std::vector<rhydb::query_engine::filter::operators::RangeSelection::Range>
+   computeRangesOfSortedColumn(const rhydb::storage::column::Date32Column& date_column) const;
 
   public:
    explicit DateBetween(
       schema::ColumnIdentifier column,
-      std::optional<silo::common::Date32> date_from,
-      std::optional<silo::common::Date32> date_to
+      std::optional<rhydb::common::Date32> date_from,
+      std::optional<rhydb::common::Date32> date_to
    );
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
@@ -49,4 +49,4 @@ class DateBetween : public ScalarExpression {
    ) const override;
 };
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

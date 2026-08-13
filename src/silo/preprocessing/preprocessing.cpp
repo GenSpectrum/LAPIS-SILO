@@ -8,7 +8,7 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 #include "silo/schema/duplicate_primary_key_exception.h"
 
-namespace silo::preprocessing {
+namespace rhydb::preprocessing {
 
 Database preprocessing(const config::PreprocessingConfig& preprocessing_config) {
    try {
@@ -44,4 +44,4 @@ Database preprocessing(const config::PreprocessingConfig& preprocessing_config) 
    }
 }
 
-}  // namespace silo::preprocessing
+}  // namespace rhydb::preprocessing

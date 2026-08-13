@@ -7,7 +7,7 @@
 #include "silo/common/bidirectional_string_map.h"
 #include "silo/storage/column/row_id.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 DictionaryEncodedColumnMetadata::DictionaryEncodedColumnMetadata(
    std::string column_name,
@@ -146,7 +146,7 @@ bool DictionaryEncodedColumn::isNull(RowId row_id) const {
    return null_bitmap.contains(row_id.toGlobal());
 }
 
-std::optional<silo::Idx> DictionaryEncodedColumn::getValueId(const std::string& value) const {
+std::optional<rhydb::Idx> DictionaryEncodedColumn::getValueId(const std::string& value) const {
    return metadata->dictionary.getId(value);
 }
 
@@ -154,4 +154,4 @@ const std::optional<LineageIndex>& DictionaryEncodedColumn::getLineageIndex() co
    return lineage_index;
 }
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

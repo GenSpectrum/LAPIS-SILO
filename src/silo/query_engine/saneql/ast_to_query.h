@@ -10,7 +10,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::saneql {
+namespace rhydb::query_engine::saneql {
 
 operators::QueryNodePtr convertToQueryTree(
    const ast::Expression& ast,
@@ -35,4 +35,4 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
    const std::vector<schema::ColumnIdentifier>& schema
 );
 
-}  // namespace silo::query_engine::saneql
+}  // namespace rhydb::query_engine::saneql

@@ -21,7 +21,7 @@
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 using filter::operators::Operator;
 using filter::operators::OperatorVector;
@@ -218,4 +218,4 @@ std::unique_ptr<Operator> And::compile(const storage::Table& table) const {
    return result;
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

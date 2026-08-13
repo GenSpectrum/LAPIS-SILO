@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-namespace silo {
+namespace rhydb {
 
 std::vector<std::string> splitBy(const std::string& value, std::string_view delimiter);
 
@@ -56,4 +56,4 @@ std::string joinWithLimit(
    return res;
 }
 
-}  // namespace silo
+}  // namespace rhydb

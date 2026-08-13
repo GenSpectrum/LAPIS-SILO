@@ -8,7 +8,7 @@
 #include "silo/common/panic.h"
 #include "silo/query_engine/saneql/parse_exception.h"
 
-namespace silo::query_engine::saneql {
+namespace rhydb::query_engine::saneql {
 
 Lexer::Lexer(std::string_view input)
     : input(input) {}
@@ -284,4 +284,4 @@ std::vector<Token> Lexer::tokenizeAll() {
    return tokens;
 }
 
-}  // namespace silo::query_engine::saneql
+}  // namespace rhydb::query_engine::saneql

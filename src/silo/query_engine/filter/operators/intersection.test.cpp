@@ -6,12 +6,12 @@
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/query_compilation_exception.h"
 
-using silo::query_engine::CopyOnWriteBitmap;
-using silo::query_engine::QueryCompilationException;
-using silo::query_engine::filter::operators::IndexScan;
-using silo::query_engine::filter::operators::Intersection;
-using silo::query_engine::filter::operators::OperatorVector;
-using silo::storage::column::RowLayout;
+using rhydb::query_engine::CopyOnWriteBitmap;
+using rhydb::query_engine::QueryCompilationException;
+using rhydb::query_engine::filter::operators::IndexScan;
+using rhydb::query_engine::filter::operators::Intersection;
+using rhydb::query_engine::filter::operators::OperatorVector;
+using rhydb::storage::column::RowLayout;
 
 namespace {
 OperatorVector generateTestInput(
@@ -132,5 +132,5 @@ TEST(OperatorIntersection, correctTypeInfo) {
    OperatorVector negated;
    const Intersection under_test(std::move(non_negated), std::move(negated), row_layout);
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::INTERSECTION);
+   ASSERT_EQ(under_test.type(), rhydb::query_engine::filter::operators::INTERSECTION);
 }

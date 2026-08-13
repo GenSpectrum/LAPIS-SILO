@@ -25,9 +25,9 @@
 #include "silo/common/panic.h"
 #include "silo/preprocessing/preprocessing_exception.h"
 
-namespace silo::common {
-using silo::common::TreeNodeId;
-using silo::preprocessing::PreprocessingException;
+namespace rhydb::common {
+using rhydb::common::TreeNodeId;
+using rhydb::preprocessing::PreprocessingException;
 
 template <class Archive>
 void PhyloTree::save(Archive& archive, const unsigned int /*version*/) const {
@@ -632,4 +632,4 @@ NewickResponse PhyloTree::toNewickString(
    return response;
 }
 
-}  // namespace silo::common
+}  // namespace rhydb::common

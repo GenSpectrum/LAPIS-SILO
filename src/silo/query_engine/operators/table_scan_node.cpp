@@ -5,7 +5,7 @@
 #include "silo/query_engine/exec_node/table_scan.h"
 #include "silo/query_engine/operators/compute_filter.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 TableScanNode::TableScanNode(
    std::shared_ptr<storage::Table> table,
@@ -41,4 +41,4 @@ nlohmann::json TableScanNode::toJson() const {
    };
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

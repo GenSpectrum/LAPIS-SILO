@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-using silo::splitBy;
+using rhydb::splitBy;
 using std::string;
 using std::string_view;
 using std::vector;
@@ -42,54 +42,54 @@ TEST(splitBy, correctWithEmptyString) {
 TEST(removeSymbol, removesAllOccurences) {
    const string input(R"(ABC"DEF"ADS")");
 
-   const auto result = silo::removeSymbol(input, '\"');
+   const auto result = rhydb::removeSymbol(input, '\"');
    EXPECT_EQ(result, string("ABCDEFADS"));
 }
 
 TEST(removeSymbol, removesAtBeginning) {
    const string input(R"("ABC)");
 
-   const auto result = silo::removeSymbol(input, '\"');
+   const auto result = rhydb::removeSymbol(input, '\"');
    EXPECT_EQ(result, string("ABC"));
 }
 
 TEST(removeSymbol, removesAtEnd) {
    const string input(R"(ABC")");
 
-   const auto result = silo::removeSymbol(input, '\"');
+   const auto result = rhydb::removeSymbol(input, '\"');
    EXPECT_EQ(result, string("ABC"));
 }
 
 TEST(removeSymbol, removesAtBeginningAndEnd) {
    const string input(R"("ABC")");
 
-   const auto result = silo::removeSymbol(input, '\"');
+   const auto result = rhydb::removeSymbol(input, '\"');
    EXPECT_EQ(result, string("ABC"));
 }
 
 TEST(removeSymbol, doesNotRemoveIfNotContained) {
    const string input("ABCDEFADS");
 
-   const auto result = silo::removeSymbol(input, '\"');
+   const auto result = rhydb::removeSymbol(input, '\"');
    EXPECT_EQ(result, string("ABCDEFADS"));
 }
 
 TEST(slice, correctSlice) {
    const vector<string> input({"ABC", "DEF", "ADS"});
 
-   const auto result = silo::slice(input, 1, 3);
+   const auto result = rhydb::slice(input, 1, 3);
    EXPECT_EQ(result, vector<string>({"DEF", "ADS"}));
 }
 
 TEST(slice, withLargerStart) {
    const vector<string> input({"ABC", "DEF", "ADS"});
 
-   const auto result = silo::slice(input, 4, 3);
+   const auto result = rhydb::slice(input, 4, 3);
    EXPECT_EQ(result, vector<string>({}));
 }
 
 TEST(slice, withLargerEnd) {
    const vector<string> input({"ABC", "DEF", "ADS"});
 
-   EXPECT_THROW(silo::slice(input, 1, 4), std::out_of_range);
+   EXPECT_THROW(rhydb::slice(input, 1, 4), std::out_of_range);
 }

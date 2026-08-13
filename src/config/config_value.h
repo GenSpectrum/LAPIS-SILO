@@ -8,7 +8,7 @@
 
 #include "silo/common/panic.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 enum class ConfigValueType : uint8_t { STRING, PATH, INT32, UINT32, UINT16, BOOL, LIST };
 
@@ -77,4 +77,4 @@ class ConfigValue {
    [[nodiscard]] std::string toString() const;
 };
 
-}  // namespace silo::config
+}  // namespace rhydb::config

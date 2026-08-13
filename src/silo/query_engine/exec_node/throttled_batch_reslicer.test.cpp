@@ -14,7 +14,7 @@ using arrow::AsyncGenerator;
 using arrow::ExecBatch;
 using arrow::acero::BackpressureMonitor;
 
-using silo::query_engine::exec_node::ThrottledBatchReslicer;
+using rhydb::query_engine::exec_node::ThrottledBatchReslicer;
 
 // Mock BackpressureMonitor for testing
 class MockBackpressureMonitor : public BackpressureMonitor {

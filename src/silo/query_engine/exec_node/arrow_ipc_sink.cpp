@@ -4,7 +4,7 @@
 
 #include "evobench/evobench.hpp"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 OstreamWrapper::OstreamWrapper(std::ostream* output_stream)
     : output_stream(output_stream) {}
@@ -65,4 +65,4 @@ arrow::Status ArrowIpcSink::finish() {
    return writer->Close();
 }
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

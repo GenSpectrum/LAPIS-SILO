@@ -10,7 +10,7 @@
 #include "silo/common/symbol_map.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo {
+namespace rhydb {
 
 namespace storage::column {
 template <typename SymbolType>
@@ -95,12 +95,12 @@ class Nucleotide {
    /// The mapped set may include both concrete bases (GAP, A, C, G, T) and
    /// ambiguity symbols (R, Y, ..., N), and can include the symbol itself.
    /// For example, N codes for all nucleotide symbols.
-   static const silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> CODES_FOR;
+   static const rhydb::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> CODES_FOR;
 
    /// Maps each symbol to all symbols whose CODES_FOR set is a superset.
    /// I.e. AMBIGUITY_SYMBOLS[S] = {Y : CODES_FOR[S] ⊆ CODES_FOR[Y]}.
    /// Derived from CODES_FOR.
-   static const silo::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> AMBIGUITY_SYMBOLS;
+   static const rhydb::SymbolMap<Nucleotide, std::vector<Nucleotide::Symbol>> AMBIGUITY_SYMBOLS;
 
    static constexpr Symbol SYMBOL_MISSING = Symbol::N;
 
@@ -222,4 +222,4 @@ constexpr std::optional<Nucleotide::Symbol> Nucleotide::charToSymbol(char charac
    return NUCLEOTIDE_CHAR_TO_SYMBOL[static_cast<unsigned char>(character)];
 }
 
-}  // namespace silo
+}  // namespace rhydb

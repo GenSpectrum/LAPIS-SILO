@@ -12,7 +12,7 @@
 
 #include "silo/query_engine/exec_node/arrow_batch_sink.h"
 
-namespace silo::query_engine {
+namespace rhydb::query_engine {
 
 /// Serializes an arrow ordering into the JSON array sent in the `ordering` response header: one
 /// object per sort key, with `field` (the sorted column), `order` (`ascending`/`descending`) and
@@ -62,4 +62,4 @@ class QueryPlan {
    );
 };
 
-}  // namespace silo::query_engine
+}  // namespace rhydb::query_engine

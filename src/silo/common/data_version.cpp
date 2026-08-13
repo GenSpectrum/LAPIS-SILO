@@ -11,7 +11,7 @@
 
 #include "silo/persistence/exception.h"
 
-namespace silo {
+namespace rhydb {
 
 // NOLINTBEGIN(readability-identifier-naming)
 const DataVersion::SerializationVersion DataVersion::CURRENT_SILO_SERIALIZATION_VERSION{
@@ -38,7 +38,7 @@ std::optional<DataVersion::Timestamp> DataVersion::Timestamp::fromString(
    return DataVersion::Timestamp{timestamp_string};
 }
 
-bool DataVersion::Timestamp::operator==(const silo::DataVersion::Timestamp& other) const {
+bool DataVersion::Timestamp::operator==(const rhydb::DataVersion::Timestamp& other) const {
    return this->value == other.value;
 }
 
@@ -141,7 +141,7 @@ std::optional<DataVersion> DataVersion::fromFile(const std::filesystem::path& fi
 void DataVersion::saveToFile(const std::filesystem::path& save_file) const {
    std::ofstream file{save_file};
    if (!file) {
-      throw silo::persistence::SaveDatabaseException(
+      throw rhydb::persistence::SaveDatabaseException(
          fmt::format("Could not save data version to file '{}'", save_file.string())
       );
    }
@@ -151,4 +151,4 @@ void DataVersion::saveToFile(const std::filesystem::path& save_file) const {
    file << Dump(yaml_representation);
 }
 
-}  // namespace silo
+}  // namespace rhydb

@@ -5,7 +5,7 @@
 #include <string>
 #include <variant>
 
-namespace silo::common {
+namespace rhydb::common {
 
 using JsonValueType = std::optional<std::variant<std::string, bool, int32_t, double>>;
 

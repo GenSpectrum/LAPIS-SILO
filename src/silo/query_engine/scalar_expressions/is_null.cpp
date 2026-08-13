@@ -11,7 +11,7 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/storage/column/column_type_visitor.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 IsNull::IsNull(schema::ColumnIdentifier column)
     : column(std::move(column)) {}
@@ -40,7 +40,7 @@ std::unique_ptr<filter::operators::Operator> IsNull::compile(const storage::Tabl
    );
    auto target_column = maybe_target_column.value();
 
-   return silo::storage::column::visit(target_column.type, [&]<storage::column::Column Column>() {
+   return rhydb::storage::column::visit(target_column.type, [&]<storage::column::Column Column>() {
       const auto& value_column = table.columns.getColumns<Column>().at(column.name);
       return std::make_unique<filter::operators::IndexScan>(
          CopyOnWriteBitmap{&value_column.null_bitmap}, table.row_layout
@@ -48,4 +48,4 @@ std::unique_ptr<filter::operators::Operator> IsNull::compile(const storage::Tabl
    });
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

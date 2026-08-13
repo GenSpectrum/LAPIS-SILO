@@ -2,9 +2,9 @@
 
 #include "silo/test/query_fixture.test.h"
 
-using silo::ReferenceGenomes;
-using silo::test::QueryTestData;
-using silo::test::QueryTestScenario;
+using rhydb::ReferenceGenomes;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
 
 namespace {
 nlohmann::json createDataWithUnalignedSequences(
@@ -119,7 +119,7 @@ const QueryTestScenario DOWNLOAD_ALL_SEQUENCES_SCENARIO = {
        {{"primaryKey", "onlySegment2"}, {"unaligned_segment1", nullptr}, {"unaligned_segment2", "T"}
        }}
    ),
-   .query_options = silo::config::QueryOptions{.materialization_cutoff = 0}
+   .query_options = rhydb::config::QueryOptions{.materialization_cutoff = 0}
 };
 
 const QueryTestScenario DOWNLOAD_ALL_DATA = {

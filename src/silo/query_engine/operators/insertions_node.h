@@ -15,7 +15,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Aggregates SymbolType insertions for matching rows.
 template <typename SymbolType>
@@ -55,7 +55,7 @@ class InsertionsNode final : public QueryNode {
    ) const override;
 
    [[nodiscard]] NodeKind kind() const override {
-      if constexpr (std::is_same_v<SymbolType, silo::Nucleotide>) {
+      if constexpr (std::is_same_v<SymbolType, rhydb::Nucleotide>) {
          return NodeKind::INSERTIONS_NUCLEOTIDE;
       } else {
          return NodeKind::INSERTIONS_AMINO_ACID;
@@ -65,4 +65,4 @@ class InsertionsNode final : public QueryNode {
    [[nodiscard]] nlohmann::json toJson() const override;
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

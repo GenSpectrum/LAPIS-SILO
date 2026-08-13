@@ -12,7 +12,7 @@
 #include "silo/query_engine/filter/operators/full.h"
 #include "silo/query_engine/filter/operators/operator.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 namespace {
 /// Literals are scalar values, not filter predicates. Only the boolean literal
@@ -139,4 +139,4 @@ std::unique_ptr<filter::operators::Operator> DateLiteral::compile(const storage:
    compileNonBooleanLiteral();
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

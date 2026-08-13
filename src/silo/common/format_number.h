@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace silo {
+namespace rhydb {
 
 std::string formatNumber(uint64_t number);
 

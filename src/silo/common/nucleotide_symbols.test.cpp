@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-using silo::Nucleotide;
+using rhydb::Nucleotide;
 using Symbol = Nucleotide::Symbol;
 
 TEST(NucleotideSymbol, enumShouldHaveSameLengthAsArrayOfSymbols) {

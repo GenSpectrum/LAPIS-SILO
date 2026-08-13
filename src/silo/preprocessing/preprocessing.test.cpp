@@ -17,8 +17,8 @@
 #include "silo/test/query_fixture.test.h"
 
 namespace {
-using silo::config::PreprocessingConfig;
-using silo::preprocessing::PreprocessingException;
+using rhydb::config::PreprocessingConfig;
+using rhydb::preprocessing::PreprocessingException;
 
 struct Error {
    std::string error_message;
@@ -41,7 +41,7 @@ struct Scenario {
 };
 
 template <typename Assertion>
-silo::config::PreprocessingConfig prepareInputDirAndPreprocessorForScenario(
+rhydb::config::PreprocessingConfig prepareInputDirAndPreprocessorForScenario(
    Scenario<Assertion> scenario
 ) {
    auto now = std::chrono::system_clock::now();
@@ -814,19 +814,19 @@ TEST_P(PreprocessorTestFixture, shouldProcessData) {
    auto preprocessing_config = prepareInputDirAndPreprocessorForScenario(scenario);
 
    auto database =
-      std::make_shared<silo::Database>(silo::preprocessing::preprocessing(preprocessing_config));
+      std::make_shared<rhydb::Database>(rhydb::preprocessing::preprocessing(preprocessing_config));
 
    const auto database_info = database->getDatabaseInfo();
 
    EXPECT_EQ(database_info.sequence_count, scenario.assertion.expected_sequence_count);
 
-   auto query_plan = silo::query_engine::Planner::planSaneqlQuery(
+   auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
       scenario.assertion.query,
       database->tables,
-      silo::config::RuntimeConfig::withDefaults().query_options,
+      rhydb::config::RuntimeConfig::withDefaults().query_options,
       "some_id"
    );
-   auto actual_ndjson_result_as_array = silo::test::executeQueryToJsonArray(query_plan);
+   auto actual_ndjson_result_as_array = rhydb::test::executeQueryToJsonArray(query_plan);
 
    ASSERT_EQ(actual_ndjson_result_as_array, scenario.assertion.expected_query_result);
 
@@ -1125,7 +1125,7 @@ TEST_P(InvalidPreprocessorTestFixture, shouldNotProcessData) {
    auto preprocessing_config = prepareInputDirAndPreprocessorForScenario(scenario);
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
-      [&]() { silo::preprocessing::preprocessing(preprocessing_config); },
+      [&]() { rhydb::preprocessing::preprocessing(preprocessing_config); },
       ThrowsMessage<PreprocessingException>(::testing::HasSubstr(scenario.assertion.error_message))
    );
    std::filesystem::remove_all(preprocessing_config.initialization_files.directory);

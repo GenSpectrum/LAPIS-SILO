@@ -13,9 +13,9 @@
 #include "silo/query_engine/illegal_query_exception.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 
-using silo::storage::column::IntColumn;
+using rhydb::storage::column::IntColumn;
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 // NOLINTBEGIN(bugprone-easily-swappable-parameters,readability-identifier-length)
 IntBetween::IntBetween(
@@ -94,4 +94,4 @@ std::unique_ptr<filter::operators::Operator> IntBetween::compile(const storage::
    return std::move(result);
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

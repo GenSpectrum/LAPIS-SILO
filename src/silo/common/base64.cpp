@@ -6,7 +6,7 @@
 
 #include <simdutf.h>
 
-namespace silo {
+namespace rhydb {
 
 std::expected<std::string, std::string> decodeBase64(std::string_view encoded) {
    const size_t max_size =
@@ -40,4 +40,4 @@ std::expected<std::string, std::string> decodeBase64(std::string_view encoded) {
    return result;
 }
 
-}  // namespace silo
+}  // namespace rhydb

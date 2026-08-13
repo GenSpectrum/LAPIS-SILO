@@ -13,7 +13,7 @@
 #include "silo/storage/column/chunked_value_buffer.h"
 #include "silo/storage/column/column_metadata.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 class Date32ColumnBuilder;
 
@@ -99,4 +99,4 @@ class Date32ColumnBuilder {
    }
 };
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column

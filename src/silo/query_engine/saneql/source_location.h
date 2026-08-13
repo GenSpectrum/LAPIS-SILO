@@ -5,7 +5,7 @@
 
 #include <fmt/format.h>
 
-namespace silo::query_engine::saneql {
+namespace rhydb::query_engine::saneql {
 
 struct SourceLocation {
    uint32_t line = 1;
@@ -19,4 +19,4 @@ struct SourceRange {
    SourceLocation end;
 };
 
-}  // namespace silo::query_engine::saneql
+}  // namespace rhydb::query_engine::saneql

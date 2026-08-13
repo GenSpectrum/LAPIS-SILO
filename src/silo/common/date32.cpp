@@ -7,7 +7,7 @@
 
 #include <fmt/format.h>
 
-namespace silo::common {
+namespace rhydb::common {
 
 std::expected<Date32, std::string> stringToDate32(std::string_view value) {
    if (value.size() != 10 || value[4] != '-' || value[7] != '-') {
@@ -60,4 +60,4 @@ std::string date32ToString(Date32 date) {
    );
 }
 
-}  // namespace silo::common
+}  // namespace rhydb::common

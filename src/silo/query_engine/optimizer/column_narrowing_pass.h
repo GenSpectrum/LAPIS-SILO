@@ -6,7 +6,7 @@
 #include "silo/query_engine/optimizer/pipeline_pass_base.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 class FilterNode;
 class TableScanNode;
 class AggregateNode;
@@ -16,9 +16,9 @@ class OrderByNode;
 class UnionAllNode;
 class JoinNode;
 class SchemaNode;
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators
 
-namespace silo::query_engine::optimizer {
+namespace rhydb::query_engine::optimizer {
 
 /// Optimization pass that narrows the set of columns produced by each node down to those
 /// actually required by its parent, pruning unneeded columns from scans and collapsing
@@ -49,4 +49,4 @@ class ColumnNarrowingPass : public PipelinePassBase<ColumnNarrowingPass> {
    operators::QueryNodePtr operator()(operators::SchemaNode& node);
 };
 
-}  // namespace silo::query_engine::optimizer
+}  // namespace rhydb::query_engine::optimizer

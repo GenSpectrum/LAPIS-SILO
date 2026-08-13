@@ -23,20 +23,20 @@
 #include "silo/zstd/zstd_compressor.h"
 #include "silo/zstd/zstd_dictionary.h"
 
-using silo::Nucleotide;
-using silo::schema::ColumnIdentifier;
-using silo::schema::TableSchema;
-using silo::storage::ColumnGroupBuilder;
-using silo::storage::column::BoolColumn;
-using silo::storage::column::Column;
-using silo::storage::column::ColumnMetadata;
-using silo::storage::column::Date32Column;
-using silo::storage::column::FloatColumn;
-using silo::storage::column::IntColumn;
-using silo::storage::column::SequenceColumn;
-using silo::storage::column::SequenceColumnMetadata;
-using silo::storage::column::StringColumn;
-using silo::storage::column::StringColumnMetadata;
+using rhydb::Nucleotide;
+using rhydb::schema::ColumnIdentifier;
+using rhydb::schema::TableSchema;
+using rhydb::storage::ColumnGroupBuilder;
+using rhydb::storage::column::BoolColumn;
+using rhydb::storage::column::Column;
+using rhydb::storage::column::ColumnMetadata;
+using rhydb::storage::column::Date32Column;
+using rhydb::storage::column::FloatColumn;
+using rhydb::storage::column::IntColumn;
+using rhydb::storage::column::SequenceColumn;
+using rhydb::storage::column::SequenceColumnMetadata;
+using rhydb::storage::column::StringColumn;
+using rhydb::storage::column::StringColumnMetadata;
 
 namespace {
 
@@ -66,7 +66,7 @@ std::expected<void, std::string> setupColumnAndInsertJson(
    }
    const ColumnIdentifier id{column_name, ColumnType::TYPE};
    auto schema = std::make_shared<TableSchema>(makeSingleColumnSchema(id, meta));
-   silo::storage::Table table{silo::schema::TableName::getDefault(), schema};
+   rhydb::storage::Table table{rhydb::schema::TableName::getDefault(), schema};
    ColumnGroupBuilder builder{*schema, table.columns};
 
    simdjson::ondemand::parser parser;
@@ -87,7 +87,7 @@ std::expected<void, std::string> setupNucleotideColumnAndInsertJson(
    );
    const ColumnIdentifier id{.name = column_name, .type = SequenceColumn<Nucleotide>::TYPE};
    auto schema = std::make_shared<TableSchema>(makeSingleColumnSchema(id, meta));
-   silo::storage::Table table{silo::schema::TableName::getDefault(), schema};
+   rhydb::storage::Table table{rhydb::schema::TableName::getDefault(), schema};
    ColumnGroupBuilder builder{*schema, table.columns};
 
    simdjson::ondemand::parser parser;
@@ -99,8 +99,8 @@ std::expected<void, std::string> setupNucleotideColumnAndInsertJson(
 }
 
 std::string compressAndBase64Encode(std::string_view sequence, const std::string& reference) {
-   auto cdict = std::make_shared<silo::ZstdCDictionary>(reference, 3);
-   silo::ZstdCompressor compressor(cdict);
+   auto cdict = std::make_shared<rhydb::ZstdCDictionary>(reference, 3);
+   rhydb::ZstdCompressor compressor(cdict);
    const auto compressed = compressor.compress(sequence.data(), sequence.size());
 
    const size_t base64_len = simdutf::base64_length_from_binary(compressed.size());
@@ -270,7 +270,7 @@ TEST(ColumnGroupBuilder, givenSequenceCompressedMultipleRows_succeeds) {
       std::make_shared<SequenceColumnMetadata<Nucleotide>>("nuc_col", std::move(reference));
    const ColumnIdentifier id{.name = "nuc_col", .type = SequenceColumn<Nucleotide>::TYPE};
    auto schema = std::make_shared<TableSchema>(makeSingleColumnSchema(id, meta));
-   silo::storage::Table table{silo::schema::TableName::getDefault(), schema};
+   rhydb::storage::Table table{rhydb::schema::TableName::getDefault(), schema};
    ColumnGroupBuilder builder{*schema, table.columns};
 
    for (const std::string_view sequence : {"ACGT", "ATGT", "ACGT"}) {

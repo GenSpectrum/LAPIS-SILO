@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-using silo::query_engine::CopyOnWriteBitmap;
+using rhydb::query_engine::CopyOnWriteBitmap;
 
 namespace {
 

@@ -14,11 +14,11 @@
 #include "silo/storage/column/row_layout.h"
 #include "silo/storage/column/sequence_column.h"
 
-namespace silo {
+namespace rhydb {
 class Nucleotide;
 }
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 class Or;
 
@@ -76,4 +76,4 @@ class SymbolInSet : public ScalarExpression {
    }
 };
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

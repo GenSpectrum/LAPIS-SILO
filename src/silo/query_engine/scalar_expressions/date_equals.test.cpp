@@ -2,9 +2,9 @@
 
 #include "silo/test/query_fixture.test.h"
 
-using silo::ReferenceGenomes;
-using silo::test::QueryTestData;
-using silo::test::QueryTestScenario;
+using rhydb::ReferenceGenomes;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
 
 namespace {
 const std::string DATE_2020 = "2020-12-24";

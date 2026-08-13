@@ -6,7 +6,7 @@
 
 #include "silo/preprocessing/preprocessing_exception.h"
 
-using silo::preprocessing::LineageDefinitionFile;
+using rhydb::preprocessing::LineageDefinitionFile;
 
 TEST(LineageDefinitionFile, correctlyParsesFromYAML) {
    auto lineage_definition_file = LineageDefinitionFile::fromYAMLString(R"(
@@ -48,7 +48,7 @@ some_other_lineage:
 
    EXPECT_THAT(
       throwing_lambda,
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(
+      ThrowsMessage<rhydb::preprocessing::PreprocessingException>(
          ::testing::HasSubstr("The definition of lineage 'some_lineage' may only contain the "
                               "fields 'parents' and 'aliases', it also contains invalid fields")
       )
@@ -84,7 +84,7 @@ some_other_lineage:
 
    EXPECT_THAT(
       throwing_lambda,
-      ThrowsMessage<silo::preprocessing::PreprocessingException>(::testing::HasSubstr(
+      ThrowsMessage<rhydb::preprocessing::PreprocessingException>(::testing::HasSubstr(
          "The definition of lineage 'some_lineage' may only contain the fields 'parents' and "
          "'aliases', it also contains invalid fields:\nparents: []\nsome_extra_field: "
          "some_value"

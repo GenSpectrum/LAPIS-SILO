@@ -9,7 +9,7 @@
 #include "silo/common/lineage_tree.h"
 #include "silo/common/types.h"
 
-namespace silo::storage {
+namespace rhydb::storage {
 
 class LineageIndex {
    friend class boost::serialization::access;
@@ -17,7 +17,7 @@ class LineageIndex {
    const common::LineageTree* lineage_tree;
    std::unordered_map<Idx, roaring::Roaring> index_excluding_sublineages;
    std::unordered_map<
-      silo::common::RecombinantEdgeFollowingMode,
+      rhydb::common::RecombinantEdgeFollowingMode,
       std::unordered_map<Idx, roaring::Roaring>>
       index_including_sublineages;
 
@@ -36,11 +36,11 @@ class LineageIndex {
 
    [[nodiscard]] std::optional<const roaring::Roaring*> filterIncludingSublineages(
       Idx value_id,
-      silo::common::RecombinantEdgeFollowingMode recombinant_edge_following_mode
+      rhydb::common::RecombinantEdgeFollowingMode recombinant_edge_following_mode
    ) const;
 
    [[nodiscard]] std::optional<const roaring::Roaring*> filterExcludingSublineages(Idx value_id
    ) const;
 };
 
-}  // namespace silo::storage
+}  // namespace rhydb::storage

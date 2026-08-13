@@ -15,11 +15,11 @@
 #include "silo/storage/column/row_layout.h"
 #include "silo/storage/column/string_column.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 class And;
 }
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 class Predicate {
   public:
@@ -168,7 +168,7 @@ class CompareToValueSelection : public Predicate {
 };
 
 template <>
-bool CompareToValueSelection<silo::storage::column::StringColumn>::match(uint32_t row_id) const;
+bool CompareToValueSelection<rhydb::storage::column::StringColumn>::match(uint32_t row_id) const;
 
 class Selection : public Operator {
    friend class scalar_expressions::And;
@@ -223,4 +223,4 @@ class Selection : public Operator {
    }
 };
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

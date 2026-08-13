@@ -7,7 +7,7 @@
 
 #include "silo/common/types.h"
 
-namespace silo::initialize {
+namespace rhydb::initialize {
 
 std::vector<LineageRelationRow> buildLineageRelationRows(
    const common::LineageTreeAndIdMap& lineage_tree_and_id_map
@@ -57,4 +57,4 @@ std::vector<LineageRelationRow> buildLineageRelationRows(
    return rows;
 }
 
-}  // namespace silo::initialize
+}  // namespace rhydb::initialize

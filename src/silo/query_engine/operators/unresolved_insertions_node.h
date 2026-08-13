@@ -11,7 +11,7 @@
 #include "silo/query_engine/operators/insertions_node.h"
 #include "silo/query_engine/operators/query_node.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Placeholder for insertions action, resolved during pushdown.
 template <typename SymbolType>
@@ -43,7 +43,7 @@ class UnresolvedInsertionsNode final : public QueryNode {
    }
 
    [[nodiscard]] NodeKind kind() const override {
-      if constexpr (std::is_same_v<SymbolType, silo::Nucleotide>) {
+      if constexpr (std::is_same_v<SymbolType, rhydb::Nucleotide>) {
          return NodeKind::UNRESOLVED_INSERTIONS_NUCLEOTIDE;
       } else {
          return NodeKind::UNRESOLVED_INSERTIONS_AMINO_ACID;
@@ -59,4 +59,4 @@ class UnresolvedInsertionsNode final : public QueryNode {
    }
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

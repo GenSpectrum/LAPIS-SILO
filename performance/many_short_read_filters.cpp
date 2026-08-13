@@ -13,8 +13,8 @@
 #include "silo/query_engine/exec_node/ndjson_sink.h"
 #include "silo/query_engine/planner.h"
 
-using silo::Database;
-using silo::query_engine::Planner;
+using rhydb::Database;
+using rhydb::query_engine::Planner;
 
 namespace {
 
@@ -34,7 +34,7 @@ TestDatabaseResult setupTestDatabase() {
    SPDLOG_INFO("Reading short read NDJSON data from {}", SHORT_READ_LARGE_NDJSON_PATH);
 
    auto database = initializeDatabaseWithShortReadSchema(reference);
-   database->appendData(silo::schema::TableName::getDefault(), input_file);
+   database->appendData(rhydb::schema::TableName::getDefault(), input_file);
 
    return {database, ref_length};
 }
@@ -100,7 +100,7 @@ void executeAllQueries(
       auto query_plan = Planner::planSaneqlQuery(query_string, database->tables, {}, "test_query");
 
       std::ofstream null_output("/dev/null");
-      silo::query_engine::exec_node::NdjsonSink sink{&null_output, query_plan.results_schema};
+      rhydb::query_engine::exec_node::NdjsonSink sink{&null_output, query_plan.results_schema};
       query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/20);
    }
 }

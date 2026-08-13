@@ -6,7 +6,7 @@
 
 #include "silo/query_engine/operators/query_node.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Placeholder for mostRecentCommonAncestor action, resolved during pushdown.
 class UnresolvedMostRecentCommonAncestorNode final : public QueryNode {
@@ -60,4 +60,4 @@ class UnresolvedMostRecentCommonAncestorNode final : public QueryNode {
    }
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

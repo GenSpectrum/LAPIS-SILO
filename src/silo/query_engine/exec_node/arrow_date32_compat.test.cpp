@@ -19,9 +19,9 @@
 
 namespace {
 
-using silo::common::Date32;
-using silo::common::date32ToString;
-using silo::common::stringToDate32;
+using rhydb::common::Date32;
+using rhydb::common::date32ToString;
+using rhydb::common::stringToDate32;
 
 TEST(SiloDate32MatchesArrowDate32, cTypesAreIdentical) {
    // SILO's Date32 must be bit-identical to Arrow's Date32 c_type so that one

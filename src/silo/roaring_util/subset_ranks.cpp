@@ -1,6 +1,6 @@
 #include "silo/roaring_util/subset_ranks.h"
 
-namespace silo::roaring_util {
+namespace rhydb::roaring_util {
 
 // Get the subset of A & B and compute their ranks with respect to A
 // Example:    A     B     rank in A
@@ -51,4 +51,4 @@ std::vector<uint64_t> roaringSubsetRanks(
    return ids_in_reconstructed_sequences;
 }
 
-}  // namespace silo::roaring_util
+}  // namespace rhydb::roaring_util

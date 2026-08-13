@@ -2,7 +2,7 @@
 
 #include "config/config_specification.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 template <typename T>
 concept ConfigSource = requires(const T& obj, const ConfigSpecification& spec) {
@@ -15,4 +15,4 @@ concept ConfigSource = requires(const T& obj, const ConfigSpecification& spec) {
    { obj.verify(spec) } -> std::same_as<typename T::VerifiedType>;
 };
 
-}  // namespace silo::config
+}  // namespace rhydb::config

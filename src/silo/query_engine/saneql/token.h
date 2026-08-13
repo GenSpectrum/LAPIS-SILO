@@ -6,7 +6,7 @@
 
 #include "silo/query_engine/saneql/source_location.h"
 
-namespace silo::query_engine::saneql {
+namespace rhydb::query_engine::saneql {
 
 enum class TokenType : uint8_t {
    INT_LITERAL,
@@ -53,4 +53,4 @@ struct Token {
    [[nodiscard]] bool getBoolValue() const;
 };
 
-}  // namespace silo::query_engine::saneql
+}  // namespace rhydb::query_engine::saneql

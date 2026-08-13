@@ -15,7 +15,7 @@
 #include "silo/query_engine/exec_node/arrow_util.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 namespace {
 
@@ -83,4 +83,4 @@ nlohmann::json SchemaNode::toJson() const {
    };
 }
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

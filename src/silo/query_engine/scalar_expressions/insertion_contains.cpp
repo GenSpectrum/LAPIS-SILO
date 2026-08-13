@@ -14,7 +14,7 @@
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/insertion_format_exception.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 template <typename SymbolType>
 InsertionContains<SymbolType>::InsertionContains(
@@ -90,4 +90,4 @@ std::unique_ptr<filter::operators::Operator> InsertionContains<SymbolType>::comp
 template class InsertionContains<Nucleotide>;
 template class InsertionContains<AminoAcid>;
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

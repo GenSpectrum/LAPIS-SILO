@@ -12,7 +12,7 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// Sorts output rows by the specified fields and keeps only the `offset + limit` smallest of them.
 ///
@@ -53,4 +53,4 @@ class OrderByWithLimitNode final : public QueryNode {
    [[nodiscard]] nlohmann::json toJson() const override;
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

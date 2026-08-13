@@ -10,7 +10,7 @@
 #include "silo/common/symbol_map.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo {
+namespace rhydb {
 
 namespace storage::column {
 template <typename SymbolType>
@@ -107,12 +107,12 @@ class AminoAcid {
    /// Maps each symbol to the set of symbols it can represent or match.
    /// For example, B represents at least {D, N}, and X typically represents all symbols
    /// (including ambiguity symbols and the symbol itself, as applicable).
-   static const silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> CODES_FOR;
+   static const rhydb::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> CODES_FOR;
 
    /// Maps each symbol to all symbols whose CODES_FOR set is a superset.
    /// I.e. AMBIGUITY_SYMBOLS[S] = {Y : CODES_FOR[S] ⊆ CODES_FOR[Y]}.
    /// Derived from CODES_FOR.
-   static const silo::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AMBIGUITY_SYMBOLS;
+   static const rhydb::SymbolMap<AminoAcid, std::vector<AminoAcid::Symbol>> AMBIGUITY_SYMBOLS;
 
    static constexpr Symbol SYMBOL_MISSING = Symbol::X;
 
@@ -291,4 +291,4 @@ constexpr std::optional<AminoAcid::Symbol> AminoAcid::charToSymbol(char characte
    return AMINO_ACID_CHAR_TO_SYMBOL[static_cast<unsigned char>(character)];
 }
 
-}  // namespace silo
+}  // namespace rhydb

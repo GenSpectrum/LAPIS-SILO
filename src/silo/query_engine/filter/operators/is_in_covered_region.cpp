@@ -9,7 +9,7 @@
 #include "evobench/evobench.hpp"
 #include "silo/query_engine/filter/operators/selection.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 IsInCoveredRegion::IsInCoveredRegion(
    const storage::column::HorizontalCoverageIndex* horizontal_coverage_index,
@@ -81,4 +81,4 @@ std::unique_ptr<Predicate> IsInCoveredRegion::negate() const {
    );
 }
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

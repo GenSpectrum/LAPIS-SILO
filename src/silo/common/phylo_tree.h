@@ -14,8 +14,8 @@
 
 #include "silo/common/tree_node_id.h"
 
-namespace silo::common {
-using silo::common::TreeNodeId;
+namespace rhydb::common {
+using rhydb::common::TreeNodeId;
 
 class TreeNode {
   public:
@@ -126,4 +126,4 @@ class PhyloTree {
    }
 };
 
-}  // namespace silo::common
+}  // namespace rhydb::common

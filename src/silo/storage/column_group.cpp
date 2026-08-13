@@ -6,7 +6,7 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 
-namespace silo::storage {
+namespace rhydb::storage {
 
 template <>
 std::map<std::string, column::DictionaryEncodedColumn>& ColumnGroup::getColumns<
@@ -110,4 +110,4 @@ const std::map<std::string, column::ZstdCompressedStringColumn>& ColumnGroup::ge
    return zstd_compressed_string_columns;
 }
 
-}  // namespace silo::storage
+}  // namespace rhydb::storage

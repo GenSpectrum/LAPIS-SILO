@@ -13,7 +13,7 @@
 #include "silo/common/aa_symbols.h"
 #include "silo/common/nucleotide_symbols.h"
 
-namespace silo {
+namespace rhydb {
 
 template <typename SymbolType>
 std::expected<CoverageAndMutations<SymbolType>, std::string>
@@ -152,4 +152,4 @@ extractCoverageAndMutationsFromSequence<Nucleotide>(std::string_view, size_t, st
 template std::expected<CoverageAndMutations<AminoAcid>, std::string>
 extractCoverageAndMutationsFromSequence<AminoAcid>(std::string_view, size_t, std::string_view);
 
-}  // namespace silo
+}  // namespace rhydb

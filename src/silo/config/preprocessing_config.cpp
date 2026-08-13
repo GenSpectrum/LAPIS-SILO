@@ -7,8 +7,8 @@
 #include "silo/preprocessing/preprocessing_exception.h"
 
 namespace {
-using silo::config::ConfigKeyPath;
-using silo::config::YamlFile;
+using rhydb::config::ConfigKeyPath;
+using rhydb::config::YamlFile;
 
 // Using functions instead of global variables because of
 // initialization order issues.
@@ -45,7 +45,7 @@ ConfigKeyPath withoutUnalignedSequencesOptionKey() {
 }
 }  // namespace
 
-namespace silo::config {
+namespace rhydb::config {
 
 // Specification of the fields in inputs to the PreprocessingConfig struct
 ConfigSpecification PreprocessingConfig::getConfigSpecification() {
@@ -118,7 +118,7 @@ PreprocessingConfig PreprocessingConfig::withDefaults() {
 
 void PreprocessingConfig::validate() const {
    if (!input_file.has_value()) {
-      throw silo::preprocessing::PreprocessingException(
+      throw rhydb::preprocessing::PreprocessingException(
          "'ndjsonInputFilename' must be specified as preprocessing option."
       );
    }
@@ -174,10 +174,10 @@ std::optional<std::filesystem::path> PreprocessingConfig::getInputFilePath() con
    return std::nullopt;
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config
 
-[[maybe_unused]] auto fmt::formatter<silo::config::PreprocessingConfig>::format(
-   const silo::config::PreprocessingConfig& preprocessing_config,
+[[maybe_unused]] auto fmt::formatter<rhydb::config::PreprocessingConfig>::format(
+   const rhydb::config::PreprocessingConfig& preprocessing_config,
    fmt::format_context& ctx
 ) -> decltype(ctx.out()) {
    const nlohmann::json json = preprocessing_config;

@@ -13,7 +13,7 @@
 #include "active_database.h"
 
 silo_app::SiloDirectoryWatcher::SiloDirectoryWatcher(
-   silo::SiloDirectory silo_directory,
+   rhydb::SiloDirectory silo_directory,
    std::shared_ptr<ActiveDatabase> database_handle
 )
     : silo_directory(std::move(silo_directory)),
@@ -56,7 +56,7 @@ void silo_app::SiloDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer*
    SPDLOG_INFO("New data version detected: {}", most_recent_database_state.path.string());
    try {
       database_handle->setActiveDatabase(
-         silo::Database::loadDatabaseState(most_recent_database_state)
+         rhydb::Database::loadDatabaseState(most_recent_database_state)
       );
       SPDLOG_INFO(
          "New database with version {} successfully loaded.",

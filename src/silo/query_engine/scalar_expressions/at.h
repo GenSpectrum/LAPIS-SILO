@@ -9,7 +9,7 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 /// A scalar expression that evaluates to the single character at a given 1-indexed position of the
 /// string its child expression evaluates to, e.g. `seq.at(3)`. The child is usually a `FieldRef` to
@@ -46,4 +46,4 @@ class At : public ScalarExpression {
    ) const override;
 };
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

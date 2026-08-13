@@ -10,18 +10,18 @@
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 #include "silo/schema/database_schema.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
 class LineageFilter : public ScalarExpression {
    schema::ColumnIdentifier column;
    std::optional<std::string> lineage;
-   std::optional<silo::common::RecombinantEdgeFollowingMode> sublineage_mode;
+   std::optional<rhydb::common::RecombinantEdgeFollowingMode> sublineage_mode;
 
   public:
    explicit LineageFilter(
       schema::ColumnIdentifier column,
       std::optional<std::string> lineage,
-      std::optional<silo::common::RecombinantEdgeFollowingMode> sublineage_mode
+      std::optional<rhydb::common::RecombinantEdgeFollowingMode> sublineage_mode
    );
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
@@ -44,8 +44,8 @@ class LineageFilter : public ScalarExpression {
 
   private:
    [[nodiscard]] std::optional<const roaring::Roaring*> getBitmapForValue(
-      const silo::storage::column::DictionaryEncodedColumn& lineage_column
+      const rhydb::storage::column::DictionaryEncodedColumn& lineage_column
    ) const;
 };
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

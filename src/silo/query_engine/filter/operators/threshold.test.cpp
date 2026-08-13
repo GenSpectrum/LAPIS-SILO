@@ -6,11 +6,11 @@
 #include "silo/query_engine/filter/operators/index_scan.h"
 #include "silo/query_engine/query_compilation_exception.h"
 
-using silo::query_engine::CopyOnWriteBitmap;
-using silo::query_engine::filter::operators::IndexScan;
-using silo::query_engine::filter::operators::OperatorVector;
-using silo::query_engine::filter::operators::Threshold;
-using silo::storage::column::RowLayout;
+using rhydb::query_engine::CopyOnWriteBitmap;
+using rhydb::query_engine::filter::operators::IndexScan;
+using rhydb::query_engine::filter::operators::OperatorVector;
+using rhydb::query_engine::filter::operators::Threshold;
+using rhydb::storage::column::RowLayout;
 
 namespace {
 OperatorVector generateTestInput(
@@ -33,7 +33,7 @@ TEST(OperatorThreshold, evaluatesCorrectOnEmptyInput) {
       const Threshold under_test(
          std::move(non_negated), std::move(negated), 2, true, RowLayout::of()
       ),
-      silo::query_engine::QueryCompilationException
+      rhydb::query_engine::QueryCompilationException
    );
 }
 
@@ -320,5 +320,5 @@ TEST(OperatorThreshold, correctTypeInfo) {
       generateTestInput(test_bitmaps, row_layout), OperatorVector(), 1, true, row_layout
    );
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::THRESHOLD);
+   ASSERT_EQ(under_test.type(), rhydb::query_engine::filter::operators::THRESHOLD);
 }

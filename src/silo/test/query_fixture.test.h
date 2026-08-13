@@ -17,7 +17,7 @@
 #include "silo/query_engine/query_plan.h"
 #include "silo/storage/reference_genomes.h"
 
-namespace silo::test {
+namespace rhydb::test {
 
 /**
  * Creates a test suite for a query test.
@@ -25,29 +25,29 @@ namespace silo::test {
  *
  * @param TEST_SUITE_NAME The name of the test suite (must be unique across all generated suites).
  * @param TEST_DATA The dataset to be used for the test suite.
- * Must be an instance of silo::test::QueryTestData.
+ * Must be an instance of rhydb::test::QueryTestData.
  *
  * @param TEST_VALUES The queries to be executed on the given dataset and the expected results.
- * Must be of the form `::testing::Values(silo::test::QueryTestScenario... scenarios)`.
+ * Must be of the form `::testing::Values(rhydb::test::QueryTestScenario... scenarios)`.
  */
-#define QUERY_TEST(TEST_SUITE_NAME, TEST_DATA, TEST_VALUES)                                      \
-   struct TEST_SUITE_NAME##DataContainer {                                                       \
-      const silo::test::QueryTestData test_data = TEST_DATA;                                     \
-   };                                                                                            \
-                                                                                                 \
-   using TEST_SUITE_NAME##FixtureAlias =                                                         \
-      silo::test::QueryTestFixture<TEST_SUITE_NAME##DataContainer>;                              \
-                                                                                                 \
-   template <>                                                                                   \
-   std::shared_ptr<silo::Database> TEST_SUITE_NAME##FixtureAlias::shared_database = nullptr;     \
-                                                                                                 \
-   INSTANTIATE_TEST_SUITE_P(                                                                     \
-      TEST_SUITE_NAME, TEST_SUITE_NAME##FixtureAlias, TEST_VALUES, silo::test::printScenarioName \
-   );                                                                                            \
-                                                                                                 \
-   TEST_P(TEST_SUITE_NAME##FixtureAlias, testQuery) {                                            \
-      const auto& scenario = GetParam();                                                         \
-      runTest(scenario);                                                                         \
+#define QUERY_TEST(TEST_SUITE_NAME, TEST_DATA, TEST_VALUES)                                       \
+   struct TEST_SUITE_NAME##DataContainer {                                                        \
+      const rhydb::test::QueryTestData test_data = TEST_DATA;                                     \
+   };                                                                                             \
+                                                                                                  \
+   using TEST_SUITE_NAME##FixtureAlias =                                                          \
+      rhydb::test::QueryTestFixture<TEST_SUITE_NAME##DataContainer>;                              \
+                                                                                                  \
+   template <>                                                                                    \
+   std::shared_ptr<rhydb::Database> TEST_SUITE_NAME##FixtureAlias::shared_database = nullptr;     \
+                                                                                                  \
+   INSTANTIATE_TEST_SUITE_P(                                                                      \
+      TEST_SUITE_NAME, TEST_SUITE_NAME##FixtureAlias, TEST_VALUES, rhydb::test::printScenarioName \
+   );                                                                                             \
+                                                                                                  \
+   TEST_P(TEST_SUITE_NAME##FixtureAlias, testQuery) {                                             \
+      const auto& scenario = GetParam();                                                          \
+      runTest(scenario);                                                                          \
    };
 
 struct QueryTestData {
@@ -105,7 +105,7 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       shared_database = database;
    }
 
-   void runTest(const silo::test::QueryTestScenario& scenario) {
+   void runTest(const rhydb::test::QueryTestScenario& scenario) {
       if (!shared_database) {
          FAIL() << "There was an error when setting up the test suite. Database not initialized.";
       }
@@ -131,4 +131,4 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
    }
 };
 
-}  // namespace silo::test
+}  // namespace rhydb::test

@@ -12,9 +12,9 @@
 #include "silo/storage/column/column.h"
 #include "silo/storage/column/row_id.h"
 
-using silo::storage::column::COLUMN_CHUNK_SIZE;
-using silo::storage::column::RowId;
-using silo::storage::column::RowLayout;
+using rhydb::storage::column::COLUMN_CHUNK_SIZE;
+using rhydb::storage::column::RowId;
+using rhydb::storage::column::RowLayout;
 
 TEST(RowLayout, ofBuildsLayoutFromVariadicChunkSizes) {
    const RowLayout layout = RowLayout::of(3, 5, 2);

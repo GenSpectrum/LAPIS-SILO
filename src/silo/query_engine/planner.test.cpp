@@ -16,21 +16,21 @@
 #include "silo/schema/database_schema.h"
 #include "silo/storage/table.h"
 
-using silo::query_engine::Planner;
-namespace operators = silo::query_engine::operators;
+using rhydb::query_engine::Planner;
+namespace operators = rhydb::query_engine::operators;
 
 namespace {
 
 class ErrorQueryNode final : public operators::QueryNode {
   public:
-   [[nodiscard]] std::vector<silo::schema::ColumnIdentifier> getOutputSchema() const override {
+   [[nodiscard]] std::vector<rhydb::schema::ColumnIdentifier> getOutputSchema() const override {
       return {};
    }
 
    [[nodiscard]] arrow::Result<arrow::acero::ExecNode*> addToExecPlan(
       arrow::acero::ExecPlan& /*plan*/,
-      const std::map<silo::schema::TableName, std::shared_ptr<silo::storage::Table>>& /*tables*/,
-      const silo::config::QueryOptions& /*query_options*/
+      const std::map<rhydb::schema::TableName, std::shared_ptr<rhydb::storage::Table>>& /*tables*/,
+      const rhydb::config::QueryOptions& /*query_options*/
    ) const override {
       return arrow::Status::ExecutionError("induced test error");
    }
@@ -43,7 +43,7 @@ class ErrorQueryNode final : public operators::QueryNode {
 };
 
 TEST(PlannerPlanQuery, arrowErrorThrows) {
-   silo::config::QueryOptions options{.materialization_cutoff = 1024};
+   rhydb::config::QueryOptions options{.materialization_cutoff = 1024};
    auto node = std::make_unique<ErrorQueryNode>();
    EXPECT_THAT(
       [&]() { (void)Planner::planQuery(std::move(node), {}, options, "test"); },

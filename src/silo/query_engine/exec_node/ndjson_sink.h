@@ -8,7 +8,7 @@
 
 #include "silo/query_engine/exec_node/arrow_batch_sink.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 class NdjsonSink : public ArrowBatchSink {
    std::ostream* output_stream;
@@ -23,4 +23,4 @@ class NdjsonSink : public ArrowBatchSink {
    arrow::Status finish() override;
 };
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

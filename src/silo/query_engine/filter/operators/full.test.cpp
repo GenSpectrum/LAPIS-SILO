@@ -3,8 +3,8 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-using silo::query_engine::filter::operators::Full;
-using silo::storage::column::RowLayout;
+using rhydb::query_engine::filter::operators::Full;
+using rhydb::storage::column::RowLayout;
 
 TEST(OperatorFull, containsCheckShouldReturnCorrectValues) {
    const Full under_test(RowLayout::of(5));
@@ -19,5 +19,5 @@ TEST(OperatorFull, containsCheckShouldReturnCorrectValuesWhenEmptyDatabase) {
 TEST(OperatorFull, correctTypeInfo) {
    const Full under_test(RowLayout::of(5));
 
-   ASSERT_EQ(under_test.type(), silo::query_engine::filter::operators::FULL);
+   ASSERT_EQ(under_test.type(), rhydb::query_engine::filter::operators::FULL);
 }

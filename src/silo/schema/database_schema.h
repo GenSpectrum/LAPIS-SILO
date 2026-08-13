@@ -15,7 +15,7 @@
 #include "silo/storage/column/column.h"
 #include "silo/storage/column/column_metadata.h"
 
-namespace silo::schema {
+namespace rhydb::schema {
 
 enum class ColumnType : uint8_t {
    STRING,
@@ -60,7 +60,7 @@ bool isSequenceColumn(ColumnType type);
 
 struct ColumnIdentifier {
    std::string name;
-   silo::schema::ColumnType type;
+   rhydb::schema::ColumnType type;
 
    bool operator<(const ColumnIdentifier& other) const {
       return std::tie(name, type) < std::tie(other.name, other.type);
@@ -97,7 +97,7 @@ class TableSchema {
 
    [[nodiscard]] std::vector<ColumnIdentifier> getColumnIdentifiers() const;
 
-   template <silo::storage::column::Column ColumnType>
+   template <rhydb::storage::column::Column ColumnType>
    [[nodiscard]] std::vector<ColumnIdentifier> getColumnByType() const {
       std::vector<ColumnIdentifier> result;
       for (const auto& [column_identifier, _] : column_metadata) {
@@ -176,14 +176,14 @@ class DatabaseSchema {
    void saveToFile(const std::filesystem::path& file_path) const;
 };
 
-}  // namespace silo::schema
+}  // namespace rhydb::schema
 
 namespace boost::serialization {
 
 template <class Archive>
 void save(
    Archive& archive,
-   const std::shared_ptr<silo::schema::TableSchema>& ptr,
+   const std::shared_ptr<rhydb::schema::TableSchema>& ptr,
    const unsigned int /*version*/
 ) {
    archive << *ptr;
@@ -192,13 +192,13 @@ void save(
 template <class Archive>
 void load(
    Archive& archive,
-   std::shared_ptr<silo::schema::TableSchema>& ptr,
+   std::shared_ptr<rhydb::schema::TableSchema>& ptr,
    const unsigned int /*version*/
 ) {
-   ptr = std::make_shared<silo::schema::TableSchema>();
+   ptr = std::make_shared<rhydb::schema::TableSchema>();
    archive >> *ptr;
 }
 
 }  // namespace boost::serialization
 
-BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<silo::schema::TableSchema>)
+BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<rhydb::schema::TableSchema>)

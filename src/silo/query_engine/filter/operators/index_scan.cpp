@@ -11,7 +11,7 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/scalar_expressions/scalar_expression.h"
 
-namespace silo::query_engine::filter::operators {
+namespace rhydb::query_engine::filter::operators {
 
 IndexScan::IndexScan(CopyOnWriteBitmap bitmap, storage::column::RowLayout row_layout)
     : bitmap(std::move(bitmap)),
@@ -49,4 +49,4 @@ std::unique_ptr<Operator> IndexScan::negate(std::unique_ptr<IndexScan>&& index_s
    return std::make_unique<Complement>(std::move(index_scan), std::move(row_layout));
 }
 
-}  // namespace silo::query_engine::filter::operators
+}  // namespace rhydb::query_engine::filter::operators

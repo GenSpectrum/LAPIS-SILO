@@ -19,7 +19,7 @@
 #include "silo/zstd/zstd_decompressor.h"
 #include "silo/zstd/zstd_dictionary.h"
 
-namespace silo::storage::column {
+namespace rhydb::storage::column {
 
 class ZstdCompressedStringColumnBuilder;
 
@@ -99,14 +99,14 @@ class ZstdCompressedStringColumnBuilder {
    }
 };
 
-}  // namespace silo::storage::column
+}  // namespace rhydb::storage::column
 
-BOOST_SERIALIZATION_SPLIT_FREE(silo::storage::column::ZstdCompressedStringColumnMetadata);
+BOOST_SERIALIZATION_SPLIT_FREE(rhydb::storage::column::ZstdCompressedStringColumnMetadata);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void save(
    Archive& archive,
-   const silo::storage::column::ZstdCompressedStringColumnMetadata& object,
+   const rhydb::storage::column::ZstdCompressedStringColumnMetadata& object,
    [[maybe_unused]] const uint32_t version
 ) {
    archive & object.column_name;
@@ -115,19 +115,19 @@ template <class Archive>
 }  // namespace boost::serialization
 
 BOOST_SERIALIZATION_SPLIT_FREE(std::shared_ptr<
-                               silo::storage::column::ZstdCompressedStringColumnMetadata>);
+                               rhydb::storage::column::ZstdCompressedStringColumnMetadata>);
 namespace boost::serialization {
 template <class Archive>
 [[maybe_unused]] void load(
    Archive& archive,
-   std::shared_ptr<silo::storage::column::ZstdCompressedStringColumnMetadata>& object,
+   std::shared_ptr<rhydb::storage::column::ZstdCompressedStringColumnMetadata>& object,
    [[maybe_unused]] const uint32_t version
 ) {
    std::string column_name;
    std::string dictionary_string;
    archive & column_name;
    archive & dictionary_string;
-   object = std::make_shared<silo::storage::column::ZstdCompressedStringColumnMetadata>(
+   object = std::make_shared<rhydb::storage::column::ZstdCompressedStringColumnMetadata>(
       std::move(column_name), std::move(dictionary_string)
    );
 }

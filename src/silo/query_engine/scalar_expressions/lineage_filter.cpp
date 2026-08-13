@@ -13,10 +13,10 @@
 #include "silo/query_engine/filter/operators/operator.h"
 #include "silo/query_engine/illegal_query_exception.h"
 
-namespace silo::query_engine::scalar_expressions {
+namespace rhydb::query_engine::scalar_expressions {
 
-using silo::common::RecombinantEdgeFollowingMode;
-using silo::storage::column::DictionaryEncodedColumn;
+using rhydb::common::RecombinantEdgeFollowingMode;
+using rhydb::storage::column::DictionaryEncodedColumn;
 
 LineageFilter::LineageFilter(
    schema::ColumnIdentifier column,
@@ -99,4 +99,4 @@ std::unique_ptr<filter::operators::Operator> LineageFilter::compile(const storag
    );
 }
 
-}  // namespace silo::query_engine::scalar_expressions
+}  // namespace rhydb::query_engine::scalar_expressions

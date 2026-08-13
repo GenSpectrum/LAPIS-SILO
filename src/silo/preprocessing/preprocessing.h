@@ -4,7 +4,7 @@
 
 #include "silo/database.h"
 
-namespace silo::preprocessing {
+namespace rhydb::preprocessing {
 
 Database preprocessing(const config::PreprocessingConfig& preprocessing_config);
 

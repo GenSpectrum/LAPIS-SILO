@@ -20,7 +20,7 @@
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/table.h"
 
-namespace silo::query_engine::operators {
+namespace rhydb::query_engine::operators {
 
 /// The partition of a filtered row-set produced by one grouping dimension: one bitmap per distinct
 /// value that actually occurs, keyed by that value's string rendering, plus one final bitmap for
@@ -117,4 +117,4 @@ class BitmapAggregationNode final : public QueryNode {
    [[nodiscard]] nlohmann::json toJson() const override;
 };
 
-}  // namespace silo::query_engine::operators
+}  // namespace rhydb::query_engine::operators

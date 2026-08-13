@@ -6,7 +6,7 @@
 
 #include <gtest/gtest.h>
 
-using silo::AminoAcid;
+using rhydb::AminoAcid;
 using Symbol = AminoAcid::Symbol;
 
 TEST(AminoAcidSymbol, enumShouldHaveSameLengthAsArrayOfSymbols) {

@@ -63,13 +63,13 @@
 #include "silo/storage/column/sequence_column.h"
 #include "silo/storage/column/zstd_compressed_string_column.h"
 
-using silo::AminoAcid;
-using silo::Nucleotide;
-using silo::storage::column::Column;
-using silo::storage::column::SequenceColumn;
-using silo::storage::column::ZstdCompressedStringColumn;
+using rhydb::AminoAcid;
+using rhydb::Nucleotide;
+using rhydb::storage::column::Column;
+using rhydb::storage::column::SequenceColumn;
+using rhydb::storage::column::ZstdCompressedStringColumn;
 
-namespace silo::query_engine::saneql {
+namespace rhydb::query_engine::saneql {
 
 namespace {
 
@@ -1821,4 +1821,4 @@ ScalarFunctionRegistry& ScalarFunctionRegistry::instance() {
    return registry;
 }
 
-}  // namespace silo::query_engine::saneql
+}  // namespace rhydb::query_engine::saneql

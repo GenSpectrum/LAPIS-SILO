@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace silo {
+namespace rhydb {
 
 template <
    size_t N,
@@ -19,4 +19,4 @@ struct NestedContainer<1, Container, ContainerArg, Base> {
    using type = Container<ContainerArg, Base>;
 };
 
-}  // namespace silo
+}  // namespace rhydb

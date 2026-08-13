@@ -6,9 +6,9 @@
 
 #include "silo/preprocessing/preprocessing_exception.h"
 
-using silo::common::PhyloTree;
-using silo::common::TreeNodeId;
-using silo::preprocessing::PreprocessingException;
+using rhydb::common::PhyloTree;
+using rhydb::common::TreeNodeId;
+using rhydb::preprocessing::PreprocessingException;
 
 TEST(PhyloTree, correctlyParsesFromJSON) {
    auto phylo_tree_file = PhyloTree::fromAuspiceJSONString(

@@ -1,6 +1,6 @@
 #include "silo/query_engine/exec_node/schema_output_builder.h"
 
-namespace silo::query_engine::exec_node {
+namespace rhydb::query_engine::exec_node {
 
 SchemaOutputBuilder::SchemaOutputBuilder(std::vector<schema::ColumnIdentifier> schema)
     : schema_(std::move(schema)) {
@@ -30,4 +30,4 @@ arrow::Result<std::vector<arrow::Datum>> SchemaOutputBuilder::finish() {
    return result;
 }
 
-}  // namespace silo::query_engine::exec_node
+}  // namespace rhydb::query_engine::exec_node

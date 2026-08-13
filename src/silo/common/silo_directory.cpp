@@ -2,7 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
-namespace silo {
+namespace rhydb {
 
 SiloDataSource SiloDataSource::checkValidDataSource(
    const std::filesystem::path& candidate_data_source_path
@@ -13,7 +13,7 @@ SiloDataSource SiloDataSource::checkValidDataSource(
       );
    }
    auto folder_name_timestamp =
-      silo::DataVersion::Timestamp::fromString(candidate_data_source_path.filename());
+      rhydb::DataVersion::Timestamp::fromString(candidate_data_source_path.filename());
    if (folder_name_timestamp == std::nullopt) {
       throw InvalidSiloDataSourceException(
          "Skipping {}. Its name is not a valid data version.", candidate_data_source_path.string()
@@ -28,7 +28,7 @@ SiloDataSource SiloDataSource::checkValidDataSource(
          data_version_filepath.string()
       );
    }
-   auto maybe_data_version_in_file = silo::DataVersion::fromFile(data_version_filepath);
+   auto maybe_data_version_in_file = rhydb::DataVersion::fromFile(data_version_filepath);
    if (maybe_data_version_in_file == std::nullopt) {
       throw InvalidSiloDataSourceException(
          "Skipping {}. The data version in data_version.silo could not be parsed",
@@ -83,7 +83,7 @@ std::optional<SiloDataSource> SiloDirectory::getMostRecentDataDirectory() const 
       SPDLOG_WARN(
          "The database output {} is incompatible with the current SILO serialization version '{}'.",
          entry.data_version.toString(),
-         silo::DataVersion::CURRENT_SILO_SERIALIZATION_VERSION.value
+         rhydb::DataVersion::CURRENT_SILO_SERIALIZATION_VERSION.value
       );
    }
    return std::nullopt;
@@ -95,4 +95,4 @@ std::string SiloDataSource::toDebugString() const {
    );
 }
 
-}  // namespace silo
+}  // namespace rhydb
