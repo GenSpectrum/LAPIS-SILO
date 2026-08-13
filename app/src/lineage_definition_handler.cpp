@@ -13,7 +13,7 @@
 #include "bad_request.h"
 #include "error_request_handler.h"
 
-namespace silo_app {
+namespace rhydb_app {
 
 LineageDefinitionHandler::LineageDefinitionHandler(
    std::shared_ptr<ActiveDatabase> database_handle,
@@ -56,4 +56,4 @@ void LineageDefinitionHandler::get(
    std::ostream& out_stream = response.send();
    out_stream << lineage_definition_yaml;
 }
-}  // namespace silo_app
+}  // namespace rhydb_app

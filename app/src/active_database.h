@@ -4,7 +4,7 @@
 
 #include <rhydb/database.h>
 
-namespace silo_app {
+namespace rhydb_app {
 
 class UninitializedDatabaseException : public std::runtime_error {
   public:
@@ -27,4 +27,4 @@ class ActiveDatabase {
    std::shared_ptr<rhydb::Database> getActiveDatabase();
 };
 
-}  // namespace silo_app
+}  // namespace rhydb_app

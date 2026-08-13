@@ -6,7 +6,7 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 
-namespace silo_app {
+namespace rhydb_app {
 
 class LoggingRequestHandler : public Poco::Net::HTTPRequestHandler {
   private:
@@ -20,4 +20,4 @@ class LoggingRequestHandler : public Poco::Net::HTTPRequestHandler {
       Poco::Net::HTTPServerResponse& response
    ) override;
 };
-}  // namespace silo_app
+}  // namespace rhydb_app

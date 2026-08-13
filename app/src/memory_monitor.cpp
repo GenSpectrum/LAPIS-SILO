@@ -57,7 +57,7 @@ const int64_t FIVE_SECONDS = 5000;
 
 }  // namespace
 
-namespace silo_app {
+namespace rhydb_app {
 
 MemoryMonitor::MemoryMonitor(std::optional<uint32_t> soft_memory_limit_in_kb)
     : soft_memory_limit_in_kb(soft_memory_limit_in_kb),
@@ -76,17 +76,17 @@ void MemoryMonitor::checkRssAndLimit(Poco::Timer& /*timer*/) {
    }
 }
 
-}  // namespace silo_app
+}  // namespace rhydb_app
 
 #else
 
-namespace silo_app {
+namespace rhydb_app {
 
 MemoryMonitor::MemoryMonitor(std::optional<uint32_t> soft_memory_limit_in_kb)
     : soft_memory_limit_in_kb(soft_memory_limit_in_kb) {}
 
 void MemoryMonitor::checkRssAndLimit(Poco::Timer& /*timer*/) {}
 
-}  // namespace silo_app
+}  // namespace rhydb_app
 
 #endif

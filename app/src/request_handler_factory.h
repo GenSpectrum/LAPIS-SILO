@@ -10,7 +10,7 @@
 #include "active_database.h"
 #include "error_request_handler.h"
 
-namespace silo_app {
+namespace rhydb_app {
 
 class RhyDBRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
   private:
@@ -29,4 +29,4 @@ class RhyDBRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
    std::unique_ptr<Poco::Net::HTTPRequestHandler> routeRequest(const Poco::URI& uri);
 };
 
-}  // namespace silo_app
+}  // namespace rhydb_app

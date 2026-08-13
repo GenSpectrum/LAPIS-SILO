@@ -10,7 +10,7 @@
 
 #include "active_database.h"
 
-namespace silo_app {
+namespace rhydb_app {
 
 InfoHandler::InfoHandler(std::shared_ptr<ActiveDatabase> database_handle)
     : database_handle(std::move(database_handle)) {}
@@ -28,4 +28,4 @@ void InfoHandler::get(
    std::ostream& out_stream = response.send();
    out_stream << database_info;
 }
-}  // namespace silo_app
+}  // namespace rhydb_app

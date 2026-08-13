@@ -16,7 +16,7 @@
 
 #include <rhydb/config/runtime_config.h>
 
-namespace silo_app {
+namespace rhydb_app {
 
 struct ErrorResponse {
    std::string error;
@@ -45,4 +45,4 @@ class ErrorRequestHandler : public Poco::Net::HTTPRequestHandler {
    std::optional<std::string> computeRetryAfterHintForStartupTime();
 };
 
-};  // namespace silo_app
+};  // namespace rhydb_app

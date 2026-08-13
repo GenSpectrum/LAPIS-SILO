@@ -13,7 +13,7 @@
 #include "active_database.h"
 #include "bad_request.h"
 
-namespace silo_app {
+namespace rhydb_app {
 ErrorRequestHandler::ErrorRequestHandler(
    std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler,
    const rhydb::config::RuntimeConfig& runtime_config
@@ -27,7 +27,7 @@ void ErrorRequestHandler::handleRequest(
 ) {
    try {
       wrapped_handler->handleRequest(request, response);
-   } catch (const silo_app::UninitializedDatabaseException& exception) {
+   } catch (const rhydb_app::UninitializedDatabaseException& exception) {
       SPDLOG_INFO("Caught exception: {}", exception.what());
 
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_SERVICE_UNAVAILABLE);
@@ -42,7 +42,7 @@ void ErrorRequestHandler::handleRequest(
       out_stream << nlohmann::json(
          ErrorResponse{.error = "Service Temporarily Unavailable", .message = message}
       );
-   } catch (const silo_app::BadRequest& exception) {
+   } catch (const rhydb_app::BadRequest& exception) {
       response.setContentType("application/json");
       response.setStatusAndReason(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST);
       std::ostream& out_stream = response.send();
@@ -101,4 +101,4 @@ std::optional<std::string> ErrorRequestHandler::computeRetryAfterHintForStartupT
    return std::to_string(remaining_startup_time_in_seconds);
 }
 
-}  // namespace silo_app
+}  // namespace rhydb_app

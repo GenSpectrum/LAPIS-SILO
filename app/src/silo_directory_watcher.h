@@ -6,7 +6,7 @@
 
 #include "active_database.h"
 
-namespace silo_app {
+namespace rhydb_app {
 
 class RhyDBDirectoryWatcher {
    rhydb::RhyDBDirectory silo_directory;
@@ -22,4 +22,4 @@ class RhyDBDirectoryWatcher {
    void checkDirectoryForData(Poco::Timer& timer);
 };
 
-}  // namespace silo_app
+}  // namespace rhydb_app

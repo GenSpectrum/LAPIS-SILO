@@ -8,7 +8,7 @@
 #include "active_database.h"
 #include "rest_resource.h"
 
-namespace silo_app {
+namespace rhydb_app {
 class QueryHandler : public RestResource {
   private:
    rhydb::config::QueryOptions query_options;
@@ -23,4 +23,4 @@ class QueryHandler : public RestResource {
    void post(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
       override;
 };
-}  // namespace silo_app
+}  // namespace rhydb_app

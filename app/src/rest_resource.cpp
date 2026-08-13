@@ -16,14 +16,14 @@ void methodNotAllowed(
 ) {
    response.setContentType("application/json");
    response.setStatus(Poco::Net::HTTPResponse::HTTP_METHOD_NOT_ALLOWED);
-   response.send() << nlohmann::json(silo_app::ErrorResponse{
+   response.send() << nlohmann::json(rhydb_app::ErrorResponse{
       .error = "Method not allowed",
       .message = request.getMethod() + " is not allowed on resource " + request.getURI()
    });
 }
 }  // namespace
 
-namespace silo_app {
+namespace rhydb_app {
 
 void RestResource::handleRequest(
    Poco::Net::HTTPServerRequest& request,
@@ -54,4 +54,4 @@ void RestResource::post(
    methodNotAllowed(request, response);
 }
 
-}  // namespace silo_app
+}  // namespace rhydb_app

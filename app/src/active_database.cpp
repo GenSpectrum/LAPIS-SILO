@@ -33,9 +33,9 @@ void monitorReferenceCountThenTrimAllocations(
 }
 }  // namespace
 
-namespace silo_app {
+namespace rhydb_app {
 
-void silo_app::ActiveDatabase::setActiveDatabase(rhydb::Database&& new_database) {
+void rhydb_app::ActiveDatabase::setActiveDatabase(rhydb::Database&& new_database) {
    auto active_database = std::atomic_load(&database);
    if (active_database != nullptr) {
       std::thread monitor_thread(
@@ -57,12 +57,12 @@ void silo_app::ActiveDatabase::setActiveDatabase(rhydb::Database&& new_database)
    );
 }
 
-std::shared_ptr<rhydb::Database> silo_app::ActiveDatabase::getActiveDatabase() {
+std::shared_ptr<rhydb::Database> rhydb_app::ActiveDatabase::getActiveDatabase() {
    auto active_database = std::atomic_load(&database);
    if (active_database == nullptr) {
-      throw silo_app::UninitializedDatabaseException();
+      throw rhydb_app::UninitializedDatabaseException();
    }
    return active_database;
 }
 
-}  // namespace silo_app
+}  // namespace rhydb_app
