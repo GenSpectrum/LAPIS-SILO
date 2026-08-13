@@ -3,6 +3,10 @@
 #include <deque>
 #include <queue>
 #include <set>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <fmt/format.h>
@@ -320,38 +324,57 @@ LineageTreeAndIdMap::LineageTreeAndIdMap(
 
 namespace {
 
-void assignLineageIds(
+// Validates the lineage definitions and assigns every identifier (lineage name and alias) a
+// dictionary id in global sorted order, keyed once. Sorted ids are assigned up front so the
+// DictionaryEncodedColumn value store that is seeded from this map can keep its child column sorted
+// and use binary-search reverse lookup without a separate reverse map. Aliases are no longer forced
+// into a contiguous id range above the lineage names -- they are resolved to their canonical
+// lineage id before ever indexing the tree (see LineageIndex / resolveAlias), so an interleaved id
+// space is fine. Returns the alias-id -> canonical-lineage-id mapping.
+std::unordered_map<Idx, Idx> assignSortedIdsAndGetAliasMapping(
    const preprocessing::LineageDefinitionFile& file,
    BidirectionalStringMap& lookup
 ) {
+   // Validate + collect all identifiers, iterating in file order so error messages point at the
+   // offending definition.
+   std::set<std::string> sorted_identifiers;
+   std::unordered_set<std::string_view> lineage_names;
    for (const auto& lineage : file.lineages) {
-      if (lookup.getId(lineage.lineage_name.string).has_value()) {
+      if (!lineage_names.insert(lineage.lineage_name.string).second) {
          throw silo::preprocessing::PreprocessingException(fmt::format(
             "The lineage definitions contain the duplicate lineage '{}'", lineage.lineage_name
          ));
       }
-      lookup.getOrCreateId(lineage.lineage_name.string);
+      sorted_identifiers.insert(lineage.lineage_name.string);
    }
-}
-
-std::unordered_map<Idx, Idx> assignAliasIdsAndGetAliasMapping(
-   const preprocessing::LineageDefinitionFile& file,
-   BidirectionalStringMap& lookup
-) {
-   std::unordered_map<Idx, Idx> alias_mapping;
+   std::unordered_set<std::string_view> aliases_seen;
    for (const auto& lineage : file.lineages) {
-      const auto lineage_id = lookup.getId(lineage.lineage_name.string);
-      SILO_ASSERT(lineage_id.has_value());
       for (const auto& alias : lineage.aliases) {
-         if (lookup.getId(alias.string).has_value()) {
+         if (lineage_names.contains(alias.string) || !aliases_seen.insert(alias.string).second) {
             throw silo::preprocessing::PreprocessingException(fmt::format(
                "The alias '{}' for lineage '{}' is already defined as a lineage or another alias.",
                alias,
                lineage.lineage_name
             ));
          }
-         auto alias_id = lookup.getOrCreateId(alias.string);
-         alias_mapping[alias_id] = lineage_id.value();
+         sorted_identifiers.insert(alias.string);
+      }
+   }
+
+   // Key once, in sorted order (std::set iterates ascending).
+   for (const auto& identifier : sorted_identifiers) {
+      lookup.getOrCreateId(identifier);
+   }
+
+   // Build the alias-id -> canonical-lineage-id mapping from the now-assigned ids.
+   std::unordered_map<Idx, Idx> alias_mapping;
+   for (const auto& lineage : file.lineages) {
+      const auto lineage_id = lookup.getId(lineage.lineage_name.string);
+      SILO_ASSERT(lineage_id.has_value());
+      for (const auto& alias : lineage.aliases) {
+         const auto alias_id = lookup.getId(alias.string);
+         SILO_ASSERT(alias_id.has_value());
+         alias_mapping[alias_id.value()] = lineage_id.value();
       }
    }
    return alias_mapping;
@@ -392,13 +415,14 @@ LineageTreeAndIdMap LineageTreeAndIdMap::fromLineageDefinitionFile(
    preprocessing::LineageDefinitionFile&& file
 ) {
    BidirectionalStringMap lookup;
-   assignLineageIds(file, lookup);
-   std::unordered_map<Idx, Idx> alias_mapping = assignAliasIdsAndGetAliasMapping(file, lookup);
+   std::unordered_map<Idx, Idx> alias_mapping = assignSortedIdsAndGetAliasMapping(file, lookup);
 
    const std::vector<std::pair<Idx, Idx>> edge_list =
       getParentChildEdges(file, lookup, alias_mapping);
+   // The id space now interleaves lineage names and aliases, so the tree spans all ids, not just
+   // the lineage-name count. Alias ids index no edges and are resolved away before any tree lookup.
    auto lineage_tree =
-      LineageTree::fromEdgeList(file.lineages.size(), edge_list, lookup, std::move(alias_mapping));
+      LineageTree::fromEdgeList(lookup.size(), edge_list, lookup, std::move(alias_mapping));
    return {std::move(lineage_tree), std::move(lookup), std::move(file.raw_file)};
 }
 

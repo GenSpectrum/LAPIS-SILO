@@ -17,11 +17,15 @@ std::vector<LineageRelationRow> buildLineageRelationRows(
    const auto& child_to_parent = tree.getChildToParentRelation();
    const auto& clade_ancestors = tree.getRecombinantCladeAncestors();
 
-   // child_to_parent is indexed by canonical lineage id (aliases are assigned separate ids beyond
-   // this range and are resolved to their canonical lineage rather than emitted as edges).
+   // child_to_parent is indexed by dictionary id, which interleaves canonical lineage ids and
+   // alias ids. Alias ids carry no edges and resolve to their canonical lineage, so they are
+   // skipped here rather than emitted incorrectly as root rows.
    std::vector<LineageRelationRow> rows;
    for (size_t index = 0; index < child_to_parent.size(); ++index) {
       const auto child_id = static_cast<Idx>(index);
+      if (tree.resolveAlias(child_id) != child_id) {
+         continue;
+      }
       std::string lineage{names.getValue(child_id)};
       const auto& parents = child_to_parent[index];
 
