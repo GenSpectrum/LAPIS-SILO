@@ -109,6 +109,6 @@ class GermanString {
    }
 };
 
-using SiloString = GermanString<12, storage::vector::VariableDataRegistry::Identifier>;
+using RhyDBString = GermanString<12, storage::vector::VariableDataRegistry::Identifier>;
 
 }  // namespace rhydb

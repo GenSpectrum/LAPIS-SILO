@@ -53,10 +53,10 @@ int Api::runApi(const rhydb::config::RuntimeConfig& runtime_config) {
    auto database = std::make_shared<ActiveDatabase>();
 
    auto silo_request_handler_factory =
-      std::make_unique<silo_app::SiloRequestHandlerFactory>(runtime_config, database);
+      std::make_unique<silo_app::RhyDBRequestHandlerFactory>(runtime_config, database);
 
-   const silo_app::SiloDirectoryWatcher directory_watcher(
-      rhydb::SiloDirectory{runtime_config.data_directory}, database
+   const silo_app::RhyDBDirectoryWatcher directory_watcher(
+      rhydb::RhyDBDirectory{runtime_config.data_directory}, database
    );
 
    const silo_app::MemoryMonitor memory_monitor{runtime_config.api_options.soft_memory_limit};

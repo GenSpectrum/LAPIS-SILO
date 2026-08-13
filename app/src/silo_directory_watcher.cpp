@@ -12,19 +12,19 @@
 
 #include "active_database.h"
 
-silo_app::SiloDirectoryWatcher::SiloDirectoryWatcher(
-   rhydb::SiloDirectory silo_directory,
+silo_app::RhyDBDirectoryWatcher::RhyDBDirectoryWatcher(
+   rhydb::RhyDBDirectory silo_directory,
    std::shared_ptr<ActiveDatabase> database_handle
 )
     : silo_directory(std::move(silo_directory)),
       database_handle(std::move(database_handle)),
       timer(0, 2000) {
-   timer.start(
-      Poco::TimerCallback<SiloDirectoryWatcher>(*this, &SiloDirectoryWatcher::checkDirectoryForData)
-   );
+   timer.start(Poco::TimerCallback<RhyDBDirectoryWatcher>(
+      *this, &RhyDBDirectoryWatcher::checkDirectoryForData
+   ));
 }
 
-void silo_app::SiloDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer*/) {
+void silo_app::RhyDBDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer*/) {
    auto maybe_most_recent_database_state = silo_directory.getMostRecentDataDirectory();
 
    if (maybe_most_recent_database_state == std::nullopt) {

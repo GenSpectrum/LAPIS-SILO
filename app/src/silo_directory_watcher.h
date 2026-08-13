@@ -8,14 +8,14 @@
 
 namespace silo_app {
 
-class SiloDirectoryWatcher {
-   rhydb::SiloDirectory silo_directory;
+class RhyDBDirectoryWatcher {
+   rhydb::RhyDBDirectory silo_directory;
    std::shared_ptr<ActiveDatabase> database_handle;
    Poco::Timer timer;
 
   public:
-   SiloDirectoryWatcher(
-      rhydb::SiloDirectory silo_directory,
+   RhyDBDirectoryWatcher(
+      rhydb::RhyDBDirectory silo_directory,
       std::shared_ptr<ActiveDatabase> database_handle
    );
 

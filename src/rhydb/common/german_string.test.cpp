@@ -3,17 +3,17 @@
 #include <gtest/gtest.h>
 
 using rhydb::GermanString;
-using rhydb::SiloString;
+using rhydb::RhyDBString;
 
 TEST(String, correctToString) {
-   const SiloString under_test("value 1");
+   const RhyDBString under_test("value 1");
 
    EXPECT_TRUE(under_test.isInPlace());
    EXPECT_EQ(under_test.getShortString(), "value 1");
 }
 
 TEST(String, correctWithEmptyString) {
-   const SiloString under_test("");
+   const RhyDBString under_test("");
 
    EXPECT_TRUE(under_test.isInPlace());
    EXPECT_EQ(under_test.getShortString(), "");
@@ -21,7 +21,7 @@ TEST(String, correctWithEmptyString) {
 
 using rhydb::storage::vector::VariableDataRegistry;
 TEST(String, correctlyReturnsSuffixId) {
-   const SiloString under_test(
+   const RhyDBString under_test(
       100, "prfx", VariableDataRegistry::Identifier{.page_id = 0, .offset = 3}
    );
 
@@ -30,7 +30,7 @@ TEST(String, correctlyReturnsSuffixId) {
 }
 
 TEST(String, correctlyReturnsLengthLong) {
-   const SiloString under_test(
+   const RhyDBString under_test(
       100, "prfx", VariableDataRegistry::Identifier{.page_id = 0, .offset = 3}
    );
 
@@ -38,7 +38,7 @@ TEST(String, correctlyReturnsLengthLong) {
 }
 
 TEST(String, correctlyReturnsLengthInPlace) {
-   const SiloString under_test("in_place");
+   const RhyDBString under_test("in_place");
 
    EXPECT_EQ(under_test.length(), 8);
 }

@@ -16,29 +16,29 @@ using rhydb::common::TreeNodeId;
 namespace rhydb::storage::column {
 
 size_t StringColumnChunk::insert(std::string_view value) {
-   if (value.size() <= SiloString::SHORT_STRING_SIZE) {
-      return fixed_string_data.insert(SiloString{value});
+   if (value.size() <= RhyDBString::SHORT_STRING_SIZE) {
+      return fixed_string_data.insert(RhyDBString{value});
    }
    SILO_ASSERT(value.length() < UINT32_MAX);
-   auto suffix_id = variable_string_data.insert(value.substr(SiloString::PREFIX_LENGTH));
-   return fixed_string_data.insert(SiloString{
-      static_cast<uint32_t>(value.length()), value.substr(0, SiloString::PREFIX_LENGTH), suffix_id
+   auto suffix_id = variable_string_data.insert(value.substr(RhyDBString::PREFIX_LENGTH));
+   return fixed_string_data.insert(RhyDBString{
+      static_cast<uint32_t>(value.length()), value.substr(0, RhyDBString::PREFIX_LENGTH), suffix_id
    });
 }
 
 size_t StringColumnChunk::insertNull() {
-   return fixed_string_data.insert(SiloString(""));
+   return fixed_string_data.insert(RhyDBString(""));
 }
 
 size_t StringColumnChunk::numValues() const {
    return fixed_string_data.numValues();
 }
 
-SiloString StringColumnChunk::getValue(size_t row_in_chunk) const {
+RhyDBString StringColumnChunk::getValue(size_t row_in_chunk) const {
    return fixed_string_data.get(row_in_chunk);
 }
 
-std::string StringColumnChunk::lookupValue(SiloString string) const {
+std::string StringColumnChunk::lookupValue(RhyDBString string) const {
    if (string.isInPlace()) {
       auto string_view = string.getShortString();
       return std::string{string_view};
@@ -60,7 +60,7 @@ std::string StringColumnChunk::lookupValue(SiloString string) const {
 StringColumn::StringColumn(StringColumnMetadata* metadata)
     : metadata(metadata) {}
 
-SiloString StringColumn::getValue(RowId row_id) const {
+RhyDBString StringColumn::getValue(RowId row_id) const {
    return chunks[row_id.chunk_id].getValue(row_id.row_in_chunk);
 }
 
