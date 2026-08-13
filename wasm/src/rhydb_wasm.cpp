@@ -16,7 +16,7 @@
 #include <rhydb/query_engine/exec_node/ndjson_sink.h>
 #include <rhydb/query_engine/planner.h>
 
-namespace silo_wasm {
+namespace rhydb_wasm {
 
 namespace {
 
@@ -131,7 +131,7 @@ void dispose(int handle) {
    databases.erase(handle);
 }
 
-EMSCRIPTEN_BINDINGS(silo_wasm) {
+EMSCRIPTEN_BINDINGS(rhydb_wasm) {
    emscripten::function("preprocess", &preprocess);
    emscripten::function("save", &save);
    emscripten::function("load", &load);
@@ -140,4 +140,4 @@ EMSCRIPTEN_BINDINGS(silo_wasm) {
    emscripten::function("dispose", &dispose);
 }
 
-}  // namespace silo_wasm
+}  // namespace rhydb_wasm
