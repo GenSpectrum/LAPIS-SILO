@@ -9,8 +9,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import createRhyDbModule from "../dist/rhydb_wasm";
-import { type MainModule } from "../dist/rhydb_wasm";
+import createRhyDbModule from "../dist/rhydb_wasm.js";
+import { type MainModule } from "../dist/rhydb_wasm.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..", "..");
