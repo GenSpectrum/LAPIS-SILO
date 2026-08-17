@@ -18,21 +18,21 @@
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
-#include "silo/config/database_config.h"
-#include "silo/config/runtime_config.h"
-#include "silo/database.h"
-#include "silo/initialize/initializer.h"
-#include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/planner.h"
-#include "silo/query_engine/query_plan.h"
-#include "silo/schema/database_schema.h"
-#include "silo/storage/reference_genomes.h"
+#include "rhydb/config/database_config.h"
+#include "rhydb/config/runtime_config.h"
+#include "rhydb/database.h"
+#include "rhydb/initialize/initializer.h"
+#include "rhydb/query_engine/exec_node/ndjson_sink.h"
+#include "rhydb/query_engine/planner.h"
+#include "rhydb/query_engine/query_plan.h"
+#include "rhydb/schema/database_schema.h"
+#include "rhydb/storage/reference_genomes.h"
 
 namespace {
 
-using silo::Database;
-using silo::config::QueryOptions;
-using silo::query_engine::Planner;
+using rhydb::Database;
+using rhydb::config::QueryOptions;
+using rhydb::query_engine::Planner;
 
 // --- Benchmark parameters ---
 
@@ -42,7 +42,7 @@ constexpr std::array<size_t, 6> POSITIONS{5, 10, 20, 30, 40, 50};
 constexpr int ITERATIONS = 5;
 
 std::shared_ptr<Database> setupDatabase(const std::string& reference) {
-   auto database_config = silo::config::DatabaseConfig::getValidatedConfig(R"(
+   auto database_config = rhydb::config::DatabaseConfig::getValidatedConfig(R"(
 schema:
   instanceName: co_occurrence_benchmark
   metadata:
@@ -51,22 +51,22 @@ schema:
   primaryKey: primaryKey
 )");
 
-   silo::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
+   rhydb::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
 
    auto database = std::make_shared<Database>();
    database->createTable(
-      silo::schema::TableName::getDefault(),
-      silo::initialize::Initializer::createSchemaFromConfigFiles(
+      rhydb::schema::TableName::getDefault(),
+      rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
          reference_genomes,
          {},
-         silo::common::PhyloTree{},
+         rhydb::common::PhyloTree{},
          /*without_unaligned_sequences=*/true
       )
    );
 
    auto ndjson = openTestDataInput(CO_OCCURRENCE_NDJSON_PATH);
-   database->appendData(silo::schema::TableName::getDefault(), ndjson);
+   database->appendData(rhydb::schema::TableName::getDefault(), ndjson);
    return database;
 }
 
@@ -94,7 +94,7 @@ size_t planAndExecute(
 ) {
    auto query_plan = Planner::planSaneqlQuery(query, database->tables, query_options, "bench");
    std::stringstream result;
-   silo::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
+   rhydb::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
    query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/600);
 
    size_t rows = 0;
@@ -118,7 +118,7 @@ int main() {
       return 1;
    }
 
-   const auto query_options = silo::config::RuntimeConfig::withDefaults().query_options;
+   const auto query_options = rhydb::config::RuntimeConfig::withDefaults().query_options;
 
    const std::string reference = makeCoOccurrenceReference();
 

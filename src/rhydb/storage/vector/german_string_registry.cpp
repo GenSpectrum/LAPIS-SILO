@@ -1,0 +1,21 @@
+#include "rhydb/storage/vector/german_string_registry.h"
+
+namespace rhydb::storage::vector {
+
+Idx GermanStringRegistry::insert(const rhydb::RhyDBString& silo_string) {
+   const bool need_new_page = german_string_pages.empty() || german_string_pages.back().full();
+   if (need_new_page) {
+      german_string_pages.emplace_back();
+   }
+   const size_t page_id = german_string_pages.size() - 1;
+   const size_t row_in_page = german_string_pages.back().insert(silo_string);
+   return (page_id * GermanStringPage::MAX_STRINGS_PER_PAGE) + row_in_page;
+}
+
+RhyDBString GermanStringRegistry::get(Idx row_id) const {
+   const Idx page_id = row_id / GermanStringPage::MAX_STRINGS_PER_PAGE;
+   const Idx row_in_page = row_id - (page_id * GermanStringPage::MAX_STRINGS_PER_PAGE);
+   return german_string_pages.at(page_id).get(row_in_page);
+}
+
+}  // namespace rhydb::storage::vector

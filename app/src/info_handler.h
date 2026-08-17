@@ -6,7 +6,7 @@
 #include "active_database.h"
 #include "rest_resource.h"
 
-namespace silo_app {
+namespace rhydb_app {
 
 class InfoHandler : public RestResource {
   private:
@@ -18,4 +18,4 @@ class InfoHandler : public RestResource {
    void get(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
       override;
 };
-}  // namespace silo_app
+}  // namespace rhydb_app

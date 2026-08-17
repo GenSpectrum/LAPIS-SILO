@@ -9,7 +9,7 @@
 #include "config/config_value.h"
 #include "config/verified_config_attributes.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 class ConfigAttributeSpecification {
    ConfigAttributeSpecification() = default;
@@ -79,4 +79,4 @@ class ConfigSpecification {
    [[nodiscard]] VerifiedConfigAttributes getConfigSourceFromDefaults() const;
 };
 
-}  // namespace silo::config
+}  // namespace rhydb::config

@@ -9,7 +9,7 @@ bool isLowerCaseOrNumeric(char character) {
 }
 }  // namespace
 
-namespace silo::config {
+namespace rhydb::config {
 
 std::vector<std::vector<std::string>> ConfigKeyPath::getPath() const {
    return path;
@@ -57,10 +57,10 @@ std::optional<AmbiguousConfigKeyPath> AmbiguousConfigKeyPath::tryFrom(
    return std::nullopt;
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config
 
-std::size_t std::hash<silo::config::ConfigKeyPath>::operator()(
-   const silo::config::ConfigKeyPath& key
+std::size_t std::hash<rhydb::config::ConfigKeyPath>::operator()(
+   const rhydb::config::ConfigKeyPath& key
 ) const {
    std::size_t seed = 0;
    for (const auto& segment : key.getPath()) {

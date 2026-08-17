@@ -4,7 +4,7 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 
-namespace silo_app {
+namespace rhydb_app {
 
 class NotFoundHandler : public Poco::Net::HTTPRequestHandler {
    void handleRequest(
@@ -13,4 +13,4 @@ class NotFoundHandler : public Poco::Net::HTTPRequestHandler {
    ) override;
 };
 
-}  // namespace silo_app
+}  // namespace rhydb_app

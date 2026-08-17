@@ -7,24 +7,24 @@
 
 #include <spdlog/spdlog.h>
 
-#include <silo/common/data_version.h>
-#include <silo/database.h>
+#include <rhydb/common/data_version.h>
+#include <rhydb/database.h>
 
 #include "active_database.h"
 
-silo_app::SiloDirectoryWatcher::SiloDirectoryWatcher(
-   silo::SiloDirectory silo_directory,
+rhydb_app::RhyDBDirectoryWatcher::RhyDBDirectoryWatcher(
+   rhydb::RhyDBDirectory silo_directory,
    std::shared_ptr<ActiveDatabase> database_handle
 )
     : silo_directory(std::move(silo_directory)),
       database_handle(std::move(database_handle)),
       timer(0, 2000) {
-   timer.start(
-      Poco::TimerCallback<SiloDirectoryWatcher>(*this, &SiloDirectoryWatcher::checkDirectoryForData)
-   );
+   timer.start(Poco::TimerCallback<RhyDBDirectoryWatcher>(
+      *this, &RhyDBDirectoryWatcher::checkDirectoryForData
+   ));
 }
 
-void silo_app::SiloDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer*/) {
+void rhydb_app::RhyDBDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer*/) {
    auto maybe_most_recent_database_state = silo_directory.getMostRecentDataDirectory();
 
    if (maybe_most_recent_database_state == std::nullopt) {
@@ -48,7 +48,7 @@ void silo_app::SiloDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer*
             );
             return;
          }
-      } catch (const silo_app::UninitializedDatabaseException& exception) {
+      } catch (const rhydb_app::UninitializedDatabaseException& exception) {
          SPDLOG_DEBUG("No database loaded yet - loading initial database next.");
       }
    }
@@ -56,7 +56,7 @@ void silo_app::SiloDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer*
    SPDLOG_INFO("New data version detected: {}", most_recent_database_state.path.string());
    try {
       database_handle->setActiveDatabase(
-         silo::Database::loadDatabaseState(most_recent_database_state)
+         rhydb::Database::loadDatabaseState(most_recent_database_state)
       );
       SPDLOG_INFO(
          "New database with version {} successfully loaded.",

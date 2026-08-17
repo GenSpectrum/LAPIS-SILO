@@ -7,7 +7,7 @@
 #include "config/config_key_path.h"
 #include "config/config_value.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 /// A VerifiedConfigAttributes is providing I/O-, key error and parse
 /// error free access to a set of configuration data.
@@ -56,4 +56,4 @@ class VerifiedCommandLineArguments : public VerifiedConfigAttributes {
    );
 };
 
-}  // namespace silo::config
+}  // namespace rhydb::config

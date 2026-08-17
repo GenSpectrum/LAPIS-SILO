@@ -4,10 +4,10 @@
 #include <gtest/gtest.h>
 
 #include "config/config_key_path.h"
-#include "silo/common/fmt_formatters.h"
+#include "rhydb/common/fmt_formatters.h"
 
-using silo::config::ConfigKeyPath;
-using silo::config::YamlFile;
+using rhydb::config::ConfigKeyPath;
+using rhydb::config::YamlFile;
 
 TEST(YamlFile, simpleStringToConfigKeyPath) {
    auto under_test = YamlFile::stringToConfigKeyPath("test");

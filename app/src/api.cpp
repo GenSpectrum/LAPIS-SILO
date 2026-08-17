@@ -6,16 +6,16 @@
 #include <Poco/Net/ServerSocket.h>
 #include <spdlog/spdlog.h>
 
-#include <silo/common/silo_directory.h>
+#include <rhydb/common/silo_directory.h>
 
 #include "active_database.h"
 #include "memory_monitor.h"
 #include "request_handler_factory.h"
 #include "silo_directory_watcher.h"
 
-namespace silo_app {
+namespace rhydb_app {
 
-int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
+int Api::runApi(const rhydb::config::RuntimeConfig& runtime_config) {
    SPDLOG_INFO("Starting SILO API");
 
    const Poco::Net::SocketAddress address(runtime_config.api_options.port);
@@ -53,13 +53,13 @@ int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
    auto database = std::make_shared<ActiveDatabase>();
 
    auto silo_request_handler_factory =
-      std::make_unique<silo_app::SiloRequestHandlerFactory>(runtime_config, database);
+      std::make_unique<rhydb_app::RhyDBRequestHandlerFactory>(runtime_config, database);
 
-   const silo_app::SiloDirectoryWatcher directory_watcher(
-      silo::SiloDirectory{runtime_config.data_directory}, database
+   const rhydb_app::RhyDBDirectoryWatcher directory_watcher(
+      rhydb::RhyDBDirectory{runtime_config.data_directory}, database
    );
 
-   const silo_app::MemoryMonitor memory_monitor{runtime_config.api_options.soft_memory_limit};
+   const rhydb_app::MemoryMonitor memory_monitor{runtime_config.api_options.soft_memory_limit};
 
    // HTTPServer will erase the memory of the request_handler, therefore we call `release`
    Poco::Net::HTTPServer server(
@@ -75,4 +75,4 @@ int Api::runApi(const silo::config::RuntimeConfig& runtime_config) {
    return Application::EXIT_OK;
 }
 
-}  // namespace silo_app
+}  // namespace rhydb_app

@@ -6,9 +6,9 @@
 #include "config/config_exception.h"
 #include "config/source/yaml_file.h"
 
-using silo::config::CommandLineArguments;
-using silo::config::ConfigException;
-using silo::config::ConfigKeyPath;
+using rhydb::config::CommandLineArguments;
+using rhydb::config::ConfigException;
+using rhydb::config::ConfigKeyPath;
 
 TEST(CommandLineArguments, correctUnixOptionString) {
    ASSERT_EQ(
@@ -68,23 +68,23 @@ TEST(CommandLineArguments, shouldFailAppropriatelyOnInvalidOptions) {
 TEST(CommandLineArguments, stringToConfigKeyPath) {
    ASSERT_EQ(
       CommandLineArguments::stringToConfigKeyPath("--foo"),
-      silo::config::AmbiguousConfigKeyPath::tryFrom({"foo"})
+      rhydb::config::AmbiguousConfigKeyPath::tryFrom({"foo"})
    );
    ASSERT_EQ(
       CommandLineArguments::stringToConfigKeyPath("--some-option"),
-      silo::config::AmbiguousConfigKeyPath::tryFrom({"some", "option"})
+      rhydb::config::AmbiguousConfigKeyPath::tryFrom({"some", "option"})
    );
    ASSERT_EQ(
       CommandLineArguments::stringToConfigKeyPath("--some-longer-option"),
-      silo::config::AmbiguousConfigKeyPath::tryFrom({"some", "longer", "option"})
+      rhydb::config::AmbiguousConfigKeyPath::tryFrom({"some", "longer", "option"})
    );
 }
 
-using silo::config::ConfigAttributeSpecification;
-using silo::config::ConfigSpecification;
-using silo::config::ConfigValue;
-using silo::config::ConfigValueType;
-using silo::config::YamlFile;
+using rhydb::config::ConfigAttributeSpecification;
+using rhydb::config::ConfigSpecification;
+using rhydb::config::ConfigValue;
+using rhydb::config::ConfigValueType;
+using rhydb::config::YamlFile;
 
 namespace {
 
@@ -120,8 +120,8 @@ TEST(CommandLineArguments, failsIfNotInSpecification) {
    std::vector<std::string> arguments{"--foo"};
    const CommandLineArguments under_test{{arguments.begin(), arguments.end()}};
    EXPECT_THAT(
-      [&]() { (void)under_test.verify(silo::config::ConfigSpecification{}); },
-      ThrowsMessage<silo::config::ConfigException>(
+      [&]() { (void)under_test.verify(rhydb::config::ConfigSpecification{}); },
+      ThrowsMessage<rhydb::config::ConfigException>(
          ::testing::HasSubstr("in command line arguments: unknown option --foo")
       )
    );
@@ -132,8 +132,9 @@ TEST(CommandLineArguments, failsIfWrongType) {
    const CommandLineArguments under_test{{arguments.begin(), arguments.end()}};
    EXPECT_THAT(
       [&]() { (void)under_test.verify(specification); },
-      ThrowsMessage<silo::config::ConfigException>(::testing::HasSubstr("cannot parse 'true' as i32"
-      ))
+      ThrowsMessage<rhydb::config::ConfigException>(
+         ::testing::HasSubstr("cannot parse 'true' as i32")
+      )
    );
 }
 

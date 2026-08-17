@@ -48,19 +48,19 @@ CMake auto-scans `src/` and `app/src/` directories. The Makefile maintains `.src
 
 ### Include order
 ```cpp
-#include "silo/my_module/my_file.h"     // 1. Corresponding header
+#include "rhydb/my_module/my_file.h"     // 1. Corresponding header
 
 #include <string>                        // 2. System (standard library)
 
 #include <arrow/acero/exec_plan.h>       // 3. External (angle brackets)
 
-#include "silo/common/panic.h"           // 4. Internal (quotes)
+#include "rhydb/common/panic.h"           // 4. Internal (quotes)
 ```
 
 ### `using` statements
 
 Never use `using my::Type` in `.h` files.
-Use `using my::Type` (only in `.cpp` files) deliberately for all `silo::...` types.
+Use `using my::Type` (only in `.cpp` files) deliberately for all `rhydb::...` types.
 
 ### Error handling
 - `std::expected<T, Error>` for recoverable errors.

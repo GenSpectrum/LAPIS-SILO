@@ -4,9 +4,9 @@
 #include <boost/functional/hash.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include "silo/common/panic.h"
+#include "rhydb/common/panic.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 ConfigValueType ConfigValue::getValueType() const {
    if (std::holds_alternative<std::string>(value)) {
@@ -51,4 +51,4 @@ std::string ConfigValue::toString() const {
    );
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config

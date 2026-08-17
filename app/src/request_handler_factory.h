@@ -5,21 +5,21 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/URI.h>
 
-#include <silo/config/runtime_config.h>
+#include <rhydb/config/runtime_config.h>
 
 #include "active_database.h"
 #include "error_request_handler.h"
 
-namespace silo_app {
+namespace rhydb_app {
 
-class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
+class RhyDBRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
   private:
-   const silo::config::RuntimeConfig runtime_config;
+   const rhydb::config::RuntimeConfig runtime_config;
    std::shared_ptr<ActiveDatabase> database_handle;
 
   public:
-   SiloRequestHandlerFactory(
-      silo::config::RuntimeConfig runtime_config,
+   RhyDBRequestHandlerFactory(
+      rhydb::config::RuntimeConfig runtime_config,
       std::shared_ptr<ActiveDatabase> database_handle
    );
 
@@ -29,4 +29,4 @@ class SiloRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
    std::unique_ptr<Poco::Net::HTTPRequestHandler> routeRequest(const Poco::URI& uri);
 };
 
-}  // namespace silo_app
+}  // namespace rhydb_app

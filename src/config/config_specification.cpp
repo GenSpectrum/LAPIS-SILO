@@ -10,12 +10,12 @@
 #include "config/source/command_line_arguments.h"
 #include "config/source/environment_variables.h"
 #include "config/source/yaml_file.h"
-#include "silo/common/panic.h"
-#include "silo/common/string_utils.h"
+#include "rhydb/common/panic.h"
+#include "rhydb/common/string_utils.h"
 
 namespace {
 std::string indent(std::string_view indentation, const std::string& str) {
-   auto lines = silo::splitBy(str, "\n");
+   auto lines = rhydb::splitBy(str, "\n");
    std::string out{};
    for (const auto& line : lines) {
       out.append(indentation);
@@ -26,7 +26,7 @@ std::string indent(std::string_view indentation, const std::string& str) {
 }
 }  // namespace
 
-namespace silo::config {
+namespace rhydb::config {
 
 std::optional<ConfigAttributeSpecification> ConfigSpecification::
    getAttributeSpecificationFromAmbiguousKey(const AmbiguousConfigKeyPath& key) const {
@@ -163,4 +163,4 @@ ConfigValue ConfigAttributeSpecification::parseValueFromString(std::string value
    }
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config

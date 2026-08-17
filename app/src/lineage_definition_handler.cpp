@@ -7,13 +7,13 @@
 #include <nlohmann/json.hpp>
 #include <utility>
 
-#include <silo/query_engine/illegal_query_exception.h>
+#include <rhydb/query_engine/illegal_query_exception.h>
 
 #include "active_database.h"
 #include "bad_request.h"
 #include "error_request_handler.h"
 
-namespace silo_app {
+namespace rhydb_app {
 
 LineageDefinitionHandler::LineageDefinitionHandler(
    std::shared_ptr<ActiveDatabase> database_handle,
@@ -30,7 +30,7 @@ void LineageDefinitionHandler::get(
 
    response.set("data-version", database->getDataVersionTimestamp().value);
 
-   const silo::schema::TableName& table_name = silo::schema::TableName::getDefault();
+   const rhydb::schema::TableName& table_name = rhydb::schema::TableName::getDefault();
 
    auto table = database->tables.find(table_name);
    if (table == database->tables.end()) {
@@ -41,12 +41,12 @@ void LineageDefinitionHandler::get(
    if (column_identifier == std::nullopt) {
       throw BadRequest("The column {} does not exist in this instance.", column_name);
    }
-   if (column_identifier.value().type != silo::schema::ColumnType::DICTIONARY_ENCODED) {
+   if (column_identifier.value().type != rhydb::schema::ColumnType::DICTIONARY_ENCODED) {
       throw BadRequest("The column {} is not of type dictionary-encoded string.", column_name);
    }
    auto* metadata =
       table->second->schema
-         ->getColumnMetadata<silo::storage::column::DictionaryEncodedColumn>(column_name)
+         ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>(column_name)
          .value();
    if (!metadata->lineage_tree.has_value()) {
       throw BadRequest("The column {} does not have a lineageIndex defined.", column_name);
@@ -56,4 +56,4 @@ void LineageDefinitionHandler::get(
    std::ostream& out_stream = response.send();
    out_stream << lineage_definition_yaml;
 }
-}  // namespace silo_app
+}  // namespace rhydb_app

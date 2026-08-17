@@ -5,18 +5,18 @@
 #include <utility>
 
 #include "sequence_generator.h"
-#include "silo/append/table_inserter.h"
-#include "silo/initialize/initializer.h"
-#include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/planner.h"
+#include "rhydb/append/table_inserter.h"
+#include "rhydb/initialize/initializer.h"
+#include "rhydb/query_engine/exec_node/ndjson_sink.h"
+#include "rhydb/query_engine/planner.h"
 
 namespace {
 
-using silo::Database;
-using silo::query_engine::Planner;
+using rhydb::Database;
+using rhydb::query_engine::Planner;
 
 std::shared_ptr<Database> initializeDatabaseWithSingleReference(std::string reference) {
-   auto database_config = silo::config::DatabaseConfig::getValidatedConfig(R"(
+   auto database_config = rhydb::config::DatabaseConfig::getValidatedConfig(R"(
 schema:
   instanceName: test
   metadata:
@@ -25,16 +25,16 @@ schema:
   primaryKey: key
 )");
 
-   silo::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
+   rhydb::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
 
-   auto database = std::make_shared<silo::Database>();
+   auto database = std::make_shared<rhydb::Database>();
    database->createTable(
-      silo::schema::TableName::getDefault(),
-      silo::initialize::Initializer::createSchemaFromConfigFiles(
+      rhydb::schema::TableName::getDefault(),
+      rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
          std::move(reference_genomes),
          {},
-         silo::common::PhyloTree{},
+         rhydb::common::PhyloTree{},
          /*without_unaligned_sequences=*/true
       )
    );
@@ -48,7 +48,7 @@ std::shared_ptr<Database> setupTestDatabase() {
 
    auto database = initializeDatabaseWithSingleReference(reference);
 
-   database->appendData(silo::schema::TableName::getDefault(), input_buffer);
+   database->appendData(rhydb::schema::TableName::getDefault(), input_buffer);
 
    return database;
 }
@@ -84,7 +84,7 @@ void executeMutationsAllQuery(const std::shared_ptr<Database>& database) {
       "test_query"
    );
    std::stringstream result;
-   silo::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
+   rhydb::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
    query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/3);
    printClipped(result.str());
 }
@@ -97,7 +97,7 @@ void executeMutationsAlmostAllQuery(const std::shared_ptr<Database>& database) {
       "test_query"
    );
    std::stringstream result;
-   silo::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
+   rhydb::query_engine::exec_node::NdjsonSink sink{&result, query_plan.results_schema};
    query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/3);
    printClipped(result.str());
 }

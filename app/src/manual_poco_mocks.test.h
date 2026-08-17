@@ -7,7 +7,7 @@
 #include "Poco/Net/HTTPServerParams.h"
 #include "Poco/Net/SocketAddress.h"
 
-namespace silo_app::test {
+namespace rhydb_app::test {
 
 class MockResponse : public Poco::Net::HTTPServerResponse {
   public:
@@ -52,4 +52,4 @@ class MockRequest : public Poco::Net::HTTPServerRequest {
    bool secure() const override;
 };
 
-}  // namespace silo_app::test
+}  // namespace rhydb_app::test

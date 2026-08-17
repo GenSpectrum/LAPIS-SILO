@@ -4,7 +4,7 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
 
-namespace silo_app {
+namespace rhydb_app {
 
 class RestResource : public Poco::Net::HTTPRequestHandler {
    void handleRequest(
@@ -23,4 +23,4 @@ class RestResource : public Poco::Net::HTTPRequestHandler {
    );
 };
 
-};  // namespace silo_app
+};  // namespace rhydb_app

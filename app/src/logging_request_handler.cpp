@@ -2,7 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
-namespace silo_app {
+namespace rhydb_app {
 
 LoggingRequestHandler::LoggingRequestHandler(
    std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler
@@ -27,4 +27,4 @@ void LoggingRequestHandler::handleRequest(
    );
 }
 
-}  // namespace silo_app
+}  // namespace rhydb_app

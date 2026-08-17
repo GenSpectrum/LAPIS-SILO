@@ -16,9 +16,9 @@
 #include <fmt/format.h>
 
 #include "sequence_generator.h"
-#include "silo/append/table_inserter.h"
-#include "silo/query_engine/exec_node/ndjson_sink.h"
-#include "silo/query_engine/planner.h"
+#include "rhydb/append/table_inserter.h"
+#include "rhydb/query_engine/exec_node/ndjson_sink.h"
+#include "rhydb/query_engine/planner.h"
 
 // Demonstrates what N-way clustered ingestion buffering buys on amplicon-coverage short reads.
 //
@@ -36,8 +36,8 @@
 // scattered input as (2). Running all three in one binary keeps the comparison self-contained; no
 // environment variables or rebuilds are needed to switch between them.
 
-using silo::Database;
-using silo::query_engine::Planner;
+using rhydb::Database;
+using rhydb::query_engine::Planner;
 
 namespace {
 
@@ -45,8 +45,8 @@ constexpr size_t DEFAULT_QUERY_COUNT = 10'000;
 constexpr size_t CLUSTER_NUM_BUFFERS = 128;
 constexpr double CLUSTER_SPAN_GROWTH_THRESHOLD = 0.01;
 
-silo::append::ClusteredBufferingOptions clusteredOptions() {
-   silo::append::ClusteredBufferingOptions options;
+rhydb::append::ClusteredBufferingOptions clusteredOptions() {
+   rhydb::append::ClusteredBufferingOptions options;
    options.enabled = true;
    options.driver_column_name = "main";
    options.num_buffers = CLUSTER_NUM_BUFFERS;
@@ -57,7 +57,7 @@ silo::append::ClusteredBufferingOptions clusteredOptions() {
 struct Scenario {
    std::string_view name;
    std::string_view dataset_path;
-   silo::append::ClusteredBufferingOptions clustering;
+   rhydb::append::ClusteredBufferingOptions clustering;
 };
 
 // Builds a fresh database from the scenario's dataset and returns how long ingestion took.
@@ -70,7 +70,7 @@ std::pair<std::shared_ptr<Database>, double> buildDatabase(
 
    auto database = initializeDatabaseWithShortReadSchema(reference);
    const auto start = std::chrono::high_resolution_clock::now();
-   database->appendData(silo::schema::TableName::getDefault(), input_file, scenario.clustering);
+   database->appendData(rhydb::schema::TableName::getDefault(), input_file, scenario.clustering);
    const auto end = std::chrono::high_resolution_clock::now();
    const double seconds =
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0;
@@ -140,7 +140,7 @@ double executeAllQueries(
       auto query_plan = Planner::planSaneqlQuery(query_string, database->tables, {}, "test_query");
 
       std::ofstream null_output("/dev/null");
-      silo::query_engine::exec_node::NdjsonSink sink{&null_output, query_plan.results_schema};
+      rhydb::query_engine::exec_node::NdjsonSink sink{&null_output, query_plan.results_schema};
       query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/20);
    }
    const auto end = std::chrono::high_resolution_clock::now();
