@@ -36,6 +36,7 @@
 #include "rhydb/query_engine/saneql/parser.h"
 #include "rhydb/query_engine/scalar_expressions/and.h"
 #include "rhydb/query_engine/scalar_expressions/at.h"
+#include "rhydb/query_engine/scalar_expressions/comparison.h"
 #include "rhydb/query_engine/scalar_expressions/date_between.h"
 #include "rhydb/query_engine/scalar_expressions/equals.h"
 #include "rhydb/query_engine/scalar_expressions/exact.h"
@@ -219,93 +220,54 @@ ScalarExpressionPtr convertEqualsToFilter(
    );
 }
 
-ScalarExpressionPtr convertIntComparison(
-   const std::string& column_name,
-   ast::BinaryOp binary_op,
-   int64_t value,
-   const std::vector<schema::ColumnIdentifier>& schema
-) {
-   auto column = resolveColumn(column_name, schema);
+/// Maps an ordering ast::BinaryOp to the filter operator comparator.
+filter::operators::Comparator toOrderingComparator(ast::BinaryOp binary_op) {
    switch (binary_op) {
       case ast::BinaryOp::LESS_THAN:
-         throw IllegalQueryException("less than is not implemented for integer expressions");
+         return filter::operators::Comparator::LESS;
       case ast::BinaryOp::LESS_EQUAL:
-         return std::make_unique<scalar_expressions::IntBetween>(column, std::nullopt, value);
+         return filter::operators::Comparator::LESS_OR_EQUALS;
       case ast::BinaryOp::GREATER_THAN:
-         throw IllegalQueryException("greater than is not implemented for integer expressions");
+         return filter::operators::Comparator::HIGHER;
       case ast::BinaryOp::GREATER_EQUAL:
-         return std::make_unique<scalar_expressions::IntBetween>(column, value, std::nullopt);
+         return filter::operators::Comparator::HIGHER_OR_EQUALS;
       default:
-         throw IllegalQueryException("unexpected operator for integer comparison");
+         throw IllegalQueryException("unexpected operator for ordering comparison");
    }
 }
 
-ScalarExpressionPtr convertFloatComparison(
-   const std::string& column_name,
-   ast::BinaryOp binary_op,
-   double value,
-   const std::vector<schema::ColumnIdentifier>& schema
-) {
-   auto column = resolveColumn(column_name, schema);
+/// Swaps an ordering operator's direction so that `value <op> column` becomes the
+/// equivalent `column <flipped> value`.
+ast::BinaryOp flipOrderingOp(ast::BinaryOp binary_op) {
    switch (binary_op) {
       case ast::BinaryOp::LESS_THAN:
-         return std::make_unique<scalar_expressions::FloatBetween>(column, std::nullopt, value);
+         return ast::BinaryOp::GREATER_THAN;
       case ast::BinaryOp::LESS_EQUAL:
-         throw IllegalQueryException("less equal is not implemented for float expressions");
+         return ast::BinaryOp::GREATER_EQUAL;
       case ast::BinaryOp::GREATER_THAN:
-         throw IllegalQueryException("greater than is not implemented for float expressions");
+         return ast::BinaryOp::LESS_THAN;
       case ast::BinaryOp::GREATER_EQUAL:
-         return std::make_unique<scalar_expressions::FloatBetween>(column, value, std::nullopt);
+         return ast::BinaryOp::LESS_EQUAL;
       default:
-         throw IllegalQueryException("unexpected operator for float comparison");
+         throw IllegalQueryException("unexpected operator for ordering comparison");
    }
 }
 
-ScalarExpressionPtr convertDateComparison(
-   const std::string& column_name,
-   ast::BinaryOp binary_op,
-   const ast::Expression& value_expr,
-   const std::vector<schema::ColumnIdentifier>& schema
-) {
-   auto column = resolveColumn(column_name, schema);
-   auto date_val = extractOptionalDateValue(value_expr);
-   switch (binary_op) {
-      case ast::BinaryOp::LESS_THAN:
-         throw IllegalQueryException("less than is not implemented for date expressions");
-      case ast::BinaryOp::LESS_EQUAL:
-         return std::make_unique<scalar_expressions::DateBetween>(column, std::nullopt, date_val);
-      case ast::BinaryOp::GREATER_THAN:
-         throw IllegalQueryException("greater than is not implemented for date expressions");
-      case ast::BinaryOp::GREATER_EQUAL:
-         return std::make_unique<scalar_expressions::DateBetween>(column, date_val, std::nullopt);
-      default:
-         throw IllegalQueryException("unexpected operator for date comparison");
-   }
-}
-
+/// Builds a Comparison node for `column <op> value`. The FieldRef is always the
+/// left operand and the literal the right, so no comparator flip is needed
+/// downstream (Comparison::compile handles the column-on-right case generically).
 ScalarExpressionPtr convertComparisonToFilter(
    const std::string& column_name,
    ast::BinaryOp binary_op,
    const ast::Expression& value_expr,
    const std::vector<schema::ColumnIdentifier>& schema
 ) {
-   if (isDateExpression(value_expr)) {
-      return convertDateComparison(column_name, binary_op, value_expr, schema);
-   }
-   if (isFloatLiteral(value_expr)) {
-      return convertFloatComparison(
-         column_name, binary_op, extractNumericAsFloatLiteral(value_expr), schema
-      );
-   }
-   if (isIntLiteral(value_expr)) {
-      // Width-agnostic: keep the full-range int64 value; IntBetween::compile applies the int32
-      // range check once the actual column type is known.
-      return convertIntComparison(column_name, binary_op, extractInt64Literal(value_expr), schema);
-   }
-   throw IllegalQueryException(
-      "unsupported value type in comparison at {}:{}",
-      value_expr.location.line,
-      value_expr.location.column
+   auto value = convertToScalar(value_expr, schema, "the value in a comparison");
+   auto column = resolveColumn(column_name, schema);
+   return std::make_unique<scalar_expressions::Comparison>(
+      std::make_unique<scalar_expressions::FieldRef>(std::move(column)),
+      std::move(value),
+      toOrderingComparator(binary_op)
    );
 }
 
@@ -364,14 +326,25 @@ ScalarExpressionPtr convertBinaryExprToFilter(
       case ast::BinaryOp::LESS_EQUAL:
       case ast::BinaryOp::GREATER_THAN:
       case ast::BinaryOp::GREATER_EQUAL: {
-         CHECK_SILO_QUERY(
-            std::holds_alternative<ast::Identifier>(bin_expr.left->value),
-            "comparison requires an identifier on the left side at {}:{}",
+         if (std::holds_alternative<ast::Identifier>(bin_expr.left->value)) {
+            return convertComparisonToFilter(
+               extractIdentifierName(*bin_expr.left), bin_expr.op, *bin_expr.right, schema
+            );
+         }
+         if (std::holds_alternative<ast::Identifier>(bin_expr.right->value)) {
+            // `value <op> column` is rewritten to `column <flipped-op> value` so the
+            // identifier can always be the left operand of the Comparison node.
+            return convertComparisonToFilter(
+               extractIdentifierName(*bin_expr.right),
+               flipOrderingOp(bin_expr.op),
+               *bin_expr.left,
+               schema
+            );
+         }
+         throw IllegalQueryException(
+            "comparison requires an identifier on one side at {}:{}",
             bin_expr.left->location.line,
             bin_expr.left->location.column
-         );
-         return convertComparisonToFilter(
-            extractIdentifierName(*bin_expr.left), bin_expr.op, *bin_expr.right, schema
          );
       }
    }

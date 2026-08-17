@@ -1,0 +1,133 @@
+#include <nlohmann/json.hpp>
+
+#include "rhydb/test/query_fixture.test.h"
+
+namespace {
+using rhydb::ReferenceGenomes;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
+
+const int BOUND = 3;
+const int BELOW = 1;
+const int ABOVE = 5;
+
+nlohmann::json createData(const std::string& primary_key, const std::optional<int>& value) {
+   return {
+      {"primaryKey", primary_key},
+      {"int_value", value.has_value() ? nlohmann::json(value.value()) : nlohmann::json(nullptr)},
+      {"bool_value", nullptr}
+   };
+}
+
+const auto DATABASE_CONFIG =
+   R"(
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+    - name: "int_value"
+      type: "int"
+    - name: "bool_value"
+      type: "boolean"
+  primaryKey: "primaryKey"
+)";
+
+const auto REFERENCE_GENOMES = ReferenceGenomes{{}, {}};
+
+const QueryTestData TEST_DATA{
+   .ndjson_input_data =
+      {createData("id_below", BELOW),
+       createData("id_bound", BOUND),
+       createData("id_above", ABOVE),
+       createData("id_null", std::nullopt)},
+   .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
+};
+
+const QueryTestScenario LESS_THAN = {
+   .name = "INT_LESS_THAN",
+   .query = "default.filter(int_value < 3).project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_below"}])")
+};
+
+const QueryTestScenario LESS_EQUAL = {
+   .name = "INT_LESS_EQUAL",
+   .query = "default.filter(int_value <= 3).project(primaryKey)",
+   .expected_query_result =
+      nlohmann::json::parse(R"([{"primaryKey":"id_below"},{"primaryKey":"id_bound"}])")
+};
+
+const QueryTestScenario GREATER_THAN = {
+   .name = "INT_GREATER_THAN",
+   .query = "default.filter(int_value > 3).project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_above"}])")
+};
+
+const QueryTestScenario GREATER_EQUAL = {
+   .name = "INT_GREATER_EQUAL",
+   .query = "default.filter(int_value >= 3).project(primaryKey)",
+   .expected_query_result =
+      nlohmann::json::parse(R"([{"primaryKey":"id_bound"},{"primaryKey":"id_above"}])")
+};
+
+// !(int_value < 3) == int_value >= 3, and nulls are included by the negation.
+const QueryTestScenario NEGATED_LESS_THAN = {
+   .name = "INT_NEGATED_LESS_THAN",
+   .query = "default.filter(!(int_value < 3)).project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(
+      R"([{"primaryKey":"id_bound"},{"primaryKey":"id_above"},{"primaryKey":"id_null"}])"
+   )
+};
+
+// Operand flip: `3 > int_value` must equal `int_value < 3`.
+const QueryTestScenario FLIPPED_OPERANDS = {
+   .name = "INT_FLIPPED_OPERANDS",
+   .query = "default.filter(3 > int_value).project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_below"}])")
+};
+
+const QueryTestScenario FLIPPED_OPERANDS_INCLUSIVE = {
+   .name = "INT_FLIPPED_OPERANDS_INCLUSIVE",
+   .query = "default.filter(3 >= int_value).project(primaryKey)",
+   .expected_query_result =
+      nlohmann::json::parse(R"([{"primaryKey":"id_below"},{"primaryKey":"id_bound"}])")
+};
+
+const QueryTestScenario TYPE_MISMATCH = {
+   .name = "INT_TYPE_MISMATCH",
+   .query = "default.filter(int_value < 'x').project(primaryKey)",
+   .expected_error_message = "The column 'int_value' is not of type string"
+};
+
+const QueryTestScenario BOOL_COMPARISON = {
+   .name = "INT_BOOL_COMPARISON",
+   .query = "default.filter(bool_value < true).project(primaryKey)",
+   .expected_error_message =
+      "The comparison operators <,>,<=,>= are not supported for boolean column 'bool_value'"
+};
+
+const QueryTestScenario UNKNOWN_COLUMN = {
+   .name = "INT_UNKNOWN_COLUMN",
+   .query = "default.filter(does_not_exist < 3).project(primaryKey)",
+   .expected_error_message = "The database does not contain the column 'does_not_exist'"
+};
+
+}  // namespace
+
+QUERY_TEST(
+   IntComparisonTest,
+   TEST_DATA,
+   ::testing::Values(
+      LESS_THAN,
+      LESS_EQUAL,
+      GREATER_THAN,
+      GREATER_EQUAL,
+      NEGATED_LESS_THAN,
+      FLIPPED_OPERANDS,
+      FLIPPED_OPERANDS_INCLUSIVE,
+      TYPE_MISMATCH,
+      BOOL_COMPARISON,
+      UNKNOWN_COLUMN
+   )
+);

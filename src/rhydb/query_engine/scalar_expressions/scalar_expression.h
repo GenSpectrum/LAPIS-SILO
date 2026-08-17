@@ -34,6 +34,7 @@ class ScalarExpression {
       MAYBE,
       EXACT,
       EQUALS,
+      COMPARISON,
       DATE_BETWEEN,
       FIELD_REF,
       FLOAT_BETWEEN,

@@ -61,11 +61,21 @@ default
 
 ### Comparison Operators
 
-WARNING: Not all operators have been implemented for all types. TODO()
+| Operator | Meaning | Supported column types |
+|----------|---------|------------------------|
+| `=` | equals | all |
+| `<>` | not equals | all |
+| `<`, `<=`, `>`, `>=` | ordering | int, float, date, string (lexicographic) |
 
-`=`, `<>`, `<`, `<=`, `>`, `>=`
+Notes:
+- One side must be a column identifier; the other a literal value. For ordering
+  operators the column may be on either side (`age > 30` equals `30 < age`).
+- Ordering operators are **not** supported for boolean columns, and comparisons
+  **exclude** null values (a null cell never matches an ordering comparison).
+- String ordering is lexicographic and applies to both plain and
+  dictionary-encoded string columns.
 
-The left-hand side must be a column identifier. Examples:
+Examples:
 ```
 country = 'Germany'
 age > 30
