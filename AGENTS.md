@@ -13,6 +13,8 @@ Documentation (for devs and users) in `documentation/`.
 make build/Debug/rhydb             # Debug build (includes ASAN)
 make build/Release/rhydb           # Release build (includes mimalloc on Linux)
 
+make clean                         # Clean build artifacts
+
 # Test
 make test                          # Build and run C++ unit tests
 make all-tests                     # Run C++, Python, and E2E tests
