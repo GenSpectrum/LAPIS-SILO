@@ -152,14 +152,14 @@ building with clang-tidy under alpine was not possible yet. Should be changed in
 ### Functional End-To-End Tests
 
 End-to-end tests are located in `/endToEndTests`. Those tests are used to verify the overall functionality of the RhyDB
-queries. To execute the tests:
+queries. To execute the tests on a `SILO_IMAGE`:
 
-- have a running RhyDB instance with preprocessed data e.g. via
-  - `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing.yml up`
-  - `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d wait`
 - `cd endToEndTests`
+- `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing-from-ndjson.yml up`
+- `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d --wait`
 - `npm install`
-- `SILO_URL=localhost:8081 npm run test`
+- `SILO_URL=localhost:8080 npm run test`
+- `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml down`
 
 ## Local Debugging
 
