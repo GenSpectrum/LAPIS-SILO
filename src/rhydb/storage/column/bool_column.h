@@ -23,6 +23,7 @@ class BoolColumn {
    using Buffer = std::vector<std::optional<bool>>;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::BOOL;
+   static constexpr schema::ValueType type() { return schema::ValueType::BOOL; }
    using value_type = bool;
 
    roaring::Roaring true_bitmap;

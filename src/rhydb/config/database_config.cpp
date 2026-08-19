@@ -12,7 +12,7 @@
 
 #include "config/config_exception.h"
 
-using rhydb::config::ValueType;
+using rhydb::schema::ValueType;
 
 ValueType rhydb::config::toDatabaseValueType(std::string_view type) {
    if (type == "string") {
@@ -64,27 +64,6 @@ std::string_view rhydb::config::lineageIndexTypeToString(LineageIndexType type) 
    }
    SILO_UNREACHABLE();
 }
-
-namespace {
-
-std::string toString(ValueType type) {
-   switch (type) {
-      case ValueType::STRING:
-         return "string";
-      case ValueType::DATE:
-         return "date";
-      case ValueType::BOOL:
-         return "boolean";
-      case ValueType::INT32:
-         return "int";
-      case ValueType::INT64:
-         return "int64";
-      case ValueType::FLOAT:
-         return "float";
-   }
-   SILO_UNREACHABLE();
-}
-}  // namespace
 
 bool YAML::convert<rhydb::config::DatabaseConfig>::decode(
    const Node& node,
@@ -166,12 +145,15 @@ bool YAML::convert<rhydb::config::DatabaseMetadata>::decode(
    }
    return true;
 }
+
+using rhydb::schema::valueTypeToString;
+
 YAML::Node YAML::convert<rhydb::config::DatabaseMetadata>::encode(
    const rhydb::config::DatabaseMetadata& metadata
 ) {
    Node node;
    node["name"] = metadata.name;
-   node["type"] = toString(metadata.type);
+   node["type"] = std::string{valueTypeToString(metadata.type)};
    node["generateIndex"] = metadata.generate_index;
    if (metadata.generate_lineage_index) {
       node["generateLineageIndex"] = metadata.generate_lineage_index.value();
@@ -376,28 +358,7 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
       ctx.out(),
       "{{ name: '{}', type: '{}', generate_index: {} }}",
       database_metadata.name,
-      database_metadata.type,
+      valueTypeToString(database_metadata.type),
       database_metadata.generate_index
    );
-}
-
-[[maybe_unused]] auto fmt::formatter<rhydb::config::ValueType>::format(
-   const rhydb::config::ValueType& value_type,
-   fmt::format_context& ctx
-) -> decltype(ctx.out()) {
-   switch (value_type) {
-      case rhydb::config::ValueType::STRING:
-         return fmt::format_to(ctx.out(), "string");
-      case rhydb::config::ValueType::DATE:
-         return fmt::format_to(ctx.out(), "date");
-      case rhydb::config::ValueType::BOOL:
-         return fmt::format_to(ctx.out(), "bool");
-      case rhydb::config::ValueType::INT32:
-         return fmt::format_to(ctx.out(), "int");
-      case rhydb::config::ValueType::INT64:
-         return fmt::format_to(ctx.out(), "int64");
-      case rhydb::config::ValueType::FLOAT:
-         return fmt::format_to(ctx.out(), "float");
-   }
-   return fmt::format_to(ctx.out(), "unknown");
 }

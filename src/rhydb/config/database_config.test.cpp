@@ -8,8 +8,8 @@
 using rhydb::config::ConfigException;
 using rhydb::config::DatabaseConfig;
 using rhydb::config::toDatabaseValueType;
-using rhydb::config::ValueType;
 using rhydb::schema::ColumnType;
+using rhydb::schema::ValueType;
 
 TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
    ASSERT_TRUE(toDatabaseValueType("string") == ValueType::STRING);
