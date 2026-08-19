@@ -75,8 +75,8 @@ std::string symbolVectorToString(const std::vector<typename SymbolType::Symbol>&
    return result;
 }
 
-silo::schema::ColumnType parseColumnTypeName(const std::string& type_name) {
-   using silo::schema::ColumnType;
+rhydb::schema::ColumnType parseColumnTypeName(const std::string& type_name) {
+   using rhydb::schema::ColumnType;
    static const std::map<std::string, ColumnType> TYPE_NAMES{
       {"string", ColumnType::STRING},
       {"indexed_string", ColumnType::DICTIONARY_ENCODED},
@@ -100,20 +100,21 @@ silo::schema::ColumnType parseColumnTypeName(const std::string& type_name) {
 }
 
 /// The column types whose metadata requires a reference string (looked up in the built-in
-/// `_references` table): the two sequence types and the zstd-compressed unaligned sequence type.
-bool columnTypeNeedsReference(silo::schema::ColumnType type) {
-   using silo::schema::ColumnType;
+/// `reference_genomes` table): the two sequence types and the zstd-compressed unaligned sequence
+/// type.
+bool columnTypeNeedsReference(rhydb::schema::ColumnType type) {
+   using rhydb::schema::ColumnType;
    return type == ColumnType::NUCLEOTIDE_SEQUENCE || type == ColumnType::AMINO_ACID_SEQUENCE ||
           type == ColumnType::ZSTD_COMPRESSED_STRING;
 }
 
-std::shared_ptr<silo::storage::column::ColumnMetadata> makeColumnMetadata(
+std::shared_ptr<rhydb::storage::column::ColumnMetadata> makeColumnMetadata(
    const std::string& name,
-   silo::schema::ColumnType type,
+   rhydb::schema::ColumnType type,
    const std::string& details
 ) {
-   using silo::schema::ColumnType;
-   namespace column = silo::storage::column;
+   using rhydb::schema::ColumnType;
+   namespace column = rhydb::storage::column;
    switch (type) {
       case ColumnType::STRING:
          return std::make_shared<column::StringColumnMetadata>(name);
@@ -130,13 +131,13 @@ std::shared_ptr<silo::storage::column::ColumnMetadata> makeColumnMetadata(
                fmt::format("Column '{}' requires a non-empty reference sequence", name)
             );
          }
-         auto reference = stringToSymbolVector<silo::Nucleotide>(details);
+         auto reference = stringToSymbolVector<rhydb::Nucleotide>(details);
          if (!reference.has_value()) {
             throw std::runtime_error(
                fmt::format("Column '{}' has an invalid nucleotide reference sequence", name)
             );
          }
-         return std::make_shared<column::SequenceColumnMetadata<silo::Nucleotide>>(
+         return std::make_shared<column::SequenceColumnMetadata<rhydb::Nucleotide>>(
             name, std::move(reference.value())
          );
       }
@@ -146,13 +147,13 @@ std::shared_ptr<silo::storage::column::ColumnMetadata> makeColumnMetadata(
                fmt::format("Column '{}' requires a non-empty reference sequence", name)
             );
          }
-         auto reference = stringToSymbolVector<silo::AminoAcid>(details);
+         auto reference = stringToSymbolVector<rhydb::AminoAcid>(details);
          if (!reference.has_value()) {
             throw std::runtime_error(
                fmt::format("Column '{}' has an invalid amino acid reference sequence", name)
             );
          }
-         return std::make_shared<column::SequenceColumnMetadata<silo::AminoAcid>>(
+         return std::make_shared<column::SequenceColumnMetadata<rhydb::AminoAcid>>(
             name, std::move(reference.value())
          );
       }
@@ -168,7 +169,7 @@ std::shared_ptr<silo::storage::column::ColumnMetadata> makeColumnMetadata(
 namespace rhydb {
 
 Database::Database() {
-   createReferencesTable();
+   createReferenceGenomesTable();
 }
 
 Database::Database(schema::DatabaseSchema database_schema)
@@ -178,12 +179,13 @@ Database::Database(schema::DatabaseSchema database_schema)
    }
 }
 
-void Database::createReferencesTable() {
+void Database::createReferenceGenomesTable() {
    auto table_schema = std::make_shared<schema::TableSchema>();
    const schema::ColumnIdentifier name_column{.name = "name", .type = schema::ColumnType::STRING};
    const schema::ColumnIdentifier reference_column{
       .name = "reference", .type = schema::ColumnType::STRING
    };
+   const schema::ColumnIdentifier type_column{.name = "type", .type = schema::ColumnType::STRING};
    table_schema->column_metadata.emplace(
       name_column, std::make_shared<storage::column::StringColumnMetadata>(name_column.name)
    );
@@ -191,8 +193,13 @@ void Database::createReferencesTable() {
       reference_column,
       std::make_shared<storage::column::StringColumnMetadata>(reference_column.name)
    );
+   table_schema->column_metadata.emplace(
+      type_column, std::make_shared<storage::column::StringColumnMetadata>(type_column.name)
+   );
    table_schema->primary_key = name_column;
-   createTable(schema::TableName{std::string{REFERENCES_TABLE_NAME}}, std::move(table_schema));
+   createTable(
+      schema::TableName{std::string{REFERENCE_GENOMES_TABLE_NAME}}, std::move(table_schema)
+   );
 }
 
 void Database::createTable(
@@ -261,9 +268,9 @@ void Database::createTableFromColumns(
 }
 
 std::string Database::lookupReferenceForColumn(const std::string& column_name) {
-   // The `_references` table is built-in (see `createReferencesTable`), so it always exists with
-   // its `name` and `reference` string columns.
-   auto table_iter = tables.find(schema::TableName{std::string{REFERENCES_TABLE_NAME}});
+   // The `reference_genomes` table is built-in (see `createReferenceGenomesTable`), so it always
+   // exists with its `name` and `reference` string columns.
+   auto table_iter = tables.find(schema::TableName{std::string{REFERENCE_GENOMES_TABLE_NAME}});
    SILO_ASSERT(table_iter != tables.end());
    const auto& reference_columns = table_iter->second->columns.string_columns;
    auto name_column_iter = reference_columns.find("name");
@@ -275,7 +282,8 @@ std::string Database::lookupReferenceForColumn(const std::string& column_name) {
    const auto& name_column = name_column_iter->second;
    const auto& reference_column = reference_column_iter->second;
 
-   const roaring::Roaring all_rows = getFilteredBitmap(std::string{REFERENCES_TABLE_NAME}, "true");
+   const roaring::Roaring all_rows =
+      getFilteredBitmap(std::string{REFERENCE_GENOMES_TABLE_NAME}, "true");
    for (const uint32_t global_row_id : all_rows) {
       const auto row_id = storage::column::RowId::fromGlobal(global_row_id);
       if (name_column.isNull(row_id) || name_column.getValueString(row_id) != column_name) {
@@ -283,16 +291,56 @@ std::string Database::lookupReferenceForColumn(const std::string& column_name) {
       }
       if (reference_column.isNull(row_id)) {
          throw std::runtime_error(fmt::format(
-            "The '{}' entry named '{}' has a null reference.", REFERENCES_TABLE_NAME, column_name
+            "The '{}' entry named '{}' has a null reference.",
+            REFERENCE_GENOMES_TABLE_NAME,
+            column_name
          ));
       }
       return reference_column.getValueString(row_id);
    }
    throw std::runtime_error(fmt::format(
       "The '{}' table has no entry named '{}' for the sequence column being created.",
-      REFERENCES_TABLE_NAME,
+      REFERENCE_GENOMES_TABLE_NAME,
       column_name
    ));
+}
+
+std::vector<ReferenceEntry> Database::getReferences() {
+   // The `reference_genomes` table is built-in (see `createReferenceGenomesTable`), so it always
+   // exists with its `name`, `reference` and `type` string columns.
+   auto table_iter = tables.find(schema::TableName{std::string{REFERENCE_GENOMES_TABLE_NAME}});
+   SILO_ASSERT(table_iter != tables.end());
+   const auto& reference_columns = table_iter->second->columns.string_columns;
+   auto name_column_iter = reference_columns.find("name");
+   auto reference_column_iter = reference_columns.find("reference");
+   auto type_column_iter = reference_columns.find("type");
+   SILO_ASSERT(
+      name_column_iter != reference_columns.end() &&
+      reference_column_iter != reference_columns.end()
+   );
+   const auto& name_column = name_column_iter->second;
+   const auto& reference_column = reference_column_iter->second;
+
+   std::vector<ReferenceEntry> entries;
+   const roaring::Roaring all_rows =
+      getFilteredBitmap(std::string{REFERENCE_GENOMES_TABLE_NAME}, "true");
+   for (const uint32_t global_row_id : all_rows) {
+      const auto row_id = storage::column::RowId::fromGlobal(global_row_id);
+      ReferenceEntry entry;
+      if (!name_column.isNull(row_id)) {
+         entry.name = name_column.getValueString(row_id);
+      }
+      if (!reference_column.isNull(row_id)) {
+         entry.reference = reference_column.getValueString(row_id);
+      }
+      // The `type` column is absent from a legacy `reference_genomes` table loaded from disk; treat
+      // a missing column or null value as an untyped entry.
+      if (type_column_iter != reference_columns.end() && !type_column_iter->second.isNull(row_id)) {
+         entry.type = type_column_iter->second.getValueString(row_id);
+      }
+      entries.push_back(std::move(entry));
+   }
+   return entries;
 }
 
 void Database::appendDataFromFile(const std::string& table_name, const std::string& file_path) {
@@ -619,7 +667,8 @@ arrow::Result<std::string> Database::getTablesAsArrowIpcImpl() const {
    auto arrow_schema = arrow::schema({arrow::field("table_name", arrow::utf8())});
 
    // Build string array with table names, skipping internal tables (those whose name starts with
-   // an underscore, e.g. the built-in `_references` table).
+   // an underscore). The built-in `reference_genomes` table has no underscore and is listed here
+   // like any other table.
    arrow::StringBuilder builder;
    for (const auto& [table_name, _] : tables) {
       if (table_name.getName().starts_with('_')) {

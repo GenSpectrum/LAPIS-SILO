@@ -7,6 +7,7 @@ from libc.stdint cimport uint64_t, uint32_t
 from libc.stdlib cimport malloc, free
 from cython.operator cimport dereference as deref
 from database cimport Database as CppDatabase, Roaring as CppRoaring, ColumnDefinition
+import json
 import os
 import pyroaring
 import pyarrow as pa
@@ -104,10 +105,10 @@ cdef class PyDatabase:
 
         Columns of type ``"nucleotide_sequence"``, ``"amino_acid_sequence"`` and
         ``"zstd_compressed_string"`` need a reference sequence. Rather than passing it inline, the
-        reference is taken from the built-in ``_references`` table (string columns ``name`` and
-        ``reference``), which every database has automatically. Populate it beforehand; the entry
-        whose ``name`` equals the column name supplies that column's reference, and creation fails
-        if no such entry exists.
+        reference is taken from the built-in ``reference_genomes`` table (string columns ``name``,
+        ``reference`` and ``type``), which every database has automatically. Register the reference
+        beforehand with :meth:`register_reference`; the entry whose ``name`` equals the column name
+        supplies that column's reference, and creation fails if no such entry exists.
 
         Parameters
         ----------
@@ -123,9 +124,8 @@ cdef class PyDatabase:
 
         Example
         -------
-        >>> # Register references for the sequence columns in the built-in `_references` table first.
-        >>> db.append_data_from_string("_references",
-        ...     '{"name": "main", "reference": "ACGT"}')
+        >>> # Register references for the sequence columns first.
+        >>> db.register_reference("main", "ACGT")
         >>> db.create_table(
         ...     table_name="samples",
         ...     columns=[
@@ -176,6 +176,51 @@ cdef class PyDatabase:
             self.c_database.createTableFromColumns(cpp_table_name, cpp_columns)
         except Exception as e:
             raise RuntimeError(f"Failed to create table '{table_name}': {e}")
+
+    def register_reference(self, str name, str reference, str sequence_type=None):
+        """
+        Register a reference sequence in the built-in ``reference_genomes`` table.
+
+        Sequence columns (``"nucleotide_sequence"``, ``"amino_acid_sequence"``,
+        ``"zstd_compressed_string"``) take their reference from the built-in ``reference_genomes``
+        table rather than inline. This is a short-hand for appending a single
+        ``{name, reference, type}`` row to that table; call it before :meth:`create_table` for each
+        sequence column, using the column's name.
+
+        Parameters
+        ----------
+        name : str
+            The sequence column name this reference belongs to.
+        reference : str
+            The reference sequence string.
+        sequence_type : str, optional
+            The sequence type, e.g. ``"nucleotide_sequence"`` or ``"amino_acid_sequence"``.
+            Optional: :meth:`create_table` takes each column's type from its column definition, so it
+            may be omitted (stored as an empty string).
+
+        Example
+        -------
+        >>> db.register_reference("main", "ACGT", "nucleotide_sequence")
+        >>> db.create_table("samples", [
+        ...     {"name": "id", "type": "string"},
+        ...     {"name": "main", "type": "nucleotide_sequence"},
+        ... ])
+        """
+        if not name or not name.strip():
+            raise ValueError("name cannot be empty")
+        if not isinstance(reference, str):
+            raise TypeError("reference must be a string")
+        if sequence_type is not None and not isinstance(sequence_type, str):
+            raise TypeError("sequence_type must be a string or None")
+
+        row = {"name": name, "reference": reference, "type": sequence_type or ""}
+        cdef string cpp_table_name = "reference_genomes".encode('utf-8')
+        cdef string cpp_json = json.dumps(row).encode('utf-8')
+
+        try:
+            self.c_database.appendDataFromString(cpp_table_name, cpp_json)
+        except Exception as e:
+            raise RuntimeError(f"Failed to register reference '{name}': {e}")
 
     def append_data_from_file(self, str table_name, str file_name):
         """

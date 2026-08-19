@@ -54,11 +54,12 @@ schema:
    rhydb::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
 
    auto database = std::make_shared<Database>();
+   rhydb::initialize::Initializer::loadReferences(reference_genomes, *database);
    database->createTable(
       rhydb::schema::TableName::getDefault(),
       rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
-         reference_genomes,
+         database->getReferences(),
          {},
          rhydb::common::PhyloTree{},
          /*without_unaligned_sequences=*/true

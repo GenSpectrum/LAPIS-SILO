@@ -35,9 +35,12 @@ std::shared_ptr<rhydb::Database> buildTestDatabase() {
       input_directory / "database_config.yaml"
    );
 
-   const auto reference_genomes =
+   auto database = std::make_shared<rhydb::Database>();
+   rhydb::initialize::Initializer::loadReferences(
       rhydb::ReferenceGenomes::readFromFile(config.initialization_files.getReferenceGenomeFilepath()
-      );
+      ),
+      *database
+   );
 
    std::map<std::filesystem::path, rhydb::common::LineageTreeAndIdMap> lineage_trees;
    for (const auto& file_path : config.initialization_files.getLineageDefinitionFilepaths()) {
@@ -51,12 +54,11 @@ std::shared_ptr<rhydb::Database> buildTestDatabase() {
       phylo_tree_file = rhydb::common::PhyloTree::fromFile(opt_path.value());
    }
 
-   auto database = std::make_shared<rhydb::Database>();
    database->createTable(
       rhydb::schema::TableName::getDefault(),
       rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          database_config,
-         reference_genomes,
+         database->getReferences(),
          lineage_trees,
          phylo_tree_file,
          /*without_unaligned_sequences=*/false
@@ -300,25 +302,27 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
 }
 
 namespace {
-// Populates the built-in `_references` table that createTableFromColumns reads sequence references
-// from. Each entry maps a sequence column name to its reference string.
+// Populates the built-in `reference_genomes` table that createTableFromColumns reads sequence
+// references from. Each entry maps a sequence column name to its reference string. The generic path
+// takes the column's type from its ColumnDefinition rather than from the table, so the `type`
+// column is left empty here (see rhydb::ReferenceEntry).
 void populateReferences(
-   silo::Database& database,
+   rhydb::Database& database,
    const std::vector<std::pair<std::string, std::string>>& entries
 ) {
    std::stringstream data;
    for (const auto& [name, reference] : entries) {
-      data << nlohmann::json{{"name", name}, {"reference", reference}}.dump() << "\n";
+      data << nlohmann::json{{"name", name}, {"reference", reference}, {"type", ""}}.dump() << "\n";
    }
    database.appendData(
-      silo::schema::TableName{std::string{silo::Database::REFERENCES_TABLE_NAME}}, data
+      rhydb::schema::TableName{std::string{rhydb::Database::REFERENCE_GENOMES_TABLE_NAME}}, data
    );
 }
 }  // namespace
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DatabaseTest, createTableFromColumnsSupportsAllColumnTypes) {
-   silo::Database database;
+   rhydb::Database database;
    populateReferences(database, {{"seq", "ACGT"}, {"gene", "MFV"}});
    database.createTableFromColumns(
       "generic",
@@ -338,17 +342,17 @@ TEST(DatabaseTest, createTableFromColumnsSupportsAllColumnTypes) {
         << R"("country":"Switzerland","lineage":"B.1","seq":{"sequence":"ACGT","insertions":[]},)"
         << R"("gene":{"sequence":"MFV","insertions":[]}})"
         << "\n";
-   database.appendData(silo::schema::TableName{"generic"}, data);
+   database.appendData(rhydb::schema::TableName{"generic"}, data);
 
-   auto query_plan = silo::query_engine::Planner::planSaneqlQuery(
+   auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
       "generic.filter(age = 42 && passed = true && country = 'Switzerland')."
       "project({key, age, qc, country, lineage})",
       database.tables,
-      silo::config::QueryOptions{},
+      rhydb::config::QueryOptions{},
       "generic_query"
    );
    ASSERT_EQ(
-      silo::test::executeQueryToJsonArray(query_plan),
+      rhydb::test::executeQueryToJsonArray(query_plan),
       nlohmann::json::array(
          {{{"key", "id_1"}, {"age", 42}, {"qc", 0.5}, {"country", "Switzerland"}, {"lineage", "B.1"}
          }}
@@ -357,7 +361,7 @@ TEST(DatabaseTest, createTableFromColumnsSupportsAllColumnTypes) {
 }
 
 TEST(DatabaseTest, createTableFromColumnsResolvesReferenceByColumnName) {
-   silo::Database database;
+   rhydb::Database database;
    // The entry name matches the sequence column name, not the table it ends up in.
    populateReferences(database, {{"main", "ACGTACGT"}});
    database.createTableFromColumns(
@@ -368,7 +372,7 @@ TEST(DatabaseTest, createTableFromColumnsResolvesReferenceByColumnName) {
 }
 
 TEST(DatabaseTest, createTableFromColumnsRejectsInvalidRequests) {
-   silo::Database database;
+   rhydb::Database database;
 
    // No columns at all is rejected (the first column would be the primary key).
    EXPECT_THROW(database.createTableFromColumns("t", {}), std::runtime_error);
@@ -383,13 +387,13 @@ TEST(DatabaseTest, createTableFromColumnsRejectsInvalidRequests) {
       std::runtime_error
    );
 
-   // The built-in `_references` table has no entry registered for the sequence column yet.
+   // The built-in `reference_genomes` table has no entry registered for the sequence column yet.
    EXPECT_THROW(
       database.createTableFromColumns("t", {{.name = "seq", .type = "nucleotide_sequence"}}),
       std::runtime_error
    );
 
-   // `_references` has entries but none matches the requested column name.
+   // `reference_genomes` has entries but none matches the requested column name.
    populateReferences(database, {{"other", "ACGT"}});
    EXPECT_THROW(
       database.createTableFromColumns("t", {{.name = "seq", .type = "nucleotide_sequence"}}),
@@ -397,7 +401,7 @@ TEST(DatabaseTest, createTableFromColumnsRejectsInvalidRequests) {
    );
 
    // The reference exists but contains invalid symbols for a nucleotide sequence.
-   silo::Database database_with_bad_reference;
+   rhydb::Database database_with_bad_reference;
    populateReferences(database_with_bad_reference, {{"seq", "XYZ"}});
    EXPECT_THROW(
       database_with_bad_reference.createTableFromColumns(

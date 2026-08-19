@@ -1,6 +1,8 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
+#include <vector>
 
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/data_version.h"
@@ -16,19 +18,31 @@ namespace rhydb {
 /// `type` is a lowercase type name (e.g. "string", "indexed_string", "date", "bool", "int",
 /// "float", "nucleotide_sequence", "amino_acid_sequence", "zstd_compressed_string"). Columns that
 /// need a reference (the two sequence types and "zstd_compressed_string") take it from the built-in
-/// `_references` table rather than from this struct (see `createTableFromColumns`).
+/// `reference_genomes` table rather than from this struct (see `createTableFromColumns`).
 struct ColumnDefinition {
    std::string name;
+   std::string type;
+};
+
+/// One row of the built-in `reference_genomes` table: a reference sequence keyed by the name of the
+/// column it belongs to. `type` is the sequence type name ("nucleotide_sequence" or
+/// "amino_acid_sequence"): the preprocessing/initialize path always sets it (see
+/// `Initializer::loadReferences`), while the generic `createTableFromColumns` path does not consult
+/// it (it takes each column's type from its `ColumnDefinition`).
+struct ReferenceEntry {
+   std::string name;
+   std::string reference;
    std::string type;
 };
 
 class Database {
   public:
    /// Name of the built-in table holding reference sequences for sequence / zstd-compressed
-   /// columns. Every Database has it automatically (see `createReferencesTable`); it is populated
-   /// by the caller and read by `createTableFromColumns`. The leading underscore marks it as
-   /// internal and hides it from `getTables`.
-   static constexpr std::string_view REFERENCES_TABLE_NAME = "_references";
+   /// columns (STRING columns `name`, `reference`, `type`, keyed on `name`). Every Database has it
+   /// automatically (see `createReferenceGenomesTable`); it is populated by the caller and read by
+   /// `createTableFromColumns` and by the preprocessing/initialize path (see `getReferences`). It
+   /// is a normal, queryable table and is listed by `getTables`.
+   static constexpr std::string_view REFERENCE_GENOMES_TABLE_NAME = "reference_genomes";
 
    schema::DatabaseSchema schema;
    std::map<schema::TableName, std::shared_ptr<storage::Table>> tables;
@@ -60,10 +74,10 @@ class Database {
    /// entry of `columns` becomes the table's primary key, so `columns` must be non-empty and its
    /// first entry must be of type "string". Every entry describes one column via its `type` name.
    /// Columns that need a reference (the two sequence types and "zstd_compressed_string") take it
-   /// from the built-in `_references` table (STRING columns `name` and `reference`), which the
-   /// caller must have populated beforehand: its entry whose `name` equals the column name supplies
-   /// that column's reference. Throws if `columns` is empty, its first entry is not a string, a
-   /// type name is unknown, a required reference is missing/invalid, or a column name is
+   /// from the built-in `reference_genomes` table (STRING columns `name`, `reference`, `type`),
+   /// which the caller must have populated beforehand: its entry whose `name` equals the column
+   /// name supplies that column's reference. Throws if `columns` is empty, its first entry is not a
+   /// string, a type name is unknown, a required reference is missing/invalid, or a column name is
    /// duplicated.
    void createTableFromColumns(
       const std::string& table_name,
@@ -75,6 +89,12 @@ class Database {
    void appendDataFromString(const std::string& table_name, std::string json_string);
 
    void printAllData(const std::string& table_name) const;
+
+   /// Reads every row of the built-in `reference_genomes` table (see
+   /// `REFERENCE_GENOMES_TABLE_NAME`) and returns them as `ReferenceEntry` records. Used by the
+   /// preprocessing/initialize path to source the reference sequences (and their
+   /// nucleotide/amino-acid typing) when building a table schema.
+   std::vector<ReferenceEntry> getReferences();
 
    std::string getNucleotideReferenceSequence(
       const std::string& table_name,
@@ -119,12 +139,13 @@ class Database {
   private:
    [[nodiscard]] arrow::Result<std::string> getTablesAsArrowIpcImpl() const;
 
-   /// Creates the built-in `_references` table (string columns `name` and `reference`, with `name`
-   /// as the primary key). Called from every constructor so the table always exists.
-   void createReferencesTable();
+   /// Creates the built-in `reference_genomes` table (string columns `name`, `reference` and
+   /// `type`, with `name` as the primary key). Called from every constructor so the table always
+   /// exists.
+   void createReferenceGenomesTable();
 
-   /// Looks up the reference string for `column_name` in the built-in `_references` table (see
-   /// `createTableFromColumns`). Throws if the table is malformed or has no matching entry.
+   /// Looks up the reference string for `column_name` in the built-in `reference_genomes` table
+   /// (see `createTableFromColumns`). Throws if the table is malformed or has no matching entry.
    std::string lookupReferenceForColumn(const std::string& column_name);
 };
 

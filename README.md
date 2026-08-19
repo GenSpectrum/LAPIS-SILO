@@ -24,9 +24,9 @@ db = Database()
 # Or load from a saved state
 db = Database("/path/to/saved/database")
 
-# Sequence columns read their reference from the built-in `_references` table
-# (string columns `name` and `reference`). It always exists; just populate it.
-db.append_data_from_string("_references", '{"name": "main", "reference": "ACGT..."}')
+# Sequence columns read their reference from the built-in `reference_genomes` table.
+# Register one with the `register_reference` short-hand:
+db.register_reference("main", "ACGT...", "nucleotide_sequence")
 
 # Create a table. The first column becomes the primary key and must be a string.
 db.create_table("sequences", [

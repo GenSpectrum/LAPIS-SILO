@@ -1,8 +1,11 @@
 #include "rhydb/initialize/initializer.h"
 
+#include <algorithm>
+#include <filesystem>
 #include <ranges>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <fmt/ranges.h>
@@ -28,6 +31,16 @@
 
 namespace rhydb::initialize {
 
+namespace {
+
+/// The `type` values written into the built-in `reference_genomes` table for the two sequence
+/// kinds. They carry the nucleotide/amino-acid distinction that the type-less table would otherwise
+/// lose, and are read back in `createSchemaFromConfigFiles`.
+const std::string NUCLEOTIDE_SEQUENCE_TYPE = "nucleotide_sequence";
+const std::string AMINO_ACID_SEQUENCE_TYPE = "amino_acid_sequence";
+
+}  // namespace
+
 void Initializer::createTableInDatabase(
    schema::TableName table_name,
    const config::InitializationFiles& initialization_files,
@@ -46,12 +59,15 @@ void Initializer::createTableInDatabase(
       phylo_tree_file = common::PhyloTree::fromFile(opt_path.value());
    }
 
+   loadReferences(
+      ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilepath()), database
+   );
+
    createTableInDatabase(
       std::move(table_name),
       config::DatabaseConfig::getValidatedConfigFromFile(
          initialization_files.getDatabaseConfigFilepath()
       ),
-      ReferenceGenomes::readFromFile(initialization_files.getReferenceGenomeFilepath()),
       lineage_trees,
       phylo_tree_file,
       initialization_files.without_unaligned_sequences,
@@ -62,14 +78,17 @@ void Initializer::createTableInDatabase(
 void Initializer::createTableInDatabase(
    schema::TableName table_name,
    const config::DatabaseConfig& database_config,
-   const ReferenceGenomes& reference_genomes,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
    const common::PhyloTree& phylo_tree,
    bool without_unaligned_sequences,
    Database& database
 ) {
    auto table_schema = createSchemaFromConfigFiles(
-      database_config, reference_genomes, lineage_trees, phylo_tree, without_unaligned_sequences
+      database_config,
+      database.getReferences(),
+      lineage_trees,
+      phylo_tree,
+      without_unaligned_sequences
    );
    database.createTable(std::move(table_name), std::move(table_schema));
 
@@ -96,6 +115,40 @@ void Initializer::createTableInDatabase(
       }
       createLineageRelationTable(config_metadata.name, lineage_tree.value(), database);
    }
+}
+
+void Initializer::loadReferences(const ReferenceGenomes& reference_genomes, Database& database) {
+   std::string ndjson;
+   const auto append_entries = [&ndjson](
+                                  const std::vector<std::string>& names,
+                                  const std::vector<std::string>& sequences,
+                                  const std::string& type
+                               ) {
+      for (size_t sequence_idx = 0; sequence_idx < names.size(); ++sequence_idx) {
+         const nlohmann::json line{
+            {"name", names.at(sequence_idx)},
+            {"reference", sequences.at(sequence_idx)},
+            {"type", type}
+         };
+         ndjson += line.dump();
+         ndjson += '\n';
+      }
+   };
+   append_entries(
+      reference_genomes.nucleotide_sequence_names,
+      reference_genomes.raw_nucleotide_sequences,
+      NUCLEOTIDE_SEQUENCE_TYPE
+   );
+   append_entries(
+      reference_genomes.aa_sequence_names,
+      reference_genomes.raw_aa_sequences,
+      AMINO_ACID_SEQUENCE_TYPE
+   );
+
+   std::stringstream ndjson_stream{ndjson};
+   database.appendData(
+      schema::TableName{std::string{Database::REFERENCE_GENOMES_TABLE_NAME}}, ndjson_stream
+   );
 }
 
 void Initializer::createLineageRelationTable(
@@ -180,7 +233,6 @@ struct ColumnMetadataInitializer {
    void operator()(
       std::shared_ptr<storage::column::ColumnMetadata>& metadata,
       const config::DatabaseMetadata& config_metadata,
-      const ReferenceGenomes& reference_genomes,
       const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
       const common::PhyloTree& phylo_tree_file
    );
@@ -190,7 +242,6 @@ template <>
 void ColumnMetadataInitializer::operator()<storage::column::DictionaryEncodedColumn>(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
-   const ReferenceGenomes& /*reference_genomes*/,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
@@ -222,7 +273,6 @@ template <>
 void ColumnMetadataInitializer::operator()<storage::column::StringColumn>(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
-   const ReferenceGenomes& /*reference_genomes*/,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& phylo_tree_file
 ) {
@@ -239,7 +289,6 @@ template <>
 void ColumnMetadataInitializer::operator()<storage::column::ZstdCompressedStringColumn>(
    std::shared_ptr<storage::column::ColumnMetadata>& /*metadata*/,
    const config::DatabaseMetadata& /*config_metadata*/,
-   const ReferenceGenomes& /*reference_genomes*/,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
@@ -250,7 +299,6 @@ template <>
 void ColumnMetadataInitializer::operator()<storage::column::SequenceColumn<Nucleotide>>(
    std::shared_ptr<storage::column::ColumnMetadata>& /*metadata*/,
    const config::DatabaseMetadata& /*config_metadata*/,
-   const ReferenceGenomes& /*reference_genomes*/,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
@@ -261,7 +309,6 @@ template <>
 void ColumnMetadataInitializer::operator()<storage::column::SequenceColumn<AminoAcid>>(
    std::shared_ptr<storage::column::ColumnMetadata>& /*metadata*/,
    const config::DatabaseMetadata& /*config_metadata*/,
-   const ReferenceGenomes& /*reference_genomes*/,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
@@ -272,7 +319,6 @@ template <storage::column::Column ColumnType>
 void ColumnMetadataInitializer::operator()(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
-   const ReferenceGenomes& /*reference_genomes*/,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
@@ -318,7 +364,7 @@ const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
 
 std::shared_ptr<schema::TableSchema> Initializer::createSchemaFromConfigFiles(
    const config::DatabaseConfig& database_config,
-   ReferenceGenomes reference_genomes,
+   const std::vector<ReferenceEntry>& reference_entries,
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
    const common::PhyloTree& phylo_tree_file,
    bool without_unaligned_sequences
@@ -342,49 +388,54 @@ std::shared_ptr<schema::TableSchema> Initializer::createSchemaFromConfigFiles(
          ColumnMetadataInitializer{},
          metadata,
          config_metadata,
-         reference_genomes,
          lineage_trees,
          phylo_tree_file
       );
       column_metadata.emplace(column_identifier, metadata);
    }
 
-   for (size_t sequence_idx = 0; sequence_idx < reference_genomes.nucleotide_sequence_names.size();
-        ++sequence_idx) {
-      const auto& sequence_name = reference_genomes.nucleotide_sequence_names.at(sequence_idx);
-      const auto& reference_sequence = reference_genomes.raw_nucleotide_sequences.at(sequence_idx);
-      const schema::ColumnIdentifier column_identifier{
-         .name = sequence_name, .type = schema::ColumnType::NUCLEOTIDE_SEQUENCE
-      };
-      auto metadata = std::make_shared<storage::column::SequenceColumnMetadata<Nucleotide>>(
-         sequence_name, ReferenceGenomes::stringToVector<Nucleotide>(reference_sequence)
-      );
-      column_metadata.emplace(column_identifier, std::move(metadata));
-
-      if (!without_unaligned_sequences) {
-         const schema::ColumnIdentifier column_identifier_unaligned{
-            .name = UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + sequence_name,
-            .type = schema::ColumnType::ZSTD_COMPRESSED_STRING
+   // The sequence columns are derived from the built-in `reference_genomes` table (see
+   // `Database::getReferences`), which carries each reference's name, string and nucleotide/
+   // amino-acid `type`.
+   for (const auto& entry : reference_entries) {
+      if (entry.type == NUCLEOTIDE_SEQUENCE_TYPE) {
+         const schema::ColumnIdentifier column_identifier{
+            .name = entry.name, .type = schema::ColumnType::NUCLEOTIDE_SEQUENCE
          };
-         auto metadata_unaligned =
-            std::make_shared<storage::column::ZstdCompressedStringColumnMetadata>(
-               sequence_name, reference_sequence
-            );
-         column_metadata.emplace(column_identifier_unaligned, std::move(metadata_unaligned));
-      }
-   }
+         auto metadata = std::make_shared<storage::column::SequenceColumnMetadata<Nucleotide>>(
+            entry.name, ReferenceGenomes::stringToVector<Nucleotide>(entry.reference)
+         );
+         column_metadata.emplace(column_identifier, std::move(metadata));
 
-   for (size_t sequence_idx = 0; sequence_idx < reference_genomes.aa_sequence_names.size();
-        ++sequence_idx) {
-      const auto& sequence_name = reference_genomes.aa_sequence_names.at(sequence_idx);
-      const auto& reference_sequence = reference_genomes.raw_aa_sequences.at(sequence_idx);
-      const schema::ColumnIdentifier column_identifier{
-         .name = sequence_name, .type = schema::ColumnType::AMINO_ACID_SEQUENCE
-      };
-      auto metadata = std::make_shared<storage::column::SequenceColumnMetadata<AminoAcid>>(
-         sequence_name, ReferenceGenomes::stringToVector<AminoAcid>(reference_sequence)
-      );
-      column_metadata.emplace(column_identifier, std::move(metadata));
+         if (!without_unaligned_sequences) {
+            const schema::ColumnIdentifier column_identifier_unaligned{
+               .name = UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX + entry.name,
+               .type = schema::ColumnType::ZSTD_COMPRESSED_STRING
+            };
+            auto metadata_unaligned =
+               std::make_shared<storage::column::ZstdCompressedStringColumnMetadata>(
+                  entry.name, entry.reference
+               );
+            column_metadata.emplace(column_identifier_unaligned, std::move(metadata_unaligned));
+         }
+      } else if (entry.type == AMINO_ACID_SEQUENCE_TYPE) {
+         const schema::ColumnIdentifier column_identifier{
+            .name = entry.name, .type = schema::ColumnType::AMINO_ACID_SEQUENCE
+         };
+         auto metadata = std::make_shared<storage::column::SequenceColumnMetadata<AminoAcid>>(
+            entry.name, ReferenceGenomes::stringToVector<AminoAcid>(entry.reference)
+         );
+         column_metadata.emplace(column_identifier, std::move(metadata));
+      } else {
+         throw InitializeException(
+            "The '{}' table entry '{}' has an unknown reference type '{}'; expected '{}' or '{}'.",
+            Database::REFERENCE_GENOMES_TABLE_NAME,
+            entry.name,
+            entry.type,
+            NUCLEOTIDE_SEQUENCE_TYPE,
+            AMINO_ACID_SEQUENCE_TYPE
+         );
+      }
    }
 
    return std::make_shared<schema::TableSchema>(column_metadata, primary_key);

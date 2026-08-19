@@ -39,14 +39,13 @@ def main_reference_sequence(reference_genomes):
 
 
 def _register_reference(db, name, reference):
-    """Register a sequence column's reference in the built-in ``_references`` table.
+    """Register a sequence column's reference in the built-in ``reference_genomes`` table.
 
     The generic ``create_table`` interface resolves sequence-column references from the built-in
-    ``_references`` table (string columns ``name`` and ``reference``) rather than inline, so the
-    reference must be present before the sequence table is created. The table always exists, so it
-    only needs to be populated.
+    ``reference_genomes`` table rather than inline, so the reference must be present before the
+    sequence table is created. Uses the ``register_reference`` short-hand.
     """
-    db.append_data_from_string("_references", json.dumps({"name": name, "reference": reference}))
+    db.register_reference(name, reference)
 
 
 def create_nucleotide_sequence_table(
@@ -56,7 +55,7 @@ def create_nucleotide_sequence_table(
 
     Replaces the removed ``create_nucleotide_sequence_table`` short-hand: the primary key is the
     first column, followed by any extra string columns and the nucleotide sequence column, whose
-    reference is registered in the built-in ``_references`` table.
+    reference is registered in the built-in ``reference_genomes`` table.
     """
     _register_reference(db, sequence_name, reference_sequence)
     columns = [{"name": primary_key_name, "type": "string"}]
@@ -109,6 +108,7 @@ class TestDatabaseCreation:
             'append_data_from_file',
             'append_data_from_string',
             'create_table',
+            'register_reference',
             'query',
             'get_filtered_bitmap',
             'get_nucleotide_reference_sequence',
@@ -555,14 +555,12 @@ class TestCreateTable:
 
     @staticmethod
     def _populate_references(db, entries):
-        """Populate the built-in `_references` table create_table reads sequence references from.
+        """Populate the built-in `reference_genomes` table create_table reads references from.
 
         `entries` maps a sequence column name to its reference string.
         """
         for name, reference in entries.items():
-            db.append_data_from_string(
-                "_references", json.dumps({"name": name, "reference": reference})
-            )
+            db.register_reference(name, reference)
 
     def test_create_table_with_all_column_types(self):
         """A table can be created with every supported column type and populated."""
@@ -608,12 +606,12 @@ class TestCreateTable:
         assert data["qc"] == [0.5]
         assert data["country"] == ["Switzerland"]
         assert data["lineage"] == ["B.1"]
-        # The sequence column's reference was resolved from the `_references` table by column name.
+        # The sequence column's reference was resolved from the `reference_genomes` table by column name.
         assert db.get_nucleotide_reference_sequence("samples", "seq") == "ACGT"
         assert db.get_amino_acid_reference_sequence("samples", "gene") == "MFV"
 
     def test_create_table_reference_looked_up_by_column_name(self):
-        """A sequence column's reference is taken from the matching `_references` entry."""
+        """A sequence column's reference is taken from the matching `reference_genomes` entry."""
         from rhydb import Database
 
         db = Database()
@@ -626,7 +624,7 @@ class TestCreateTable:
         assert db.get_nucleotide_reference_sequence("sequences", "main") == "ACGTACGT"
 
     def test_create_table_unregistered_reference_raises(self, empty_database):
-        """Creating a sequence column with nothing registered in `_references` fails."""
+        """Creating a sequence column with nothing registered in `reference_genomes` fails."""
         with pytest.raises(RuntimeError, match="no entry named 'seq'"):
             empty_database.create_table(
                 "samples",
@@ -634,7 +632,7 @@ class TestCreateTable:
             )
 
     def test_create_table_missing_reference_entry_raises(self):
-        """Creating a sequence column with no matching `_references` entry fails."""
+        """Creating a sequence column with no matching `reference_genomes` entry fails."""
         from rhydb import Database
 
         db = Database()
@@ -709,11 +707,11 @@ class TestGetTables:
     """Test the get_tables method."""
 
     def test_get_tables_empty_database(self, empty_database):
-        """Test that get_tables returns empty table for empty database."""
+        """Even an empty database lists the built-in, always-present `reference_genomes` table."""
         result = empty_database.get_tables()
         assert isinstance(result, pa.Table)
         assert "table_name" in result.column_names
-        assert result.num_rows == 0
+        assert set(result.to_pydict()["table_name"]) == {"reference_genomes"}
 
     def test_get_tables_single_table(self, empty_database, main_reference_sequence):
         """Test get_tables with one table."""
@@ -727,11 +725,9 @@ class TestGetTables:
         result = empty_database.get_tables()
         assert isinstance(result, pa.Table)
         assert "table_name" in result.column_names
-        # The built-in `_references` table is internal and hidden from get_tables.
-        assert result.num_rows == 1
+        # The built-in `reference_genomes` table is a normal, visible table.
         table_names = set(result.to_pydict()["table_name"])
-        assert "sequences" in table_names
-        assert "_references" not in table_names
+        assert table_names == {"sequences", "reference_genomes"}
 
     def test_get_tables_multiple_tables(self, empty_database, main_reference_sequence):
         """Test get_tables with multiple tables."""
@@ -750,12 +746,9 @@ class TestGetTables:
 
         result = empty_database.get_tables()
         assert isinstance(result, pa.Table)
-        # The built-in `_references` table is internal and hidden from get_tables.
-        assert result.num_rows == 2
+        # The built-in `reference_genomes` table is a normal, visible table.
         table_names = set(result.to_pydict()["table_name"])
-        assert "sequences" in table_names
-        assert "genes" in table_names
-        assert "_references" not in table_names
+        assert table_names == {"sequences", "genes", "reference_genomes"}
 
 
 class TestQuery:

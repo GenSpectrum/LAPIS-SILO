@@ -84,10 +84,10 @@ class QueryTestFixture : public ::testing::TestWithParam<QueryTestScenario> {
       const QueryTestData& test_data = data_container.test_data;
 
       auto database = std::make_shared<Database>();
+      initialize::Initializer::loadReferences(test_data.reference_genomes, *database);
       initialize::Initializer::createTableInDatabase(
          schema::TableName::getDefault(),
          config::DatabaseConfig::getValidatedConfig(test_data.database_config),
-         test_data.reference_genomes,
          test_data.lineage_trees,
          test_data.phylo_tree_file,
          test_data.without_unaligned_sequences,

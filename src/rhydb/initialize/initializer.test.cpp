@@ -1,16 +1,30 @@
 #include "rhydb/initialize/initializer.h"
 
+#include <vector>
+
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include "rhydb/database.h"
 #include "rhydb/storage/column/dictionary_encoded_column.h"
 #include "rhydb/storage/column/sequence_column.h"
 #include "rhydb/storage/column/zstd_compressed_string_column.h"
+#include "rhydb/storage/reference_genomes.h"
 
 using rhydb::ReferenceGenomes;
 using rhydb::common::LineageTreeAndIdMap;
 using rhydb::common::PhyloTree;
 using rhydb::initialize::Initializer;
+
+namespace {
+// Bridges a ReferenceGenomes through the built-in `reference_genomes` table (mirroring
+// preprocessing path) and returns the reference entries that createSchemaFromConfigFiles consumes.
+std::vector<rhydb::ReferenceEntry> toReferenceEntries(const ReferenceGenomes& reference_genomes) {
+   rhydb::Database database;
+   Initializer::loadReferences(reference_genomes, database);
+   return database.getReferences();
+}
+}  // namespace
 
 TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    const rhydb::config::DatabaseConfig database_config =
@@ -42,7 +56,7 @@ A.11:
    };
    auto table_schema = Initializer::createSchemaFromConfigFiles(
       database_config,
-      reference_genomes,
+      toReferenceEntries(reference_genomes),
       lineage_trees,
       phylo_tree_file,
       /*without_unaligned_sequences=*/false
@@ -234,7 +248,7 @@ A.1:
        )}
    };
    auto table_schema = Initializer::createSchemaFromConfigFiles(
-      database_config, reference_genomes, lineage_trees, PhyloTree{}, false
+      database_config, toReferenceEntries(reference_genomes), lineage_trees, PhyloTree{}, false
    );
    auto* metadata =
       table_schema->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("lineage")

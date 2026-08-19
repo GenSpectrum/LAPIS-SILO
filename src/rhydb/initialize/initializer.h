@@ -1,6 +1,9 @@
 #pragma once
 
+#include <filesystem>
+#include <string>
 #include <string_view>
+#include <vector>
 
 #include "rhydb/common/lineage_tree.h"
 #include "rhydb/common/phylo_tree.h"
@@ -22,16 +25,21 @@ class Initializer {
    static void createTableInDatabase(
       schema::TableName table_name,
       const config::DatabaseConfig& database_config,
-      const ReferenceGenomes& reference_genomes,
       const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
       const common::PhyloTree& phylo_tree,
       bool without_unaligned_sequences,
       Database& database
    );
 
+   /// Appends the reference sequences held by the given `ReferenceGenomes` to the database's
+   /// built-in `reference_genomes` table, tagging each row with its nucleotide/amino-acid type.
+   /// This is how the preprocessing/initialize path hands references to
+   /// `createSchemaFromConfigFiles`, which reads them back via `Database::getReferences`.
+   static void loadReferences(const ReferenceGenomes& reference_genomes, Database& database);
+
    static std::shared_ptr<schema::TableSchema> createSchemaFromConfigFiles(
       const config::DatabaseConfig& database_config,
-      ReferenceGenomes reference_genomes,
+      const std::vector<ReferenceEntry>& reference_entries,
       const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
       const common::PhyloTree& phylo_tree_file,
       bool without_unaligned_sequences

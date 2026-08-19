@@ -67,13 +67,15 @@ with Database("path/to/silo-dir") as db:
 
 - `columns` is a list of `{"name": <str>, "type": <str>}` dicts. Supported types: `"string"`, `"indexed_string"`, `"date"`, `"bool"`, `"int"`, `"float"`, `"nucleotide_sequence"`, `"amino_acid_sequence"`, `"zstd_compressed_string"`.
 - The **first** column becomes the table's primary key, so `columns` must be non-empty and its first entry must be of type `"string"`.
-- Columns that need a reference (`"nucleotide_sequence"`, `"amino_acid_sequence"`, `"zstd_compressed_string"`) do not take it inline. Instead they read it from the built-in `_references` table (with string columns `name` and `reference`), which every database has automatically. Populate it before creating the sequence column; the entry whose `name` equals the column name supplies that column's reference. (`_references` is internal and is not listed by `get_tables()`.)
+- Columns that need a reference (`"nucleotide_sequence"`, `"amino_acid_sequence"`, `"zstd_compressed_string"`) do not take it inline. Instead they read it from the built-in `reference_genomes` table (string columns `name`, `reference` and `type`), which every database has automatically. Register the reference before creating the sequence column with the `register_reference` short-hand; the entry whose `name` equals the column name supplies that column's reference.
+
+**`register_reference(name, reference, sequence_type=None)`** appends one `{name, reference, type}` row to the built-in `reference_genomes` table. `sequence_type` is optional (`create_table` takes each column's type from its column definition).
 
 ```python
 db = Database()
 
-# 1. Register references for any sequence columns in the built-in `_references` table.
-db.append_data_from_string("_references", '{"name": "main", "reference": "ACGT..."}')
+# 1. Register references for any sequence columns.
+db.register_reference("main", "ACGT...", "nucleotide_sequence")
 
 # 2. Create the table. `primary_key` (first column) is the string primary key.
 db.create_table("sequences", [
@@ -118,7 +120,7 @@ print(len(matching))                       # number of matching rows
 
 ### Inspecting the database
 
-**`get_tables()`** → `pyarrow.Table` with a single `table_name` column listing all tables. Internal built-in tables (whose name starts with an underscore, such as `_references`) are omitted.
+**`get_tables()`** → `pyarrow.Table` with a single `table_name` column listing all tables, including the built-in `reference_genomes` table. (Internal tables whose name starts with an underscore are omitted.)
 **`get_nucleotide_reference_sequence(table_name, sequence_name)`** → `str`.
 **`get_amino_acid_reference_sequence(table_name, sequence_name)`** → `str`.
 **`print_all_data(table_name)`** — prints all rows of a table to stdout (debugging aid).

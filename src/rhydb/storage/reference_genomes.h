@@ -21,15 +21,7 @@ struct ReferenceGenomes {
       const std::vector<std::pair<std::string, std::string>>& aa_sequences_
    );
 
-   void writeToFile(const std::filesystem::path& reference_genomes_path) const;
-
    static ReferenceGenomes readFromFile(const std::filesystem::path& reference_genomes_path);
-
-   template <typename SymbolType>
-   [[nodiscard]] std::vector<std::string> getSequenceNames() const;
-
-   template <typename SymbolType>
-   std::vector<std::vector<typename SymbolType::Symbol>> getReferenceSequences() const;
 
    template <typename SymbolType>
    static std::vector<typename SymbolType::Symbol> stringToVector(const std::string& string) {
@@ -50,18 +42,6 @@ struct ReferenceGenomes {
          sequence_vector.push_back(*symbol);
       }
       return sequence_vector;
-   }
-
-   template <typename SymbolType>
-   static std::string vectorToString(const std::vector<typename SymbolType::Symbol>& vector) {
-      std::string sequence_string;
-      sequence_string.reserve(vector.size());
-
-      for (const typename SymbolType::Symbol symbol : vector) {
-         auto character = SymbolType::symbolToChar(symbol);
-         sequence_string += character;
-      }
-      return sequence_string;
    }
 };
 
