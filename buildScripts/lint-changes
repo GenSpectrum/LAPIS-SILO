@@ -40,15 +40,15 @@ docker run --rm \
     for file in $files; do
       echo "Considering to lint: $file"
       if [[ $file == src/*.test.cpp ]]; then
-        targets+=(--target "CMakeFiles/silo_test.dir/${file}.o")
+        targets+=(--target "CMakeFiles/rhydb_test.dir/${file}.o")
       elif [[ $file == src/*.cpp ]]; then
-        targets+=(--target "CMakeFiles/silolib.dir/${file}.o")
+        targets+=(--target "CMakeFiles/rhydblib.dir/${file}.o")
       elif [[ $file == app/*.test.cpp ]]; then
-        targets+=(--target "app/CMakeFiles/silo_app_test.dir/${file#app/}.o")
+        targets+=(--target "app/CMakeFiles/rhydb_app_test.dir/${file#app/}.o")
       elif [[ $file == app/src/main.cpp ]]; then
         targets+=(--target "app/CMakeFiles/rhydb.dir/${file#app/}.o")
       elif [[ $file == app/*.cpp ]]; then
-        targets+=(--target "app/CMakeFiles/silo_app.dir/${file#app/}.o")
+        targets+=(--target "app/CMakeFiles/rhydb_app.dir/${file#app/}.o")
       fi
     done
     echo "Collected targets: ${targets[@]}"

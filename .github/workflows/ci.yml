@@ -231,10 +231,10 @@ jobs:
       - name: Run unit tests
         run: |
           docker run \
-            --entrypoint "./silo_test" \
+            --entrypoint "./rhydb_test" \
             builder
           docker run \
-            --entrypoint "./silo_app_test" \
+            --entrypoint "./rhydb_app_test" \
             builder
 
       - name: Build and push production image
@@ -396,15 +396,15 @@ jobs:
       - name: Start Docker Container and preprocess data
         run: docker compose -f endToEndTests/docker-compose-for-tests-preprocessing-from-ndjson.yml up
         env:
-          SILO_IMAGE: ${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64
+          RHYDB_IMAGE: ${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64
 
       - name: Start Docker Container and run api
         run: docker compose -f endToEndTests/docker-compose-for-tests-api.yml up -d --wait
         env:
-          SILO_IMAGE: ${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64
+          RHYDB_IMAGE: ${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64
 
       - name: Run Tests
-        run: cd endToEndTests && SILO_URL=localhost:8080 npm run test
+        run: cd endToEndTests && RHYDB_URL=localhost:8080 npm run test
 
   linterChanges:
     name: Build/Run linter on changed files

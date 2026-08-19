@@ -118,9 +118,9 @@ An example app is available in `./example`. Any static web server can be used as
 Import and initialize the module:
 
 ```js
-import createSiloModule from "./rhydb_wasm.js";
+import createRhydbModule from "./rhydb_wasm.js";
 
-const silo = await createSiloModule();
+const silo = await createRhydbModule();
 ```
 
 This assumes `rhydb_wasm.js` and `rhydb_wasm.wasm` are served from the same URL directory. If a web app serves them from different locations, pass Emscripten's `locateFile` option to tell the loader where to fetch `rhydb_wasm.wasm`.

@@ -1,6 +1,6 @@
 services:
   silo:
-    image: ${SILO_IMAGE}
+    image: ${RHYDB_IMAGE}
     volumes:
       - ../testBaseData/exampleDataset:/preprocessing/input
       - ../testBaseData/output:/preprocessing/output

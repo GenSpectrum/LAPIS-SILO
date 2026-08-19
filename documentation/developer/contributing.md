@@ -130,7 +130,7 @@ Before committing, run `make ci` to execute the formatter and all tests (unit an
 
 For testing, we use the framework [gtest](http://google.github.io/googletest/)
 and [gmock](http://google.github.io/googletest/gmock_cook_book.html) for mocking. Tests are built using the same Makefile
-as the production code: `make build/Debug/silo_test` / `make build/Release/silo_test`.
+as the production code: `make build/Debug/rhydb_test` / `make build/Release/rhydb_test`.
 
 We use the convention, that each tested source file has its own test file, ending with `*.test.cpp`. The test file is
 placed in the same folder as the source file. If the function under test is described in a header file, the test file is
@@ -139,7 +139,7 @@ located in the corresponding source folder.
 To run all tests, run
 
 ```shell
-build/Release/silo_test
+build/Release/rhydb_test
 ```
 
 For linting we use clang-tidy. The config is stored in `.clang-tidy`.
@@ -152,14 +152,14 @@ building with clang-tidy under alpine was not possible yet. Should be changed in
 ### Functional End-To-End Tests
 
 End-to-end tests are located in `/endToEndTests`. Those tests are used to verify the overall functionality of the RhyDB
-queries. To execute the tests on a `SILO_IMAGE`:
+queries. To execute the tests on a `RHYDB_IMAGE`:
 
 - `cd endToEndTests`
-- `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing-from-ndjson.yml up`
-- `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d --wait`
+- `RHYDB_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing-from-ndjson.yml up`
+- `RHYDB_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d --wait`
 - `npm install`
-- `SILO_URL=localhost:8080 npm run test`
-- `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml down`
+- `RHYDB_URL=localhost:8080 npm run test`
+- `RHYDB_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml down`
 
 ## Local Debugging
 

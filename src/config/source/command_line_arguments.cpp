@@ -19,9 +19,9 @@ std::string CommandLineArguments::configKeyPathToString(const ConfigKeyPath& key
 
 AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::string& option) {
    if (option.size() < 3 || !option.starts_with("--")) {
-      throw rhydb::config::ConfigException(fmt::format(
+      throw ConfigException(fmt::format(
          "the provided option '{}' is not a valid command line option"
-         " as silo currently only accepts long-form options starting with '--'",
+         " as RhyDB currently only accepts long-form options starting with '--'",
          option
       ));
    }
@@ -31,7 +31,7 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::st
    boost::split(delimited_strings, trimmed, boost::is_any_of("-"));
 
    if (std::ranges::any_of(delimited_strings, [](const auto& str) { return str.empty(); })) {
-      throw rhydb::config::ConfigException(fmt::format(
+      throw ConfigException(fmt::format(
          "the provided option '{}' is not a valid command line option"
          " because it contains an empty string segment between '-'",
          option
@@ -40,7 +40,7 @@ AmbiguousConfigKeyPath CommandLineArguments::stringToConfigKeyPath(const std::st
 
    auto result = AmbiguousConfigKeyPath::tryFrom(std::move(delimited_strings));
    if (result == std::nullopt) {
-      throw rhydb::config::ConfigException(fmt::format(
+      throw ConfigException(fmt::format(
          "the provided option '{}' is not a valid command line option. The string after -- should "
          "be '-' delimited and lower-case",
          option

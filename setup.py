@@ -73,7 +73,7 @@ class build_ext(_build_ext):
         config_name = self.build_type.capitalize()
 
         # Reuse the existing cmake build directory (populated by `make dependencies`)
-        # so that silolib is not recompiled for each Python version
+        # so that rhydblib is not recompiled for each Python version
         build_dir = pjoin(source, "build", config_name)
 
         if not os.path.isdir(build_dir):
@@ -151,8 +151,7 @@ setup(
     package_data={
         "rhydb": [
             "*.so", "*.pyd", # Compiled extensions
-            "*.pxd", "*.pyx", # Cython source headers
-            "libsilolib.so" # Core C++ library
+            "*.pxd", "*.pyx" # Cython source headers
         ],
     },
     

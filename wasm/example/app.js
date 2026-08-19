@@ -1,4 +1,4 @@
-import createSiloModule from "../dist/rhydb_wasm.js";
+import createRhydbModule from "../dist/rhydb_wasm.js";
 
 const $ = (selector) => document.querySelector(selector);
 const logEl = $("#log");
@@ -18,12 +18,12 @@ function log(message) {
     logEl.textContent += `${message}\n`;
 }
 
-function getSiloModule() {
+function getRhydbModule() {
     if (!modulePromise) {
         if (!crossOriginIsolated) {
             log("Warning: this page is not cross-origin isolated. Pthread-enabled WASM may not start.");
         }
-        modulePromise = createSiloModule({
+        modulePromise = createRhydbModule({
             print: (message) => log(message),
             printErr: (message) => log(`stderr: ${message}`),
         });
@@ -40,7 +40,7 @@ async function preprocessAndDownloadState() {
     }
 
     await withDisabled(preprocessButton, async () => {
-        const module = await getSiloModule();
+        const module = await getRhydbModule();
         disposeCurrentHandle(module);
 
         removeTreeIfExists(module, "/example-input");
@@ -74,7 +74,7 @@ async function loadProcessedState() {
     }
 
     await withDisabled(loadStateButton, async () => {
-        const module = await getSiloModule();
+        const module = await getRhydbModule();
         disposeCurrentHandle(module);
 
         removeTreeIfExists(module, "/loaded-state");
@@ -99,7 +99,7 @@ async function runQuery() {
     }
 
     await withDisabled(runQueryButton, async () => {
-        const module = await getSiloModule();
+        const module = await getRhydbModule();
         resultEl.textContent = module.query(currentHandle, query);
     });
 }
