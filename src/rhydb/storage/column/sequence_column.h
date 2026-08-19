@@ -77,6 +77,7 @@ class SequenceColumn {
    using Buffer = std::vector<BufferedSequence>;
 
    static constexpr schema::ColumnType TYPE = SymbolType::COLUMN_TYPE;
+   static constexpr schema::ValueType type() { return SymbolType::VALUE_TYPE; }
    using value_type = void;
 
   private:

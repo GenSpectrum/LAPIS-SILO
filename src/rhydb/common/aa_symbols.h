@@ -52,6 +52,7 @@ class AminoAcid {
    };
 
    static constexpr schema::ColumnType COLUMN_TYPE = schema::ColumnType::AMINO_ACID_SEQUENCE;
+   static constexpr schema::ValueType VALUE_TYPE = schema::ValueType::AMINO_ACID_SEQUENCE;
    using Column = storage::column::SequenceColumn<AminoAcid>;
 
    static constexpr uint32_t COUNT = 28;

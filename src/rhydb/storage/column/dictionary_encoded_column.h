@@ -71,6 +71,7 @@ class DictionaryEncodedColumn {
    using Buffer = std::vector<std::optional<std::string>>;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::DICTIONARY_ENCODED;
+   static constexpr schema::ValueType type() { return schema::ValueType::STRING; }
    using value_type = std::string_view;
 
    Metadata* metadata;

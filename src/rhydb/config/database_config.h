@@ -13,9 +13,7 @@
 
 namespace rhydb::config {
 
-enum class ValueType : uint8_t { STRING, DATE, BOOL, INT32, INT64, FLOAT };
-
-ValueType toDatabaseValueType(std::string_view type);
+schema::ValueType toDatabaseValueType(std::string_view type);
 
 enum class LineageIndexType : uint8_t { COLUMN_METADATA, TABLE, BOTH };
 
@@ -26,7 +24,7 @@ std::string_view lineageIndexTypeToString(LineageIndexType type);
 class DatabaseMetadata {
   public:
    std::string name;
-   ValueType type;
+   schema::ValueType type;
    bool generate_index;
    std::optional<std::string> generate_lineage_index;
    LineageIndexType lineage_index_type = LineageIndexType::COLUMN_METADATA;
@@ -124,16 +122,6 @@ class [[maybe_unused]] fmt::formatter<rhydb::config::DatabaseMetadata> {
    static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
    [[maybe_unused]] static auto format(
       const rhydb::config::DatabaseMetadata& database_metadata,
-      format_context& ctx
-   ) -> decltype(ctx.out());
-};
-
-template <>
-class [[maybe_unused]] fmt::formatter<rhydb::config::ValueType> {
-  public:
-   static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-   [[maybe_unused]] static auto format(
-      const rhydb::config::ValueType& value_type,
       format_context& ctx
    ) -> decltype(ctx.out());
 };
