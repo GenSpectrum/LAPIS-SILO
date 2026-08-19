@@ -158,7 +158,7 @@ queries. To execute the tests on a `SILO_IMAGE`:
 - `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing-from-ndjson.yml up`
 - `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d --wait`
 - `npm install`
-- `SILO_URL=localhost:8080 npm run test`
+- `RHYDB_URL=localhost:8080 npm run test`
 - `SILO_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml down`
 
 ## Local Debugging

@@ -1,15 +1,15 @@
-## While this script is running, you will see a file `running_silo.flag` created in the current directory.
-## It will contain the PID of the running silo API server.
+## While this script is running, you will see a file `running_rhydb.flag` created in the current directory.
+## It will contain the PID of the running rhydb API server.
 ## If something fails during execution, it might be necessary to kill the daemon using `make clean-api`.
-SILO_DEBUG_EXECUTABLE=./build/Debug/rhydb
-SILO_DEBUG_TEST_EXECUTABLE=./build/Debug/rhydb_test
-SILO_DEBUG_APP_TEST_EXECUTABLE=./build/Debug/rhydb_app_test
-SILO_RELEASE_EXECUTABLE=./build/Release/rhydb
-SILO_RELEASE_TEST_EXECUTABLE=./build/Release/rhydb_test
-SILO_RELEASE_APP_TEST_EXECUTABLE=./build/Release/rhydb_app_test
-SILO_WASM_EXECUTABLE=./build/wasm/rhydb_wasm.js
-SILO_WASM_DIST_DIR=wasm/dist
-RUNNING_SILO_FLAG=running_silo.flag
+RHYDB_DEBUG_EXECUTABLE=./build/Debug/rhydb
+RHYDB_DEBUG_TEST_EXECUTABLE=./build/Debug/rhydb_test
+RHYDB_DEBUG_APP_TEST_EXECUTABLE=./build/Debug/rhydb_app_test
+RHYDB_RELEASE_EXECUTABLE=./build/Release/rhydb
+RHYDB_RELEASE_TEST_EXECUTABLE=./build/Release/rhydb_test
+RHYDB_RELEASE_APP_TEST_EXECUTABLE=./build/Release/rhydb_app_test
+RHYDB_WASM_EXECUTABLE=./build/wasm/rhydb_wasm.js
+RHYDB_WASM_DIST_DIR=wasm/dist
+RUNNING_RHYDB_FLAG=running_rhydb.flag
 DEPENDENCIES_FLAG=dependencies
 WASM_DEPENDENCIES_FLAG=build/wasm/dependencies
 CLANG_FORMAT=$(shell command -v clang-format-19 2>/dev/null || command -v clang-format 2>/dev/null || echo clang-format)
@@ -55,22 +55,22 @@ build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
 build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) CMakeLists.txt wasm/CMakeLists.txt
 	emcmake cmake -G Ninja -S . -B build/wasm -D CMAKE_BUILD_TYPE=Release -D BUILD_UNIT_TESTS=OFF
 
-${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
+${RHYDB_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb
 
-${SILO_DEBUG_TEST_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
+${RHYDB_DEBUG_TEST_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_test
 
-${SILO_DEBUG_APP_TEST_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
+${RHYDB_DEBUG_APP_TEST_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_app_test
 
-${SILO_RELEASE_EXECUTABLE}: build/Release/build.ninja $(shell find src app/src -type f)
+${RHYDB_RELEASE_EXECUTABLE}: build/Release/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb
 
-${SILO_RELEASE_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
+${RHYDB_RELEASE_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
 	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_test
 
-${SILO_RELEASE_APP_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src app/src -type f)
+${RHYDB_RELEASE_APP_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_app_test
 
 GENERATE_TEST_DATA_EXECUTABLE=./build/Release/performance/generate_test_data
@@ -100,50 +100,50 @@ benchmarks: ${PERFORMANCE_TEST_DATA_SENTINEL}
 # Only the compiled sources trigger a rebuild; wasm/CMakeLists.txt is already a
 # prerequisite of build/wasm/build.ninja. Non-source assets (wasm/example,
 # wasm/README.md, ...) intentionally do not force a rebuild of the binary.
-${SILO_WASM_EXECUTABLE}: build/wasm/build.ninja $(shell find src wasm/src -type f)
+${RHYDB_WASM_EXECUTABLE}: build/wasm/build.ninja $(shell find src wasm/src -type f)
 	# Emscripten's --emit-tsd (see wasm/CMakeLists.txt) invokes `tsc`; make the
 	# repo-local TypeScript (devDependency) discoverable on PATH for the link step.
 	PATH="$(CURDIR)/node_modules/.bin:$$PATH" $(CMAKE) --build build/wasm --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_wasm
 
 .PHONY: wasm
-wasm: ${SILO_WASM_EXECUTABLE}
-	mkdir -p ${SILO_WASM_DIST_DIR}
-	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm build/wasm/rhydb_wasm.d.ts ${SILO_WASM_DIST_DIR}/
+wasm: ${RHYDB_WASM_EXECUTABLE}
+	mkdir -p ${RHYDB_WASM_DIST_DIR}
+	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm build/wasm/rhydb_wasm.d.ts ${RHYDB_WASM_DIST_DIR}/
 
 .PHONY: wasm-test
 wasm-test: wasm
 	node --test wasm/test/*.test.mts
 
 .PHONY: output
-output: ${SILO_DEBUG_EXECUTABLE}
+output: ${RHYDB_DEBUG_EXECUTABLE}
 	export SPDLOG_LEVEL=debug; \
-	${SILO_DEBUG_EXECUTABLE} preprocessing --database-config database_config.yaml --preprocessing-config testBaseData/test_preprocessing_config.yaml
+	${RHYDB_DEBUG_EXECUTABLE} preprocessing --database-config database_config.yaml --preprocessing-config testBaseData/test_preprocessing_config.yaml
 
-${RUNNING_SILO_FLAG}: ${SILO_DEBUG_EXECUTABLE} output
+${RUNNING_RHYDB_FLAG}: ${RHYDB_DEBUG_EXECUTABLE} output
 	@{ \
 		if lsof -i :8093 > /dev/null 2>&1; then \
-			echo "Error: Port 8093 is already in use. Another SILO instance might already be running."; \
+			echo "Error: Port 8093 is already in use. Another rhydb instance might already be running."; \
 			exit 1; \
 		fi; \
-		${SILO_DEBUG_EXECUTABLE} api --api-port 8093 & \
+		${RHYDB_DEBUG_EXECUTABLE} api --api-port 8093 & \
 		pid=$$!; \
-		echo "Waiting for silo (PID $$pid) to be ready..."; \
+		echo "Waiting for rhydb (PID $$pid) to be ready..."; \
 		until curl -s -o /dev/null -w "%{http_code}" http://localhost:8093/info | grep -q "200"; do \
 			sleep 0.2; \
 		done; \
-		echo $$pid > ${RUNNING_SILO_FLAG}; \
-		echo "Silo is running with PID $$pid"; \
+		echo $$pid > ${RUNNING_RHYDB_FLAG}; \
+		echo "rhydb is running with PID $$pid"; \
 	}
 
 .PHONY: e2e
-e2e: ${RUNNING_SILO_FLAG}
+e2e: ${RUNNING_RHYDB_FLAG}
 	trap 'make clean-api' EXIT; \
-	(cd endToEndTests && SILO_URL=localhost:8093 npm run test)
+	(cd endToEndTests && RHYDB_URL=localhost:8093 npm run test)
 
 .PHONY: test
-test: ${SILO_DEBUG_TEST_EXECUTABLE} ${SILO_DEBUG_APP_TEST_EXECUTABLE}
-	${SILO_DEBUG_TEST_EXECUTABLE} --gtest_filter='*' --gtest_color=no
-	${SILO_DEBUG_APP_TEST_EXECUTABLE} --gtest_filter='*' --gtest_color=no
+test: ${RHYDB_DEBUG_TEST_EXECUTABLE} ${RHYDB_DEBUG_APP_TEST_EXECUTABLE}
+	${RHYDB_DEBUG_TEST_EXECUTABLE} --gtest_filter='*' --gtest_color=no
+	${RHYDB_DEBUG_APP_TEST_EXECUTABLE} --gtest_filter='*' --gtest_color=no
 
 .PHONY: python-tests
 python-tests: ${DEPENDENCIES_FLAG}
@@ -156,7 +156,7 @@ python-tests: ${DEPENDENCIES_FLAG}
 PYTHON_VERSIONS ?= 3.11 3.12 3.13 3.14
 
 .PHONY: build-wheels
-build-wheels: ${SILO_RELEASE_EXECUTABLE}
+build-wheels: ${RHYDB_RELEASE_EXECUTABLE}
 	mkdir -p wheelhouse
 	@for pyversion in $(PYTHON_VERSIONS); do \
   		echo; \
@@ -216,14 +216,14 @@ lint-all:
 
 .PHONY: clean-api
 clean-api:
-	@if [ -f ${RUNNING_SILO_FLAG} ]; then \
-		kill $$(cat ${RUNNING_SILO_FLAG}) || true; \
-		rm -f ${RUNNING_SILO_FLAG}; \
+	@if [ -f ${RUNNING_RHYDB_FLAG} ]; then \
+		kill $$(cat ${RUNNING_RHYDB_FLAG}) || true; \
+		rm -f ${RUNNING_RHYDB_FLAG}; \
 	fi
 
 .PHONY: clean
 clean: clean-api
-	rm -rf output logs ${DEPENDENCIES_FLAG} ${SRC_FILE_LIST} ${SILO_WASM_DIST_DIR}
+	rm -rf output logs ${DEPENDENCIES_FLAG} ${SRC_FILE_LIST} ${RHYDB_WASM_DIST_DIR}
 
 .PHONY: full-clean
 full-clean: clean

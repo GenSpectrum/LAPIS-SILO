@@ -404,7 +404,7 @@ jobs:
           SILO_IMAGE: ${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64
 
       - name: Run Tests
-        run: cd endToEndTests && SILO_URL=localhost:8080 npm run test
+        run: cd endToEndTests && RHYDB_URL=localhost:8080 npm run test
 
   linterChanges:
     name: Build/Run linter on changed files

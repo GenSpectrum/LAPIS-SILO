@@ -151,8 +151,7 @@ setup(
     package_data={
         "rhydb": [
             "*.so", "*.pyd", # Compiled extensions
-            "*.pxd", "*.pyx", # Cython source headers
-            "librhydblib.so" # Core C++ library
+            "*.pxd", "*.pyx" # Cython source headers
         ],
     },
     
