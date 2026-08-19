@@ -1,8 +1,8 @@
 {
-  "name": "silo",
+  "name": "rhydb",
   "private": true,
   "version": "0.0.1",
-  "description": "Utility for the SILO repository",
+  "description": "Utility for the RhyDB repository",
   "type": "module",
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",

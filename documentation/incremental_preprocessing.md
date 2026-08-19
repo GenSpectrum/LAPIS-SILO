@@ -27,7 +27,7 @@ The path to an NDJSON file containing the records to append. Compressed files (`
 Environment variable: `SILO_APPEND_FILE`. YAML key: `appendFile`.
 
 **`--silo-data-source <path>`** (optional)
-A directory containing a valid silo database state to use as the base for appending. If omitted, `rhydb append` automatically selects the most recent compatible state from the silo-directory. An error is raised if no valid state can be found.
+A directory containing a valid RhyDB database state to use as the base for appending. If omitted, `rhydb append` automatically selects the most recent compatible state from the silo-directory. An error is raised if no valid state can be found.
 Environment variable: `SILO_SILO_DATA_SOURCE`. YAML key: `siloDataSource`.
 
 ## Input Format
