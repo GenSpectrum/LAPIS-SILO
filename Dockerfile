@@ -6,11 +6,11 @@ COPY . ./
 
 RUN  \
     export CMAKE_BUILD_PARALLEL_LEVEL=4; \
-    make build/Release/silo_test \
-    && make build/Release/silo_app_test \
+    make build/Release/rhydb_test \
+    && make build/Release/rhydb_app_test \
     && make build/Release/rhydb \
-    && cp build/Release/silo_test . \
-    && cp build/Release/silo_app_test . \
+    && cp build/Release/rhydb_test . \
+    && cp build/Release/rhydb_app_test . \
     && cp build/Release/rhydb .
 
 

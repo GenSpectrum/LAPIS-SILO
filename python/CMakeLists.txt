@@ -46,10 +46,10 @@ foreach(module ${CYTHON_MODULES})
 
     # Link against the portable core directly: the bindings only touch
     # rhydb::Database (preprocessing, append, query, save/load), all of which
-    # live in silolib. They need none of the Poco HTTP API layer, so linking
-    # silolib keeps Poco out of the Python extension. Linking the OBJECT
+    # live in rhydblib. They need none of the Poco HTTP API layer, so linking
+    # rhydblib keeps Poco out of the Python extension. Linking the OBJECT
     # library directly pulls in its objects and usage requirements.
-    target_link_libraries(${module} PRIVATE silolib)
+    target_link_libraries(${module} PRIVATE rhydblib)
 
     # Set output name and location
     set_target_properties(${module} PROPERTIES

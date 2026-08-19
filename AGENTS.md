@@ -22,9 +22,9 @@ make wasm                          # Build rhydb_wasm.js/.wasm into wasm/dist (r
 make wasm-test                     # Build wasm and run wasm/test
 
 # Run specific tests
-build/Debug/silo_test --gtest_filter='TestSuite*'         # By suite
-build/Debug/silo_test --gtest_filter='TestSuite.testCase'  # By case
-build/Debug/silo_test --gtest_filter='*Pattern*'           # By pattern
+build/Debug/rhydb_test --gtest_filter='TestSuite*'         # By suite
+build/Debug/rhydb_test --gtest_filter='TestSuite.testCase'  # By case
+build/Debug/rhydb_test --gtest_filter='*Pattern*'           # By pattern
 
 # Format & CI
 make format                        # Format C++ code (requires clang-format)

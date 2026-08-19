@@ -2,11 +2,11 @@
 ## It will contain the PID of the running silo API server.
 ## If something fails during execution, it might be necessary to kill the daemon using `make clean-api`.
 SILO_DEBUG_EXECUTABLE=./build/Debug/rhydb
-SILO_DEBUG_TEST_EXECUTABLE=./build/Debug/silo_test
-SILO_DEBUG_APP_TEST_EXECUTABLE=./build/Debug/silo_app_test
+SILO_DEBUG_TEST_EXECUTABLE=./build/Debug/rhydb_test
+SILO_DEBUG_APP_TEST_EXECUTABLE=./build/Debug/rhydb_app_test
 SILO_RELEASE_EXECUTABLE=./build/Release/rhydb
-SILO_RELEASE_TEST_EXECUTABLE=./build/Release/silo_test
-SILO_RELEASE_APP_TEST_EXECUTABLE=./build/Release/silo_app_test
+SILO_RELEASE_TEST_EXECUTABLE=./build/Release/rhydb_test
+SILO_RELEASE_APP_TEST_EXECUTABLE=./build/Release/rhydb_app_test
 SILO_WASM_EXECUTABLE=./build/wasm/rhydb_wasm.js
 SILO_WASM_DIST_DIR=wasm/dist
 RUNNING_SILO_FLAG=running_silo.flag
@@ -59,19 +59,19 @@ ${SILO_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb
 
 ${SILO_DEBUG_TEST_EXECUTABLE}: build/Debug/build.ninja $(shell find src -type f)
-	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test
+	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_test
 
 ${SILO_DEBUG_APP_TEST_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
-	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_app_test
+	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_app_test
 
 ${SILO_RELEASE_EXECUTABLE}: build/Release/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb
 
 ${SILO_RELEASE_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src -type f)
-	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_test
+	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_test
 
 ${SILO_RELEASE_APP_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src app/src -type f)
-	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target silo_app_test
+	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_app_test
 
 GENERATE_TEST_DATA_EXECUTABLE=./build/Release/performance/generate_test_data
 

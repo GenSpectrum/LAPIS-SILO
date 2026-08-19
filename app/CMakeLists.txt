@@ -1,10 +1,10 @@
 # The native RhyDB command-line application: the `rhydb` executable and the
-# Poco-based HTTP API layer it serves. This is a consumer of the portable silolib
+# Poco-based HTTP API layer it serves. This is a consumer of the portable rhydblib
 # and built by the root CMakeLists before this subproject is added
 #
 # app/src is added as an include root so the app's own `#include "..."` headers
-# resolve here while silolib headers still resolve against silolib's src/ include
-# root. The app layer lives in the flat `silo_app` namespace, so its sources sit
+# resolve here while rhydblib headers still resolve against rhydblib's src/ include
+# root. The app layer lives in the flat `rhydb_app` namespace, so its sources sit
 # directly in app/src rather than in a namespace-mirroring subdirectory.
 
 # ---------------------------------------------------------------------------
@@ -30,12 +30,12 @@ endif()
 # Sources
 # ---------------------------------------------------------------------------
 
-file(GLOB_RECURSE SILO_APP_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-file(GLOB_RECURSE SILO_APP_TESTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.test.cpp")
+file(GLOB_RECURSE RHYDB_APP_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+file(GLOB_RECURSE RHYDB_APP_TESTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.test.cpp")
 
-set(SILO_APP_MAIN "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+set(RHYDB_APP_MAIN "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
-list(REMOVE_ITEM SILO_APP_SOURCES ${SILO_APP_TESTS} ${SILO_APP_MAIN})
+list(REMOVE_ITEM RHYDB_APP_SOURCES ${RHYDB_APP_TESTS} ${RHYDB_APP_MAIN})
 
 # ---------------------------------------------------------------------------
 # Targets
@@ -43,26 +43,26 @@ list(REMOVE_ITEM SILO_APP_SOURCES ${SILO_APP_TESTS} ${SILO_APP_MAIN})
 
 # The HTTP API layer on top of the portable core. This is the only place Poco is
 # linked, so it stays a leaf dependency of the HTTP API code.
-add_library(silo_app OBJECT ${SILO_APP_SOURCES})
-set_target_properties(silo_app PROPERTIES POSITION_INDEPENDENT_CODE ON)
-# PUBLIC so consumers (the rhydb executable, silo_app_test) also see the app/src
+add_library(rhydb_app OBJECT ${RHYDB_APP_SOURCES})
+set_target_properties(rhydb_app PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# PUBLIC so consumers (the rhydb executable, rhydb_app_test) also see the app/src
 # include root and can resolve the app layer's `#include "..."` headers.
-target_include_directories(silo_app PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_include_directories(rhydb_app PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(
-        silo_app
+        rhydb_app
         PUBLIC
-        silolib
+        rhydblib
         Poco::Net
         Poco::Util
         Poco::JSON
 )
 # Object files do not propagate transitively through a chain of OBJECT
-# libraries, so linking silo_app alone would not pull in silolib's objects.
+# libraries, so linking rhydb_app alone would not pull in rhydblib's objects.
 # Carry the core's objects along as an interface source so a consumer that links
-# silo_app gets the whole native engine (core + layer) from one edge.
-target_sources(silo_app INTERFACE $<TARGET_OBJECTS:silolib>)
+# rhydb_app gets the whole native engine (core + layer) from one edge.
+target_sources(rhydb_app INTERFACE $<TARGET_OBJECTS:rhydblib>)
 
-add_executable(rhydb ${SILO_APP_MAIN})
+add_executable(rhydb ${RHYDB_APP_MAIN})
 # Keep the binary at build/<cfg>/rhydb (not build/<cfg>/cli/rhydb) so tooling,
 # Docker, and the Makefile find it at the top-level build directory.
 set_target_properties(rhydb PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
@@ -70,14 +70,14 @@ target_link_libraries(
         rhydb
         PUBLIC
         ${MIMALLOC_LIB} # this should be first
-        silo_app
+        rhydb_app
 )
 
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 # The subproject owns its unit tests (the API-layer tests), just as the core
-# owns silo_test and wasm/ owns its node test.
+# owns rhydb_test and wasm/ owns its node test.
 
 find_package(GTest REQUIRED)
 if (NOT GTest_LIBRARIES)
@@ -87,7 +87,7 @@ endif ()
 # GTest is built without its own main (gtest/*:no_main), so both test binaries
 # share the harness entry point in src/main.test.cpp (repo-root cwd + arrow
 # init + RUN_ALL_TESTS). Each binary compiles it to run only its own tests.
-add_executable(silo_app_test ${SILO_APP_TESTS} "${CMAKE_SOURCE_DIR}/src/main.test.cpp")
-set_target_properties(silo_app_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-target_include_directories(silo_app_test PRIVATE ${GTest_INCLUDE_DIRS})
-target_link_libraries(silo_app_test PUBLIC ${GTest_LIBRARIES} silo_app)
+add_executable(rhydb_app_test ${RHYDB_APP_TESTS} "${CMAKE_SOURCE_DIR}/src/main.test.cpp")
+set_target_properties(rhydb_app_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+target_include_directories(rhydb_app_test PRIVATE ${GTest_INCLUDE_DIRS})
+target_link_libraries(rhydb_app_test PUBLIC ${GTest_LIBRARIES} rhydb_app)

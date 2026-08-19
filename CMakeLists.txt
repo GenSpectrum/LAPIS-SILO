@@ -33,7 +33,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ---------------------------------------------------------------------------
-# silolib dependencies
+# rhydblib dependencies
 # ---------------------------------------------------------------------------
 
 find_package(Arrow REQUIRED COMPONENTS Acero)
@@ -55,12 +55,12 @@ if(NOT EMSCRIPTEN)
 endif()
 
 # ---------------------------------------------------------------------------
-# silolib
+# rhydblib
 # ---------------------------------------------------------------------------
 
-add_library(silolib_deps INTERFACE)
+add_library(rhydblib_deps INTERFACE)
 
-target_link_libraries(silolib_deps INTERFACE
+target_link_libraries(rhydblib_deps INTERFACE
         Arrow::arrow_static
         ArrowAcero::arrow_acero_static
         ${Boost_LIBRARIES}
@@ -75,31 +75,31 @@ target_link_libraries(silolib_deps INTERFACE
         re2::re2
 )
 
-target_include_directories(silolib_deps INTERFACE "src")
+target_include_directories(rhydblib_deps INTERFACE "src")
 
-target_compile_definitions(silolib_deps INTERFACE
+target_compile_definitions(rhydblib_deps INTERFACE
         SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE
         SIMDJSON_EXCEPTIONS=0
 )
 
 # WebAssembly-only usage requirements. These are INTERFACE so they compile into
-# the silolib objects too: NO_EVOBENCH disables the evobench probes (the browser
-# build does not profile), and -fexceptions must reach every silolib object (they
-# throw). -pthread keeps SILO objects ABI-consistent with the Emscripten
+# the rhydblib objects too: NO_EVOBENCH disables the evobench probes (the browser
+# build does not profile), and -fexceptions must reach every rhydblib object (they
+# throw). -pthread keeps RhyDB objects ABI-consistent with the Emscripten
 # dependency builds. The build variant is detected via the compiler-defined
 # __EMSCRIPTEN__ macro.
 if(EMSCRIPTEN)
-    target_compile_definitions(silolib_deps INTERFACE NO_EVOBENCH)
-    target_compile_options(silolib_deps INTERFACE -fexceptions -pthread)
+    target_compile_definitions(rhydblib_deps INTERFACE NO_EVOBENCH)
+    target_compile_options(rhydblib_deps INTERFACE -fexceptions -pthread)
 endif()
 
-file(GLOB_RECURSE SILOLIB_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-file(GLOB_RECURSE SILO_TEST_SOURCES CONFIGURE_DEPENDS "src/*.test.cpp")
-list(REMOVE_ITEM SILOLIB_SOURCES ${SILO_TEST_SOURCES})
+file(GLOB_RECURSE RHYDBLIB_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE RHYDB_TEST_SOURCES CONFIGURE_DEPENDS "src/*.test.cpp")
+list(REMOVE_ITEM RHYDBLIB_SOURCES ${RHYDB_TEST_SOURCES})
 
-add_library(silolib OBJECT ${SILOLIB_SOURCES})
-set_target_properties(silolib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(silolib PUBLIC silolib_deps)
+add_library(rhydblib OBJECT ${RHYDBLIB_SOURCES})
+set_target_properties(rhydblib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(rhydblib PUBLIC rhydblib_deps)
 
 # ---------------------------------------------------------------------------
 # Version
@@ -135,17 +135,17 @@ endif ()
 # ---------------------------------------------------------------------------
 
 # Building the unit tests is opt-in and on by default.
-option(BUILD_UNIT_TESTS "Build the SILO unit tests" ON)
+option(BUILD_UNIT_TESTS "Build the RhyDB unit tests" ON)
 if(BUILD_UNIT_TESTS)
     enable_testing()
     find_package(GTest REQUIRED)
     include_directories(${GTest_INCLUDE_DIRS})
 
-    add_executable(silo_test ${SILO_TEST_SOURCES})
+    add_executable(rhydb_test ${RHYDB_TEST_SOURCES})
     if (NOT GTest_LIBRARIES)
         set(GTest_LIBRARIES gtest gmock)
     endif ()
-    target_link_libraries(silo_test PUBLIC ${GTest_LIBRARIES} silolib)
+    target_link_libraries(rhydb_test PUBLIC ${GTest_LIBRARIES} rhydblib)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -153,11 +153,11 @@ endif()
 # ---------------------------------------------------------------------------
 
 if(EMSCRIPTEN)
-    # The browser embind module, a consumer of the shared silolib declaration.
+    # The browser embind module, a consumer of the shared rhydblib declaration.
     add_subdirectory(wasm)
 else()
     # The native command-line application (the `rhydb` executable) is a consumer
-    # of the shared silolib declaration
+    # of the shared rhydblib declaration
     add_subdirectory(app)
 
     # The performance benchmark targets

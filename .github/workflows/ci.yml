@@ -231,10 +231,10 @@ jobs:
       - name: Run unit tests
         run: |
           docker run \
-            --entrypoint "./silo_test" \
+            --entrypoint "./rhydb_test" \
             builder
           docker run \
-            --entrypoint "./silo_app_test" \
+            --entrypoint "./rhydb_app_test" \
             builder
 
       - name: Build and push production image
