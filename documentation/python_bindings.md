@@ -127,15 +127,16 @@ Assigns a single `value` to `column_name` for every row matched by `filter_expre
 `value` is a **SaneQL literal** — parsed by the same parser as queries — and must match the column's type:
 
 | Column type | `value` examples                     |
-| ----------- | ------------------------------------ |
-| int         | `"3"`, `"-1"`                         |
+|-------------| ------------------------------------ |
+| int32       | `"3"`, `"-1"`                         |
+| int64       | `"5000000000"`, `"-1"`               |
 | float       | `"3.14"`, `"0"`                       |
 | bool        | `"true"`, `"false"`                  |
 | date        | `"'2021-03-15'::date"`               |
 | string      | `"'Basel'"` &nbsp;(a quoted string literal) |
 | any of them | `"null"` &nbsp;(clears the rows)     |
 
-Scalar value columns (int, float, date, bool) and string columns (plain, indexed, and zstd-compressed) can be updated. Two kinds of string column are rejected because their auxiliary indexes have no in-place update support: columns backed by a **phylogenetic tree** (e.g. the primary key when it is a phylo field) and columns backed by a **lineage index**. Sequence columns are also rejected.
+Scalar value columns (int32, int64, float, date, bool) and string columns (plain, indexed, and zstd-compressed) can be updated. Two kinds of string column are rejected because their auxiliary indexes have no in-place update support: columns backed by a **phylogenetic tree** (e.g. the primary key when it is a phylo field) and columns backed by a **lineage index**. Sequence columns are also rejected.
 
 ```python
 db = Database("path/to/silo-dir")

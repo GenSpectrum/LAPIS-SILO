@@ -37,7 +37,8 @@ class ColumnGroupBuilder {
    std::map<std::string, column::DictionaryEncodedColumn::Builder>
       dictionary_encoded_column_builders;
    std::map<std::string, column::BoolColumn::Builder> bool_column_builders;
-   std::map<std::string, column::IntColumn::Builder> int_column_builders;
+   std::map<std::string, column::Int32Column::Builder> int32_column_builders;
+   std::map<std::string, column::Int64Column::Builder> int64_column_builders;
    std::map<std::string, column::FloatColumn::Builder> float_column_builders;
    std::map<std::string, column::Date32Column::Builder> date32_column_builders;
    std::map<std::string, column::SequenceColumn<Nucleotide>::Builder> nuc_column_builders;
@@ -90,8 +91,11 @@ template <>
 std::map<std::string, column::BoolColumn::Builder>& ColumnGroupBuilder::getColumnBuilders<
    column::BoolColumn>();
 template <>
-std::map<std::string, column::IntColumn::Builder>& ColumnGroupBuilder::getColumnBuilders<
-   column::IntColumn>();
+std::map<std::string, column::Int32Column::Builder>& ColumnGroupBuilder::getColumnBuilders<
+   column::Int32Column>();
+template <>
+std::map<std::string, column::Int64Column::Builder>& ColumnGroupBuilder::getColumnBuilders<
+   column::Int64Column>();
 template <>
 std::map<std::string, column::FloatColumn::Builder>& ColumnGroupBuilder::getColumnBuilders<
    column::FloatColumn>();

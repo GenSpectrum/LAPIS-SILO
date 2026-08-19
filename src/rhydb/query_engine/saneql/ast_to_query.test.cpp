@@ -214,8 +214,9 @@ TEST(AstToQueryMutationProfile, mutationListElementNotRecordThrows) {
 TEST(AstToQueryConvertEqualsToFilter, unsupportedValueTypeThrows) {
    EXPECT_THAT(
       []() { (void)parseFilter("a = {1, 2}"); },
-      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("unsupported value type in equality"
-      ))
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("the value in an equality must be a literal value")
+      )
    );
 }
 

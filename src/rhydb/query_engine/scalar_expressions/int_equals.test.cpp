@@ -140,6 +140,24 @@ const QueryTestScenario NEGATED_INT_EQUALS_NULL_SCENARIO = {
    )
 };
 
+const QueryTestScenario INT_EQUALS_WITH_OVERFLOW = {
+   .name = "INT_EQUALS_WITH_OVERFLOW",
+   .query = "default.filter(int_value = 4294967295)",
+   .expected_error_message = "Cannot cast 4294967295 to int32. Value out of range"
+};
+
+const QueryTestScenario INT_COMPARISON_WITH_OVERFLOW = {
+   .name = "INT_COMPARISON_WITH_OVERFLOW",
+   .query = "default.filter(int_value >= 4294967295)",
+   .expected_error_message = "Cannot cast 4294967295 to int32. Value out of range"
+};
+
+const QueryTestScenario INT_BETWEEN_WITH_OVERFLOW = {
+   .name = "INT_BETWEEN_WITH_OVERFLOW",
+   .query = "default.filter(between(int_value, 0, 4294967295))",
+   .expected_error_message = "Cannot cast 4294967295 to int32. Value out of range"
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -149,6 +167,9 @@ QUERY_TEST(
       INT_EQUALS_VALUE_SCENARIO,
       NEGATED_INT_EQUALS_VALUE_SCENARIO,
       INT_EQUALS_NULL_SCENARIO,
-      NEGATED_INT_EQUALS_NULL_SCENARIO
+      NEGATED_INT_EQUALS_NULL_SCENARIO,
+      INT_EQUALS_WITH_OVERFLOW,
+      INT_COMPARISON_WITH_OVERFLOW,
+      INT_BETWEEN_WITH_OVERFLOW
    )
 );

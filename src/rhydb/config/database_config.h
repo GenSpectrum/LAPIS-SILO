@@ -13,7 +13,7 @@
 
 namespace rhydb::config {
 
-enum class ValueType : uint8_t { STRING, DATE, BOOL, INT, FLOAT };
+enum class ValueType : uint8_t { STRING, DATE, BOOL, INT32, INT64, FLOAT };
 
 ValueType toDatabaseValueType(std::string_view type);
 

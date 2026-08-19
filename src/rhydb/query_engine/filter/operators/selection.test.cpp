@@ -15,17 +15,17 @@ using rhydb::query_engine::filter::operators::Operator;
 using rhydb::query_engine::filter::operators::Predicate;
 using rhydb::query_engine::filter::operators::Selection;
 using rhydb::storage::column::ColumnMetadata;
-using rhydb::storage::column::IntColumn;
+using rhydb::storage::column::Int32Column;
 using rhydb::storage::column::RowLayout;
 
 namespace {
 
-std::pair<std::shared_ptr<ColumnMetadata>, IntColumn> makeTestColumn(
+std::pair<std::shared_ptr<ColumnMetadata>, Int32Column> makeTestColumn(
    const std::vector<int32_t>& values
 ) {
    auto metadata = std::make_shared<ColumnMetadata>("test");
-   IntColumn test_column{metadata.get()};
-   IntColumn::Builder builder;
+   Int32Column test_column{metadata.get()};
+   Int32Column::Builder builder;
    for (auto value : values) {
       builder.insert(value);
    }
@@ -41,7 +41,7 @@ TEST(OperatorSelection, equalsShouldReturnCorrectValues) {
    const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::EQUALS, 1),
+      std::make_unique<CompareToValueSelection<Int32Column>>(test_column, Comparator::EQUALS, 1),
       row_layout
    );
 
@@ -56,7 +56,9 @@ TEST(OperatorSelection, notEqualsShouldReturnCorrectValues) {
    const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::NOT_EQUALS, 1),
+      std::make_unique<CompareToValueSelection<Int32Column>>(
+         test_column, Comparator::NOT_EQUALS, 1
+      ),
       row_layout
    );
 
@@ -71,7 +73,7 @@ TEST(OperatorSelection, lessShouldReturnCorrectValues) {
    const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::LESS, 1),
+      std::make_unique<CompareToValueSelection<Int32Column>>(test_column, Comparator::LESS, 1),
       row_layout
    );
 
@@ -86,7 +88,7 @@ TEST(OperatorSelection, lessOrEqualsShouldReturnCorrectValues) {
    const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<IntColumn>>(
+      std::make_unique<CompareToValueSelection<Int32Column>>(
          test_column, Comparator::LESS_OR_EQUALS, 1
       ),
       row_layout
@@ -103,7 +105,7 @@ TEST(OperatorSelection, higherOrEqualsShouldReturnCorrectValues) {
    const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<IntColumn>>(
+      std::make_unique<CompareToValueSelection<Int32Column>>(
          test_column, Comparator::HIGHER_OR_EQUALS, 1
       ),
       row_layout
@@ -120,7 +122,7 @@ TEST(OperatorSelection, higherShouldReturnCorrectValues) {
    const auto row_layout = RowLayout::of(values.size());
 
    auto under_test = std::make_unique<Selection>(
-      std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::HIGHER, 1),
+      std::make_unique<CompareToValueSelection<Int32Column>>(test_column, Comparator::HIGHER, 1),
       row_layout
    );
 
@@ -135,7 +137,7 @@ TEST(OperatorSelection, correctWithNegativeNumbers) {
    const auto row_layout = RowLayout::of(values.size());
 
    const Selection under_test(
-      std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::EQUALS, -1),
+      std::make_unique<CompareToValueSelection<Int32Column>>(test_column, Comparator::EQUALS, -1),
       row_layout
    );
 
@@ -148,7 +150,7 @@ TEST(OperatorSelection, returnsCorrectTypeInfo) {
    const auto row_layout = RowLayout::of(values.size());
 
    const Selection under_test(
-      std::make_unique<CompareToValueSelection<IntColumn>>(test_column, Comparator::EQUALS, -1),
+      std::make_unique<CompareToValueSelection<Int32Column>>(test_column, Comparator::EQUALS, -1),
       row_layout
    );
 
@@ -158,7 +160,7 @@ TEST(OperatorSelection, returnsCorrectTypeInfo) {
 namespace {
 
 // A column of 100 rows holding value == row index, so global row ids map directly to bitmap bits.
-std::pair<std::shared_ptr<ColumnMetadata>, IntColumn> makeRangeTestColumn() {
+std::pair<std::shared_ptr<ColumnMetadata>, Int32Column> makeRangeTestColumn() {
    std::vector<int32_t> values;
    values.reserve(100);
    for (int32_t i = 0; i < 100; ++i) {
@@ -168,13 +170,13 @@ std::pair<std::shared_ptr<ColumnMetadata>, IntColumn> makeRangeTestColumn() {
 }
 
 // value >= 10 AND value < 50, as two separate predicates, matching rows [10, 50).
-std::vector<std::unique_ptr<Predicate>> makeRangePredicates(const IntColumn& column) {
+std::vector<std::unique_ptr<Predicate>> makeRangePredicates(const Int32Column& column) {
    std::vector<std::unique_ptr<Predicate>> predicates;
+   predicates.push_back(std::make_unique<CompareToValueSelection<Int32Column>>(
+      column, Comparator::HIGHER_OR_EQUALS, 10
+   ));
    predicates.push_back(
-      std::make_unique<CompareToValueSelection<IntColumn>>(column, Comparator::HIGHER_OR_EQUALS, 10)
-   );
-   predicates.push_back(
-      std::make_unique<CompareToValueSelection<IntColumn>>(column, Comparator::LESS, 50)
+      std::make_unique<CompareToValueSelection<Int32Column>>(column, Comparator::LESS, 50)
    );
    return predicates;
 }

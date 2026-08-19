@@ -24,8 +24,11 @@ ValueType rhydb::config::toDatabaseValueType(std::string_view type) {
    if (type == "boolean") {
       return ValueType::BOOL;
    }
-   if (type == "int") {
-      return ValueType::INT;
+   if (type == "int" || type == "int32") {
+      return ValueType::INT32;
+   }
+   if (type == "int64") {
+      return ValueType::INT64;
    }
    if (type == "float") {
       return ValueType::FLOAT;
@@ -72,8 +75,10 @@ std::string toString(ValueType type) {
          return "date";
       case ValueType::BOOL:
          return "boolean";
-      case ValueType::INT:
+      case ValueType::INT32:
          return "int";
+      case ValueType::INT64:
+         return "int64";
       case ValueType::FLOAT:
          return "float";
    }
@@ -196,8 +201,11 @@ schema::ColumnType DatabaseMetadata::getColumnType() const {
    if (type == ValueType::BOOL) {
       return schema::ColumnType::BOOL;
    }
-   if (type == ValueType::INT) {
+   if (type == ValueType::INT32) {
       return schema::ColumnType::INT32;
+   }
+   if (type == ValueType::INT64) {
+      return schema::ColumnType::INT64;
    }
    if (type == ValueType::FLOAT) {
       return schema::ColumnType::FLOAT;
@@ -384,8 +392,10 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
          return fmt::format_to(ctx.out(), "date");
       case rhydb::config::ValueType::BOOL:
          return fmt::format_to(ctx.out(), "bool");
-      case rhydb::config::ValueType::INT:
+      case rhydb::config::ValueType::INT32:
          return fmt::format_to(ctx.out(), "int");
+      case rhydb::config::ValueType::INT64:
+         return fmt::format_to(ctx.out(), "int64");
       case rhydb::config::ValueType::FLOAT:
          return fmt::format_to(ctx.out(), "float");
    }

@@ -123,6 +123,7 @@ ExpressionPtr makeExpr(ExpressionVariant value, SourceLocation location);
 [[nodiscard]] std::string extractStringLiteral(const Expression& expression);
 [[nodiscard]] uint32_t extractUint32Literal(const Expression& expression);
 [[nodiscard]] int32_t extractInt32Literal(const Expression& expression);
+[[nodiscard]] int64_t extractInt64Literal(const Expression& expression);
 [[nodiscard]] double extractNumericAsFloatLiteral(const Expression& expression);
 [[nodiscard]] bool extractBoolLiteral(const Expression& expression);
 [[nodiscard]] common::Date32 extractDateValue(const Expression& expression);
