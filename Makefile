@@ -168,7 +168,7 @@ build-wheels: ${SILO_RELEASE_EXECUTABLE}
 			uv tool run --from delocate delocate-wheel -w wheelhouse/ dist/*.whl; \
 		else \
 			uv build --wheel --python $$pyversion; \
-			uv tool run auditwheel repair dist/*.whl -w wheelhouse/; \
+			uv tool run --with patchelf auditwheel repair dist/*.whl -w wheelhouse/; \
 		fi; \
 	done
 
