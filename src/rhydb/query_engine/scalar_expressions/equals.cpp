@@ -16,7 +16,6 @@
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/filter/operators/selection.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
-#include "rhydb/query_engine/query_compilation_exception.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
@@ -56,13 +55,6 @@ std::optional<ColumnAndValue> splitColumnAndValue(
       return ColumnAndValue{.column = right_field, .value = left};
    }
    return std::nullopt;
-}
-
-[[noreturn]] void throwNotCompilable() {
-   throw QueryCompilationException{
-      "An Equals expression can only be compiled to a filter when exactly one side is a column "
-      "reference and the other a literal value"
-   };
 }
 
 template <typename ColumnT, typename ValueT>
@@ -165,9 +157,11 @@ std::unique_ptr<ScalarExpression> Equals::rewrite(
 
 std::unique_ptr<filter::operators::Operator> Equals::compile(const storage::Table& table) const {
    auto split = splitColumnAndValue(left.get(), right.get());
-   if (!split.has_value()) {
-      throwNotCompilable();
-   }
+   CHECK_SILO_QUERY(
+      split.has_value(),
+      "An Equals expression can only be compiled to a filter when exactly one side is a column "
+      "reference and the other a literal value"
+   )
    const auto& column_name = split->column->column.name;
    const ScalarExpression* value = split->value;
 
@@ -229,7 +223,10 @@ std::unique_ptr<filter::operators::Operator> Equals::compile(const storage::Tabl
       );
    }
 
-   throwNotCompilable();
+   throw IllegalQueryException(
+      "An Equals expression can only be compiled to a filter when exactly one side is a column "
+      "reference and the other a literal value"
+   );
 }
 
 }  // namespace rhydb::query_engine::scalar_expressions
