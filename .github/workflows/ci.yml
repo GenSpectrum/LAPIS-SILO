@@ -394,12 +394,12 @@ jobs:
         run: cd endToEndTests && npm ci
 
       - name: Start Docker Container and preprocess data
-        run: docker compose -f docker-compose-for-tests-preprocessing-from-ndjson.yml up
+        run: docker compose -f endToEndTests/docker-compose-for-tests-preprocessing-from-ndjson.yml up
         env:
           SILO_IMAGE: ${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64
 
       - name: Start Docker Container and run api
-        run: docker compose -f docker-compose-for-tests-api.yml up -d --wait
+        run: docker compose -f endToEndTests/docker-compose-for-tests-api.yml up -d --wait
         env:
           SILO_IMAGE: ${{ env.DOCKER_IMAGE_NAME }}:commit-${{ env.HEAD_SHA }}-amd64
 
