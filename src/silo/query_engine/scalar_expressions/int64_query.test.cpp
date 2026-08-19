@@ -100,7 +100,7 @@ const QueryTestScenario INT64_BETWEEN_SCENARIO = {
 const QueryTestScenario INT64_EQUALS_NULL_SCENARIO = {
    .name = "INT64_EQUALS_NULL_SCENARIO",
    .query = "default.filter(int64_value = null)",
-   .expected_query_result = nlohmann::json({row("id_4", nullptr)})
+   .expected_query_result = nlohmann::json::array({row("id_4", nullptr)})
 };
 
 const QueryTestScenario INT64_NEGATED_EQUALS_SCENARIO = {

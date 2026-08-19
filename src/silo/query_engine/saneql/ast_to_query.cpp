@@ -87,6 +87,114 @@ schema::ColumnIdentifier resolveColumn(
    return *found;
 }
 
+/// Builds a scalar Expression from a function call (e.g. `seq.at(3)`) appearing in
+/// a scalar position. The handler resolves referenced columns against `schema`;
+/// this additionally validates that every referenced column exists so a missing
+/// column produces a diagnostic with the call's context and location.
+std::unique_ptr<scalar_expressions::ScalarExpression> convertScalarFunctionCall(
+   const ast::FunctionCall& call,
+   const SourceLocation& location,
+   const std::vector<schema::ColumnIdentifier>& schema,
+   std::string_view error_context
+) {
+   const auto* entry = ScalarFunctionRegistry::instance().findFunction(call.function_name);
+   CHECK_SILO_QUERY(
+      entry != nullptr,
+      "{} references unknown scalar function '{}' at {}:{}",
+      error_context,
+      call.function_name,
+      location.line,
+      location.column
+   );
+   auto bound = bindArguments(
+      call.function_name, entry->signature, call.positional_arguments, call.named_arguments
+   );
+   auto expression = entry->handler(bound, schema);
+   // Validate that every referenced column actually exists, mirroring the check for
+   // a bare column reference.
+   for (const auto& referenced : expression->freeIUs()) {
+      const bool exists =
+         std::ranges::any_of(schema, [&](const auto& col) { return col.name == referenced.name; });
+      CHECK_SILO_QUERY(
+         exists,
+         "{} references unknown column '{}' at {}:{}",
+         error_context,
+         referenced.name,
+         location.line,
+         location.column
+      );
+   }
+   return expression;
+}
+
+/// Converts a saneql expression into a SILO scalar Expression: a value-producing
+/// expression (as opposed to convertToFilter, which yields a boolean predicate).
+/// Supported forms are literals (int, float, string, bool), references to an
+/// existing column of `schema` (resolved to that column's type), and scalar
+/// function calls (see convertScalarFunctionCall). `error_context` prefixes
+/// diagnostics so callers can describe where the expression appears
+/// (e.g. "map() field 'x'").
+std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
+   const ast::Expression& ast,
+   const std::vector<schema::ColumnIdentifier>& schema,
+   std::string_view error_context
+) {
+   const auto& [value, location] = ast;
+
+   if (std::holds_alternative<ast::Identifier>(value)) {
+      const auto& name = std::get<ast::Identifier>(value).name;
+      auto found = std::ranges::find_if(schema, [&](const auto& col) { return col.name == name; });
+      CHECK_SILO_QUERY(
+         found != schema.end(),
+         "{} references unknown column '{}' at {}:{}",
+         error_context,
+         name,
+         location.line,
+         location.column
+      );
+      return std::make_unique<scalar_expressions::FieldRef>(*found);
+   }
+   if (std::holds_alternative<ast::IntLiteral>(value)) {
+      // Integer literals are width-agnostic: the value is kept as a full-range int64
+      // and the int32 range check (and column routing) happens at compile time, once
+      // the actual column type is known.
+      return std::make_unique<scalar_expressions::Int64Literal>(
+         std::get<ast::IntLiteral>(value).value
+      );
+   }
+   if (std::holds_alternative<ast::FloatLiteral>(value)) {
+      return std::make_unique<scalar_expressions::FloatLiteral>(
+         std::get<ast::FloatLiteral>(value).value
+      );
+   }
+   if (std::holds_alternative<ast::StringLiteral>(value)) {
+      return std::make_unique<scalar_expressions::StringLiteral>(
+         std::get<ast::StringLiteral>(value).value
+      );
+   }
+   if (std::holds_alternative<ast::BoolLiteral>(value)) {
+      return std::make_unique<scalar_expressions::BoolLiteral>(
+         std::get<ast::BoolLiteral>(value).value
+      );
+   }
+   if (std::holds_alternative<ast::FunctionCall>(value)) {
+      return convertScalarFunctionCall(
+         std::get<ast::FunctionCall>(value), location, schema, error_context
+      );
+   }
+   if (isDateExpression(ast)) {
+      return std::make_unique<scalar_expressions::DateLiteral>(extractDateValue(ast));
+   }
+
+   throw IllegalQueryException(
+      "{} must be a literal value (int, float, string, bool, or date), a column reference, or a "
+      "scalar function call at {}:{}",
+      error_context,
+      location.line,
+      location.column
+   );
+}
+
 ScalarExpressionPtr convertEqualsToFilter(
    const std::string& column_name,
    const ast::Expression& value_expr,
@@ -96,33 +204,9 @@ ScalarExpressionPtr convertEqualsToFilter(
       return std::make_unique<scalar_expressions::IsNull>(resolveColumn(column_name, schema));
    }
 
-   // Build the value operand first so parse-time value errors (e.g. an invalid
-   // date literal or an unsupported value type) are reported before the column is
-   // resolved. Integer literals are width-agnostic here: the value is kept as a
-   // full-range int64 and the int32 range check (and column routing) happens at
-   // compile time, once the actual column type is known.
-   std::unique_ptr<scalar_expressions::ScalarExpression> value;
-   if (isStringLiteral(value_expr)) {
-      value = std::make_unique<scalar_expressions::StringLiteral>(extractStringLiteral(value_expr));
-   } else if (isIntLiteral(value_expr)) {
-      value = std::make_unique<scalar_expressions::Int64Literal>(extractInt64Literal(value_expr));
-   } else if (isFloatLiteral(value_expr)) {
-      value =
-         std::make_unique<scalar_expressions::FloatLiteral>(extractNumericAsFloatLiteral(value_expr)
-         );
-   } else if (isBoolLiteral(value_expr)) {
-      value = std::make_unique<scalar_expressions::BoolLiteral>(
-         std::get<ast::BoolLiteral>(value_expr.value).value
-      );
-   } else if (isDateExpression(value_expr)) {
-      value = std::make_unique<scalar_expressions::DateLiteral>(extractDateValue(value_expr));
-   } else {
-      throw IllegalQueryException(
-         "unsupported value type in equality at {}:{}",
-         value_expr.location.line,
-         value_expr.location.column
-      );
-   }
+   // Build the value operand first so parse-time value errors (e.g. an invalid date
+   // literal or an unsupported value type) are reported before the column is resolved.
+   auto value = convertToScalar(value_expr, schema, "the value in an equality");
 
    const auto found =
       std::ranges::find_if(schema, [&](const auto& col) { return col.name == column_name; });
@@ -1101,109 +1185,6 @@ operators::QueryNodePtr handleProject(
 namespace {
 
 using operators::MapNode;
-
-/// Builds a scalar Expression from a function call (e.g. `seq.at(3)`) appearing in
-/// a scalar position. The handler resolves referenced columns against `schema`;
-/// this additionally validates that every referenced column exists so a missing
-/// column produces a diagnostic with the call's context and location.
-std::unique_ptr<scalar_expressions::ScalarExpression> convertScalarFunctionCall(
-   const ast::FunctionCall& call,
-   const SourceLocation& location,
-   const std::vector<schema::ColumnIdentifier>& schema,
-   std::string_view error_context
-) {
-   const auto* entry = ScalarFunctionRegistry::instance().findFunction(call.function_name);
-   CHECK_SILO_QUERY(
-      entry != nullptr,
-      "{} references unknown scalar function '{}' at {}:{}",
-      error_context,
-      call.function_name,
-      location.line,
-      location.column
-   );
-   auto bound = bindArguments(
-      call.function_name, entry->signature, call.positional_arguments, call.named_arguments
-   );
-   auto expression = entry->handler(bound, schema);
-   // Validate that every referenced column actually exists, mirroring the check for
-   // a bare column reference.
-   for (const auto& referenced : expression->freeIUs()) {
-      const bool exists =
-         std::ranges::any_of(schema, [&](const auto& col) { return col.name == referenced.name; });
-      CHECK_SILO_QUERY(
-         exists,
-         "{} references unknown column '{}' at {}:{}",
-         error_context,
-         referenced.name,
-         location.line,
-         location.column
-      );
-   }
-   return expression;
-}
-
-/// Converts a saneql expression into a SILO scalar Expression: a value-producing
-/// expression (as opposed to convertToFilter, which yields a boolean predicate).
-/// Supported forms are literals (int, float, string, bool), references to an
-/// existing column of `schema` (resolved to that column's type), and scalar
-/// function calls (see convertScalarFunctionCall). `error_context` prefixes
-/// diagnostics so callers can describe where the expression appears
-/// (e.g. "map() field 'x'").
-std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
-   const ast::Expression& ast,
-   const std::vector<schema::ColumnIdentifier>& schema,
-   std::string_view error_context
-) {
-   const auto& [value, location] = ast;
-
-   if (std::holds_alternative<ast::Identifier>(value)) {
-      const auto& name = std::get<ast::Identifier>(value).name;
-      auto found = std::ranges::find_if(schema, [&](const auto& col) { return col.name == name; });
-      CHECK_SILO_QUERY(
-         found != schema.end(),
-         "{} references unknown column '{}' at {}:{}",
-         error_context,
-         name,
-         location.line,
-         location.column
-      );
-      return std::make_unique<scalar_expressions::FieldRef>(*found);
-   }
-   if (std::holds_alternative<ast::IntLiteral>(value)) {
-      return std::make_unique<scalar_expressions::Int64Literal>(
-         std::get<ast::IntLiteral>(value).value
-      );
-   }
-   if (std::holds_alternative<ast::FloatLiteral>(value)) {
-      return std::make_unique<scalar_expressions::FloatLiteral>(
-         std::get<ast::FloatLiteral>(value).value
-      );
-   }
-   if (std::holds_alternative<ast::StringLiteral>(value)) {
-      return std::make_unique<scalar_expressions::StringLiteral>(
-         std::get<ast::StringLiteral>(value).value
-      );
-   }
-   if (std::holds_alternative<ast::BoolLiteral>(value)) {
-      return std::make_unique<scalar_expressions::BoolLiteral>(
-         std::get<ast::BoolLiteral>(value).value
-      );
-   }
-   if (std::holds_alternative<ast::FunctionCall>(value)) {
-      return convertScalarFunctionCall(
-         std::get<ast::FunctionCall>(value), location, schema, error_context
-      );
-   }
-
-   throw IllegalQueryException(
-      "{} must be assigned a literal value (int, float, string, or bool), a column reference, or a "
-      "scalar function call at "
-      "{}:{}",
-      error_context,
-      location.line,
-      location.column
-   );
-}
 
 /// Parses a single `name := value` assignment of a map() record. The assigned
 /// value may be any scalar expression (see convertToScalar); the output column's
