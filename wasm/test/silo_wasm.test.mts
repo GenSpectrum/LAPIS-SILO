@@ -1,7 +1,6 @@
 // Smoke/integration test for the RhyDB WebAssembly build.
 //
-// Requires `dist/wasm/rhydb_wasm.js` / `.wasm` to already be built, e.g. via
-// `make wasm`. `make wasm-test` builds it first.
+// Requires wasm to already be built, e.g. via `make wasm`.
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -10,7 +9,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import createRhyDbModule from "../../dist/wasm/rhydb_wasm.js";
+import createRhyDbModule from "../dist/rhydb_wasm.js";
+import { type MainModule } from "../dist/rhydb_wasm.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..", "..");
@@ -30,7 +30,7 @@ function zstdCompress(input) {
     return result.stdout;
 }
 
-function mkdirp(module, path) {
+function mkdirp(module: MainModule, path) {
     let current = "";
     for (const part of path.split("/").filter(Boolean)) {
         current += `/${part}`;
@@ -40,14 +40,14 @@ function mkdirp(module, path) {
     }
 }
 
-function readDirectoryEntries(module, path) {
+function readDirectoryEntries(module: MainModule, path) {
     return module.FS.readdir(path).filter((entry) => entry !== "." && entry !== "..");
 }
 
 // Embind throws C++ exceptions to JS as an opaque value. With
 // `-sEXPORTED_RUNTIME_METHODS=...,getExceptionMessage` the message can be
 // recovered from it. Returns the best available string for the thrown value.
-function exceptionMessage(module, error) {
+function exceptionMessage(module: MainModule, error) {
     try {
         const message = module.getExceptionMessage(error);
         if (Array.isArray(message)) {
@@ -60,7 +60,7 @@ function exceptionMessage(module, error) {
 }
 
 // Runs `fn`, asserts it threw, and returns the recovered exception message.
-function expectThrows(module, fn, description) {
+function expectThrows(module: MainModule, fn, description) {
     let thrown;
     try {
         fn();
@@ -76,7 +76,7 @@ function expectThrows(module, fn, description) {
 // overrides `inputDirectory` to the in-memory location, since the checked-in
 // preprocessing_config.yaml uses a path relative to the repository root that
 // only makes sense for the native build.
-function writeFixture(module, inputDir) {
+function writeFixture(module: MainModule, inputDir) {
     mkdirp(module, inputDir);
 
     for (const filename of [

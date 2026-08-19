@@ -541,7 +541,7 @@ jobs:
                 uv python install \$pyversion
                 rm -rf dist
                 uv build --wheel --python \$pyversion
-                uv tool run auditwheel repair dist/*.whl -w wheelhouse/
+                uv tool run --with patchelf auditwheel repair dist/*.whl -w wheelhouse/
               done
             "
 
@@ -627,6 +627,7 @@ jobs:
     name: Build WebAssembly
     runs-on: ubuntu-latest
     permissions:
+      id-token: write # Required for OIDC to NPM - https://docs.npmjs.com/trusted-publishers#supported-cicd-providers
       contents: write # Upload artifacts to GitHub Releases
     steps:
       - uses: actions/checkout@v7
@@ -668,6 +669,11 @@ jobs:
         with:
           node-version: latest
 
+      # TypeScript (devDependency) provides the `tsc` that Emscripten's
+      # --emit-tsd needs to generate rhydb_wasm.d.ts during the WASM link.
+      - name: Install npm dependencies
+        run: npm ci
+
       - name: Build and test WASM target
         run: make wasm-test
 
@@ -675,7 +681,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: rhydb-wasm
-          path: dist/wasm/*
+          path: wasm/dist/*
 
       - name: Determine release version
         run: |
@@ -685,12 +691,24 @@ jobs:
             echo "SILO_VERSION=${VERSION}" >> $GITHUB_ENV
           fi
 
+      - name: Set up Node.js for NPM publish
+        if: env.SILO_VERSION != ''
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: latest
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Publish WASM package to NPM
+        if: env.SILO_VERSION != ''
+        working-directory: wasm
+        run: npm publish
+
       - name: Package WASM artifacts for release
         if: env.SILO_VERSION != ''
         run: |
           mkdir -p artifacts
           archive="rhydb-wasm-${SILO_VERSION}.tar.gz"
-          tar -czf "artifacts/${archive}" -C dist/wasm .
+          tar -czf "artifacts/${archive}" -C wasm/dist .
           (cd artifacts && sha256sum "${archive}" > "${archive}.sha256sum")
 
       - name: Upload WASM artifacts to GitHub release

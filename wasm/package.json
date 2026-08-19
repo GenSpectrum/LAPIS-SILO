@@ -1,0 +1,32 @@
+{
+  "name": "@rhydb/rhydb-wasm",
+  "version": "0.13.3",
+  "description": "WebAssembly build of RhyDB for running preprocessing and SaneQL queries in the browser or Node.",
+  "type": "module",
+  "main": "dist/rhydb_wasm.js",
+  "module": "dist/rhydb_wasm.js",
+  "types": "dist/rhydb_wasm.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/rhydb_wasm.d.ts",
+      "import": "./dist/rhydb_wasm.js",
+      "default": "./dist/rhydb_wasm.js"
+    },
+    "./rhydb_wasm.wasm": "./dist/rhydb_wasm.wasm",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GenSpectrum/LAPIS-SILO.git",
+    "directory": "wasm"
+  }
+}
