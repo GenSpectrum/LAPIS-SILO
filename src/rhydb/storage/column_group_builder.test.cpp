@@ -66,7 +66,7 @@ std::expected<void, std::string> setupColumnAndInsertJson(
    }
    const ColumnIdentifier column_id{column_name, ColumnType::TYPE};
    auto schema = std::make_shared<TableSchema>(makeSingleColumnSchema(column_id, meta));
-   rhydb::storage::Table table{rhydb::schema::TableName::getDefault(), schema};
+   const rhydb::storage::Table table{rhydb::schema::TableName::getDefault(), schema};
    ColumnGroupBuilder builder{*schema, table.columns};
 
    simdjson::ondemand::parser parser;
@@ -87,7 +87,7 @@ std::expected<void, std::string> setupNucleotideColumnAndInsertJson(
    );
    const ColumnIdentifier column_id{.name = column_name, .type = SequenceColumn<Nucleotide>::TYPE};
    auto schema = std::make_shared<TableSchema>(makeSingleColumnSchema(column_id, meta));
-   rhydb::storage::Table table{rhydb::schema::TableName::getDefault(), schema};
+   const rhydb::storage::Table table{rhydb::schema::TableName::getDefault(), schema};
    ColumnGroupBuilder builder{*schema, table.columns};
 
    simdjson::ondemand::parser parser;
@@ -270,7 +270,7 @@ TEST(ColumnGroupBuilder, givenSequenceCompressedMultipleRows_succeeds) {
       std::make_shared<SequenceColumnMetadata<Nucleotide>>("nuc_col", std::move(reference));
    const ColumnIdentifier column_id{.name = "nuc_col", .type = SequenceColumn<Nucleotide>::TYPE};
    auto schema = std::make_shared<TableSchema>(makeSingleColumnSchema(column_id, meta));
-   rhydb::storage::Table table{rhydb::schema::TableName::getDefault(), schema};
+   const rhydb::storage::Table table{rhydb::schema::TableName::getDefault(), schema};
    ColumnGroupBuilder builder{*schema, table.columns};
 
    for (const std::string_view sequence : {"ACGT", "ATGT", "ACGT"}) {
