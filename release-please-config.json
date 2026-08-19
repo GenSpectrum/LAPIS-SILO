@@ -11,7 +11,7 @@
                 {
                     "type": "toml",
                     "path": "pyproject.toml",
-                    "tomlpath": "project.version"
+                    "jsonpath": "$.project.version"
                 }
             ]
         }
