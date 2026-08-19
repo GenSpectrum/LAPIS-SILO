@@ -16,7 +16,7 @@
 extern const char* const* environ;
 #endif
 
-namespace silo::config {
+namespace rhydb::config {
 
 class EnvironmentVariables {
    std::vector<std::pair<std::string, std::string>> key_value_pairs;
@@ -51,4 +51,4 @@ static_assert(
    "EnvironmentVariables does not satisfy the concept ConfigSource"
 );
 
-}  // namespace silo::config
+}  // namespace rhydb::config

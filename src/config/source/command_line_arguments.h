@@ -9,7 +9,7 @@
 #include "config/config_source_interface.h"
 #include "config/config_specification.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 class CommandLineArguments {
    std::vector<std::string> args;
@@ -32,4 +32,4 @@ static_assert(
    "CommandLineArguments does not satisfy ConfigSource"
 );
 
-}  // namespace silo::config
+}  // namespace rhydb::config

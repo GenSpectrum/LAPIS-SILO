@@ -19,16 +19,16 @@ class MockRequestHandler : public Poco::Net::HTTPRequestHandler {
 };
 
 const auto TEST_RUNTIME_CONFIG = [] {
-   auto config = silo::config::RuntimeConfig::withDefaults();
+   auto config = rhydb::config::RuntimeConfig::withDefaults();
    config.api_options.estimated_startup_end = std::chrono::system_clock::now();
    return config;
 }();
 
-silo::config::RuntimeConfig getRuntimeConfigThatEndsInXMinutes(
+rhydb::config::RuntimeConfig getRuntimeConfigThatEndsInXMinutes(
    std::chrono::minutes estimated_time_in_minutes
 ) {
    const std::chrono::time_point point = std::chrono::system_clock::now();
-   auto result = silo::config::RuntimeConfig::withDefaults();
+   auto result = rhydb::config::RuntimeConfig::withDefaults();
    result.api_options.estimated_startup_end = point + estimated_time_in_minutes;
    return result;
 }
@@ -45,10 +45,10 @@ TEST(ErrorRequestHandler, handlesRuntimeErrors) {
       .WillByDefault(testing::Throw(std::runtime_error("test exception, expected to be caught")));
 
    auto under_test =
-      silo_app::ErrorRequestHandler(std::move(wrapped_handler_mock), TEST_RUNTIME_CONFIG);
+      rhydb_app::ErrorRequestHandler(std::move(wrapped_handler_mock), TEST_RUNTIME_CONFIG);
 
-   silo_app::test::MockResponse response;
-   silo_app::test::MockRequest request(response);
+   rhydb_app::test::MockResponse response;
+   rhydb_app::test::MockRequest request(response);
    under_test.handleRequest(request, response);
 
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
@@ -67,10 +67,10 @@ TEST(ErrorRequestHandler, handlesOtherErrors) {
       ));
 
    auto under_test =
-      silo_app::ErrorRequestHandler(std::move(wrapped_handler_mock), TEST_RUNTIME_CONFIG);
+      rhydb_app::ErrorRequestHandler(std::move(wrapped_handler_mock), TEST_RUNTIME_CONFIG);
 
-   silo_app::test::MockResponse response;
-   silo_app::test::MockRequest request(response);
+   rhydb_app::test::MockResponse response;
+   rhydb_app::test::MockRequest request(response);
    under_test.handleRequest(request, response);
 
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
@@ -85,10 +85,10 @@ TEST(ErrorRequestHandler, doesNothingIfNoExceptionIsThrown) {
    EXPECT_CALL(*wrapped_handler_mock, handleRequest).Times(testing::AtLeast(1));
 
    auto under_test =
-      silo_app::ErrorRequestHandler(std::move(wrapped_handler_mock), TEST_RUNTIME_CONFIG);
+      rhydb_app::ErrorRequestHandler(std::move(wrapped_handler_mock), TEST_RUNTIME_CONFIG);
 
-   silo_app::test::MockResponse response;
-   silo_app::test::MockRequest request(response);
+   rhydb_app::test::MockResponse response;
+   rhydb_app::test::MockRequest request(response);
 
    response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
    response.send() << wrapped_request_handler_message;
@@ -107,7 +107,7 @@ TEST(
       "A message that the actual handler would write";
    auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
 
-   auto database = std::make_shared<silo_app::ActiveDatabase>();
+   auto database = std::make_shared<rhydb_app::ActiveDatabase>();
    ON_CALL(*wrapped_handler_mock, handleRequest).WillByDefault([&]() {
       database->getActiveDatabase();
       SILO_UNREACHABLE();
@@ -115,10 +115,11 @@ TEST(
 
    auto runtime_config = getRuntimeConfigThatEndsInXMinutes(std::chrono::minutes{5});
 
-   auto under_test = silo_app::ErrorRequestHandler(std::move(wrapped_handler_mock), runtime_config);
+   auto under_test =
+      rhydb_app::ErrorRequestHandler(std::move(wrapped_handler_mock), runtime_config);
 
-   silo_app::test::MockResponse response;
-   silo_app::test::MockRequest request(response);
+   rhydb_app::test::MockResponse response;
+   rhydb_app::test::MockRequest request(response);
 
    response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
    response.send() << wrapped_request_handler_message;
@@ -141,7 +142,7 @@ TEST(
       "A message that the actual handler would write";
    auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
 
-   auto database = std::make_shared<silo_app::ActiveDatabase>();
+   auto database = std::make_shared<rhydb_app::ActiveDatabase>();
    ON_CALL(*wrapped_handler_mock, handleRequest).WillByDefault([&]() {
       database->getActiveDatabase();
       SILO_UNREACHABLE();
@@ -149,10 +150,11 @@ TEST(
 
    auto runtime_config = getRuntimeConfigThatEndsInXMinutes(std::chrono::minutes{-4});
 
-   auto under_test = silo_app::ErrorRequestHandler(std::move(wrapped_handler_mock), runtime_config);
+   auto under_test =
+      rhydb_app::ErrorRequestHandler(std::move(wrapped_handler_mock), runtime_config);
 
-   silo_app::test::MockResponse response;
-   silo_app::test::MockRequest request(response);
+   rhydb_app::test::MockResponse response;
+   rhydb_app::test::MockRequest request(response);
 
    response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
    response.send() << wrapped_request_handler_message;

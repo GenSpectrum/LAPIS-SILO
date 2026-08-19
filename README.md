@@ -2,22 +2,21 @@
 
 High-performance analytical database for sequence alignment data
 
-RhyDB was formerly named SILO. The rename is currently limited to the product name: the executable is still `silo`, the
-Python package is still `silodb`, environment variables still use the `SILO_` prefix, and the repository is still
-`GenSpectrum/LAPIS-SILO`. Documentation refers to those by their actual names.
+RhyDB was formerly named SILO. The rename is still in progress: environment variables still use the `SILO_` prefix, and
+the repository is still `GenSpectrum/LAPIS-SILO`. Documentation refers to those by their actual names.
 
 For information on how to build, test, and contribute to RhyDB, see [Contributing](documentation/developer/contributing.md).
 
 ## Python Bindings
 
-RhyDB provides Python bindings via Cython. The bindings wrap the core C++ `Database` and are installable by `pip install silodb`.
+RhyDB provides Python bindings via Cython. The bindings wrap the core C++ `Database` and are installable by `pip install rhydb`.
 
 See [Contributing](documentation/developer/contributing.md#building-python-bindings) for build instructions.
 
 ### Usage
 
 ```python
-from silodb import Database
+from rhydb import Database
 
 # Create a new database
 db = Database()
@@ -57,12 +56,12 @@ db.print_all_data("sequences")
 For RhyDB, there are three different configuration files:
 
 - `DatabaseConfig` described in
-  file [database_config.h](src/silo/config/database_config.h)
+  file [database_config.h](src/rhydb/config/database_config.h)
 - `PreprocessingConfig` used when started with `preprocessing` and described in
-  file [preprocessing_config.h](src/silo/config/preprocessing_config.h).
+  file [preprocessing_config.h](src/rhydb/config/preprocessing_config.h).
   For details see `rhydb preprocessing --help`.
 - `RuntimeConfig` used when started with `api` and described in
-  file [runtime_config.h](src/silo/config/runtime_config.h)
+  file [runtime_config.h](src/rhydb/config/runtime_config.h)
   For details see `rhydb api --help`.
 
 The database config contains the schema of the database and is always required when preprocessing data. The database

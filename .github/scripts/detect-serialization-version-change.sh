@@ -15,9 +15,9 @@ set -euo pipefail
 #   ./detect-serialization-version-change.sh --old-ref=<git-ref> --new-ref=<git-ref>
 #
 # Environment:
-#   SERIALIZATION_VERSION_FILE  path inside the repo (default: src/silo/common/serialization_version.txt)
+#   SERIALIZATION_VERSION_FILE  path inside the repo (default: src/rhydb/common/serialization_version.txt)
 
-SERIALIZATION_VERSION_FILE="${SERIALIZATION_VERSION_FILE:-src/silo/common/serialization_version.txt}"
+SERIALIZATION_VERSION_FILE="${SERIALIZATION_VERSION_FILE:-src/rhydb/common/serialization_version.txt}"
 
 OLD_REF=""
 NEW_REF=""

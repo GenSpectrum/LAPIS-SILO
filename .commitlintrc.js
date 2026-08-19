@@ -17,9 +17,9 @@ const trackedRootDirectories = execFileSync(
   .split("\n")
   .filter((name) => name !== "" && !name.startsWith("."));
 
-const siloSubdirectories = execFileSync(
+const rhydbSubdirectories = execFileSync(
   "git",
-  ["ls-tree", "-d", "--name-only", "HEAD:src/silo"],
+  ["ls-tree", "-d", "--name-only", "HEAD:src/rhydb"],
   { cwd: repositoryRoot, encoding: "utf8" },
 )
   .split("\n")
@@ -37,7 +37,7 @@ const Configuration = {
     "scope-enum": [
       RuleConfigSeverity.Error,
       "always",
-      [...trackedRootDirectories, ...siloSubdirectories, "silo", "main", "deps", "deps-dev"],
+      [...trackedRootDirectories, ...rhydbSubdirectories, "rhydb", "main", "deps", "deps-dev"],
     ],
   },
 };

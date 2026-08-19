@@ -6,10 +6,10 @@
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
-#include "silo/database.h"
-#include "silo/schema/database_schema.h"
+#include "rhydb/database.h"
+#include "rhydb/schema/database_schema.h"
 
-using silo::Database;
+using rhydb::Database;
 
 namespace {
 
@@ -29,7 +29,7 @@ void run() {
    auto input = openTestDataInput(SEQUENCE_COLUMN_NDJSON_PATH);
 
    const auto start = std::chrono::steady_clock::now();
-   database->appendData(silo::schema::TableName::getDefault(), input);
+   database->appendData(rhydb::schema::TableName::getDefault(), input);
    const auto end = std::chrono::steady_clock::now();
 
    SPDLOG_INFO("sequences appended: {}", SEQUENCE_COLUMN_SEQUENCE_COUNT);

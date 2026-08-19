@@ -14,7 +14,7 @@
 #include "config/source/environment_variables.h"
 #include "config/source/yaml_file.h"
 
-namespace silo::config {
+namespace rhydb::config {
 
 /// For config structs (possibly containing config file paths).
 // We use a concept instead of virtual methods, because the context of
@@ -52,7 +52,7 @@ concept Config = requires(
 };
 
 std::optional<std::filesystem::path> getConfigFilePath(
-   const silo::config::ConfigKeyPath& config_key_path,
+   const rhydb::config::ConfigKeyPath& config_key_path,
    const VerifiedCommandLineArguments& cmd_source,
    const VerifiedConfigAttributes& env_source
 );
@@ -84,7 +84,7 @@ std::variant<C, int32_t> getConfig(
          return 0;
       }
       if (!cmd_source.positional_arguments.empty()) {
-         throw silo::config::ConfigException{fmt::format(
+         throw rhydb::config::ConfigException{fmt::format(
             "SILO does not expect positional arguments, found {}",
             nlohmann::json{cmd_source.positional_arguments}.dump()
          )};
@@ -111,7 +111,7 @@ std::variant<C, int32_t> getConfig(
       config.validate();
 
       return std::move(config);
-   } catch (const silo::config::ConfigException& e) {
+   } catch (const rhydb::config::ConfigException& e) {
       std::cerr << fmt::format(
                       "Usage error: {}.\n\nRun with the --help option for help.\n", e.what()
                    )
@@ -120,4 +120,4 @@ std::variant<C, int32_t> getConfig(
    }
 }
 
-}  // namespace silo::config
+}  // namespace rhydb::config

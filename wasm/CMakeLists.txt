@@ -6,18 +6,18 @@
 # core dependencies, source globbing, and the NO_EVOBENCH define and
 # -fexceptions/-pthread compile flags all come from silolib / silolib_deps.
 
-add_executable(silo_wasm src/silo_wasm.cpp)
-# Emit silo_wasm.js/.wasm at build/wasm/ (not build/wasm/wasm/) so the Makefile
+add_executable(rhydb_wasm src/rhydb_wasm.cpp)
+# Emit rhydb_wasm.js/.wasm at build/wasm/ (not build/wasm/wasm/) so the Makefile
 # `wasm` target, dist copy, and node test find them at the historical path.
-set_target_properties(silo_wasm PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+set_target_properties(rhydb_wasm PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 # Linking the OBJECT library directly pulls in $<TARGET_OBJECTS:silolib> plus its
 # usage requirements: the "src" include root, the core link libraries, and the
-# Emscripten-only defines and compile flags carried by silolib_deps. silo_wasm is
+# Emscripten-only defines and compile flags carried by silolib_deps. rhydb_wasm is
 # the only link step, so -fexceptions/-pthread are repeated here as link options.
-target_link_libraries(silo_wasm PRIVATE silolib)
+target_link_libraries(rhydb_wasm PRIVATE silolib)
 
-target_link_options(silo_wasm
+target_link_options(rhydb_wasm
     PRIVATE
     -pthread
     -fexceptions

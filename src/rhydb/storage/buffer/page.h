@@ -1,0 +1,54 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+
+#include <boost/serialization/binary_object.hpp>
+
+namespace rhydb::storage::buffer {
+
+const size_t SILO_PAGE_SIZE = 16384;
+
+class Page {
+  public:
+   uint8_t* buffer;
+
+   // On a failed allocation std::bad_alloc is thrown
+   Page() { buffer = new uint8_t[SILO_PAGE_SIZE]; }
+
+   Page(Page&& other) noexcept
+       : buffer(other.buffer) {
+      other.buffer = nullptr;
+   }
+
+   Page& operator=(Page&& other) noexcept {
+      std::swap(buffer, other.buffer);
+      return *this;
+   }
+
+   ~Page() { delete[] buffer; }
+
+   Page(const Page& other) = delete;
+   Page operator=(const Page& other) = delete;
+
+  private:
+   friend class boost::serialization::access;
+
+   template <class Archive>
+   [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
+      // clang-format off
+      if(Archive::is_saving::value) {
+         // Saving: write buffer contents to archive
+         archive & boost::serialization::make_binary_object(buffer, SILO_PAGE_SIZE);
+      } else {
+         // Loading: ensure buffer is allocated, then read from archive
+         if(!buffer) {
+            buffer = new uint8_t[SILO_PAGE_SIZE];
+         }
+         archive & boost::serialization::make_binary_object(buffer, SILO_PAGE_SIZE);
+      }
+      // clang-format on
+   }
+};
+
+}  // namespace rhydb::storage::buffer

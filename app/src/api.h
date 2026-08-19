@@ -2,13 +2,13 @@
 
 #include <Poco/Util/ServerApplication.h>
 
-#include <silo/config/runtime_config.h>
+#include <rhydb/config/runtime_config.h>
 
-namespace silo_app {
+namespace rhydb_app {
 
 class Api : public Poco::Util::ServerApplication {
   public:
-   int runApi(const silo::config::RuntimeConfig& runtime_config);
+   int runApi(const rhydb::config::RuntimeConfig& runtime_config);
 };
 
-}  // namespace silo_app
+}  // namespace rhydb_app

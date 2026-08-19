@@ -1,0 +1,46 @@
+#include "rhydb/query_engine/operators/project_node.h"
+
+#include <arrow/acero/exec_plan.h>
+#include <arrow/acero/options.h>
+#include <arrow/compute/api.h>
+#include <nlohmann/json.hpp>
+
+namespace rhydb::query_engine::operators {
+
+ProjectNode::ProjectNode(QueryNodePtr child, std::vector<schema::ColumnIdentifier> fields)
+    : child(std::move(child)),
+      fields(std::move(fields)) {}
+
+std::vector<schema::ColumnIdentifier> ProjectNode::getOutputSchema() const {
+   return fields;
+}
+
+arrow::Result<arrow::acero::ExecNode*> ProjectNode::addToExecPlan(
+   arrow::acero::ExecPlan& plan,
+   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
+   const config::QueryOptions& query_options
+) const {
+   ARROW_ASSIGN_OR_RAISE(auto* child_node, child->addToExecPlan(plan, tables, query_options));
+
+   std::vector<arrow::Expression> expressions;
+   std::vector<std::string> names;
+   expressions.reserve(fields.size());
+   names.reserve(fields.size());
+   for (const auto& field : fields) {
+      expressions.push_back(arrow::compute::field_ref(field.name));
+      names.push_back(field.name);
+   }
+
+   const arrow::acero::ProjectNodeOptions options{std::move(expressions), std::move(names)};
+   return arrow::acero::MakeExecNode("project", &plan, {child_node}, options);
+}
+
+nlohmann::json ProjectNode::toJson() const {
+   return {
+      {"type", nodeKindToString(kind())},
+      {"fields", columnsToJson(fields)},
+      {"child", child->toJson()},
+   };
+}
+
+}  // namespace rhydb::query_engine::operators

@@ -490,9 +490,7 @@ default.map({second_char := primary_key.at(2)})
 
 ### `isoWeek(column)`
 
-Maps a date `column` to its ISO 8601 week number (1–53) as an integer.
-`column` must be a date column. A `null` date yields `null`.
-Use it inside [`map()`](#mapexpressions).
+Maps a date `column` to its ISO 8601 week date, formatted as `<ISO-year>-W<ISO-week>` (e.g. `2026-W12`), as a string. The ISO week-numbering year is used, so it can differ from the calendar year around January (e.g. `2021-01-01` is `2020-W53`); the zero-padded week keeps the value chronologically sortable within a year. `column` must be a date column. A `null` date yields `null`. Use it inside [`map()`](#mapexpressions).
 
 ```
 default.map({week := date.isoWeek()})

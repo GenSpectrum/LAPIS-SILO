@@ -1,0 +1,18 @@
+#include "rhydb/query_engine/filter/operators/empty.h"
+
+#include <gtest/gtest.h>
+#include <roaring/roaring.hh>
+
+using rhydb::query_engine::filter::operators::Empty;
+using rhydb::storage::column::RowLayout;
+
+TEST(OperatorEmpty, evaluateShouldReturnNoValues) {
+   const Empty under_test(RowLayout::of(1));
+   ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring());
+}
+
+TEST(OperatorEmpty, correctTypeInfo) {
+   const Empty under_test(RowLayout::of(1));
+
+   ASSERT_EQ(under_test.type(), rhydb::query_engine::filter::operators::EMPTY);
+}

@@ -7,7 +7,7 @@
 #include <fmt/format.h>
 #include <boost/functional/hash.hpp>
 
-namespace silo::config {
+namespace rhydb::config {
 
 /// Internal representation of config keys.
 /// List of lists of _non-empty lower-case alphanumeric_ strings
@@ -55,12 +55,12 @@ class AmbiguousConfigKeyPath {
    }
 };
 
-}  // namespace silo::config
+}  // namespace rhydb::config
 
 // So that we are able to use std::unordered_map of our internal representation of config keys
 namespace std {
 template <>
-struct hash<silo::config::ConfigKeyPath> {
-   std::size_t operator()(const silo::config::ConfigKeyPath& key) const;
+struct hash<rhydb::config::ConfigKeyPath> {
+   std::size_t operator()(const rhydb::config::ConfigKeyPath& key) const;
 };
 }  // namespace std

@@ -5,13 +5,13 @@
 
 #include <spdlog/spdlog.h>
 
-#include <silo/common/data_version.h>
-#include <silo/database.h>
+#include <rhydb/common/data_version.h>
+#include <rhydb/database.h>
 
 namespace {
 void monitorReferenceCountThenTrimAllocations(
-   silo::DataVersion::Timestamp data_version,
-   const std::weak_ptr<silo::Database>& weak_ptr
+   rhydb::DataVersion::Timestamp data_version,
+   const std::weak_ptr<rhydb::Database>& weak_ptr
 ) {
    while (true) {
       if (auto shared = weak_ptr.lock()) {
@@ -33,20 +33,20 @@ void monitorReferenceCountThenTrimAllocations(
 }
 }  // namespace
 
-namespace silo_app {
+namespace rhydb_app {
 
-void silo_app::ActiveDatabase::setActiveDatabase(silo::Database&& new_database) {
+void rhydb_app::ActiveDatabase::setActiveDatabase(rhydb::Database&& new_database) {
    auto active_database = std::atomic_load(&database);
    if (active_database != nullptr) {
       std::thread monitor_thread(
          monitorReferenceCountThenTrimAllocations,
          database->getDataVersionTimestamp(),
-         std::weak_ptr<silo::Database>(active_database)
+         std::weak_ptr<rhydb::Database>(active_database)
       );
       monitor_thread.detach();
    }
 
-   auto new_database_pointer = std::make_shared<silo::Database>(std::move(new_database));
+   auto new_database_pointer = std::make_shared<rhydb::Database>(std::move(new_database));
 
    std::atomic_store(&database, new_database_pointer);
 
@@ -57,12 +57,12 @@ void silo_app::ActiveDatabase::setActiveDatabase(silo::Database&& new_database) 
    );
 }
 
-std::shared_ptr<silo::Database> silo_app::ActiveDatabase::getActiveDatabase() {
+std::shared_ptr<rhydb::Database> rhydb_app::ActiveDatabase::getActiveDatabase() {
    auto active_database = std::atomic_load(&database);
    if (active_database == nullptr) {
-      throw silo_app::UninitializedDatabaseException();
+      throw rhydb_app::UninitializedDatabaseException();
    }
    return active_database;
 }
 
-}  // namespace silo_app
+}  // namespace rhydb_app

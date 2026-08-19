@@ -1,0 +1,28 @@
+#pragma once
+
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <string_view>
+
+#include <zstd.h>
+
+#include "rhydb/zstd/zstd_context.h"
+#include "rhydb/zstd/zstd_dictionary.h"
+
+namespace rhydb {
+
+class ZstdCompressor {
+   std::string buffer;
+   std::shared_ptr<ZstdCDictionary> dictionary;
+   ZstdCContext zstd_context;
+
+  public:
+   ZstdCompressor() = delete;
+
+   explicit ZstdCompressor(std::shared_ptr<ZstdCDictionary> dictionary);
+
+   std::string_view compress(const char* input_data, size_t input_size);
+};
+
+}  // namespace rhydb

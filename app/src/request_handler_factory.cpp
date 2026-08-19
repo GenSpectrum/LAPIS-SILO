@@ -16,16 +16,16 @@
 #include "query_handler.h"
 #include "request_id_handler.h"
 
-namespace silo_app {
+namespace rhydb_app {
 
-SiloRequestHandlerFactory::SiloRequestHandlerFactory(
-   silo::config::RuntimeConfig runtime_config,
+RhyDBRequestHandlerFactory::RhyDBRequestHandlerFactory(
+   rhydb::config::RuntimeConfig runtime_config,
    std::shared_ptr<ActiveDatabase> database_handle
 )
     : runtime_config(std::move(runtime_config)),
       database_handle(std::move(database_handle)) {}
 
-Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
+Poco::Net::HTTPRequestHandler* RhyDBRequestHandlerFactory::createRequestHandler(
    const Poco::Net::HTTPServerRequest& request
 ) {
    return new RequestIdHandler(
@@ -35,7 +35,7 @@ Poco::Net::HTTPRequestHandler* SiloRequestHandlerFactory::createRequestHandler(
    );
 }
 
-std::unique_ptr<Poco::Net::HTTPRequestHandler> SiloRequestHandlerFactory::routeRequest(
+std::unique_ptr<Poco::Net::HTTPRequestHandler> RhyDBRequestHandlerFactory::routeRequest(
    const Poco::URI& uri
 ) {
    const std::string_view path = uri.getPath();
@@ -43,20 +43,20 @@ std::unique_ptr<Poco::Net::HTTPRequestHandler> SiloRequestHandlerFactory::routeR
    uri.getPathSegments(segments);
 
    if (path == "/health") {
-      return std::make_unique<silo_app::HealthHandler>();
+      return std::make_unique<rhydb_app::HealthHandler>();
    }
    if (path == "/info") {
-      return std::make_unique<silo_app::InfoHandler>(database_handle);
+      return std::make_unique<rhydb_app::InfoHandler>(database_handle);
    }
    if (segments.size() == 2 && segments.at(0) == "lineageDefinition") {
-      return std::make_unique<silo_app::LineageDefinitionHandler>(database_handle, segments.at(1));
+      return std::make_unique<rhydb_app::LineageDefinitionHandler>(database_handle, segments.at(1));
    }
    if (path == "/query") {
-      return std::make_unique<silo_app::QueryHandler>(
+      return std::make_unique<rhydb_app::QueryHandler>(
          database_handle, runtime_config.query_options
       );
    }
-   return std::make_unique<silo_app::NotFoundHandler>();
+   return std::make_unique<rhydb_app::NotFoundHandler>();
 }
 
-}  // namespace silo_app
+}  // namespace rhydb_app

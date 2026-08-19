@@ -10,7 +10,7 @@
 #include <re2/re2.h>
 #include <spdlog/spdlog.h>
 
-#include <silo/common/allocator.h>
+#include <rhydb/common/allocator.h>
 
 namespace {
 
@@ -57,7 +57,7 @@ const int64_t FIVE_SECONDS = 5000;
 
 }  // namespace
 
-namespace silo_app {
+namespace rhydb_app {
 
 MemoryMonitor::MemoryMonitor(std::optional<uint32_t> soft_memory_limit_in_kb)
     : soft_memory_limit_in_kb(soft_memory_limit_in_kb),
@@ -71,22 +71,22 @@ void MemoryMonitor::checkRssAndLimit(Poco::Timer& /*timer*/) {
       SPDLOG_INFO("Current memory consumption: {} KB", rss.value());
 
       if (soft_memory_limit_in_kb.has_value() && rss.value() > soft_memory_limit_in_kb.value()) {
-         silo::common::Allocator::trim();
+         rhydb::common::Allocator::trim();
       }
    }
 }
 
-}  // namespace silo_app
+}  // namespace rhydb_app
 
 #else
 
-namespace silo_app {
+namespace rhydb_app {
 
 MemoryMonitor::MemoryMonitor(std::optional<uint32_t> soft_memory_limit_in_kb)
     : soft_memory_limit_in_kb(soft_memory_limit_in_kb) {}
 
 void MemoryMonitor::checkRssAndLimit(Poco::Timer& /*timer*/) {}
 
-}  // namespace silo_app
+}  // namespace rhydb_app
 
 #endif

@@ -14,9 +14,9 @@
 #include <Poco/Net/HTTPRequestHandler.h>
 #include <nlohmann/json.hpp>
 
-#include <silo/config/runtime_config.h>
+#include <rhydb/config/runtime_config.h>
 
-namespace silo_app {
+namespace rhydb_app {
 
 struct ErrorResponse {
    std::string error;
@@ -28,12 +28,12 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ErrorResponse, error, message);
 class ErrorRequestHandler : public Poco::Net::HTTPRequestHandler {
   private:
    std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler;
-   const silo::config::RuntimeConfig& runtime_config;
+   const rhydb::config::RuntimeConfig& runtime_config;
 
   public:
    explicit ErrorRequestHandler(
       std::unique_ptr<Poco::Net::HTTPRequestHandler> wrapped_handler,
-      const silo::config::RuntimeConfig& runtime_config
+      const rhydb::config::RuntimeConfig& runtime_config
    );
 
    void handleRequest(
@@ -45,4 +45,4 @@ class ErrorRequestHandler : public Poco::Net::HTTPRequestHandler {
    std::optional<std::string> computeRetryAfterHintForStartupTime();
 };
 
-};  // namespace silo_app
+};  // namespace rhydb_app
