@@ -79,10 +79,10 @@ class HorizontalCoverageIndex {
    [[nodiscard]] bool noRowCoversPositionInChunk(uint32_t position, uint16_t chunk_id) const;
 
    /// True if *every* row in `chunk_id` covers `position` with no in-region N there. It combines
-   /// the covered-range intersection envelope (`[batch_max_start, batch_min_end)`, O(1)) with a scan of
-   /// the chunk's in-region-N rows for one carrying an N at `position`. When this holds and no
-   /// mutation is recorded at the position, every row carries the reference symbol, so the caller
-   /// can treat the whole chunk as one group without materializing the covered set.
+   /// the covered-range intersection envelope (`[batch_max_start, batch_min_end)`, O(1)) with a
+   /// scan of the chunk's in-region-N rows for one carrying an N at `position`. When this holds and
+   /// no mutation is recorded at the position, every row carries the reference symbol, so the
+   /// caller can treat the whole chunk as one group without materializing the covered set.
    [[nodiscard]] bool positionCoveredByWholeChunk(uint32_t position, uint16_t chunk_id) const;
 
    template <size_t BatchSize>
@@ -99,8 +99,7 @@ class HorizontalCoverageIndex {
       std::array<roaring::Roaring, BatchSize> result;
 
       for (size_t chunk_id = 0; chunk_id < starts.size(); ++chunk_id) {
-         if (batch_max_end.at(chunk_id) <= range_start ||
-             batch_min_start.at(chunk_id) >= range_end) {
+         if (batch_max_end.at(chunk_id) <= range_start || batch_min_start.at(chunk_id) >= range_end) {
             continue;
          }
          const uint32_t base_row_id = static_cast<uint32_t>(chunk_id) << 16;
