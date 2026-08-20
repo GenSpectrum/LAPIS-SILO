@@ -32,7 +32,7 @@ class StringInSet : public Predicate {
    ~StringInSet() noexcept override;
 
    [[nodiscard]] std::string toString() const override;
-   [[nodiscard]] bool match(uint32_t row_id) const override;
+   [[nodiscard]] bool match(storage::column::RowId row_id) const override;
 
    [[nodiscard]] std::unique_ptr<Predicate> copy() const override;
    [[nodiscard]] std::unique_ptr<Predicate> negate() const override;

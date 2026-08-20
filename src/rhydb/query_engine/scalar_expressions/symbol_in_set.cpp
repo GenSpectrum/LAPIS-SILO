@@ -135,15 +135,14 @@ std::unique_ptr<filter::operators::Operator> compileWithMissingSymbolAndReferenc
    // as the missing symbol and the reference symbol are included, we can just negate the other
    // symbols
    auto negated_symbols = negateSymbols<SymbolType>(symbols);
-   auto bitmap = sequence_column.vertical_sequence_index.getMatchingContainersAsBitmap(
-      position_idx, negated_symbols
+   auto bitmap = CopyOnWriteBitmap::fromContainerViews(
+      sequence_column.vertical_sequence_index.getMatchingContainerViews(
+         position_idx, negated_symbols
+      )
    );
    return excludeNullSequences(
       std::make_unique<filter::operators::Complement>(
-         std::make_unique<filter::operators::IndexScan>(
-            CopyOnWriteBitmap{std::move(bitmap)}, row_layout
-         ),
-         row_layout
+         std::make_unique<filter::operators::IndexScan>(std::move(bitmap), row_layout), row_layout
       ),
       sequence_column,
       row_layout
@@ -159,8 +158,9 @@ std::unique_ptr<filter::operators::Operator> compileWithMissingSymbol(
 ) {
    // The missing symbol is included, so we start with the sequences with no coverage at this
    // position and then add the sequences with the mutation symbols
-   auto bitmap =
-      sequence_column.vertical_sequence_index.getMatchingContainersAsBitmap(position_idx, symbols);
+   auto bitmap = CopyOnWriteBitmap::fromContainerViews(
+      sequence_column.vertical_sequence_index.getMatchingContainerViews(position_idx, symbols)
+   );
 
    filter::operators::OperatorVector operators_for_union;
    operators_for_union.push_back(std::make_unique<filter::operators::Selection>(
@@ -171,9 +171,9 @@ std::unique_ptr<filter::operators::Operator> compileWithMissingSymbol(
       ),
       row_layout
    ));
-   operators_for_union.push_back(std::make_unique<filter::operators::IndexScan>(
-      CopyOnWriteBitmap{std::move(bitmap)}, row_layout
-   ));
+   operators_for_union.push_back(
+      std::make_unique<filter::operators::IndexScan>(std::move(bitmap), row_layout)
+   );
    return excludeNullSequences(
       std::make_unique<filter::operators::Union>(std::move(operators_for_union), row_layout),
       sequence_column,
@@ -191,8 +191,10 @@ std::unique_ptr<filter::operators::Operator> compileWithReference(
    // The reference symbol is included, so we start with the sequences with coverage at this
    // position and then remove the sequences with the negated mutation symbols
    auto negated_symbols = negateSymbolsExcluding<SymbolType>(symbols, SymbolType::SYMBOL_MISSING);
-   auto bitmap = sequence_column.vertical_sequence_index.getMatchingContainersAsBitmap(
-      position_idx, negated_symbols
+   auto bitmap = CopyOnWriteBitmap::fromContainerViews(
+      sequence_column.vertical_sequence_index.getMatchingContainerViews(
+         position_idx, negated_symbols
+      )
    );
 
    return makeDifference(
@@ -204,9 +206,7 @@ std::unique_ptr<filter::operators::Operator> compileWithReference(
          ),
          row_layout
       ),
-      std::make_unique<filter::operators::IndexScan>(
-         CopyOnWriteBitmap{std::move(bitmap)}, row_layout
-      ),
+      std::make_unique<filter::operators::IndexScan>(std::move(bitmap), row_layout),
       row_layout
    );
 }
@@ -219,11 +219,10 @@ std::unique_ptr<filter::operators::Operator> compileOnlyMutations(
    const storage::column::RowLayout& row_layout
 ) {
    // All our results are fully included in the vertical sequence index
-   auto bitmap =
-      sequence_column.vertical_sequence_index.getMatchingContainersAsBitmap(position_idx, symbols);
-   return std::make_unique<filter::operators::IndexScan>(
-      CopyOnWriteBitmap{std::move(bitmap)}, row_layout
+   auto bitmap = CopyOnWriteBitmap::fromContainerViews(
+      sequence_column.vertical_sequence_index.getMatchingContainerViews(position_idx, symbols)
    );
+   return std::make_unique<filter::operators::IndexScan>(std::move(bitmap), row_layout);
 }
 
 }  // namespace

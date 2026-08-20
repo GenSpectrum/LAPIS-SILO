@@ -2,6 +2,7 @@
 
 #include <map>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
@@ -85,6 +86,17 @@ class VerticalSequenceIndex {
    [[nodiscard]] roaring::Roaring getMatchingContainersAsBitmap(
       uint32_t position_idx,
       std::vector<typename SymbolType::Symbol> symbol
+   ) const;
+
+   /// Non-owning views of the stored containers at `position_idx` whose symbol is in `symbols`,
+   /// paired with their `v_index` (the high 16 bits of the row id). Unlike
+   /// `getMatchingContainersAsBitmap` this clones nothing: the caller can assemble the row set
+   /// container-by-container as views into this index, which must outlive them. A `v_index` may
+   /// appear more than once when several requested symbols occur in the same 2^16 block.
+   [[nodiscard]] std::vector<std::pair<uint16_t, roaring_util::RoaringContainerView>>
+   getMatchingContainerViews(
+      uint32_t position_idx,
+      const std::vector<typename SymbolType::Symbol>& symbols
    ) const;
 
    void overwriteSymbolsInSequences(

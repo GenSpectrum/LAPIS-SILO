@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -186,6 +187,73 @@ class RoaringContainerView {
    [[nodiscard]] RoaringContainer toOwning() const {
       return RoaringContainer::clonedFrom(container, typecode);
    }
+
+   /// Forward iterator over the low-16-bit values held by the container, in ascending order. The
+   /// iterator borrows the container, so the view (and its owner) must outlive it and the container
+   /// must not be mutated while an iteration is in progress.
+   class ConstIterator {
+      const roaring::internal::container_t* container = nullptr;
+      uint8_t typecode = 0;
+      roaring::internal::roaring_container_iterator_t internal_iterator{};
+      uint16_t current_value = 0;
+      // An exhausted iterator (past the last value, or a default-constructed `end()`) holds no
+      // position; two exhausted iterators compare equal regardless of which container they came
+      // from.
+      bool exhausted = true;
+
+     public:
+      using iterator_category = std::forward_iterator_tag;
+      using value_type = uint16_t;
+      using difference_type = std::ptrdiff_t;
+      using pointer = const uint16_t*;
+      using reference = uint16_t;
+
+      ConstIterator() = default;
+
+      // The container must be non-empty: `container_init_iterator` assumes a first value exists.
+      ConstIterator(const roaring::internal::container_t* container, uint8_t typecode)
+          : container(container),
+            typecode(typecode),
+            exhausted(false) {
+         internal_iterator =
+            roaring::internal::container_init_iterator(container, typecode, &current_value);
+      }
+
+      uint16_t operator*() const { return current_value; }
+
+      ConstIterator& operator++() {
+         exhausted = !roaring::internal::container_iterator_next(
+            container, typecode, &internal_iterator, &current_value
+         );
+         return *this;
+      }
+
+      ConstIterator operator++(int) {
+         ConstIterator copy = *this;
+         ++*this;
+         return copy;
+      }
+
+      bool operator==(const ConstIterator& other) const {
+         if (exhausted || other.exhausted) {
+            return exhausted && other.exhausted;
+         }
+         return container == other.container && current_value == other.current_value;
+      }
+
+      bool operator!=(const ConstIterator& other) const { return !(*this == other); }
+   };
+
+   [[nodiscard]] ConstIterator begin() const {
+      // An empty container has no first value for `container_init_iterator` to load, so an empty
+      // view iterates as an already-exhausted range.
+      if (empty()) {
+         return ConstIterator{};
+      }
+      return ConstIterator{container, typecode};
+   }
+
+   [[nodiscard]] static ConstIterator end() { return ConstIterator{}; }
 };
 
 }  // namespace rhydb::roaring_util
