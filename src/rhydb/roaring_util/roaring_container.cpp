@@ -61,4 +61,66 @@ void RoaringContainer::runOptimizeAndShrink() {
    roaring::internal::container_shrink_to_fit(container, typecode);
 }
 
+namespace {
+/// Wraps a freshly produced roaring container as an owning `RoaringContainer`, or frees it and
+/// returns an empty container if it came out empty (roaring's binary container ops can yield an
+/// empty container, which must not be kept -- see `RoaringContainer`'s "no empty containers"
+/// invariant).
+RoaringContainer ownContainer(roaring::internal::container_t* container, uint8_t typecode) {
+   const auto cardinality =
+      static_cast<uint32_t>(roaring::internal::container_get_cardinality(container, typecode));
+   if (cardinality == 0) {
+      roaring::internal::container_free(container, typecode);
+      return {};
+   }
+   return RoaringContainer{container, cardinality, typecode};
+}
+}  // namespace
+
+// The operation is sequenced into a local before `ownContainer` reads the out-param `typecode`,
+// since the evaluation order of a call's arguments is unspecified.
+RoaringContainer operator&(RoaringContainerView lhs, RoaringContainerView rhs) {
+   if (lhs.empty() || rhs.empty()) {
+      return {};
+   }
+   uint8_t typecode = 0;
+   auto* result = roaring::internal::container_and(
+      lhs.rawContainer(), lhs.getTypecode(), rhs.rawContainer(), rhs.getTypecode(), &typecode
+   );
+   return ownContainer(result, typecode);
+}
+
+RoaringContainer operator-(RoaringContainerView lhs, RoaringContainerView rhs) {
+   if (lhs.empty()) {
+      return {};
+   }
+   if (rhs.empty()) {
+      return lhs.toOwning();
+   }
+   uint8_t typecode = 0;
+   auto* result = roaring::internal::container_andnot(
+      lhs.rawContainer(), lhs.getTypecode(), rhs.rawContainer(), rhs.getTypecode(), &typecode
+   );
+   return ownContainer(result, typecode);
+}
+
+RoaringContainer operator|(RoaringContainerView lhs, RoaringContainerView rhs) {
+   if (lhs.empty()) {
+      return rhs.empty() ? RoaringContainer{} : rhs.toOwning();
+   }
+   if (rhs.empty()) {
+      return lhs.toOwning();
+   }
+   uint8_t typecode = 0;
+   auto* result = roaring::internal::container_or(
+      lhs.rawContainer(), lhs.getTypecode(), rhs.rawContainer(), rhs.getTypecode(), &typecode
+   );
+   return ownContainer(result, typecode);
+}
+
+RoaringContainer& operator|=(RoaringContainer& accumulator, RoaringContainerView addend) {
+   accumulator = RoaringContainerView{accumulator} | addend;
+   return accumulator;
+}
+
 }  // namespace rhydb::roaring_util

@@ -256,4 +256,10 @@ class RoaringContainerView {
    [[nodiscard]] static ConstIterator end() { return ConstIterator{}; }
 };
 
+[[nodiscard]] RoaringContainer operator&(RoaringContainerView lhs, RoaringContainerView rhs);
+[[nodiscard]] RoaringContainer operator-(RoaringContainerView lhs, RoaringContainerView rhs);
+[[nodiscard]] RoaringContainer operator|(RoaringContainerView lhs, RoaringContainerView rhs);
+
+RoaringContainer& operator|=(RoaringContainer& accumulator, RoaringContainerView addend);
+
 }  // namespace rhydb::roaring_util
