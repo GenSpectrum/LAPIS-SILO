@@ -349,6 +349,15 @@ CopyOnWriteBitmap CopyOnWriteBitmap::fromContainerViews(
    return result;
 }
 
+std::vector<std::pair<uint16_t, RoaringContainerView>> CopyOnWriteBitmap::containerViews() const {
+   std::vector<std::pair<uint16_t, RoaringContainerView>> views;
+   views.reserve(containers.size());
+   for (size_t idx = 0; idx < keys.size(); ++idx) {
+      views.emplace_back(keys[idx], viewOf(containers[idx]));
+   }
+   return views;
+}
+
 roaring::Roaring CopyOnWriteBitmap::toRoaring() const {
    roaring::Roaring result;
    for (size_t idx = 0; idx < keys.size(); ++idx) {

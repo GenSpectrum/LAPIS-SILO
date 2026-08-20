@@ -13,26 +13,33 @@ namespace rhydb::query_engine::optimizer {
 /// computed directly from roaring bitmaps, and turns it into the dedicated, far cheaper
 /// BitmapAggregationNode pipeline.
 ///
-/// Each grouping key must be one of:
-///   * a sequence-position lookup produced by an `At` assignment of a directly preceding `map`
-///     (the mutation co-occurrence pattern), e.g.
+/// A grouping key is either computed by a directly preceding `map`, or -- when no assignment
+/// produces it -- read straight from the table scan as the same-named column; both are resolved the
+/// same way, so a plain table field and the equivalent `map({x := field})` assignment behave
+/// identically. Each key must then be one of:
+///   * a sequence-position lookup (`At` over a sequence column, the mutation co-occurrence
+///     pattern), e.g.
 ///
 ///         ... | map({symbol_123 := main.at(123)}) | groupBy({count := count()}, {symbol_123})
 ///
-///   * a column carrying a per-value bitmap index, read straight from the table scan, e.g.
+///   * a bare read of a string-valued column: an indexed (dictionary-encoded) one is grouped
+///     straight from its inverted index, a plain one by scanning it to build the per-value bitmaps,
+///     e.g.
 ///
-///         ... | groupBy({count := count()}, {division})
+///         ... | groupBy({count := count()}, {division, host})
 ///
-///     Today that is only indexed string columns; any column exposing a per-value inverted index
-///     (e.g. bool, or dates once they gain one) could be added the same way.
+///   * any other scalar expression the grouper can evaluate through Arrow over the columns it
+///     reads -- including a plain non-string field such as a date, int or bool -- which is grouped
+///     by the (typed) value it produces, e.g.
 ///
-/// The two may be mixed within one `groupBy`. In query-node terms this is an `AggregateNode` whose
-/// only aggregate is `count()` and all of whose grouping keys resolve, against the leaf table scan,
-/// to either an `At`-derived sequence position or an indexed string column. Such a node is replaced
-/// by a `BitmapAggregationNode`, which computes the grouping directly from the per-value roaring
-/// bitmaps instead of materializing one row per sequence and hashing it. Queries that don't match
-/// this shape are left untouched, so the generic map/groupBy execution still handles every other
-/// case.
+///         ... | map({week := date.isoWeek()}) | groupBy({count := count()}, {week, date})
+///
+/// These may be mixed freely within one `groupBy`. In query-node terms this is an `AggregateNode`
+/// whose only aggregate is `count()` and all of whose grouping keys resolve against the leaf table
+/// scan. Such a node is replaced by a `BitmapAggregationNode`, which computes the grouping directly
+/// from the per-value roaring bitmaps instead of materializing one row per sequence and hashing it.
+/// Queries that don't match this shape are left untouched, so the generic map/groupBy execution
+/// still handles every other case.
 ///
 /// This pass runs after FilterPushdownPass so the matched pipeline's leaf has already been
 /// collapsed into a single `TableScanNode` carrying the full filter, which the rewrite reads to
