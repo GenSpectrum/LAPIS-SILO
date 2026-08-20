@@ -2,7 +2,14 @@ ARG DEPENDENCY_IMAGE=ghcr.io/genspectrum/lapis-silo-dependencies:latest
 
 FROM $DEPENDENCY_IMAGE AS builder
 
-COPY . ./
+COPY CMakeLists.txt Makefile conanfile.py ./
+COPY buildScripts/ ./buildScripts/
+COPY src/ ./src/
+COPY app/ ./app/
+COPY performance/ ./performance/
+COPY testBaseData/ ./testBaseData/
+# optionally copy release_version.txt if it exists
+COPY release_version.txt* ./
 
 RUN  \
     export CMAKE_BUILD_PARALLEL_LEVEL=4; \
