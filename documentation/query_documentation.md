@@ -495,16 +495,13 @@ so nucleotide and amino acid sequences cannot be distinguished from ordinary str
 Computes the transitive closure of a directed relation. The `input` is any relation-producing
 pipeline whose rows describe edges: each row contributes an edge from the value in its `from`
 column to the value in its `to` column (`from` and `to` name string columns of the input, and
-rows with a null endpoint are ignored). The result is a two-column relation with columns named
+rows with a null vertex are ignored). The result is a two-column relation with columns named
 `from` and `to`, holding one row for every ordered pair `(a, b)` where `b` is reachable from
 `a` by following one or more edges.
 
 With `includeVertices:=true` (default `false`), the reflexive pair `(v, v)` is additionally
 emitted for every vertex `v` that appears in the relation, yielding the *reflexive*-transitive
 closure.
-
-`transitiveClosure` is a *pipeline breaker*: like `groupBy` and `schema`, it materializes its
-input into a fresh result relation rather than forwarding its child's rows.
 
 A typical input is a **lineage relation table**. When a column is configured with
 `lineageIndexType: table` (or `both`), preprocessing materializes a companion table (named after

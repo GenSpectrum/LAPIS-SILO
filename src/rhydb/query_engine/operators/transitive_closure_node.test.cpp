@@ -164,6 +164,26 @@ const QueryTestScenario SUBQUERY_INPUT_SCENARIO = {
    )
 };
 
+// The closure is emitted in `materialization_cutoff + 1`-sized batches; with a cutoff of 0 every
+// pair ends up in a batch of its own, which exercises the streaming path across several batches.
+const QueryTestScenario TRANSITIVE_CLOSURE_ONE_PAIR_PER_BATCH_SCENARIO = {
+   .name = "TRANSITIVE_CLOSURE_ONE_PAIR_PER_BATCH_SCENARIO",
+   .query =
+      "pango_lineage_indexed.transitiveClosure('parent', 'lineage', includeVertices:=true)"
+      ".orderBy({from, to})",
+   .expected_query_result = nlohmann::json(
+      {{{"from", "BASE.1"}, {"to", "BASE.1"}},
+       {{"from", "BASE.1"}, {"to", "CHILD"}},
+       {{"from", "BASE.1"}, {"to", "CHILD.2"}},
+       {{"from", "BASE.1"}, {"to", "GRANDCHILD"}},
+       {{"from", "CHILD"}, {"to", "CHILD"}},
+       {{"from", "CHILD"}, {"to", "GRANDCHILD"}},
+       {{"from", "CHILD.2"}, {"to", "CHILD.2"}},
+       {{"from", "GRANDCHILD"}, {"to", "GRANDCHILD"}}}
+   ),
+   .query_options = rhydb::config::QueryOptions{.materialization_cutoff = 0}
+};
+
 const QueryTestScenario UNKNOWN_COLUMN_SCENARIO = {
    .name = "UNKNOWN_COLUMN_SCENARIO",
    .query = "pango_lineage_indexed.transitiveClosure('parent', 'does_not_exist')",
@@ -179,6 +199,7 @@ QUERY_TEST(
    ::testing::Values(
       TRANSITIVE_CLOSURE_SCENARIO,
       TRANSITIVE_CLOSURE_INCLUDE_VERTICES_SCENARIO,
+      TRANSITIVE_CLOSURE_ONE_PAIR_PER_BATCH_SCENARIO,
       COUNT_LINEAGE_INCLUDING_SUBLINEAGES_SCENARIO,
       SUBQUERY_INPUT_SCENARIO,
       UNKNOWN_COLUMN_SCENARIO
