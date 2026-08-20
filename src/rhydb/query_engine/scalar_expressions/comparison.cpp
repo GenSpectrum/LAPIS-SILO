@@ -48,6 +48,7 @@ struct ColumnAndValue {
    bool column_on_right;
 };
 
+// TODO(#1437): this was copied from Equals.cpp; reuse or unify operators
 std::optional<ColumnAndValue> splitColumnAndValue(
    const ScalarExpression* left,
    const ScalarExpression* right
@@ -75,6 +76,7 @@ Comparator flipComparator(Comparator comparator) {
          return Comparator::HIGHER_OR_EQUALS;
       case Comparator::HIGHER_OR_EQUALS:
          return Comparator::LESS_OR_EQUALS;
+      // TODO(#1437): do we need those here?
       case Comparator::EQUALS:
       case Comparator::NOT_EQUALS:
          return comparator;
