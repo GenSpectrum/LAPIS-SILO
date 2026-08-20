@@ -112,10 +112,13 @@ const rhydb::storage::column::HorizontalCoverageIndex& coverageIndex(const Table
 
 // All rows' covered [start, end) ranges across every chunk, flattened.
 std::vector<std::pair<uint32_t, uint32_t>> allRowRanges(const Table& table) {
+   const auto& index = coverageIndex(table);
    std::vector<std::pair<uint32_t, uint32_t>> ranges;
-   for (const auto& chunk : coverageIndex(table).start_end) {
-      for (const auto& range : chunk) {
-         ranges.push_back(range);
+   for (size_t chunk_id = 0; chunk_id < index.starts.size(); ++chunk_id) {
+      const auto& chunk_starts = index.starts[chunk_id];
+      const auto& chunk_ends = index.ends[chunk_id];
+      for (size_t row_in_chunk = 0; row_in_chunk < chunk_starts.size(); ++row_in_chunk) {
+         ranges.emplace_back(chunk_starts[row_in_chunk], chunk_ends[row_in_chunk]);
       }
    }
    return ranges;
@@ -172,8 +175,8 @@ TEST(ClusteredBuffering, nullSequencesClusterSeparatelyFromDataRows) {
 
    // The data chunk's bounding range is exactly [0,25) — the null rows never widened it.
    bool found_data_batch = false;
-   for (const auto& [start, end] : index.batch_start_ends) {
-      if (start == 0 && end == 25) {
+   for (size_t chunk_id = 0; chunk_id < index.batch_min_start.size(); ++chunk_id) {
+      if (index.batch_min_start[chunk_id] == 0 && index.batch_max_end[chunk_id] == 25) {
          found_data_batch = true;
       }
    }

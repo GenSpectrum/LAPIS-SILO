@@ -49,7 +49,7 @@ TEST(IsInCoveredRegion, containsCheckShouldReturnCorrectValues) {
    );
    auto under_test = std::make_unique<Selection>(
       std::make_unique<IsInCoveredRegion>(&coverage_index, 2, Comparator::IS_COVERED),
-      RowLayout::of(coverage_index.start_end.at(0).size())
+      RowLayout::of(coverage_index.chunkSize(0))
    );
    ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({1, 3, 4, 5, 6}));
    auto negated = Selection::negate(std::move(under_test));
@@ -93,7 +93,7 @@ TEST(IsInCoveredRegion, notContainsCheckShouldReturnCorrectValues) {
    );
    auto under_test = std::make_unique<Selection>(
       std::make_unique<IsInCoveredRegion>(&coverage_index, 2, Comparator::IS_NOT_COVERED),
-      RowLayout::of(coverage_index.start_end.at(0).size())
+      RowLayout::of(coverage_index.chunkSize(0))
    );
    ASSERT_EQ(under_test->evaluate().toRoaring(), roaring::Roaring({0, 2, 7}));
    auto negated = Selection::negate(std::move(under_test));
