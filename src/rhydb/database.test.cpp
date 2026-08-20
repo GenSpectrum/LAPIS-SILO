@@ -17,6 +17,7 @@
 #include "rhydb/initialize/initializer.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/planner.h"
+#include "rhydb/storage/column/zstd_compressed_string_column.h"
 #include "rhydb/storage/reference_genomes.h"
 #include "rhydb/test/query_fixture.test.h"
 
@@ -371,6 +372,43 @@ TEST(DatabaseTest, createTableFromColumnsResolvesReferenceByColumnName) {
    EXPECT_EQ(database.getNucleotideReferenceSequence("sequences", "main"), "ACGTACGT");
 }
 
+TEST(DatabaseTest, createTableFromColumnsReadsZstdDictionaryFromReferenceGenomes) {
+   rhydb::Database database;
+   // A zstd-compressed string column takes its compression dictionary from the same built-in
+   // `reference_genomes` table the sequence columns read their reference from, keyed on the column
+   // name.
+   populateReferences(database, {{"unaligned_main", "ACGTACGT"}});
+   database.createTableFromColumns(
+      "sequences",
+      {{.name = "key", .type = "string"},
+       {.name = "unaligned_main", .type = "zstd_compressed_string"}}
+   );
+
+   const auto& table_schema = database.tables.at(rhydb::schema::TableName{"sequences"})->schema;
+   auto metadata =
+      table_schema->getColumnMetadata<rhydb::storage::column::ZstdCompressedStringColumn>(
+         "unaligned_main"
+      );
+   ASSERT_TRUE(metadata.has_value());
+   EXPECT_EQ(metadata.value()->dictionary_string, "ACGTACGT");
+
+   // The value round-trips through the dictionary-based compressor and decompressor.
+   std::stringstream data;
+   data << R"({"key":"id_1","unaligned_main":"ACGTACGTACGT"})" << "\n";
+   database.appendData(rhydb::schema::TableName{"sequences"}, data);
+
+   auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
+      "sequences.project({key, unaligned_main})",
+      database.tables,
+      rhydb::config::QueryOptions{},
+      "zstd_query"
+   );
+   ASSERT_EQ(
+      rhydb::test::executeQueryToJsonArray(query_plan),
+      nlohmann::json::array({{{"key", "id_1"}, {"unaligned_main", "ACGTACGTACGT"}}})
+   );
+}
+
 TEST(DatabaseTest, createTableFromColumnsRejectsInvalidRequests) {
    rhydb::Database database;
 
@@ -409,6 +447,23 @@ TEST(DatabaseTest, createTableFromColumnsRejectsInvalidRequests) {
       ),
       std::runtime_error
    );
+
+   // An empty reference is rejected for a zstd-compressed column, whose reference doubles as the
+   // compression dictionary (zstd would otherwise accept it and compress without a dictionary).
+   rhydb::Database database_with_empty_reference;
+   populateReferences(database_with_empty_reference, {{"unaligned", ""}});
+   try {
+      database_with_empty_reference.createTableFromColumns(
+         "t",
+         {{.name = "key", .type = "string"}, {.name = "unaligned", .type = "zstd_compressed_string"}
+         }
+      );
+      FAIL() << "Expected an empty compression dictionary to be rejected";
+   } catch (const std::runtime_error& exception) {
+      EXPECT_THAT(
+         exception.what(), ::testing::HasSubstr("requires a non-empty compression dictionary")
+      );
+   }
 
    // A duplicated column name is rejected.
    EXPECT_THROW(

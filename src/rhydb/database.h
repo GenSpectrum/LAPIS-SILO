@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "rhydb/append/table_inserter.h"
@@ -38,10 +39,12 @@ struct ReferenceEntry {
 class Database {
   public:
    /// Name of the built-in table holding reference sequences for sequence / zstd-compressed
-   /// columns (STRING columns `name`, `reference`, `type`, keyed on `name`). Every Database has it
-   /// automatically (see `createReferenceGenomesTable`); it is populated by the caller and read by
-   /// `createTableFromColumns` and by the preprocessing/initialize path (see `getReferences`). It
-   /// is a normal, queryable table and is listed by `getTables`.
+   /// columns (STRING columns `name`, `reference`, `type`, keyed on `name`). Every Database has it:
+   /// a new one gets it from `createReferenceGenomesTable`, and a database loaded from disk gets it
+   /// from its persisted schema (the serialization version was bumped when the table was
+   /// introduced, so snapshots without it are rejected as incompatible). It is populated by the
+   /// caller and read by `createTableFromColumns` and by the preprocessing/initialize path (see
+   /// `getReferences`). It is a normal, queryable table and is listed by `getTables`.
    static constexpr std::string_view REFERENCE_GENOMES_TABLE_NAME = "reference_genomes";
 
    schema::DatabaseSchema schema;
@@ -140,8 +143,9 @@ class Database {
    [[nodiscard]] arrow::Result<std::string> getTablesAsArrowIpcImpl() const;
 
    /// Creates the built-in `reference_genomes` table (string columns `name`, `reference` and
-   /// `type`, with `name` as the primary key). Called from every constructor so the table always
-   /// exists.
+   /// `type`, with `name` as the primary key). Called from the default constructor; the
+   /// schema-taking constructor instead materializes the table from the persisted schema it is
+   /// handed (see `REFERENCE_GENOMES_TABLE_NAME`).
    void createReferenceGenomesTable();
 
    /// Looks up the reference string for `column_name` in the built-in `reference_genomes` table

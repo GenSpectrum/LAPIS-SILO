@@ -157,8 +157,14 @@ std::shared_ptr<rhydb::storage::column::ColumnMetadata> makeColumnMetadata(
             name, std::move(reference.value())
          );
       }
-      case ColumnType::ZSTD_COMPRESSED_STRING:
+      case ColumnType::ZSTD_COMPRESSED_STRING: {
+         if (details.empty()) {
+            throw std::runtime_error(
+               fmt::format("Column '{}' requires a non-empty compression dictionary", name)
+            );
+         }
          return std::make_shared<column::ZstdCompressedStringColumnMetadata>(name, details);
+      }
       case ColumnType::INT64:
          throw std::runtime_error("INT64 columns cannot be created");
    }
@@ -227,6 +233,10 @@ void Database::createTableFromColumns(
    const std::string& table_name,
    const std::vector<ColumnDefinition>& columns
 ) {
+   const schema::TableName requested_table_name{table_name};
+   if (tables.contains(requested_table_name)) {
+      throw std::runtime_error(fmt::format("A table named '{}' already exists.", table_name));
+   }
    if (columns.empty()) {
       throw std::runtime_error(
          "Cannot create a table without columns: the first column becomes the primary key."
@@ -299,7 +309,7 @@ std::string Database::lookupReferenceForColumn(const std::string& column_name) {
       return reference_column.getValueString(row_id);
    }
    throw std::runtime_error(fmt::format(
-      "The '{}' table has no entry named '{}' for the sequence column being created.",
+      "The '{}' table has no entry named '{}' for the column being created.",
       REFERENCE_GENOMES_TABLE_NAME,
       column_name
    ));
@@ -316,7 +326,8 @@ std::vector<ReferenceEntry> Database::getReferences() {
    auto type_column_iter = reference_columns.find("type");
    SILO_ASSERT(
       name_column_iter != reference_columns.end() &&
-      reference_column_iter != reference_columns.end()
+      reference_column_iter != reference_columns.end() &&
+      type_column_iter != reference_columns.end()
    );
    const auto& name_column = name_column_iter->second;
    const auto& reference_column = reference_column_iter->second;
@@ -333,9 +344,9 @@ std::vector<ReferenceEntry> Database::getReferences() {
       if (!reference_column.isNull(row_id)) {
          entry.reference = reference_column.getValueString(row_id);
       }
-      // The `type` column is absent from a legacy `reference_genomes` table loaded from disk; treat
-      // a missing column or null value as an untyped entry.
-      if (type_column_iter != reference_columns.end() && !type_column_iter->second.isNull(row_id)) {
+      // The generic `createTableFromColumns` path does not use the `type` column and writes it as
+      // an empty string or null; treat a null value as an untyped entry.
+      if (!type_column_iter->second.isNull(row_id)) {
          entry.type = type_column_iter->second.getValueString(row_id);
       }
       entries.push_back(std::move(entry));
