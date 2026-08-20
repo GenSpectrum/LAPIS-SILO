@@ -98,8 +98,9 @@ Expected impact on the co-occurrence path:
 | 3 | `counts`: `std::map` → `std::unordered_map` | small win (~946 → ~926 ms) |
 | 4 | FieldRef-in-map grouping (`FieldColumnGrouper`, indexed-column reuse) | **neutral** — new path, not on the co-occurrence benchmark |
 | 5 | General scalar-expression grouping (`isoWeek`; typed output via `arrow::compute::Take`; shared `scalarToArrowExpression`) | **neutral** — new path; the shared `Take` materialization was confirmed neutral at 141 dims × 15.5k rows |
+| 6 | Generic group-by fields (a key the `map` does not produce resolves as a bare read of the same-named scan column, so plain metadata fields group through the bitmap engine too) | **neutral** — it only widens which queries take the path |
 
-The two co-occurrence benchmarks exercise only the sequence-position path, so PRs 4 and 5 should
+The two co-occurrence benchmarks exercise only the sequence-position path, so PRs 4 to 6 should
 leave both numbers flat; watch PRs 2 and 3 for the movement.
 
 ## Per-PR comparison (to fill in)
@@ -112,4 +113,5 @@ leave both numbers flat; watch PRs 2 and 3 for the movement.
 | 3. unordered_map counts | | | | |
 | 4. FieldRef grouping | | | | |
 | 5. scalar-expression grouping | | | | |
+| 6. generic group-by fields | | | | |
 | **combined (`cowb-container-rep`)** | **495** | **891** | — | reference, this doc |

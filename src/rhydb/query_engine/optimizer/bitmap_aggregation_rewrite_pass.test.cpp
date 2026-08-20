@@ -237,9 +237,52 @@ TEST(BitmapAggregationRewritePass, rewritesAtOnNonSequenceColumn) {
 }
 
 // Grouping directly on a non-indexed string column (the primary key) has no inverted index to read,
-// so the pass declines and the generic pipeline handles it.
-TEST(BitmapAggregationRewritePass, declinesWhenGroupingOnNonIndexedColumn) {
+// but the grouper can build the per-value bitmaps by scanning the column, exactly as it does for
+// the equivalent `map({x := id})` assignment, so this is rewritten too.
+TEST(BitmapAggregationRewritePass, rewritesGroupingOnNonIndexedStringColumn) {
    auto node = makeGroupByCount(makeScan(), {"id"});
+
+   auto result = BitmapAggregationRewritePass::run(std::move(node));
+
+   EXPECT_EQ(result->kind(), operators::NodeKind::BITMAP_AGGREGATION);
+}
+
+// A plain non-string table field read straight from the scan (here the date column) is grouped
+// through the scalar-expression path, which keeps the column's own type in the output.
+TEST(BitmapAggregationRewritePass, rewritesGroupingOnPlainScanField) {
+   auto node = makeGroupByCount(makeScan(), {"date"});
+
+   auto result = BitmapAggregationRewritePass::run(std::move(node));
+
+   EXPECT_EQ(result->kind(), operators::NodeKind::BITMAP_AGGREGATION);
+}
+
+// The case the generic-field support is about: a map-computed key and plain table fields the map
+// does not produce in one group-by clause. Every key resolves, so the whole aggregation still goes
+// through the bitmap engine instead of declining because of the passthrough fields.
+TEST(BitmapAggregationRewritePass, rewritesMapExpressionMixedWithPlainScanFields) {
+   auto node =
+      makeGroupByCount(makeMapWithAt(makeScan(), "s", NUC_COLUMN), {"s", "date", "id", "division"});
+
+   auto result = BitmapAggregationRewritePass::run(std::move(node));
+
+   EXPECT_EQ(result->kind(), operators::NodeKind::BITMAP_AGGREGATION);
+}
+
+// A grouping key that is neither produced by the map nor a column of the scanned table cannot be
+// resolved, so the pass declines rather than guessing.
+TEST(BitmapAggregationRewritePass, declinesWhenGroupByFieldIsUnknown) {
+   auto node = makeGroupByCount(makeScan(), {"not_a_column"});
+
+   auto result = BitmapAggregationRewritePass::run(std::move(node));
+
+   EXPECT_EQ(result->kind(), operators::NodeKind::AGGREGATE);
+}
+
+// A whole sequence column passed straight through from the scan is not a single groupable value, so
+// the pass declines (as it does for the `map({n := nuc})` spelling of the same key).
+TEST(BitmapAggregationRewritePass, declinesWhenGroupingOnSequenceColumn) {
+   auto node = makeGroupByCount(makeScan(), {"nuc"});
 
    auto result = BitmapAggregationRewritePass::run(std::move(node));
 

@@ -99,7 +99,8 @@ class HorizontalCoverageIndex {
       std::array<roaring::Roaring, BatchSize> result;
 
       for (size_t chunk_id = 0; chunk_id < starts.size(); ++chunk_id) {
-         if (batch_max_end.at(chunk_id) <= range_start || batch_min_start.at(chunk_id) >= range_end) {
+         if (batch_max_end.at(chunk_id) <= range_start ||
+             batch_min_start.at(chunk_id) >= range_end) {
             continue;
          }
          const uint32_t base_row_id = static_cast<uint32_t>(chunk_id) << 16;
@@ -109,7 +110,8 @@ class HorizontalCoverageIndex {
          // Fast path: if the whole batch range lies within the chunk's intersection envelope
          // `[batch_max_start, batch_min_end)`, every row in the chunk covers every position of the
          // batch, so add the entire chunk to each position in one range operation.
-         if (batch_max_start.at(chunk_id) <= range_start && range_end <= batch_min_end.at(chunk_id)) {
+         if (batch_max_start.at(chunk_id) <= range_start &&
+             range_end <= batch_min_end.at(chunk_id)) {
             for (auto& bitmap : result) {
                bitmap.addRange(base_row_id, base_row_id + chunk_starts.size());
             }

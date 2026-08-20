@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -19,7 +20,8 @@ nlohmann::json createDataWithSequences(
    const std::string& aminoAcidSequence,
    const std::string& region,
    const std::string& country = "Germany",
-   const std::string& date = "2021-01-04"
+   const std::string& date = "2021-01-04",
+   const std::optional<int32_t>& age = 5
 ) {
    random_generator generator;
    const auto primary_key = generator();
@@ -28,6 +30,7 @@ nlohmann::json createDataWithSequences(
       {"region", region},
       {"country", country},
       {"date", date},
+      {"age", age.has_value() ? nlohmann::json(age.value()) : nlohmann::json()},
       {"unaligned_segment1", {}},
       {"segment1", {{"sequence", nucleotideSequence}, {"insertions", nlohmann::json::array()}}},
       {"gene1", {{"sequence", aminoAcidSequence}, {"insertions", nlohmann::json::array()}}}
@@ -43,13 +46,15 @@ nlohmann::json createDataWithSequences(
 // The `date` column carries dates in ISO weeks 1, 10, 2, 2 of 2021 -- rendered by `isoWeek()` as
 // the strings "2021-W01", "2021-W10", "2021-W02" (the zero-padded week keeps them chronologically
 // sorted).
+// The `age` int column carries: 5, 10, null (the NNNNN row), 5.
 const nlohmann::json ROW_AT =
-   createDataWithSequences("ATGCN", "M*", "Europe", "Germany", "2021-01-04");
+   createDataWithSequences("ATGCN", "M*", "Europe", "Germany", "2021-01-04", 5);
 const nlohmann::json ROW_AT2 =
-   createDataWithSequences("ATGCN", "C*", "Europe", "France", "2021-03-08");
-const nlohmann::json ROW_NN = createDataWithSequences("NNNNN", "M*", "Asia", "Japan", "2021-01-11");
+   createDataWithSequences("ATGCN", "C*", "Europe", "France", "2021-03-08", 10);
+const nlohmann::json ROW_NN =
+   createDataWithSequences("NNNNN", "M*", "Asia", "Japan", "2021-01-11", std::nullopt);
 const nlohmann::json ROW_CA =
-   createDataWithSequences("CATTT", "X*", "Europe", "Germany", "2021-01-11");
+   createDataWithSequences("CATTT", "X*", "Europe", "Germany", "2021-01-11", 5);
 
 const auto DATABASE_CONFIG =
    R"(
@@ -65,6 +70,8 @@ schema:
       type: "string"
     - name: "date"
       type: "date"
+    - name: "age"
+      type: "int"
   primaryKey: "primaryKey"
 )";
 
@@ -216,6 +223,63 @@ const QueryTestScenario MIXED_SEQUENCE_AND_FIELD_COLUMN = {
    ])")
 };
 
+// Grouping directly on a plain (non-indexed) string column read straight from the scan, with no
+// `map` in the plan at all. It resolves exactly like the `map({c := country})` spelling above, so
+// the FieldColumnGrouper scans the column and the groups come out in sorted value order.
+const QueryTestScenario PLAIN_STRING_SCAN_COLUMN = {
+   .name = "PLAIN_STRING_SCAN_COLUMN",
+   .query = "default.groupBy({count:=count()}, {country})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"country": "France", "count": 1},
+      {"country": "Germany", "count": 2},
+      {"country": "Japan", "count": 1}
+   ])")
+};
+
+// Grouping directly on a non-string table field (the date column). It has no inverted index and is
+// not a string, so it goes through the scalar-expression path as a bare column read, keeping its
+// DATE32 type -- the groups are therefore ordered chronologically, not lexicographically.
+const QueryTestScenario PLAIN_DATE_SCAN_COLUMN = {
+   .name = "PLAIN_DATE_SCAN_COLUMN",
+   .query = "default.groupBy({count:=count()}, {date})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"date": "2021-01-04", "count": 1},
+      {"date": "2021-01-11", "count": 2},
+      {"date": "2021-03-08", "count": 1}
+   ])")
+};
+
+// Grouping on a plain int field, one of whose rows has no value: the scalar-expression path buckets
+// by the int value and collects the value-less rows in their own null group, which -- as in the
+// generic groupBy -- is emitted after the present values.
+const QueryTestScenario PLAIN_INT_SCAN_COLUMN_WITH_NULL = {
+   .name = "PLAIN_INT_SCAN_COLUMN_WITH_NULL",
+   .query = "default.groupBy({count:=count()}, {age})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"age": 5, "count": 2},
+      {"age": 10, "count": 1},
+      {"age": null, "count": 1}
+   ])")
+};
+
+// The case generic group-by fields are about: a map-computed key (the sequence position) next to
+// table fields the map does not produce -- an indexed string, a plain string and a date. All four
+// resolve, so the whole aggregation goes through the bitmap engine rather than falling back to the
+// generic map/groupBy pipeline. Depth-first over segment1[1] (A, C, N), each following dimension
+// sorted within.
+const QueryTestScenario MIXED_SEQUENCE_AND_PLAIN_SCAN_FIELDS = {
+   .name = "MIXED_SEQUENCE_AND_PLAIN_SCAN_FIELDS",
+   .query =
+      "default.map({s1 := segment1.at(1)})"
+      ".groupBy({count:=count()}, {s1, region, country, date})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"s1": "A", "region": "Europe", "country": "France", "date": "2021-03-08", "count": 1},
+      {"s1": "A", "region": "Europe", "country": "Germany", "date": "2021-01-04", "count": 1},
+      {"s1": "C", "region": "Europe", "country": "Germany", "date": "2021-01-11", "count": 1},
+      {"s1": "N", "region": "Asia", "country": "Japan", "date": "2021-01-11", "count": 1}
+   ])")
+};
+
 // A general map-computed scalar expression: `date.isoWeek()`. The grouper evaluates it per row and
 // buckets by the resulting ISO week-date string (`<ISO-year>-W<ISO-week>`). The output column keeps
 // the expression's STRING type, and the zero-padded week means the lexicographic group order is
@@ -274,6 +338,7 @@ nlohmann::json createDataWithOptionalSequences(
       {"region", "Europe"},
       {"country", "Germany"},
       {"date", "2021-01-04"},
+      {"age", 5},
       {"unaligned_segment1", {}},
       {"segment1", sequence_field(nucleotideSequence)},
       {"gene1", sequence_field(aminoAcidSequence)}
@@ -409,6 +474,10 @@ QUERY_TEST(
       MAP_FIELD_REF_INDEXED_COLUMN,
       MAP_FIELD_REF_PLAIN_STRING_COLUMN,
       MIXED_SEQUENCE_AND_FIELD_COLUMN,
+      PLAIN_STRING_SCAN_COLUMN,
+      PLAIN_DATE_SCAN_COLUMN,
+      PLAIN_INT_SCAN_COLUMN_WITH_NULL,
+      MIXED_SEQUENCE_AND_PLAIN_SCAN_FIELDS,
       MAP_ISO_WEEK_EXPRESSION,
       MIXED_SEQUENCE_AND_ISO_WEEK
    )
