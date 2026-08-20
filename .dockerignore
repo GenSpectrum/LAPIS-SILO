@@ -1,6 +1,4 @@
 *
-!docker_default_preprocessing_config.yaml
-!docker_runtime_config.yaml
 !CMakeLists.txt
 !buildScripts/
 !Makefile

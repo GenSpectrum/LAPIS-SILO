@@ -17,8 +17,15 @@ RUN  \
 FROM ubuntu:26.04 AS server
 
 WORKDIR /app
-COPY docker_default_preprocessing_config.yaml ./default_preprocessing_config.yaml
-COPY docker_runtime_config.yaml ./default_runtime_config.yaml
+COPY <<EOF ./default_preprocessing_config.yaml
+inputDirectory: "/preprocessing/input/"
+outputDirectory: "/preprocessing/output/"
+EOF
+
+COPY <<EOF ./default_runtime_config.yaml
+dataDirectory: /data/
+EOF
+
 COPY --from=builder /src/rhydb ./
 
 # Deprecation compatibility: the binary was renamed silo -> rhydb. Keep a
