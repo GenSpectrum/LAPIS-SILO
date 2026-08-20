@@ -12,6 +12,7 @@
 #include "rhydb/query_engine/operators/order_by_with_limit_node.h"
 #include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/query_node.h"
+#include "rhydb/query_engine/operators/transitive_closure_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
 #include "rhydb/query_engine/operators/unresolved_insertions_node.h"
 #include "rhydb/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
@@ -138,6 +139,15 @@ class PipelinePassBase {
    operators::QueryNodePtr operator()(operators::JoinNode& node) {
       propagateToNode(node.left);
       propagateToNode(node.right);
+      return nullptr;
+   }
+
+   // Default propagation for the transitive-closure operator, which re-materializes its child
+   // into a fresh from/to relation. The child is walked by the same pass instance, so this
+   // default is only correct for stateless passes; a stateful pass MUST override this.
+   // NOLINTNEXTLINE(misc-no-recursion)
+   operators::QueryNodePtr operator()(operators::TransitiveClosureNode& node) {
+      propagateToNode(node.child);
       return nullptr;
    }
 
