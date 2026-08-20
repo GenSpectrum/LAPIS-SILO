@@ -10,9 +10,7 @@
 
 namespace rhydb::query_engine::scalar_expressions {
 
-/// Equality filter predicate: `left = right`. This unifies the former
-/// per-type equals expressions (string, date, int, float, bool) into a single
-/// node whose operands are arbitrary scalar expressions.
+/// Equality filter predicate: `left = right`.
 ///
 /// In practice one side is a column reference (FieldRef) and the other a
 /// literal value. compile() recognises this "column = constant" shape and

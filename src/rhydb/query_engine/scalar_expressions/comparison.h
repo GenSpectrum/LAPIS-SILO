@@ -15,11 +15,6 @@ namespace rhydb::query_engine::scalar_expressions {
 /// reference (FieldRef) and the other a literal value; compile() recognises this
 /// "column <op> constant" shape and lowers it to an efficient filter, dispatching
 /// on the literal's type.
-///
-/// Handles strict/inclusive ordering comparisons (<, >, <=, >=). Equality (=) and
-/// inequality (<>) remain owned by Equals + Negation (issues #1435/#1437 scope
-/// boundary); comparator is stored generically so a future fold is trivial, but
-/// only the 4 ordering comparators are produced today.
 class Comparison : public ScalarExpression {
    std::unique_ptr<ScalarExpression> left;
    std::unique_ptr<ScalarExpression> right;
