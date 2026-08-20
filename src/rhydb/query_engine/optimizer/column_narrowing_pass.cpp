@@ -11,6 +11,7 @@
 #include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/schema_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
+#include "rhydb/query_engine/operators/transitive_closure_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
 
 namespace rhydb::query_engine::optimizer {
@@ -182,6 +183,17 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::SchemaNode& n
    // reported schema). We still recurse with a fresh pass seeded with the child's complete
    // output schema as "required": this keeps every column while still allowing the pass's
    // structural simplifications to run.
+   ColumnNarrowingPass child_pass{node.child->getOutputSchema()};
+   child_pass.propagateToNode(node.child);
+   return nullptr;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion,readability-make-member-function-const)
+operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::TransitiveClosureNode& node) {
+   // transitiveClosure() re-materializes its child into a fresh from/to relation, so this
+   // pass's `required` set (which describes the closure's own output) does not map onto the
+   // child's columns. Recurse into the child with a fresh pass seeded with its complete output
+   // schema: nothing is pruned directly below the node, while deeper simplifications still run.
    ColumnNarrowingPass child_pass{node.child->getOutputSchema()};
    child_pass.propagateToNode(node.child);
    return nullptr;

@@ -17,6 +17,7 @@ class MostRecentCommonAncestorNode;
 class UnionAllNode;
 class JoinNode;
 class SchemaNode;
+class TransitiveClosureNode;
 }  // namespace rhydb::query_engine::operators
 
 namespace rhydb::query_engine::optimizer {
@@ -40,6 +41,7 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    operators::QueryNodePtr operator()(operators::PhyloSubtreeNode& node);
    operators::QueryNodePtr operator()(operators::MostRecentCommonAncestorNode& node);
    operators::QueryNodePtr operator()(operators::SchemaNode& node);
+   operators::QueryNodePtr operator()(operators::TransitiveClosureNode& node);
 
    operators::QueryNodePtr operator()(operators::UnionAllNode& node);
 

@@ -490,6 +490,58 @@ so nucleotide and amino acid sequences cannot be distinguished from ordinary str
 
 **Limitation:** `filter(...)` cannot be applied to `schema()`. A filter is only realizable when it can be pushed into a table scan, and there is none above `schema()`.
 
+### `transitiveClosure(input, from, to [, includeVertices:=bool])`
+
+Computes the transitive closure of a directed relation. The `input` is any relation-producing
+pipeline whose rows describe edges: each row contributes an edge from the value in its `from`
+column to the value in its `to` column (`from` and `to` name string columns of the input, and
+rows with a null endpoint are ignored). The result is a two-column relation with columns named
+`from` and `to`, holding one row for every ordered pair `(a, b)` where `b` is reachable from
+`a` by following one or more edges.
+
+With `includeVertices:=true` (default `false`), the reflexive pair `(v, v)` is additionally
+emitted for every vertex `v` that appears in the relation, yielding the *reflexive*-transitive
+closure.
+
+`transitiveClosure` is a *pipeline breaker*: like `groupBy` and `schema`, it materializes its
+input into a fresh result relation rather than forwarding its child's rows.
+
+A typical input is a **lineage relation table**. When a column is configured with
+`lineageIndexType: table` (or `both`), preprocessing materializes a companion table (named after
+that column) with one row per direct edge, holding the child lineage in a `lineage` column and
+its direct parent in a `parent` column (null for roots). Its closure pairs every lineage with
+each of its descendants:
+
+```
+pango_lineage.transitiveClosure('parent', 'lineage').orderBy({from, to})
+```
+
+**Counting a lineage together with all of its sublineages.** Joining the reflexive closure's
+`to` column against a data table's lineage column and grouping by `from` sums, for each lineage,
+all sequences below it in the hierarchy (and — thanks to the reflexive pair — the lineage's own
+sequences):
+
+```
+pango_lineage.transitiveClosure('parent', 'lineage', includeVertices:=true)
+  .join(default, to = lineage_column)
+  .groupBy({count := count()}, {from})
+  .orderBy({from})
+```
+
+Here `lineage_column` is a `STRING` column of `default` holding each sequence's lineage. Because
+`join` requires both key columns to have the same type and the closure emits `STRING` columns,
+the joined-against column must itself be `STRING` (a lineage column configured with an index is
+dictionary-encoded and cannot be used as the join key directly).
+
+**Restrictions:**
+
+- `from` and `to` must be `STRING` columns of the input.
+- `filter(...)` cannot be applied to the output of `transitiveClosure()`; it is a source
+  operator with nowhere to push a predicate. Filter the input instead.
+
+**Output:** the reachable `{from, to}` pairs. The order of rows is not guaranteed; use
+`orderBy(...)` for a deterministic order.
+
 ---
 
 ## Writing query results to a table

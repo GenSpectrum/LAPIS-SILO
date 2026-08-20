@@ -19,6 +19,7 @@
 #include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/schema_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
+#include "rhydb/query_engine/operators/transitive_closure_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
 #include "rhydb/query_engine/operators/unresolved_insertions_node.h"
 #include "rhydb/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
@@ -90,6 +91,8 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
          return std::forward<Func>(func)(static_cast<SchemaNode&>(node));
       case NodeKind::BITMAP_AGGREGATION:
          return std::forward<Func>(func)(static_cast<BitmapAggregationNode&>(node));
+      case NodeKind::TRANSITIVE_CLOSURE:
+         return std::forward<Func>(func)(static_cast<TransitiveClosureNode&>(node));
    }
    SILO_UNREACHABLE();
 }
