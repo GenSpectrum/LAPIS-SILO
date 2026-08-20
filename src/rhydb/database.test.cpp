@@ -339,9 +339,17 @@ TEST(DatabaseTest, createTableFromColumnsSupportsAllColumnTypes) {
    );
 
    std::stringstream data;
-   data << R"({"key":"id_1","age":42,"qc":0.5,"collected":"2021-03-15","passed":true,)"
-        << R"("country":"Switzerland","lineage":"B.1","seq":{"sequence":"ACGT","insertions":[]},)"
-        << R"("gene":{"sequence":"MFV","insertions":[]}})"
+   data << nlohmann::json{
+              {"key", "id_1"},
+              {"age", 42},
+              {"qc", 0.5},
+              {"collected", "2021-03-15"},
+              {"passed", true},
+              {"country", "Switzerland"},
+              {"lineage", "B.1"},
+              {"seq", {{"sequence", "ACGT"}, {"insertions", nlohmann::json::array()}}},
+              {"gene", {{"sequence", "MFV"}, {"insertions", nlohmann::json::array()}}}
+           }.dump()
         << "\n";
    database.appendData(rhydb::schema::TableName{"generic"}, data);
 

@@ -75,8 +75,8 @@ std::string symbolVectorToString(const std::vector<typename SymbolType::Symbol>&
    return result;
 }
 
-rhydb::schema::ColumnType parseColumnTypeName(const std::string& type_name) {
-   using rhydb::schema::ColumnType;
+using rhydb::schema::ColumnType;
+ColumnType parseColumnTypeName(const std::string& type_name) {
    static const std::map<std::string, ColumnType> TYPE_NAMES{
       {"string", ColumnType::STRING},
       {"indexed_string", ColumnType::DICTIONARY_ENCODED},
@@ -102,18 +102,16 @@ rhydb::schema::ColumnType parseColumnTypeName(const std::string& type_name) {
 /// The column types whose metadata requires a reference string (looked up in the built-in
 /// `reference_genomes` table): the two sequence types and the zstd-compressed unaligned sequence
 /// type.
-bool columnTypeNeedsReference(rhydb::schema::ColumnType type) {
-   using rhydb::schema::ColumnType;
+bool columnTypeNeedsReference(ColumnType type) {
    return type == ColumnType::NUCLEOTIDE_SEQUENCE || type == ColumnType::AMINO_ACID_SEQUENCE ||
           type == ColumnType::ZSTD_COMPRESSED_STRING;
 }
 
 std::shared_ptr<rhydb::storage::column::ColumnMetadata> makeColumnMetadata(
    const std::string& name,
-   rhydb::schema::ColumnType type,
+   ColumnType type,
    const std::string& details
 ) {
-   using rhydb::schema::ColumnType;
    namespace column = rhydb::storage::column;
    switch (type) {
       case ColumnType::STRING:
@@ -187,11 +185,9 @@ Database::Database(schema::DatabaseSchema database_schema)
 
 void Database::createReferenceGenomesTable() {
    auto table_schema = std::make_shared<schema::TableSchema>();
-   const schema::ColumnIdentifier name_column{.name = "name", .type = schema::ColumnType::STRING};
-   const schema::ColumnIdentifier reference_column{
-      .name = "reference", .type = schema::ColumnType::STRING
-   };
-   const schema::ColumnIdentifier type_column{.name = "type", .type = schema::ColumnType::STRING};
+   const schema::ColumnIdentifier name_column{.name = "name", .type = ColumnType::STRING};
+   const schema::ColumnIdentifier reference_column{.name = "reference", .type = ColumnType::STRING};
+   const schema::ColumnIdentifier type_column{.name = "type", .type = ColumnType::STRING};
    table_schema->column_metadata.emplace(
       name_column, std::make_shared<storage::column::StringColumnMetadata>(name_column.name)
    );

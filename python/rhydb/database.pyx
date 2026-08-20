@@ -95,7 +95,7 @@ cdef class PyDatabase:
         "zstd_compressed_string",
     })
 
-    def create_table(self, str table_name, list columns=None):
+    def create_table(self, str table_name, list columns):
         """
         Create a new table with columns of arbitrary supported types.
 

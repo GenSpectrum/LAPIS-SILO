@@ -16,12 +16,16 @@
 namespace rhydb {
 
 /// Describes a single column for the generic `createTableFromColumns` API.
-/// `type` is a lowercase type name (e.g. "string", "indexed_string", "date", "bool", "int",
-/// "float", "nucleotide_sequence", "amino_acid_sequence", "zstd_compressed_string"). Columns that
-/// need a reference (the two sequence types and "zstd_compressed_string") take it from the built-in
-/// `reference_genomes` table rather than from this struct (see `createTableFromColumns`).
 struct ColumnDefinition {
+   /// Name of the column, unique within the table. For columns that need a reference (the two
+   /// sequence types and "zstd_compressed_string") it also selects the reference: the entry of the
+   /// built-in `reference_genomes` table whose `name` equals it supplies this column's reference.
    std::string name;
+
+   /// Lowercase type name, one of "string", "indexed_string", "date", "bool", "int", "float",
+   /// "nucleotide_sequence", "amino_acid_sequence", "zstd_compressed_string". The reference needed
+   /// by the two sequence types and by "zstd_compressed_string" comes from the built-in
+   /// `reference_genomes` table rather than from this struct (see `createTableFromColumns`).
    std::string type;
 };
 
