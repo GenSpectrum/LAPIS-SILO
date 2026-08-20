@@ -1,9 +1,10 @@
 #include "rhydb/query_engine/scalar_expressions/comparison.h"
 
+#include <algorithm>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <optional>
-#include <set>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -215,15 +216,8 @@ std::string Comparison::toString() const {
 }
 
 std::vector<schema::ColumnIdentifier> Comparison::freeIUs() const {
-   std::vector<schema::ColumnIdentifier> result;
-   std::set<schema::ColumnIdentifier> seen;
-   for (auto* operand : {left.get(), right.get()}) {
-      for (auto& column : operand->freeIUs()) {
-         if (seen.insert(column).second) {
-            result.push_back(std::move(column));
-         }
-      }
-   }
+   std::vector<schema::ColumnIdentifier> result = left->freeIUs();
+   std::ranges::move(right->freeIUs(), std::back_inserter(result));
    return result;
 }
 
