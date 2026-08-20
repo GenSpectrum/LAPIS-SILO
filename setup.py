@@ -143,30 +143,22 @@ class BinaryDistribution(Distribution):
         return True
 
 setup(
-    name="rhydb",
-    version="0.1.0",
     packages=["rhydb"],
     package_dir={"rhydb": "python/rhydb"},
-    
+
     package_data={
         "rhydb": [
             "*.so", "*.pyd", # Compiled extensions
             "*.pxd", "*.pyx" # Cython source headers
         ],
     },
-    
+
     distclass=BinaryDistribution,
     # Dummy extension is mandatory to trigger the 'build_ext' command
     ext_modules=[Extension('__dummy__', sources=[])],
     cmdclass={
         'build_ext': build_ext
     },
-    
-    python_requires=">=3.8",
-    install_requires=[
-        "Cython>=3.0",
-        "pyarrow",
-        "pyroaring",
-    ],
+
     zip_safe=False,
 )
