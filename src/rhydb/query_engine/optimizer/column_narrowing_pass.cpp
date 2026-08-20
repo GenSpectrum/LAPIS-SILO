@@ -190,11 +190,11 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::SchemaNode& n
 
 // NOLINTNEXTLINE(misc-no-recursion,readability-make-member-function-const)
 operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::TransitiveClosureNode& node) {
-   // transitiveClosure() re-materializes its child into a fresh from/to relation, so this
-   // pass's `required` set (which describes the closure's own output) does not map onto the
-   // child's columns. Recurse into the child with a fresh pass seeded with its complete output
-   // schema: nothing is pruned directly below the node, while deeper simplifications still run.
-   ColumnNarrowingPass child_pass{node.child->getOutputSchema()};
+   auto child_required = node.child->getOutputSchema();
+   std::erase_if(child_required, [&node](const auto& column) {
+      return column.name != node.from_column && column.name != node.to_column;
+   });
+   ColumnNarrowingPass child_pass{std::move(child_required)};
    child_pass.propagateToNode(node.child);
    return nullptr;
 }
