@@ -18,7 +18,6 @@
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/filter/operators/selection.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
-#include "rhydb/query_engine/query_compilation_exception.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
@@ -99,13 +98,6 @@ bool matchesComparator(std::string_view actual, Comparator comparator, std::stri
          return actual >= literal;
    }
    SILO_UNREACHABLE();
-}
-
-[[noreturn]] void throwNotCompilable() {
-   throw QueryCompilationException{
-      "A Comparison expression can only be compiled to a filter when exactly one side is a column "
-      "reference and the other a literal value"
-   };
 }
 
 template <typename ColumnType, typename ColumnMap>
@@ -245,9 +237,11 @@ std::unique_ptr<ScalarExpression> Comparison::rewrite(
 std::unique_ptr<filter::operators::Operator> Comparison::compile(const storage::Table& table
 ) const {
    auto split = splitColumnAndValue(left.get(), right.get());
-   if (!split.has_value()) {
-      throwNotCompilable();
-   }
+   CHECK_SILO_QUERY(
+      split.has_value(),
+      "A Comparison expression can only be compiled to a filter when exactly one side is a column "
+      "reference and the other a literal value"
+   );
    const auto& column_name = split->column->column.name;
    const ScalarExpression* value = split->value;
    // If the column sits on the right (`literal <op> column`) the comparator must
@@ -303,7 +297,10 @@ std::unique_ptr<filter::operators::Operator> Comparison::compile(const storage::
       );
    }
 
-   throwNotCompilable();
+   throw IllegalQueryException(
+      "A Comparison expression can only be compiled to a filter when exactly one side is a column "
+      "reference and the other a literal value"
+   );
 }
 
 }  // namespace rhydb::query_engine::scalar_expressions

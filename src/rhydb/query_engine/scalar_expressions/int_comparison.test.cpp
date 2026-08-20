@@ -113,6 +113,14 @@ const QueryTestScenario UNKNOWN_COLUMN = {
    .expected_error_message = "The database does not contain the column 'does_not_exist'"
 };
 
+const QueryTestScenario TWO_COLUMNS = {
+   .name = "INT_TWO_COLUMNS",
+   .query = "default.filter(int_value < primaryKey).project(primaryKey)",
+   .expected_error_message =
+      "A Comparison expression can only be compiled to a filter when exactly one side is a column "
+      "reference and the other a literal value"
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -128,6 +136,7 @@ QUERY_TEST(
       FLIPPED_OPERANDS_INCLUSIVE,
       TYPE_MISMATCH,
       BOOL_COMPARISON,
-      UNKNOWN_COLUMN
+      UNKNOWN_COLUMN,
+      TWO_COLUMNS
    )
 );

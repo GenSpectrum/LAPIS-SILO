@@ -66,8 +66,8 @@
 
 using rhydb::AminoAcid;
 using rhydb::Nucleotide;
-using rhydb::query_engine::saneql::ast::BinaryOp;
 using rhydb::query_engine::filter::operators::Comparator;
+using rhydb::query_engine::saneql::ast::BinaryOp;
 using rhydb::storage::column::Column;
 using rhydb::storage::column::SequenceColumn;
 using rhydb::storage::column::ZstdCompressedStringColumn;
