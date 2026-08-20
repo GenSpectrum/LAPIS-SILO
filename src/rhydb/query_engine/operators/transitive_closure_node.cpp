@@ -146,7 +146,7 @@ class ClosureProducer {
    /// Appends every pair `(source, destination)` with `destination` reachable from `source` to the
    /// buffer, by searching the graph from `source`.
    void bufferPairsOfSource(uint32_t source) {
-      std::ranges::fill(reached, false);
+      reached.assign(reached.size(), false);
       frontier.clear();
       for (const uint32_t successor : relation.adjacency[source]) {
          if (!reached[successor]) {
