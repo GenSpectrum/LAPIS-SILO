@@ -79,10 +79,10 @@ class HorizontalCoverageIndex {
    [[nodiscard]] bool noRowCoversPositionInChunk(uint32_t position, uint16_t chunk_id) const;
 
    /// True if *every* row in `chunk_id` covers `position` with no in-region N there. It combines
-   /// the covered-range intersection envelope (`[batch_max_start, batch_min_end)`, O(1)) with a scan of
-   /// the chunk's in-region-N rows for one carrying an N at `position`. When this holds and no
-   /// mutation is recorded at the position, every row carries the reference symbol, so the caller
-   /// can treat the whole chunk as one group without materializing the covered set.
+   /// the covered-range intersection envelope (`[batch_max_start, batch_min_end)`, O(1)) with a
+   /// scan of the chunk's in-region-N rows for one carrying an N at `position`. When this holds and
+   /// no mutation is recorded at the position, every row carries the reference symbol, so the
+   /// caller can treat the whole chunk as one group without materializing the covered set.
    [[nodiscard]] bool positionCoveredByWholeChunk(uint32_t position, uint16_t chunk_id) const;
 
    template <size_t BatchSize>
@@ -110,7 +110,8 @@ class HorizontalCoverageIndex {
          // Fast path: if the whole batch range lies within the chunk's intersection envelope
          // `[batch_max_start, batch_min_end)`, every row in the chunk covers every position of the
          // batch, so add the entire chunk to each position in one range operation.
-         if (batch_max_start.at(chunk_id) <= range_start && range_end <= batch_min_end.at(chunk_id)) {
+         if (batch_max_start.at(chunk_id) <= range_start &&
+             range_end <= batch_min_end.at(chunk_id)) {
             for (auto& bitmap : result) {
                bitmap.addRange(base_row_id, base_row_id + chunk_starts.size());
             }

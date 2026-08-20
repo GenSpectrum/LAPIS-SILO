@@ -156,8 +156,8 @@ roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
    const auto& chunk_ends = ends[chunk_id];
 
    // Fast path: if the position lies within the chunk's intersection envelope
-   // `[batch_max_start, batch_min_end)`, every row in the chunk covers it, so add the whole chunk in
-   // one range operation.
+   // `[batch_max_start, batch_min_end)`, every row in the chunk covers it, so add the whole chunk
+   // in one range operation.
    if (batch_max_start.at(chunk_id) <= position && position < batch_min_end.at(chunk_id)) {
       result.addRange(base_row_id, base_row_id + chunk_starts.size());
    } else {
