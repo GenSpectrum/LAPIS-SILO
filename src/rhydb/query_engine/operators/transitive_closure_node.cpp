@@ -1,10 +1,11 @@
 #include "rhydb/query_engine/operators/transitive_closure_node.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <optional>
-#include <queue>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -56,128 +57,153 @@ uint32_t validateAndFindColumn(
    return static_cast<uint32_t>(std::distance(child_schema.begin(), found));
 }
 
-arrow::Status appendStringColumn(
-   const arrow::Datum& datum,
-   std::vector<std::optional<std::string>>& out
-) {
+arrow::Result<std::shared_ptr<arrow::StringArray>> asStringArray(const arrow::Datum& datum) {
    if (!datum.is_array()) {
       return arrow::Status::Invalid("transitiveClosure() expected an array-typed input column");
    }
-   const auto array = datum.make_array();
-   const auto& string_array = static_cast<const arrow::StringArray&>(*array);
-   for (int64_t row = 0; row < string_array.length(); ++row) {
-      if (string_array.IsNull(row)) {
-         out.emplace_back(std::nullopt);
-      } else {
-         out.emplace_back(string_array.GetString(row));
-      }
+   auto array = datum.make_array();
+   if (array->type_id() != arrow::Type::STRING) {
+      return arrow::Status::Invalid(
+         "transitiveClosure() expected a string-typed input column, but got ",
+         array->type()->ToString()
+      );
    }
-   return arrow::Status::OK();
+   return std::static_pointer_cast<arrow::StringArray>(std::move(array));
 }
 
 /// Builds the interned relation from the child's exec batches, reading the edge endpoints from
-/// the given column indices. Rows with a null endpoint are skipped.
+/// the given column indices. Rows with a null endpoint are skipped. Only the interned form is
+/// retained: the endpoint strings are interned as the batches are scanned, so each distinct
+/// vertex name is held once instead of once per edge.
 arrow::Result<Relation> buildRelation(
    const std::vector<std::optional<arrow::ExecBatch>>& batches,
    uint32_t from_index,
    uint32_t to_index
 ) {
-   std::vector<std::optional<std::string>> from_values;
-   std::vector<std::optional<std::string>> to_values;
-   for (const auto& batch : batches) {
-      if (!batch.has_value()) {
-         continue;
-      }
-      ARROW_RETURN_NOT_OK(appendStringColumn(batch->values[from_index], from_values));
-      ARROW_RETURN_NOT_OK(appendStringColumn(batch->values[to_index], to_values));
-   }
-
    std::vector<std::string> vertex_names;
+   std::vector<std::vector<uint32_t>> adjacency;
    std::unordered_map<std::string, uint32_t> vertex_ids;
-   const auto intern = [&](const std::string& value) {
+   const auto intern = [&](std::string value) {
       const auto [iterator, inserted] =
-         vertex_ids.try_emplace(value, static_cast<uint32_t>(vertex_names.size()));
+         vertex_ids.try_emplace(std::move(value), static_cast<uint32_t>(vertex_names.size()));
       if (inserted) {
          vertex_names.push_back(iterator->first);
+         adjacency.emplace_back();
       }
       return iterator->second;
    };
 
-   std::vector<std::pair<uint32_t, uint32_t>> edges;
-   for (size_t row = 0; row < from_values.size(); ++row) {
-      if (!from_values[row].has_value() || !to_values[row].has_value()) {
+   for (const auto& batch : batches) {
+      if (!batch.has_value()) {
          continue;
       }
-      edges.emplace_back(intern(*from_values[row]), intern(*to_values[row]));
+      ARROW_ASSIGN_OR_RAISE(const auto from_array, asStringArray(batch->values[from_index]));
+      ARROW_ASSIGN_OR_RAISE(const auto to_array, asStringArray(batch->values[to_index]));
+      for (int64_t row = 0; row < from_array->length(); ++row) {
+         if (from_array->IsNull(row) || to_array->IsNull(row)) {
+            continue;
+         }
+         const uint32_t from = intern(from_array->GetString(row));
+         const uint32_t to = intern(to_array->GetString(row));
+         adjacency[from].push_back(to);
+      }
    }
 
-   std::vector<std::vector<uint32_t>> adjacency(vertex_names.size());
-   for (const auto& [from, to] : edges) {
-      adjacency[from].push_back(to);
-   }
    return Relation{.vertex_names = std::move(vertex_names), .adjacency = std::move(adjacency)};
 }
 
-/// Computes the transitive closure of `relation`, returning the reachable pairs sorted by
-/// (from, to) name so the output is deterministic. If `include_vertices` is set, the reflexive
-/// pair (v, v) is added for every vertex.
-std::vector<std::pair<std::string, std::string>> computeClosure(
-   const Relation& relation,
-   bool include_vertices
-) {
-   const auto num_vertices = static_cast<uint32_t>(relation.vertex_names.size());
-   std::vector<std::pair<std::string, std::string>> pairs;
+/// Emits the transitive closure of a relation in batches
+class ClosureProducer {
+  public:
+   ClosureProducer(Relation relation, bool include_vertices, size_t batch_size)
+       : relation(std::move(relation)),
+         include_vertices(include_vertices),
+         batch_size(batch_size),
+         reached(this->relation.vertex_names.size(), false) {}
 
-   for (uint32_t source = 0; source < num_vertices; ++source) {
-      std::vector<bool> reached(num_vertices, false);
-      std::queue<uint32_t> to_visit;
+   /// Returns the next batch of reachable pairs, or `std::nullopt` once the closure is exhausted.
+   /// The order of the pairs is unspecified beyond being grouped by source vertex; callers that
+   /// need an order sort the result downstream.
+   arrow::Result<std::optional<arrow::ExecBatch>> nextBatch() {
+      const auto num_vertices = static_cast<uint32_t>(relation.vertex_names.size());
+      while (buffer.size() - buffer_offset < batch_size && next_source < num_vertices) {
+         bufferPairsOfSource(next_source++);
+      }
+      if (buffer_offset == buffer.size()) {
+         return std::nullopt;
+      }
+      const size_t end = std::min(buffer_offset + batch_size, buffer.size());
+      ARROW_ASSIGN_OR_RAISE(auto batch, buildBatch(buffer_offset, end));
+      buffer_offset = end;
+      if (buffer_offset == buffer.size()) {
+         buffer.clear();
+         buffer_offset = 0;
+      }
+      return std::optional<arrow::ExecBatch>{std::move(batch)};
+   }
+
+  private:
+   /// Appends every pair `(source, destination)` with `destination` reachable from `source` to the
+   /// buffer, by searching the graph from `source`.
+   void bufferPairsOfSource(uint32_t source) {
+      std::ranges::fill(reached, false);
+      frontier.clear();
       for (const uint32_t successor : relation.adjacency[source]) {
          if (!reached[successor]) {
             reached[successor] = true;
-            to_visit.push(successor);
+            frontier.push_back(successor);
          }
       }
-      while (!to_visit.empty()) {
-         const uint32_t current = to_visit.front();
-         to_visit.pop();
+      while (!frontier.empty()) {
+         const uint32_t current = frontier.back();
+         frontier.pop_back();
          for (const uint32_t successor : relation.adjacency[current]) {
             if (!reached[successor]) {
                reached[successor] = true;
-               to_visit.push(successor);
+               frontier.push_back(successor);
             }
          }
       }
+      const auto num_vertices = static_cast<uint32_t>(reached.size());
       for (uint32_t destination = 0; destination < num_vertices; ++destination) {
          if (reached[destination]) {
-            pairs.emplace_back(relation.vertex_names[source], relation.vertex_names[destination]);
+            buffer.emplace_back(source, destination);
          }
       }
       // Add the reflexive pair unless the vertex already reaches itself through a cycle.
       if (include_vertices && !reached[source]) {
-         pairs.emplace_back(relation.vertex_names[source], relation.vertex_names[source]);
+         buffer.emplace_back(source, source);
       }
    }
 
-   std::ranges::sort(pairs);
-   return pairs;
-}
-
-arrow::Result<std::optional<arrow::ExecBatch>> buildClosureBatch(
-   const std::vector<std::pair<std::string, std::string>>& pairs
-) {
-   arrow::StringBuilder from_builder{};
-   arrow::StringBuilder to_builder{};
-   for (const auto& [from, to] : pairs) {
-      ARROW_RETURN_NOT_OK(from_builder.Append(from));
-      ARROW_RETURN_NOT_OK(to_builder.Append(to));
+   arrow::Result<arrow::ExecBatch> buildBatch(size_t begin, size_t end) const {
+      arrow::StringBuilder from_builder{};
+      arrow::StringBuilder to_builder{};
+      ARROW_RETURN_NOT_OK(from_builder.Reserve(static_cast<int64_t>(end - begin)));
+      ARROW_RETURN_NOT_OK(to_builder.Reserve(static_cast<int64_t>(end - begin)));
+      for (size_t index = begin; index < end; ++index) {
+         const auto [from, to] = buffer[index];
+         ARROW_RETURN_NOT_OK(from_builder.Append(relation.vertex_names[from]));
+         ARROW_RETURN_NOT_OK(to_builder.Append(relation.vertex_names[to]));
+      }
+      arrow::Datum from_datum;
+      ARROW_ASSIGN_OR_RAISE(from_datum, from_builder.Finish());
+      arrow::Datum to_datum;
+      ARROW_ASSIGN_OR_RAISE(to_datum, to_builder.Finish());
+      return arrow::ExecBatch::Make({from_datum, to_datum});
    }
-   arrow::Datum from_datum;
-   ARROW_ASSIGN_OR_RAISE(from_datum, from_builder.Finish());
-   arrow::Datum to_datum;
-   ARROW_ASSIGN_OR_RAISE(to_datum, to_builder.Finish());
-   ARROW_ASSIGN_OR_RAISE(auto batch, arrow::ExecBatch::Make({from_datum, to_datum}));
-   return std::optional<arrow::ExecBatch>{std::move(batch)};
-}
+
+   Relation relation;
+   bool include_vertices;
+   size_t batch_size;
+   /// Scratch state of a single-source search, kept across sources to avoid reallocating it.
+   std::vector<bool> reached;
+   std::vector<uint32_t> frontier;
+   /// The pairs found but not yet emitted, as `(source, destination)` vertex ids.
+   std::vector<std::pair<uint32_t, uint32_t>> buffer;
+   size_t buffer_offset = 0;
+   uint32_t next_source = 0;
+};
 
 }  // namespace
 
@@ -221,27 +247,35 @@ arrow::Result<arrow::acero::ExecNode*> TransitiveClosureNode::addToExecPlan(
          .status()
    );
 
+   // `materialization_cutoff` is the batch-size-minus-one
+   const size_t batch_size = query_options.materialization_cutoff + 1;
    const bool include_vertices_copy = include_vertices;
+   // The first call builds the relation from the child's batches and hands it to the producer,
+   // which then streams the closure one batch at a time as the downstream pulls.
+   const auto closure = std::make_shared<std::optional<ClosureProducer>>();
+
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
       [child_generator = std::move(child_generator),
+       closure,
        from_index,
        to_index,
        include_vertices_copy,
-       already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
-      if (already_produced) {
-         const std::optional<arrow::ExecBatch> end_of_stream = std::nullopt;
-         return arrow::Future{end_of_stream};
+       batch_size]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+      if (closure->has_value()) {
+         return arrow::Future<std::optional<arrow::ExecBatch>>::MakeFinished(
+            closure->value().nextBatch()
+         );
       }
-      already_produced = true;
       return arrow::CollectAsyncGenerator(child_generator)
          .Then(
-            [from_index, to_index, include_vertices_copy](
+            [closure, from_index, to_index, include_vertices_copy, batch_size](
                const std::vector<std::optional<arrow::ExecBatch>>& batches
             ) -> arrow::Result<std::optional<arrow::ExecBatch>> {
                ARROW_ASSIGN_OR_RAISE(
-                  const Relation relation, buildRelation(batches, from_index, to_index)
+                  Relation relation, buildRelation(batches, from_index, to_index)
                );
-               return buildClosureBatch(computeClosure(relation, include_vertices_copy));
+               closure->emplace(std::move(relation), include_vertices_copy, batch_size);
+               return closure->value().nextBatch();
             }
          );
    };
