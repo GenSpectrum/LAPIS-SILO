@@ -61,4 +61,68 @@ void RoaringContainer::runOptimizeAndShrink() {
    roaring::internal::container_shrink_to_fit(container, typecode);
 }
 
+namespace {
+RoaringContainer ownContainer(roaring::internal::container_t* container, uint8_t typecode) {
+   const auto cardinality =
+      static_cast<uint32_t>(roaring::internal::container_get_cardinality(container, typecode));
+   return RoaringContainer{container, cardinality, typecode};
+}
+}  // namespace
+
+RoaringContainer operator&(RoaringContainerView lhs, RoaringContainerView rhs) {
+   if (lhs.empty() || rhs.empty()) {
+      return RoaringContainer::withCapacity(1);
+   }
+   uint8_t typecode = 0;
+   auto* result = roaring::internal::container_and(
+      lhs.rawContainer(), lhs.getTypecode(), rhs.rawContainer(), rhs.getTypecode(), &typecode
+   );
+   return ownContainer(result, typecode);
+}
+
+RoaringContainer operator-(RoaringContainerView lhs, RoaringContainerView rhs) {
+   if (lhs.empty()) {
+      return RoaringContainer::withCapacity(1);
+   }
+   if (rhs.empty()) {
+      return lhs.toOwning();
+   }
+   uint8_t typecode = 0;
+   auto* result = roaring::internal::container_andnot(
+      lhs.rawContainer(), lhs.getTypecode(), rhs.rawContainer(), rhs.getTypecode(), &typecode
+   );
+   return ownContainer(result, typecode);
+}
+
+RoaringContainer operator|(RoaringContainerView lhs, RoaringContainerView rhs) {
+   if (lhs.empty()) {
+      return rhs.empty() ? RoaringContainer::withCapacity(1) : rhs.toOwning();
+   }
+   if (rhs.empty()) {
+      return lhs.toOwning();
+   }
+   uint8_t typecode = 0;
+   auto* result = roaring::internal::container_or(
+      lhs.rawContainer(), lhs.getTypecode(), rhs.rawContainer(), rhs.getTypecode(), &typecode
+   );
+   return ownContainer(result, typecode);
+}
+
+RoaringContainer& RoaringContainer::operator|=(RoaringContainerView addend) {
+   uint8_t new_typecode = 0;
+   auto* new_container = roaring::internal::container_ior(
+      container, typecode, addend.rawContainer(), addend.getTypecode(), &new_typecode
+   );
+   if (new_container != container) {
+      // The union could not be computed in place, so a new container was allocated and freeing the
+      // old one is up to us.
+      roaring::internal::container_free(container, typecode);
+      container = new_container;
+   }
+   typecode = new_typecode;
+   cardinality =
+      static_cast<uint32_t>(roaring::internal::container_get_cardinality(container, typecode));
+   return *this;
+}
+
 }  // namespace rhydb::roaring_util
