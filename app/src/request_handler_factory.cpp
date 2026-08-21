@@ -7,6 +7,7 @@
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/URI.h>
 
+#include "admin_query_handler.h"
 #include "error_request_handler.h"
 #include "health_handler.h"
 #include "info_handler.h"
@@ -55,6 +56,9 @@ std::unique_ptr<Poco::Net::HTTPRequestHandler> RhyDBRequestHandlerFactory::route
       return std::make_unique<rhydb_app::QueryHandler>(
          database_handle, runtime_config.query_options
       );
+   }
+   if (path == "/admin/query") {
+      return std::make_unique<rhydb_app::AdminQueryHandler>(database_handle);
    }
    return std::make_unique<rhydb_app::NotFoundHandler>();
 }

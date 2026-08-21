@@ -298,3 +298,137 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
       rhydb::test::executeQueryToJsonArray(query_plan_2), nlohmann::json::array({{{"count", 1}}})
    );
 }
+
+namespace {
+using rhydb::schema::TableName;
+
+// Builds a metadata-only table schema (string primary key + a string and an int32 column). Append
+// queries copy query output back through the NDJSON append path, which round-trips value columns
+// cleanly; sequence columns are intentionally left out (a query emits them as decompressed strings,
+// while the append path ingests them as structured objects).
+std::shared_ptr<TableSchema> makeValueColumnSchema() {
+   const ColumnIdentifier key{.name = "key", .type = ColumnType::STRING};
+   const ColumnIdentifier country{.name = "country", .type = ColumnType::STRING};
+   const ColumnIdentifier age{.name = "age", .type = ColumnType::INT32};
+   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
+      {key, std::make_shared<StringColumnMetadata>(key.name)},
+      {country, std::make_shared<StringColumnMetadata>(country.name)},
+      {age, std::make_shared<ColumnMetadata>(age.name)},
+   };
+   return std::make_shared<TableSchema>(std::move(column_metadata), key);
+}
+
+// Runs a count aggregation over `table_name` filtered by `filter` and returns the matched row
+// count.
+int64_t countInTableWhere(
+   rhydb::Database& database,
+   const std::string& table_name,
+   const std::string& filter
+) {
+   auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
+      fmt::format("{}.filter({}).groupBy({{count:=count()}})", table_name, filter),
+      database.tables,
+      rhydb::config::QueryOptions{},
+      "count_query"
+   );
+   auto result = rhydb::test::executeQueryToJsonArray(query_plan);
+   if (result.empty()) {
+      return 0;
+   }
+   return result.at(0).at("count").get<int64_t>();
+}
+}  // namespace
+
+TEST(DatabaseInsertQueryTest, copiesFilteredRowsFromOneTableIntoAnother) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   database.createTable(TableName{"archive"}, makeValueColumnSchema());
+
+   std::stringstream source_data;
+   source_data << R"({"key":"a","country":"CH","age":1})" << "\n"
+               << R"({"key":"b","country":"US","age":2})" << "\n"
+               << R"({"key":"c","country":"CH","age":3})" << "\n";
+   database.appendData(TableName{"source"}, source_data);
+
+   const nlohmann::json result =
+      database.executeWrite("source.filter(country='CH').insertInto(archive)");
+
+   EXPECT_EQ(result.at("insertedRows").get<size_t>(), 2);
+   EXPECT_EQ(countInTableWhere(database, "archive", "true"), 2);
+   EXPECT_EQ(countInTableWhere(database, "archive", "country='CH'"), 2);
+   EXPECT_EQ(countInTableWhere(database, "archive", "country='US'"), 0);
+   EXPECT_EQ(countInTableWhere(database, "archive", "age=1"), 1);
+   EXPECT_EQ(countInTableWhere(database, "archive", "age=3"), 1);
+   // The source table is left unchanged.
+   EXPECT_EQ(countInTableWhere(database, "source", "true"), 3);
+}
+
+TEST(DatabaseInsertQueryTest, reshapesWithProjectAcceptsStringTargetAndAccumulates) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   // Target keeps only a subset of columns; the query must project down to match it.
+   const ColumnIdentifier key{.name = "key", .type = ColumnType::STRING};
+   const ColumnIdentifier country{.name = "country", .type = ColumnType::STRING};
+   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> archive_metadata{
+      {key, std::make_shared<StringColumnMetadata>(key.name)},
+      {country, std::make_shared<StringColumnMetadata>(country.name)},
+   };
+   database.createTable(
+      TableName{"archive"}, std::make_shared<TableSchema>(std::move(archive_metadata), key)
+   );
+
+   std::stringstream source_data;
+   source_data << R"({"key":"a","country":"CH","age":1})" << "\n"
+               << R"({"key":"b","country":"US","age":2})" << "\n";
+   database.appendData(TableName{"source"}, source_data);
+
+   // Target named as a string literal; project drops the `age` column the target does not have.
+   const nlohmann::json result =
+      database.executeWrite("source.project({key, country}).insertInto('archive')");
+   EXPECT_EQ(result.at("insertedRows").get<size_t>(), 2);
+   EXPECT_EQ(countInTableWhere(database, "archive", "true"), 2);
+
+   // A second append accumulates on top of the existing rows rather than replacing them.
+   const nlohmann::json result_again = database.executeWrite(
+      "source.filter(country='US').project({key, country}).insertInto(archive)"
+   );
+   EXPECT_EQ(result_again.at("insertedRows").get<size_t>(), 1);
+   EXPECT_EQ(countInTableWhere(database, "archive", "true"), 3);
+}
+
+TEST(DatabaseInsertQueryTest, rejectsInvalidInsertQueries) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   database.createTable(TableName{"archive"}, makeValueColumnSchema());
+
+   std::stringstream source_data;
+   source_data << R"({"key":"a","country":"CH","age":1})" << "\n";
+   database.appendData(TableName{"source"}, source_data);
+
+   // A plain read query is not a write statement.
+   EXPECT_THAT(
+      [&]() { database.executeWrite("source.filter(country='CH')"); },
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("expected a write statement")
+      )
+   );
+
+   // The target table must exist.
+   EXPECT_THAT(
+      [&]() { database.executeWrite("source.insertInto(does_not_exist)"); },
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("target table 'does_not_exist' not found")
+      )
+   );
+
+   // insertInto needs both a source and a target.
+   EXPECT_THAT(
+      [&]() { database.executeWrite("insertInto(source)"); },
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("insertInto() requires argument 'target'")
+      )
+   );
+
+   // If the query does not produce every column of the target, the append is rejected.
+   EXPECT_ANY_THROW(database.executeWrite("source.project({key}).insertInto(archive)"));
+}

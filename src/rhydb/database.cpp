@@ -8,12 +8,14 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <variant>
 
 #include <arrow/api.h>
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/aa_symbols.h"
@@ -24,6 +26,7 @@
 #include "rhydb/common/version.h"
 #include "rhydb/database_info.h"
 #include "rhydb/persistence/exception.h"
+#include "rhydb/query_engine/command/write_command.h"
 #include "rhydb/query_engine/exec_node/arrow_ipc_sink.h"
 #include "rhydb/query_engine/exec_node/ndjson_sink.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
@@ -473,6 +476,17 @@ std::string Database::executeQueryAsArrowIpc(const std::string& query_string) co
    }
    query_plan.executeAndWrite(output_sink.ValueUnsafe(), DEFAULT_TIMEOUT_SECONDS);
    return output_stream.str();
+}
+
+nlohmann::json Database::executeWrite(const std::string& query_string) {
+   auto request = query_engine::command::parseRequest(query_string, tables);
+   auto* command = std::get_if<query_engine::command::WriteCommandPtr>(&request);
+   if (command == nullptr) {
+      throw query_engine::IllegalQueryException(
+         "expected a write statement, e.g. `<query>.insertInto(<targetTable>)`"
+      );
+   }
+   return (*command)->execute(*this);
 }
 
 std::string Database::getTablesAsArrowIpc() const {

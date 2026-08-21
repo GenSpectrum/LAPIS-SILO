@@ -192,6 +192,52 @@ print(table.to_pandas())
 
 ---
 
+### `POST /admin/query`
+
+Executes a SaneQL **write statement** against the database. Currently the only write statement is
+`<query>.insertInto(<targetTable>)`, which runs the inner query and inserts its result rows into
+`<targetTable>` in place — see [`insertInto`](query_documentation.md#insertintotargettable) for
+semantics and limitations.
+
+This is kept on a separate `/admin` path from `POST /query` because, unlike the read-only query
+endpoint, it mutates the active database. In-place mutation is **not safe to run concurrently** with
+other queries against the same database, so this endpoint is intended for controlled administrative
+use rather than general traffic.
+
+**Request** (a SaneQL write statement as the raw request body):
+```
+source.filter(country='CH').project({primaryKey, country}).insertInto(archive)
+```
+
+**Response** (200, `application/json`): a summary of the effect. For `insertInto`, the number of rows
+inserted:
+```json
+{"insertedRows": 42}
+```
+
+A successful response carries the [`data-version`](#common-response-headers) header reflecting the
+version after the write.
+
+**Errors** (400, `application/json`): returned when the body is not a valid write statement — e.g. a
+plain read query, an unknown target table, or a result that does not produce every column of the
+target table.
+```json
+{
+  "error": "Bad request",
+  "message": "description of what went wrong"
+}
+```
+
+```bash
+curl -X POST \
+  --data "source.filter(country='CH').project({primaryKey, country}).insertInto(archive)" \
+  http://localhost:8081/admin/query
+```
+
+The append times out after 120 seconds.
+
+---
+
 ## Error Responses
 
 All error responses are JSON, regardless of the `Accept` header.

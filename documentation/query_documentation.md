@@ -492,6 +492,43 @@ so nucleotide and amino acid sequences cannot be distinguished from ordinary str
 
 ---
 
+## Writing query results to a table
+
+### `insertInto(targetTable)`
+
+Runs the query it is chained onto and inserts the resulting rows into an existing table — a query
+against table A whose result lands in table B, expressed as a single SaneQL query. It is the only
+SaneQL construct that writes: it mutates the target table rather than returning rows to the caller.
+
+```
+source.filter(country='CH').insertInto(archive)
+source.filter(country='CH').project({primaryKey, country, age}).insertInto(archive)
+source.insertInto('archive')
+```
+
+The target may be written as a bare identifier (`archive`) or a string literal (`'archive'`). It
+must be an existing table in the database; `insertInto` never creates a table.
+
+**Column matching.** The query's output columns are matched to the target table's columns *by name*.
+Every column of the target table must be produced by the query; any extra output columns are ignored.
+Use `project({...})` (or `map({...})`) to shape the result so it lines up with the target's schema.
+A missing column, or a value whose type does not match the target column, is a query error and no
+rows are inserted.
+
+**Placement.** `insertInto` is a *write statement*, not a pipeline operator: it must be the whole
+query (its outermost operation) and cannot be chained further (e.g. `x.insertInto(y).filter(...)` is
+not valid).
+
+**Limitation:** only value columns (`STRING`, `INT32`, `INT64`, `FLOAT`, `DATE32`, `BOOL`) round-trip
+through an insert query. A sequence column is decompressed to a plain string when read into a
+pipeline, which does not match the structured form the target's sequence column expects, so query
+results containing sequence columns cannot be inserted.
+
+Like other in-place mutations it bumps the data version and is not safe to run concurrently with other
+queries against the same database.
+
+---
+
 ## Scalar Functions
 
 Most scalar functions are boolean predicates used inside `.filter(...)`.

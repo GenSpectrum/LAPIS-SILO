@@ -2,6 +2,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "admin_query_handler.h"
 #include "health_handler.h"
 #include "info_handler.h"
 #include "lineage_definition_handler.h"
@@ -120,6 +121,16 @@ TEST(RhyDBRequestHandlerFactory, routesPostQueryRequest) {
    auto handler = under_test->routeRequest(uri);
 
    assertHoldsHandlerType<rhydb_app::QueryHandler>(handler);
+}
+
+TEST(RhyDBRequestHandlerFactory, routesPostAdminQueryRequest) {
+   const Poco::URI uri("/admin/query");
+
+   auto under_test = createRequestHandlerWithInitializedDatabase();
+
+   auto handler = under_test->routeRequest(uri);
+
+   assertHoldsHandlerType<rhydb_app::AdminQueryHandler>(handler);
 }
 
 TEST(RhyDBRequestHandlerFactory, routesUnknownUrlToNotFoundHandler) {
