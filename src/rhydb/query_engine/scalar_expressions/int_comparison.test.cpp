@@ -129,6 +129,22 @@ const QueryTestScenario TWO_COLUMNS = {
       "reference and the other a literal value"
 };
 
+const QueryTestScenario NO_COLUMN = {
+   .name = "INT_NO_COLUMN",
+   .query = "default.filter(1 < 2).project(primaryKey)",
+   .expected_error_message =
+      "A Comparison expression can only be compiled to a filter when exactly one side is a column "
+      "reference and the other a literal value"
+};
+
+const QueryTestScenario NO_LITERAL = {
+   .name = "INT_NO_LITERAL",
+   .query = "default.filter(int_value < primaryKey.at(1)).project(primaryKey)",
+   .expected_error_message =
+      "Unsupported value type in comparison with column 'int_value': the value must be an int, "
+      "float, date, or string literal",
+};
+
 const QueryTestScenario INT32_OVERFLOW = {
    .name = "INT_INT32_OVERFLOW",
    .query = "default.filter(int_value < 3000000000).project(primaryKey)",
@@ -171,6 +187,8 @@ QUERY_TEST(
       BOOL_COMPARISON,
       UNKNOWN_COLUMN,
       TWO_COLUMNS,
+      NO_COLUMN,
+      NO_LITERAL,
       INT32_OVERFLOW,
       INT64_LESS_THAN,
       INT64_GREATER_EQUAL,

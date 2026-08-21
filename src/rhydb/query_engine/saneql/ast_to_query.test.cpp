@@ -317,13 +317,11 @@ TEST(AstToQueryBinaryExpr, comparisonIdentifierOnRightBuildsComparison) {
    EXPECT_EQ(parseFilter("1 < age", schema)->toString(), "1 < age");
 }
 
-TEST(AstToQueryBinaryExpr, comparisonNoIdentifierThrows) {
-   EXPECT_THAT(
-      []() { (void)parseFilter("1 < 2"); },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("comparison requires an identifier on one side")
-      )
-   );
+TEST(AstToQueryBinaryExpr, comparisonNoIdentifierBuildsComparison) {
+   // A comparison without a column reference is not rejected at conversion time;
+   // Comparison::compile catches the missing column later (see the NO_COLUMN query
+   // scenario in int_comparison.test.cpp).
+   EXPECT_EQ(parseFilter("1 < 2")->toString(), "1 < 2");
 }
 
 TEST(AstToQueryBinaryExpr, unhandledBinaryOpThrows) {
