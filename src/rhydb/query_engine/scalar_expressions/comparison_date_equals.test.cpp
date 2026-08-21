@@ -149,7 +149,8 @@ const QueryTestScenario DATE_EQUALS_WRONG_VALUE_TYPE = {
 const QueryTestScenario DATE_EQUALS_COLUMN_NOT_IN_DB = {
    .name = "DATE_EQUALS_COLUMN_NOT_IN_DB",
    .query = "default.filter(something_not_in_database = '2020-01-01'::date)",
-   .expected_error_message = "The database does not contain the column 'something_not_in_database'"
+   .expected_error_message =
+      "the left side of a comparison references unknown column 'something_not_in_database' at 1:16"
 };
 
 const QueryTestScenario DATE_EQUALS_WRONG_COLUMN_TYPE = {

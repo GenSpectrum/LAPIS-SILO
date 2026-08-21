@@ -68,10 +68,17 @@ default
 | `<`, `<=`, `>`, `>=` | ordering | int, float, date, string (lexicographic) |
 
 Notes:
-- One side must be a column identifier; the other a literal value. For ordering
-  operators the column may be on either side (`age > 30` equals `30 < age`).
-- Ordering operators are **not** supported for boolean columns, and comparisons
-  **exclude** null values (a null cell never matches an ordering comparison).
+- One side must be a column identifier; the other a literal value. The column may
+  be on either side (`age > 30` equals `30 < age`).
+- Ordering operators are **not** supported for boolean columns.
+- Comparisons **exclude** null values: a null cell never matches any comparison,
+  including `<>`. So `country <> 'Germany'` does not return rows where `country`
+  is null.
+- Testing for null is done with `= null` / `<> null`, which mean "is null" and
+  "is not null" respectively.
+- `!` is a set complement, not SQL's `NOT`, so it does **not** mean the same as
+  `<>`: `!(country = 'Germany')` *does* return rows where `country` is null,
+  whereas `country <> 'Germany'` does not.
 - String ordering is lexicographic and applies to both plain and
   dictionary-encoded string columns.
 

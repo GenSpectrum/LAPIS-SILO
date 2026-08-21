@@ -17,7 +17,7 @@
 #include "rhydb/query_engine/operators/query_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
 #include "rhydb/query_engine/planner.h"
-#include "rhydb/query_engine/scalar_expressions/equals.h"
+#include "rhydb/query_engine/scalar_expressions/comparison.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/query_engine/scalar_expressions/or.h"
@@ -33,7 +33,7 @@ using rhydb::query_engine::operators::AggregateNode;
 using rhydb::query_engine::operators::FilterNode;
 using rhydb::query_engine::operators::TableScanNode;
 using rhydb::query_engine::scalar_expressions::BoolLiteral;
-using rhydb::query_engine::scalar_expressions::Equals;
+using rhydb::query_engine::scalar_expressions::Comparison;
 using rhydb::query_engine::scalar_expressions::FieldRef;
 using rhydb::query_engine::scalar_expressions::Or;
 using rhydb::query_engine::scalar_expressions::ScalarExpression;
@@ -41,16 +41,17 @@ using rhydb::query_engine::scalar_expressions::ScalarExpressionVector;
 using rhydb::query_engine::scalar_expressions::StringInSet;
 using rhydb::query_engine::scalar_expressions::StringLiteral;
 
-/// Build an `Equals` predicate on an indexed string column, i.e. `column = value`.
+/// Build an equality predicate on an indexed string column, i.e. `column = value`.
 std::unique_ptr<ScalarExpression> makeStringEquals(
    const std::string& column,
    const std::string& value
 ) {
-   return std::make_unique<Equals>(
+   return std::make_unique<Comparison>(
       std::make_unique<FieldRef>(rhydb::schema::ColumnIdentifier{
          .name = column, .type = rhydb::schema::ColumnType::DICTIONARY_ENCODED
       }),
-      std::make_unique<StringLiteral>(value)
+      std::make_unique<StringLiteral>(value),
+      rhydb::query_engine::filter::operators::Comparator::EQUALS
    );
 }
 

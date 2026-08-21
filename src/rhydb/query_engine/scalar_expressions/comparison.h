@@ -11,10 +11,18 @@
 
 namespace rhydb::query_engine::scalar_expressions {
 
-/// Ordering comparison predicate: `left <op> right`. One side is a column
+/// Comparison predicate: `left <op> right`, for every comparison operator the
+/// query language offers (`=`, `<>`, `<`, `<=`, `>`, `>=`). One side is a column
 /// reference (FieldRef) and the other a literal value; compile() recognises this
 /// "column <op> constant" shape and lowers it to an efficient filter, dispatching
-/// on the literal's type.
+/// on the literal's type. The column may be on either side — compile() flips the
+/// comparator accordingly.
+///
+/// Null cells never match, for any operator. Testing for null is a separate
+/// expression (IsNull), which is what `column = null` / `column <> null` parse to.
+///
+/// Ordering operators are rejected for boolean columns; `=` and `<>` support all
+/// column types.
 class Comparison : public ScalarExpression {
    std::unique_ptr<ScalarExpression> left;
    std::unique_ptr<ScalarExpression> right;

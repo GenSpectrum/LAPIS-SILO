@@ -209,17 +209,6 @@ TEST(AstToQueryMutationProfile, mutationListElementNotRecordThrows) {
    );
 }
 
-// --- convertEqualsToFilter ---
-
-TEST(AstToQueryConvertEqualsToFilter, unsupportedValueTypeThrows) {
-   EXPECT_THAT(
-      []() { (void)parseFilter("a = {1, 2}"); },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("the value in an equality must be a literal value")
-      )
-   );
-}
-
 // --- convertToFilter ---
 
 TEST(AstToQueryConvertToFilter, unknownScalarFunctionThrows) {
@@ -290,22 +279,77 @@ TEST(AstToQueryDateComparison, greaterThanBuildsComparison) {
 
 // --- convertBinaryExprToFilter ---
 
-TEST(AstToQueryBinaryExpr, equalsNoIdentifierThrows) {
+TEST(AstToQueryBinaryExpr, unsupportedValueTypeThrows) {
    EXPECT_THAT(
-      []() { (void)parseFilter("'a' = 'b'"); },
+      []() { (void)parseFilter("a = {1, 2}"); },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("equality comparison requires an identifier on one side")
+         ::testing::HasSubstr("the right side of a comparison must be a literal value")
       )
    );
 }
 
-TEST(AstToQueryBinaryExpr, notEqualsNoIdentifierThrows) {
+// Equality is converted exactly like the ordering operators: both sides go through
+// convertToScalar and a missing column reference is only caught later, when
+// Comparison::compile looks for the column.
+
+TEST(AstToQueryBinaryExpr, equalsNoIdentifierBuildsComparison) {
+   EXPECT_EQ(parseFilter("'a' = 'b'")->toString(), "'a' = 'b'");
+}
+
+TEST(AstToQueryBinaryExpr, notEqualsNoIdentifierBuildsComparison) {
+   EXPECT_EQ(parseFilter("'a' <> 'b'")->toString(), "'a' <> 'b'");
+}
+
+// `null` is not a comparable value, so equality against it stays a null test even
+// though the surrounding parsing is now shared with the ordering operators.
+
+TEST(AstToQueryBinaryExpr, equalsNullBuildsIsNull) {
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+   };
+   EXPECT_EQ(parseFilter("age = null", schema)->toString(), "age IS NULL");
+}
+
+TEST(AstToQueryBinaryExpr, nullOnLeftBuildsIsNull) {
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+   };
+   EXPECT_EQ(parseFilter("null = age", schema)->toString(), "age IS NULL");
+}
+
+TEST(AstToQueryBinaryExpr, notEqualsNullBuildsNegatedIsNull) {
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+   };
+   EXPECT_EQ(parseFilter("age <> null", schema)->toString(), "!(age IS NULL)");
+}
+
+TEST(AstToQueryBinaryExpr, nullComparedToNonColumnThrows) {
    EXPECT_THAT(
-      []() { (void)parseFilter("'a' <> 'b'"); },
+      []() { (void)parseFilter("'a' = null"); },
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
+         "a comparison against null requires a column reference on the other side"
+      ))
+   );
+}
+
+TEST(AstToQueryBinaryExpr, orderingAgainstNullThrows) {
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+   };
+   EXPECT_THAT(
+      [&]() { (void)parseFilter("age < null", schema); },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("not-equals comparison requires an identifier on one side")
+         ::testing::HasSubstr("the right side of a comparison must be a literal value")
       )
    );
+}
+
+TEST(AstToQueryBinaryExpr, equalsIdentifierOnRightBuildsComparison) {
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+   };
+   EXPECT_EQ(parseFilter("30 = age", schema)->toString(), "30 = age");
 }
 
 TEST(AstToQueryBinaryExpr, comparisonIdentifierOnRightBuildsComparison) {
