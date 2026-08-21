@@ -1,7 +1,9 @@
 #include "rhydb/roaring_util/roaring_container.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <iterator>
 #include <sstream>
 #include <vector>
@@ -34,6 +36,17 @@ std::vector<uint16_t> iterate(const RoaringContainerView& view) {
       values.push_back(value);
    }
    return values;
+}
+
+// Builds an owning container holding exactly `values`. An empty list yields an empty container
+// (cardinality 0), which the set-algebra tests use to exercise the empty-operand paths.
+RoaringContainer makeContainer(std::initializer_list<uint16_t> values) {
+   auto container =
+      RoaringContainer::withCapacity(static_cast<int32_t>(std::max(values.size(), std::size_t{1})));
+   for (const uint16_t value : values) {
+      container.add(value);
+   }
+   return container;
 }
 
 }  // namespace
@@ -256,7 +269,11 @@ TEST(RoaringContainer, serializationRoundTrip) {
       output_archive << container;
    }
 
+   // How to silence the deprecation warning when one needs to default construct the object
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
    RoaringContainer restored;
+#pragma GCC diagnostic pop
    {
       boost::archive::binary_iarchive input_archive(stream);
       input_archive >> restored;
@@ -264,4 +281,210 @@ TEST(RoaringContainer, serializationRoundTrip) {
 
    EXPECT_EQ(restored.getCardinality(), 3);
    EXPECT_EQ(toRoaring(restored), expected);
+}
+
+TEST(RoaringContainerSetAlgebra, intersectionKeepsCommonValues) {
+   const auto lhs = makeContainer({1, 2, 3, 5, 8});
+   const auto rhs = makeContainer({2, 3, 5, 7});
+
+   const RoaringContainer result = RoaringContainerView{lhs} & RoaringContainerView{rhs};
+   EXPECT_EQ(result.getCardinality(), 3);
+   EXPECT_EQ(toRoaring(result), (roaring::Roaring{2, 3, 5}));
+}
+
+TEST(RoaringContainerSetAlgebra, intersectionOfDisjointContainersIsEmpty) {
+   const auto lhs = makeContainer({1, 3, 5});
+   const auto rhs = makeContainer({2, 4, 6});
+
+   const RoaringContainer result = RoaringContainerView{lhs} & RoaringContainerView{rhs};
+   EXPECT_TRUE(result.empty());
+   EXPECT_EQ(result.getCardinality(), 0);
+   // An empty result must still be a valid owning container, not a container-less object.
+   EXPECT_NE(result.rawContainer(), nullptr);
+}
+
+TEST(RoaringContainerSetAlgebra, intersectionWithEmptyOperandIsEmpty) {
+   const auto values = makeContainer({1, 2, 3});
+   const auto empty = makeContainer({});
+
+   const RoaringContainer empty_rhs = RoaringContainerView{values} & RoaringContainerView{empty};
+   EXPECT_TRUE(empty_rhs.empty());
+   EXPECT_NE(empty_rhs.rawContainer(), nullptr);
+
+   const RoaringContainer empty_lhs = RoaringContainerView{empty} & RoaringContainerView{values};
+   EXPECT_TRUE(empty_lhs.empty());
+   EXPECT_NE(empty_lhs.rawContainer(), nullptr);
+}
+
+TEST(RoaringContainerSetAlgebra, differenceRemovesRhsValues) {
+   const auto lhs = makeContainer({1, 2, 3, 4, 5});
+   const auto rhs = makeContainer({2, 4});
+
+   const RoaringContainer result = RoaringContainerView{lhs} - RoaringContainerView{rhs};
+   EXPECT_EQ(toRoaring(result), (roaring::Roaring{1, 3, 5}));
+}
+
+TEST(RoaringContainerSetAlgebra, differenceWithEmptyRhsCopiesLhs) {
+   const auto lhs = makeContainer({1, 2, 3});
+   const auto empty = makeContainer({});
+
+   const RoaringContainer result = RoaringContainerView{lhs} - RoaringContainerView{empty};
+   EXPECT_EQ(toRoaring(result), (roaring::Roaring{1, 2, 3}));
+   // The result is an independent owning copy, not a borrow of `lhs`.
+   EXPECT_NE(result.rawContainer(), lhs.rawContainer());
+}
+
+TEST(RoaringContainerSetAlgebra, differenceWithEmptyLhsIsEmpty) {
+   const auto empty = makeContainer({});
+   const auto rhs = makeContainer({1, 2, 3});
+
+   const RoaringContainer result = RoaringContainerView{empty} - RoaringContainerView{rhs};
+   EXPECT_TRUE(result.empty());
+   EXPECT_NE(result.rawContainer(), nullptr);
+}
+
+TEST(RoaringContainerSetAlgebra, differenceOfEqualContainersIsEmpty) {
+   // The C-API difference produces an empty container here; the "no empty containers" invariant
+   // requires it to come back as an empty owning container, not a kept zero-cardinality one.
+   const auto values = makeContainer({1, 2, 3});
+
+   const RoaringContainer result = RoaringContainerView{values} - RoaringContainerView{values};
+   EXPECT_TRUE(result.empty());
+   EXPECT_EQ(result.getCardinality(), 0);
+   EXPECT_NE(result.rawContainer(), nullptr);
+}
+
+TEST(RoaringContainerSetAlgebra, unionMergesValues) {
+   const auto lhs = makeContainer({1, 3, 5});
+   const auto rhs = makeContainer({2, 4, 6});
+
+   const RoaringContainer result = RoaringContainerView{lhs} | RoaringContainerView{rhs};
+   EXPECT_EQ(toRoaring(result), (roaring::Roaring{1, 2, 3, 4, 5, 6}));
+}
+
+TEST(RoaringContainerSetAlgebra, unionWithEmptyOperandsReturnsTheOther) {
+   const auto values = makeContainer({1, 2, 3});
+   const auto empty = makeContainer({});
+
+   EXPECT_EQ(
+      toRoaring(RoaringContainerView{empty} | RoaringContainerView{values}),
+      (roaring::Roaring{1, 2, 3})
+   );
+   EXPECT_EQ(
+      toRoaring(RoaringContainerView{values} | RoaringContainerView{empty}),
+      (roaring::Roaring{1, 2, 3})
+   );
+   const RoaringContainer both_empty = RoaringContainerView{empty} | RoaringContainerView{empty};
+   EXPECT_TRUE(both_empty.empty());
+   EXPECT_NE(both_empty.rawContainer(), nullptr);
+}
+
+TEST(RoaringContainerSetAlgebra, orAssignAccumulatesInPlace) {
+   RoaringContainer accumulator = makeContainer({1, 2});
+   const auto addend = makeContainer({2, 3, 4});
+
+   accumulator |= RoaringContainerView{addend};
+   EXPECT_EQ(toRoaring(accumulator), (roaring::Roaring{1, 2, 3, 4}));
+}
+
+TEST(RoaringContainerSetAlgebra, orAssignIntoEmptyAccumulatorTakesAddend) {
+   RoaringContainer accumulator = makeContainer({});
+   const auto addend = makeContainer({5, 6});
+
+   accumulator |= RoaringContainerView{addend};
+   EXPECT_EQ(toRoaring(accumulator), (roaring::Roaring{5, 6}));
+}
+
+TEST(RoaringContainerSetAlgebra, orAssignEmptyAddendLeavesAccumulatorUnchanged) {
+   RoaringContainer accumulator = makeContainer({1, 2});
+   const auto empty = makeContainer({});
+
+   accumulator |= RoaringContainerView{empty};
+   EXPECT_EQ(toRoaring(accumulator), (roaring::Roaring{1, 2}));
+}
+
+TEST(RoaringContainerSetAlgebra, orAssignSelfLeavesContainerUnchanged) {
+   RoaringContainer accumulator = makeContainer({1, 2, 3});
+
+   accumulator |= RoaringContainerView{accumulator};
+   EXPECT_EQ(toRoaring(accumulator), (roaring::Roaring{1, 2, 3}));
+}
+
+// The array-array union spills into a bitset once the result exceeds the array container limit, so
+// the roaring API hands back a freshly allocated container instead of unioning in place.
+TEST(RoaringContainerSetAlgebra, orAssignGrowingBeyondArrayCapacityConvertsToBitset) {
+   RoaringContainer accumulator = makeContainer({});
+   roaring::Roaring expected;
+   for (uint16_t value = 0; value < 3000; ++value) {
+      accumulator.add(value);
+      expected.add(value);
+   }
+   RoaringContainer addend = makeContainer({});
+   for (uint16_t value = 3000; value < 6000; ++value) {
+      addend.add(value);
+      expected.add(value);
+   }
+   ASSERT_EQ(accumulator.getTypecode(), ARRAY_CONTAINER_TYPE);
+   ASSERT_EQ(addend.getTypecode(), ARRAY_CONTAINER_TYPE);
+
+   accumulator |= RoaringContainerView{addend};
+
+   EXPECT_EQ(accumulator.getTypecode(), BITSET_CONTAINER_TYPE);
+   EXPECT_EQ(accumulator.getCardinality(), 6000);
+   EXPECT_EQ(toRoaring(accumulator), expected);
+}
+
+// An array accumulator cannot absorb a bitset addend in place either.
+TEST(RoaringContainerSetAlgebra, orAssignArrayAccumulatorWithBitsetAddend) {
+   RoaringContainer accumulator = makeContainer({1, 60000});
+   RoaringContainer addend = makeContainer({});
+   roaring::Roaring expected{1, 60000};
+   for (uint16_t value = 0; value < 5000; ++value) {
+      addend.add(value);
+      expected.add(value);
+   }
+   ASSERT_EQ(accumulator.getTypecode(), ARRAY_CONTAINER_TYPE);
+   ASSERT_EQ(addend.getTypecode(), BITSET_CONTAINER_TYPE);
+
+   accumulator |= RoaringContainerView{addend};
+
+   EXPECT_EQ(toRoaring(accumulator), expected);
+}
+
+// Run containers union in place, but the result is re-converted to whichever representation is most
+// compact, which again may replace the container.
+TEST(RoaringContainerSetAlgebra, orAssignRunContainers) {
+   RoaringContainer accumulator = makeContainer({});
+   RoaringContainer addend = makeContainer({});
+   roaring::Roaring expected;
+   for (uint16_t value = 0; value < 5000; ++value) {
+      accumulator.add(value);
+      expected.add(value);
+   }
+   for (uint16_t value = 4000; value < 9000; ++value) {
+      addend.add(value);
+      expected.add(value);
+   }
+   accumulator.runOptimizeAndShrink();
+   addend.runOptimizeAndShrink();
+   ASSERT_EQ(accumulator.getTypecode(), RUN_CONTAINER_TYPE);
+   ASSERT_EQ(addend.getTypecode(), RUN_CONTAINER_TYPE);
+
+   accumulator |= RoaringContainerView{addend};
+
+   EXPECT_EQ(accumulator.getCardinality(), 9000);
+   EXPECT_EQ(toRoaring(accumulator), expected);
+}
+
+TEST(RoaringContainerSetAlgebra, orAssignAccumulatesRepeatedly) {
+   RoaringContainer accumulator = makeContainer({});
+   roaring::Roaring expected;
+   for (uint16_t offset = 0; offset < 100; ++offset) {
+      const RoaringContainer addend = makeContainer({offset, static_cast<uint16_t>(offset + 100)});
+      expected.add(offset);
+      expected.add(static_cast<uint16_t>(offset + 100));
+      accumulator |= RoaringContainerView{addend};
+   }
+
+   EXPECT_EQ(toRoaring(accumulator), expected);
 }

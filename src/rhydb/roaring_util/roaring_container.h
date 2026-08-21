@@ -13,6 +13,8 @@
 
 namespace rhydb::roaring_util {
 
+class RoaringContainerView;
+
 /// Owning RAII wrapper around a single roaring bitmap container (the 2^16-valued building block a
 /// `roaring::Roaring` is internally composed of). It bundles the raw `roaring::internal` pointer,
 /// its typecode and its cardinality, and encapsulates the container-level C API -- adding values,
@@ -27,6 +29,10 @@ class RoaringContainer {
    /// Constructs an empty container that owns nothing (required for boost deserialization).
    /// Container will be in invalid state, rawContainer() must be initialized before usage
    /// Prefer `withCapacity`/`clonedFrom`/the owning constructor otherwise.
+   [[deprecated(
+      "RoaringContainer{} yields an invalid, container-less object and exists only for boost "
+      "deserialization; use RoaringContainer::withCapacity/clonedFrom or the owning constructor"
+   )]]
    RoaringContainer() = default;
 
    /// Takes ownership of an already-allocated container.
@@ -76,6 +82,8 @@ class RoaringContainer {
    /// roaring container API this blindly bumps the cardinality, so the caller must only add values
    /// that are not already present.
    void add(uint16_t value);
+
+   RoaringContainer& operator|=(RoaringContainerView addend);
 
    [[nodiscard]] uint32_t getCardinality() const { return cardinality; }
 
@@ -255,5 +263,9 @@ class RoaringContainerView {
 
    [[nodiscard]] static ConstIterator end() { return ConstIterator{}; }
 };
+
+[[nodiscard]] RoaringContainer operator&(RoaringContainerView lhs, RoaringContainerView rhs);
+[[nodiscard]] RoaringContainer operator-(RoaringContainerView lhs, RoaringContainerView rhs);
+[[nodiscard]] RoaringContainer operator|(RoaringContainerView lhs, RoaringContainerView rhs);
 
 }  // namespace rhydb::roaring_util
