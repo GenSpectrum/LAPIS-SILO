@@ -6,7 +6,7 @@ from libcpp.optional cimport optional
 from libc.stdint cimport uint64_t, uint32_t
 from libc.stdlib cimport malloc, free
 from cython.operator cimport dereference as deref
-from database cimport Database as CppDatabase, Roaring as CppRoaring
+from database cimport Database as CppDatabase, Roaring as CppRoaring, ColumnDefinition, ReferenceEntry
 import os
 import pyroaring
 import pyarrow as pa
@@ -80,93 +80,172 @@ cdef class PyDatabase:
         except Exception as e:
             raise RuntimeError(f"Failed to get tables: {e}")
 
-    
-    def create_nucleotide_sequence_table(self, str table_name, str primary_key_name, str sequence_name, str reference_sequence, list extra_columns=None):
+
+    # Column types accepted by :meth:`create_table`.
+    _COLUMN_TYPES = frozenset({
+        "string",
+        "indexed_string",
+        "date",
+        "bool",
+        "int",
+        "float",
+        "nucleotide_sequence",
+        "amino_acid_sequence",
+        "zstd_compressed_string",
+    })
+
+    def create_table(self, str table_name, list columns):
         """
-        Create a new nucleotide sequence table
+        Create a new table with columns of arbitrary supported types.
+
+        It lets you declare a table with any mix of scalar, string and sequence columns. The first
+        column in ``columns`` becomes the table's primary key, so at least one column must be
+        provided and its first entry must be of type ``"string"``.
+
+        Columns of type ``"nucleotide_sequence"``, ``"amino_acid_sequence"`` and
+        ``"zstd_compressed_string"`` need a reference sequence, and neither the sequence nor the
+        name of the reference is passed here. Both come from built-in tables that must be populated
+        first:
+
+        1. :meth:`register_reference` stores the reference itself in ``reference_genomes``.
+        2. A row appended to ``reference_columns`` states that a column of this table is backed by
+           that reference. Append it like any other data, e.g. with
+           :meth:`append_data_from_string`. The row's columns are ``id`` (which must be
+           ``"<table_name>.<column_name>"``), ``table_name``, ``column_name``, ``column_type`` and
+           ``reference_name``.
+
+        Creating the table then reads that mapping; a column of one of the three types with no row
+        declaring its reference is an error. Two rows may name the same reference, which is how an
+        aligned and an unaligned column of one sequence share it instead of storing it twice.
 
         Parameters
         ----------
         table_name : str
             Name of the table
-        primary_key_name : str
-            Name of the primary key column
-        sequence_name : str
-            Name of the nucleotide sequence column
-        reference_sequence : str
-            The reference nucleotide sequence (e.g., "ACGT...")
-        extra_columns : list of str, optional
-            Additional string columns to add to the table (default: None)
+        columns : list of dict
+            The table's columns; the first one becomes the primary key. Each dict has:
+
+            - ``name`` (str): the column name
+            - ``type`` (str): one of ``"string"``, ``"indexed_string"``, ``"date"``, ``"bool"``,
+              ``"int"``, ``"float"``, ``"nucleotide_sequence"``, ``"amino_acid_sequence"``,
+              ``"zstd_compressed_string"``
+
+        Example
+        -------
+        >>> import json
+        >>> # 1. store the reference, 2. declare which column it backs, 3. create the table
+        >>> db.register_reference("main", "ACGT", "nucleotide_sequence")
+        >>> db.append_data_from_string("reference_columns", json.dumps({
+        ...     "id": "samples.main",
+        ...     "table_name": "samples",
+        ...     "column_name": "main",
+        ...     "column_type": "nucleotide_sequence",
+        ...     "reference_name": "main",
+        ... }))
+        >>> db.create_table(
+        ...     table_name="samples",
+        ...     columns=[
+        ...         {"name": "id", "type": "string"},  # first column -> primary key
+        ...         {"name": "age", "type": "int"},
+        ...         {"name": "qc", "type": "float"},
+        ...         {"name": "collected", "type": "date"},
+        ...         {"name": "passed", "type": "bool"},
+        ...         {"name": "country", "type": "string"},
+        ...         {"name": "lineage", "type": "indexed_string"},
+        ...         {"name": "main", "type": "nucleotide_sequence"},
+        ...     ],
+        ... )
         """
         if not table_name or not table_name.strip():
             raise ValueError("table_name cannot be empty")
-        if not primary_key_name or not primary_key_name.strip():
-            raise ValueError("primary_key_name cannot be empty")
-        if not sequence_name or not sequence_name.strip():
-            raise ValueError("sequence_name cannot be empty")
-        if not reference_sequence or not reference_sequence.strip():
-            raise ValueError("reference_sequence cannot be empty")
+        if columns is None:
+            columns = []
+        if not columns:
+            raise ValueError("columns must contain at least one column (the first is the primary key)")
 
         cdef string cpp_table_name = table_name.encode('utf-8')
-        cdef string cpp_primary_key_name = primary_key_name.encode('utf-8')
-        cdef string cpp_sequence_name = sequence_name.encode('utf-8')
-        cdef string cpp_reference_sequence = reference_sequence.encode('utf-8')
-        cdef vector[string] cpp_extra_columns
+        cdef vector[ColumnDefinition] cpp_columns
+        cdef ColumnDefinition cpp_column
 
-        if extra_columns:
-            for col in extra_columns:
-                if not isinstance(col, str):
-                    raise TypeError(f"extra_columns must contain strings, got {type(col)}")
-                cpp_extra_columns.push_back(col.encode('utf-8'))
+        for column in columns:
+            if not isinstance(column, dict):
+                raise TypeError(f"each column must be a dict, got {type(column)}")
+
+            name = column.get("name")
+            if not isinstance(name, str) or not name or not name.strip():
+                raise ValueError("each column must have a non-empty string 'name'")
+
+            column_type = column.get("type")
+            if not isinstance(column_type, str):
+                raise ValueError(f"column '{name}' must have a string 'type'")
+            if column_type not in self._COLUMN_TYPES:
+                raise ValueError(
+                    f"column '{name}' has unknown type '{column_type}'; "
+                    f"supported types are: {', '.join(sorted(self._COLUMN_TYPES))}"
+                )
+
+            cpp_column.name = name.encode('utf-8')
+            cpp_column.type = column_type.encode('utf-8')
+            cpp_columns.push_back(cpp_column)
 
         try:
-            self.c_database.createNucleotideSequenceTable(cpp_table_name, cpp_primary_key_name, cpp_sequence_name, cpp_reference_sequence, cpp_extra_columns)
+            self.c_database.createTableFromColumns(cpp_table_name, cpp_columns)
         except Exception as e:
             raise RuntimeError(f"Failed to create table '{table_name}': {e}")
 
-    def create_gene_table(self, str table_name, str primary_key_name, str gene_name, str reference_sequence, list extra_columns=None):
+    def register_reference(self, str name, str reference, str sequence_type=None):
         """
-        Create a new gene (amino acid sequence) table
+        Register a reference sequence in the built-in ``reference_genomes`` table.
+
+        Sequence columns (``"nucleotide_sequence"``, ``"amino_acid_sequence"``,
+        ``"zstd_compressed_string"``) take their reference from the built-in ``reference_genomes``
+        table rather than inline. This registers one reference under its own name; call it before
+        :meth:`create_table`, then declare which column it backs by appending a row to the
+        ``reference_columns`` table (see :meth:`create_table`).
 
         Parameters
         ----------
-        table_name : str
-            Name of the table
-        primary_key_name : str
-            Name of the primary key column
-        gene_name : str
-            Name of the amino acid sequence column
-        reference_sequence : str
-            The reference amino acid sequence
-        extra_columns : list of str, optional
-            Additional string columns to add to the table (default: None)
+        name : str
+            The name to register this reference under. Columns refer to it by this name; it no
+            longer has to be the name of a column.
+        reference : str
+            The reference sequence string.
+        sequence_type : str, optional
+            The sequence type, e.g. ``"nucleotide_sequence"`` or ``"amino_acid_sequence"``.
+            Optional: :meth:`create_table` takes each column's type from its column definition, so it
+            may be omitted (stored as an empty string).
+
+        Raises
+        ------
+        RuntimeError
+            If a reference named ``name`` is already registered. The ``reference_genomes`` table is
+            keyed on the name, and every lookup resolves a reference by name alone, so names must
+            be unique across nucleotide sequences and genes.
+
+        Example
+        -------
+        >>> db.register_reference("main", "ACGT", "nucleotide_sequence")
+        >>> # then declare the column it backs, and create the table -- see create_table
         """
-        if not table_name or not table_name.strip():
-            raise ValueError("table_name cannot be empty")
-        if not primary_key_name or not primary_key_name.strip():
-            raise ValueError("primary_key_name cannot be empty")
-        if not gene_name or not gene_name.strip():
-            raise ValueError("gene_name cannot be empty")
-        if not reference_sequence or not reference_sequence.strip():
-            raise ValueError("reference_sequence cannot be empty")
+        if not name or not name.strip():
+            raise ValueError("name cannot be empty")
+        if not isinstance(reference, str):
+            raise TypeError("reference must be a string")
+        if sequence_type is not None and not isinstance(sequence_type, str):
+            raise TypeError("sequence_type must be a string or None")
 
-        cdef string cpp_table_name = table_name.encode('utf-8')
-        cdef string cpp_primary_key_name = primary_key_name.encode('utf-8')
-        cdef string cpp_gene_name = gene_name.encode('utf-8')
-        cdef string cpp_reference_sequence = reference_sequence.encode('utf-8')
-        cdef vector[string] cpp_extra_columns
-
-        if extra_columns:
-            for col in extra_columns:
-                if not isinstance(col, str):
-                    raise TypeError(f"extra_columns must contain strings, got {type(col)}")
-                cpp_extra_columns.push_back(col.encode('utf-8'))
+        cdef vector[ReferenceEntry] cpp_entries
+        cdef ReferenceEntry cpp_entry
+        cpp_entry.name = name.encode('utf-8')
+        cpp_entry.reference = reference.encode('utf-8')
+        cpp_entry.type = (sequence_type or "").encode('utf-8')
+        cpp_entries.push_back(cpp_entry)
 
         try:
-            self.c_database.createGeneTable(cpp_table_name, cpp_primary_key_name, cpp_gene_name, cpp_reference_sequence, cpp_extra_columns)
+            self.c_database.addReferences(cpp_entries)
         except Exception as e:
-            raise RuntimeError(f"Failed to create table '{table_name}': {e}")
-    
+            raise RuntimeError(f"Failed to register reference '{name}': {e}")
+
     def append_data_from_file(self, str table_name, str file_name):
         """
         Append data from file to table

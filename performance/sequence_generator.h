@@ -191,7 +191,8 @@ constexpr size_t DEFAULT_READ_LENGTH = 200;
 // Real amplicon / targeted-panel sequencing produces reads from a fixed set of primer-defined
 // windows, not uniformly across the genome. Modeling that yields concrete coverage classes: every
 // read of a given amplicon shares the same covered range. This is the coverage structure clustered
-// ingestion is designed for, so the amplicon datasets are generated with this many coverage classes.
+// ingestion is designed for, so the amplicon datasets are generated with this many coverage
+// classes.
 constexpr size_t DEFAULT_NUM_AMPLICONS = 100;
 
 struct ShortRead {
@@ -207,8 +208,8 @@ class ShortReadGenerator {
    size_t count;
    size_t read_length;
    size_t num_positions;
-   // Engaged => amplicon mode: reads are drawn only from these fixed window start offsets instead of
-   // tiling every position uniformly. Empty => uniform whole-genome tiling.
+   // Engaged => amplicon mode: reads are drawn only from these fixed window start offsets instead
+   // of tiling every position uniformly. Empty => uniform whole-genome tiling.
    std::vector<size_t> amplicon_starts;
 
   public:
@@ -267,7 +268,8 @@ class ShortReadGenerator {
          const size_t max_start = reference.size() - read_length;
          amplicon_starts.reserve(num_amplicons);
          for (size_t i = 0; i < num_amplicons; ++i) {
-            amplicon_starts.push_back(num_amplicons == 1 ? 0 : (i * max_start) / (num_amplicons - 1)
+            amplicon_starts.push_back(
+               num_amplicons == 1 ? 0 : (i * max_start) / (num_amplicons - 1)
             );
          }
          SPDLOG_INFO(
@@ -314,18 +316,19 @@ void writeShortReadNdjson(
 ) {
    ShortReadGenerator generator(reference, count, read_length);
    for (const auto& read : generator) {
-      out << fmt::format(
-                R"({{"readId":"read_{}","samplingDate":"2024-01-01","locationName":"generated","main":{{"insertions":[],"offset":{},"sequence":"{}"}}}})",
-                read.id,
-                read.offset,
-                read.sequence
-             )
-          << "\n";
+      out
+         << fmt::format(
+               R"({{"readId":"read_{}","samplingDate":"2024-01-01","locationName":"generated","main":{{"insertions":[],"offset":{},"sequence":"{}"}}}})",
+               read.id,
+               read.offset,
+               read.sequence
+            )
+         << "\n";
    }
 }
 
-// Writes amplicon-coverage short reads (see DEFAULT_NUM_AMPLICONS). With shuffle=false the reads are
-// emitted in amplicon-sorted order, so ingestion sees coverage windows contiguously; with
+// Writes amplicon-coverage short reads (see DEFAULT_NUM_AMPLICONS). With shuffle=false the reads
+// are emitted in amplicon-sorted order, so ingestion sees coverage windows contiguously; with
 // shuffle=true the exact same reads are emitted in a random order, scattering every amplicon across
 // all ingestion chunks. The two orderings share the same seed, so the shuffled file is a true
 // permutation of the sorted one and the databases they build are identical.
@@ -422,7 +425,9 @@ void writeNRunSequenceNdjson(std::ostream& out, const std::string& reference) {
             sequence[j] = 'N';
          }
       }
-      out << fmt::format(R"({{"key":"{}","main":{{"sequence":"{}","insertions":[]}}}})", i, sequence)
+      out << fmt::format(
+                R"({{"key":"{}","main":{{"sequence":"{}","insertions":[]}}}})", i, sequence
+             )
           << "\n";
    }
 }
@@ -543,14 +548,19 @@ schema:
 )");
    rhydb::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
    auto database = std::make_shared<rhydb::Database>();
+   rhydb::initialize::Initializer::loadReferences(
+      rhydb::schema::TableName::getDefault(),
+      reference_genomes,
+      /*without_unaligned_sequences=*/true,
+      *database
+   );
    database->createTable(
       rhydb::schema::TableName::getDefault(),
       rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
-         std::move(reference_genomes),
+         database->getColumnReferences(rhydb::schema::TableName::getDefault().getName()),
          {},
-         rhydb::common::PhyloTree{},
-         /*without_unaligned_sequences=*/true
+         rhydb::common::PhyloTree{}
       )
    );
    return database;
@@ -569,14 +579,19 @@ schema:
 )");
    rhydb::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
    auto database = std::make_shared<rhydb::Database>();
+   rhydb::initialize::Initializer::loadReferences(
+      rhydb::schema::TableName::getDefault(),
+      reference_genomes,
+      /*without_unaligned_sequences=*/true,
+      *database
+   );
    database->createTable(
       rhydb::schema::TableName::getDefault(),
       rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
-         std::move(reference_genomes),
+         database->getColumnReferences(rhydb::schema::TableName::getDefault().getName()),
          {},
-         rhydb::common::PhyloTree{},
-         /*without_unaligned_sequences=*/true
+         rhydb::common::PhyloTree{}
       )
    );
    return database;

@@ -125,8 +125,13 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
    const std::string& valid_sequence_name
 ) const {
    const auto& seq_id = std::get<SequenceIdInput>(input).id;
-   const auto& primary_key_name = table.schema->primary_key.name;
-   const auto primary_key_type = table.schema->primary_key.type;
+   CHECK_SILO_QUERY(
+      table.schema->primary_key.has_value(),
+      "The table has no primary key, so a {} MutationProfile cannot look up a sequenceId in it",
+      SymbolType::SYMBOL_NAME
+   );
+   const auto& primary_key_name = table.schema->primary_key->name;
+   const auto primary_key_type = table.schema->primary_key->type;
 
    const auto& seq_col =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);

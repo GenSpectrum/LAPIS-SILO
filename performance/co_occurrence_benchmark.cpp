@@ -17,7 +17,6 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
-#include "sequence_generator.h"
 #include "rhydb/config/database_config.h"
 #include "rhydb/config/runtime_config.h"
 #include "rhydb/database.h"
@@ -27,6 +26,7 @@
 #include "rhydb/query_engine/query_plan.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/reference_genomes.h"
+#include "sequence_generator.h"
 
 namespace {
 
@@ -54,14 +54,19 @@ schema:
    rhydb::ReferenceGenomes reference_genomes{{{"main", reference}}, {}};
 
    auto database = std::make_shared<Database>();
+   rhydb::initialize::Initializer::loadReferences(
+      rhydb::schema::TableName::getDefault(),
+      reference_genomes,
+      /*without_unaligned_sequences=*/true,
+      *database
+   );
    database->createTable(
       rhydb::schema::TableName::getDefault(),
       rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
-         reference_genomes,
+         database->getColumnReferences(rhydb::schema::TableName::getDefault().getName()),
          {},
-         rhydb::common::PhyloTree{},
-         /*without_unaligned_sequences=*/true
+         rhydb::common::PhyloTree{}
       )
    );
 
@@ -112,7 +117,8 @@ size_t planAndExecute(
 
 int main() {
    changeCwdToTestFolder();
-   // Register Arrow's compute kernels (e.g. utf8_slice_codeunits, used by the `at` scalar function).
+   // Register Arrow's compute kernels (e.g. utf8_slice_codeunits, used by the `at` scalar
+   // function).
    if (!arrow::compute::Initialize().ok()) {
       SPDLOG_ERROR("Failed to initialize Arrow compute");
       return 1;

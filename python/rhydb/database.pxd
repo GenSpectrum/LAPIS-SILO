@@ -14,11 +14,20 @@ cdef extern from "roaring/roaring.hh" namespace "roaring":
         size_t write(char* buf) except +
 
 cdef extern from "rhydb/database.h" namespace "rhydb":
+    cdef struct ColumnDefinition:
+        string name
+        string type
+
+    cdef struct ReferenceEntry:
+        string name
+        string reference
+        string type
+
     cdef cppclass Database:
         Database() except +
         Database(const Database&) except +  # Copy constructor
-        void createNucleotideSequenceTable(string table_name, string primary_key_name, string sequence_name, string reference_sequence, vector[string] extra_string_columns) except +
-        void createGeneTable(string table_name, string primary_key_name, string sequence_name, string reference_sequence, vector[string] extra_string_columns) except +
+        void createTableFromColumns(string table_name, vector[ColumnDefinition] columns) except +
+        void addReferences(const vector[ReferenceEntry]& entries) except +
         void appendDataFromFile(string table_name, string file_name) except +
         void appendDataFromString(string table_name, string json_string) except +
         void printAllData(string table_name) except +

@@ -63,20 +63,27 @@ with Database("path/to/silo-dir") as db:
 
 ### Building a database in memory
 
-Two helpers create a table with a primary key, a sequence column, and optional **string** columns. Scalar (int/float/date/bool) columns cannot be created through these helpers; they come from a preprocessed database that you load.
+**`create_table(table_name, columns)`** builds a table whose columns can be of any supported type.
 
-**`create_nucleotide_sequence_table(table_name, primary_key_name, sequence_name, reference_sequence, extra_columns=None)`**
-**`create_gene_table(table_name, primary_key_name, gene_name, reference_sequence, extra_columns=None)`**
+- `columns` is a list of `{"name": <str>, "type": <str>}` dicts. Supported types: `"string"`, `"indexed_string"`, `"date"`, `"bool"`, `"int"`, `"float"`, `"nucleotide_sequence"`, `"amino_acid_sequence"`, `"zstd_compressed_string"`.
+- The **first** column becomes the table's primary key, so `columns` must be non-empty and its first entry must be of type `"string"`.
+- Columns that need a reference (`"nucleotide_sequence"`, `"amino_acid_sequence"`, `"zstd_compressed_string"`) do not take it inline. Instead they read it from the built-in `reference_genomes` table (string columns `name`, `reference` and `type`), which every database has automatically. Register the reference before creating the sequence column with the `register_reference` short-hand; the entry whose `name` equals the column name supplies that column's reference.
+
+**`register_reference(name, reference, sequence_type=None)`** appends one `{name, reference, type}` row to the built-in `reference_genomes` table. `sequence_type` is optional (`create_table` takes each column's type from its column definition).
 
 ```python
 db = Database()
-db.create_nucleotide_sequence_table(
-    table_name="sequences",
-    primary_key_name="primary_key",
-    sequence_name="main",
-    reference_sequence="ACGT...",
-    extra_columns=["country", "lineage"],   # string columns
-)
+
+# 1. Register references for any sequence columns.
+db.register_reference("main", "ACGT...", "nucleotide_sequence")
+
+# 2. Create the table. `primary_key` (first column) is the string primary key.
+db.create_table("sequences", [
+    {"name": "primary_key", "type": "string"},
+    {"name": "country", "type": "string"},
+    {"name": "lineage", "type": "indexed_string"},
+    {"name": "main", "type": "nucleotide_sequence"},
+])
 ```
 
 Data is then appended in [NDJSON format](input_format.md):
@@ -113,7 +120,7 @@ print(len(matching))                       # number of matching rows
 
 ### Inspecting the database
 
-**`get_tables()`** → `pyarrow.Table` with a single `table_name` column listing all tables.
+**`get_tables()`** → `pyarrow.Table` with a single `table_name` column listing all tables, including the built-in `reference_genomes` table. (Internal tables whose name starts with an underscore are omitted.)
 **`get_nucleotide_reference_sequence(table_name, sequence_name)`** → `str`.
 **`get_amino_acid_reference_sequence(table_name, sequence_name)`** → `str`.
 **`print_all_data(table_name)`** — prints all rows of a table to stdout (debugging aid).

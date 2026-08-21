@@ -1,16 +1,115 @@
 #include "rhydb/initialize/initializer.h"
 
+#include <vector>
+
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include "rhydb/database.h"
+#include "rhydb/schema/duplicate_primary_key_exception.h"
 #include "rhydb/storage/column/dictionary_encoded_column.h"
 #include "rhydb/storage/column/sequence_column.h"
 #include "rhydb/storage/column/zstd_compressed_string_column.h"
+#include "rhydb/storage/reference_genomes.h"
 
 using rhydb::ReferenceGenomes;
 using rhydb::common::LineageTreeAndIdMap;
 using rhydb::common::PhyloTree;
 using rhydb::initialize::Initializer;
+
+namespace {
+const rhydb::schema::TableName TEST_TABLE{"test_table"};
+
+// Bridges a ReferenceGenomes through the built-in `reference_genomes` and `reference_columns`
+// tables (mirroring the preprocessing path) and returns the column references that
+// createSchemaFromConfigFiles consumes.
+std::vector<rhydb::ResolvedColumnReference> toColumnReferences(
+   const ReferenceGenomes& reference_genomes,
+   bool without_unaligned_sequences = false
+) {
+   rhydb::Database database;
+   Initializer::loadReferences(
+      TEST_TABLE, reference_genomes, without_unaligned_sequences, database
+   );
+   return database.getColumnReferences(TEST_TABLE.getName());
+}
+}  // namespace
+
+TEST(Initializer, loadReferencesRejectsANameSharedByANucleotideSequenceAndAGene) {
+   // Both kinds land in one flat, name-keyed store, so the same name cannot serve a nucleotide
+   // sequence and a gene. The check itself lives in `Database::addReferences`; this pins that
+   // loadReferences routes through it rather than appending unchecked.
+   rhydb::Database database;
+   EXPECT_THROW(
+      Initializer::loadReferences(
+         TEST_TABLE, ReferenceGenomes{{{"S", "ACGT"}}, {{"S", "MFV"}}}, false, database
+      ),
+      rhydb::schema::DuplicatePrimaryKeyException
+   );
+}
+
+TEST(Initializer, loadReferencesScopesEachTablesColumnsToThatTable) {
+   // The point of `reference_columns`: two tables loading their own references in one database do
+   // not see each other's sequence columns. Before the mapping existed, the schema builder consumed
+   // every reference in the store, so the second table inherited the first one's columns.
+   rhydb::Database database;
+   const rhydb::schema::TableName first_table{"first_table"};
+   const rhydb::schema::TableName second_table{"second_table"};
+   Initializer::loadReferences(
+      first_table, ReferenceGenomes{{{"first_seq", "ACGT"}}, {}}, true, database
+   );
+   Initializer::loadReferences(
+      second_table, ReferenceGenomes{{}, {{"second_gene", "MFV"}}}, true, database
+   );
+
+   auto first_columns = database.getColumnReferences(first_table.getName());
+   ASSERT_EQ(first_columns.size(), 1);
+   EXPECT_EQ(first_columns.at(0).column_name, "first_seq");
+   EXPECT_EQ(first_columns.at(0).column_type, rhydb::schema::ColumnType::NUCLEOTIDE_SEQUENCE);
+   EXPECT_EQ(first_columns.at(0).reference, "ACGT");
+
+   auto second_columns = database.getColumnReferences(second_table.getName());
+   ASSERT_EQ(second_columns.size(), 1);
+   EXPECT_EQ(second_columns.at(0).column_name, "second_gene");
+   EXPECT_EQ(second_columns.at(0).column_type, rhydb::schema::ColumnType::AMINO_ACID_SEQUENCE);
+   EXPECT_EQ(second_columns.at(0).reference, "MFV");
+
+   // Both references are still in the one shared store; only the mapping is per table.
+   EXPECT_EQ(database.getReferences().size(), 2);
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(Initializer, loadReferencesPointsAnUnalignedColumnAtTheAlignedColumnsReference) {
+   // The dedup the mapping buys: the `unaligned_` companion column names the same reference entry
+   // rather than a second copy of the sequence stored under its own name.
+   rhydb::Database database;
+   Initializer::loadReferences(
+      TEST_TABLE, ReferenceGenomes{{{"main", "ACGTACGT"}}, {}}, false, database
+   );
+
+   ASSERT_EQ(database.getReferences().size(), 1);
+   auto columns = database.getColumnReferences(TEST_TABLE.getName());
+   ASSERT_EQ(columns.size(), 2);
+   for (const auto& column : columns) {
+      EXPECT_EQ(column.reference_name, "main");
+      EXPECT_EQ(column.reference, "ACGTACGT");
+   }
+   EXPECT_EQ(columns.at(0).column_name, "main");
+   EXPECT_EQ(columns.at(0).column_type, rhydb::schema::ColumnType::NUCLEOTIDE_SEQUENCE);
+   EXPECT_EQ(columns.at(1).column_name, "unaligned_main");
+   EXPECT_EQ(columns.at(1).column_type, rhydb::schema::ColumnType::ZSTD_COMPRESSED_STRING);
+}
+
+TEST(Initializer, loadReferencesOmitsUnalignedColumnsWhenAsked) {
+   rhydb::Database database;
+   Initializer::loadReferences(
+      TEST_TABLE, ReferenceGenomes{{{"main", "ACGTACGT"}}, {}}, true, database
+   );
+
+   auto columns = database.getColumnReferences(TEST_TABLE.getName());
+   ASSERT_EQ(columns.size(), 1);
+   EXPECT_EQ(columns.at(0).column_name, "main");
+}
 
 TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    const rhydb::config::DatabaseConfig database_config =
@@ -41,18 +140,14 @@ A.11:
        )}
    };
    auto table_schema = Initializer::createSchemaFromConfigFiles(
-      database_config,
-      reference_genomes,
-      lineage_trees,
-      phylo_tree_file,
-      /*without_unaligned_sequences=*/false
+      database_config, toColumnReferences(reference_genomes), lineage_trees, phylo_tree_file
    );
 
    const size_t expected_number_of_columns =
       database_config.schema.metadata.size() + reference_genomes.aa_sequence_names.size() +
       (reference_genomes.nucleotide_sequence_names.size() * 2);
    ASSERT_EQ(table_schema->getColumnIdentifiers().size(), expected_number_of_columns);
-   ASSERT_EQ(table_schema->primary_key.name, database_config.schema.primary_key);
+   ASSERT_EQ(table_schema->primary_key->name, database_config.schema.primary_key);
 
    using rhydb::schema::ColumnType;
    ASSERT_TRUE(table_schema->getColumn("M").has_value());
@@ -194,8 +289,8 @@ A.11:
    ASSERT_TRUE(table_schema->getColumn("unsorted_date").has_value());
    ASSERT_EQ(table_schema->getColumn("unsorted_date").value().type, ColumnType::DATE32);
 
-   ASSERT_EQ(table_schema->primary_key.name, "primaryKey");
-   ASSERT_EQ(table_schema->primary_key.type, ColumnType::STRING);
+   ASSERT_EQ(table_schema->primary_key->name, "primaryKey");
+   ASSERT_EQ(table_schema->primary_key->type, ColumnType::STRING);
 }
 
 namespace {
@@ -234,7 +329,7 @@ A.1:
        )}
    };
    auto table_schema = Initializer::createSchemaFromConfigFiles(
-      database_config, reference_genomes, lineage_trees, PhyloTree{}, false
+      database_config, toColumnReferences(reference_genomes), lineage_trees, PhyloTree{}
    );
    auto* metadata =
       table_schema->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("lineage")

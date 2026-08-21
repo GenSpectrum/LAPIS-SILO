@@ -118,7 +118,7 @@ struct ColumnIdentifier {
 class TableSchema {
   public:
    std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
-   ColumnIdentifier primary_key;
+   std::optional<ColumnIdentifier> primary_key;
 
    TableSchema(
       std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata,
@@ -126,7 +126,7 @@ class TableSchema {
    )
        : column_metadata(std::move(column_metadata)),
          primary_key(std::move(primary_key)) {
-      SILO_ASSERT(this->column_metadata.contains(this->primary_key));
+      SILO_ASSERT(this->column_metadata.contains(this->primary_key.value()));
    }
 
    [[nodiscard]] std::optional<ColumnIdentifier> getColumn(std::string_view name) const;
