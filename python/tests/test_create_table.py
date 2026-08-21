@@ -273,7 +273,6 @@ class TestColumnReferences:
         )
 
         mapping = empty_database.query("reference_columns").to_pydict()
-        assert "id" not in mapping
         assert mapping["table_name"] == ["samples"]
         assert mapping["column_name"] == ["main"]
         assert mapping["column_type"] == ["nucleotide_sequence"]

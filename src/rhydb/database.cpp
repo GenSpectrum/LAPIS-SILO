@@ -214,33 +214,23 @@ Database::Database(schema::DatabaseSchema database_schema)
 
 namespace {
 
-/// An all-string schema for a built-in bookkeeping table. `keyed` decides whether the first column
-/// listed becomes the primary key: only a table whose rows are identified by one of its own columns
-/// gets one.
-std::shared_ptr<rhydb::schema::TableSchema> makeStringTableSchema(
-   const std::vector<std::string>& column_names,
-   bool keyed
+// Create a schema where all columns are of type string
+std::shared_ptr<schema::TableSchema> makeStringTableSchema(
+   const std::vector<std::string>& column_names
 ) {
    SILO_ASSERT(!column_names.empty());
-   auto table_schema = std::make_shared<rhydb::schema::TableSchema>();
+   auto table_schema = std::make_shared<schema::TableSchema>();
    for (const auto& column_name : column_names) {
-      const rhydb::schema::ColumnIdentifier column{.name = column_name, .type = ColumnType::STRING};
+      const schema::ColumnIdentifier column{.name = column_name, .type = ColumnType::STRING};
       table_schema->column_metadata.emplace(
-         column, std::make_shared<rhydb::storage::column::StringColumnMetadata>(column.name)
+         column, std::make_shared<storage::column::StringColumnMetadata>(column.name)
       );
-   }
-   if (keyed) {
-      table_schema->primary_key =
-         rhydb::schema::ColumnIdentifier{.name = column_names.front(), .type = ColumnType::STRING};
    }
    return table_schema;
 }
 
-/// One string column of a built-in bookkeeping table. Asserting rather than reporting is right
-/// here: these tables are created with a fixed all-string schema (`makeStringTableSchema`), so a
-/// missing column is a bug in this file, not bad input.
-const rhydb::storage::column::StringColumn& builtinStringColumn(
-   const rhydb::storage::Table& table,
+const storage::column::StringColumn& expectStringColumn(
+   const storage::Table& table,
    const std::string& column_name
 ) {
    auto iter = table.columns.string_columns.find(column_name);
@@ -249,8 +239,8 @@ const rhydb::storage::column::StringColumn& builtinStringColumn(
 }
 
 std::string valueOrEmpty(
-   const rhydb::storage::column::StringColumn& column,
-   rhydb::storage::column::RowId row_id
+   const storage::column::StringColumn& column,
+   storage::column::RowId row_id
 ) {
    return column.isNull(row_id) ? std::string{} : column.getValueString(row_id);
 }
@@ -260,7 +250,7 @@ std::string valueOrEmpty(
 void Database::createReferenceGenomesTable() {
    createTable(
       schema::TableName{std::string{REFERENCE_GENOMES_TABLE_NAME}},
-      makeStringTableSchema({"name", "reference", "type"}, /*keyed=*/true)
+      makeStringTableSchema({"name", "reference", "type"})
    );
 }
 
@@ -270,9 +260,7 @@ void Database::createReferenceColumnsTable() {
    // was never validated or enforced anywhere, so declaring no key is the honest description.
    createTable(
       schema::TableName{std::string{REFERENCE_COLUMNS_TABLE_NAME}},
-      makeStringTableSchema(
-         {"table_name", "column_name", "column_type", "reference_name"}, /*keyed=*/false
-      )
+      makeStringTableSchema({"table_name", "column_name", "column_type", "reference_name"})
    );
 }
 
@@ -608,8 +596,8 @@ void Database::addColumnReferences(const std::vector<ColumnReferenceEntry>& entr
 std::set<std::pair<std::string, std::string>> Database::declaredColumnReferences() {
    auto table_iter = tables.find(schema::TableName{std::string{REFERENCE_COLUMNS_TABLE_NAME}});
    SILO_ASSERT(table_iter != tables.end());
-   const auto& table_name_column = builtinStringColumn(*table_iter->second, "table_name");
-   const auto& column_name_column = builtinStringColumn(*table_iter->second, "column_name");
+   const auto& table_name_column = expectStringColumn(*table_iter->second, "table_name");
+   const auto& column_name_column = expectStringColumn(*table_iter->second, "column_name");
 
    std::set<std::pair<std::string, std::string>> declared_columns;
    const roaring::Roaring all_rows =
@@ -627,10 +615,10 @@ std::vector<ResolvedColumnReference> Database::getColumnReferences(const std::st
    auto table_iter = tables.find(schema::TableName{std::string{REFERENCE_COLUMNS_TABLE_NAME}});
    SILO_ASSERT(table_iter != tables.end());
    const auto& table = *table_iter->second;
-   const auto& table_name_column = builtinStringColumn(table, "table_name");
-   const auto& column_name_column = builtinStringColumn(table, "column_name");
-   const auto& column_type_column = builtinStringColumn(table, "column_type");
-   const auto& reference_name_column = builtinStringColumn(table, "reference_name");
+   const auto& table_name_column = expectStringColumn(table, "table_name");
+   const auto& column_name_column = expectStringColumn(table, "column_name");
+   const auto& column_type_column = expectStringColumn(table, "column_type");
+   const auto& reference_name_column = expectStringColumn(table, "reference_name");
 
    // Gathered once rather than per row, so two columns sharing a reference do not each rescan the
    // store.
@@ -678,19 +666,19 @@ std::vector<ResolvedColumnReference> Database::getColumnReferences(const std::st
 
 void Database::appendDataFromFile(const std::string& table_name, const std::string& file_path) {
    std::ifstream input_stream(file_path);
-   rhydb::append::NdjsonLineReader input_data{input_stream};
-   rhydb::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
+   append::NdjsonLineReader input_data{input_stream};
+   append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
    SPDLOG_INFO("Database info: {}", getDatabaseInfo());
 }
 
 void Database::appendDataFromString(const std::string& table_name, std::string json_string) {
    std::stringstream input_stream(std::move(json_string));
-   rhydb::append::NdjsonLineReader input_data{input_stream};
-   rhydb::append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
+   append::NdjsonLineReader input_data{input_stream};
+   append::appendDataToTable(tables.at(schema::TableName{table_name}), input_data);
 }
 
-using rhydb::query_engine::scalar_expressions::BoolLiteral;
-using rhydb::query_engine::scalar_expressions::ScalarExpression;
+using query_engine::scalar_expressions::BoolLiteral;
+using query_engine::scalar_expressions::ScalarExpression;
 
 void Database::printAllData(const std::string& table_name) const {
    auto table_iter = tables.find(schema::TableName{table_name});

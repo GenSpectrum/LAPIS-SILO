@@ -100,7 +100,6 @@ void Table::finalize() {
 
 void Table::validatePrimaryKeyUnique() const {
    if (!schema->primary_key.has_value()) {
-      // A table without a single identifying column has no uniqueness to check.
       return;
    }
    SPDLOG_DEBUG("Checking that primary keys are unique.");

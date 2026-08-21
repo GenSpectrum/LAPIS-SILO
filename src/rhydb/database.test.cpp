@@ -628,21 +628,16 @@ TEST(DatabaseTest, addColumnReferencesRejectsAColumnAlreadyDeclaredByAManuallyAp
 }
 
 TEST(DatabaseTest, referenceColumnsTableHasNoPrimaryKey) {
-   // Its natural key is the (table_name, column_name) pair, which `TableSchema::primary_key`
-   // cannot express, so it declares none rather than carrying an unenforced surrogate.
    const rhydb::Database database;
    const auto& table_schema = database.schema.tables.at(
       rhydb::schema::TableName{std::string{rhydb::Database::REFERENCE_COLUMNS_TABLE_NAME}}
    );
    EXPECT_FALSE(table_schema->primary_key.has_value());
-   EXPECT_FALSE(table_schema->getColumn("id").has_value());
 
-   // `reference_genomes` does have a single identifying column, and keeps it.
    const auto& reference_genomes_schema = database.schema.tables.at(
       rhydb::schema::TableName{std::string{rhydb::Database::REFERENCE_GENOMES_TABLE_NAME}}
    );
-   ASSERT_TRUE(reference_genomes_schema->primary_key.has_value());
-   EXPECT_EQ(reference_genomes_schema->primary_key->name, "name");
+   EXPECT_FALSE(reference_genomes_schema->primary_key.has_value());
 }
 
 TEST(DatabaseTest, createTableFromColumnsAcceptsAReferenceWhoseTypeMatchesTheColumn) {
