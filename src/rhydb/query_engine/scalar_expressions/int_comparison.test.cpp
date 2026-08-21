@@ -11,11 +11,16 @@ const int BOUND = 3;
 const int BELOW = 1;
 const int ABOVE = 5;
 
+// int64_value mirrors int_value but scaled outside the 32-bit range
+const int64_t INT64_SCALE = 1'000'000'000LL;
+
 nlohmann::json createData(const std::string& primary_key, const std::optional<int>& value) {
    return {
       {"primaryKey", primary_key},
       {"int_value", value.has_value() ? nlohmann::json(value.value()) : nlohmann::json(nullptr)},
-      {"bool_value", nullptr}
+      {"int64_value",
+       value.has_value() ? nlohmann::json(value.value() * INT64_SCALE) : nlohmann::json(nullptr)},
+      {"bool_value", nullptr},
    };
 }
 
@@ -28,6 +33,8 @@ schema:
       type: "string"
     - name: "int_value"
       type: "int"
+    - name: "int64_value"
+      type: "int64"
     - name: "bool_value"
       type: "boolean"
   primaryKey: "primaryKey"
@@ -121,6 +128,31 @@ const QueryTestScenario TWO_COLUMNS = {
       "reference and the other a literal value"
 };
 
+const QueryTestScenario INT32_OVERFLOW = {
+   .name = "INT_INT32_OVERFLOW",
+   .query = "default.filter(int_value < 3000000000).project(primaryKey)",
+   .expected_error_message = "Cannot cast 3000000000 to int32. Value out of range",
+};
+
+const QueryTestScenario INT64_LESS_THAN = {
+   .name = "INT_INT64_LESS_THAN",
+   .query = "default.filter(int64_value < 3000000000).project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_below"}])"),
+};
+
+const QueryTestScenario INT64_GREATER_EQUAL = {
+   .name = "INT_INT64_GREATER_EQUAL",
+   .query = "default.filter(int64_value >= 3000000000).project(primaryKey)",
+   .expected_query_result =
+      nlohmann::json::parse(R"([{"primaryKey":"id_bound"},{"primaryKey":"id_above"}])"),
+};
+
+const QueryTestScenario INT64_FLIPPED_OPERANDS = {
+   .name = "INT_INT64_FLIPPED_OPERANDS",
+   .query = "default.filter(3000000000 > int64_value).project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_below"}])"),
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -137,6 +169,10 @@ QUERY_TEST(
       TYPE_MISMATCH,
       BOOL_COMPARISON,
       UNKNOWN_COLUMN,
-      TWO_COLUMNS
+      TWO_COLUMNS,
+      INT32_OVERFLOW,
+      INT64_LESS_THAN,
+      INT64_GREATER_EQUAL,
+      INT64_FLIPPED_OPERANDS
    )
 );
