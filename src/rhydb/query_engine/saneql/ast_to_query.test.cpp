@@ -242,80 +242,50 @@ TEST(AstToQueryConvertToFilter, unsupportedExpressionTypeThrows) {
 
 // --- integer comparisons ---
 
-TEST(AstToQueryIntComparison, lessThanThrows) {
+TEST(AstToQueryIntComparison, lessThanBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
       {.name = "age", .type = rhydb::schema::ColumnType::INT32}
    };
-   EXPECT_THAT(
-      [&]() { (void)parseFilter("age < 5", schema); },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("less than is not implemented for integer expressions")
-      )
-   );
+   EXPECT_EQ(parseFilter("age < 5", schema)->toString(), "age < 5");
 }
 
-TEST(AstToQueryIntComparison, greaterThanThrows) {
+TEST(AstToQueryIntComparison, greaterThanBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
       {.name = "age", .type = rhydb::schema::ColumnType::INT32}
    };
-   EXPECT_THAT(
-      [&]() { (void)parseFilter("age > 5", schema); },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("greater than is not implemented for integer expressions")
-      )
-   );
+   EXPECT_EQ(parseFilter("age > 5", schema)->toString(), "age > 5");
 }
 
 // --- float comparisons ---
 
-TEST(AstToQueryFloatComparison, lessEqualThrows) {
+TEST(AstToQueryFloatComparison, lessEqualBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
       {.name = "age", .type = rhydb::schema::ColumnType::FLOAT}
    };
-   EXPECT_THAT(
-      [&]() { (void)parseFilter("age <= 5.0", schema); },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("less equal is not implemented for float expressions")
-      )
-   );
+   EXPECT_EQ(parseFilter("age <= 5.0", schema)->toString(), "age <= 5");
 }
 
-TEST(AstToQueryFloatComparison, greaterThanThrows) {
+TEST(AstToQueryFloatComparison, greaterThanBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
       {.name = "age", .type = rhydb::schema::ColumnType::FLOAT}
    };
-   EXPECT_THAT(
-      [&]() { (void)parseFilter("age > 5.0", schema); },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("greater than is not implemented for float expressions")
-      )
-   );
+   EXPECT_EQ(parseFilter("age > 5.0", schema)->toString(), "age > 5");
 }
 
 // --- date comparisons ---
 
-TEST(AstToQueryDateComparison, lessThanThrows) {
+TEST(AstToQueryDateComparison, lessThanBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
       {.name = "date", .type = rhydb::schema::ColumnType::DATE32}
    };
-   EXPECT_THAT(
-      [&]() { (void)parseFilter("date < '2020-01-01'::date", schema); },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("less than is not implemented for date expressions")
-      )
-   );
+   EXPECT_EQ(parseFilter("date < '2020-01-01'::date", schema)->toString(), "date < '2020-01-01'");
 }
 
-TEST(AstToQueryDateComparison, greaterThanThrows) {
+TEST(AstToQueryDateComparison, greaterThanBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
       {.name = "date", .type = rhydb::schema::ColumnType::DATE32}
    };
-   EXPECT_THAT(
-      [&]() { (void)parseFilter("date > '2020-01-01'::date", schema); },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("greater than is not implemented for date expressions")
-      )
-   );
+   EXPECT_EQ(parseFilter("date > '2020-01-01'::date", schema)->toString(), "date > '2020-01-01'");
 }
 
 // --- convertBinaryExprToFilter ---
@@ -338,13 +308,19 @@ TEST(AstToQueryBinaryExpr, notEqualsNoIdentifierThrows) {
    );
 }
 
-TEST(AstToQueryBinaryExpr, comparisonNoIdentifierLeftThrows) {
-   EXPECT_THAT(
-      []() { (void)parseFilter("1 < age"); },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("comparison requires an identifier on the left side")
-      )
-   );
+TEST(AstToQueryBinaryExpr, comparisonIdentifierOnRightBuildsComparison) {
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+   };
+   // Operands keep their written order; Comparison::compile flips the comparator when
+   // the column is on the right, so `1 < age` stays `1 < age` at this stage.
+   EXPECT_EQ(parseFilter("1 < age", schema)->toString(), "1 < age");
+}
+
+TEST(AstToQueryBinaryExpr, comparisonNoIdentifierBuildsComparison) {
+   // A comparison without a column reference is not rejected at conversion time;
+   // Comparison::compile catches the missing column later
+   EXPECT_EQ(parseFilter("1 < 2")->toString(), "1 < 2");
 }
 
 TEST(AstToQueryBinaryExpr, unhandledBinaryOpThrows) {

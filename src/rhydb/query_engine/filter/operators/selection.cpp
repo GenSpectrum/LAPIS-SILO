@@ -185,10 +185,9 @@ bool CompareToValueSelection<StringColumn>::match(storage::column::RowId row_id)
 
    auto row_value_string = column.getValueString(row_id);
 
-   // Slower fall-back if the prefix could not decide the match
-   const std::strong_ordering strong_ordering = std::lexicographical_compare_three_way(
-      row_value_string.begin(), row_value_string.end(), value.begin(), value.end()
-   );
+   // Slower fall-back if the prefix could not decide the match. Uses unsigned byte
+   // ordering so it agrees with the short-string and dictionary comparison paths.
+   const std::strong_ordering strong_ordering = compareBytesUnsigned(row_value_string, value);
    return strongOrderingMatchesComparator(strong_ordering, comparator);
 }
 

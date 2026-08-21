@@ -5,30 +5,34 @@
 #include <vector>
 
 #include "rhydb/query_engine/filter/operators/operator.h"
+#include "rhydb/query_engine/filter/operators/selection.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
 #include "rhydb/schema/database_schema.h"
 
 namespace rhydb::query_engine::scalar_expressions {
 
-/// Equality filter predicate: `left = right`.
-///
-/// In practice one side is a column reference (FieldRef) and the other a
-/// literal value. compile() recognises this "column = constant" shape and
-/// lowers it to an efficient bitmap filter, dispatching on the literal's type;
-/// any other shape cannot currently be compiled.
-class Equals : public ScalarExpression {
+/// Ordering comparison predicate: `left <op> right`. One side is a column
+/// reference (FieldRef) and the other a literal value; compile() recognises this
+/// "column <op> constant" shape and lowers it to an efficient filter, dispatching
+/// on the literal's type.
+class Comparison : public ScalarExpression {
    std::unique_ptr<ScalarExpression> left;
    std::unique_ptr<ScalarExpression> right;
+   filter::operators::Comparator comparator;
 
   public:
-   Equals(std::unique_ptr<ScalarExpression> left, std::unique_ptr<ScalarExpression> right);
+   Comparison(
+      std::unique_ptr<ScalarExpression> left,
+      std::unique_ptr<ScalarExpression> right,
+      filter::operators::Comparator comparator
+   );
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
-      return std::make_unique<Equals>(left->clone(), right->clone());
+      return std::make_unique<Comparison>(left->clone(), right->clone(), comparator);
    }
 
    [[nodiscard]] std::string toString() const override;
-   static constexpr Kind KIND = Kind::EQUALS;
+   static constexpr Kind KIND = Kind::COMPARISON;
    [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;

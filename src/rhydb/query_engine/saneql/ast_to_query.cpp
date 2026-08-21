@@ -36,6 +36,7 @@
 #include "rhydb/query_engine/saneql/parser.h"
 #include "rhydb/query_engine/scalar_expressions/and.h"
 #include "rhydb/query_engine/scalar_expressions/at.h"
+#include "rhydb/query_engine/scalar_expressions/comparison.h"
 #include "rhydb/query_engine/scalar_expressions/date_between.h"
 #include "rhydb/query_engine/scalar_expressions/equals.h"
 #include "rhydb/query_engine/scalar_expressions/exact.h"
@@ -65,6 +66,8 @@
 
 using rhydb::AminoAcid;
 using rhydb::Nucleotide;
+using rhydb::query_engine::filter::operators::Comparator;
+using rhydb::query_engine::saneql::ast::BinaryOp;
 using rhydb::storage::column::Column;
 using rhydb::storage::column::SequenceColumn;
 using rhydb::storage::column::ZstdCompressedStringColumn;
@@ -219,94 +222,20 @@ ScalarExpressionPtr convertEqualsToFilter(
    );
 }
 
-ScalarExpressionPtr convertIntComparison(
-   const std::string& column_name,
-   ast::BinaryOp binary_op,
-   int64_t value,
-   const std::vector<schema::ColumnIdentifier>& schema
-) {
-   auto column = resolveColumn(column_name, schema);
+/// Maps an ordering ast::BinaryOp to the filter operator comparator.
+Comparator toOrderingComparator(BinaryOp binary_op) {
    switch (binary_op) {
-      case ast::BinaryOp::LESS_THAN:
-         throw IllegalQueryException("less than is not implemented for integer expressions");
-      case ast::BinaryOp::LESS_EQUAL:
-         return std::make_unique<scalar_expressions::IntBetween>(column, std::nullopt, value);
-      case ast::BinaryOp::GREATER_THAN:
-         throw IllegalQueryException("greater than is not implemented for integer expressions");
-      case ast::BinaryOp::GREATER_EQUAL:
-         return std::make_unique<scalar_expressions::IntBetween>(column, value, std::nullopt);
+      case BinaryOp::LESS_THAN:
+         return Comparator::LESS;
+      case BinaryOp::LESS_EQUAL:
+         return Comparator::LESS_OR_EQUALS;
+      case BinaryOp::GREATER_THAN:
+         return Comparator::HIGHER;
+      case BinaryOp::GREATER_EQUAL:
+         return Comparator::HIGHER_OR_EQUALS;
       default:
-         throw IllegalQueryException("unexpected operator for integer comparison");
+         throw IllegalQueryException("unexpected operator for ordering comparison");
    }
-}
-
-ScalarExpressionPtr convertFloatComparison(
-   const std::string& column_name,
-   ast::BinaryOp binary_op,
-   double value,
-   const std::vector<schema::ColumnIdentifier>& schema
-) {
-   auto column = resolveColumn(column_name, schema);
-   switch (binary_op) {
-      case ast::BinaryOp::LESS_THAN:
-         return std::make_unique<scalar_expressions::FloatBetween>(column, std::nullopt, value);
-      case ast::BinaryOp::LESS_EQUAL:
-         throw IllegalQueryException("less equal is not implemented for float expressions");
-      case ast::BinaryOp::GREATER_THAN:
-         throw IllegalQueryException("greater than is not implemented for float expressions");
-      case ast::BinaryOp::GREATER_EQUAL:
-         return std::make_unique<scalar_expressions::FloatBetween>(column, value, std::nullopt);
-      default:
-         throw IllegalQueryException("unexpected operator for float comparison");
-   }
-}
-
-ScalarExpressionPtr convertDateComparison(
-   const std::string& column_name,
-   ast::BinaryOp binary_op,
-   const ast::Expression& value_expr,
-   const std::vector<schema::ColumnIdentifier>& schema
-) {
-   auto column = resolveColumn(column_name, schema);
-   auto date_val = extractOptionalDateValue(value_expr);
-   switch (binary_op) {
-      case ast::BinaryOp::LESS_THAN:
-         throw IllegalQueryException("less than is not implemented for date expressions");
-      case ast::BinaryOp::LESS_EQUAL:
-         return std::make_unique<scalar_expressions::DateBetween>(column, std::nullopt, date_val);
-      case ast::BinaryOp::GREATER_THAN:
-         throw IllegalQueryException("greater than is not implemented for date expressions");
-      case ast::BinaryOp::GREATER_EQUAL:
-         return std::make_unique<scalar_expressions::DateBetween>(column, date_val, std::nullopt);
-      default:
-         throw IllegalQueryException("unexpected operator for date comparison");
-   }
-}
-
-ScalarExpressionPtr convertComparisonToFilter(
-   const std::string& column_name,
-   ast::BinaryOp binary_op,
-   const ast::Expression& value_expr,
-   const std::vector<schema::ColumnIdentifier>& schema
-) {
-   if (isDateExpression(value_expr)) {
-      return convertDateComparison(column_name, binary_op, value_expr, schema);
-   }
-   if (isFloatLiteral(value_expr)) {
-      return convertFloatComparison(
-         column_name, binary_op, extractNumericAsFloatLiteral(value_expr), schema
-      );
-   }
-   if (isIntLiteral(value_expr)) {
-      // Width-agnostic: keep the full-range int64 value; IntBetween::compile applies the int32
-      // range check once the actual column type is known.
-      return convertIntComparison(column_name, binary_op, extractInt64Literal(value_expr), schema);
-   }
-   throw IllegalQueryException(
-      "unsupported value type in comparison at {}:{}",
-      value_expr.location.line,
-      value_expr.location.column
-   );
 }
 
 ScalarExpressionPtr convertBinaryExprToFilter(
@@ -314,19 +243,19 @@ ScalarExpressionPtr convertBinaryExprToFilter(
    const std::vector<schema::ColumnIdentifier>& schema
 ) {
    switch (bin_expr.op) {
-      case ast::BinaryOp::AND: {
+      case BinaryOp::AND: {
          scalar_expressions::ScalarExpressionVector children;
          children.push_back(convertToFilter(*bin_expr.left, schema));
          children.push_back(convertToFilter(*bin_expr.right, schema));
          return std::make_unique<scalar_expressions::And>(std::move(children));
       }
-      case ast::BinaryOp::OR: {
+      case BinaryOp::OR: {
          scalar_expressions::ScalarExpressionVector children;
          children.push_back(convertToFilter(*bin_expr.left, schema));
          children.push_back(convertToFilter(*bin_expr.right, schema));
          return std::make_unique<scalar_expressions::Or>(std::move(children));
       }
-      case ast::BinaryOp::EQUALS: {
+      case BinaryOp::EQUALS: {
          if (std::holds_alternative<ast::Identifier>(bin_expr.left->value)) {
             return convertEqualsToFilter(
                extractIdentifierName(*bin_expr.left), *bin_expr.right, schema
@@ -343,7 +272,7 @@ ScalarExpressionPtr convertBinaryExprToFilter(
             bin_expr.left->location.column
          );
       }
-      case ast::BinaryOp::NOT_EQUALS: {
+      case BinaryOp::NOT_EQUALS: {
          if (std::holds_alternative<ast::Identifier>(bin_expr.left->value)) {
             return std::make_unique<scalar_expressions::Negation>(
                convertEqualsToFilter(extractIdentifierName(*bin_expr.left), *bin_expr.right, schema)
@@ -360,18 +289,14 @@ ScalarExpressionPtr convertBinaryExprToFilter(
             bin_expr.left->location.column
          );
       }
-      case ast::BinaryOp::LESS_THAN:
-      case ast::BinaryOp::LESS_EQUAL:
-      case ast::BinaryOp::GREATER_THAN:
-      case ast::BinaryOp::GREATER_EQUAL: {
-         CHECK_SILO_QUERY(
-            std::holds_alternative<ast::Identifier>(bin_expr.left->value),
-            "comparison requires an identifier on the left side at {}:{}",
-            bin_expr.left->location.line,
-            bin_expr.left->location.column
-         );
-         return convertComparisonToFilter(
-            extractIdentifierName(*bin_expr.left), bin_expr.op, *bin_expr.right, schema
+      case BinaryOp::LESS_THAN:
+      case BinaryOp::LESS_EQUAL:
+      case BinaryOp::GREATER_THAN:
+      case BinaryOp::GREATER_EQUAL: {
+         return std::make_unique<scalar_expressions::Comparison>(
+            convertToScalar(*bin_expr.left, schema, "the left side of a comparison"),
+            convertToScalar(*bin_expr.right, schema, "the right side of a comparison"),
+            toOrderingComparator(bin_expr.op)
          );
       }
    }
@@ -1464,13 +1389,13 @@ void collectJoinKeys(
       on_expression.location.column
    );
    const auto& binary = std::get<ast::BinaryExpr>(on_expression.value);
-   if (binary.op == ast::BinaryOp::AND) {
+   if (binary.op == BinaryOp::AND) {
       collectJoinKeys(*binary.left, left_schema, right_schema, keys);
       collectJoinKeys(*binary.right, left_schema, right_schema, keys);
       return;
    }
    CHECK_SILO_QUERY(
-      binary.op == ast::BinaryOp::EQUALS,
+      binary.op == BinaryOp::EQUALS,
       "join() on-expression only supports equality (=) comparisons, optionally combined with "
       "'&&', at {}:{}",
       on_expression.location.line,
