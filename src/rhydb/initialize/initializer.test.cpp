@@ -147,7 +147,7 @@ A.11:
       database_config.schema.metadata.size() + reference_genomes.aa_sequence_names.size() +
       (reference_genomes.nucleotide_sequence_names.size() * 2);
    ASSERT_EQ(table_schema->getColumnIdentifiers().size(), expected_number_of_columns);
-   ASSERT_EQ(table_schema->primary_key.name, database_config.schema.primary_key);
+   ASSERT_EQ(table_schema->primary_key->name, database_config.schema.primary_key);
 
    using rhydb::schema::ColumnType;
    ASSERT_TRUE(table_schema->getColumn("M").has_value());
@@ -289,8 +289,8 @@ A.11:
    ASSERT_TRUE(table_schema->getColumn("unsorted_date").has_value());
    ASSERT_EQ(table_schema->getColumn("unsorted_date").value().type, ColumnType::DATE32);
 
-   ASSERT_EQ(table_schema->primary_key.name, "primaryKey");
-   ASSERT_EQ(table_schema->primary_key.type, ColumnType::STRING);
+   ASSERT_EQ(table_schema->primary_key->name, "primaryKey");
+   ASSERT_EQ(table_schema->primary_key->type, ColumnType::STRING);
 }
 
 namespace {

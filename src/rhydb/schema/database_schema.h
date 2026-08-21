@@ -118,7 +118,11 @@ struct ColumnIdentifier {
 class TableSchema {
   public:
    std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
-   ColumnIdentifier primary_key;
+   /// Empty for tables that have no single column identifying a row. A composite natural key
+   /// cannot be expressed here, so rather than carry a synthesized surrogate column that nothing
+   /// enforces, such a table declares no key at all. Only tables built from a `DatabaseConfig` or
+   /// through `createTableFromColumns` are guaranteed to have one.
+   std::optional<ColumnIdentifier> primary_key;
 
    TableSchema(
       std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata,
@@ -126,7 +130,7 @@ class TableSchema {
    )
        : column_metadata(std::move(column_metadata)),
          primary_key(std::move(primary_key)) {
-      SILO_ASSERT(this->column_metadata.contains(this->primary_key));
+      SILO_ASSERT(this->column_metadata.contains(this->primary_key.value()));
    }
 
    [[nodiscard]] std::optional<ColumnIdentifier> getColumn(std::string_view name) const;

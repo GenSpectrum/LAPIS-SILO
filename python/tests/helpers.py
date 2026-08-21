@@ -21,14 +21,13 @@ def declare_column_reference(db, table_name, column_name, column_type, reference
     """Declare in ``reference_columns`` which reference backs a column of ``table_name``.
 
     ``create_table`` reads this mapping and never writes it, so a column of a type that needs a
-    reference must have its row appended first. The row goes in through the ordinary append path,
-    and its ``id`` has to be ``"<table_name>.<column_name>"``.
+    reference must have its row appended first. The row goes in through the ordinary append path;
+    a row is identified by its ``table_name`` and ``column_name`` together.
     """
     db.append_data_from_string(
         "reference_columns",
         json.dumps(
             {
-                "id": f"{table_name}.{column_name}",
                 "table_name": table_name,
                 "column_name": column_name,
                 "column_type": column_type,

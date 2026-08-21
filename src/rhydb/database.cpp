@@ -214,10 +214,12 @@ Database::Database(schema::DatabaseSchema database_schema)
 
 namespace {
 
-/// A schema for a built-in bookkeeping table whose columns are all strings, the first being the
-/// primary key.
+/// An all-string schema for a built-in bookkeeping table. `keyed` decides whether the first column
+/// listed becomes the primary key: only a table whose rows are identified by one of its own columns
+/// gets one.
 std::shared_ptr<rhydb::schema::TableSchema> makeStringTableSchema(
-   const std::vector<std::string>& column_names
+   const std::vector<std::string>& column_names,
+   bool keyed
 ) {
    SILO_ASSERT(!column_names.empty());
    auto table_schema = std::make_shared<rhydb::schema::TableSchema>();
@@ -227,8 +229,10 @@ std::shared_ptr<rhydb::schema::TableSchema> makeStringTableSchema(
          column, std::make_shared<rhydb::storage::column::StringColumnMetadata>(column.name)
       );
    }
-   table_schema->primary_key =
-      rhydb::schema::ColumnIdentifier{.name = column_names.front(), .type = ColumnType::STRING};
+   if (keyed) {
+      table_schema->primary_key =
+         rhydb::schema::ColumnIdentifier{.name = column_names.front(), .type = ColumnType::STRING};
+   }
    return table_schema;
 }
 
@@ -256,14 +260,19 @@ std::string valueOrEmpty(
 void Database::createReferenceGenomesTable() {
    createTable(
       schema::TableName{std::string{REFERENCE_GENOMES_TABLE_NAME}},
-      makeStringTableSchema({"name", "reference", "type"})
+      makeStringTableSchema({"name", "reference", "type"}, /*keyed=*/true)
    );
 }
 
 void Database::createReferenceColumnsTable() {
+   // No primary key: a row is identified by its `table_name` and `column_name` together, which
+   // `TableSchema::primary_key` cannot express. The surrogate `id` column this table used to carry
+   // was never validated or enforced anywhere, so declaring no key is the honest description.
    createTable(
       schema::TableName{std::string{REFERENCE_COLUMNS_TABLE_NAME}},
-      makeStringTableSchema({"id", "table_name", "column_name", "column_type", "reference_name"})
+      makeStringTableSchema(
+         {"table_name", "column_name", "column_type", "reference_name"}, /*keyed=*/false
+      )
    );
 }
 
@@ -565,15 +574,15 @@ void Database::addColumnReferences(const std::vector<ColumnReferenceEntry>& entr
    for (const auto& entry : getReferences()) {
       reference_kinds_by_name.emplace(entry.name, entry.type);
    }
-   auto declared_ids = declaredColumnReferenceIds();
+   auto declared_columns = declaredColumnReferences();
 
    std::string ndjson;
    for (const auto& entry : entries) {
       validateColumnReference(entry, reference_kinds_by_name);
 
-      // The natural key of the mapping: one column of one table has one reference.
-      const std::string declaration_id = fmt::format("{}.{}", entry.table_name, entry.column_name);
-      if (!declared_ids.insert(declaration_id).second) {
+      // Read out of the rows themselves rather than off a surrogate id column, so a row appended
+      // directly to the table cannot slip past this check by carrying a malformed id.
+      if (!declared_columns.emplace(entry.table_name, entry.column_name).second) {
          throw std::runtime_error(fmt::format(
             "The '{}' table already declares a reference for the column '{}' of table '{}'.",
             REFERENCE_COLUMNS_TABLE_NAME,
@@ -583,7 +592,6 @@ void Database::addColumnReferences(const std::vector<ColumnReferenceEntry>& entr
       }
 
       const nlohmann::json line{
-         {"id", declaration_id},
          {"table_name", entry.table_name},
          {"column_name", entry.column_name},
          {"column_type", entry.column_type},
@@ -597,18 +605,22 @@ void Database::addColumnReferences(const std::vector<ColumnReferenceEntry>& entr
    appendData(schema::TableName{std::string{REFERENCE_COLUMNS_TABLE_NAME}}, ndjson_stream);
 }
 
-std::set<std::string> Database::declaredColumnReferenceIds() {
+std::set<std::pair<std::string, std::string>> Database::declaredColumnReferences() {
    auto table_iter = tables.find(schema::TableName{std::string{REFERENCE_COLUMNS_TABLE_NAME}});
    SILO_ASSERT(table_iter != tables.end());
-   const auto& id_column = builtinStringColumn(*table_iter->second, "id");
+   const auto& table_name_column = builtinStringColumn(*table_iter->second, "table_name");
+   const auto& column_name_column = builtinStringColumn(*table_iter->second, "column_name");
 
-   std::set<std::string> ids;
+   std::set<std::pair<std::string, std::string>> declared_columns;
    const roaring::Roaring all_rows =
       getFilteredBitmap(std::string{REFERENCE_COLUMNS_TABLE_NAME}, "true");
    for (const uint32_t global_row_id : all_rows) {
-      ids.insert(valueOrEmpty(id_column, storage::column::RowId::fromGlobal(global_row_id)));
+      const auto row_id = storage::column::RowId::fromGlobal(global_row_id);
+      declared_columns.emplace(
+         valueOrEmpty(table_name_column, row_id), valueOrEmpty(column_name_column, row_id)
+      );
    }
-   return ids;
+   return declared_columns;
 }
 
 std::vector<ResolvedColumnReference> Database::getColumnReferences(const std::string& table_name) {

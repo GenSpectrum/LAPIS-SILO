@@ -4,6 +4,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "rhydb/append/table_inserter.h"
@@ -72,8 +73,9 @@ class Database {
    static constexpr std::string_view REFERENCE_GENOMES_TABLE_NAME = "reference_genomes";
 
    /// Name of the built-in table mapping a table's columns to the `reference_genomes` entries
-   /// backing them (STRING columns `id`, `table_name`, `column_name`, `column_type`,
-   /// `reference_name`, keyed on `id`, which is `"<table_name>.<column_name>"`). Like
+   /// backing them (STRING columns `table_name`, `column_name`, `column_type`, `reference_name`).
+   /// A row is identified by its `table_name` and `column_name` together, which
+   /// `TableSchema::primary_key` cannot express, so the table declares no primary key. Like
    /// `reference_genomes` it is present in every Database and is a normal, queryable table.
    static constexpr std::string_view REFERENCE_COLUMNS_TABLE_NAME = "reference_columns";
 
@@ -209,9 +211,9 @@ class Database {
    /// disk materializes it from its persisted schema instead.
    void createReferenceColumnsTable();
 
-   /// The `id`s (`"<table_name>.<column_name>"`) of every `reference_columns` row, used to reject a
-   /// column whose reference is already declared.
-   [[nodiscard]] std::set<std::string> declaredColumnReferenceIds();
+   /// The `(table_name, column_name)` pair of every `reference_columns` row -- the natural key of
+   /// the mapping -- used to reject a column whose reference is already declared.
+   [[nodiscard]] std::set<std::pair<std::string, std::string>> declaredColumnReferences();
 
    /// Looks up the `reference_genomes` entry named `reference_name`. Throws if the table is
    /// malformed or holds no entry of that name. Unlike the mapping this used to do by itself, it is

@@ -335,7 +335,7 @@ void declareColumnReferences(
    for (const auto& [column_name, column_type, reference_name] : entries) {
       data
          << nlohmann::
-               json{{"id", fmt::format("{}.{}", table_name, column_name)}, {"table_name", table_name}, {"column_name", column_name}, {"column_type", column_type}, {"reference_name", reference_name}}
+               json{{"table_name", table_name}, {"column_name", column_name}, {"column_type", column_type}, {"reference_name", reference_name}}
                   .dump()
          << "\n";
    }
@@ -569,11 +569,10 @@ TEST(DatabaseTest, getColumnReferencesRejectsAManuallyAppendedRowNamingAnUnknown
 TEST(DatabaseTest, getColumnReferencesRejectsTwoManuallyAppendedRowsForOneColumn) {
    rhydb::Database database;
    populateReferences(database, {{"first", "ACGT"}, {"second", "TTTT"}});
-   // Two rows for one column would otherwise leave which reference wins up to row order. They
-   // differ in `id`, so the table's own key does not catch it.
+   // Two rows for one column would otherwise leave which reference wins up to row order. Nothing
+   // on the append path rejects them, so the read has to.
    std::stringstream data;
    data << nlohmann::json{
-               {"id", "sequences.main"},
                {"table_name", "sequences"},
                {"column_name", "main"},
                {"column_type", "nucleotide_sequence"},
@@ -581,7 +580,6 @@ TEST(DatabaseTest, getColumnReferencesRejectsTwoManuallyAppendedRowsForOneColumn
    }.dump()
         << "\n"
         << nlohmann::json{
-               {"id", "sequences.main.again"},
                {"table_name", "sequences"},
                {"column_name", "main"},
                {"column_type", "nucleotide_sequence"},
@@ -598,6 +596,53 @@ TEST(DatabaseTest, getColumnReferencesRejectsTwoManuallyAppendedRowsForOneColumn
          "declares more than one reference for the column 'main' of table 'sequences'"
       ))
    );
+}
+
+TEST(DatabaseTest, addColumnReferencesRejectsAColumnAlreadyDeclaredByAManuallyAppendedRow) {
+   // The duplicate check reads the `table_name` and `column_name` of the stored rows, so a row
+   // appended straight to the table counts as a declaration. Back when the check compared a
+   // surrogate `id` column instead, a row whose id did not follow the convention was invisible to
+   // it and a second declaration for the same column got through.
+   rhydb::Database database;
+   populateReferences(database, {{"first", "ACGT"}, {"second", "TTTT"}});
+   declareColumnReferences(database, "sequences", {{"main", "nucleotide_sequence", "first"}});
+
+   EXPECT_THAT(
+      [&database]() {
+         database.addColumnReferences(
+            {{.table_name = "sequences",
+              .column_name = "main",
+              .column_type = "nucleotide_sequence",
+              .reference_name = "second"}}
+         );
+      },
+      ThrowsMessage<std::runtime_error>(::testing::HasSubstr(
+         "already declares a reference for the column 'main' of table 'sequences'"
+      ))
+   );
+
+   // The rejected batch left the table untouched, so the original declaration still resolves.
+   const auto column_references = database.getColumnReferences("sequences");
+   ASSERT_EQ(column_references.size(), 1);
+   EXPECT_EQ(column_references.front().reference_name, "first");
+}
+
+TEST(DatabaseTest, referenceColumnsTableHasNoPrimaryKey) {
+   // Its natural key is the (table_name, column_name) pair, which `TableSchema::primary_key`
+   // cannot express, so it declares none rather than carrying an unenforced surrogate.
+   const rhydb::Database database;
+   const auto& table_schema = database.schema.tables.at(
+      rhydb::schema::TableName{std::string{rhydb::Database::REFERENCE_COLUMNS_TABLE_NAME}}
+   );
+   EXPECT_FALSE(table_schema->primary_key.has_value());
+   EXPECT_FALSE(table_schema->getColumn("id").has_value());
+
+   // `reference_genomes` does have a single identifying column, and keeps it.
+   const auto& reference_genomes_schema = database.schema.tables.at(
+      rhydb::schema::TableName{std::string{rhydb::Database::REFERENCE_GENOMES_TABLE_NAME}}
+   );
+   ASSERT_TRUE(reference_genomes_schema->primary_key.has_value());
+   EXPECT_EQ(reference_genomes_schema->primary_key->name, "name");
 }
 
 TEST(DatabaseTest, createTableFromColumnsAcceptsAReferenceWhoseTypeMatchesTheColumn) {
