@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <compare>
 #include <cstddef>
@@ -7,6 +8,7 @@
 #include <cstring>
 #include <functional>
 #include <optional>
+#include <string_view>
 
 #include <boost/serialization/access.hpp>
 
@@ -14,6 +16,19 @@
 #include "rhydb/storage/vector/variable_data_registry.h"
 
 namespace rhydb {
+
+/// Lexicographic comparison of two byte strings using unsigned byte ordering, so
+/// bytes >= 0x80 (e.g. UTF-8 multibyte sequences) sort consistently regardless of
+/// the platform's `char` signedness. Matches std::string_view / memcmp semantics,
+/// keeping all string comparison paths (short, long, dictionary) in agreement.
+inline std::strong_ordering compareBytesUnsigned(std::string_view lhs, std::string_view rhs) {
+   const std::size_t common_length = std::min(lhs.size(), rhs.size());
+   if (const int prefix_compare = std::memcmp(lhs.data(), rhs.data(), common_length);
+       prefix_compare != 0) {
+      return prefix_compare <=> 0;
+   }
+   return lhs.size() <=> rhs.size();
+}
 
 // Umbra strings as described in https://www.cidrdb.org/cidr2020/papers/p29-neumann-cidr20.pdf
 // aka GermanString as popularized by Andy Pavlo
@@ -88,10 +103,7 @@ class GermanString {
    // only the prefix and length
    [[nodiscard]] std::optional<std::strong_ordering> fastCompare(std::string_view other) const {
       if (length() <= SHORT_STRING_SIZE) {
-         auto this_string = this->getShortString();
-         return std::lexicographical_compare_three_way(
-            this_string.begin(), this_string.end(), other.begin(), other.end()
-         );
+         return compareBytesUnsigned(this->getShortString(), other);
       }
 
       const std::string_view other_prefix = other.substr(0, PREFIX_LENGTH);
