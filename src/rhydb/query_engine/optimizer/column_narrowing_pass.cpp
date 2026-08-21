@@ -11,6 +11,7 @@
 #include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/schema_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
+#include "rhydb/query_engine/operators/transitive_closure_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
 
 namespace rhydb::query_engine::optimizer {
@@ -183,6 +184,17 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::SchemaNode& n
    // output schema as "required": this keeps every column while still allowing the pass's
    // structural simplifications to run.
    ColumnNarrowingPass child_pass{node.child->getOutputSchema()};
+   child_pass.propagateToNode(node.child);
+   return nullptr;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion,readability-make-member-function-const)
+operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::TransitiveClosureNode& node) {
+   auto child_required = node.child->getOutputSchema();
+   std::erase_if(child_required, [&node](const auto& column) {
+      return column.name != node.from_column && column.name != node.to_column;
+   });
+   ColumnNarrowingPass child_pass{std::move(child_required)};
    child_pass.propagateToNode(node.child);
    return nullptr;
 }

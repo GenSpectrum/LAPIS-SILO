@@ -16,6 +16,7 @@ class OrderByNode;
 class UnionAllNode;
 class JoinNode;
 class SchemaNode;
+class TransitiveClosureNode;
 }  // namespace rhydb::query_engine::operators
 
 namespace rhydb::query_engine::optimizer {
@@ -47,6 +48,7 @@ class ColumnNarrowingPass : public PipelinePassBase<ColumnNarrowingPass> {
    operators::QueryNodePtr operator()(operators::UnionAllNode& node);
    operators::QueryNodePtr operator()(operators::JoinNode& node);
    operators::QueryNodePtr operator()(operators::SchemaNode& node);
+   operators::QueryNodePtr operator()(operators::TransitiveClosureNode& node);
 };
 
 }  // namespace rhydb::query_engine::optimizer

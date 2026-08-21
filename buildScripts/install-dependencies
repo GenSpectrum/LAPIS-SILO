@@ -4,11 +4,25 @@ set -euo pipefail
 
 ./buildScripts/ensure-uv
 
+# For correct ASAN instrumentation, we also need to build arrow with ASAN
+asan_confs=(
+  --conf 'arrow/*:tools.build:cflags=["-fsanitize=address"]'
+  --conf 'arrow/*:tools.build:cxxflags=["-fsanitize=address"]'
+  --conf 'arrow/*:tools.build:sharedlinkflags=["-fsanitize=address"]'
+  --conf 'arrow/*:tools.build:exelinkflags=["-fsanitize=address"]'
+  --conf 'gtest/*:tools.build:cflags=["-fsanitize=address"]'
+  --conf 'gtest/*:tools.build:cxxflags=["-fsanitize=address"]'
+  --conf 'gtest/*:tools.build:sharedlinkflags=["-fsanitize=address"]'
+  --conf 'gtest/*:tools.build:exelinkflags=["-fsanitize=address"]'
+  --conf 'tools.info.package_id:confs=["tools.build:cflags","tools.build:cxxflags","tools.build:sharedlinkflags","tools.build:exelinkflags"]'
+)
+
 # TODO(#986) remove setting 'arrow/*:compiler.cppstd=20' when arrow compilation for C++23 is fixed
 uv run --project buildScripts conan install . --update \
   --build=missing \
   --profile ./conanprofile --profile:build ./conanprofile \
   --settings '&:build_type=Debug' --settings 'arrow/*:compiler.cppstd=20' \
+  "${asan_confs[@]}" \
   --output-folder=build/Debug/generators
 # TODO(#986) remove setting 'arrow/*:compiler.cppstd=20' when arrow compilation for C++23 is fixed
 uv run --project buildScripts conan install . --update \
