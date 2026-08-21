@@ -143,7 +143,8 @@ const QueryTestScenario DICT_FLIPPED_OPERANDS = {
 const QueryTestScenario STRING_UNKNOWN_COLUMN = {
    .name = "STRING_UNKNOWN_COLUMN",
    .query = "default.filter(does_not_exist < 'banana').project(primaryKey)",
-   .expected_error_message = "The database does not contain the column 'does_not_exist'"
+   .expected_error_message =
+      "the left side of a comparison references unknown column 'does_not_exist' at 1:16"
 };
 
 }  // namespace

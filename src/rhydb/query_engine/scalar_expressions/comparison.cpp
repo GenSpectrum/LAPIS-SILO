@@ -240,8 +240,6 @@ std::unique_ptr<filter::operators::Operator> Comparison::compile(const storage::
    );
    const auto& column_name = split->column->column.name;
    const ScalarExpression* value = split->value;
-   // If the column sits on the right (`literal <op> column`) the comparator must
-   // be inverted so that the column-relative form is evaluated correctly.
    const Comparator effective_comparator =
       split->column_on_right ? flipComparator(comparator) : comparator;
 
@@ -294,8 +292,9 @@ std::unique_ptr<filter::operators::Operator> Comparison::compile(const storage::
    }
 
    throw IllegalQueryException(
-      "A Comparison expression can only be compiled to a filter when exactly one side is a column "
-      "reference and the other a literal value"
+      "Unsupported value type in comparison with column '{}': the value must be an int, float, "
+      "date, or string literal",
+      column_name
    );
 }
 

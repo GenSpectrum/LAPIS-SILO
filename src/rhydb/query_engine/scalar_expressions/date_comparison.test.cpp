@@ -87,7 +87,8 @@ const QueryTestScenario FLIPPED_OPERANDS = {
 const QueryTestScenario UNKNOWN_COLUMN = {
    .name = "DATE_UNKNOWN_COLUMN",
    .query = "default.filter(does_not_exist < '2021-06-15'::date).project(primaryKey)",
-   .expected_error_message = "The database does not contain the column 'does_not_exist'"
+   .expected_error_message =
+      "the left side of a comparison references unknown column 'does_not_exist' at 1:16"
 };
 
 const QueryTestScenario WRONG_COLUMN_TYPE = {

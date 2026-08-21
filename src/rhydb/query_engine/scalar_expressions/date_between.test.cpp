@@ -85,7 +85,8 @@ const QueryTestScenario UNSORTED_DATE_WITH_FROM_ONLY_SCENARIO = {
 const QueryTestScenario UNSORTED_DATE_WITH_COLUMN_NOT_IN_DB = {
    .name = "UNSORTED_DATE_WITH_COLUMN_NOT_IN_DB",
    .query = "default.filter(something_not_in_database >= '2000-01-01'::date)",
-   .expected_error_message = "The database does not contain the column 'something_not_in_database'"
+   .expected_error_message =
+      "the left side of a comparison references unknown column 'something_not_in_database' at 1:16"
 };
 
 const QueryTestScenario UNSORTED_DATE_WITH_NON_DATE_COLUMN = {

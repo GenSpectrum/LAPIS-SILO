@@ -308,12 +308,13 @@ TEST(AstToQueryBinaryExpr, notEqualsNoIdentifierThrows) {
    );
 }
 
-TEST(AstToQueryBinaryExpr, comparisonIdentifierOnRightFlipsOperator) {
+TEST(AstToQueryBinaryExpr, comparisonIdentifierOnRightBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
       {.name = "age", .type = rhydb::schema::ColumnType::INT32}
    };
-   // `1 < age` is equivalent to `age > 1`, so the identifier becomes the left operand.
-   EXPECT_EQ(parseFilter("1 < age", schema)->toString(), "age > 1");
+   // Operands keep their written order; Comparison::compile flips the comparator when
+   // the column is on the right, so `1 < age` stays `1 < age` at this stage.
+   EXPECT_EQ(parseFilter("1 < age", schema)->toString(), "1 < age");
 }
 
 TEST(AstToQueryBinaryExpr, comparisonNoIdentifierThrows) {

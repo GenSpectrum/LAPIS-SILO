@@ -238,41 +238,6 @@ Comparator toOrderingComparator(BinaryOp binary_op) {
    }
 }
 
-/// Swaps an ordering operator's direction so that `value <op> column` becomes the
-/// equivalent `column <flipped> value`.
-BinaryOp flipOrderingOp(BinaryOp binary_op) {
-   switch (binary_op) {
-      case BinaryOp::LESS_THAN:
-         return BinaryOp::GREATER_THAN;
-      case BinaryOp::LESS_EQUAL:
-         return BinaryOp::GREATER_EQUAL;
-      case BinaryOp::GREATER_THAN:
-         return BinaryOp::LESS_THAN;
-      case BinaryOp::GREATER_EQUAL:
-         return BinaryOp::LESS_EQUAL;
-      default:
-         throw IllegalQueryException("unexpected operator for ordering comparison");
-   }
-}
-
-/// Builds a Comparison node for `column <op> value`. The FieldRef is always the
-/// left operand and the literal the right, so no comparator flip is needed
-/// downstream (Comparison::compile handles the column-on-right case generically).
-ScalarExpressionPtr convertComparisonToFilter(
-   const std::string& column_name,
-   BinaryOp binary_op,
-   const ast::Expression& value_expr,
-   const std::vector<schema::ColumnIdentifier>& schema
-) {
-   auto value = convertToScalar(value_expr, schema, "the value in a comparison");
-   auto column = resolveColumn(column_name, schema);
-   return std::make_unique<scalar_expressions::Comparison>(
-      std::make_unique<scalar_expressions::FieldRef>(std::move(column)),
-      std::move(value),
-      toOrderingComparator(binary_op)
-   );
-}
-
 ScalarExpressionPtr convertBinaryExprToFilter(
    const ast::BinaryExpr& bin_expr,
    const std::vector<schema::ColumnIdentifier>& schema
@@ -328,25 +293,10 @@ ScalarExpressionPtr convertBinaryExprToFilter(
       case BinaryOp::LESS_EQUAL:
       case BinaryOp::GREATER_THAN:
       case BinaryOp::GREATER_EQUAL: {
-         if (std::holds_alternative<ast::Identifier>(bin_expr.left->value)) {
-            return convertComparisonToFilter(
-               extractIdentifierName(*bin_expr.left), bin_expr.op, *bin_expr.right, schema
-            );
-         }
-         if (std::holds_alternative<ast::Identifier>(bin_expr.right->value)) {
-            // `value <op> column` is rewritten to `column <flipped-op> value` so the
-            // identifier can always be the left operand of the Comparison node.
-            return convertComparisonToFilter(
-               extractIdentifierName(*bin_expr.right),
-               flipOrderingOp(bin_expr.op),
-               *bin_expr.left,
-               schema
-            );
-         }
-         throw IllegalQueryException(
-            "comparison requires an identifier on one side at {}:{}",
-            bin_expr.left->location.line,
-            bin_expr.left->location.column
+         return std::make_unique<scalar_expressions::Comparison>(
+            convertToScalar(*bin_expr.left, schema, "the left side of a comparison"),
+            convertToScalar(*bin_expr.right, schema, "the right side of a comparison"),
+            toOrderingComparator(bin_expr.op)
          );
       }
    }
