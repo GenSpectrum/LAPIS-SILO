@@ -197,47 +197,13 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
    );
 }
 
-/// Builds the filter for `column = value` and `column <> value`.
-///
-/// `null` is not a comparable value: `column = null` is a null test (IsNull) and
-/// `column <> null` its negation. For every other value this lowers to a Comparison
-/// with the corresponding (in)equality comparator, which — unlike a negated equality
-/// — does not match null cells.
-ScalarExpressionPtr convertEqualityToFilter(
-   const std::string& column_name,
-   const ast::Expression& value_expr,
-   const std::vector<schema::ColumnIdentifier>& schema,
-   Comparator comparator
-) {
-   SILO_ASSERT(comparator == Comparator::EQUALS || comparator == Comparator::NOT_EQUALS);
-
-   if (isNullLiteral(value_expr)) {
-      ScalarExpressionPtr is_null =
-         std::make_unique<scalar_expressions::IsNull>(resolveColumn(column_name, schema));
-      if (comparator == Comparator::NOT_EQUALS) {
-         return std::make_unique<scalar_expressions::Negation>(std::move(is_null));
-      }
-      return is_null;
-   }
-
-   // Build the value operand first so parse-time value errors (e.g. an invalid date
-   // literal or an unsupported value type) are reported before the column is resolved.
-   auto value = convertToScalar(value_expr, schema, "the value in an equality");
-
-   const auto found =
-      std::ranges::find_if(schema, [&](const auto& col) { return col.name == column_name; });
-   CHECK_SILO_QUERY(
-      found != schema.end(), "The database does not contain the column '{}'", column_name
-   );
-
-   return std::make_unique<scalar_expressions::Comparison>(
-      std::make_unique<scalar_expressions::FieldRef>(*found), std::move(value), comparator
-   );
-}
-
-/// Maps an ordering ast::BinaryOp to the filter operator comparator.
-Comparator toOrderingComparator(BinaryOp binary_op) {
+/// Maps a comparison ast::BinaryOp to the filter operator comparator.
+Comparator toComparator(BinaryOp binary_op) {
    switch (binary_op) {
+      case BinaryOp::EQUALS:
+         return Comparator::EQUALS;
+      case BinaryOp::NOT_EQUALS:
+         return Comparator::NOT_EQUALS;
       case BinaryOp::LESS_THAN:
          return Comparator::LESS;
       case BinaryOp::LESS_EQUAL:
@@ -247,8 +213,49 @@ Comparator toOrderingComparator(BinaryOp binary_op) {
       case BinaryOp::GREATER_EQUAL:
          return Comparator::HIGHER_OR_EQUALS;
       default:
-         throw IllegalQueryException("unexpected operator for ordering comparison");
+         throw IllegalQueryException("unexpected operator for comparison");
    }
+}
+
+/// `null` is not a comparable value, so `column = null` and `column <> null` are null
+/// tests rather than comparisons. Returns the IsNull predicate (negated for `<>`) when
+/// one operand is the null literal, and nullopt when neither is, in which case the
+/// expression is an ordinary comparison.
+///
+/// Only equality can be used this way; `column < null` has no meaning and is left to
+/// convertToScalar to reject.
+std::optional<ScalarExpressionPtr> convertNullTest(
+   const ast::BinaryExpr& bin_expr,
+   const std::vector<schema::ColumnIdentifier>& schema,
+   Comparator comparator
+) {
+   if (comparator != Comparator::EQUALS && comparator != Comparator::NOT_EQUALS) {
+      return std::nullopt;
+   }
+
+   const ast::Expression* column_side = nullptr;
+   if (isNullLiteral(*bin_expr.right)) {
+      column_side = bin_expr.left.get();
+   } else if (isNullLiteral(*bin_expr.left)) {
+      column_side = bin_expr.right.get();
+   } else {
+      return std::nullopt;
+   }
+
+   CHECK_SILO_QUERY(
+      std::holds_alternative<ast::Identifier>(column_side->value),
+      "a comparison against null requires a column reference on the other side at {}:{}",
+      column_side->location.line,
+      column_side->location.column
+   );
+
+   ScalarExpressionPtr is_null = std::make_unique<scalar_expressions::IsNull>(
+      resolveColumn(extractIdentifierName(*column_side), schema)
+   );
+   if (comparator == Comparator::NOT_EQUALS) {
+      return std::make_unique<scalar_expressions::Negation>(std::move(is_null));
+   }
+   return is_null;
 }
 
 ScalarExpressionPtr convertBinaryExprToFilter(
@@ -268,54 +275,20 @@ ScalarExpressionPtr convertBinaryExprToFilter(
          children.push_back(convertToFilter(*bin_expr.right, schema));
          return std::make_unique<scalar_expressions::Or>(std::move(children));
       }
-      case BinaryOp::EQUALS: {
-         if (std::holds_alternative<ast::Identifier>(bin_expr.left->value)) {
-            return convertEqualityToFilter(
-               extractIdentifierName(*bin_expr.left), *bin_expr.right, schema, Comparator::EQUALS
-            );
-         }
-         if (std::holds_alternative<ast::Identifier>(bin_expr.right->value)) {
-            return convertEqualityToFilter(
-               extractIdentifierName(*bin_expr.right), *bin_expr.left, schema, Comparator::EQUALS
-            );
-         }
-         throw IllegalQueryException(
-            "equality comparison requires an identifier on one side at {}:{}",
-            bin_expr.left->location.line,
-            bin_expr.left->location.column
-         );
-      }
-      case BinaryOp::NOT_EQUALS: {
-         if (std::holds_alternative<ast::Identifier>(bin_expr.left->value)) {
-            return convertEqualityToFilter(
-               extractIdentifierName(*bin_expr.left),
-               *bin_expr.right,
-               schema,
-               Comparator::NOT_EQUALS
-            );
-         }
-         if (std::holds_alternative<ast::Identifier>(bin_expr.right->value)) {
-            return convertEqualityToFilter(
-               extractIdentifierName(*bin_expr.right),
-               *bin_expr.left,
-               schema,
-               Comparator::NOT_EQUALS
-            );
-         }
-         throw IllegalQueryException(
-            "not-equals comparison requires an identifier on one side at {}:{}",
-            bin_expr.left->location.line,
-            bin_expr.left->location.column
-         );
-      }
+      case BinaryOp::EQUALS:
+      case BinaryOp::NOT_EQUALS:
       case BinaryOp::LESS_THAN:
       case BinaryOp::LESS_EQUAL:
       case BinaryOp::GREATER_THAN:
       case BinaryOp::GREATER_EQUAL: {
+         const Comparator comparator = toComparator(bin_expr.op);
+         if (auto null_test = convertNullTest(bin_expr, schema, comparator)) {
+            return std::move(null_test).value();
+         }
          return std::make_unique<scalar_expressions::Comparison>(
             convertToScalar(*bin_expr.left, schema, "the left side of a comparison"),
             convertToScalar(*bin_expr.right, schema, "the right side of a comparison"),
-            toOrderingComparator(bin_expr.op)
+            comparator
          );
       }
    }
