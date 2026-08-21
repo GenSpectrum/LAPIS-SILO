@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <optional>
 
 #include <fmt/format.h>
 #include <gmock/gmock.h>
@@ -17,6 +18,7 @@
 #include "rhydb/initialize/initializer.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/planner.h"
+#include "rhydb/schema/duplicate_primary_key_exception.h"
 #include "rhydb/storage/column/zstd_compressed_string_column.h"
 #include "rhydb/storage/reference_genomes.h"
 #include "rhydb/test/query_fixture.test.h"
@@ -38,8 +40,10 @@ std::shared_ptr<rhydb::Database> buildTestDatabase() {
 
    auto database = std::make_shared<rhydb::Database>();
    rhydb::initialize::Initializer::loadReferences(
+      rhydb::schema::TableName::getDefault(),
       rhydb::ReferenceGenomes::readFromFile(config.initialization_files.getReferenceGenomeFilepath()
       ),
+      /*without_unaligned_sequences=*/false,
       *database
    );
 
@@ -59,10 +63,9 @@ std::shared_ptr<rhydb::Database> buildTestDatabase() {
       rhydb::schema::TableName::getDefault(),
       rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          database_config,
-         database->getReferences(),
+         database->getColumnReferences(rhydb::schema::TableName::getDefault().getName()),
          lineage_trees,
-         phylo_tree_file,
-         /*without_unaligned_sequences=*/false
+         phylo_tree_file
       )
    );
    std::ifstream input(input_directory / "input.ndjson");
@@ -319,12 +322,38 @@ void populateReferences(
       rhydb::schema::TableName{std::string{rhydb::Database::REFERENCE_GENOMES_TABLE_NAME}}, data
    );
 }
+
+// Declares in `reference_columns` which reference backs a column, by appending the row directly the
+// way a caller of `createTableFromColumns` has to. Each entry is (column name, column type,
+// reference name).
+void declareColumnReferences(
+   rhydb::Database& database,
+   const std::string& table_name,
+   const std::vector<std::tuple<std::string, std::string, std::string>>& entries
+) {
+   std::stringstream data;
+   for (const auto& [column_name, column_type, reference_name] : entries) {
+      data
+         << nlohmann::
+               json{{"id", fmt::format("{}.{}", table_name, column_name)}, {"table_name", table_name}, {"column_name", column_name}, {"column_type", column_type}, {"reference_name", reference_name}}
+                  .dump()
+         << "\n";
+   }
+   database.appendData(
+      rhydb::schema::TableName{std::string{rhydb::Database::REFERENCE_COLUMNS_TABLE_NAME}}, data
+   );
+}
 }  // namespace
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DatabaseTest, createTableFromColumnsSupportsAllColumnTypes) {
    rhydb::Database database;
    populateReferences(database, {{"seq", "ACGT"}, {"gene", "MFV"}});
+   declareColumnReferences(
+      database,
+      "generic",
+      {{"seq", "nucleotide_sequence", "seq"}, {"gene", "amino_acid_sequence", "gene"}}
+   );
    database.createTableFromColumns(
       "generic",
       {{.name = "key", .type = "string"},
@@ -369,15 +398,365 @@ TEST(DatabaseTest, createTableFromColumnsSupportsAllColumnTypes) {
    );
 }
 
-TEST(DatabaseTest, createTableFromColumnsResolvesReferenceByColumnName) {
+TEST(DatabaseTest, addReferencesRejectsANameRepeatedWithinOneBatch) {
    rhydb::Database database;
-   // The entry name matches the sequence column name, not the table it ends up in.
-   populateReferences(database, {{"main", "ACGTACGT"}});
+   EXPECT_THROW(
+      database.addReferences(
+         {{.name = "main", .reference = "ACGT", .type = "nucleotide_sequence"},
+          {.name = "main", .reference = "TTTTTTTT", .type = "nucleotide_sequence"}}
+      ),
+      rhydb::schema::DuplicatePrimaryKeyException
+   );
+}
+
+TEST(DatabaseTest, addReferencesRejectsANameAlreadyInTheTable) {
+   rhydb::Database database;
+   database.addReferences({{.name = "main", .reference = "ACGT", .type = "nucleotide_sequence"}});
+   EXPECT_THROW(
+      database.addReferences({{.name = "main", .reference = "TTTTTTTT", .type = ""}}),
+      rhydb::schema::DuplicatePrimaryKeyException
+   );
+}
+
+TEST(DatabaseTest, addReferencesLeavesTheTableUntouchedWhenABatchIsRejected) {
+   // The whole batch is validated up front, so a clash later in the batch must not leave the
+   // entries before it appended.
+   rhydb::Database database;
+   EXPECT_THROW(
+      database.addReferences(
+         {{.name = "first", .reference = "ACGT", .type = "nucleotide_sequence"},
+          {.name = "clash", .reference = "ACGT", .type = "nucleotide_sequence"},
+          {.name = "clash", .reference = "TTTT", .type = "nucleotide_sequence"}}
+      ),
+      rhydb::schema::DuplicatePrimaryKeyException
+   );
+   EXPECT_TRUE(database.getReferences().empty());
+}
+
+TEST(DatabaseTest, addReferencesRejectsANameSharedAcrossTypesBecauseSuchASchemaCannotBeBuilt) {
+   // Why the uniqueness check is on the name alone and not on (name, type): the `type` column
+   // distinguishes the two entries, but nothing downstream resolves a column by name *and* type.
+   // A schema carrying both a nucleotide and an amino acid column called "S" is representable, yet
+   // instantiating it throws, because `TableSchema::getColumnMetadata` matches on the name, finds
+   // whichever of the two sorts first, and returns nullopt on the type mismatch -- which
+   // `storage::Table`'s constructor unwraps. So the pair could never be used, and `addReferences`
+   // rejects it up front with a message that names the real problem.
+   auto table_schema = std::make_shared<rhydb::schema::TableSchema>();
+   const rhydb::schema::ColumnIdentifier key_column{
+      .name = "key", .type = rhydb::schema::ColumnType::STRING
+   };
+   const rhydb::schema::ColumnIdentifier nucleotide_column{
+      .name = "S", .type = rhydb::schema::ColumnType::NUCLEOTIDE_SEQUENCE
+   };
+   const rhydb::schema::ColumnIdentifier amino_acid_column{
+      .name = "S", .type = rhydb::schema::ColumnType::AMINO_ACID_SEQUENCE
+   };
+   table_schema->column_metadata.emplace(
+      key_column, std::make_shared<rhydb::storage::column::StringColumnMetadata>(key_column.name)
+   );
+   table_schema->column_metadata.emplace(
+      nucleotide_column,
+      std::make_shared<rhydb::storage::column::SequenceColumnMetadata<rhydb::Nucleotide>>(
+         nucleotide_column.name, rhydb::ReferenceGenomes::stringToVector<rhydb::Nucleotide>("ACGT")
+      )
+   );
+   table_schema->column_metadata.emplace(
+      amino_acid_column,
+      std::make_shared<rhydb::storage::column::SequenceColumnMetadata<rhydb::AminoAcid>>(
+         amino_acid_column.name, rhydb::ReferenceGenomes::stringToVector<rhydb::AminoAcid>("MFV")
+      )
+   );
+   table_schema->primary_key = key_column;
+
+   // Both columns are in the schema, but a lookup by name can only ever reach one of them.
+   ASSERT_EQ(table_schema->getColumnIdentifiers().size(), 3);
+   EXPECT_THROW(
+      rhydb::storage::Table(rhydb::schema::TableName{"t"}, table_schema), std::bad_optional_access
+   );
+
+   // Hence the guard, rather than letting the pair through on the strength of differing types.
+   rhydb::Database database;
+   EXPECT_THROW(
+      database.addReferences(
+         {{.name = "S", .reference = "ACGT", .type = "nucleotide_sequence"},
+          {.name = "S", .reference = "MFV", .type = "amino_acid_sequence"}}
+      ),
+      rhydb::schema::DuplicatePrimaryKeyException
+   );
+}
+
+TEST(DatabaseTest, addReferencesAppendsABatchInOrder) {
+   rhydb::Database database;
+   database.addReferences(
+      {{.name = "main", .reference = "ACGT", .type = "nucleotide_sequence"},
+       {.name = "S", .reference = "MFV", .type = "amino_acid_sequence"}}
+   );
+
+   auto entries = database.getReferences();
+   ASSERT_EQ(entries.size(), 2);
+   EXPECT_EQ(entries.at(0).name, "main");
+   EXPECT_EQ(entries.at(0).reference, "ACGT");
+   EXPECT_EQ(entries.at(0).type, "nucleotide_sequence");
+   EXPECT_EQ(entries.at(1).name, "S");
+   EXPECT_EQ(entries.at(1).reference, "MFV");
+   EXPECT_EQ(entries.at(1).type, "amino_acid_sequence");
+}
+
+TEST(DatabaseTest, createTableFromColumnsTakesTheReferenceFromTheDeclaration) {
+   rhydb::Database database;
+   // The reference is found through the `reference_columns` row, not by matching the column's name
+   // against the reference store. Here the two deliberately differ.
+   populateReferences(database, {{"a_reference", "ACGTACGT"}});
+   declareColumnReferences(database, "sequences", {{"main", "nucleotide_sequence", "a_reference"}});
    database.createTableFromColumns(
       "sequences",
       {{.name = "key", .type = "string"}, {.name = "main", .type = "nucleotide_sequence"}}
    );
    EXPECT_EQ(database.getNucleotideReferenceSequence("sequences", "main"), "ACGTACGT");
+}
+
+TEST(DatabaseTest, createTableFromColumnsRequiresADeclarationForASequenceColumn) {
+   rhydb::Database database;
+   populateReferences(database, {{"main", "ACGTACGT"}});
+   // The reference is stored, but nothing says it backs this column.
+   EXPECT_THAT(
+      [&database]() {
+         database.createTableFromColumns(
+            "sequences",
+            {{.name = "key", .type = "string"}, {.name = "main", .type = "nucleotide_sequence"}}
+         );
+      },
+      ThrowsMessage<std::runtime_error>(::testing::HasSubstr(
+         "The column 'main' of table 'sequences' has type 'nucleotide_sequence' and so needs a "
+         "reference, but the 'reference_columns' table declares none for it."
+      ))
+   );
+}
+
+TEST(DatabaseTest, createTableFromColumnsRejectsADeclarationThatDisagreesAboutTheColumnType) {
+   rhydb::Database database;
+   populateReferences(database, {{"main", "ACGTACGT"}});
+   declareColumnReferences(database, "sequences", {{"main", "zstd_compressed_string", "main"}});
+   EXPECT_THAT(
+      [&database]() {
+         database.createTableFromColumns(
+            "sequences",
+            {{.name = "key", .type = "string"}, {.name = "main", .type = "nucleotide_sequence"}}
+         );
+      },
+      ThrowsMessage<std::runtime_error>(
+         ::testing::HasSubstr("declares the column 'main' of table 'sequences' as a "
+                              "'zstd_compressed_string' column, but "
+                              "it is being created with type 'nucleotide_sequence'")
+      )
+   );
+}
+
+TEST(DatabaseTest, getColumnReferencesRejectsAManuallyAppendedRowNamingAnUnknownReference) {
+   // Rows can be appended straight to the table, bypassing addColumnReferences' checks, so the
+   // mapping is validated when it is read too.
+   rhydb::Database database;
+   declareColumnReferences(database, "sequences", {{"main", "nucleotide_sequence", "absent"}});
+   EXPECT_THAT(
+      [&database]() { database.getColumnReferences("sequences"); },
+      ThrowsMessage<std::runtime_error>(
+         ::testing::HasSubstr("names the reference 'absent', which the 'reference_genomes' table "
+                              "does not hold")
+      )
+   );
+}
+
+TEST(DatabaseTest, getColumnReferencesRejectsTwoManuallyAppendedRowsForOneColumn) {
+   rhydb::Database database;
+   populateReferences(database, {{"first", "ACGT"}, {"second", "TTTT"}});
+   // Two rows for one column would otherwise leave which reference wins up to row order. They
+   // differ in `id`, so the table's own key does not catch it.
+   std::stringstream data;
+   data << nlohmann::json{
+               {"id", "sequences.main"},
+               {"table_name", "sequences"},
+               {"column_name", "main"},
+               {"column_type", "nucleotide_sequence"},
+               {"reference_name", "first"}
+   }.dump()
+        << "\n"
+        << nlohmann::json{
+               {"id", "sequences.main.again"},
+               {"table_name", "sequences"},
+               {"column_name", "main"},
+               {"column_type", "nucleotide_sequence"},
+               {"reference_name", "second"}
+   }.dump()
+        << "\n";
+   database.appendData(
+      rhydb::schema::TableName{std::string{rhydb::Database::REFERENCE_COLUMNS_TABLE_NAME}}, data
+   );
+
+   EXPECT_THAT(
+      [&database]() { database.getColumnReferences("sequences"); },
+      ThrowsMessage<std::runtime_error>(::testing::HasSubstr(
+         "declares more than one reference for the column 'main' of table 'sequences'"
+      ))
+   );
+}
+
+TEST(DatabaseTest, createTableFromColumnsAcceptsAReferenceWhoseTypeMatchesTheColumn) {
+   rhydb::Database database;
+   database.addReferences({{.name = "seq", .reference = "ACGT", .type = "nucleotide_sequence"}});
+   declareColumnReferences(database, "samples", {{"seq", "nucleotide_sequence", "seq"}});
+   database.createTableFromColumns(
+      "samples", {{.name = "key", .type = "string"}, {.name = "seq", .type = "nucleotide_sequence"}}
+   );
+   EXPECT_EQ(database.getNucleotideReferenceSequence("samples", "seq"), "ACGT");
+}
+
+TEST(DatabaseTest, declaringAReferenceOfTheWrongTypeIsRejected) {
+   // Without the type check the amino acid column would silently be handed the nucleotide
+   // reference "ACGT" and go on to parse it as amino acids.
+   rhydb::Database database;
+   database.addReferences({{.name = "seq", .reference = "ACGT", .type = "nucleotide_sequence"}});
+   EXPECT_THAT(
+      [&database]() {
+         declareColumnReferences(database, "samples", {{"seq", "amino_acid_sequence", "seq"}});
+         database.getColumnReferences("samples");
+      },
+      ThrowsMessage<std::runtime_error>(::testing::HasSubstr(
+         "The column 'seq' of table 'samples' has type 'amino_acid_sequence' and needs a "
+         "'amino_acid_sequence' reference, but 'seq' is a 'nucleotide_sequence' reference."
+      ))
+   );
+}
+
+TEST(DatabaseTest, createTableFromColumnsAcceptsAnUntypedReferenceForAnyColumnType) {
+   // `register_reference` may omit the type, since the declaration already states the column's.
+   rhydb::Database database;
+   database.addReferences({{.name = "seq", .reference = "MFV", .type = ""}});
+   declareColumnReferences(database, "samples", {{"seq", "amino_acid_sequence", "seq"}});
+   database.createTableFromColumns(
+      "samples", {{.name = "key", .type = "string"}, {.name = "seq", .type = "amino_acid_sequence"}}
+   );
+   EXPECT_EQ(database.getAminoAcidReferenceSequence("samples", "seq"), "MFV");
+}
+
+TEST(DatabaseTest, createTableFromColumnsLetsTwoColumnsShareOneReference) {
+   // The dedup the mapping buys: one stored reference, two columns naming it.
+   rhydb::Database database;
+   database.addReferences({{.name = "main", .reference = "ACGTACGT", .type = "nucleotide_sequence"}}
+   );
+   database.addColumnReferences(
+      {{.table_name = "samples",
+        .column_name = "main",
+        .column_type = "nucleotide_sequence",
+        .reference_name = "main"},
+       {.table_name = "samples",
+        .column_name = "unaligned_main",
+        .column_type = "zstd_compressed_string",
+        .reference_name = "main"}}
+   );
+   database.createTableFromColumns(
+      "samples",
+      {{.name = "key", .type = "string"},
+       {.name = "main", .type = "nucleotide_sequence"},
+       {.name = "unaligned_main", .type = "zstd_compressed_string"}}
+   );
+
+   EXPECT_EQ(database.getReferences().size(), 1);
+   EXPECT_EQ(database.getNucleotideReferenceSequence("samples", "main"), "ACGTACGT");
+
+   const auto& table_schema = database.tables.at(rhydb::schema::TableName{"samples"})->schema;
+   auto metadata =
+      table_schema->getColumnMetadata<rhydb::storage::column::ZstdCompressedStringColumn>(
+         "unaligned_main"
+      );
+   ASSERT_TRUE(metadata.has_value());
+   EXPECT_EQ(metadata.value()->dictionary_string, "ACGTACGT");
+}
+
+TEST(DatabaseTest, createTableFromColumnsScopesReferencesToTheirOwnTable) {
+   rhydb::Database database;
+   database.addReferences(
+      {{.name = "first_ref", .reference = "ACGT", .type = "nucleotide_sequence"},
+       {.name = "second_ref", .reference = "TTTT", .type = "nucleotide_sequence"}}
+   );
+   database.addColumnReferences(
+      {{.table_name = "first",
+        .column_name = "seq",
+        .column_type = "nucleotide_sequence",
+        .reference_name = "first_ref"},
+       {.table_name = "second",
+        .column_name = "seq",
+        .column_type = "nucleotide_sequence",
+        .reference_name = "second_ref"}}
+   );
+   database.createTableFromColumns(
+      "first", {{.name = "key", .type = "string"}, {.name = "seq", .type = "nucleotide_sequence"}}
+   );
+   database.createTableFromColumns(
+      "second", {{.name = "key", .type = "string"}, {.name = "seq", .type = "nucleotide_sequence"}}
+   );
+
+   // Same column name in both tables, each with its own reference and its own mapping row.
+   EXPECT_EQ(database.getNucleotideReferenceSequence("first", "seq"), "ACGT");
+   EXPECT_EQ(database.getNucleotideReferenceSequence("second", "seq"), "TTTT");
+   EXPECT_EQ(database.getColumnReferences("first").size(), 1);
+   EXPECT_EQ(database.getColumnReferences("second").size(), 1);
+}
+
+TEST(DatabaseTest, addColumnReferencesRejectsDeclaringOneColumnTwice) {
+   rhydb::Database database;
+   database.addReferences({{.name = "main", .reference = "ACGT", .type = "nucleotide_sequence"}});
+   database.addColumnReferences(
+      {{.table_name = "samples",
+        .column_name = "seq",
+        .column_type = "nucleotide_sequence",
+        .reference_name = "main"}}
+   );
+   EXPECT_THAT(
+      [&database]() {
+         database.addColumnReferences(
+            {{.table_name = "samples",
+              .column_name = "seq",
+              .column_type = "nucleotide_sequence",
+              .reference_name = "main"}}
+         );
+      },
+      ThrowsMessage<std::runtime_error>(::testing::HasSubstr(
+         "already declares a reference for the column 'seq' of table 'samples'"
+      ))
+   );
+}
+
+TEST(DatabaseTest, addColumnReferencesRejectsAColumnTypeThatTakesNoReference) {
+   rhydb::Database database;
+   database.addReferences({{.name = "main", .reference = "ACGT", .type = "nucleotide_sequence"}});
+   EXPECT_THAT(
+      [&database]() {
+         database.addColumnReferences(
+            {{.table_name = "samples",
+              .column_name = "country",
+              .column_type = "string",
+              .reference_name = "main"}}
+         );
+      },
+      ThrowsMessage<std::runtime_error>(::testing::HasSubstr("a 'string' column takes no reference")
+      )
+   );
+}
+
+TEST(DatabaseTest, addColumnReferencesAcceptsAnUntypedReferenceForEitherKind) {
+   rhydb::Database database;
+   database.addReferences({{.name = "untyped", .reference = "ACGT", .type = ""}});
+   database.addColumnReferences(
+      {{.table_name = "t",
+        .column_name = "nuc",
+        .column_type = "nucleotide_sequence",
+        .reference_name = "untyped"},
+       {.table_name = "t",
+        .column_name = "zstd",
+        .column_type = "zstd_compressed_string",
+        .reference_name = "untyped"}}
+   );
+   EXPECT_EQ(database.getColumnReferences("t").size(), 2);
 }
 
 TEST(DatabaseTest, createTableFromColumnsReadsZstdDictionaryFromReferenceGenomes) {
@@ -386,6 +765,9 @@ TEST(DatabaseTest, createTableFromColumnsReadsZstdDictionaryFromReferenceGenomes
    // `reference_genomes` table the sequence columns read their reference from, keyed on the column
    // name.
    populateReferences(database, {{"unaligned_main", "ACGTACGT"}});
+   declareColumnReferences(
+      database, "sequences", {{"unaligned_main", "zstd_compressed_string", "unaligned_main"}}
+   );
    database.createTableFromColumns(
       "sequences",
       {{.name = "key", .type = "string"},
@@ -433,22 +815,20 @@ TEST(DatabaseTest, createTableFromColumnsRejectsInvalidRequests) {
       std::runtime_error
    );
 
-   // The built-in `reference_genomes` table has no entry registered for the sequence column yet.
-   EXPECT_THROW(
-      database.createTableFromColumns("t", {{.name = "seq", .type = "nucleotide_sequence"}}),
-      std::runtime_error
-   );
-
-   // `reference_genomes` has entries but none matches the requested column name.
+   // A sequence column with nothing declaring its reference is rejected.
    populateReferences(database, {{"other", "ACGT"}});
    EXPECT_THROW(
       database.createTableFromColumns("t", {{.name = "seq", .type = "nucleotide_sequence"}}),
       std::runtime_error
    );
 
-   // The reference exists but contains invalid symbols for a nucleotide sequence.
+   // The declaration exists but the reference it names contains invalid symbols for a nucleotide
+   // sequence.
    rhydb::Database database_with_bad_reference;
    populateReferences(database_with_bad_reference, {{"seq", "XYZ"}});
+   declareColumnReferences(
+      database_with_bad_reference, "t", {{"seq", "nucleotide_sequence", "seq"}}
+   );
    EXPECT_THROW(
       database_with_bad_reference.createTableFromColumns(
          "t", {{.name = "seq", .type = "nucleotide_sequence"}}
@@ -460,6 +840,9 @@ TEST(DatabaseTest, createTableFromColumnsRejectsInvalidRequests) {
    // compression dictionary (zstd would otherwise accept it and compress without a dictionary).
    rhydb::Database database_with_empty_reference;
    populateReferences(database_with_empty_reference, {{"unaligned", ""}});
+   declareColumnReferences(
+      database_with_empty_reference, "t", {{"unaligned", "zstd_compressed_string", "unaligned"}}
+   );
    try {
       database_with_empty_reference.createTableFromColumns(
          "t",

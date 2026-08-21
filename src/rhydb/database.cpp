@@ -15,6 +15,7 @@
 #include <arrow/ipc/writer.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/aa_symbols.h"
@@ -36,6 +37,7 @@
 #include "rhydb/query_engine/scalar_column_update.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/schema/database_schema.h"
+#include "rhydb/schema/duplicate_primary_key_exception.h"
 #include "rhydb/storage/column/dictionary_encoded_column.h"
 #include "rhydb/storage/column/row_id.h"
 #include "rhydb/storage/column/sequence_column.h"
@@ -76,8 +78,12 @@ std::string symbolVectorToString(const std::vector<typename SymbolType::Symbol>&
 }
 
 using rhydb::schema::ColumnType;
-ColumnType parseColumnTypeName(const std::string& type_name) {
-   static const std::map<std::string, ColumnType> TYPE_NAMES{
+
+/// The lowercase type names the public `createTableFromColumns` / `reference_genomes` interfaces
+/// speak, mapped to the internal column types. Distinct from `schema::columnTypeToString`, which
+/// renders the enumerator names.
+const std::map<std::string, ColumnType>& columnTypeNames() {
+   static const std::map<std::string, ColumnType> type_names{
       {"string", ColumnType::STRING},
       {"indexed_string", ColumnType::DICTIONARY_ENCODED},
       {"date", ColumnType::DATE32},
@@ -88,15 +94,37 @@ ColumnType parseColumnTypeName(const std::string& type_name) {
       {"amino_acid_sequence", ColumnType::AMINO_ACID_SEQUENCE},
       {"zstd_compressed_string", ColumnType::ZSTD_COMPRESSED_STRING},
    };
-   auto iter = TYPE_NAMES.find(type_name);
-   if (iter == TYPE_NAMES.end()) {
+   return type_names;
+}
+
+std::optional<ColumnType> tryParseColumnTypeName(const std::string& type_name) {
+   auto iter = columnTypeNames().find(type_name);
+   if (iter == columnTypeNames().end()) {
+      return std::nullopt;
+   }
+   return iter->second;
+}
+
+ColumnType parseColumnTypeName(const std::string& type_name) {
+   auto type = tryParseColumnTypeName(type_name);
+   if (!type.has_value()) {
       throw std::runtime_error(fmt::format(
          "Unknown column type '{}'. Supported types are: string, indexed_string, date, bool, int, "
          "float, nucleotide_sequence, amino_acid_sequence, zstd_compressed_string.",
          type_name
       ));
    }
-   return iter->second;
+   return type.value();
+}
+
+/// The lowercase name for `type`, for messages that talk about the `type` column's values.
+std::string columnTypeName(ColumnType type) {
+   for (const auto& [name, candidate] : columnTypeNames()) {
+      if (candidate == type) {
+         return name;
+      }
+   }
+   SILO_PANIC("no lowercase type name for {}", rhydb::schema::columnTypeToString(type));
 }
 
 /// The column types whose metadata requires a reference string (looked up in the built-in
@@ -174,6 +202,7 @@ namespace rhydb {
 
 Database::Database() {
    createReferenceGenomesTable();
+   createReferenceColumnsTable();
 }
 
 Database::Database(schema::DatabaseSchema database_schema)
@@ -183,24 +212,58 @@ Database::Database(schema::DatabaseSchema database_schema)
    }
 }
 
+namespace {
+
+/// A schema for a built-in bookkeeping table whose columns are all strings, the first being the
+/// primary key.
+std::shared_ptr<rhydb::schema::TableSchema> makeStringTableSchema(
+   const std::vector<std::string>& column_names
+) {
+   SILO_ASSERT(!column_names.empty());
+   auto table_schema = std::make_shared<rhydb::schema::TableSchema>();
+   for (const auto& column_name : column_names) {
+      const rhydb::schema::ColumnIdentifier column{.name = column_name, .type = ColumnType::STRING};
+      table_schema->column_metadata.emplace(
+         column, std::make_shared<rhydb::storage::column::StringColumnMetadata>(column.name)
+      );
+   }
+   table_schema->primary_key =
+      rhydb::schema::ColumnIdentifier{.name = column_names.front(), .type = ColumnType::STRING};
+   return table_schema;
+}
+
+/// One string column of a built-in bookkeeping table. Asserting rather than reporting is right
+/// here: these tables are created with a fixed all-string schema (`makeStringTableSchema`), so a
+/// missing column is a bug in this file, not bad input.
+const rhydb::storage::column::StringColumn& builtinStringColumn(
+   const rhydb::storage::Table& table,
+   const std::string& column_name
+) {
+   auto iter = table.columns.string_columns.find(column_name);
+   SILO_ASSERT(iter != table.columns.string_columns.end());
+   return iter->second;
+}
+
+std::string valueOrEmpty(
+   const rhydb::storage::column::StringColumn& column,
+   rhydb::storage::column::RowId row_id
+) {
+   return column.isNull(row_id) ? std::string{} : column.getValueString(row_id);
+}
+
+}  // namespace
+
 void Database::createReferenceGenomesTable() {
-   auto table_schema = std::make_shared<schema::TableSchema>();
-   const schema::ColumnIdentifier name_column{.name = "name", .type = ColumnType::STRING};
-   const schema::ColumnIdentifier reference_column{.name = "reference", .type = ColumnType::STRING};
-   const schema::ColumnIdentifier type_column{.name = "type", .type = ColumnType::STRING};
-   table_schema->column_metadata.emplace(
-      name_column, std::make_shared<storage::column::StringColumnMetadata>(name_column.name)
-   );
-   table_schema->column_metadata.emplace(
-      reference_column,
-      std::make_shared<storage::column::StringColumnMetadata>(reference_column.name)
-   );
-   table_schema->column_metadata.emplace(
-      type_column, std::make_shared<storage::column::StringColumnMetadata>(type_column.name)
-   );
-   table_schema->primary_key = name_column;
    createTable(
-      schema::TableName{std::string{REFERENCE_GENOMES_TABLE_NAME}}, std::move(table_schema)
+      schema::TableName{std::string{REFERENCE_GENOMES_TABLE_NAME}},
+      makeStringTableSchema({"name", "reference", "type"})
+   );
+}
+
+void Database::createReferenceColumnsTable() {
+   createTable(
+      schema::TableName{std::string{REFERENCE_COLUMNS_TABLE_NAME}},
+      makeStringTableSchema({"id", "table_name", "column_name", "column_type", "reference_name"})
    );
 }
 
@@ -238,6 +301,13 @@ void Database::createTableFromColumns(
          "Cannot create a table without columns: the first column becomes the primary key."
       );
    }
+   // The mapping is read, never written, here: a column that needs a reference must already have
+   // its `reference_columns` row, put there by whoever is creating the table.
+   std::map<std::string, ResolvedColumnReference> declared_references;
+   for (auto& resolved : getColumnReferences(table_name)) {
+      declared_references.emplace(resolved.column_name, std::move(resolved));
+   }
+
    auto table_schema = std::make_shared<schema::TableSchema>();
    std::optional<schema::ColumnIdentifier> primary_key;
    std::set<std::string> seen_names;
@@ -260,54 +330,61 @@ void Database::createTableFromColumns(
          }
          primary_key = schema::ColumnIdentifier{.name = column.name, .type = type};
       }
+
       std::string reference;
       if (columnTypeNeedsReference(type)) {
-         reference = lookupReferenceForColumn(column.name);
+         auto declared = declared_references.find(column.name);
+         if (declared == declared_references.end()) {
+            throw std::runtime_error(fmt::format(
+               "The column '{}' of table '{}' has type '{}' and so needs a reference, but the '{}' "
+               "table declares none for it. Append a row naming the reference that backs it before "
+               "creating the table.",
+               column.name,
+               table_name,
+               column.type,
+               REFERENCE_COLUMNS_TABLE_NAME
+            ));
+         }
+         if (declared->second.column_type != type) {
+            throw std::runtime_error(fmt::format(
+               "The '{}' table declares the column '{}' of table '{}' as a '{}' column, but it is "
+               "being created with type '{}'.",
+               REFERENCE_COLUMNS_TABLE_NAME,
+               column.name,
+               table_name,
+               columnTypeName(declared->second.column_type),
+               column.type
+            ));
+         }
+         reference = declared->second.reference;
       }
+
       const schema::ColumnIdentifier column_identifier{.name = column.name, .type = type};
       table_schema->column_metadata.emplace(
          column_identifier, makeColumnMetadata(column.name, type, reference)
       );
    }
+
    table_schema->primary_key = primary_key.value();
    createTable(schema::TableName(table_name), std::move(table_schema));
 }
 
-std::string Database::lookupReferenceForColumn(const std::string& column_name) {
-   // The `reference_genomes` table is built-in (see `createReferenceGenomesTable`), so it always
-   // exists with its `name` and `reference` string columns.
-   auto table_iter = tables.find(schema::TableName{std::string{REFERENCE_GENOMES_TABLE_NAME}});
-   SILO_ASSERT(table_iter != tables.end());
-   const auto& reference_columns = table_iter->second->columns.string_columns;
-   auto name_column_iter = reference_columns.find("name");
-   auto reference_column_iter = reference_columns.find("reference");
-   SILO_ASSERT(
-      name_column_iter != reference_columns.end() &&
-      reference_column_iter != reference_columns.end()
-   );
-   const auto& name_column = name_column_iter->second;
-   const auto& reference_column = reference_column_iter->second;
-
-   const roaring::Roaring all_rows =
-      getFilteredBitmap(std::string{REFERENCE_GENOMES_TABLE_NAME}, "true");
-   for (const uint32_t global_row_id : all_rows) {
-      const auto row_id = storage::column::RowId::fromGlobal(global_row_id);
-      if (name_column.isNull(row_id) || name_column.getValueString(row_id) != column_name) {
+ReferenceEntry Database::lookupReference(const std::string& reference_name) {
+   for (auto& entry : getReferences()) {
+      if (entry.name != reference_name) {
          continue;
       }
-      if (reference_column.isNull(row_id)) {
+      if (entry.reference.empty()) {
          throw std::runtime_error(fmt::format(
-            "The '{}' entry named '{}' has a null reference.",
+            "The '{}' entry named '{}' has an empty reference.",
             REFERENCE_GENOMES_TABLE_NAME,
-            column_name
+            reference_name
          ));
       }
-      return reference_column.getValueString(row_id);
+      return entry;
    }
    throw std::runtime_error(fmt::format(
-      "The '{}' table has no entry named '{}' for the column being created.",
-      REFERENCE_GENOMES_TABLE_NAME,
-      column_name
+      "The '{}' table has no entry named '{}'.", REFERENCE_GENOMES_TABLE_NAME, reference_name
    ));
 }
 
@@ -348,6 +425,243 @@ std::vector<ReferenceEntry> Database::getReferences() {
       entries.push_back(std::move(entry));
    }
    return entries;
+}
+
+void Database::addReferences(const std::vector<ReferenceEntry>& entries) {
+   // Collect the names already stored, then fold in the incoming ones, so a clash is reported
+   // whether it is against an earlier batch or against another entry of this same batch. The whole
+   // batch is validated before anything is appended: a rejected batch leaves the table untouched.
+   // Names clash on the name alone -- a nucleotide sequence and a gene may not share one. The
+   // `type` column is a tag for `createSchemaFromConfigFiles`, not part of a composite key (which
+   // `TableSchema::primary_key`, a single ColumnIdentifier, could not express anyway), and the
+   // schema those two entries would produce cannot be instantiated: see
+   // `addReferencesRejectsANameSharedAcrossTypesBecauseSuchASchemaCannotBeBuilt`.
+   std::map<std::string, std::string> types_by_name;
+   for (const auto& entry : getReferences()) {
+      types_by_name.emplace(entry.name, entry.type);
+   }
+
+   std::string ndjson;
+   for (const auto& entry : entries) {
+      const auto [existing, inserted] = types_by_name.emplace(entry.name, entry.type);
+      if (!inserted) {
+         throw schema::DuplicatePrimaryKeyException(
+            "Cannot add the reference named '{}' (type '{}') to the '{}' table: it already holds a "
+            "reference of that name (type '{}'). The table is keyed on the reference name, so "
+            "names must be unique across nucleotide sequences and genes.",
+            entry.name,
+            entry.type,
+            REFERENCE_GENOMES_TABLE_NAME,
+            existing->second
+         );
+      }
+      const nlohmann::json line{
+         {"name", entry.name}, {"reference", entry.reference}, {"type", entry.type}
+      };
+      ndjson += line.dump();
+      ndjson += '\n';
+   }
+
+   std::stringstream ndjson_stream{ndjson};
+   appendData(schema::TableName{std::string{REFERENCE_GENOMES_TABLE_NAME}}, ndjson_stream);
+}
+
+namespace {
+
+/// The reference kind a column of `column_type` has to be backed by. A zstd-compressed column holds
+/// the unaligned form of a nucleotide sequence and uses that sequence's reference as its
+/// compression dictionary, so it too wants a nucleotide reference.
+ColumnType requiredReferenceType(ColumnType column_type) {
+   switch (column_type) {
+      case ColumnType::NUCLEOTIDE_SEQUENCE:
+      case ColumnType::ZSTD_COMPRESSED_STRING:
+         return ColumnType::NUCLEOTIDE_SEQUENCE;
+      case ColumnType::AMINO_ACID_SEQUENCE:
+         return ColumnType::AMINO_ACID_SEQUENCE;
+      default:
+         SILO_PANIC("{} columns take no reference", rhydb::schema::columnTypeToString(column_type));
+   }
+}
+
+}  // namespace
+
+namespace {
+
+/// Checks one `reference_columns` declaration against the reference store and returns the column
+/// type it names. `reference_kinds_by_name` maps every stored reference name to its stated kind,
+/// empty when the reference was stored untyped. Rows reach the table through a plain append, so
+/// this runs when they are read as well as when `addColumnReferences` writes them.
+ColumnType validateColumnReference(
+   const rhydb::ColumnReferenceEntry& entry,
+   const std::map<std::string, std::string>& reference_kinds_by_name
+) {
+   const auto column_type = tryParseColumnTypeName(entry.column_type);
+   if (!column_type.has_value()) {
+      throw std::runtime_error(fmt::format(
+         "The '{}' row for the column '{}' of table '{}' has the unknown column type '{}'.",
+         rhydb::Database::REFERENCE_COLUMNS_TABLE_NAME,
+         entry.column_name,
+         entry.table_name,
+         entry.column_type
+      ));
+   }
+   if (!columnTypeNeedsReference(column_type.value())) {
+      throw std::runtime_error(fmt::format(
+         "Cannot declare a reference for the column '{}' of table '{}': a '{}' column takes no "
+         "reference.",
+         entry.column_name,
+         entry.table_name,
+         entry.column_type
+      ));
+   }
+
+   auto reference_iter = reference_kinds_by_name.find(entry.reference_name);
+   if (reference_iter == reference_kinds_by_name.end()) {
+      throw std::runtime_error(fmt::format(
+         "The column '{}' of table '{}' names the reference '{}', which the '{}' table does not "
+         "hold.",
+         entry.column_name,
+         entry.table_name,
+         entry.reference_name,
+         rhydb::Database::REFERENCE_GENOMES_TABLE_NAME
+      ));
+   }
+   // A reference may be stored untyped, in which case the column claiming it decides how it is
+   // read. A stated kind has to be one this column can use, so that an amino acid column cannot be
+   // backed by a nucleotide reference and then parse it as amino acids.
+   const std::string& reference_kind = reference_iter->second;
+   if (!reference_kind.empty()) {
+      const auto parsed_kind = tryParseColumnTypeName(reference_kind);
+      if (!parsed_kind.has_value()) {
+         throw std::runtime_error(fmt::format(
+            "The '{}' entry named '{}' has an unknown type '{}'.",
+            rhydb::Database::REFERENCE_GENOMES_TABLE_NAME,
+            entry.reference_name,
+            reference_kind
+         ));
+      }
+      if (parsed_kind.value() != requiredReferenceType(column_type.value())) {
+         throw std::runtime_error(fmt::format(
+            "The column '{}' of table '{}' has type '{}' and needs a '{}' reference, but '{}' is a "
+            "'{}' reference.",
+            entry.column_name,
+            entry.table_name,
+            entry.column_type,
+            columnTypeName(requiredReferenceType(column_type.value())),
+            entry.reference_name,
+            reference_kind
+         ));
+      }
+   }
+   return column_type.value();
+}
+
+}  // namespace
+
+void Database::addColumnReferences(const std::vector<ColumnReferenceEntry>& entries) {
+   // The whole batch is validated before anything is appended, so a rejected batch leaves the
+   // table untouched.
+   std::map<std::string, std::string> reference_kinds_by_name;
+   for (const auto& entry : getReferences()) {
+      reference_kinds_by_name.emplace(entry.name, entry.type);
+   }
+   auto declared_ids = declaredColumnReferenceIds();
+
+   std::string ndjson;
+   for (const auto& entry : entries) {
+      validateColumnReference(entry, reference_kinds_by_name);
+
+      // The natural key of the mapping: one column of one table has one reference.
+      const std::string declaration_id = fmt::format("{}.{}", entry.table_name, entry.column_name);
+      if (!declared_ids.insert(declaration_id).second) {
+         throw std::runtime_error(fmt::format(
+            "The '{}' table already declares a reference for the column '{}' of table '{}'.",
+            REFERENCE_COLUMNS_TABLE_NAME,
+            entry.column_name,
+            entry.table_name
+         ));
+      }
+
+      const nlohmann::json line{
+         {"id", declaration_id},
+         {"table_name", entry.table_name},
+         {"column_name", entry.column_name},
+         {"column_type", entry.column_type},
+         {"reference_name", entry.reference_name}
+      };
+      ndjson += line.dump();
+      ndjson += '\n';
+   }
+
+   std::stringstream ndjson_stream{ndjson};
+   appendData(schema::TableName{std::string{REFERENCE_COLUMNS_TABLE_NAME}}, ndjson_stream);
+}
+
+std::set<std::string> Database::declaredColumnReferenceIds() {
+   auto table_iter = tables.find(schema::TableName{std::string{REFERENCE_COLUMNS_TABLE_NAME}});
+   SILO_ASSERT(table_iter != tables.end());
+   const auto& id_column = builtinStringColumn(*table_iter->second, "id");
+
+   std::set<std::string> ids;
+   const roaring::Roaring all_rows =
+      getFilteredBitmap(std::string{REFERENCE_COLUMNS_TABLE_NAME}, "true");
+   for (const uint32_t global_row_id : all_rows) {
+      ids.insert(valueOrEmpty(id_column, storage::column::RowId::fromGlobal(global_row_id)));
+   }
+   return ids;
+}
+
+std::vector<ResolvedColumnReference> Database::getColumnReferences(const std::string& table_name) {
+   auto table_iter = tables.find(schema::TableName{std::string{REFERENCE_COLUMNS_TABLE_NAME}});
+   SILO_ASSERT(table_iter != tables.end());
+   const auto& table = *table_iter->second;
+   const auto& table_name_column = builtinStringColumn(table, "table_name");
+   const auto& column_name_column = builtinStringColumn(table, "column_name");
+   const auto& column_type_column = builtinStringColumn(table, "column_type");
+   const auto& reference_name_column = builtinStringColumn(table, "reference_name");
+
+   // Gathered once rather than per row, so two columns sharing a reference do not each rescan the
+   // store.
+   std::map<std::string, std::string> reference_kinds_by_name;
+   std::map<std::string, std::string> references_by_name;
+   for (const auto& entry : getReferences()) {
+      reference_kinds_by_name.emplace(entry.name, entry.type);
+      references_by_name.emplace(entry.name, entry.reference);
+   }
+
+   std::vector<ResolvedColumnReference> column_references;
+   std::set<std::string> seen_column_names;
+   const roaring::Roaring all_rows =
+      getFilteredBitmap(std::string{REFERENCE_COLUMNS_TABLE_NAME}, "true");
+   for (const uint32_t global_row_id : all_rows) {
+      const auto row_id = storage::column::RowId::fromGlobal(global_row_id);
+      if (valueOrEmpty(table_name_column, row_id) != table_name) {
+         continue;
+      }
+      const ColumnReferenceEntry entry{
+         .table_name = table_name,
+         .column_name = valueOrEmpty(column_name_column, row_id),
+         .column_type = valueOrEmpty(column_type_column, row_id),
+         .reference_name = valueOrEmpty(reference_name_column, row_id)
+      };
+      // Rows can be appended directly to the table, so they are validated here rather than trusted.
+      const auto column_type = validateColumnReference(entry, reference_kinds_by_name);
+      if (!seen_column_names.insert(entry.column_name).second) {
+         throw std::runtime_error(fmt::format(
+            "The '{}' table declares more than one reference for the column '{}' of table '{}'.",
+            REFERENCE_COLUMNS_TABLE_NAME,
+            entry.column_name,
+            table_name
+         ));
+      }
+      column_references.push_back(
+         {.column_name = entry.column_name,
+          .column_type = column_type,
+          .reference = references_by_name.at(entry.reference_name),
+          .reference_name = entry.reference_name}
+      );
+   }
+   return column_references;
 }
 
 void Database::appendDataFromFile(const std::string& table_name, const std::string& file_path) {

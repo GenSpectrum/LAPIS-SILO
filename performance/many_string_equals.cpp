@@ -8,7 +8,6 @@
 
 #include <fmt/format.h>
 
-#include "sequence_generator.h"
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/initialize/initializer.h"
 #include "rhydb/query_engine/exec_node/ndjson_sink.h"
@@ -22,6 +21,7 @@
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/query_engine/scalar_expressions/or.h"
 #include "rhydb/query_engine/scalar_expressions/string_in_set.h"
+#include "sequence_generator.h"
 
 namespace {
 
@@ -70,15 +70,19 @@ schema:
    rhydb::ReferenceGenomes reference_genomes{{}, {}};
 
    auto database = std::make_shared<rhydb::Database>();
-   rhydb::initialize::Initializer::loadReferences(reference_genomes, *database);
+   rhydb::initialize::Initializer::loadReferences(
+      rhydb::schema::TableName::getDefault(),
+      reference_genomes,
+      /*without_unaligned_sequences=*/true,
+      *database
+   );
    database->createTable(
       rhydb::schema::TableName::getDefault(),
       rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          std::move(database_config),
-         database->getReferences(),
+         database->getColumnReferences(rhydb::schema::TableName::getDefault().getName()),
          {},
-         rhydb::common::PhyloTree{},
-         /*without_unaligned_sequences=*/true
+         rhydb::common::PhyloTree{}
       )
    );
    return database;

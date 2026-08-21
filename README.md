@@ -29,9 +29,12 @@ db = Database("/path/to/saved/database")
 db.register_reference("main", "ACGT...", "nucleotide_sequence")
 
 # Create a table. The first column becomes the primary key and must be a string.
+# A sequence column names the reference backing it, defaulting to its own name; several
+# columns may name the same one. The mapping is kept in the `reference_columns` table.
 db.create_table("sequences", [
     {"name": "id", "type": "string"},
     {"name": "main", "type": "nucleotide_sequence"},
+    {"name": "unaligned_main", "type": "zstd_compressed_string", "reference": "main"},
 ])
 
 # Append data from file

@@ -9,11 +9,11 @@ class TestGetTables:
     """Test the get_tables method."""
 
     def test_get_tables_empty_database(self, empty_database):
-        """Even an empty database lists the built-in, always-present `reference_genomes` table."""
+        """Even an empty database lists the built-in, always-present bookkeeping tables."""
         result = empty_database.get_tables()
         assert isinstance(result, pa.Table)
         assert "table_name" in result.column_names
-        assert set(result.to_pydict()["table_name"]) == {"reference_genomes"}
+        assert set(result.to_pydict()["table_name"]) == {"reference_genomes", "reference_columns"}
 
     def test_get_tables_single_table(self, empty_database, main_reference_sequence):
         """Test get_tables with one table."""
@@ -27,9 +27,9 @@ class TestGetTables:
         result = empty_database.get_tables()
         assert isinstance(result, pa.Table)
         assert "table_name" in result.column_names
-        # The built-in `reference_genomes` table is a normal, visible table.
+        # The built-in bookkeeping tables are normal, visible tables.
         table_names = set(result.to_pydict()["table_name"])
-        assert table_names == {"sequences", "reference_genomes"}
+        assert table_names == {"sequences", "reference_genomes", "reference_columns"}
 
     def test_get_tables_multiple_tables(self, empty_database, main_reference_sequence):
         """Test get_tables with multiple tables."""
@@ -48,6 +48,6 @@ class TestGetTables:
 
         result = empty_database.get_tables()
         assert isinstance(result, pa.Table)
-        # The built-in `reference_genomes` table is a normal, visible table.
+        # The built-in bookkeeping tables are normal, visible tables.
         table_names = set(result.to_pydict()["table_name"])
-        assert table_names == {"sequences", "genes", "reference_genomes"}
+        assert table_names == {"sequences", "genes", "reference_genomes", "reference_columns"}

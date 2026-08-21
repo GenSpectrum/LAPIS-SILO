@@ -6,8 +6,7 @@ from libcpp.optional cimport optional
 from libc.stdint cimport uint64_t, uint32_t
 from libc.stdlib cimport malloc, free
 from cython.operator cimport dereference as deref
-from database cimport Database as CppDatabase, Roaring as CppRoaring, ColumnDefinition
-import json
+from database cimport Database as CppDatabase, Roaring as CppRoaring, ColumnDefinition, ReferenceEntry
 import os
 import pyroaring
 import pyarrow as pa
@@ -104,11 +103,20 @@ cdef class PyDatabase:
         provided and its first entry must be of type ``"string"``.
 
         Columns of type ``"nucleotide_sequence"``, ``"amino_acid_sequence"`` and
-        ``"zstd_compressed_string"`` need a reference sequence. Rather than passing it inline, the
-        reference is taken from the built-in ``reference_genomes`` table (string columns ``name``,
-        ``reference`` and ``type``), which every database has automatically. Register the reference
-        beforehand with :meth:`register_reference`; the entry whose ``name`` equals the column name
-        supplies that column's reference, and creation fails if no such entry exists.
+        ``"zstd_compressed_string"`` need a reference sequence, and neither the sequence nor the
+        name of the reference is passed here. Both come from built-in tables that must be populated
+        first:
+
+        1. :meth:`register_reference` stores the reference itself in ``reference_genomes``.
+        2. A row appended to ``reference_columns`` states that a column of this table is backed by
+           that reference. Append it like any other data, e.g. with
+           :meth:`append_data_from_string`. The row's columns are ``id`` (which must be
+           ``"<table_name>.<column_name>"``), ``table_name``, ``column_name``, ``column_type`` and
+           ``reference_name``.
+
+        Creating the table then reads that mapping; a column of one of the three types with no row
+        declaring its reference is an error. Two rows may name the same reference, which is how an
+        aligned and an unaligned column of one sequence share it instead of storing it twice.
 
         Parameters
         ----------
@@ -124,8 +132,16 @@ cdef class PyDatabase:
 
         Example
         -------
-        >>> # Register references for the sequence columns first.
-        >>> db.register_reference("main", "ACGT")
+        >>> import json
+        >>> # 1. store the reference, 2. declare which column it backs, 3. create the table
+        >>> db.register_reference("main", "ACGT", "nucleotide_sequence")
+        >>> db.append_data_from_string("reference_columns", json.dumps({
+        ...     "id": "samples.main",
+        ...     "table_name": "samples",
+        ...     "column_name": "main",
+        ...     "column_type": "nucleotide_sequence",
+        ...     "reference_name": "main",
+        ... }))
         >>> db.create_table(
         ...     table_name="samples",
         ...     columns=[
@@ -183,14 +199,15 @@ cdef class PyDatabase:
 
         Sequence columns (``"nucleotide_sequence"``, ``"amino_acid_sequence"``,
         ``"zstd_compressed_string"``) take their reference from the built-in ``reference_genomes``
-        table rather than inline. This is a short-hand for appending a single
-        ``{name, reference, type}`` row to that table; call it before :meth:`create_table` for each
-        sequence column, using the column's name.
+        table rather than inline. This registers one reference under its own name; call it before
+        :meth:`create_table`, then declare which column it backs by appending a row to the
+        ``reference_columns`` table (see :meth:`create_table`).
 
         Parameters
         ----------
         name : str
-            The sequence column name this reference belongs to.
+            The name to register this reference under. Columns refer to it by this name; it no
+            longer has to be the name of a column.
         reference : str
             The reference sequence string.
         sequence_type : str, optional
@@ -198,13 +215,17 @@ cdef class PyDatabase:
             Optional: :meth:`create_table` takes each column's type from its column definition, so it
             may be omitted (stored as an empty string).
 
+        Raises
+        ------
+        RuntimeError
+            If a reference named ``name`` is already registered. The ``reference_genomes`` table is
+            keyed on the name, and every lookup resolves a reference by name alone, so names must
+            be unique across nucleotide sequences and genes.
+
         Example
         -------
         >>> db.register_reference("main", "ACGT", "nucleotide_sequence")
-        >>> db.create_table("samples", [
-        ...     {"name": "id", "type": "string"},
-        ...     {"name": "main", "type": "nucleotide_sequence"},
-        ... ])
+        >>> # then declare the column it backs, and create the table -- see create_table
         """
         if not name or not name.strip():
             raise ValueError("name cannot be empty")
@@ -213,12 +234,15 @@ cdef class PyDatabase:
         if sequence_type is not None and not isinstance(sequence_type, str):
             raise TypeError("sequence_type must be a string or None")
 
-        row = {"name": name, "reference": reference, "type": sequence_type or ""}
-        cdef string cpp_table_name = "reference_genomes".encode('utf-8')
-        cdef string cpp_json = json.dumps(row).encode('utf-8')
+        cdef vector[ReferenceEntry] cpp_entries
+        cdef ReferenceEntry cpp_entry
+        cpp_entry.name = name.encode('utf-8')
+        cpp_entry.reference = reference.encode('utf-8')
+        cpp_entry.type = (sequence_type or "").encode('utf-8')
+        cpp_entries.push_back(cpp_entry)
 
         try:
-            self.c_database.appendDataFromString(cpp_table_name, cpp_json)
+            self.c_database.addReferences(cpp_entries)
         except Exception as e:
             raise RuntimeError(f"Failed to register reference '{name}': {e}")
 

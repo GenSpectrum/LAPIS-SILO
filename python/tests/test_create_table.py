@@ -4,27 +4,36 @@ import json
 
 import pytest
 
-from .helpers import create_gene_table, create_nucleotide_sequence_table
+from .helpers import (
+    create_gene_table,
+    create_nucleotide_sequence_table,
+    declare_column_reference,
+)
 
 
 class TestCreateTable:
     """Test the generic create_table method that accepts columns of any supported type."""
 
     @staticmethod
-    def _populate_references(db, entries):
-        """Populate the built-in `reference_genomes` table create_table reads references from.
+    def _populate_references(db, table_name, entries):
+        """Register references and declare that they back the same-named columns of `table_name`.
 
-        `entries` maps a sequence column name to its reference string.
+        `entries` maps a sequence column name to (reference string, column type).
         """
-        for name, reference in entries.items():
+        for name, (reference, column_type) in entries.items():
             db.register_reference(name, reference)
+            declare_column_reference(db, table_name, name, column_type, name)
 
     def test_create_table_with_all_column_types(self):
         """A table can be created with every supported column type and populated."""
         from rhydb import Database
 
         db = Database()
-        self._populate_references(db, {"seq": "ACGT", "gene": "MFV"})
+        self._populate_references(
+            db,
+            "samples",
+            {"seq": ("ACGT", "nucleotide_sequence"), "gene": ("MFV", "amino_acid_sequence")},
+        )
         db.create_table(
             table_name="samples",
             columns=[
@@ -63,16 +72,16 @@ class TestCreateTable:
         assert data["qc"] == [0.5]
         assert data["country"] == ["Switzerland"]
         assert data["lineage"] == ["B.1"]
-        # The sequence column's reference was resolved from the `reference_genomes` table by column name.
+        # Each sequence column's reference came from its `reference_columns` declaration.
         assert db.get_nucleotide_reference_sequence("samples", "seq") == "ACGT"
         assert db.get_amino_acid_reference_sequence("samples", "gene") == "MFV"
 
-    def test_create_table_reference_looked_up_by_column_name(self):
-        """A sequence column's reference is taken from the matching `reference_genomes` entry."""
+    def test_create_table_reference_taken_from_the_declaration(self):
+        """A sequence column's reference is the one its `reference_columns` row names."""
         from rhydb import Database
 
         db = Database()
-        self._populate_references(db, {"main": "ACGTACGT"})
+        self._populate_references(db, "sequences", {"main": ("ACGTACGT", "nucleotide_sequence")})
         db.create_table(
             "sequences",
             [{"name": "id", "type": "string"}, {"name": "main", "type": "nucleotide_sequence"}],
@@ -80,13 +89,13 @@ class TestCreateTable:
 
         assert db.get_nucleotide_reference_sequence("sequences", "main") == "ACGTACGT"
 
-    def test_create_table_missing_reference_entry_raises(self):
-        """Creating a sequence column with no matching `reference_genomes` entry fails."""
+    def test_create_table_undeclared_sequence_column_raises(self):
+        """A sequence column with no `reference_columns` row declaring its reference fails."""
         from rhydb import Database
 
         db = Database()
-        self._populate_references(db, {"other": "ACGT"})
-        with pytest.raises(RuntimeError, match="no entry named 'seq'"):
+        self._populate_references(db, "samples", {"other": ("ACGT", "nucleotide_sequence")})
+        with pytest.raises(RuntimeError, match="the 'reference_columns' table declares none for it"):
             db.create_table(
                 "samples",
                 [{"name": "id", "type": "string"}, {"name": "seq", "type": "nucleotide_sequence"}],
@@ -149,6 +158,181 @@ class TestCreateTable:
         with pytest.raises(RuntimeError, match="Duplicate column name"):
             empty_database.create_table(
                 "samples", [{"name": "x", "type": "string"}, {"name": "x", "type": "int"}]
+            )
+
+
+class TestRegisterReference:
+    """Test register_reference and the uniqueness of reference names."""
+
+    def test_register_reference_duplicate_name_raises(self, empty_database):
+        """A second reference of the same name is rejected rather than silently shadowing."""
+        empty_database.register_reference("main", "ACGT")
+        with pytest.raises(RuntimeError, match="already holds a reference of that name"):
+            empty_database.register_reference("main", "TTTTTTTT")
+
+    def test_register_reference_duplicate_name_keeps_first_reference(self, empty_database):
+        """The rejected registration leaves the original entry intact."""
+        empty_database.register_reference("main", "ACGT")
+        with pytest.raises(RuntimeError):
+            empty_database.register_reference("main", "TTTTTTTT")
+
+        declare_column_reference(
+            empty_database, "samples", "main", "nucleotide_sequence", "main"
+        )
+        empty_database.create_table(
+            "samples",
+            [{"name": "id", "type": "string"}, {"name": "main", "type": "nucleotide_sequence"}],
+        )
+        assert empty_database.get_nucleotide_reference_sequence("samples", "main") == "ACGT"
+
+    def test_register_reference_with_matching_type(self, empty_database):
+        """An explicit sequence_type that matches the column type is accepted."""
+        empty_database.register_reference("main", "ACGT", "nucleotide_sequence")
+        declare_column_reference(empty_database, "samples", "main", "nucleotide_sequence", "main")
+        empty_database.create_table(
+            "samples",
+            [{"name": "id", "type": "string"}, {"name": "main", "type": "nucleotide_sequence"}],
+        )
+        assert empty_database.get_nucleotide_reference_sequence("samples", "main") == "ACGT"
+
+    def test_register_reference_with_mismatched_type_raises(self, empty_database):
+        """A reference registered as one sequence kind cannot back a column of the other."""
+        empty_database.register_reference("main", "ACGT", "nucleotide_sequence")
+        declare_column_reference(empty_database, "samples", "main", "amino_acid_sequence", "main")
+        with pytest.raises(RuntimeError, match="is a 'nucleotide_sequence' reference"):
+            empty_database.create_table(
+                "samples",
+                [{"name": "id", "type": "string"}, {"name": "main", "type": "amino_acid_sequence"}],
+            )
+
+    def test_register_reference_distinct_names(self, empty_database):
+        """Distinct names are accepted and both remain resolvable."""
+        empty_database.register_reference("main", "ACGT")
+        empty_database.register_reference("gene", "MFV")
+        declare_column_reference(empty_database, "samples", "main", "nucleotide_sequence", "main")
+        declare_column_reference(empty_database, "samples", "gene", "amino_acid_sequence", "gene")
+        empty_database.create_table(
+            "samples",
+            [
+                {"name": "id", "type": "string"},
+                {"name": "main", "type": "nucleotide_sequence"},
+                {"name": "gene", "type": "amino_acid_sequence"},
+            ],
+        )
+        assert empty_database.get_nucleotide_reference_sequence("samples", "main") == "ACGT"
+        assert empty_database.get_amino_acid_reference_sequence("samples", "gene") == "MFV"
+
+
+class TestColumnReferences:
+    """Test the `reference_columns` mapping, appended manually before create_table."""
+
+    def test_column_can_use_a_reference_of_another_name(self, empty_database):
+        """A column need not be named after its reference; the declaration links the two."""
+        empty_database.register_reference("main", "ACGT", "nucleotide_sequence")
+        declare_column_reference(
+            empty_database, "samples", "sequence", "nucleotide_sequence", "main"
+        )
+        empty_database.create_table(
+            "samples",
+            [
+                {"name": "id", "type": "string"},
+                {"name": "sequence", "type": "nucleotide_sequence"},
+            ],
+        )
+        assert empty_database.get_nucleotide_reference_sequence("samples", "sequence") == "ACGT"
+
+    def test_two_columns_can_share_one_reference(self, empty_database):
+        """An aligned and an unaligned column back onto a single registered reference."""
+        empty_database.register_reference("main", "ACGT", "nucleotide_sequence")
+        declare_column_reference(empty_database, "samples", "main", "nucleotide_sequence", "main")
+        declare_column_reference(
+            empty_database, "samples", "unaligned_main", "zstd_compressed_string", "main"
+        )
+        empty_database.create_table(
+            "samples",
+            [
+                {"name": "id", "type": "string"},
+                {"name": "main", "type": "nucleotide_sequence"},
+                {"name": "unaligned_main", "type": "zstd_compressed_string"},
+            ],
+        )
+        # One reference entry, two columns pointing at it.
+        references = empty_database.query("reference_genomes").to_pydict()
+        assert references["name"] == ["main"]
+
+        mapping = empty_database.query("reference_columns").to_pydict()
+        assert set(mapping["column_name"]) == {"main", "unaligned_main"}
+        assert set(mapping["reference_name"]) == {"main"}
+
+    def test_reference_columns_is_a_normal_queryable_table(self, empty_database):
+        empty_database.register_reference("main", "ACGT", "nucleotide_sequence")
+        declare_column_reference(empty_database, "samples", "main", "nucleotide_sequence", "main")
+        empty_database.create_table(
+            "samples",
+            [{"name": "id", "type": "string"}, {"name": "main", "type": "nucleotide_sequence"}],
+        )
+
+        mapping = empty_database.query("reference_columns").to_pydict()
+        assert mapping["id"] == ["samples.main"]
+        assert mapping["table_name"] == ["samples"]
+        assert mapping["column_name"] == ["main"]
+        assert mapping["column_type"] == ["nucleotide_sequence"]
+        assert mapping["reference_name"] == ["main"]
+
+    def test_two_tables_do_not_share_columns(self, empty_database):
+        """Each table's sequence columns are its own, even in one database."""
+        empty_database.register_reference("first_ref", "ACGT", "nucleotide_sequence")
+        empty_database.register_reference("second_ref", "TTTT", "nucleotide_sequence")
+        declare_column_reference(empty_database, "first", "seq", "nucleotide_sequence", "first_ref")
+        declare_column_reference(
+            empty_database, "second", "seq", "nucleotide_sequence", "second_ref"
+        )
+        for table in ("first", "second"):
+            empty_database.create_table(
+                table,
+                [{"name": "id", "type": "string"}, {"name": "seq", "type": "nucleotide_sequence"}],
+            )
+
+        assert empty_database.get_nucleotide_reference_sequence("first", "seq") == "ACGT"
+        assert empty_database.get_nucleotide_reference_sequence("second", "seq") == "TTTT"
+
+    def test_sequence_column_without_a_declaration_raises(self, empty_database):
+        """create_table reads the mapping; it will not invent one."""
+        empty_database.register_reference("main", "ACGT")
+        with pytest.raises(RuntimeError, match="the 'reference_columns' table declares none for it"):
+            empty_database.create_table(
+                "samples",
+                [{"name": "id", "type": "string"}, {"name": "main", "type": "nucleotide_sequence"}],
+            )
+
+    def test_declaration_naming_an_unknown_reference_raises(self, empty_database):
+        empty_database.register_reference("main", "ACGT")
+        declare_column_reference(empty_database, "samples", "seq", "nucleotide_sequence", "nope")
+        with pytest.raises(RuntimeError, match="names the reference 'nope'"):
+            empty_database.create_table(
+                "samples",
+                [{"name": "id", "type": "string"}, {"name": "seq", "type": "nucleotide_sequence"}],
+            )
+
+    def test_declaration_of_an_incompatible_kind_raises(self, empty_database):
+        """A gene's reference cannot back a nucleotide column."""
+        empty_database.register_reference("gene", "MFV", "amino_acid_sequence")
+        declare_column_reference(empty_database, "samples", "seq", "nucleotide_sequence", "gene")
+        with pytest.raises(RuntimeError, match="needs a 'nucleotide_sequence' reference"):
+            empty_database.create_table(
+                "samples",
+                [{"name": "id", "type": "string"}, {"name": "seq", "type": "nucleotide_sequence"}],
+            )
+
+    def test_declaration_disagreeing_about_the_column_type_raises(self, empty_database):
+        empty_database.register_reference("main", "ACGT", "nucleotide_sequence")
+        declare_column_reference(
+            empty_database, "samples", "main", "zstd_compressed_string", "main"
+        )
+        with pytest.raises(RuntimeError, match="but it is being created with type"):
+            empty_database.create_table(
+                "samples",
+                [{"name": "id", "type": "string"}, {"name": "main", "type": "nucleotide_sequence"}],
             )
 
 
