@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.13.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.13.3...v0.13.4) (2026-08-21)
+
+
+### Features
+
+* **query_engine:** add comparison operators (`<`,`>`,`<=`,`>=`) to SaneQL ([#1495](https://github.com/GenSpectrum/LAPIS-SILO/issues/1495)) ([5351116](https://github.com/GenSpectrum/LAPIS-SILO/commit/53511162b341a78c807637ecb18aa027706234ab))
+* **rhydb:** return ISO week date string from isoWeek() ([81e17a3](https://github.com/GenSpectrum/LAPIS-SILO/commit/81e17a32b62f8744ebc71f843bb9cce9c4415342))
+* **roaring_util:** add container-level set-algebra operators ([#1491](https://github.com/GenSpectrum/LAPIS-SILO/issues/1491)) ([70a1bdd](https://github.com/GenSpectrum/LAPIS-SILO/commit/70a1bdd9170a07e7f1caee69c6cfa3a022787863))
+* **storage:** implement int64 column ([#1448](https://github.com/GenSpectrum/LAPIS-SILO/issues/1448)) ([509820b](https://github.com/GenSpectrum/LAPIS-SILO/commit/509820b59f63ea63144b19412a990106abbea0fb))
+
 ## [0.13.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.13.2...v0.13.3) (2026-08-12)
 
 
