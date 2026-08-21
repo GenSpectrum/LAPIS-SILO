@@ -42,6 +42,15 @@ class HorizontalCoverageIndexTest : public ::testing::Test {
       index->insertNullSequence(RowId::fromGlobal(current_global_row_id++));
    }
 
+   // Inserts a row with an explicit covered range, bypassing sequence extraction so the
+   // per-batch aggregates can be checked against exactly known starts and ends.
+   void insertRange(uint16_t chunk_id, uint16_t row_in_chunk, uint32_t start, uint32_t end) {
+      index->insertCoverage(
+         RowId{.chunk_id = chunk_id, .row_in_chunk = row_in_chunk},
+         Coverage{.start = start, .end = end, .missing_positions = {}}
+      );
+   }
+
    std::unique_ptr<HorizontalCoverageIndex> index;
    uint32_t current_global_row_id = 0;
 };
@@ -511,6 +520,53 @@ TEST_F(HorizontalCoverageIndexTest, CoverageCardinalitiesAcrossMultipleChunks) {
       ) << "at position "
         << position_idx;
    }
+}
+
+// The four per-batch aggregates are maintained incrementally in insertCoverage and are what the
+// chunk-skipping in getCoverageBitmapForPositions relies on, so each one is pinned separately.
+// The ranges below are chosen so that all four aggregates differ within every chunk - a swap
+// between any two of them changes the expected values.
+TEST_F(HorizontalCoverageIndexTest, PerBatchAggregatesAcrossChunks) {
+   // Chunk 0: starts {10, 5, 30}, ends {40, 20, 35}
+   insertRange(0, 0, 10, 40);
+   insertRange(0, 1, 5, 20);
+   insertRange(0, 2, 30, 35);
+   // Chunk 1: starts {50, 70}, ends {60, 90}
+   insertRange(1, 0, 50, 60);
+   insertRange(1, 1, 70, 90);
+   // Chunk 2: a null row alongside a covered one, so the null's (0, 0) range sets both minima
+   index->insertNullSequence(RowId{.chunk_id = 2, .row_in_chunk = 0});
+   insertRange(2, 1, 60, 70);
+
+   ASSERT_EQ(index->numChunks(), 3);
+
+   EXPECT_EQ(index->batch_min_start, (std::vector<uint32_t>{5, 50, 0}));
+   EXPECT_EQ(index->batch_max_start, (std::vector<uint32_t>{30, 70, 60}));
+   EXPECT_EQ(index->batch_min_end, (std::vector<uint32_t>{20, 60, 0}));
+   EXPECT_EQ(index->batch_max_end, (std::vector<uint32_t>{40, 90, 70}));
+}
+
+TEST_F(HorizontalCoverageIndexTest, PerBatchAggregatesOfSingleRowChunkAreThatRowsRange) {
+   insertRange(0, 0, 13, 27);
+
+   EXPECT_EQ(index->batch_min_start, (std::vector<uint32_t>{13}));
+   EXPECT_EQ(index->batch_max_start, (std::vector<uint32_t>{13}));
+   EXPECT_EQ(index->batch_min_end, (std::vector<uint32_t>{27}));
+   EXPECT_EQ(index->batch_max_end, (std::vector<uint32_t>{27}));
+}
+
+// Sequence-derived rows must produce the same aggregates as the explicit ranges above, since that
+// is the only path preprocessing takes.
+TEST_F(HorizontalCoverageIndexTest, PerBatchAggregatesFromSequenceCoverage) {
+   insertSequenceCoverage("ACGT", 10);       // covers [10, 14)
+   insertSequenceCoverage("ACGTACGTAC", 4);  // covers [4, 14)
+   insertSequenceCoverage("NNACGTNN", 20);   // leading and trailing N still cover [22, 26)
+   insertNullCoverage();                     // covers [0, 0)
+
+   EXPECT_EQ(index->batch_min_start, (std::vector<uint32_t>{0}));
+   EXPECT_EQ(index->batch_max_start, (std::vector<uint32_t>{22}));
+   EXPECT_EQ(index->batch_min_end, (std::vector<uint32_t>{0}));
+   EXPECT_EQ(index->batch_max_end, (std::vector<uint32_t>{26}));
 }
 
 }  // namespace rhydb::storage::column
