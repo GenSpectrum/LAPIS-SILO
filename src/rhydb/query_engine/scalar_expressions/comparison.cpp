@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <utility>
 
 #include <fmt/format.h>
@@ -22,6 +23,8 @@
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
+#include "rhydb/query_engine/scalar_expressions/string_in_set.h"
+#include "rhydb/storage/column/bool_column.h"
 #include "rhydb/storage/column/date32_column.h"
 #include "rhydb/storage/column/float_column.h"
 #include "rhydb/storage/column/int_column.h"
@@ -48,7 +51,6 @@ struct ColumnAndValue {
    bool column_on_right;
 };
 
-// TODO(#1437): this was copied from Equals.cpp; reuse or unify operators
 std::optional<ColumnAndValue> splitColumnAndValue(
    const ScalarExpression* left,
    const ScalarExpression* right
@@ -76,7 +78,7 @@ Comparator flipComparator(Comparator comparator) {
          return Comparator::HIGHER_OR_EQUALS;
       case Comparator::HIGHER_OR_EQUALS:
          return Comparator::LESS_OR_EQUALS;
-      // TODO(#1437): do we need those here?
+      // (In)equality is symmetric, so swapping the operands leaves it unchanged.
       case Comparator::EQUALS:
       case Comparator::NOT_EQUALS:
          return comparator;
@@ -145,10 +147,37 @@ std::unique_ptr<filter::operators::Operator> compileStringComparison(
       column_name
    );
 
+   const auto& dictionary_column = table.columns.dictionary_encoded_columns.at(column_name);
+
+   // Equality hits the dictionary index directly: a single lookup instead of a scan
+   // over every distinct value.
+   if (comparator == Comparator::EQUALS) {
+      const auto bitmap = dictionary_column.filter(literal);
+      if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
+         return std::make_unique<filter::operators::Empty>(table.row_layout);
+      }
+      return std::make_unique<filter::operators::IndexScan>(
+         CopyOnWriteBitmap{bitmap.value()}, table.row_layout
+      );
+   }
+
+   // Inequality is the complement of one index lookup: every row except those holding
+   // the literal and except the null rows (which never match a comparison). Going
+   // through the complement keeps this a single lookup instead of unioning the bitmap
+   // of every other distinct value, which matters on high-cardinality columns.
+   if (comparator == Comparator::NOT_EQUALS) {
+      roaring::Roaring excluded = dictionary_column.null_bitmap;
+      if (const auto bitmap = dictionary_column.filter(literal); bitmap != std::nullopt) {
+         excluded |= *bitmap.value();
+      }
+      return filter::operators::Operator::negate(std::make_unique<filter::operators::IndexScan>(
+         CopyOnWriteBitmap{std::move(excluded)}, table.row_layout
+      ));
+   }
+
    // Bitmap-union fast path: every distinct dictionary value whose string matches
    // the comparator contributes its row bitmap. Null rows are naturally excluded
    // because the indexed bitmaps are disjoint from the null bitmap.
-   const auto& dictionary_column = table.columns.dictionary_encoded_columns.at(column_name);
    roaring::Roaring unioned;
    for (const auto& [dict_id, bitmap] : dictionary_column.getIndexedValues()) {
       if (matchesComparator(dictionary_column.lookupValue(dict_id), comparator, literal)) {
@@ -163,9 +192,40 @@ std::unique_ptr<filter::operators::Operator> compileStringComparison(
    );
 }
 
+/// Boolean columns keep a bitmap per truth value, so (in)equality is a plain index
+/// scan. Ordering comparisons are not defined for booleans and are rejected.
+std::unique_ptr<filter::operators::Operator> compileBoolComparison(
+   const storage::Table& table,
+   const std::string& column_name,
+   Comparator comparator,
+   bool value
+) {
+   // The column type is checked first so that comparing a non-bool column against a
+   // bool literal reports the type mismatch rather than claiming the column is boolean.
+   CHECK_SILO_QUERY(
+      table.columns.bool_columns.contains(column_name),
+      "The column '{}' is not of type bool",
+      column_name
+   );
+   CHECK_SILO_QUERY(
+      comparator == Comparator::EQUALS || comparator == Comparator::NOT_EQUALS,
+      "The comparison operators <,>,<=,>= are not supported for boolean column '{}'",
+      column_name
+   );
+   const auto& bool_column = table.columns.bool_columns.at(column_name);
+   // `column <> true` selects the same rows as `column = false`. Null rows are in
+   // neither bitmap, so they are excluded either way, consistent with the other
+   // comparison operators.
+   const bool select_true_bitmap = (comparator == Comparator::EQUALS) == value;
+   return std::make_unique<filter::operators::IndexScan>(
+      CopyOnWriteBitmap{select_true_bitmap ? &bool_column.true_bitmap : &bool_column.false_bitmap},
+      table.row_layout
+   );
+}
+
 /// Integer literals are width-agnostic (kept as int64); routing to the actual
 /// int32/int64 column and the int32 range check happen here, once the column
-/// type is known. Mirrors Equals' compileIntEquals.
+/// type is known.
 std::unique_ptr<filter::operators::Operator> compileIntComparison(
    const storage::Table& table,
    const std::string& column_name,
@@ -224,9 +284,42 @@ std::vector<schema::ColumnIdentifier> Comparison::freeIUs() const {
 }
 
 std::unique_ptr<ScalarExpression> Comparison::rewrite(
-   const storage::Table& /*table*/,
+   const storage::Table& table,
    AmbiguityMode /*mode*/
 ) const {
+   // Only equality is rewritten. A non-indexed string column has no per-value index,
+   // so `column = 'value'` becomes a (single-element) StringInSet, which knows how to
+   // scan it and which Or can merge with sibling StringInSets over the same column.
+   // Dictionary-encoded columns and all other types are compiled directly.
+   // The remaining comparators need no rewrite: CompareToValueSelection<StringColumn>
+   // evaluates them against a non-indexed string column on its own.
+   if (comparator != filter::operators::Comparator::EQUALS) {
+      return clone();
+   }
+
+   auto split = splitColumnAndValue(left.get(), right.get());
+   if (split.has_value()) {
+      if (const auto* string_value = dynCast<StringLiteral>(split->value)) {
+         const auto& column_name = split->column->column.name;
+         CHECK_SILO_QUERY(
+            table.schema->getColumn(column_name).has_value(),
+            "The database does not contain the column '{}'",
+            column_name
+         );
+         CHECK_SILO_QUERY(
+            table.columns.string_columns.contains(column_name) ||
+               table.columns.dictionary_encoded_columns.contains(column_name),
+            "The column '{}' is not of type string",
+            column_name
+         );
+         if (table.columns.string_columns.contains(column_name)) {
+            return std::make_unique<StringInSet>(
+               split->column->column, std::unordered_set<std::string>{string_value->value}
+            );
+         }
+      }
+   }
+
    return clone();
 }
 
@@ -283,17 +376,13 @@ std::unique_ptr<filter::operators::Operator> Comparison::compile(const storage::
       return compileStringComparison(table, column_name, effective_comparator, string_value->value);
    }
 
-   if (dynCast<BoolLiteral>(value) != nullptr) {
-      CHECK_SILO_QUERY(
-         false,
-         "The comparison operators <,>,<=,>= are not supported for boolean column '{}'",
-         column_name
-      );
+   if (const auto* bool_value = dynCast<BoolLiteral>(value)) {
+      return compileBoolComparison(table, column_name, effective_comparator, bool_value->value);
    }
 
    throw IllegalQueryException(
       "Unsupported value type in comparison with column '{}': the value must be an int, float, "
-      "date, or string literal",
+      "date, string, or bool literal",
       column_name
    );
 }

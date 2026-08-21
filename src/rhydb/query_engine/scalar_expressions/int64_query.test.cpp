@@ -121,8 +121,8 @@ const QueryTestScenario INT64_EQUALS_FUNCTION_CALL_VALUE_SCENARIO = {
    .name = "INT64_EQUALS_FUNCTION_CALL_VALUE_SCENARIO",
    .query = "default.filter(int64_value = primaryKey.at(1))",
    .expected_error_message =
-      "An Equals expression can only be compiled to a filter when exactly one side is a column "
-      "reference and the other a literal value"
+      "Unsupported value type in comparison with column 'int64_value': the value must be an int, "
+      "float, date, string, or bool literal"
 };
 
 }  // namespace

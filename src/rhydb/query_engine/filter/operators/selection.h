@@ -60,7 +60,7 @@ inline std::string displayComparator(Comparator comparator) {
       case Comparator::EQUALS:
          return "=";
       case Comparator::NOT_EQUALS:
-         return "!=";
+         return "<>";
       case Comparator::LESS:
          return "<";
       case Comparator::HIGHER:

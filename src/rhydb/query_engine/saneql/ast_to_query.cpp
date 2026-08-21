@@ -38,7 +38,6 @@
 #include "rhydb/query_engine/scalar_expressions/at.h"
 #include "rhydb/query_engine/scalar_expressions/comparison.h"
 #include "rhydb/query_engine/scalar_expressions/date_between.h"
-#include "rhydb/query_engine/scalar_expressions/equals.h"
 #include "rhydb/query_engine/scalar_expressions/exact.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
 #include "rhydb/query_engine/scalar_expressions/float_between.h"
@@ -198,13 +197,27 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
    );
 }
 
-ScalarExpressionPtr convertEqualsToFilter(
+/// Builds the filter for `column = value` and `column <> value`.
+///
+/// `null` is not a comparable value: `column = null` is a null test (IsNull) and
+/// `column <> null` its negation. For every other value this lowers to a Comparison
+/// with the corresponding (in)equality comparator, which — unlike a negated equality
+/// — does not match null cells.
+ScalarExpressionPtr convertEqualityToFilter(
    const std::string& column_name,
    const ast::Expression& value_expr,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   Comparator comparator
 ) {
+   SILO_ASSERT(comparator == Comparator::EQUALS || comparator == Comparator::NOT_EQUALS);
+
    if (isNullLiteral(value_expr)) {
-      return std::make_unique<scalar_expressions::IsNull>(resolveColumn(column_name, schema));
+      ScalarExpressionPtr is_null =
+         std::make_unique<scalar_expressions::IsNull>(resolveColumn(column_name, schema));
+      if (comparator == Comparator::NOT_EQUALS) {
+         return std::make_unique<scalar_expressions::Negation>(std::move(is_null));
+      }
+      return is_null;
    }
 
    // Build the value operand first so parse-time value errors (e.g. an invalid date
@@ -217,8 +230,8 @@ ScalarExpressionPtr convertEqualsToFilter(
       found != schema.end(), "The database does not contain the column '{}'", column_name
    );
 
-   return std::make_unique<scalar_expressions::Equals>(
-      std::make_unique<scalar_expressions::FieldRef>(*found), std::move(value)
+   return std::make_unique<scalar_expressions::Comparison>(
+      std::make_unique<scalar_expressions::FieldRef>(*found), std::move(value), comparator
    );
 }
 
@@ -257,13 +270,13 @@ ScalarExpressionPtr convertBinaryExprToFilter(
       }
       case BinaryOp::EQUALS: {
          if (std::holds_alternative<ast::Identifier>(bin_expr.left->value)) {
-            return convertEqualsToFilter(
-               extractIdentifierName(*bin_expr.left), *bin_expr.right, schema
+            return convertEqualityToFilter(
+               extractIdentifierName(*bin_expr.left), *bin_expr.right, schema, Comparator::EQUALS
             );
          }
          if (std::holds_alternative<ast::Identifier>(bin_expr.right->value)) {
-            return convertEqualsToFilter(
-               extractIdentifierName(*bin_expr.right), *bin_expr.left, schema
+            return convertEqualityToFilter(
+               extractIdentifierName(*bin_expr.right), *bin_expr.left, schema, Comparator::EQUALS
             );
          }
          throw IllegalQueryException(
@@ -274,13 +287,19 @@ ScalarExpressionPtr convertBinaryExprToFilter(
       }
       case BinaryOp::NOT_EQUALS: {
          if (std::holds_alternative<ast::Identifier>(bin_expr.left->value)) {
-            return std::make_unique<scalar_expressions::Negation>(
-               convertEqualsToFilter(extractIdentifierName(*bin_expr.left), *bin_expr.right, schema)
+            return convertEqualityToFilter(
+               extractIdentifierName(*bin_expr.left),
+               *bin_expr.right,
+               schema,
+               Comparator::NOT_EQUALS
             );
          }
          if (std::holds_alternative<ast::Identifier>(bin_expr.right->value)) {
-            return std::make_unique<scalar_expressions::Negation>(
-               convertEqualsToFilter(extractIdentifierName(*bin_expr.right), *bin_expr.left, schema)
+            return convertEqualityToFilter(
+               extractIdentifierName(*bin_expr.right),
+               *bin_expr.left,
+               schema,
+               Comparator::NOT_EQUALS
             );
          }
          throw IllegalQueryException(
