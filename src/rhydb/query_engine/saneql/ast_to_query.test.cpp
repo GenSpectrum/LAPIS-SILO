@@ -319,8 +319,7 @@ TEST(AstToQueryBinaryExpr, comparisonIdentifierOnRightBuildsComparison) {
 
 TEST(AstToQueryBinaryExpr, comparisonNoIdentifierBuildsComparison) {
    // A comparison without a column reference is not rejected at conversion time;
-   // Comparison::compile catches the missing column later (see the NO_COLUMN query
-   // scenario in int_comparison.test.cpp).
+   // Comparison::compile catches the missing column later
    EXPECT_EQ(parseFilter("1 < 2")->toString(), "1 < 2");
 }
 
