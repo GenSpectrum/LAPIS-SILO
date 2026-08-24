@@ -164,7 +164,7 @@ TEST(DatabaseTest, updateColumnAssignsScalarValueToMatchingRows) {
    // A SaneQL `null` literal clears the matched rows back to null.
    database->updateColumn(table, "age", "null", "primaryKey = 'key3'");
    ASSERT_EQ(countWhere(*database, "age = 7"), 0);
-   ASSERT_EQ(countWhere(*database, "age = null"), 1);
+   ASSERT_EQ(countWhere(*database, "age.isNull()"), 1);
 
    // Bool values are parsed as the boolean literals 'true'/'false'.
    database->updateColumn(table, "test_boolean_column", "false", "true");
@@ -188,9 +188,9 @@ TEST(DatabaseTest, updateColumnAssignsScalarValueToMatchingRows) {
    // A SaneQL `null` literal clears an indexed string back to null, and a concrete value can be set
    // again afterwards.
    database->updateColumn(table, "division", "null", "primaryKey = 'key1'");
-   ASSERT_EQ(countWhere(*database, "division = null"), 1);
+   ASSERT_EQ(countWhere(*database, "division.isNull()"), 1);
    database->updateColumn(table, "division", "'Basel'", "primaryKey = 'key1'");
-   ASSERT_EQ(countWhere(*database, "division = null"), 0);
+   ASSERT_EQ(countWhere(*database, "division.isNull()"), 0);
    ASSERT_EQ(countWhere(*database, "division = 'Basel'"), 1);
 }
 

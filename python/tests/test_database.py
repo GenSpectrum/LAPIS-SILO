@@ -855,11 +855,11 @@ class TestUpdateColumn:
     def test_update_string_column_clears_rows_to_null(self, main_reference_sequence):
         """The literal 'null' clears the matched rows of a string column."""
         db = self._database_with_string_column(main_reference_sequence)
-        assert self._count(db, "country = null") == 0
+        assert self._count(db, "country.isNull()") == 0
 
         db.update_column("sequences", "country", "null", "primary_key = 'key_29'")
 
-        assert self._count(db, "country = null") == 1
+        assert self._count(db, "country.isNull()") == 1
 
     def test_update_string_column_type_mismatch_raises(self, main_reference_sequence):
         """A non-string literal is rejected for a string column."""
@@ -933,13 +933,13 @@ class TestUpdateColumnOnLoadedDatabase:
     def test_update_column_clears_rows_to_null(self, loaded_database):
         """The literal 'null' clears the matched rows."""
         matching = self._count(loaded_database, "age = 4")
-        nulls_before = self._count(loaded_database, "age = null")
+        nulls_before = self._count(loaded_database, "age.isNull()")
         assert matching > 0
 
         loaded_database.update_column("default", "age", "null", "age = 4")
 
         assert self._count(loaded_database, "age = 4") == 0
-        assert self._count(loaded_database, "age = null") == nulls_before + matching
+        assert self._count(loaded_database, "age.isNull()") == nulls_before + matching
 
     def test_update_does_not_persist_to_disk(self, loaded_database):
         """Updating the in-memory database must not modify the on-disk repo state."""

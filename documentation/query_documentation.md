@@ -80,7 +80,7 @@ Examples:
 country = 'Germany'
 age > 30
 date <= '2021-12-31'::date
-qc_value <> null
+!qc_value.isNull()
 ```
 
 ### Method Call Syntax

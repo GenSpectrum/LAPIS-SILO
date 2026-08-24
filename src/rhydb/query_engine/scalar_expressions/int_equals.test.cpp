@@ -101,43 +101,20 @@ const QueryTestScenario NEGATED_INT_EQUALS_VALUE_SCENARIO = {
    )
 };
 
-const QueryTestScenario INT_EQUALS_NULL_SCENARIO = {
-   .name = "INT_EQUALS_NULL_SCENARIO",
+const QueryTestScenario INT_EQUALS_NULL_REJECTED_SCENARIO = {
+   .name = "INT_EQUALS_NULL_REJECTED_SCENARIO",
    .query = "default.filter(int_value = null)",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_4"},
-        {"int_value", nullptr},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}}}
-   )
+   .expected_error_message =
+      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
+      "column reference, or a scalar function call at 1:28"
 };
 
-const QueryTestScenario NEGATED_INT_EQUALS_NULL_SCENARIO = {
-   .name = "NEGATED_INT_EQUALS_NULL_SCENARIO",
+const QueryTestScenario NEGATED_INT_EQUALS_NULL_REJECTED_SCENARIO = {
+   .name = "NEGATED_INT_EQUALS_NULL_REJECTED_SCENARIO",
    .query = "default.filter(!(int_value = null))",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"},
-        {"int_value", VALUE_IN_FILTER},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}},
-       {{"primaryKey", "id_1"},
-        {"int_value", VALUE_IN_FILTER},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}},
-       {{"primaryKey", "id_2"},
-        {"int_value", VALUE_BELOW_FILTER},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}},
-       {{"primaryKey", "id_3"},
-        {"int_value", VALUE_ABOVE_FILTER},
-        {"segment1", nullptr},
-        {"gene1", nullptr},
-        {"unaligned_segment1", nullptr}}}
-   )
+   .expected_error_message =
+      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
+      "column reference, or a scalar function call at 1:30"
 };
 
 const QueryTestScenario INT_EQUALS_WITH_OVERFLOW = {
@@ -166,8 +143,8 @@ QUERY_TEST(
    ::testing::Values(
       INT_EQUALS_VALUE_SCENARIO,
       NEGATED_INT_EQUALS_VALUE_SCENARIO,
-      INT_EQUALS_NULL_SCENARIO,
-      NEGATED_INT_EQUALS_NULL_SCENARIO,
+      INT_EQUALS_NULL_REJECTED_SCENARIO,
+      NEGATED_INT_EQUALS_NULL_REJECTED_SCENARIO,
       INT_EQUALS_WITH_OVERFLOW,
       INT_COMPARISON_WITH_OVERFLOW,
       INT_BETWEEN_WITH_OVERFLOW

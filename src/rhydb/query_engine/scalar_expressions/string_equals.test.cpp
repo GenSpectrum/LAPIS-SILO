@@ -53,26 +53,28 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-const QueryTestScenario STRING_EQUALS_NULL_STRING_COLUMN = {
-   .name = "STRING_EQUALS_NULL_STRING_COLUMN",
+const QueryTestScenario STRING_EQUALS_NULL_REJECTED_STRING_COLUMN = {
+   .name = "STRING_EQUALS_NULL_REJECTED_STRING_COLUMN",
    .query = "default.filter(stringField = null).project(primaryKey)",
-   .expected_query_result =
-      nlohmann::json::parse(R"([{"primaryKey":"id_1"},{"primaryKey":"id_4"}])")
+   .expected_error_message =
+      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
+      "column reference, or a scalar function call at 1:30"
 };
 
-const QueryTestScenario STRING_EQUALS_NULL_DICTIONARY_ENCODED_COLUMN = {
-   .name = "STRING_EQUALS_NULL_DICTIONARY_ENCODED_COLUMN",
+const QueryTestScenario STRING_EQUALS_NULL_REJECTED_DICTIONARY_ENCODED_COLUMN = {
+   .name = "STRING_EQUALS_NULL_REJECTED_DICTIONARY_ENCODED_COLUMN",
    .query = "default.filter(dictionaryEncodedStringField = null).project(primaryKey)",
-   .expected_query_result =
-      nlohmann::json::parse(R"([{"primaryKey":"id_2"},{"primaryKey":"id_4"}])")
+   .expected_error_message =
+      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
+      "column reference, or a scalar function call at 1:47"
 };
 
-const QueryTestScenario STRING_EQUALS_NULL_NEGATED = {
-   .name = "STRING_EQUALS_NULL_NEGATED",
+const QueryTestScenario STRING_EQUALS_NULL_REJECTED_NEGATED = {
+   .name = "STRING_EQUALS_NULL_REJECTED_NEGATED",
    .query = "default.filter(!(stringField = null)).project(primaryKey)",
-   .expected_query_result =
-      nlohmann::json::parse(R"([{"primaryKey":"id_0"},{"primaryKey":"id_2"},{"primaryKey":"id_3"}])"
-      )
+   .expected_error_message =
+      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
+      "column reference, or a scalar function call at 1:32"
 };
 
 const QueryTestScenario STRING_EQUALS_VALUE = {
@@ -99,9 +101,9 @@ QUERY_TEST(
    StringEquals,
    TEST_DATA,
    ::testing::Values(
-      STRING_EQUALS_NULL_STRING_COLUMN,
-      STRING_EQUALS_NULL_DICTIONARY_ENCODED_COLUMN,
-      STRING_EQUALS_NULL_NEGATED,
+      STRING_EQUALS_NULL_REJECTED_STRING_COLUMN,
+      STRING_EQUALS_NULL_REJECTED_DICTIONARY_ENCODED_COLUMN,
+      STRING_EQUALS_NULL_REJECTED_NEGATED,
       STRING_EQUALS_VALUE,
       STRING_EQUALS_INDEXED_VALUE,
       STRING_EQUALS_NO_MATCH
