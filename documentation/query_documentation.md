@@ -70,6 +70,7 @@ default
 Notes:
 - One side must be a column identifier; the other a literal value. For ordering
   operators the column may be on either side (`age > 30` equals `30 < age`).
+- The literal operand must **not** be `null`; use `isNull()` or `isNotNull()` instead.
 - Ordering operators are **not** supported for boolean columns, and comparisons
   **exclude** null values (a null cell never matches an ordering comparison).
 - String ordering is lexicographic and applies to both plain and
