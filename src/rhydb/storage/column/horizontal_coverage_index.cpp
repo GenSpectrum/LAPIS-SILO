@@ -15,22 +15,26 @@
 namespace rhydb::storage::column {
 
 void HorizontalCoverageIndex::insertCoverage(RowId row_id, const Coverage& coverage) {
-   if (row_id.chunk_id == batch_start_ends.size()) {
-      batch_start_ends.emplace_back(UINT32_MAX, 0);
-   }
-   if (row_id.chunk_id == start_end.size()) {
-      start_end.emplace_back();
+   if (row_id.chunk_id == starts.size()) {
+      starts.emplace_back();
+      ends.emplace_back();
+      batch_min_start.emplace_back(UINT32_MAX);
+      batch_max_start.emplace_back(0);
+      batch_min_end.emplace_back(UINT32_MAX);
+      batch_max_end.emplace_back(0);
    }
    // For now, coverage needs to be inserted in ascending order
-   SILO_ASSERT_EQ(batch_start_ends.size(), start_end.size());
-   SILO_ASSERT(row_id.chunk_id == start_end.size() - 1);
-   SILO_ASSERT_EQ(row_id.row_in_chunk, start_end.at(row_id.chunk_id).size());
+   SILO_ASSERT_EQ(starts.size(), ends.size());
+   SILO_ASSERT(row_id.chunk_id == starts.size() - 1);
+   SILO_ASSERT_EQ(row_id.row_in_chunk, starts.at(row_id.chunk_id).size());
 
-   start_end.at(row_id.chunk_id).emplace_back(coverage.start, coverage.end);
+   starts.at(row_id.chunk_id).push_back(coverage.start);
+   ends.at(row_id.chunk_id).push_back(coverage.end);
 
-   auto& [batch_start, batch_end] = batch_start_ends.back();
-   batch_start = std::min(batch_start, coverage.start);
-   batch_end = std::max(batch_end, coverage.end);
+   batch_min_start.back() = std::min(batch_min_start.back(), coverage.start);
+   batch_max_start.back() = std::max(batch_max_start.back(), coverage.start);
+   batch_min_end.back() = std::min(batch_min_end.back(), coverage.end);
+   batch_max_end.back() = std::max(batch_max_end.back(), coverage.end);
 
    // We also have a row_wise bitmap, that covers all N symbols that are within the covered region
    roaring::Roaring horizontal_bitmap;
@@ -53,8 +57,12 @@ void HorizontalCoverageIndex::insertNullSequence(RowId row_id) {
 std::vector<uint64_t> HorizontalCoverageIndex::computeCoverageCardinalities(size_t genome_length
 ) const {
    std::vector<int64_t> coverage_changes(genome_length + 1, 0);
-   for (const auto& chunk : start_end) {
-      for (const auto& [start, end] : chunk) {
+   for (size_t chunk_id = 0; chunk_id < starts.size(); ++chunk_id) {
+      const auto& chunk_starts = starts[chunk_id];
+      const auto& chunk_ends = ends[chunk_id];
+      for (size_t row_in_chunk = 0; row_in_chunk < chunk_starts.size(); ++row_in_chunk) {
+         const uint32_t start = chunk_starts[row_in_chunk];
+         const uint32_t end = chunk_ends[row_in_chunk];
          SILO_ASSERT_LE(end, genome_length);
          coverage_changes[start] += 1;
          coverage_changes[end] -= 1;
