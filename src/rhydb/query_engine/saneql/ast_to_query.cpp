@@ -240,8 +240,6 @@ ScalarExpressionPtr convertBinaryExprToFilter(
       case BinaryOp::LESS_EQUAL:
       case BinaryOp::GREATER_THAN:
       case BinaryOp::GREATER_EQUAL: {
-         // `null` is deliberately not handled here: it is not a comparable value, so
-         // `column = null` is rejected by convertToScalar. Use isNull()/isNotNull().
          const Comparator comparator = toComparator(bin_expr.op);
          // Both operands are converted in source order rather than inline as constructor
          // arguments: the evaluation order of function arguments is unspecified, so if

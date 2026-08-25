@@ -15,8 +15,7 @@ namespace rhydb::query_engine::scalar_expressions {
 /// query language offers (`=`, `<>`, `<`, `<=`, `>`, `>=`). One side is a column
 /// reference (FieldRef) and the other a literal value; compile() recognises this
 /// "column <op> constant" shape and lowers it to an efficient filter, dispatching
-/// on the literal's type. The column may be on either side — compile() flips the
-/// comparator accordingly.
+/// on the literal's type.
 ///
 /// Null cells never match, for any operator. `null` is not a comparable value at
 /// all: `column = null` and `column <> null` are rejected while converting the
