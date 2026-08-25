@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include <arrow/compute/api.h>
 #include <nlohmann/json.hpp>
 
 #include "rhydb/query_engine/filter/operators/operator.h"
@@ -22,6 +23,11 @@ std::string Negation::toString() const {
 
 std::vector<schema::ColumnIdentifier> Negation::freeIUs() const {
    return child->freeIUs();
+}
+
+arrow::Result<arrow::compute::Expression> Negation::toArrowExpression() const {
+   ARROW_ASSIGN_OR_RAISE(auto child_expression, child->toArrowExpression());
+   return arrow::compute::not_(child_expression);
 }
 
 std::unique_ptr<ScalarExpression> Negation::rewrite(const storage::Table& table, AmbiguityMode mode)

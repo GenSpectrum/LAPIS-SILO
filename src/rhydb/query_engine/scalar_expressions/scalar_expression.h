@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+#include <arrow/compute/expression.h>
+#include <arrow/result.h>
+
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/table.h"
@@ -77,6 +80,12 @@ class ScalarExpression {
    /// reference yields that column. Used by column narrowing to keep the child
    /// columns a scalar expression depends on alive.
    [[nodiscard]] virtual std::vector<schema::ColumnIdentifier> freeIUs() const { return {}; }
+
+   /// Translates this expression into an Arrow compute expression, e.g. for use in a projection or
+   /// a filter exec node evaluated over a materialized batch. The default returns `NotImplemented`;
+   /// expressions with an Arrow translation (literals, field references, boolean/comparison
+   /// predicates, `at`, `isoWeek`, zstd-decompress) override this.
+   [[nodiscard]] virtual arrow::Result<arrow::compute::Expression> toArrowExpression() const;
 
    [[nodiscard]] virtual std::unique_ptr<ScalarExpression> rewrite(
       const storage::Table& table,

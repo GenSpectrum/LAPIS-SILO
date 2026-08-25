@@ -286,44 +286,35 @@ const QueryTestScenario FILTER_MAP_DECOMPRESS_LIMIT_SCENARIO = {
       nlohmann::json({{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}, {"tag", 7}}})
 };
 
-// A filter that references a column the map produces (`a`) is not yet executable. The optimizer
-// must NOT push such a filter below the map; instead the FilterNode is left above the
-// map and surfaces the expected runtime error.
+// A filter that references a column the map produces (`a`) stays above the map and is executed as
+// an Arrow filter exec node over the projected batch (see #1372). All rows carry `a = 3`.
 const QueryTestScenario FILTER_ON_MAPPED_COLUMN_SCENARIO = {
    .name = "FILTER_ON_MAPPED_COLUMN",
    .query = "default.map({a := 3}).filter(a = 3).project({primaryKey})",
-   .expected_query_result = {},
-   .expected_error_message =
-      "FilterNode must be eliminated during pushdown before query plan generation"
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
-// #1371 verbatim: filtering on an isoWeek-derived column must not be reordered below the map. The
-// FilterNode stays above the map and the query fails with the expected runtime error rather than
-// producing an invalid plan.
+// #1371/#1372 verbatim: filtering on an isoWeek-derived column stays above the map and is executed
+// as an Arrow filter over the mapped `week` column. Only id_0 falls into 2023-W01.
 const QueryTestScenario FILTER_ON_ISO_WEEK_MAPPED_COLUMN_SCENARIO = {
    .name = "FILTER_ON_ISO_WEEK_MAPPED_COLUMN",
    .query = "default.map({week := date.isoWeek()}).filter(week = '2023-W01').project({primaryKey})",
-   .expected_query_result = {},
-   .expected_error_message =
-      "FilterNode must be eliminated during pushdown before query plan generation"
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
 };
 
 // A filter on a column the map REPLACES in place with a value-changing expression (`str_value :=
-// str_value.at(1)`) must also stay above the map. Pushing it into the scan would filter on the
-// original, unmodified `str_value` - a silent miscompile - so it must error instead.
+// str_value.at(1)`) stays above the map and filters on the MAPPED value. id_0's "short".at(1) is
+// 's' and matches; id_1's "longlonglong".at(1) is 'l' and does not.
 const QueryTestScenario FILTER_ON_REPLACED_MAPPED_COLUMN_SCENARIO = {
    .name = "FILTER_ON_REPLACED_MAPPED_COLUMN",
    .query =
       "default.map({str_value := str_value.at(1)}).filter(str_value = 's').project({primaryKey})",
-   .expected_query_result = {},
-   .expected_error_message =
-      "FilterNode must be eliminated during pushdown before query plan generation"
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
 };
 
-// A conjunction mixing a pushable sequence predicate (hasMutation) with a non-pushable derived
-// column (`week`). Because the whole filter references `week`, it must stay above the map - and
-// the pushable `segment1` reference must NOT trick column narrowing into pruning the producing
-// map. The query errors rather than producing a wrong answer or crashing.
+// A conjunction mixing a bitmap-only sequence predicate (hasMutation) with a derived column
+// (`week`). The whole filter references `week`, so it stays above the map, but hasMutation has no
+// Arrow compute translation, so the query cannot be executed as an Arrow filter and errors.
 const QueryTestScenario FILTER_MIXED_PUSHABLE_AND_DERIVED_SCENARIO = {
    .name = "FILTER_MIXED_PUSHABLE_AND_DERIVED",
    .query =
@@ -332,7 +323,8 @@ const QueryTestScenario FILTER_MIXED_PUSHABLE_AND_DERIVED_SCENARIO = {
       ".project({primaryKey})",
    .expected_query_result = {},
    .expected_error_message =
-      "FilterNode must be eliminated during pushdown before query plan generation"
+      "Error when planning query execution: NotImplemented: the scalar "
+      "expression segment1:0 has no Arrow compute translation"
 };
 
 // A filter on a passed-through column (`int_value`) stacked above a map that produces an

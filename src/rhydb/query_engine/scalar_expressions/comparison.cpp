@@ -9,6 +9,7 @@
 #include <string_view>
 #include <utility>
 
+#include <arrow/compute/api.h>
 #include <fmt/format.h>
 #include <roaring/roaring.hh>
 
@@ -221,6 +222,26 @@ std::vector<schema::ColumnIdentifier> Comparison::freeIUs() const {
    std::vector<schema::ColumnIdentifier> result = left->freeIUs();
    std::ranges::move(right->freeIUs(), std::back_inserter(result));
    return result;
+}
+
+arrow::Result<arrow::compute::Expression> Comparison::toArrowExpression() const {
+   ARROW_ASSIGN_OR_RAISE(auto left_expression, left->toArrowExpression());
+   ARROW_ASSIGN_OR_RAISE(auto right_expression, right->toArrowExpression());
+   switch (comparator) {
+      case Comparator::EQUALS:
+         return arrow::compute::equal(left_expression, right_expression);
+      case Comparator::NOT_EQUALS:
+         return arrow::compute::not_equal(left_expression, right_expression);
+      case Comparator::LESS:
+         return arrow::compute::less(left_expression, right_expression);
+      case Comparator::LESS_OR_EQUALS:
+         return arrow::compute::less_equal(left_expression, right_expression);
+      case Comparator::HIGHER:
+         return arrow::compute::greater(left_expression, right_expression);
+      case Comparator::HIGHER_OR_EQUALS:
+         return arrow::compute::greater_equal(left_expression, right_expression);
+   }
+   SILO_UNREACHABLE();
 }
 
 std::unique_ptr<ScalarExpression> Comparison::rewrite(

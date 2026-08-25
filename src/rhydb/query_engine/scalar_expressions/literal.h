@@ -31,6 +31,8 @@ class Int32Literal : public ScalarExpression {
       return std::make_unique<Int32Literal>(value);
    }
 
+   [[nodiscard]] arrow::Result<arrow::compute::Expression> toArrowExpression() const override;
+
    [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> rewrite(
@@ -56,6 +58,8 @@ class Int64Literal : public ScalarExpression {
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
       return std::make_unique<Int64Literal>(value);
    }
+
+   [[nodiscard]] arrow::Result<arrow::compute::Expression> toArrowExpression() const override;
 
    [[nodiscard]] std::string toString() const override;
 
@@ -83,6 +87,8 @@ class FloatLiteral : public ScalarExpression {
       return std::make_unique<FloatLiteral>(value);
    }
 
+   [[nodiscard]] arrow::Result<arrow::compute::Expression> toArrowExpression() const override;
+
    [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> rewrite(
@@ -108,6 +114,8 @@ class StringLiteral : public ScalarExpression {
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
       return std::make_unique<StringLiteral>(value);
    }
+
+   [[nodiscard]] arrow::Result<arrow::compute::Expression> toArrowExpression() const override;
 
    [[nodiscard]] std::string toString() const override;
 
@@ -135,6 +143,8 @@ class BoolLiteral : public ScalarExpression {
       return std::make_unique<BoolLiteral>(value);
    }
 
+   [[nodiscard]] arrow::Result<arrow::compute::Expression> toArrowExpression() const override;
+
    [[nodiscard]] std::string toString() const override;
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> rewrite(
@@ -160,6 +170,8 @@ class DateLiteral : public ScalarExpression {
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
       return std::make_unique<DateLiteral>(value);
    }
+
+   [[nodiscard]] arrow::Result<arrow::compute::Expression> toArrowExpression() const override;
 
    [[nodiscard]] std::string toString() const override;
 

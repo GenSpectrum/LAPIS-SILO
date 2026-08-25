@@ -32,6 +32,8 @@ class FieldRef : public ScalarExpression {
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
 
+   [[nodiscard]] arrow::Result<arrow::compute::Expression> toArrowExpression() const override;
+
    [[nodiscard]] std::unique_ptr<ScalarExpression> rewrite(
       const storage::Table& table,
       AmbiguityMode mode
