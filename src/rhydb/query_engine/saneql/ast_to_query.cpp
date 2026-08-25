@@ -243,10 +243,14 @@ ScalarExpressionPtr convertBinaryExprToFilter(
          // `null` is deliberately not handled here: it is not a comparable value, so
          // `column = null` is rejected by convertToScalar. Use isNull()/isNotNull().
          const Comparator comparator = toComparator(bin_expr.op);
+         // Both operands are converted in source order rather than inline as constructor
+         // arguments: the evaluation order of function arguments is unspecified, so if
+         // both operands are invalid the error the user sees would otherwise depend on
+         // the compiler. Left first means the leftmost invalid operand is reported.
+         auto left = convertToScalar(*bin_expr.left, schema, "the left side of a comparison");
+         auto right = convertToScalar(*bin_expr.right, schema, "the right side of a comparison");
          return std::make_unique<scalar_expressions::Comparison>(
-            convertToScalar(*bin_expr.left, schema, "the left side of a comparison"),
-            convertToScalar(*bin_expr.right, schema, "the right side of a comparison"),
-            comparator
+            std::move(left), std::move(right), comparator
          );
       }
    }

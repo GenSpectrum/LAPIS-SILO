@@ -280,10 +280,27 @@ TEST(AstToQueryDateComparison, greaterThanBuildsComparison) {
 // --- convertBinaryExprToFilter ---
 
 TEST(AstToQueryBinaryExpr, unsupportedValueTypeThrows) {
+   // `a` is in the schema so that the right operand is the only invalid one and the
+   // assertion cannot be satisfied by an error about the left side.
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "a", .type = rhydb::schema::ColumnType::INT32}
+   };
+   EXPECT_THAT(
+      [&]() { (void)parseFilter("a = {1, 2}", schema); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("the right side of a comparison must be a literal value")
+      )
+   );
+}
+
+// Operands are converted in source order, so when both are invalid the leftmost one is
+// reported. Pinning this keeps the diagnostic from depending on the compiler's choice of
+// function-argument evaluation order.
+TEST(AstToQueryBinaryExpr, bothOperandsInvalidReportsLeftOperand) {
    EXPECT_THAT(
       []() { (void)parseFilter("a = {1, 2}"); },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("the right side of a comparison must be a literal value")
+         ::testing::HasSubstr("the left side of a comparison references unknown column 'a'")
       )
    );
 }

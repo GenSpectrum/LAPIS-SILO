@@ -18,8 +18,9 @@ namespace rhydb::query_engine::scalar_expressions {
 /// on the literal's type. The column may be on either side — compile() flips the
 /// comparator accordingly.
 ///
-/// Null cells never match, for any operator. Testing for null is a separate
-/// expression (IsNull), which is what `column = null` / `column <> null` parse to.
+/// Null cells never match, for any operator. `null` is not a comparable value at
+/// all: `column = null` and `column <> null` are rejected while converting the
+/// operand. Use the `isNull()` / `isNotNull()` functions to test for null.
 ///
 /// Ordering operators are rejected for boolean columns; `=` and `<>` support all
 /// column types.
