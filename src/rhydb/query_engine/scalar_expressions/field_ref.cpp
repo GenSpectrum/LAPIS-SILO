@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include <arrow/compute/api.h>
+
 #include "rhydb/common/panic.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 
@@ -19,6 +21,10 @@ std::string FieldRef::toString() const {
 
 std::vector<schema::ColumnIdentifier> FieldRef::freeIUs() const {
    return {column};
+}
+
+arrow::Result<arrow::compute::Expression> FieldRef::toArrowExpression() const {
+   return arrow::compute::field_ref(column.name);
 }
 
 std::unique_ptr<ScalarExpression> FieldRef::rewrite(

@@ -4,6 +4,10 @@
 #include <string>
 #include <utility>
 
+#include <arrow/compute/api.h>
+#include <arrow/datum.h>
+#include <arrow/scalar.h>
+#include <arrow/type.h>
 #include <fmt/format.h>
 
 #include "rhydb/common/date32.h"
@@ -29,6 +33,10 @@ std::string Int32Literal::toString() const {
    return fmt::format("{}", value);
 }
 
+arrow::Result<arrow::compute::Expression> Int32Literal::toArrowExpression() const {
+   return arrow::compute::literal(arrow::Datum(value));
+}
+
 std::unique_ptr<ScalarExpression> Int32Literal::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
@@ -46,6 +54,10 @@ Int64Literal::Int64Literal(int64_t value)
 
 std::string Int64Literal::toString() const {
    return fmt::format("{}", value);
+}
+
+arrow::Result<arrow::compute::Expression> Int64Literal::toArrowExpression() const {
+   return arrow::compute::literal(arrow::Datum(value));
 }
 
 std::unique_ptr<ScalarExpression> Int64Literal::rewrite(
@@ -67,6 +79,10 @@ std::string FloatLiteral::toString() const {
    return fmt::format("{}", value);
 }
 
+arrow::Result<arrow::compute::Expression> FloatLiteral::toArrowExpression() const {
+   return arrow::compute::literal(arrow::Datum(value));
+}
+
 std::unique_ptr<ScalarExpression> FloatLiteral::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
@@ -86,6 +102,10 @@ std::string StringLiteral::toString() const {
    return fmt::format("'{}'", value);
 }
 
+arrow::Result<arrow::compute::Expression> StringLiteral::toArrowExpression() const {
+   return arrow::compute::literal(arrow::Datum(value));
+}
+
 std::unique_ptr<ScalarExpression> StringLiteral::rewrite(
    const storage::Table& /*table*/,
    AmbiguityMode /*mode*/
@@ -103,6 +123,10 @@ BoolLiteral::BoolLiteral(bool value)
 
 std::string BoolLiteral::toString() const {
    return value ? "true" : "false";
+}
+
+arrow::Result<arrow::compute::Expression> BoolLiteral::toArrowExpression() const {
+   return arrow::compute::literal(arrow::Datum(value));
 }
 
 std::unique_ptr<ScalarExpression> BoolLiteral::rewrite(
@@ -125,6 +149,10 @@ DateLiteral::DateLiteral(common::Date32 value)
 
 std::string DateLiteral::toString() const {
    return fmt::format("'{}'", common::date32ToString(value));
+}
+
+arrow::Result<arrow::compute::Expression> DateLiteral::toArrowExpression() const {
+   return arrow::compute::literal(arrow::Datum(std::make_shared<arrow::Date32Scalar>(value)));
 }
 
 std::unique_ptr<ScalarExpression> DateLiteral::rewrite(
