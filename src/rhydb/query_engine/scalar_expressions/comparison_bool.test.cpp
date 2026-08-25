@@ -77,11 +77,65 @@ const QueryTestScenario EQUALS_FALSE = {
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_false"}])")
 };
 
-// The column may sit on either side.
+const QueryTestScenario NOT_EQUALS_TRUE = {
+   .name = "BOOL_NOT_EQUALS_TRUE",
+   .query = "default.filter(boolField <> true).project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_false"}])")
+};
+
+const QueryTestScenario NOT_EQUALS_FALSE = {
+   .name = "BOOL_NOT_EQUALS_FALSE",
+   .query = "default.filter(boolField <> false).project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_true"}])")
+};
+
 const QueryTestScenario EQUALS_COLUMN_ON_RIGHT = {
    .name = "BOOL_EQUALS_COLUMN_ON_RIGHT",
    .query = "default.filter(true = boolField).project(primaryKey)",
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_true"}])")
+};
+
+const QueryTestScenario NOT_EQUALS_COLUMN_ON_RIGHT = {
+   .name = "BOOL_NOT_EQUALS_COLUMN_ON_RIGHT",
+   .query = "default.filter(true <> boolField).project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_false"}])")
+};
+
+const QueryTestScenario LESS_THAN_REJECTED = {
+   .name = "BOOL_LESS_THAN_REJECTED",
+   .query = "default.filter(boolField < true).project(primaryKey)",
+   .expected_error_message =
+      "The comparison operators <,>,<=,>= are not supported for boolean column 'boolField'"
+};
+
+const QueryTestScenario LESS_EQUAL_REJECTED = {
+   .name = "BOOL_LESS_EQUAL_REJECTED",
+   .query = "default.filter(boolField <= true).project(primaryKey)",
+   .expected_error_message =
+      "The comparison operators <,>,<=,>= are not supported for boolean column 'boolField'"
+};
+
+const QueryTestScenario GREATER_THAN_REJECTED = {
+   .name = "BOOL_GREATER_THAN_REJECTED",
+   .query = "default.filter(boolField > false).project(primaryKey)",
+   .expected_error_message =
+      "The comparison operators <,>,<=,>= are not supported for boolean column 'boolField'"
+};
+
+const QueryTestScenario GREATER_EQUAL_REJECTED = {
+   .name = "BOOL_GREATER_EQUAL_REJECTED",
+   .query = "default.filter(boolField >= false).project(primaryKey)",
+   .expected_error_message =
+      "The comparison operators <,>,<=,>= are not supported for boolean column 'boolField'"
+};
+
+// An ordering comparison flips its comparator when the column is on the right, so the
+// rejection has to survive the flip as well.
+const QueryTestScenario ORDERING_COLUMN_ON_RIGHT_REJECTED = {
+   .name = "BOOL_ORDERING_COLUMN_ON_RIGHT_REJECTED",
+   .query = "default.filter(true > boolField).project(primaryKey)",
+   .expected_error_message =
+      "The comparison operators <,>,<=,>= are not supported for boolean column 'boolField'"
 };
 
 }  // namespace
@@ -94,6 +148,14 @@ QUERY_TEST(
       NOT_EQUALS_NON_BOOL_COLUMN_REJECTED,
       EQUALS_TRUE,
       EQUALS_FALSE,
-      EQUALS_COLUMN_ON_RIGHT
+      NOT_EQUALS_TRUE,
+      NOT_EQUALS_FALSE,
+      EQUALS_COLUMN_ON_RIGHT,
+      NOT_EQUALS_COLUMN_ON_RIGHT,
+      LESS_THAN_REJECTED,
+      LESS_EQUAL_REJECTED,
+      GREATER_THAN_REJECTED,
+      GREATER_EQUAL_REJECTED,
+      ORDERING_COLUMN_ON_RIGHT_REJECTED
    )
 );
