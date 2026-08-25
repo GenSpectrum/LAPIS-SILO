@@ -58,8 +58,7 @@ const QueryTestScenario STRING_EQUALS_NULL_REJECTED_STRING_COLUMN = {
    .query = "default.filter(stringField = null).project(primaryKey)",
    .expected_error_message =
       "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
-      "a "
-      "column reference, or a scalar function call at 1:30"
+      "a column reference, or a scalar function call at 1:30"
 };
 
 const QueryTestScenario STRING_EQUALS_NULL_REJECTED_DICTIONARY_ENCODED_COLUMN = {
@@ -67,8 +66,7 @@ const QueryTestScenario STRING_EQUALS_NULL_REJECTED_DICTIONARY_ENCODED_COLUMN = 
    .query = "default.filter(dictionaryEncodedStringField = null).project(primaryKey)",
    .expected_error_message =
       "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
-      "a "
-      "column reference, or a scalar function call at 1:47"
+      "a column reference, or a scalar function call at 1:47"
 };
 
 const QueryTestScenario STRING_EQUALS_NULL_REJECTED_NEGATED = {
@@ -76,8 +74,7 @@ const QueryTestScenario STRING_EQUALS_NULL_REJECTED_NEGATED = {
    .query = "default.filter(!(stringField = null)).project(primaryKey)",
    .expected_error_message =
       "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
-      "a "
-      "column reference, or a scalar function call at 1:32"
+      "a column reference, or a scalar function call at 1:32"
 };
 
 const QueryTestScenario STRING_EQUALS_VALUE = {
