@@ -201,7 +201,7 @@ with Database("path/to/silo-dir") as db:
 
     # Verify via a query
     remaining = len(db.get_filtered_bitmap("default", "age = 4"))
-    cleared = len(db.get_filtered_bitmap("default", "age = null"))
+    cleared = len(db.get_filtered_bitmap("default", "age.isNull()"))
     assert remaining == 0
     assert cleared >= before
 

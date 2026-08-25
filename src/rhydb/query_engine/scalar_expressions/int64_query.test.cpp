@@ -97,10 +97,13 @@ const QueryTestScenario INT64_BETWEEN_SCENARIO = {
       nlohmann::json({row("id_0", VALUE_IN_FILTER), row("id_1", VALUE_IN_FILTER)})
 };
 
-const QueryTestScenario INT64_EQUALS_NULL_SCENARIO = {
-   .name = "INT64_EQUALS_NULL_SCENARIO",
+const QueryTestScenario INT64_EQUALS_NULL_REJECTED_SCENARIO = {
+   .name = "INT64_EQUALS_NULL_REJECTED_SCENARIO",
    .query = "default.filter(int64_value = null)",
-   .expected_query_result = nlohmann::json::array({row("id_4", nullptr)})
+   .expected_error_message =
+      "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
+      "a "
+      "column reference, or a scalar function call at 1:30"
 };
 
 const QueryTestScenario INT64_NEGATED_EQUALS_SCENARIO = {
@@ -134,7 +137,7 @@ QUERY_TEST(
       INT64_EQUALS_VALUE_SCENARIO,
       INT64_GREATER_EQUAL_SCENARIO,
       INT64_BETWEEN_SCENARIO,
-      INT64_EQUALS_NULL_SCENARIO,
+      INT64_EQUALS_NULL_REJECTED_SCENARIO,
       INT64_NEGATED_EQUALS_SCENARIO,
       INT64_EQUALS_INT32_RANGE_VALUE_SCENARIO,
       INT64_EQUALS_FUNCTION_CALL_VALUE_SCENARIO

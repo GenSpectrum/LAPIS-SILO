@@ -86,3 +86,13 @@ resolves #1221
 ```
 
 **Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+
+**Breaking changes:** add a `BREAKING CHANGE:` footer describing the impact and migration. release-please shows the footer text verbatim in the changelog. Since PRs are squash-merged, put the marker in the PR title and the footer at the bottom of the PR description.
+
+```
+feat(query_engine): disallow `... = null` filters
+
+resolves #1503
+
+BREAKING CHANGE: `column = null` filters now error. Use `column.isNull()` instead.
+```

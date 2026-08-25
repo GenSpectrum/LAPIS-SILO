@@ -217,47 +217,6 @@ Comparator toComparator(BinaryOp binary_op) {
    }
 }
 
-/// `null` is not a comparable value, so `column = null` and `column <> null` are null
-/// tests rather than comparisons. Returns the IsNull predicate (negated for `<>`) when
-/// one operand is the null literal, and nullopt when neither is, in which case the
-/// expression is an ordinary comparison.
-///
-/// Only equality can be used this way; `column < null` has no meaning and is left to
-/// convertToScalar to reject.
-std::optional<ScalarExpressionPtr> convertNullTest(
-   const ast::BinaryExpr& bin_expr,
-   const std::vector<schema::ColumnIdentifier>& schema,
-   Comparator comparator
-) {
-   if (comparator != Comparator::EQUALS && comparator != Comparator::NOT_EQUALS) {
-      return std::nullopt;
-   }
-
-   const ast::Expression* column_side = nullptr;
-   if (isNullLiteral(*bin_expr.right)) {
-      column_side = bin_expr.left.get();
-   } else if (isNullLiteral(*bin_expr.left)) {
-      column_side = bin_expr.right.get();
-   } else {
-      return std::nullopt;
-   }
-
-   CHECK_SILO_QUERY(
-      std::holds_alternative<ast::Identifier>(column_side->value),
-      "a comparison against null requires a column reference on the other side at {}:{}",
-      column_side->location.line,
-      column_side->location.column
-   );
-
-   ScalarExpressionPtr is_null = std::make_unique<scalar_expressions::IsNull>(
-      resolveColumn(extractIdentifierName(*column_side), schema)
-   );
-   if (comparator == Comparator::NOT_EQUALS) {
-      return std::make_unique<scalar_expressions::Negation>(std::move(is_null));
-   }
-   return is_null;
-}
-
 ScalarExpressionPtr convertBinaryExprToFilter(
    const ast::BinaryExpr& bin_expr,
    const std::vector<schema::ColumnIdentifier>& schema
@@ -281,10 +240,9 @@ ScalarExpressionPtr convertBinaryExprToFilter(
       case BinaryOp::LESS_EQUAL:
       case BinaryOp::GREATER_THAN:
       case BinaryOp::GREATER_EQUAL: {
+         // `null` is deliberately not handled here: it is not a comparable value, so
+         // `column = null` is rejected by convertToScalar. Use isNull()/isNotNull().
          const Comparator comparator = toComparator(bin_expr.op);
-         if (auto null_test = convertNullTest(bin_expr, schema, comparator)) {
-            return std::move(null_test).value();
-         }
          return std::make_unique<scalar_expressions::Comparison>(
             convertToScalar(*bin_expr.left, schema, "the left side of a comparison"),
             convertToScalar(*bin_expr.right, schema, "the right side of a comparison"),

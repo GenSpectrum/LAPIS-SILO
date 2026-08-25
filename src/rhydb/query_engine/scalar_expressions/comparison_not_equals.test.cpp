@@ -161,22 +161,23 @@ const QueryTestScenario NOT_EQUALS_COLUMN_ON_RIGHT = {
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_1"}])")
 };
 
-// --- `<> null` is not a comparison but a null test: it means "is not null". ---
+// --- `null` is not a comparable value: `<> null` is rejected rather than treated
+// as a null test. Use isNotNull() instead. ---
 
 const QueryTestScenario NOT_EQUALS_NULL_PLAIN = {
    .name = "NOT_EQUALS_NULL_PLAIN",
    .query = "default.filter(stringField <> null).project(primaryKey)",
-   .expected_query_result =
-      nlohmann::json::parse(R"([{"primaryKey":"id_0"},{"primaryKey":"id_1"},{"primaryKey":"id_3"}])"
-      )
+   .expected_error_message =
+      "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
+      "a column reference, or a scalar function call at 1:31"
 };
 
 const QueryTestScenario NOT_EQUALS_NULL_DICT = {
    .name = "NOT_EQUALS_NULL_DICT",
    .query = "default.filter(dictField <> null).project(primaryKey)",
-   .expected_query_result =
-      nlohmann::json::parse(R"([{"primaryKey":"id_0"},{"primaryKey":"id_1"},{"primaryKey":"id_3"}])"
-      )
+   .expected_error_message =
+      "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
+      "a column reference, or a scalar function call at 1:29"
 };
 
 // --- `!` is a set complement, not SQL's NOT, so it keeps the null rows that `<>`

@@ -108,22 +108,24 @@ const QueryTestScenario UNSORTED_DATE_SINGLE_MATCH =
        {{"primaryKey", "row2"}, {"sorted_date", DATE_2021}, {"unsorted_date", DATE_2020}},
     }};
 
-// Matches null1 and null2 (both have sorted_date = null)
-const QueryTestScenario SORTED_DATE_NULL =
-   {.name = "SORTED_DATE_NULL",
-    .query = createDateEqualsNullQuery("sorted_date"),
-    .expected_query_result = {
-       {{"primaryKey", "null1"}, {"sorted_date", nullptr}, {"unsorted_date", nullptr}},
-       {{"primaryKey", "null2"}, {"sorted_date", nullptr}, {"unsorted_date", DATE_2023}},
-    }};
+// `... = null` is rejected; users must use isNull()
+const QueryTestScenario SORTED_DATE_NULL_REJECTED = {
+   .name = "SORTED_DATE_NULL_REJECTED",
+   .query = createDateEqualsNullQuery("sorted_date"),
+   .expected_error_message =
+      "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
+      "a "
+      "column reference, or a scalar function call at 1:30"
+};
 
-// Matches only null1 (unsorted_date = null)
-const QueryTestScenario UNSORTED_DATE_NULL =
-   {.name = "UNSORTED_DATE_NULL",
-    .query = createDateEqualsNullQuery("unsorted_date"),
-    .expected_query_result = {
-       {{"primaryKey", "null1"}, {"sorted_date", nullptr}, {"unsorted_date", nullptr}},
-    }};
+const QueryTestScenario UNSORTED_DATE_NULL_REJECTED = {
+   .name = "UNSORTED_DATE_NULL_REJECTED",
+   .query = createDateEqualsNullQuery("unsorted_date"),
+   .expected_error_message =
+      "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
+      "a "
+      "column reference, or a scalar function call at 1:32"
+};
 
 const QueryTestScenario DATE_EQUALS_NO_MATCH = {
    .name = "DATE_EQUALS_NO_MATCH",
@@ -169,8 +171,8 @@ QUERY_TEST(
       SORTED_DATE_SINGLE_MATCH,
       UNSORTED_DATE_MULTIPLE_MATCHES,
       UNSORTED_DATE_SINGLE_MATCH,
-      SORTED_DATE_NULL,
-      UNSORTED_DATE_NULL,
+      SORTED_DATE_NULL_REJECTED,
+      UNSORTED_DATE_NULL_REJECTED,
       DATE_EQUALS_NO_MATCH,
       DATE_EQUALS_WRONG_FORMAT,
       DATE_EQUALS_WRONG_VALUE_TYPE,

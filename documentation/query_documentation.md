@@ -70,12 +70,11 @@ default
 Notes:
 - One side must be a column identifier; the other a literal value. The column may
   be on either side (`age > 30` equals `30 < age`).
+- The literal operand must **not** be `null`; use `isNull()` or `isNotNull()` instead.
 - Ordering operators are **not** supported for boolean columns.
 - Comparisons **exclude** null values: a null cell never matches any comparison,
   including `<>`. So `country <> 'Germany'` does not return rows where `country`
   is null.
-- Testing for null is done with `= null` / `<> null`, which mean "is null" and
-  "is not null" respectively.
 - `!` is a set complement, not SQL's `NOT`, so it does **not** mean the same as
   `<>`: `!(country = 'Germany')` *does* return rows where `country` is null,
   whereas `country <> 'Germany'` does not.
@@ -87,7 +86,7 @@ Examples:
 country = 'Germany'
 age > 30
 date <= '2021-12-31'::date
-qc_value <> null
+!qc_value.isNull()
 ```
 
 ### Method Call Syntax

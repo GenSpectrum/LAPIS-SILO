@@ -97,10 +97,12 @@ __attribute__((noinline)) void subtractStartAndEndNCounts(
    EVOBENCH_SCOPE("Mutations", "subtractStartAndEndNCounts");
    std::vector<size_t> cumulative_starts(sequence_length + 1);
    std::vector<size_t> cumulative_ends(sequence_length + 1);
-   for (const auto& chunk : coverage_index.start_end) {
-      for (const auto& [start, end] : chunk) {
-         cumulative_starts.at(start) += 1;
-         cumulative_ends.at(end) += 1;
+   for (size_t chunk_id = 0; chunk_id < coverage_index.starts.size(); ++chunk_id) {
+      const auto& chunk_starts = coverage_index.starts[chunk_id];
+      const auto& chunk_ends = coverage_index.ends[chunk_id];
+      for (size_t row_in_chunk = 0; row_in_chunk < chunk_starts.size(); ++row_in_chunk) {
+         cumulative_starts.at(chunk_starts[row_in_chunk]) += 1;
+         cumulative_ends.at(chunk_ends[row_in_chunk]) += 1;
       }
    }
    subtractCumulativeNsFromPositions(
