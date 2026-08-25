@@ -170,6 +170,12 @@ std::unique_ptr<filter::operators::Operator> compileStringComparison(
       if (const auto bitmap = dictionary_column.filter(literal); bitmap != std::nullopt) {
          excluded |= *bitmap.value();
       }
+      // `excluded` is a subset of the valid row universe, so covering every row means the
+      // complement is empty. Return Empty directly, mirroring the equality path, instead of
+      // a Complement that evaluates to nothing.
+      if (excluded.cardinality() == table.row_layout.numRows()) {
+         return std::make_unique<filter::operators::Empty>(table.row_layout);
+      }
       return filter::operators::Operator::negate(std::make_unique<filter::operators::IndexScan>(
          CopyOnWriteBitmap{std::move(excluded)}, table.row_layout
       ));

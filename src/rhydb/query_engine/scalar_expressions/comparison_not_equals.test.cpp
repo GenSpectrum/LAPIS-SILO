@@ -161,6 +161,15 @@ const QueryTestScenario NOT_EQUALS_COLUMN_ON_RIGHT = {
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_1"}])")
 };
 
+// Column-on-right also has to reach the dictionary complement path, not just the plain
+// string scan, so the flip is exercised there too.
+const QueryTestScenario NOT_EQUALS_DICT_COLUMN_ON_RIGHT = {
+   .name = "NOT_EQUALS_DICT_COLUMN_ON_RIGHT",
+   .query = "default.filter('indexed2' <> dictField).project(primaryKey)",
+   .expected_query_result =
+      nlohmann::json::parse(R"([{"primaryKey":"id_0"},{"primaryKey":"id_3"}])")
+};
+
 // --- `null` is not a comparable value: `<> null` is rejected rather than treated
 // as a null test. Use isNotNull() instead. ---
 
@@ -207,8 +216,63 @@ QUERY_TEST(
       NOT_EQUALS_DICT_VALUE_NOT_IN_DICTIONARY,
       NOT_EQUALS_DICT_UNIONS_OTHER_VALUES,
       NOT_EQUALS_COLUMN_ON_RIGHT,
+      NOT_EQUALS_DICT_COLUMN_ON_RIGHT,
       NOT_EQUALS_NULL_PLAIN,
       NOT_EQUALS_NULL_DICT,
       NEGATED_EQUALS_STILL_INCLUDES_NULLS
    )
+);
+
+// --- Empty-result edge for the dictionary complement path: when every non-null row
+// holds the excluded value, the complement covers no rows and must collapse to Empty
+// rather than a Complement that evaluates to nothing. ---
+
+namespace {
+const auto SINGLE_VALUE_DATABASE_CONFIG =
+   R"(
+schema:
+  instanceName: "test"
+  metadata:
+   - name: "primaryKey"
+     type: "string"
+   - name: "dictField"
+     type: "string"
+     generateIndex: true
+  primaryKey: "primaryKey"
+)";
+
+nlohmann::json createSingleValueData(
+   const std::string& primary_key,
+   const std::optional<std::string>& dict_field
+) {
+   nlohmann::json result;
+   result["primaryKey"] = primary_key;
+   result["dictField"] =
+      dict_field.has_value() ? nlohmann::json(dict_field.value()) : nlohmann::json(nullptr);
+   return result;
+}
+
+// Every non-null row holds "only", so `dictField <> 'only'` excludes all rows.
+const QueryTestData SINGLE_VALUE_TEST_DATA{
+   .ndjson_input_data =
+      {
+         createSingleValueData("id_a", "only"),
+         createSingleValueData("id_b", "only"),
+         createSingleValueData("id_c", std::nullopt),
+      },
+   .database_config = SINGLE_VALUE_DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
+};
+
+const QueryTestScenario NOT_EQUALS_DICT_MATCHES_NO_ROWS = {
+   .name = "NOT_EQUALS_DICT_MATCHES_NO_ROWS",
+   .query = "default.filter(dictField <> 'only').project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([])")
+};
+}  // namespace
+
+QUERY_TEST(
+   ComparisonNotEqualsEmpty,
+   SINGLE_VALUE_TEST_DATA,
+   ::testing::Values(NOT_EQUALS_DICT_MATCHES_NO_ROWS)
 );
