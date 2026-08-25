@@ -203,10 +203,6 @@ ScalarExpressionPtr convertEqualsToFilter(
    const ast::Expression& value_expr,
    const std::vector<schema::ColumnIdentifier>& schema
 ) {
-   if (isNullLiteral(value_expr)) {
-      return std::make_unique<scalar_expressions::IsNull>(resolveColumn(column_name, schema));
-   }
-
    // Build the value operand first so parse-time value errors (e.g. an invalid date
    // literal or an unsupported value type) are reported before the column is resolved.
    auto value = convertToScalar(value_expr, schema, "the value in an equality");

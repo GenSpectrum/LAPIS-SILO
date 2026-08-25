@@ -77,21 +77,20 @@ const QueryTestScenario NEGATED_FLOAT_EQUALS_VALUE_SCENARIO = {
    )
 };
 
-const QueryTestScenario FLOAT_EQUALS_NULL_SCENARIO = {
-   .name = "FLOAT_EQUALS_NULL_SCENARIO",
+const QueryTestScenario FLOAT_EQUALS_NULL_REJECTED_SCENARIO = {
+   .name = "FLOAT_EQUALS_NULL_REJECTED_SCENARIO",
    .query = "default.filter(float_value = null).project({primaryKey, float_value})",
-   .expected_query_result = nlohmann::json({{{"primaryKey", "id_4"}, {"float_value", nullptr}}})
+   .expected_error_message =
+      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
+      "column reference, or a scalar function call at 1:30"
 };
 
-const QueryTestScenario NEGATED_FLOAT_EQUALS_NULL_SCENARIO = {
-   .name = "NEGATED_FLOAT_EQUALS_NULL_SCENARIO",
+const QueryTestScenario NEGATED_FLOAT_EQUALS_NULL_REJECTED_SCENARIO = {
+   .name = "NEGATED_FLOAT_EQUALS_NULL_REJECTED_SCENARIO",
    .query = "default.filter(!(float_value = null)).project({primaryKey, float_value})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"float_value", 1.23}},
-       {{"primaryKey", "id_1"}, {"float_value", 1.23}},
-       {{"primaryKey", "id_2"}, {"float_value", 0.345}},
-       {{"primaryKey", "id_3"}, {"float_value", 2.345}}}
-   )
+   .expected_error_message =
+      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
+      "column reference, or a scalar function call at 1:32"
 };
 
 const QueryTestScenario FLOAT_EQUALS_WITH_INVALID_VALUE = {
@@ -108,8 +107,8 @@ QUERY_TEST(
    ::testing::Values(
       FLOAT_EQUALS_VALUE_SCENARIO,
       NEGATED_FLOAT_EQUALS_VALUE_SCENARIO,
-      FLOAT_EQUALS_NULL_SCENARIO,
-      NEGATED_FLOAT_EQUALS_NULL_SCENARIO,
+      FLOAT_EQUALS_NULL_REJECTED_SCENARIO,
+      NEGATED_FLOAT_EQUALS_NULL_REJECTED_SCENARIO,
       FLOAT_EQUALS_WITH_INVALID_VALUE
    )
 );
