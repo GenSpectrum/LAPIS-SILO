@@ -47,6 +47,8 @@ find_package(simdjson REQUIRED)
 find_package(simdutf REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
+# zlib provides the inflate() used to decode the BGZF container of BAM inputs.
+find_package(ZLIB REQUIRED)
 
 # Native-only: lzma-compressed inputs. Not available for Emscripten (the browser
 # build accepts raw and .zst inputs only).
@@ -73,6 +75,7 @@ target_link_libraries(rhydblib_deps INTERFACE
         ${yaml-cpp_LIBRARIES}
         zstd::libzstd_static
         re2::re2
+        ZLIB::ZLIB
 )
 
 target_include_directories(rhydblib_deps INTERFACE "src")
