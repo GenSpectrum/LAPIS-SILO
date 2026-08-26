@@ -72,7 +72,7 @@ arrow::Result<std::shared_ptr<arrow::StringArray>> asStringArray(const arrow::Da
 }
 
 /// Builds the interned relation from the child's exec batches, reading the edge endpoints from
-/// the given column indices. Rows with a null endpoint are skipped. Only the interned form is
+/// the given column indices. Edges with a null endpoint are skipped. Only the interned form is
 /// retained: the endpoint strings are interned as the batches are scanned, so each distinct
 /// vertex name is held once instead of once per edge.
 arrow::Result<Relation> buildRelation(
@@ -100,12 +100,17 @@ arrow::Result<Relation> buildRelation(
       ARROW_ASSIGN_OR_RAISE(const auto from_array, asStringArray(batch->values[from_index]));
       ARROW_ASSIGN_OR_RAISE(const auto to_array, asStringArray(batch->values[to_index]));
       for (int64_t row = 0; row < from_array->length(); ++row) {
-         if (from_array->IsNull(row) || to_array->IsNull(row)) {
-            continue;
+         std::optional<uint32_t> from;
+         std::optional<uint32_t> to;
+         if (!from_array->IsNull(row)) {
+            from = intern(from_array->GetString(row));
          }
-         const uint32_t from = intern(from_array->GetString(row));
-         const uint32_t to = intern(to_array->GetString(row));
-         adjacency[from].push_back(to);
+         if (!to_array->IsNull(row)) {
+            to = intern(to_array->GetString(row));
+         }
+         if (from.has_value() && to.has_value()) {
+            adjacency[*from].push_back(*to);
+         }
       }
    }
 

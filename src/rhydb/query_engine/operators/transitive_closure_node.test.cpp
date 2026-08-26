@@ -191,6 +191,152 @@ const QueryTestScenario UNKNOWN_COLUMN_SCENARIO = {
       "transitiveClosure() column 'does_not_exist' is not present in the input's output schema"
 };
 
+// A lineage-indexed column is dictionary-encoded, not STRING, so it cannot be an edge endpoint.
+const QueryTestScenario NON_STRING_COLUMN_SCENARIO = {
+   .name = "NON_STRING_COLUMN_SCENARIO",
+   .query = "default.transitiveClosure('pango_lineage_indexed', 'primaryKey')",
+   .expected_error_message =
+      "transitiveClosure() can only be applied to STRING columns, but "
+      "column 'pango_lineage_indexed' has type DICTIONARY_ENCODED"
+};
+
+//   ROOT
+//   └── KID
+//   ORPHAN
+// ORPHAN is parentless and childless, so its row in the relation table has a null `parent` and
+// contributes no edge at all - it is still a vertex of the relation.
+const auto LINEAGE_TREE_WITH_ISOLATED_VERTEX =
+   LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
+ROOT:
+  parents: []
+KID:
+  parents:
+  - ROOT
+ORPHAN:
+  parents: []
+)"));
+
+const QueryTestData TEST_DATA_WITH_ISOLATED_VERTEX{
+   .ndjson_input_data = {createDataWithLineageValue("id_0", "KID")},
+   .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES,
+   .lineage_trees = {{"test_lineage_index", LINEAGE_TREE_WITH_ISOLATED_VERTEX}}
+};
+
+// An edge row with a null endpoint carries no edge, so the isolated vertex appears in no pair.
+const QueryTestScenario ISOLATED_VERTEX_SCENARIO = {
+   .name = "ISOLATED_VERTEX_SCENARIO",
+   .query = "pango_lineage_indexed.transitiveClosure('parent', 'lineage').orderBy({from, to})",
+   .expected_query_result = nlohmann::json({{{"from", "ROOT"}, {"to", "KID"}}})
+};
+
+// ... but it is a vertex, so includeVertices still pairs it with itself.
+const QueryTestScenario ISOLATED_VERTEX_INCLUDE_VERTICES_SCENARIO = {
+   .name = "ISOLATED_VERTEX_INCLUDE_VERTICES_SCENARIO",
+   .query =
+      "pango_lineage_indexed.transitiveClosure('parent', 'lineage', includeVertices:=true)"
+      ".orderBy({from, to})",
+   .expected_query_result = nlohmann::json(
+      {{{"from", "KID"}, {"to", "KID"}},
+       {{"from", "ORPHAN"}, {"to", "ORPHAN"}},
+       {{"from", "ROOT"}, {"to", "KID"}},
+       {{"from", "ROOT"}, {"to", "ROOT"}}}
+   )
+};
+
+nlohmann::json createEdge(
+   const std::string& primaryKey,
+   const nlohmann::json& edge_from,
+   const nlohmann::json& edge_to
+) {
+   return {
+      {"primaryKey", primaryKey},
+      {"edge_from", edge_from},
+      {"edge_to", edge_to},
+      {"weight", 1},
+      {"segment1", nullptr},
+      {"unaligned_segment1", nullptr},
+      {"gene1", nullptr}
+   };
+}
+
+// The relation is an arbitrary directed graph, not just a tree:
+//   A <-> B  (a two-vertex cycle)   C -> C  (a self loop)   D -> E  (acyclic)   F -> null
+const std::vector<nlohmann::json> GRAPH_DATA = {
+   createEdge("id_0", "A", "B"),
+   createEdge("id_1", "B", "A"),
+   createEdge("id_2", "C", "C"),
+   createEdge("id_3", "D", "E"),
+   createEdge("id_4", "F", nullptr),
+};
+
+const auto GRAPH_DATABASE_CONFIG =
+   R"(
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+    - name: "edge_from"
+      type: "string"
+    - name: "edge_to"
+      type: "string"
+    - name: "weight"
+      type: "int"
+  primaryKey: "primaryKey"
+)";
+
+const QueryTestData GRAPH_TEST_DATA{
+   .ndjson_input_data = GRAPH_DATA,
+   .database_config = GRAPH_DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
+};
+
+// A vertex on a cycle reaches itself, so it is paired with itself even without includeVertices.
+const QueryTestScenario CYCLIC_RELATION_SCENARIO = {
+   .name = "CYCLIC_RELATION_SCENARIO",
+   .query =
+      "default.project({edge_from, edge_to})"
+      ".transitiveClosure('edge_from', 'edge_to').orderBy({from, to})",
+   .expected_query_result = nlohmann::json(
+      {{{"from", "A"}, {"to", "A"}},
+       {{"from", "A"}, {"to", "B"}},
+       {{"from", "B"}, {"to", "A"}},
+       {{"from", "B"}, {"to", "B"}},
+       {{"from", "C"}, {"to", "C"}},
+       {{"from", "D"}, {"to", "E"}}}
+   )
+};
+
+// includeVertices adds the reflexive pair only for the vertices that no cycle already covers:
+// (D, D), (E, E) and (F, F), but no second (A, A) / (B, B) / (C, C).
+const QueryTestScenario CYCLIC_RELATION_INCLUDE_VERTICES_SCENARIO = {
+   .name = "CYCLIC_RELATION_INCLUDE_VERTICES_SCENARIO",
+   .query =
+      "default.project({edge_from, edge_to})"
+      ".transitiveClosure('edge_from', 'edge_to', includeVertices:=true)"
+      ".orderBy({from, to})",
+   .expected_query_result = nlohmann::json(
+      {{{"from", "A"}, {"to", "A"}},
+       {{"from", "A"}, {"to", "B"}},
+       {{"from", "B"}, {"to", "A"}},
+       {{"from", "B"}, {"to", "B"}},
+       {{"from", "C"}, {"to", "C"}},
+       {{"from", "D"}, {"to", "D"}},
+       {{"from", "D"}, {"to", "E"}},
+       {{"from", "E"}, {"to", "E"}},
+       {{"from", "F"}, {"to", "F"}}}
+   )
+};
+
+const QueryTestScenario INT_COLUMN_SCENARIO = {
+   .name = "INT_COLUMN_SCENARIO",
+   .query = "default.transitiveClosure('edge_from', 'weight')",
+   .expected_error_message =
+      "transitiveClosure() can only be applied to STRING columns, but "
+      "column 'weight' has type INT32"
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -202,6 +348,23 @@ QUERY_TEST(
       TRANSITIVE_CLOSURE_ONE_PAIR_PER_BATCH_SCENARIO,
       COUNT_LINEAGE_INCLUDING_SUBLINEAGES_SCENARIO,
       SUBQUERY_INPUT_SCENARIO,
-      UNKNOWN_COLUMN_SCENARIO
+      UNKNOWN_COLUMN_SCENARIO,
+      NON_STRING_COLUMN_SCENARIO
+   )
+);
+
+QUERY_TEST(
+   TransitiveClosureIsolatedVertexTest,
+   TEST_DATA_WITH_ISOLATED_VERTEX,
+   ::testing::Values(ISOLATED_VERTEX_SCENARIO, ISOLATED_VERTEX_INCLUDE_VERTICES_SCENARIO)
+);
+
+QUERY_TEST(
+   TransitiveClosureGraphTest,
+   GRAPH_TEST_DATA,
+   ::testing::Values(
+      CYCLIC_RELATION_SCENARIO,
+      CYCLIC_RELATION_INCLUDE_VERTICES_SCENARIO,
+      INT_COLUMN_SCENARIO
    )
 );
