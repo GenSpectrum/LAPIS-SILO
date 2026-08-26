@@ -15,6 +15,7 @@
 #include "rhydb/common/aa_symbols.h"
 #include "rhydb/common/lineage_tree.h"
 #include "rhydb/common/nucleotide_symbols.h"
+#include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/operators/aggregate_node.h"
 #include "rhydb/query_engine/operators/fetch_node.h"
@@ -1388,7 +1389,8 @@ void collectJoinKeys(
       on_expression.location.toString()
    );
    CHECK_RHYDB_QUERY(
-      first.column.type == second.column.type,
+      exec_node::columnTypeToArrowType(first.column.type)
+         ->Equals(*exec_node::columnTypeToArrowType(second.column.type)),
       "join() on-expression equality must reference equal column types from each input, but "
       "'{}' and '{}' have mismatching types {} and {} at {}",
       binary.left->toString(),

@@ -337,6 +337,67 @@ const QueryTestScenario INT_COLUMN_SCENARIO = {
       "column 'weight' has type INT32"
 };
 
+nlohmann::json createDataWithSingleLineageColumn(
+   const std::string& primaryKey,
+   const nlohmann::json& value
+) {
+   return {
+      {"primaryKey", primaryKey},
+      {"pango_lineage", value},
+      {"segment1", nullptr},
+      {"unaligned_segment1", nullptr},
+      {"gene1", nullptr}
+   };
+}
+
+// A single lineage column with `lineageIndexType: both`, i.e. the realistic shape of a lineage
+// config: there is no plain STRING copy of the lineage to join against, since a lineage-indexed
+// column is necessarily dictionary-encoded. The closure emits STRING columns and join() compares
+// join keys by the arrow type both sides materialize, so the two still join.
+const auto SINGLE_LINEAGE_COLUMN_DATABASE_CONFIG =
+   R"(
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+    - name: "pango_lineage"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: test_lineage_index
+      lineageIndexType: both
+  primaryKey: "primaryKey"
+)";
+
+const QueryTestData SINGLE_LINEAGE_COLUMN_TEST_DATA{
+   .ndjson_input_data =
+      {createDataWithSingleLineageColumn("id_0", "BASE.1"),
+       createDataWithSingleLineageColumn("id_1", "CHILD"),
+       createDataWithSingleLineageColumn("id_2", "CHILD"),
+       createDataWithSingleLineageColumn("id_3", "CHILD.2"),
+       createDataWithSingleLineageColumn("id_4", "GRANDCHILD"),
+       createDataWithSingleLineageColumn("id_5", nullptr)},
+   .database_config = SINGLE_LINEAGE_COLUMN_DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES,
+   .lineage_trees = {{"test_lineage_index", LINEAGE_TREE}}
+};
+
+// The motivating query, joining the closure against the dictionary-encoded lineage column itself.
+const QueryTestScenario COUNT_SUBLINEAGES_ON_DICTIONARY_ENCODED_COLUMN_SCENARIO = {
+   .name = "COUNT_SUBLINEAGES_ON_DICTIONARY_ENCODED_COLUMN_SCENARIO",
+   .query =
+      "pango_lineage.transitiveClosure('parent', 'lineage', includeVertices:=true)"
+      ".join(default, to = pango_lineage)"
+      ".groupBy({count := count()}, {from})"
+      ".orderBy({from})",
+   .expected_query_result = nlohmann::json(
+      {{{"from", "BASE.1"}, {"count", 5}},
+       {{"from", "CHILD"}, {"count", 3}},
+       {{"from", "CHILD.2"}, {"count", 1}},
+       {{"from", "GRANDCHILD"}, {"count", 1}}}
+   )
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -367,4 +428,10 @@ QUERY_TEST(
       CYCLIC_RELATION_INCLUDE_VERTICES_SCENARIO,
       INT_COLUMN_SCENARIO
    )
+);
+
+QUERY_TEST(
+   TransitiveClosureSingleLineageColumnTest,
+   SINGLE_LINEAGE_COLUMN_TEST_DATA,
+   ::testing::Values(COUNT_SUBLINEAGES_ON_DICTIONARY_ENCODED_COLUMN_SCENARIO)
 );
