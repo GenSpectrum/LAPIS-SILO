@@ -114,8 +114,7 @@ const QueryTestScenario SORTED_DATE_NULL_REJECTED = {
    .query = createDateEqualsNullQuery("sorted_date"),
    .expected_error_message =
       "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
-      "a "
-      "column reference, or a scalar function call at 1:30"
+      "a column reference, or a scalar function call at 1:30"
 };
 
 const QueryTestScenario UNSORTED_DATE_NULL_REJECTED = {
@@ -123,8 +122,7 @@ const QueryTestScenario UNSORTED_DATE_NULL_REJECTED = {
    .query = createDateEqualsNullQuery("unsorted_date"),
    .expected_error_message =
       "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
-      "a "
-      "column reference, or a scalar function call at 1:32"
+      "a column reference, or a scalar function call at 1:32"
 };
 
 const QueryTestScenario DATE_EQUALS_NO_MATCH = {

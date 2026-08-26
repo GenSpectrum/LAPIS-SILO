@@ -82,9 +82,6 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-// --- `<>` against a value: matches every row that has a differing value, but never
-// a null row (a null cell has no value to differ). ---
-
 const QueryTestScenario NOT_EQUALS_STRING_PLAIN = {
    .name = "NOT_EQUALS_STRING_PLAIN",
    .query = "default.filter(stringField <> 'value1').project(primaryKey)",
@@ -128,7 +125,6 @@ const QueryTestScenario NOT_EQUALS_BOOL_FALSE = {
       nlohmann::json::parse(R"([{"primaryKey":"id_0"},{"primaryKey":"id_3"}])")
 };
 
-// A value no row holds still excludes the null row.
 const QueryTestScenario NOT_EQUALS_VALUE_NOT_PRESENT = {
    .name = "NOT_EQUALS_VALUE_NOT_PRESENT",
    .query = "default.filter(intField <> 999).project(primaryKey)",
@@ -137,7 +133,6 @@ const QueryTestScenario NOT_EQUALS_VALUE_NOT_PRESENT = {
       )
 };
 
-// A literal that is not in the dictionary at all: every non-null row differs from it.
 const QueryTestScenario NOT_EQUALS_DICT_VALUE_NOT_IN_DICTIONARY = {
    .name = "NOT_EQUALS_DICT_VALUE_NOT_IN_DICTIONARY",
    .query = "default.filter(dictField <> 'never_indexed').project(primaryKey)",
@@ -146,7 +141,6 @@ const QueryTestScenario NOT_EQUALS_DICT_VALUE_NOT_IN_DICTIONARY = {
       )
 };
 
-// The dictionary path unions the bitmaps of every other distinct value.
 const QueryTestScenario NOT_EQUALS_DICT_UNIONS_OTHER_VALUES = {
    .name = "NOT_EQUALS_DICT_UNIONS_OTHER_VALUES",
    .query = "default.filter(dictField <> 'indexed2').project(primaryKey)",
@@ -154,24 +148,18 @@ const QueryTestScenario NOT_EQUALS_DICT_UNIONS_OTHER_VALUES = {
       nlohmann::json::parse(R"([{"primaryKey":"id_0"},{"primaryKey":"id_3"}])")
 };
 
-// (In)equality is symmetric, so the column may sit on either side.
 const QueryTestScenario NOT_EQUALS_COLUMN_ON_RIGHT = {
    .name = "NOT_EQUALS_COLUMN_ON_RIGHT",
    .query = "default.filter('value1' <> stringField).project(primaryKey)",
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_1"}])")
 };
 
-// Column-on-right also has to reach the dictionary complement path, not just the plain
-// string scan, so the flip is exercised there too.
 const QueryTestScenario NOT_EQUALS_DICT_COLUMN_ON_RIGHT = {
    .name = "NOT_EQUALS_DICT_COLUMN_ON_RIGHT",
    .query = "default.filter('indexed2' <> dictField).project(primaryKey)",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_0"},{"primaryKey":"id_3"}])")
 };
-
-// --- `null` is not a comparable value: `<> null` is rejected rather than treated
-// as a null test. Use isNotNull() instead. ---
 
 const QueryTestScenario NOT_EQUALS_NULL_PLAIN = {
    .name = "NOT_EQUALS_NULL_PLAIN",
