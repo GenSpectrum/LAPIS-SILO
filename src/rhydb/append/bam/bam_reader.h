@@ -21,8 +21,8 @@ struct BamReference {
 /// SEQ is already nibble-decoded to an IUPAC string and QUAL is rendered Phred+33
 /// (or "*" when absent). Optional tags are not decoded in this first version.
 struct BamRecord {
-   int32_t reference_id;   // index into the reference dictionary; -1 = unmapped
-   int32_t position;       // 0-based leftmost mapped position; -1 = unavailable
+   int32_t reference_id;  // index into the reference dictionary; -1 = unmapped
+   int32_t position;      // 0-based leftmost mapped position; -1 = unavailable
    uint8_t mapping_quality;
    uint16_t flag;
    std::string read_name;

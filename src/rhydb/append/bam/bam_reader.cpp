@@ -139,9 +139,7 @@ std::optional<BamRecord> BamReader::next() {
                                   static_cast<uint64_t>(n_cigar_op) * 4 + seq_bytes + l_seq;
    if (FIXED_RECORD_SIZE + variable_size > block_size) {
       throw BamException(
-         "BAM record variable section ({} bytes) overflows block_size {}",
-         variable_size,
-         block_size
+         "BAM record variable section ({} bytes) overflows block_size {}", variable_size, block_size
       );
    }
 

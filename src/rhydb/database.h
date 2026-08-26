@@ -2,6 +2,7 @@
 
 #include <filesystem>
 
+#include "rhydb/append/bam/bam_ingest_options.h"
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/data_version.h"
 #include "rhydb/common/silo_directory.h"
@@ -38,6 +39,14 @@ class Database {
       const schema::TableName& table_name,
       std::istream& input_stream,
       append::ClusteredBufferingOptions clustering_options = {}
+   );
+
+   /// Append the reads of a BAM byte stream into `table_name`, projecting each
+   /// read onto reference coordinates. Reuses the standard NDJSON append path.
+   void appendBamData(
+      const schema::TableName& table_name,
+      std::istream& bam_input_stream,
+      append::bam::BamIngestOptions options = {}
    );
 
    void createNucleotideSequenceTable(

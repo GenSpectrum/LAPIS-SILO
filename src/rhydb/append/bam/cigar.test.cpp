@@ -24,8 +24,9 @@ TEST(Cigar, plainMatchCopiesReadAtOffset) {
 
 TEST(Cigar, deletionBecomesGap) {
    // 2M1D2M against read "ACGT": AC - GT
-   auto result =
-      projectReadOntoReference(10, "ACGT", {op(2, CigarOp::MATCH), op(1, CigarOp::DELETION), op(2, CigarOp::MATCH)});
+   auto result = projectReadOntoReference(
+      10, "ACGT", {op(2, CigarOp::MATCH), op(1, CigarOp::DELETION), op(2, CigarOp::MATCH)}
+   );
    ASSERT_TRUE(result.has_value());
    EXPECT_EQ(result->offset, 10);
    EXPECT_EQ(result->aligned_sequence, "AC-GT");
@@ -55,8 +56,9 @@ TEST(Cigar, softClipDroppedAndDoesNotShiftOffset) {
 
 TEST(Cigar, referenceSkipBecomesN) {
    // 2M3N2M against read "ACGT": AC NNN GT
-   auto result =
-      projectReadOntoReference(0, "ACGT", {op(2, CigarOp::MATCH), op(3, CigarOp::SKIP), op(2, CigarOp::MATCH)});
+   auto result = projectReadOntoReference(
+      0, "ACGT", {op(2, CigarOp::MATCH), op(3, CigarOp::SKIP), op(2, CigarOp::MATCH)}
+   );
    ASSERT_TRUE(result.has_value());
    EXPECT_EQ(result->aligned_sequence, "ACNNNGT");
 }

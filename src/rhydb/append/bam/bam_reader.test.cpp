@@ -6,8 +6,8 @@
 #include <string_view>
 #include <vector>
 
-#include <zlib.h>
 #include <gtest/gtest.h>
+#include <zlib.h>
 
 #include "rhydb/append/bam/cigar.h"
 
@@ -101,17 +101,17 @@ std::string buildSampleBam() {
    // Record 2.
    {
       BamBuilder body;
-      body.i32(0);    // refID
-      body.i32(20);   // pos
-      body.u8(3);     // l_read_name ("r2\0")
-      body.u8(0);     // mapq
-      body.u16(0);    // bin
-      body.u16(3);    // n_cigar_op
-      body.u16(16);   // flag (reverse strand)
-      body.i32(5);    // l_seq
-      body.i32(-1);   // next_refID
-      body.i32(-1);   // next_pos
-      body.i32(0);    // tlen
+      body.i32(0);   // refID
+      body.i32(20);  // pos
+      body.u8(3);    // l_read_name ("r2\0")
+      body.u8(0);    // mapq
+      body.u16(0);   // bin
+      body.u16(3);   // n_cigar_op
+      body.u16(16);  // flag (reverse strand)
+      body.i32(5);   // l_seq
+      body.i32(-1);  // next_refID
+      body.i32(-1);  // next_pos
+      body.i32(0);   // tlen
       body.raw(std::string_view{"r2\0", 3});
       body.u32((2U << 4) | 0U);  // 2M
       body.u32((1U << 4) | 1U);  // 1I
@@ -193,8 +193,7 @@ TEST(BamReader, parsedRecordProjectsOntoReference) {
    ASSERT_TRUE(reader.next().has_value());  // skip record 1
    auto record = reader.next();
    ASSERT_TRUE(record.has_value());
-   auto aligned =
-      projectReadOntoReference(record->position, record->sequence, record->cigar);
+   auto aligned = projectReadOntoReference(record->position, record->sequence, record->cigar);
    ASSERT_TRUE(aligned.has_value());
    EXPECT_EQ(aligned->offset, 20U);
    EXPECT_EQ(aligned->aligned_sequence, "ACTA");  // 2M1I2M drops the inserted base

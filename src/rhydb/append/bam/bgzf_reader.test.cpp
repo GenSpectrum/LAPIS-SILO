@@ -5,8 +5,8 @@
 #include <string>
 #include <string_view>
 
-#include <zlib.h>
 #include <gtest/gtest.h>
+#include <zlib.h>
 
 #include "rhydb/append/bam/bam_exception.h"
 
@@ -20,7 +20,8 @@ namespace {
 /// the output of several calls produces the multi-member layout of a BAM file.
 std::string gzipCompress(std::string_view data) {
    z_stream stream{};
-   const int init = deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY);
+   const int init =
+      deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY);
    EXPECT_EQ(init, Z_OK);
    std::string out;
    out.resize(deflateBound(&stream, data.size()));

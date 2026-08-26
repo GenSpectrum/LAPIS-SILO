@@ -81,6 +81,21 @@ int preprocess(const std::string& preprocessing_config_path) {
    return handle;
 }
 
+// Build a database from a BAM file instead of NDJSON. The uploaded .bam bytes
+// are expected to already sit in the Emscripten in-memory filesystem (the JS
+// side writes them with FS.writeFile), and the preprocessing config points its
+// input file at that path. Schema and reference are declared exactly as for
+// NDJSON preprocessing.
+int preprocessBam(const std::string& preprocessing_config_path) {
+   initializeArrowCompute();
+   auto database = std::make_unique<rhydb::Database>(
+      rhydb::preprocessing::preprocessingBam(readPreprocessingConfig(preprocessing_config_path))
+   );
+   const int handle = next_database_handle++;
+   databases.emplace(handle, std::move(database));
+   return handle;
+}
+
 void save(int handle, const std::string& output_directory) {
    const auto database = databases.find(handle);
    if (database == databases.end()) {
@@ -133,6 +148,7 @@ void dispose(int handle) {
 
 EMSCRIPTEN_BINDINGS(rhydb_wasm) {
    emscripten::function("preprocess", &preprocess);
+   emscripten::function("preprocessBam", &preprocessBam);
    emscripten::function("save", &save);
    emscripten::function("load", &load);
    emscripten::function("query", &query);
