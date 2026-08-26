@@ -324,7 +324,7 @@ const QueryTestScenario FILTER_MIXED_PUSHABLE_AND_DERIVED_SCENARIO = {
    .expected_query_result = {},
    .expected_error_message =
       "Error when planning query execution: NotImplemented: the scalar "
-      "expression segment1:0 has no Arrow compute translation"
+      "expression segment1:1 has no Arrow compute translation"
 };
 
 // A filter on a passed-through column (`int_value`) stacked above a map that produces an
