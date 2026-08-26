@@ -405,6 +405,55 @@ TEST(DatabaseInsertQueryTest, reshapesWithProjectAcceptsStringTargetAndAccumulat
    EXPECT_EQ(countInTableWhere(database, "archive", "true"), 3);
 }
 
+// The insert streams the query result into the target table batch by batch. With a small
+// materialization cutoff the source query produces several batches, so this covers that the field
+// order sniffed from the first line is reused for the later batches and that every batch lands.
+TEST(DatabaseInsertQueryTest, insertsAResultThatSpansSeveralBatches) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   database.createTable(TableName{"archive"}, makeValueColumnSchema());
+
+   constexpr size_t NUMBER_OF_ROWS = 25;
+   std::stringstream source_data;
+   for (size_t row = 0; row < NUMBER_OF_ROWS; ++row) {
+      source_data << fmt::format(
+                        R"({{"key":"key{}","country":"CH","age":{}}})", row, static_cast<int>(row)
+                     )
+                  << "\n";
+   }
+   database.appendData(TableName{"source"}, source_data);
+
+   // A cutoff of 1 makes the table scan emit tiny batches, so the insert sees many of them.
+   const nlohmann::json result = database.executeWrite(
+      "source.insertInto(archive)", rhydb::config::QueryOptions{.materialization_cutoff = 1}
+   );
+
+   EXPECT_EQ(result.at("insertedRows").get<size_t>(), NUMBER_OF_ROWS);
+   EXPECT_EQ(countInTableWhere(database, "archive", "true"), NUMBER_OF_ROWS);
+   EXPECT_EQ(countInTableWhere(database, "archive", "country='CH'"), NUMBER_OF_ROWS);
+   EXPECT_EQ(countInTableWhere(database, "archive", "age=24"), 1);
+}
+
+// The rows are inserted while the query is still producing, so a query that reads the table it
+// writes into would read columns that the insert mutates underneath it.
+TEST(DatabaseInsertQueryTest, rejectsInsertThatReadsItsTargetTable) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+
+   std::stringstream source_data;
+   source_data << R"({"key":"a","country":"CH","age":1})" << "\n";
+   database.appendData(TableName{"source"}, source_data);
+
+   EXPECT_THAT(
+      [&]() { database.executeWrite("source.insertInto(source)", defaultQueryOptions()); },
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("cannot write into table 'source' while the query reads from it")
+      )
+   );
+   // The rejected write left the table untouched.
+   EXPECT_EQ(countInTableWhere(database, "source", "true"), 1);
+}
+
 TEST(DatabaseInsertQueryTest, rejectsInvalidInsertQueries) {
    rhydb::Database database;
    database.createTable(TableName{"source"}, makeValueColumnSchema());

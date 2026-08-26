@@ -355,19 +355,7 @@ TableInserter::Commit TableInserter::commit() {
    return Commit{};
 }
 
-TableInserter::Commit appendDataToTable(
-   std::shared_ptr<storage::Table> table,
-   NdjsonLineReader& input_data,
-   ClusteredBufferingOptions options
-) {
-   EVOBENCH_SCOPE("TableInserter", "appendDataToTable");
-   TableInserter table_inserter(std::move(table), std::move(options));
-
-   size_t line_count = 0;
-
-   bool first_line = true;
-
-   std::vector<TableInserter::SniffedField> sniffed_field_order;
+void NdjsonInsertStream::insertAll(NdjsonLineReader& input_data) {
    for (auto [json_obj_or_error, raw_line] : input_data) {
       simdjson::ondemand::document_reference ndjson_line;
       if (auto error = json_obj_or_error.get(ndjson_line)) {
@@ -378,18 +366,18 @@ TableInserter::Commit appendDataToTable(
          );
       }
 
-      if (first_line) {
-         auto sniffed_field_order_or_error = table_inserter.sniffFieldOrder(ndjson_line);
+      if (!field_order_sniffed) {
+         auto sniffed_field_order_or_error = table_inserter->sniffFieldOrder(ndjson_line);
          if (!sniffed_field_order_or_error.has_value()) {
             throw AppendException{
                "{} - current line: {}", sniffed_field_order_or_error.error(), raw_line
             };
          }
-         sniffed_field_order = sniffed_field_order_or_error.value();
-         first_line = false;
+         field_order = sniffed_field_order_or_error.value();
+         field_order_sniffed = true;
       }
 
-      auto maybe_error = table_inserter.insert(ndjson_line, sniffed_field_order);
+      auto maybe_error = table_inserter->insert(ndjson_line, field_order);
       if (!maybe_error.has_value()) {
          throw AppendException{"{} - current line: {}", maybe_error.error(), raw_line};
       }
@@ -399,6 +387,18 @@ TableInserter::Commit appendDataToTable(
          SPDLOG_INFO("Processed {} json objects from the input file", line_count);
       }
    }
+}
+
+TableInserter::Commit appendDataToTable(
+   std::shared_ptr<storage::Table> table,
+   NdjsonLineReader& input_data,
+   ClusteredBufferingOptions options
+) {
+   EVOBENCH_SCOPE("TableInserter", "appendDataToTable");
+   TableInserter table_inserter(std::move(table), std::move(options));
+
+   NdjsonInsertStream insert_stream{table_inserter};
+   insert_stream.insertAll(input_data);
 
    return table_inserter.commit();
 }
