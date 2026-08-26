@@ -171,9 +171,7 @@ arrow::Result<arrow::acero::ExecNode*> MapNode::addToExecPlan(
          expressions.push_back(arrow::compute::field_ref(name));
          continue;
       }
-      ARROW_ASSIGN_OR_RAISE(
-         auto arrow_expression, found->second->expression->toArrowExpression()
-      );
+      ARROW_ASSIGN_OR_RAISE(auto arrow_expression, found->second->expression->toArrowExpression());
       expressions.push_back(std::move(arrow_expression));
    }
 
