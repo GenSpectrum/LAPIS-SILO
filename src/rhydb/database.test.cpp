@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include "config/source/yaml_file.h"
+#include "rhydb/append/append_exception.h"
 #include "rhydb/common/lineage_tree.h"
 #include "rhydb/common/phylo_tree.h"
 #include "rhydb/config/preprocessing_config.h"
@@ -486,9 +487,61 @@ TEST(DatabaseInsertQueryTest, rejectsInvalidInsertQueries) {
          ::testing::HasSubstr("insertInto() requires argument 'target'")
       )
    );
+}
 
-   // If the query does not produce every column of the target, the append is rejected.
-   EXPECT_ANY_THROW(
-      database.executeWrite("source.project({key}).insertInto(archive)", defaultQueryOptions())
+// A query that does not produce every column of the target is rejected outright: the target keeps
+// exactly the rows it had, no prefix of the result is inserted.
+TEST(DatabaseInsertQueryTest, insertsNothingWhenAColumnOfTheTargetIsMissing) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   database.createTable(TableName{"archive"}, makeValueColumnSchema());
+
+   std::stringstream source_data;
+   source_data << R"({"key":"a","country":"CH","age":1})" << "\n"
+               << R"({"key":"b","country":"US","age":2})" << "\n";
+   database.appendData(TableName{"source"}, source_data);
+
+   std::stringstream archive_data;
+   archive_data << R"({"key":"existing","country":"DE","age":9})" << "\n";
+   database.appendData(TableName{"archive"}, archive_data);
+
+   EXPECT_THAT(
+      [&]() {
+         database.executeWrite("source.project({key}).insertInto(archive)", defaultQueryOptions());
+      },
+      ThrowsMessage<rhydb::append::AppendException>(
+         ::testing::HasSubstr("the column 'age' is not contained in the object")
+      )
    );
+
+   // The pre-existing row is untouched and nothing of the rejected query landed.
+   EXPECT_EQ(countInTableWhere(database, "archive", "true"), 1);
+   EXPECT_EQ(countInTableWhere(database, "archive", "key='existing'"), 1);
+}
+
+// The same contract for a result column whose type does not match the target column's type.
+TEST(DatabaseInsertQueryTest, insertsNothingWhenAColumnHasTheWrongType) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   database.createTable(TableName{"archive"}, makeValueColumnSchema());
+
+   std::stringstream source_data;
+   source_data << R"({"key":"a","country":"CH","age":1})" << "\n";
+   database.appendData(TableName{"source"}, source_data);
+
+   // `age` is an INT32 column in the target, the query hands it a string.
+   EXPECT_THAT(
+      [&]() {
+         database.executeWrite(
+            "source.project({key, country}).map({age := country}).insertInto(archive)",
+            defaultQueryOptions()
+         );
+      },
+      ThrowsMessage<rhydb::append::AppendException>(::testing::AllOf(
+         ::testing::HasSubstr("error inserting into column 'age'"),
+         ::testing::HasSubstr("error getting value as int32")
+      ))
+   );
+
+   EXPECT_EQ(countInTableWhere(database, "archive", "true"), 0);
 }

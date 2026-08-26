@@ -102,6 +102,14 @@ TEST(AdminQueryHandler, insertsQueryResultAndReportsRowCount) {
    const auto body = nlohmann::json::parse(response.out_stream.str());
    EXPECT_EQ(body.at("insertedRows").get<size_t>(), 2);
 
+   // A successful write reports the data version of the database as it is after the write, so that
+   // a client can tell that the data it queries next is the mutated data.
+   ASSERT_TRUE(response.has("data-version"));
+   EXPECT_THAT(response.get("data-version"), testing::MatchesRegex("[0-9]{10}"));
+   EXPECT_EQ(
+      response.get("data-version"), handle->getActiveDatabase()->getDataVersionTimestamp().value
+   );
+
    // The rows really landed in the target table.
    EXPECT_EQ(
       handle->getActiveDatabase()->tables.at(TableName{"archive"})->row_layout.numRows(), 2U
