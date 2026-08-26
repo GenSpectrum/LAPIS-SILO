@@ -7,6 +7,7 @@
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/data_version.h"
 #include "rhydb/common/rhydb_directory.h"
+#include "rhydb/config/runtime_config.h"
 #include "rhydb/database_info.h"
 #include "rhydb/query_engine/query_plan.h"
 #include "rhydb/schema/database_schema.h"
@@ -102,12 +103,10 @@ class Database {
 
    [[nodiscard]] std::string executeQueryAsArrowIpc(const std::string& query_string) const;
 
-   /// Executes a SaneQL write statement (e.g. `<query>.insertInto(<targetTable>)`) against this
-   /// database, mutating it, and returns a JSON summary of the effect (e.g. `{"insertedRows":
-   /// 42}`). Write statements are dispatched through the WriteStatementRegistry, so adding a new
-   /// one does not touch this method. Throws IllegalQueryException if `query_string` is a read
-   /// query rather than a write statement.
-   nlohmann::json executeWrite(const std::string& query_string);
+   nlohmann::json executeWrite(
+      const std::string& query_string,
+      const config::QueryOptions& query_options
+   );
 
    [[nodiscard]] std::string getTablesAsArrowIpc() const;
 

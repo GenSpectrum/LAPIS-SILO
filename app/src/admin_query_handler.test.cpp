@@ -59,12 +59,21 @@ std::shared_ptr<rhydb_app::ActiveDatabase> makeActiveDatabaseWithSourceData() {
    return handle;
 }
 
+// The runtime config the API is served with in these tests: the write-enabled admin endpoint is
+// opt-in, so it has to be switched on explicitly.
+rhydb::config::RuntimeConfig configWithAdminEndpoint(bool allow_admin_endpoint) {
+   auto runtime_config = rhydb::config::RuntimeConfig::withDefaults();
+   runtime_config.api_options.allow_admin_endpoint = allow_admin_endpoint;
+   return runtime_config;
+}
+
 // Routes `POST /admin/query` with the given body through the full handler factory (so request-id
 // assignment and exception-to-status mapping are exercised) and returns the populated response.
 void postAdminQuery(
    const std::shared_ptr<rhydb_app::ActiveDatabase>& handle,
    const std::string& query,
-   rhydb_app::test::MockResponse& response
+   rhydb_app::test::MockResponse& response,
+   bool allow_admin_endpoint = true
 ) {
    rhydb_app::test::MockRequest request(response);
    request.setMethod("POST");
@@ -72,7 +81,7 @@ void postAdminQuery(
    request.in_stream << query;
 
    rhydb_app::RhyDBRequestHandlerFactory factory{
-      rhydb::config::RuntimeConfig::withDefaults(), handle
+      configWithAdminEndpoint(allow_admin_endpoint), handle
    };
    std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{factory.createRequestHandler(request)};
    handler->handleRequest(request, response);
@@ -125,6 +134,25 @@ TEST(AdminQueryHandler, rejectsUnknownTargetTableWithBadRequest) {
    );
 }
 
+// The admin endpoint is opt-in: with `api.allowAdminEndpoint` left at its default the path is not
+// routed at all, so an instance that does not enable it stays read-only.
+TEST(AdminQueryHandler, isNotServedWhenNotEnabled) {
+   auto handle = makeActiveDatabaseWithSourceData();
+
+   rhydb_app::test::MockResponse response;
+   postAdminQuery(
+      handle,
+      "source.filter(country='CH').insertInto(archive)",
+      response,
+      /*allow_admin_endpoint=*/false
+   );
+
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_NOT_FOUND);
+   EXPECT_EQ(
+      handle->getActiveDatabase()->tables.at(TableName{"archive"})->row_layout.numRows(), 0U
+   );
+}
+
 // The read-only `/query` endpoint must reject a write (insert) statement (it parses to a
 // WriteCommand, not a QueryNode), respond 400, and leave the target table untouched.
 TEST(QueryHandler, rejectsInsertQueryOnReadOnlyEndpointWithBadRequest) {
@@ -136,9 +164,7 @@ TEST(QueryHandler, rejectsInsertQueryOnReadOnlyEndpointWithBadRequest) {
    request.setURI("/query");
    request.in_stream << "source.filter(country='CH').insertInto(archive)";
 
-   rhydb_app::RhyDBRequestHandlerFactory factory{
-      rhydb::config::RuntimeConfig::withDefaults(), handle
-   };
+   rhydb_app::RhyDBRequestHandlerFactory factory{configWithAdminEndpoint(true), handle};
    std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{factory.createRequestHandler(request)};
    handler->handleRequest(request, response);
 

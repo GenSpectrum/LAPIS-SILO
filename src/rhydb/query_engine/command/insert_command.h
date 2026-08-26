@@ -2,6 +2,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "rhydb/config/runtime_config.h"
 #include "rhydb/query_engine/command/write_command.h"
 #include "rhydb/query_engine/operators/query_node.h"
 #include "rhydb/schema/database_schema.h"
@@ -22,7 +23,10 @@ class InsertCommand : public WriteCommand {
   public:
    InsertCommand(operators::QueryNodePtr source_query, schema::TableName target_table);
 
-   [[nodiscard]] nlohmann::json execute(Database& database) override;
+   [[nodiscard]] nlohmann::json execute(
+      Database& database,
+      const config::QueryOptions& query_options
+   ) override;
 };
 
 }  // namespace rhydb::query_engine::command

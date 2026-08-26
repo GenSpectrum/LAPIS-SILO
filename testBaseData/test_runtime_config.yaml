@@ -1,3 +1,4 @@
 dataDirectory: "test/directory"
 api:
     port: 1234
+    allowAdminEndpoint: true

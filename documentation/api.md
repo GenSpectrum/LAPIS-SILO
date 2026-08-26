@@ -21,6 +21,7 @@ Configuration is resolved in order of precedence: CLI arguments > environment va
 | `api.maxQueuedHttpConnections` | `256` | Maximum queued connections |
 | `api.threadsForHttpConnections` | `0` | Worker threads (0 = number of CPUs) |
 | `api.estimatedStartupTimeInMinutes` | — | Used in `Retry-After` header during startup |
+| `api.allowAdminEndpoint` | `false` | Whether to serve the write-enabled [`POST /admin/query`](#post-adminquery) endpoint. Opt-in: while it is disabled, the instance is read-only and the path returns 404 |
 | `query.materializationCutoff` | `32767` | Batch size threshold for streaming. (Note: batch size of results is not guaranteed to stay below this number) |
 
 ## Common Response Headers
@@ -203,6 +204,10 @@ This is kept on a separate `/admin` path from `POST /query` because, unlike the 
 endpoint, it mutates the active database. In-place mutation is **not safe to run concurrently** with
 other queries against the same database, so this endpoint is intended for controlled administrative
 use rather than general traffic.
+
+The endpoint is **opt-in**: it is only served when
+[`api.allowAdminEndpoint`](#runtime-configuration) is set to `true`. While it is disabled the path
+does not exist and requests to it get a 404, so an instance that does not enable it stays read-only.
 
 **Request** (a SaneQL write statement as the raw request body):
 ```

@@ -19,8 +19,12 @@
 
 namespace rhydb_app {
 
-AdminQueryHandler::AdminQueryHandler(std::shared_ptr<ActiveDatabase> database_handle)
-    : database_handle(std::move(database_handle)) {}
+AdminQueryHandler::AdminQueryHandler(
+   std::shared_ptr<ActiveDatabase> database_handle,
+   rhydb::config::QueryOptions query_options
+)
+    : query_options(query_options),
+      database_handle(std::move(database_handle)) {}
 
 void AdminQueryHandler::post(
    Poco::Net::HTTPServerRequest& request,
@@ -40,7 +44,7 @@ void AdminQueryHandler::post(
    SPDLOG_INFO("Request Id [{}] - received admin query: {}", request_id, query_string);
 
    try {
-      const nlohmann::json result = database->executeWrite(query_string);
+      const nlohmann::json result = database->executeWrite(query_string, query_options);
 
       SPDLOG_INFO(
          "Request Id [{}] - admin write statement applied: {}; new data version {}",

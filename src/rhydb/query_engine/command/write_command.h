@@ -9,6 +9,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "rhydb/config/runtime_config.h"
 #include "rhydb/query_engine/operators/query_node.h"
 #include "rhydb/query_engine/saneql/function_registry.h"
 
@@ -23,8 +24,13 @@ class WriteCommand {
    virtual ~WriteCommand() = default;
 
    /// Applies the command to `database`, mutating it, and returns a JSON summary of the effect
-   /// (e.g. `{"insertedRows": 42}`). Consuming: a command is executed at most once.
-   [[nodiscard]] virtual nlohmann::json execute(Database& database) = 0;
+   /// (e.g. `{"insertedRows": 42}`). Consuming: a command is executed at most once. `query_options`
+   /// are the same options that the read endpoint uses, so a command that plans a query executes it
+   /// with the configured materialization behaviour.
+   [[nodiscard]] virtual nlohmann::json execute(
+      Database& database,
+      const config::QueryOptions& query_options
+   ) = 0;
 };
 
 using WriteCommandPtr = std::unique_ptr<WriteCommand>;

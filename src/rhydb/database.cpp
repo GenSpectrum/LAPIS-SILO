@@ -478,15 +478,18 @@ std::string Database::executeQueryAsArrowIpc(const std::string& query_string) co
    return output_stream.str();
 }
 
-nlohmann::json Database::executeWrite(const std::string& query_string) {
-   auto request = query_engine::command::parseRequest(query_string, tables);
-   auto* command = std::get_if<query_engine::command::WriteCommandPtr>(&request);
+nlohmann::json Database::executeWrite(
+   const std::string& query_string,
+   const config::QueryOptions& query_options
+) {
+   const auto request = query_engine::command::parseRequest(query_string, tables);
+   const auto* command = std::get_if<query_engine::command::WriteCommandPtr>(&request);
    if (command == nullptr) {
       throw query_engine::IllegalQueryException(
          "expected a write statement, e.g. `<query>.insertInto(<targetTable>)`"
       );
    }
-   return (*command)->execute(*this);
+   return (*command)->execute(*this, query_options);
 }
 
 std::string Database::getTablesAsArrowIpc() const {

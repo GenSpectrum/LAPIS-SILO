@@ -18,14 +18,16 @@ InsertCommand::InsertCommand(operators::QueryNodePtr source_query, schema::Table
     : source_query_(std::move(source_query)),
       target_table_(std::move(target_table)) {}
 
-nlohmann::json InsertCommand::execute(Database& database) {
+nlohmann::json InsertCommand::execute(
+   Database& database,
+   const config::QueryOptions& query_options
+) {
    // Plan and run the source query, streaming its result rows out as NDJSON. Reusing the NDJSON
    // sink and the existing NDJSON append path keeps a single JSON representation shared by both
    // sides, so every column type that a query can emit and the append path can ingest round-trips
    // without a bespoke Arrow-to-column bridge.
-   auto query_plan = Planner::planQuery(
-      std::move(source_query_), database.tables, config::QueryOptions{}, "insertInto"
-   );
+   auto query_plan =
+      Planner::planQuery(std::move(source_query_), database.tables, query_options, "insertInto");
 
    std::stringstream ndjson_buffer;
    exec_node::NdjsonSink output_sink{&ndjson_buffer, query_plan.results_schema};

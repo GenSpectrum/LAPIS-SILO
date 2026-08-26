@@ -302,6 +302,12 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
 namespace {
 using rhydb::schema::TableName;
 
+// The query options the API serves write statements with; the admin endpoint threads the runtime
+// config's options through, so the tests use the same defaults.
+rhydb::config::QueryOptions defaultQueryOptions() {
+   return rhydb::config::RuntimeConfig::withDefaults().query_options;
+}
+
 // Builds a metadata-only table schema (string primary key + a string and an int32 column). Append
 // queries copy query output back through the NDJSON append path, which round-trips value columns
 // cleanly; sequence columns are intentionally left out (a query emits them as decompressed strings,
@@ -350,8 +356,9 @@ TEST(DatabaseInsertQueryTest, copiesFilteredRowsFromOneTableIntoAnother) {
                << R"({"key":"c","country":"CH","age":3})" << "\n";
    database.appendData(TableName{"source"}, source_data);
 
-   const nlohmann::json result =
-      database.executeWrite("source.filter(country='CH').insertInto(archive)");
+   const nlohmann::json result = database.executeWrite(
+      "source.filter(country='CH').insertInto(archive)", defaultQueryOptions()
+   );
 
    EXPECT_EQ(result.at("insertedRows").get<size_t>(), 2);
    EXPECT_EQ(countInTableWhere(database, "archive", "true"), 2);
@@ -383,14 +390,16 @@ TEST(DatabaseInsertQueryTest, reshapesWithProjectAcceptsStringTargetAndAccumulat
    database.appendData(TableName{"source"}, source_data);
 
    // Target named as a string literal; project drops the `age` column the target does not have.
-   const nlohmann::json result =
-      database.executeWrite("source.project({key, country}).insertInto('archive')");
+   const nlohmann::json result = database.executeWrite(
+      "source.project({key, country}).insertInto('archive')", defaultQueryOptions()
+   );
    EXPECT_EQ(result.at("insertedRows").get<size_t>(), 2);
    EXPECT_EQ(countInTableWhere(database, "archive", "true"), 2);
 
    // A second append accumulates on top of the existing rows rather than replacing them.
    const nlohmann::json result_again = database.executeWrite(
-      "source.filter(country='US').project({key, country}).insertInto(archive)"
+      "source.filter(country='US').project({key, country}).insertInto(archive)",
+      defaultQueryOptions()
    );
    EXPECT_EQ(result_again.at("insertedRows").get<size_t>(), 1);
    EXPECT_EQ(countInTableWhere(database, "archive", "true"), 3);
@@ -407,7 +416,7 @@ TEST(DatabaseInsertQueryTest, rejectsInvalidInsertQueries) {
 
    // A plain read query is not a write statement.
    EXPECT_THAT(
-      [&]() { database.executeWrite("source.filter(country='CH')"); },
+      [&]() { database.executeWrite("source.filter(country='CH')", defaultQueryOptions()); },
       ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
          ::testing::HasSubstr("expected a write statement")
       )
@@ -415,7 +424,7 @@ TEST(DatabaseInsertQueryTest, rejectsInvalidInsertQueries) {
 
    // The target table must exist.
    EXPECT_THAT(
-      [&]() { database.executeWrite("source.insertInto(does_not_exist)"); },
+      [&]() { database.executeWrite("source.insertInto(does_not_exist)", defaultQueryOptions()); },
       ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
          ::testing::HasSubstr("target table 'does_not_exist' not found")
       )
@@ -423,12 +432,14 @@ TEST(DatabaseInsertQueryTest, rejectsInvalidInsertQueries) {
 
    // insertInto needs both a source and a target.
    EXPECT_THAT(
-      [&]() { database.executeWrite("insertInto(source)"); },
+      [&]() { database.executeWrite("insertInto(source)", defaultQueryOptions()); },
       ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
          ::testing::HasSubstr("insertInto() requires argument 'target'")
       )
    );
 
    // If the query does not produce every column of the target, the append is rejected.
-   EXPECT_ANY_THROW(database.executeWrite("source.project({key}).insertInto(archive)"));
+   EXPECT_ANY_THROW(
+      database.executeWrite("source.project({key}).insertInto(archive)", defaultQueryOptions())
+   );
 }

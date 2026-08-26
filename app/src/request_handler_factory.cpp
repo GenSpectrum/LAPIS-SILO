@@ -44,23 +44,22 @@ std::unique_ptr<Poco::Net::HTTPRequestHandler> RhyDBRequestHandlerFactory::route
    uri.getPathSegments(segments);
 
    if (path == "/health") {
-      return std::make_unique<rhydb_app::HealthHandler>();
+      return std::make_unique<HealthHandler>();
    }
    if (path == "/info") {
-      return std::make_unique<rhydb_app::InfoHandler>(database_handle);
+      return std::make_unique<InfoHandler>(database_handle);
    }
    if (segments.size() == 2 && segments.at(0) == "lineageDefinition") {
-      return std::make_unique<rhydb_app::LineageDefinitionHandler>(database_handle, segments.at(1));
+      return std::make_unique<LineageDefinitionHandler>(database_handle, segments.at(1));
    }
    if (path == "/query") {
-      return std::make_unique<rhydb_app::QueryHandler>(
-         database_handle, runtime_config.query_options
-      );
+      return std::make_unique<QueryHandler>(database_handle, runtime_config.query_options);
    }
-   if (path == "/admin/query") {
-      return std::make_unique<rhydb_app::AdminQueryHandler>(database_handle);
+   // opt-in write-enabled admin endpoint
+   if (path == "/admin/query" && runtime_config.api_options.allow_admin_endpoint) {
+      return std::make_unique<AdminQueryHandler>(database_handle, runtime_config.query_options);
    }
-   return std::make_unique<rhydb_app::NotFoundHandler>();
+   return std::make_unique<NotFoundHandler>();
 }
 
 }  // namespace rhydb_app
