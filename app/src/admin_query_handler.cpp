@@ -1,5 +1,6 @@
 #include "admin_query_handler.h"
 
+#include <mutex>
 #include <string>
 #include <utility>
 
@@ -21,10 +22,12 @@ namespace rhydb_app {
 
 AdminQueryHandler::AdminQueryHandler(
    std::shared_ptr<ActiveDatabase> database_handle,
-   rhydb::config::QueryOptions query_options
+   rhydb::config::QueryOptions query_options,
+   std::shared_ptr<std::mutex> write_mutex
 )
     : query_options(query_options),
-      database_handle(std::move(database_handle)) {}
+      database_handle(std::move(database_handle)),
+      write_mutex(std::move(write_mutex)) {}
 
 void AdminQueryHandler::post(
    Poco::Net::HTTPServerRequest& request,
@@ -44,6 +47,9 @@ void AdminQueryHandler::post(
    SPDLOG_INFO("Request Id [{}] - received admin query: {}", request_id, query_string);
 
    try {
+      // One write at a time: an in-place mutation is not safe to run next to another one.
+      const std::lock_guard<std::mutex> write_lock{*write_mutex};
+
       const nlohmann::json result = database->executeWrite(query_string, query_options);
 
       SPDLOG_INFO(

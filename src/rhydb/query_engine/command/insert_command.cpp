@@ -53,7 +53,6 @@ nlohmann::json InsertCommand::execute(
       target_table_.getName()
    );
 
-
    auto query_plan =
       Planner::planQuery(std::move(source_query_), database.tables, query_options, "insertInto");
 

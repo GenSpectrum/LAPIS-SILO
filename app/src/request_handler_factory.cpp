@@ -57,7 +57,9 @@ std::unique_ptr<Poco::Net::HTTPRequestHandler> RhyDBRequestHandlerFactory::route
    }
    // opt-in write-enabled admin endpoint
    if (path == "/admin/query" && runtime_config.api_options.allow_admin_endpoint) {
-      return std::make_unique<AdminQueryHandler>(database_handle, runtime_config.query_options);
+      return std::make_unique<AdminQueryHandler>(
+         database_handle, runtime_config.query_options, admin_write_mutex
+      );
    }
    return std::make_unique<NotFoundHandler>();
 }

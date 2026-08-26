@@ -3,6 +3,8 @@
 #include <map>
 #include <memory>
 #include <sstream>
+#include <thread>
+#include <vector>
 
 #include <Poco/Net/HTTPResponse.h>
 #include <gmock/gmock.h>
@@ -150,6 +152,48 @@ TEST(AdminQueryHandler, isNotServedWhenNotEnabled) {
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_NOT_FOUND);
    EXPECT_EQ(
       handle->getActiveDatabase()->tables.at(TableName{"archive"})->row_layout.numRows(), 0U
+   );
+}
+
+// Two admin requests must never mutate the database at the same time. All requests go through one
+// factory here (as they do in the server), so they share the write mutex; without it the concurrent
+// inserts race on the target table's columns.
+TEST(AdminQueryHandler, serializesConcurrentWrites) {
+   auto handle = makeActiveDatabaseWithSourceData();
+
+   rhydb_app::RhyDBRequestHandlerFactory factory{configWithAdminEndpoint(true), handle};
+
+   constexpr size_t NUMBER_OF_THREADS = 4;
+   constexpr size_t REQUESTS_PER_THREAD = 3;
+
+   std::vector<std::thread> writers;
+   writers.reserve(NUMBER_OF_THREADS);
+   for (size_t thread_index = 0; thread_index < NUMBER_OF_THREADS; ++thread_index) {
+      writers.emplace_back([&factory]() {
+         for (size_t request_index = 0; request_index < REQUESTS_PER_THREAD; ++request_index) {
+            rhydb_app::test::MockResponse response;
+            rhydb_app::test::MockRequest request(response);
+            request.setMethod("POST");
+            request.setURI("/admin/query");
+            request.in_stream << "source.filter(country='CH').insertInto(archive)";
+
+            std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{
+               factory.createRequestHandler(request)
+            };
+            handler->handleRequest(request, response);
+
+            EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
+         }
+      });
+   }
+   for (auto& writer : writers) {
+      writer.join();
+   }
+
+   // Every request inserted the two matching rows, none of them lost to a race.
+   EXPECT_EQ(
+      handle->getActiveDatabase()->tables.at(TableName{"archive"})->row_layout.numRows(),
+      NUMBER_OF_THREADS * REQUESTS_PER_THREAD * 2
    );
 }
 

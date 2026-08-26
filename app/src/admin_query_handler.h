@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 
 #include <Poco/Net/HTTPServerRequest.h>
 #include <Poco/Net/HTTPServerResponse.h>
@@ -18,14 +19,15 @@ namespace rhydb_app {
 /// mutation is not safe to run concurrently with other queries against the same database. It is
 /// only routed to when `api.allowAdminEndpoint` is enabled; otherwise the path 404s.
 class AdminQueryHandler : public RestResource {
-  private:
    rhydb::config::QueryOptions query_options;
    std::shared_ptr<ActiveDatabase> database_handle;
+   std::shared_ptr<std::mutex> write_mutex;
 
   public:
    AdminQueryHandler(
       std::shared_ptr<ActiveDatabase> database_handle,
-      rhydb::config::QueryOptions query_options
+      rhydb::config::QueryOptions query_options,
+      std::shared_ptr<std::mutex> write_mutex
    );
 
    void post(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
