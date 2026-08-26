@@ -31,6 +31,14 @@
 #include "rhydb/storage/column/string_column.h"
 
 using rhydb::query_engine::filter::operators::Comparator;
+using rhydb::query_engine::filter::operators::CompareToValueSelection;
+using rhydb::query_engine::filter::operators::displayComparator;
+using rhydb::query_engine::filter::operators::Empty;
+using rhydb::query_engine::filter::operators::IndexScan;
+using rhydb::query_engine::filter::operators::Operator;
+using rhydb::query_engine::filter::operators::Selection;
+using rhydb::schema::ColumnIdentifier;
+using rhydb::storage::Table;
 using rhydb::storage::column::Date32Column;
 using rhydb::storage::column::FloatColumn;
 using rhydb::storage::column::Int32Column;
@@ -103,8 +111,8 @@ bool matchesComparator(std::string_view actual, Comparator comparator, std::stri
 }
 
 template <typename ColumnType, typename ColumnMap>
-std::unique_ptr<filter::operators::Operator> compileTypedComparison(
-   const storage::Table& table,
+std::unique_ptr<Operator> compileTypedComparison(
+   const Table& table,
    const ColumnMap& column_map,
    const std::string& column_name,
    Comparator comparator,
@@ -114,16 +122,16 @@ std::unique_ptr<filter::operators::Operator> compileTypedComparison(
    CHECK_SILO_QUERY(
       column_map.contains(column_name), "The column '{}' is not of type {}", column_name, type_name
    );
-   return std::make_unique<filter::operators::Selection>(
-      std::make_unique<filter::operators::CompareToValueSelection<ColumnType>>(
+   return std::make_unique<Selection>(
+      std::make_unique<CompareToValueSelection<ColumnType>>(
          column_map.at(column_name), comparator, value
       ),
       table.row_layout
    );
 }
 
-std::unique_ptr<filter::operators::Operator> compileStringComparison(
-   const storage::Table& table,
+std::unique_ptr<Operator> compileStringComparison(
+   const Table& table,
    const std::string& column_name,
    Comparator comparator,
    const std::string& literal
@@ -135,8 +143,8 @@ std::unique_ptr<filter::operators::Operator> compileStringComparison(
       // comparators have no such rewrite and are scanned here.
       SILO_ASSERT(comparator != Comparator::EQUALS);
       const auto& string_column = table.columns.string_columns.at(column_name);
-      return std::make_unique<filter::operators::Selection>(
-         std::make_unique<filter::operators::CompareToValueSelection<StringColumn>>(
+      return std::make_unique<Selection>(
+         std::make_unique<CompareToValueSelection<StringColumn>>(
             string_column, comparator, literal
          ),
          table.row_layout
@@ -154,11 +162,9 @@ std::unique_ptr<filter::operators::Operator> compileStringComparison(
    if (comparator == Comparator::EQUALS) {
       const auto bitmap = dictionary_column.filter(literal);
       if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
-         return std::make_unique<filter::operators::Empty>(table.row_layout);
+         return std::make_unique<Empty>(table.row_layout);
       }
-      return std::make_unique<filter::operators::IndexScan>(
-         CopyOnWriteBitmap{bitmap.value()}, table.row_layout
-      );
+      return std::make_unique<IndexScan>(CopyOnWriteBitmap{bitmap.value()}, table.row_layout);
    }
 
    // Inequality is the complement of one index lookup: every row except those holding
@@ -174,11 +180,11 @@ std::unique_ptr<filter::operators::Operator> compileStringComparison(
       // complement is empty. Return Empty directly, mirroring the equality path, instead of
       // a Complement that evaluates to nothing.
       if (excluded.cardinality() == table.row_layout.numRows()) {
-         return std::make_unique<filter::operators::Empty>(table.row_layout);
+         return std::make_unique<Empty>(table.row_layout);
       }
-      return filter::operators::Operator::negate(std::make_unique<filter::operators::IndexScan>(
-         CopyOnWriteBitmap{std::move(excluded)}, table.row_layout
-      ));
+      return Operator::negate(
+         std::make_unique<IndexScan>(CopyOnWriteBitmap{std::move(excluded)}, table.row_layout)
+      );
    }
 
    // Bitmap-union fast path: every distinct dictionary value whose string matches
@@ -191,17 +197,15 @@ std::unique_ptr<filter::operators::Operator> compileStringComparison(
       }
    }
    if (unioned.isEmpty()) {
-      return std::make_unique<filter::operators::Empty>(table.row_layout);
+      return std::make_unique<Empty>(table.row_layout);
    }
-   return std::make_unique<filter::operators::IndexScan>(
-      CopyOnWriteBitmap{std::move(unioned)}, table.row_layout
-   );
+   return std::make_unique<IndexScan>(CopyOnWriteBitmap{std::move(unioned)}, table.row_layout);
 }
 
 /// Boolean columns keep a bitmap per truth value, so (in)equality is a plain index
 /// scan. Ordering comparisons are not defined for booleans and are rejected.
-std::unique_ptr<filter::operators::Operator> compileBoolComparison(
-   const storage::Table& table,
+std::unique_ptr<Operator> compileBoolComparison(
+   const Table& table,
    const std::string& column_name,
    Comparator comparator,
    bool value
@@ -223,7 +227,7 @@ std::unique_ptr<filter::operators::Operator> compileBoolComparison(
    // neither bitmap, so they are excluded either way, consistent with the other
    // comparison operators.
    const bool select_true_bitmap = (comparator == Comparator::EQUALS) == value;
-   return std::make_unique<filter::operators::IndexScan>(
+   return std::make_unique<IndexScan>(
       CopyOnWriteBitmap{select_true_bitmap ? &bool_column.true_bitmap : &bool_column.false_bitmap},
       table.row_layout
    );
@@ -232,8 +236,8 @@ std::unique_ptr<filter::operators::Operator> compileBoolComparison(
 /// Integer literals are width-agnostic (kept as int64); routing to the actual
 /// int32/int64 column and the int32 range check happen here, once the column
 /// type is known.
-std::unique_ptr<filter::operators::Operator> compileIntComparison(
-   const storage::Table& table,
+std::unique_ptr<Operator> compileIntComparison(
+   const Table& table,
    const std::string& column_name,
    Comparator comparator,
    int64_t value
@@ -276,21 +280,18 @@ Comparison::Comparison(
 
 std::string Comparison::toString() const {
    return fmt::format(
-      "{} {} {}",
-      left->toString(),
-      filter::operators::displayComparator(comparator),
-      right->toString()
+      "{} {} {}", left->toString(), displayComparator(comparator), right->toString()
    );
 }
 
-std::vector<schema::ColumnIdentifier> Comparison::freeIUs() const {
-   std::vector<schema::ColumnIdentifier> result = left->freeIUs();
+std::vector<ColumnIdentifier> Comparison::freeIUs() const {
+   std::vector<ColumnIdentifier> result = left->freeIUs();
    std::ranges::move(right->freeIUs(), std::back_inserter(result));
    return result;
 }
 
 std::unique_ptr<ScalarExpression> Comparison::rewrite(
-   const storage::Table& table,
+   const Table& table,
    AmbiguityMode /*mode*/
 ) const {
    // Only equality is rewritten. A non-indexed string column has no per-value index,
@@ -327,8 +328,7 @@ std::unique_ptr<ScalarExpression> Comparison::rewrite(
    return clone();
 }
 
-std::unique_ptr<filter::operators::Operator> Comparison::compile(const storage::Table& table
-) const {
+std::unique_ptr<Operator> Comparison::compile(const Table& table) const {
    auto split = splitColumnAndValue(left.get(), right.get());
    CHECK_SILO_QUERY(
       split.has_value(),
