@@ -336,6 +336,40 @@ const QueryTestScenario FILTER_PUSHED_PAST_UNRELATED_DERIVED_MAP_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
 };
 
+// A `>` comparison on a map-produced column cannot be pushed below the map and is executed as an
+// Arrow filter over the mapped `tag` column.
+const QueryTestScenario FILTER_COMPARISON_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_COMPARISON_ABOVE_MAP",
+   .query = "default.map({tag := int_value}).filter(tag > 1).project({primaryKey, tag})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_1"}, {"tag", 2}}})
+};
+
+// A conjunction of two comparisons on a map-produced column, executed as a single Arrow filter
+// above the map.
+const QueryTestScenario FILTER_AND_RANGE_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_AND_RANGE_ABOVE_MAP",
+   .query = "default.map({tag := int_value}).filter(tag >= 2 && tag <= 2).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_1"}}})
+};
+
+// A disjunction over a map-produced column, executed as an Arrow filter above the map.
+const QueryTestScenario FILTER_OR_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_OR_ABOVE_MAP",
+   .query =
+      "default.map({week := date.isoWeek()})"
+      ".filter(week = '2023-W01' || week = '2023-W52').project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
+};
+
+// A negated equality over a map-produced column, executed as an Arrow filter above the map.
+const QueryTestScenario FILTER_NEGATION_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_NEGATION_ABOVE_MAP",
+   .query =
+      "default.map({week := date.isoWeek()})"
+      ".filter(!(week = '2023-W01')).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_1"}}})
+};
+
 // `isoWeek` maps a date column to its ISO 8601 week date, `<ISO-year>-W<ISO-week>`, as a string.
 const QueryTestScenario MAP_ISO_WEEK_SCENARIO = {
    .name = "MAP_ISO_WEEK",
@@ -378,6 +412,10 @@ QUERY_TEST(
       FILTER_ON_REPLACED_MAPPED_COLUMN_SCENARIO,
       FILTER_MIXED_PUSHABLE_AND_DERIVED_SCENARIO,
       FILTER_PUSHED_PAST_UNRELATED_DERIVED_MAP_SCENARIO,
+      FILTER_COMPARISON_ABOVE_MAP_SCENARIO,
+      FILTER_AND_RANGE_ABOVE_MAP_SCENARIO,
+      FILTER_OR_ABOVE_MAP_SCENARIO,
+      FILTER_NEGATION_ABOVE_MAP_SCENARIO,
       MAP_ISO_WEEK_SCENARIO
    )
 );
@@ -403,10 +441,18 @@ const QueryTestScenario MAP_ISO_WEEK_NULL_SCENARIO = {
    )
 };
 
+// An isNull() predicate on a map-produced column, executed as an Arrow filter above the map. Only
+// id_0 has no date, so its derived `week` is null.
+const QueryTestScenario FILTER_ISNULL_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_ISNULL_ABOVE_MAP",
+   .query = "default.map({week := date.isoWeek()}).filter(week.isNull()).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
+};
+
 }  // namespace
 
 QUERY_TEST(
    MapIsoWeekNullTest,
    ISO_WEEK_NULL_TEST_DATA,
-   ::testing::Values(MAP_ISO_WEEK_NULL_SCENARIO)
+   ::testing::Values(MAP_ISO_WEEK_NULL_SCENARIO, FILTER_ISNULL_ABOVE_MAP_SCENARIO)
 );
