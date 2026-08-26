@@ -66,8 +66,6 @@ std::optional<ColumnAndValue> splitColumnAndValue(
    return std::nullopt;
 }
 
-/// Inverts an ordering comparator so that `value <op> column` becomes the
-/// equivalent `column <flipped> value`. Equality/inequality are unaffected.
 Comparator flipComparator(Comparator comparator) {
    switch (comparator) {
       case Comparator::LESS:
@@ -78,7 +76,6 @@ Comparator flipComparator(Comparator comparator) {
          return Comparator::HIGHER_OR_EQUALS;
       case Comparator::HIGHER_OR_EQUALS:
          return Comparator::LESS_OR_EQUALS;
-      // (In)equality is symmetric, so swapping the operands leaves it unchanged.
       case Comparator::EQUALS:
       case Comparator::NOT_EQUALS:
          return comparator;
@@ -132,6 +129,11 @@ std::unique_ptr<filter::operators::Operator> compileStringComparison(
    const std::string& literal
 ) {
    if (table.columns.string_columns.contains(column_name)) {
+      // A non-indexed string column has no per-value index, so rewrite() turns equality on
+      // one into a (single-element) StringInSet that owns the scan (and that Or can merge
+      // with its siblings). Equality must therefore never reach this path; the remaining
+      // comparators have no such rewrite and are scanned here.
+      SILO_ASSERT(comparator != Comparator::EQUALS);
       const auto& string_column = table.columns.string_columns.at(column_name);
       return std::make_unique<filter::operators::Selection>(
          std::make_unique<filter::operators::CompareToValueSelection<StringColumn>>(
@@ -149,8 +151,6 @@ std::unique_ptr<filter::operators::Operator> compileStringComparison(
 
    const auto& dictionary_column = table.columns.dictionary_encoded_columns.at(column_name);
 
-   // Equality hits the dictionary index directly: a single lookup instead of a scan
-   // over every distinct value.
    if (comparator == Comparator::EQUALS) {
       const auto bitmap = dictionary_column.filter(literal);
       if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
@@ -297,9 +297,7 @@ std::unique_ptr<ScalarExpression> Comparison::rewrite(
    // so `column = 'value'` becomes a (single-element) StringInSet, which knows how to
    // scan it and which Or can merge with sibling StringInSets over the same column.
    // Dictionary-encoded columns and all other types are compiled directly.
-   // The remaining comparators need no rewrite: CompareToValueSelection<StringColumn>
-   // evaluates them against a non-indexed string column on its own.
-   if (comparator != filter::operators::Comparator::EQUALS) {
+   if (comparator != Comparator::EQUALS) {
       return clone();
    }
 
