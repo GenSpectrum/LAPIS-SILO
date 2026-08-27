@@ -15,6 +15,8 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
+#include "rhydb/append/bam/bam_ndjson_input_stream.h"
+#include "rhydb/append/fasta/fasta_ndjson_input_stream.h"
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/aa_symbols.h"
 #include "rhydb/common/data_version.h"
@@ -98,6 +100,27 @@ void Database::appendData(
    SILO_ASSERT(tables.contains(table_name));
    auto& table = tables.at(table_name);
    rhydb::append::appendDataToTable(table, input_data, std::move(clustering_options));
+   updateDataVersion();
+   SPDLOG_INFO("Database info: {}", getDatabaseInfo());
+}
+
+void Database::appendBamData(
+   const schema::TableName& table_name,
+   std::istream& bam_input_stream,
+   append::bam::BamIngestOptions options
+) {
+   SILO_ASSERT(tables.contains(table_name));
+   rhydb::append::bam::appendBamToTable(tables.at(table_name), bam_input_stream, options);
+   updateDataVersion();
+   SPDLOG_INFO("Database info: {}", getDatabaseInfo());
+}
+
+void Database::appendFastaData(
+   const schema::TableName& table_name,
+   std::istream& fasta_input_stream
+) {
+   SILO_ASSERT(tables.contains(table_name));
+   rhydb::append::fasta::appendFastaToTable(tables.at(table_name), fasta_input_stream);
    updateDataVersion();
    SPDLOG_INFO("Database info: {}", getDatabaseInfo());
 }

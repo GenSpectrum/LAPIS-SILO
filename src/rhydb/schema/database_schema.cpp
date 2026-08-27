@@ -107,11 +107,16 @@ TableName::TableName(std::string name)
 namespace {
 
 TableName default_table_name{"default"};
+TableName default_table_name_alias{"data"};
 
-}
+}  // namespace
 
 const TableName& TableName::getDefault() {
    return default_table_name;
+}
+
+const TableName& TableName::getDefaultAlias() {
+   return default_table_name_alias;
 }
 
 }  // namespace rhydb::schema

@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include <arrow/compute/api.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
@@ -44,6 +45,16 @@ std::vector<schema::ColumnIdentifier> And::freeIUs() const {
       }
    }
    return result;
+}
+
+arrow::Result<arrow::compute::Expression> And::toArrowExpression() const {
+   std::vector<arrow::compute::Expression> child_expressions;
+   child_expressions.reserve(children.size());
+   for (const auto& child : children) {
+      ARROW_ASSIGN_OR_RAISE(auto child_expression, child->toArrowExpression());
+      child_expressions.push_back(std::move(child_expression));
+   }
+   return arrow::compute::and_(child_expressions);
 }
 
 namespace {

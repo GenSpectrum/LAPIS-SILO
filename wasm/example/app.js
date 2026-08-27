@@ -4,45 +4,207 @@ const $ = (selector) => document.querySelector(selector);
 const logEl = $("#log");
 const resultEl = $("#result");
 const preprocessButton = $("#preprocess");
+const preprocessBamButton = $("#preprocess-bam");
+const preprocessFastaButton = $("#preprocess-fasta");
 const loadStateButton = $("#load-state");
 const runQueryButton = $("#run-query");
+const clearLogButton = $("#clear-log");
 
 let modulePromise;
+let loadedModule = null;
 let currentHandle = null;
+// Last result of the "Reads around this position" explorer, kept for pagination.
+let readsState = null;
 
-preprocessButton.addEventListener("click", preprocessAndDownloadState);
+installGlobalErrorLogging();
+
+preprocessButton.addEventListener("click", () =>
+    preprocessAndDownloadState({
+        button: preprocessButton,
+        filesSelector: "#input-files",
+        configSelector: "#config-path",
+        method: "preprocess",
+    }),
+);
+preprocessBamButton.addEventListener("click", preprocessBamAndDownloadState);
+$("#bam-reference-file").addEventListener("change", refreshBamReference);
+$("#bam-sequence").addEventListener("change", renderBamGeneratedConfig);
+preprocessFastaButton.addEventListener("click", () =>
+    preprocessAndDownloadState({
+        button: preprocessFastaButton,
+        filesSelector: "#fasta-input-files",
+        configSelector: "#fasta-config-path",
+        method: "preprocessFasta",
+    }),
+);
 loadStateButton.addEventListener("click", loadProcessedState);
 runQueryButton.addEventListener("click", runQuery);
+$("#reads-explore").addEventListener("click", exploreReads);
+$("#reads-min").addEventListener("change", () => {
+    if (readsState) {
+        readsState.page = 0;
+        renderReads();
+    }
+});
+clearLogButton.addEventListener("click", () => logEl.replaceChildren());
 
-function log(message) {
-    logEl.textContent += `${message}\n`;
+// --- Logging -------------------------------------------------------------
+// rhydb writes its spdlog output to stdout/stderr. Emscripten routes those
+// through Module.print/Module.printErr (worker threads proxy their output to
+// the main thread), so wiring those two options is what puts the C++ log into
+// this page. Everything else here catches the failures that would otherwise
+// only ever reach the devtools console.
+
+const MAX_LOG_LINES = 5000;
+// spdlog's stdout sink colours its output because Emscripten reports stdout as
+// a TTY, so the raw SGR escapes have to be stripped before rendering as text.
+const ANSI_SGR = new RegExp("\\u001b\\[[0-9;]*m", "g");
+
+function log(message, level = "info") {
+    const text = String(message).replace(ANSI_SGR, "");
+    for (const line of text.split("\n")) {
+        const lineEl = document.createElement("span");
+        lineEl.className = `log-line log-${level}`;
+        lineEl.textContent = `${line}\n`;
+        logEl.appendChild(lineEl);
+    }
+    while (logEl.childElementCount > MAX_LOG_LINES) {
+        logEl.removeChild(logEl.firstElementChild);
+    }
+    logEl.scrollTop = logEl.scrollHeight;
 }
+
+function installGlobalErrorLogging() {
+    window.addEventListener("error", (event) => {
+        const description = event.error
+            ? describeError(event.error)
+            : `${event.message} (${event.filename}:${event.lineno})`;
+        log(description, "error");
+    });
+    window.addEventListener("unhandledrejection", (event) => {
+        log(describeError(event.reason), "error");
+    });
+
+    // Emscripten's own diagnostics (aborts, pthread startup failures, worker
+    // errors) go to the console, not through print/printErr. Mirror the console
+    // so they land in the page too.
+    const mirrored = [
+        ["log", "info"],
+        ["info", "info"],
+        ["warn", "warn"],
+        ["error", "error"],
+    ];
+    for (const [method, level] of mirrored) {
+        const original = console[method].bind(console);
+        console[method] = (...args) => {
+            original(...args);
+            log(args.map(formatConsoleArgument).join(" "), level);
+        };
+    }
+}
+
+function formatConsoleArgument(value) {
+    if (typeof value === "string") return value;
+    if (value instanceof Error) return value.stack || `${value.name}: ${value.message}`;
+    try {
+        return JSON.stringify(value);
+    } catch {
+        return String(value);
+    }
+}
+
+// A C++ exception that escapes an embind function does not arrive as an Error.
+// With Emscripten's JS exception model it is an opaque `CppException` wrapper
+// whose only field is `excPtr`, the address of the C++ exception object in the
+// wasm heap, so stringifying it yields "[object Object]" and JSON.stringify
+// yields {"excPtr":...}. The getExceptionMessage runtime method exported in
+// wasm/CMakeLists.txt turns it into [type, message].
+function describeError(error) {
+    if (error instanceof Error) {
+        return error.stack || `${error.name}: ${error.message}`;
+    }
+    const decoded = decodeWasmException(error);
+    if (decoded) return decoded;
+    if (error?.excPtr !== undefined) {
+        return `Uncaught C++ exception at ${error.excPtr}; its message could not be decoded.`;
+    }
+    return formatConsoleArgument(error);
+}
+
+// Anything that is not an Error may be a wasm exception, so hand it to
+// getExceptionMessage unconditionally and fall back if it cannot decode it.
+function decodeWasmException(error) {
+    if (!loadedModule?.getExceptionMessage) return null;
+    try {
+        const message = loadedModule.getExceptionMessage(error);
+        if (Array.isArray(message)) {
+            const text = message.filter(Boolean).join(": ");
+            return text.length > 0 ? text : null;
+        }
+        return message ? String(message) : null;
+    } catch {
+        return null;
+    }
+}
+
+// The embind calls below run synchronously on the main thread, so the browser
+// cannot repaint until they return. Yielding first makes the preceding log
+// lines visible instead of appearing all at once after the call finishes.
+function flushLog() {
+    return new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+}
+
+// --- Module --------------------------------------------------------------
 
 function getRhydbModule() {
     if (!modulePromise) {
         if (!crossOriginIsolated) {
-            log("Warning: this page is not cross-origin isolated. Pthread-enabled WASM may not start.");
+            log(
+                "Warning: this page is not cross-origin isolated. Pthread-enabled WASM may not start.",
+                "warn",
+            );
         }
+        log("Loading rhydb WASM module...");
         modulePromise = createRhydbModule({
-            print: (message) => log(message),
-            printErr: (message) => log(`stderr: ${message}`),
-        });
+            print: (message) => log(message, "stdout"),
+            printErr: (message) => log(message, "stderr"),
+        }).then(
+            (module) => {
+                loadedModule = module;
+                log("rhydb WASM module ready.");
+                return module;
+            },
+            (error) => {
+                // Drop the cached promise so a failed init is retryable.
+                modulePromise = undefined;
+                log(describeError(error), "error");
+                throw error;
+            },
+        );
     }
     return modulePromise;
 }
 
-async function preprocessAndDownloadState() {
-    const files = [...$("#input-files").files];
-    const configPath = $("#config-path").value.trim();
+// Shared by the NDJSON and FASTA flows: they differ only in the input elements
+// and in which module entry point (`preprocess` vs `preprocessFasta`) is
+// invoked. The BAM flow generates its configs instead, see below.
+async function preprocessAndDownloadState({ button, filesSelector, configSelector, method }) {
+    const files = [...$(filesSelector).files];
+    const configPath = $(configSelector).value.trim();
     if (!files.length || !configPath) {
-        log("Choose input files and a preprocessing config path first.");
+        log("Choose input files and a preprocessing config path first.", "warn");
         return;
     }
 
-    await withDisabled(preprocessButton, async () => {
+    await withDisabled(button, async () => {
         const module = await getRhydbModule();
+        if (typeof module[method] !== "function") {
+            log(`This WASM build does not expose ${method}(). Rebuild the module (make build/wasm/...).`);
+            return;
+        }
         disposeCurrentHandle(module);
 
+        module.FS.chdir("/");
         removeTreeIfExists(module, "/example-input");
         removeTreeIfExists(module, "/example-output");
         mkdirp(module, "/example-input");
@@ -54,22 +216,233 @@ async function preprocessAndDownloadState() {
             module.FS.writeFile(path, new Uint8Array(await file.arrayBuffer()));
         }
 
-        log("Preprocessing uploaded files...");
+        log(`Preprocessing uploaded files with ${method}()...`);
         module.FS.chdir("/example-input");
-        currentHandle = module.preprocess(configPath);
+        await flushLog();
+        currentHandle = module[method](configPath);
 
-        log("Saving processed state...");
-        module.save(currentHandle, "/example-output");
-        const archive = readDirectoryAsArchive(module, "/example-output");
-        downloadJson("silo-state.json", archive);
-        log(`Downloaded ${archive.files.length} processed state file(s).`);
+        await saveAndDownloadState(module);
+    });
+}
+
+async function saveAndDownloadState(module) {
+    log("Saving processed state...");
+    await flushLog();
+    module.save(currentHandle, "/example-output");
+    const archive = readDirectoryAsArchive(module, "/example-output");
+    downloadJson("silo-state.json", archive);
+    log(`Downloaded ${archive.files.length} processed state file(s).`);
+}
+
+// --- BAM: generated configuration ----------------------------------------
+// preprocessBam() consumes the same PreprocessingConfig as NDJSON preprocessing,
+// so it still needs a preprocessing_config.yaml and a database_config.yaml. What
+// those may contain is fully determined by what BAM ingest can supply, so this
+// example writes them itself instead of asking for an upload. Only the reference
+// genome has to come from the user: a BAM header carries reference names and
+// lengths, but not the reference bases.
+
+const BAM_DIRECTORY = "/example-input";
+const BAM_INPUT_FILENAME = "input.bam";
+const BAM_PREPROCESSING_CONFIG_FILENAME = "preprocessing_config.yaml";
+const BAM_DATABASE_CONFIG_FILENAME = "database_config.yaml";
+const BAM_REFERENCE_FILENAME = "reference_genomes.json";
+
+// The only columns BamNdjsonInputStream can fill; see isSupportedMetadataColumn
+// in src/rhydb/append/bam/bam_ndjson_input_stream.cpp. Declaring anything beyond
+// this set makes BAM ingest throw, so this list is the entire schema.
+const BAM_METADATA_COLUMNS = [
+    { name: "read_index", type: "int" },
+    { name: "qname", type: "string" },
+    { name: "flag", type: "int" },
+    { name: "rname", type: "string", generateIndex: true },
+    { name: "pos", type: "int" },
+    { name: "mapq", type: "int" },
+    { name: "cigar", type: "string" },
+    { name: "mate_rname", type: "string" },
+    { name: "mate_pos", type: "int" },
+    { name: "tlen", type: "int" },
+    { name: "qual", type: "string" },
+];
+
+// Parsed contents of the uploaded reference_genomes.json, or null.
+let bamReference = null;
+
+// Show what will be written before anything is uploaded.
+renderBamGeneratedConfig();
+
+async function refreshBamReference() {
+    const file = $("#bam-reference-file").files[0];
+    bamReference = null;
+    if (file) {
+        try {
+            bamReference = parseReferenceGenomes(await file.text());
+        } catch (error) {
+            log(`Could not read the reference genomes file: ${describeError(error)}`, "error");
+        }
+    }
+
+    const select = $("#bam-sequence");
+    select.replaceChildren();
+    for (const sequence of bamReference?.nucleotideSequences ?? []) {
+        const option = document.createElement("option");
+        option.value = sequence.name;
+        option.textContent = `${sequence.name} (${sequence.sequence.length} bases)`;
+        select.append(option);
+    }
+    // BAM ingest accepts exactly one nucleotide-sequence column, so the choice
+    // is only worth offering when the reference declares several.
+    $("#bam-sequence-label").hidden = (bamReference?.nucleotideSequences.length ?? 0) < 2;
+    renderBamGeneratedConfig();
+}
+
+function parseReferenceGenomes(text) {
+    const parsed = JSON.parse(text);
+    const sequences = parsed?.nucleotideSequences;
+    if (!Array.isArray(sequences) || sequences.length === 0) {
+        throw new Error('Expected a "nucleotideSequences" array with at least one entry.');
+    }
+    for (const sequence of sequences) {
+        if (typeof sequence?.name !== "string" || typeof sequence?.sequence !== "string") {
+            throw new Error('Every nucleotideSequences entry needs a string "name" and "sequence".');
+        }
+    }
+    return {
+        nucleotideSequences: sequences,
+        geneCount: Array.isArray(parsed.genes) ? parsed.genes.length : 0,
+    };
+}
+
+function selectedBamSequence() {
+    if (!bamReference) return null;
+    const chosen = $("#bam-sequence").value;
+    return (
+        bamReference.nucleotideSequences.find((sequence) => sequence.name === chosen) ??
+        bamReference.nucleotideSequences[0]
+    );
+}
+
+function bamDatabaseConfigYaml() {
+    const metadata = BAM_METADATA_COLUMNS.map((column) => {
+        const lines = [`    - name: ${column.name}`, `      type: ${column.type}`];
+        if (column.generateIndex) lines.push("      generateIndex: true");
+        return lines.join("\n");
+    }).join("\n");
+    // The primary key is declared null: it is optional (see
+    // assertPrimaryKeyInMetadata in src/rhydb/initialize/initializer.cpp) and would
+    // have to be a string column. qname is the only candidate a BAM offers, and it
+    // is not unique -- both mates of a pair share it -- so declaring it would fail
+    // the uniqueness check. The key has to be present even when null, because
+    // yaml-cpp rejects the config outright when it is absent.
+    return `schema:\n  instanceName: bam_reads\n  primaryKey: null\n  metadata:\n${metadata}\n`;
+}
+
+// `withoutUnalignedSequences: true` is required rather than cosmetic: otherwise
+// the initializer adds an `unaligned_<sequence>` column that BAM ingest has no
+// data for and rejects.
+function bamPreprocessingConfigYaml() {
+    return [
+        'inputDirectory: "."',
+        `ndjsonInputFilename: "${BAM_INPUT_FILENAME}"`,
+        `databaseConfig: "${BAM_DATABASE_CONFIG_FILENAME}"`,
+        `referenceGenomeFilename: "${BAM_REFERENCE_FILENAME}"`,
+        "withoutUnalignedSequences: true",
+        "",
+    ].join("\n");
+}
+
+// BAM ingest takes exactly one nucleotide-sequence column and cannot fill an
+// amino-acid one, so the reference is narrowed to the selected sequence with an
+// empty gene list. `genes` is a required key of the format, not optional.
+function bamReferenceJson(sequence) {
+    return `${JSON.stringify({ nucleotideSequences: [sequence], genes: [] }, null, 2)}\n`;
+}
+
+function renderBamGeneratedConfig() {
+    const sequence = selectedBamSequence();
+    const parts = [
+        `# ${BAM_PREPROCESSING_CONFIG_FILENAME}`,
+        bamPreprocessingConfigYaml(),
+        `# ${BAM_DATABASE_CONFIG_FILENAME}`,
+        bamDatabaseConfigYaml(),
+        `# ${BAM_REFERENCE_FILENAME}`,
+        sequence
+            ? bamReferenceJson({ name: sequence.name, sequence: `<${sequence.sequence.length} bases>` })
+            : "(choose a reference_genomes.json)\n",
+    ];
+    $("#bam-generated-config").textContent = parts.join("\n");
+}
+
+async function preprocessBamAndDownloadState() {
+    const bamFile = $("#bam-file").files[0];
+    if (!bamFile) {
+        log("Choose a .bam file first.", "warn");
+        return;
+    }
+    if (!bamReference) {
+        log("Choose a reference_genomes.json first.", "warn");
+        return;
+    }
+    const sequence = selectedBamSequence();
+
+    await withDisabled(preprocessBamButton, async () => {
+        const module = await getRhydbModule();
+        if (typeof module.preprocessBam !== "function") {
+            log("This WASM build does not expose preprocessBam(). Rebuild the module (make wasm).", "error");
+            return;
+        }
+        disposeCurrentHandle(module);
+
+        module.FS.chdir("/");
+        removeTreeIfExists(module, BAM_DIRECTORY);
+        removeTreeIfExists(module, "/example-output");
+        mkdirp(module, BAM_DIRECTORY);
+
+        module.FS.writeFile(
+            `${BAM_DIRECTORY}/${BAM_INPUT_FILENAME}`,
+            new Uint8Array(await bamFile.arrayBuffer()),
+        );
+        module.FS.writeFile(`${BAM_DIRECTORY}/${BAM_REFERENCE_FILENAME}`, bamReferenceJson(sequence));
+        module.FS.writeFile(`${BAM_DIRECTORY}/${BAM_DATABASE_CONFIG_FILENAME}`, bamDatabaseConfigYaml());
+        module.FS.writeFile(
+            `${BAM_DIRECTORY}/${BAM_PREPROCESSING_CONFIG_FILENAME}`,
+            bamPreprocessingConfigYaml(),
+        );
+
+        if (bamReference.nucleotideSequences.length > 1) {
+            log(
+                `Reference declares ${bamReference.nucleotideSequences.length} nucleotide sequences, ` +
+                    `BAM ingest supports one: using "${sequence.name}".`,
+                "warn",
+            );
+        }
+        if (bamReference.geneCount > 0) {
+            log(
+                `Dropped ${bamReference.geneCount} gene(s) from the reference: BAM ingest cannot fill ` +
+                    "amino-acid-sequence columns.",
+                "warn",
+            );
+        }
+        log(
+            `Generated ${BAM_PREPROCESSING_CONFIG_FILENAME} and ${BAM_DATABASE_CONFIG_FILENAME}. ` +
+                `Preprocessing ${bamFile.name} with preprocessBam()...`,
+        );
+
+        module.FS.chdir(BAM_DIRECTORY);
+        await flushLog();
+        currentHandle = module.preprocessBam(BAM_PREPROCESSING_CONFIG_FILENAME);
+
+        // The reads explorer queries this column by name.
+        $("#reads-seqcol").value = sequence.name;
+
+        await saveAndDownloadState(module);
     });
 }
 
 async function loadProcessedState() {
     const file = $("#state-file").files[0];
     if (!file) {
-        log("Choose a processed state JSON file first.");
+        log("Choose a processed state JSON file first.", "warn");
         return;
     }
 
@@ -82,6 +455,8 @@ async function loadProcessedState() {
 
         const archive = JSON.parse(await file.text());
         writeArchiveToDirectory(module, archive, "/loaded-state");
+        log("Loading processed state...");
+        await flushLog();
         currentHandle = module.load("/loaded-state");
         log(`Loaded state. Database info: ${module.info(currentHandle)}`);
     });
@@ -90,18 +465,295 @@ async function loadProcessedState() {
 async function runQuery() {
     const query = $("#query").value.trim();
     if (currentHandle === null) {
-        log("Load or preprocess a state before querying.");
+        log("Load or preprocess a state before querying.", "warn");
         return;
     }
     if (!query) {
-        log("Enter a SaneQL query first.");
+        log("Enter a SaneQL query first.", "warn");
         return;
     }
 
     await withDisabled(runQueryButton, async () => {
         const module = await getRhydbModule();
+        log("Running query...");
+        await flushLog();
         resultEl.textContent = module.query(currentHandle, query);
+        log("Query finished.");
     });
+}
+
+// The nucleotide alphabet and the Paul-Tol color palette, mirroring the source
+// component: a symbol's color is chosen by its index in the alphabet.
+const READS_ALPHABET = ["A", "C", "G", "T", "-"];
+const READS_PALETTE = [
+    "rgb(51, 34, 136)",
+    "rgb(17, 119, 51)",
+    "rgb(136, 204, 238)",
+    "rgb(68, 170, 153)",
+    "rgb(153, 153, 51)",
+    "rgb(221, 204, 119)",
+    "rgb(204, 102, 119)",
+    "rgb(136, 34, 85)",
+    "rgb(170, 68, 153)",
+];
+// Positions a read did not reach reconstruct to the missing symbol. Empty is a
+// defensive fallback for positions past the end of the reference.
+const READS_MISSING = "N";
+const READS_PAGE_SIZE = 20;
+
+function readsColor(symbol) {
+    const index = READS_ALPHABET.indexOf(symbol);
+    return READS_PALETTE[(index < 0 ? READS_ALPHABET.length : index) % READS_PALETTE.length];
+}
+
+function isCovered(symbol) {
+    return symbol !== "" && symbol !== READS_MISSING;
+}
+
+// Build the read-pattern query: one projected column per position in the window,
+// grouped into distinct base patterns with a count. Each row of the table is one
+// read/sequence, so a group is a pattern shared by `n` reads.
+function readPatternQuery(table, seqColumn, positions) {
+    const maps = positions.map((p, i) => `p${i + 1} := ${seqColumn}.at(${p})`).join(", ");
+    const groupCols = positions.map((_, i) => `p${i + 1}`).join(", ");
+    return `${table}.map({${maps}}).groupBy({n := count()}, {${groupCols}})`;
+}
+
+async function exploreReads() {
+    if (currentHandle === null) {
+        log("Load or preprocess a database before exploring reads.");
+        return;
+    }
+    const table = $("#reads-table").value.trim();
+    const seqColumn = $("#reads-seqcol").value.trim();
+    const center = Number($("#reads-pos").value);
+    const width = Number($("#reads-window").value);
+    if (!table || !seqColumn || !Number.isInteger(center) || center < 1) {
+        log("Enter a table, a sequence column, and a 1-based position first.");
+        return;
+    }
+
+    await withDisabled($("#reads-explore"), async () => {
+        const module = await getRhydbModule();
+        const start = Math.max(1, center - width);
+        const end = center + width;
+        const positions = [];
+        for (let p = start; p <= end; p++) positions.push(p);
+
+        const query = readPatternQuery(table, seqColumn, positions);
+        const ndjson = module.query(currentHandle, query);
+        const rows = ndjson
+            .split("\n")
+            .filter((line) => line.trim() !== "")
+            .map((line) => JSON.parse(line));
+
+        const centerIndex = center - start;
+        // Keep only reads that actually cover the centre position (matching "reads
+        // around this position"); everything else is background.
+        const patterns = [];
+        for (const row of rows) {
+            const symbols = positions.map((_, i) => String(row[`p${i + 1}`] ?? ""));
+            const count = Number(row.n) || 0;
+            if (count <= 0 || !isCovered(symbols[centerIndex])) continue;
+            patterns.push({ symbols, count });
+        }
+        patterns.sort((a, b) => b.count - a.count);
+        const depth = patterns.reduce((sum, p) => sum + p.count, 0);
+
+        readsState = { positions, centerIndex, patterns, depth, page: 0, table, seqColumn, center };
+        renderReads();
+    });
+}
+
+function renderReads() {
+    const out = $("#reads-output");
+    out.textContent = "";
+    if (!readsState) return;
+
+    const { positions, centerIndex, patterns, depth, center, seqColumn } = readsState;
+    const minReads = Math.max(1, Number($("#reads-min").value) || 1);
+    const shown = patterns.filter((p) => p.count >= minReads);
+
+    if (depth === 0) {
+        out.append(readsNote(`No read covers position ${center} in column "${seqColumn}".`));
+        return;
+    }
+    if (shown.length === 0) {
+        out.append(readsNote(`No pattern reaches ${minReads} reads.`));
+        return;
+    }
+
+    // Consensus = the majority base per column among the shown reads (not a reference).
+    const consensus = positions.map((_, col) => {
+        const tally = new Map();
+        for (const p of shown) {
+            const s = p.symbols[col];
+            if (!isCovered(s)) continue;
+            tally.set(s, (tally.get(s) || 0) + p.count);
+        }
+        let best = null;
+        let bestCount = -1;
+        for (const [s, c] of tally) {
+            if (c > bestCount) {
+                best = s;
+                bestCount = c;
+            }
+        }
+        return best;
+    });
+
+    const pageCount = Math.max(1, Math.ceil(shown.length / READS_PAGE_SIZE));
+    if (readsState.page >= pageCount) readsState.page = pageCount - 1;
+    const pageStart = readsState.page * READS_PAGE_SIZE;
+    const pageItems = shown.slice(pageStart, pageStart + READS_PAGE_SIZE);
+
+    const scroll = document.createElement("div");
+    scroll.className = "reads-scroll";
+    const table = document.createElement("table");
+    table.className = "reads-grid";
+
+    // Header: unit label, one cell per position (labelled at the centre and every
+    // 10th), then the reads/share columns.
+    const thead = document.createElement("tr");
+    thead.append(readsCell("th", "position", "rowhead"));
+    positions.forEach((pos, i) => {
+        const cell = readsCell("th", "", `pos poshead${i === centerIndex ? " center" : ""}`);
+        if (i === centerIndex || pos % 10 === 0) {
+            const label = document.createElement("span");
+            label.className = "poslabel";
+            label.textContent = String(pos);
+            cell.append(label);
+        }
+        thead.append(cell);
+    });
+    thead.append(readsCell("th", "reads", "num"));
+    thead.append(readsCell("th", "share", "num"));
+    const head = document.createElement("thead");
+    head.append(thead);
+    table.append(head);
+
+    const body = document.createElement("tbody");
+
+    // Consensus row.
+    const consensusRow = document.createElement("tr");
+    consensusRow.className = "consensus";
+    consensusRow.append(readsCell("th", "consensus", "rowhead"));
+    consensus.forEach((sym, i) => {
+        const cell = readsCell("td", "", `pos${i === centerIndex ? " center" : ""}`);
+        if (sym == null) {
+            cell.textContent = "·";
+            cell.style.color = "#c2c9d0";
+        } else {
+            cell.textContent = sym;
+            cell.style.color = readsColor(sym);
+            cell.style.fontWeight = "700";
+        }
+        consensusRow.append(cell);
+    });
+    consensusRow.append(readsCell("td", "", "num"));
+    consensusRow.append(readsCell("td", "", "num"));
+    body.append(consensusRow);
+
+    // One row per read pattern on this page.
+    for (const p of pageItems) {
+        const row = document.createElement("tr");
+        row.append(readsCell("td", "", "rowhead"));
+        p.symbols.forEach((sym, i) => {
+            const cell = readsCell("td", "", `pos${i === centerIndex ? " center" : ""}`);
+            if (!isCovered(sym)) {
+                cell.classList.add("hatch");
+            } else if (sym === consensus[i]) {
+                cell.classList.add("agree");
+                cell.textContent = "·";
+            } else {
+                cell.classList.add("diff");
+                cell.textContent = sym;
+                cell.style.color = readsColor(sym);
+            }
+            row.append(cell);
+        });
+        row.append(readsCell("td", fmtInt(p.count), "num"));
+        row.append(readsCell("td", `${((p.count / depth) * 100).toFixed(1)}%`, "num"));
+        body.append(row);
+    }
+    table.append(body);
+    scroll.append(table);
+    out.append(scroll);
+
+    // Pager + CSV.
+    const pager = document.createElement("div");
+    pager.className = "reads-pager";
+    if (pageCount > 1) {
+        const prev = readsButton("‹ Prev", readsState.page === 0, () => {
+            readsState.page -= 1;
+            renderReads();
+        });
+        const next = readsButton("Next ›", readsState.page >= pageCount - 1, () => {
+            readsState.page += 1;
+            renderReads();
+        });
+        const label = document.createElement("span");
+        label.textContent = `Page ${readsState.page + 1} / ${pageCount}`;
+        pager.append(prev, label, next);
+    }
+    const spacer = document.createElement("span");
+    spacer.className = "spacer";
+    pager.append(spacer, readsButton("Download CSV", false, () => downloadReadsCsv(shown)));
+    out.append(pager);
+
+    out.append(
+        readsNote(
+            `${fmtInt(shown.length)} pattern(s) with ≥ ${minReads} reads cover position ${center}, ` +
+                `accounting for ${fmtInt(depth)} reads. The top row is a consensus computed from ` +
+                `these reads, not a reference genome. A dot means the read agrees with the ` +
+                `consensus; hatched cells are positions a read did not reach.`,
+        ),
+    );
+}
+
+function downloadReadsCsv(patterns) {
+    if (!readsState) return;
+    const header = [...readsState.positions.map(String), "reads"];
+    const lines = [header.join(",")];
+    for (const p of patterns) {
+        lines.push([...p.symbols, p.count].join(","));
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `reads-${readsState.seqColumn}-${readsState.center}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function readsCell(tag, text, className) {
+    const cell = document.createElement(tag);
+    if (className) cell.className = className;
+    if (text) cell.textContent = text;
+    return cell;
+}
+
+function readsButton(text, disabled, onClick) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = text;
+    button.disabled = disabled;
+    button.addEventListener("click", onClick);
+    return button;
+}
+
+function readsNote(text) {
+    const note = document.createElement("p");
+    note.className = "reads-info";
+    note.textContent = text;
+    return note;
+}
+
+function fmtInt(value) {
+    return Number(value).toLocaleString();
 }
 
 function disposeCurrentHandle(module) {
@@ -117,7 +769,7 @@ async function withDisabled(button, fn) {
     try {
         await fn();
     } catch (error) {
-        log(error?.stack || String(error));
+        log(describeError(error), "error");
     } finally {
         button.disabled = false;
     }

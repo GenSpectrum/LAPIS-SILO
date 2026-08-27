@@ -14,7 +14,6 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include "rhydb/common/size_constants.h"
-#include "rhydb/query_engine/exec_node/scalar_to_arrow_expression.h"
 #include "rhydb/query_engine/exec_node/throttled_batch_reslicer.h"
 #include "rhydb/query_engine/scalar_expressions/at.h"
 #include "rhydb/query_engine/scalar_expressions/iso_week.h"
@@ -28,14 +27,11 @@ using scalar_expressions::IsoWeek;
 using scalar_expressions::ScalarExpression;
 using scalar_expressions::ZstdDecompressScalar;
 
-using exec_node::scalarToArrowExpression;
-
 namespace {
 
 /// Sums the dictionary sizes of every `ZstdDecompressScalar` anywhere in `expression`'s tree. A
 /// decompress may be nested inside another scalar expression (e.g. `At(ZstdDecompress(...))` after
 /// a map merge), so the whole tree is traversed rather than just the top node.
-// NOLINTNEXTLINE(misc-no-recursion)
 size_t sumDecompressDictionarySizes(const ScalarExpression& expression) {
    if (const auto* zstd = dynCast<ZstdDecompressScalar>(&expression)) {
       return zstd->dictionary_string.size() + sumDecompressDictionarySizes(*zstd->input);
@@ -175,9 +171,7 @@ arrow::Result<arrow::acero::ExecNode*> MapNode::addToExecPlan(
          expressions.push_back(arrow::compute::field_ref(name));
          continue;
       }
-      ARROW_ASSIGN_OR_RAISE(
-         auto arrow_expression, scalarToArrowExpression(*found->second->expression)
-      );
+      ARROW_ASSIGN_OR_RAISE(auto arrow_expression, found->second->expression->toArrowExpression());
       expressions.push_back(std::move(arrow_expression));
    }
 

@@ -118,6 +118,11 @@ struct ColumnIdentifier {
 class TableSchema {
   public:
    std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
+   /// The primary key is optional: an empty `name` means the table declares none, so
+   /// no uniqueness constraint is enforced and features that address a single row by
+   /// key (e.g. MutationProfile's sequenceId lookup) are unavailable. Kept as a plain
+   /// ColumnIdentifier rather than std::optional so the boost serialization format of
+   /// already-persisted databases stays unchanged.
    ColumnIdentifier primary_key;
 
    TableSchema(
@@ -126,8 +131,10 @@ class TableSchema {
    )
        : column_metadata(std::move(column_metadata)),
          primary_key(std::move(primary_key)) {
-      SILO_ASSERT(this->column_metadata.contains(this->primary_key));
+      SILO_ASSERT(!hasPrimaryKey() || this->column_metadata.contains(this->primary_key));
    }
+
+   [[nodiscard]] bool hasPrimaryKey() const { return !primary_key.name.empty(); }
 
    [[nodiscard]] std::optional<ColumnIdentifier> getColumn(std::string_view name) const;
 
@@ -190,6 +197,8 @@ class TableName {
    [[nodiscard]] const std::string& getName() const { return name; }
 
    static const TableName& getDefault();
+
+   static const TableName& getDefaultAlias();
 
    bool operator==(const TableName& other) const { return name == other.name; }
    bool operator<(const TableName& other) const { return name < other.name; }

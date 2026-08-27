@@ -16,6 +16,7 @@
 #include "rhydb/query_engine/operators/table_scan_node.h"
 #include "rhydb/query_engine/scalar_expressions/at.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
+#include "rhydb/query_engine/scalar_expressions/iso_week.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/column/column_metadata.h"
@@ -36,10 +37,13 @@ namespace {
 const ColumnIdentifier NUC_COLUMN{.name = "nuc", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
 const ColumnIdentifier ID_COLUMN{.name = "id", .type = ColumnType::STRING};
 const ColumnIdentifier DIVISION_COLUMN{.name = "division", .type = ColumnType::DICTIONARY_ENCODED};
+const ColumnIdentifier HOST_COLUMN{.name = "host", .type = ColumnType::STRING};
+const ColumnIdentifier DATE_COLUMN{.name = "date", .type = ColumnType::DATE32};
 
 /// A table whose schema carries a nucleotide sequence column "nuc", an indexed string column
-/// "division" and the "id" primary key, so the pass can resolve every kind of grouping key against
-/// it. The columns hold no data: the pass only reads the schema, it never executes the node.
+/// "division", a plain (non-indexed) string column "host", a "date" column and the "id" primary
+/// key, so the pass can resolve every kind of grouping key against it. The columns hold no data:
+/// the pass only reads the schema, it never executes the node.
 std::shared_ptr<rhydb::storage::Table> tableWithColumns() {
    using rhydb::storage::column::ColumnMetadata;
    using rhydb::storage::column::DictionaryEncodedColumnMetadata;
@@ -49,6 +53,8 @@ std::shared_ptr<rhydb::storage::Table> tableWithColumns() {
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {ID_COLUMN, std::make_shared<StringColumnMetadata>(ID_COLUMN.name)},
       {DIVISION_COLUMN, std::make_shared<DictionaryEncodedColumnMetadata>(DIVISION_COLUMN.name)},
+      {HOST_COLUMN, std::make_shared<StringColumnMetadata>(HOST_COLUMN.name)},
+      {DATE_COLUMN, std::make_shared<ColumnMetadata>(DATE_COLUMN.name)},
       {NUC_COLUMN,
        std::make_shared<SequenceColumnMetadata<Nucleotide>>(
           NUC_COLUMN.name, std::vector<Nucleotide::Symbol>{Nucleotide::Symbol::A}
@@ -78,6 +84,36 @@ operators::QueryNodePtr makeMapWithAt(
        .expression = std::make_unique<scalar_expressions::At>(
           std::make_unique<scalar_expressions::FieldRef>(at_column), 1
        )}
+   );
+   return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
+}
+
+/// map({<field> := <date_column>.isoWeek()}) over `child`.
+operators::QueryNodePtr makeMapWithIsoWeek(
+   operators::QueryNodePtr child,
+   const std::string& field,
+   const ColumnIdentifier& date_column
+) {
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = {.name = field, .type = ColumnType::STRING},
+       .expression = std::make_unique<scalar_expressions::IsoWeek>(
+          std::make_unique<scalar_expressions::FieldRef>(date_column)
+       )}
+   );
+   return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
+}
+
+/// map({<field> := <source_column>}) over `child`: a bare field reference, no computation.
+operators::QueryNodePtr makeMapWithFieldRef(
+   operators::QueryNodePtr child,
+   const std::string& field,
+   const ColumnIdentifier& source_column
+) {
+   std::vector<operators::MapNode::Assignment> assignments;
+   assignments.push_back(
+      {.output_column = {.name = field, .type = ColumnType::STRING},
+       .expression = std::make_unique<scalar_expressions::FieldRef>(source_column)}
    );
    return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
 }
@@ -147,14 +183,57 @@ TEST(BitmapAggregationRewritePass, rewritesMixedShape) {
    EXPECT_EQ(result->kind(), operators::NodeKind::BITMAP_AGGREGATION);
 }
 
-// `at` on a non-sequence column (the STRING primary key) cannot be grouped by the bitmap engine, so
-// the shape is not recognized and the AggregateNode is left in place.
-TEST(BitmapAggregationRewritePass, declinesWhenAtReadsNonSequenceColumn) {
-   auto node = makeGroupByCount(makeMapWithAt(makeScan(), "s", ID_COLUMN), {"s"});
+// A bare field reference produced by the map over an indexed column (`r := division`) is rewritten:
+// the column is grouped straight from its inverted index, just under a different output name.
+TEST(BitmapAggregationRewritePass, rewritesMapFieldRefOverIndexedColumn) {
+   auto node = makeGroupByCount(makeMapWithFieldRef(makeScan(), "r", DIVISION_COLUMN), {"r"});
+
+   auto result = BitmapAggregationRewritePass::run(std::move(node));
+
+   EXPECT_EQ(result->kind(), operators::NodeKind::BITMAP_AGGREGATION);
+}
+
+// A bare field reference produced by the map over a plain (non-indexed) string column (`h := host`)
+// is rewritten too: the grouper scans the column to build the per-value bitmaps itself.
+TEST(BitmapAggregationRewritePass, rewritesMapFieldRefOverPlainStringColumn) {
+   auto node = makeGroupByCount(makeMapWithFieldRef(makeScan(), "h", HOST_COLUMN), {"h"});
+
+   auto result = BitmapAggregationRewritePass::run(std::move(node));
+
+   EXPECT_EQ(result->kind(), operators::NodeKind::BITMAP_AGGREGATION);
+}
+
+// A bare field reference over the nucleotide sequence column: the field-column matcher declines
+// (it is not a string column) and the scalar-expression matcher also declines (a whole sequence
+// column is not a groupable scalar), so the whole rewrite falls back to the generic pipeline.
+TEST(BitmapAggregationRewritePass, declinesMapFieldRefOverNonStringColumn) {
+   auto node = makeGroupByCount(makeMapWithFieldRef(makeScan(), "n", NUC_COLUMN), {"n"});
 
    auto result = BitmapAggregationRewritePass::run(std::move(node));
 
    EXPECT_EQ(result->kind(), operators::NodeKind::AGGREGATE);
+}
+
+// A general scalar expression the map computes -- here `date.isoWeek()` -- is grouped through the
+// bitmap engine via the scalar-expression path: the grouper evaluates it per row and buckets by the
+// resulting (int) value.
+TEST(BitmapAggregationRewritePass, rewritesMapIsoWeekExpression) {
+   auto node = makeGroupByCount(makeMapWithIsoWeek(makeScan(), "week", DATE_COLUMN), {"week"});
+
+   auto result = BitmapAggregationRewritePass::run(std::move(node));
+
+   EXPECT_EQ(result->kind(), operators::NodeKind::BITMAP_AGGREGATION);
+}
+
+// `at` on a non-sequence column (the STRING primary key) is not a sequence-position lookup, but it
+// is still a general scalar expression the grouper can evaluate (it extracts a character), so it is
+// rewritten through the bitmap engine via the scalar-expression path rather than declined.
+TEST(BitmapAggregationRewritePass, rewritesAtOnNonSequenceColumn) {
+   auto node = makeGroupByCount(makeMapWithAt(makeScan(), "s", ID_COLUMN), {"s"});
+
+   auto result = BitmapAggregationRewritePass::run(std::move(node));
+
+   EXPECT_EQ(result->kind(), operators::NodeKind::BITMAP_AGGREGATION);
 }
 
 // Grouping directly on a non-indexed string column (the primary key) has no inverted index to read,

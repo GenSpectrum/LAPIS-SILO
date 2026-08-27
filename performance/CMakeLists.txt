@@ -15,6 +15,8 @@ set(BENCHMARK_NAMES
     nof_sequence_filter
     sequence_column_insert
     co_occurrence_benchmark
+    co_occurrence_many_positions_benchmark
+    real_data_mutations_benchmark
 )
 foreach(bench ${BENCHMARK_NAMES})
     add_benchmark(${bench})

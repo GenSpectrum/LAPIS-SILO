@@ -790,6 +790,9 @@ operators::AggregateFunction parseAggregateFunctionName(const std::string& funct
 struct GroupByArgs {
    std::vector<schema::ColumnIdentifier> group_by_fields;
    std::vector<operators::AggregateDefinition> aggregates;
+   // Group keys that are not plain column references (e.g. `isoWeek(date)`) are
+   // materialized into new columns by a MapNode inserted below the aggregate.
+   std::vector<operators::MapNode::Assignment> computed_columns;
 };
 
 operators::AggregateDefinition parseAggregateDefinition(
@@ -821,13 +824,25 @@ operators::AggregateDefinition parseAggregateDefinition(
    };
 }
 
-std::vector<schema::ColumnIdentifier> parseGroupByFields(
-   const ast::SetLiteral& set,
-   const std::vector<schema::ColumnIdentifier>& schema
+/// Resolves a single group-by key and appends it to `result`.
+///
+/// A bare column reference (e.g. `division`) is grouped in place. Any other
+/// scalar expression (e.g. `isoWeek(date)`) is materialized into a new column
+/// via `result.computed_columns`; the aggregate then groups by that column.
+///
+/// `explicit_name` is set for the record form `{name := expr}` and empty for the
+/// set form `{expr}`, in which case the key's output name is derived from the
+/// expression text.
+void addGroupByField(
+   const std::string& explicit_name,
+   const ast::Expression& expression,
+   const std::vector<schema::ColumnIdentifier>& schema,
+   GroupByArgs& result,
+   std::unordered_set<std::string>& seen_names
 ) {
-   std::vector<schema::ColumnIdentifier> group_by_fields;
-   for (const auto& elem : set.elements) {
-      auto group_by_name = extractIdentifierName(*elem);
+   // Bare column reference in the set form: group by the existing column directly.
+   if (explicit_name.empty() && std::holds_alternative<ast::Identifier>(expression.value)) {
+      const auto& group_by_name = std::get<ast::Identifier>(expression.value).name;
       auto found =
          std::ranges::find_if(schema, [&](const auto& col) { return col.name == group_by_name; });
       CHECK_SILO_QUERY(
@@ -835,9 +850,49 @@ std::vector<schema::ColumnIdentifier> parseGroupByFields(
          "groupBy field '{}' is not present in the input's output schema",
          group_by_name
       );
-      group_by_fields.push_back(*found);
+      CHECK_SILO_QUERY(
+         seen_names.insert(found->name).second,
+         "groupBy field '{}' is specified more than once",
+         found->name
+      );
+      result.group_by_fields.push_back(*found);
+      return;
    }
-   return group_by_fields;
+
+   const std::string output_name = explicit_name.empty() ? expression.toString() : explicit_name;
+   auto scalar =
+      convertToScalar(expression, schema, fmt::format("groupBy field '{}'", output_name));
+   schema::ColumnIdentifier output_column{output_name, scalar->type()};
+   CHECK_SILO_QUERY(
+      seen_names.insert(output_name).second,
+      "groupBy field '{}' is specified more than once",
+      output_name
+   );
+   result.computed_columns.push_back(
+      {.output_column = output_column, .expression = std::move(scalar)}
+   );
+   result.group_by_fields.push_back(std::move(output_column));
+}
+
+void parseGroupByFields(
+   const ast::Expression& columns_expression,
+   const std::vector<schema::ColumnIdentifier>& schema,
+   GroupByArgs& result
+) {
+   std::unordered_set<std::string> seen_names;
+   // The record form `{week := isoWeek(date), lineage := division}` names each key.
+   if (std::holds_alternative<ast::RecordLiteral>(columns_expression.value)) {
+      const auto& record = std::get<ast::RecordLiteral>(columns_expression.value);
+      for (const auto& field : record.fields) {
+         addGroupByField(field.name, *field.value, schema, result, seen_names);
+      }
+      return;
+   }
+   // The set form `{division, isoWeek(date)}` derives names from the expression.
+   const auto& set = extractSetLiteral(columns_expression);
+   for (const auto& elem : set.elements) {
+      addGroupByField("", *elem, schema, result, seen_names);
+   }
 }
 
 GroupByArgs parseGroupBySpecs(
@@ -856,10 +911,10 @@ GroupByArgs parseGroupBySpecs(
    for (const auto& field : record.fields) {
       result.aggregates.push_back(parseAggregateDefinition(field, child_schema));
    }
-   // Parse columns (optional) — a SetLiteral like {pango_lineage, division}
+   // Parse columns (optional) — a SetLiteral like {pango_lineage, division} or a
+   // RecordLiteral of named scalar expressions like {week := isoWeek(date)}.
    if (const auto* columns_expr = args.get("columns")) {
-      const auto& set = extractSetLiteral(*columns_expr);
-      result.group_by_fields = parseGroupByFields(set, child_schema);
+      parseGroupByFields(*columns_expr, child_schema, result);
    }
 
    return result;
@@ -1030,6 +1085,9 @@ operators::QueryNodePtr buildScanNode(
    const auto& name = std::get<ast::Identifier>(ast.value).name;
    auto table_name = schema::TableName(name);
    auto iter = tables.find(table_name);
+   if (iter == tables.end() && table_name == schema::TableName::getDefaultAlias()) {
+      iter = tables.find(schema::TableName::getDefault());
+   }
    CHECK_SILO_QUERY(iter != tables.end(), "table '{}' not found in database", table_name.getName());
    const auto table_schema = iter->second->schema;
    std::vector<schema::ColumnIdentifier> fields = iter->second->schema->getColumnIdentifiers();
@@ -1069,10 +1127,16 @@ operators::QueryNodePtr handleGroupBy(
    auto child = convert_child(args.at("input"), tables);
    auto child_schema = child->getOutputSchema();
 
-   auto [group_by_fields, aggregates] = parseGroupBySpecs(args, child_schema);
+   auto specs = parseGroupBySpecs(args, child_schema);
+
+   // Materialize any non-trivial group keys (e.g. `isoWeek(date)`) before aggregating.
+   if (!specs.computed_columns.empty()) {
+      child =
+         std::make_unique<operators::MapNode>(std::move(child), std::move(specs.computed_columns));
+   }
 
    return std::make_unique<operators::AggregateNode>(
-      std::move(child), std::move(group_by_fields), std::move(aggregates)
+      std::move(child), std::move(specs.group_by_fields), std::move(specs.aggregates)
    );
 }
 

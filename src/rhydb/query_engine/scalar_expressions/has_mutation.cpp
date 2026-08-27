@@ -22,7 +22,7 @@ HasMutation<SymbolType>::HasMutation(schema::ColumnIdentifier column, uint32_t p
 
 template <typename SymbolType>
 std::string HasMutation<SymbolType>::toString() const {
-   return column.name + ":" + std::to_string(position_idx);
+   return column.name + ":" + std::to_string(position_idx + 1);
 }
 
 template <typename SymbolType>

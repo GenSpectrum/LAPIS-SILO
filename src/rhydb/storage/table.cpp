@@ -63,7 +63,11 @@ Table::Table(schema::TableName table_name, std::shared_ptr<schema::TableSchema> 
 }
 
 nlohmann::json Table::logTable() const {
-   return {{"name", table_name.getName()}, {"primaryKey", schema->primary_key.name}};
+   return {
+      {"name", table_name.getName()},
+      {"primaryKey",
+       schema->hasPrimaryKey() ? nlohmann::json(schema->primary_key.name) : nlohmann::json(nullptr)}
+   };
 }
 
 void Table::validate() const {
@@ -94,6 +98,10 @@ void Table::finalize() {
 }
 
 void Table::validatePrimaryKeyUnique() const {
+   if (!schema->hasPrimaryKey()) {
+      SPDLOG_DEBUG("No primary key declared, skipping uniqueness check.");
+      return;
+   }
    SPDLOG_DEBUG("Checking that primary keys are unique.");
    const auto primary_key = schema->primary_key;
    SILO_ASSERT(primary_key.type == schema::ColumnType::STRING);

@@ -21,6 +21,9 @@ target_link_options(rhydb_wasm
     PRIVATE
     -pthread
     -fexceptions
+    # Link Emscripten's zlib port (the BGZF decoder for BAM ingestion needs it).
+    # rhydblib is compiled with the matching -sUSE_ZLIB=1 (see the root CMakeLists).
+    -sUSE_ZLIB=1
     -lembind
     -sALLOW_MEMORY_GROWTH=1
     -sEXIT_RUNTIME=0
