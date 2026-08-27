@@ -208,6 +208,7 @@ async function preprocessAndDownloadState({ button, filesSelector, configSelecto
         }
         disposeCurrentHandle(module);
 
+        module.FS.chdir("/");
         removeTreeIfExists(module, "/example-input");
         removeTreeIfExists(module, "/example-output");
         mkdirp(module, "/example-input");
