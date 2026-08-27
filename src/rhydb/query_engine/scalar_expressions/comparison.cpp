@@ -137,10 +137,7 @@ std::unique_ptr<Operator> compileStringComparison(
    const std::string& literal
 ) {
    if (table.columns.string_columns.contains(column_name)) {
-      // A non-indexed string column has no per-value index, so rewrite() turns equality on
-      // one into a (single-element) StringInSet that owns the scan (and that Or can merge
-      // with its siblings). Equality must therefore never reach this path; the remaining
-      // comparators have no such rewrite and are scanned here.
+      // Equality on non-indexed string columns is always converted to StringInSet
       SILO_ASSERT(comparator != Comparator::EQUALS);
       const auto& string_column = table.columns.string_columns.at(column_name);
       return std::make_unique<Selection>(
