@@ -8,7 +8,6 @@
 
 #include <arrow/acero/options.h>
 
-#include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/operators/filter_node.h"
 #include "rhydb/query_engine/operators/join_node.h"
 #include "rhydb/query_engine/operators/map_node.h"
@@ -372,20 +371,27 @@ operators::QueryNodePtr makeJoin(operators::QueryNodePtr left, operators::QueryN
    );
 }
 
-// A filter sitting above a join cannot be pushed into a single input safely, so it is
-// rejected rather than silently mis-attributed to one side.
-TEST(FilterPushdownPass, rejectsFilterAboveJoin) {
+// A filter sitting above a join cannot be pushed into a single input safely, so it is left in
+// place above the join and later realized as an Arrow filter over the join output rather than
+// being mis-attributed to one side.
+TEST(FilterPushdownPass, retainsFilterAboveJoin) {
    auto join = makeJoin(makeScan(), makeScan());
    auto filter_node = std::make_unique<operators::FilterNode>(std::move(join), makeDummyFilter());
 
-   EXPECT_THROW(
-      { FilterPushdownPass::run(std::move(filter_node)); },
-      rhydb::query_engine::IllegalQueryException
-   );
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   // The FilterNode stays on top of the JoinNode; nothing was pushed into either input.
+   ASSERT_EQ(result->kind(), operators::NodeKind::FILTER);
+   auto* filter = dynamic_cast<operators::FilterNode*>(result.get());
+   EXPECT_EQ(filter->filter->toString(), "And(true)");
+   ASSERT_EQ(filter->child->kind(), operators::NodeKind::JOIN);
+   auto* join_node = dynamic_cast<operators::JoinNode*>(filter->child.get());
+   ASSERT_EQ(join_node->left->kind(), operators::NodeKind::TABLE_SCAN);
+   ASSERT_EQ(join_node->right->kind(), operators::NodeKind::TABLE_SCAN);
 }
 
 // Filters that live *inside* a join input are still pushed down into that input's scan;
-// only filters stacked on top of the join itself are rejected.
+// filters stacked on top of the join itself are left above the join.
 TEST(FilterPushdownPass, pushesFiltersInsideJoinInputsIntoScans) {
    auto join = makeJoin(makeFilteredScan(false), makeScan());
 

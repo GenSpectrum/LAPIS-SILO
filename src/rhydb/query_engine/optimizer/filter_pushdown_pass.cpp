@@ -45,8 +45,22 @@ bool isFieldRef(const operators::MapNode::Assignment& assignment) {
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
+void FilterPushdownPass::addFilter(std::unique_ptr<scalar_expressions::ScalarExpression> filter) {
+   // Split a top-level conjunction into its conjuncts so each can be pushed independently, e.g. a
+   // hasMutation() conjunct into the scan while a conjunct on a map-produced column stays above the
+   // map. Nested conjunctions are flattened recursively.
+   if (auto* and_expression = scalar_expressions::dynCast<And>(filter.get())) {
+      for (auto& conjunct : and_expression->takeChildren()) {
+         addFilter(std::move(conjunct));
+      }
+      return;
+   }
+   current_filters.push_back(std::move(filter));
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::FilterNode& node) {
-   current_filters.push_back(std::move(node.filter));
+   addFilter(std::move(node.filter));
    auto child = std::move(node.child);
    propagateToNode(child);
    return child;
@@ -180,22 +194,34 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::JoinNode& node
    // predicate belongs to could be derived from freeIUs(), but pushing is only
    // semantics-preserving for some combinations: pushing into the null-supplying side of an
    // outer join changes the result (null-extended rows would no longer be filtered out), as
-   // does pushing a predicate that references no column at all. Rather than push unsafely,
-   // reject any filter above join() and point the user at the inputs.
-   CHECK_SILO_QUERY(
-      current_filters.empty(),
-      "filter() cannot be applied to the output of join(); a filter above a join cannot be "
-      "pushed into a join input safely. Apply the filter to one of the join inputs instead."
-   );
-
-   // No filters to carry across, but the child subtrees may still contain FilterNodes of
-   // their own (e.g. `join(default.filter(...), ...)`); push those down within each input
-   // using fresh passes so no state leaks between the two branches.
+   // does pushing a predicate that references no column at all. Rather than push unsafely, any
+   // filters above the join are left in place and realized as an Arrow filter over the join
+   // output (their expression must have an Arrow translation).
+   //
+   // The child subtrees may still contain FilterNodes of their own (e.g.
+   // `join(default.filter(...), ...)`); push those down within each input using fresh passes so no
+   // state leaks between the two branches or with the filters left above the join.
    FilterPushdownPass left_pass;
    FilterPushdownPass right_pass;
    left_pass.propagateToNode(node.left);
    right_pass.propagateToNode(node.right);
-   return nullptr;
+
+   if (current_filters.empty()) {
+      return nullptr;
+   }
+
+   auto rebuilt_join = std::make_unique<operators::JoinNode>(
+      std::move(node.left),
+      std::move(node.right),
+      std::move(node.left_keys),
+      std::move(node.right_keys),
+      node.join_type
+   );
+   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
+   current_filters.clear();
+   return std::make_unique<operators::FilterNode>(
+      std::move(rebuilt_join), std::move(remaining_filter)
+   );
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)

@@ -26,6 +26,10 @@ namespace rhydb::query_engine::optimizer {
 class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    std::vector<std::unique_ptr<scalar_expressions::ScalarExpression>> current_filters;
 
+   /// Adds a filter to `current_filters`, splitting a top-level conjunction (`And`) into its
+   /// individual conjuncts so each can be pushed to the deepest node that supports it.
+   void addFilter(std::unique_ptr<scalar_expressions::ScalarExpression> filter);
+
   public:
    using PipelinePassBase<FilterPushdownPass>::operator();
 

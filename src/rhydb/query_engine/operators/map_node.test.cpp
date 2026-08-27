@@ -313,18 +313,17 @@ const QueryTestScenario FILTER_ON_REPLACED_MAPPED_COLUMN_SCENARIO = {
 };
 
 // A conjunction mixing a bitmap-only sequence predicate (hasMutation) with a derived column
-// (`week`). The whole filter references `week`, so it stays above the map, but hasMutation has no
-// Arrow compute translation, so the query cannot be executed as an Arrow filter and errors.
+// (`week`). The conjunction is split at the map boundary: the hasMutation conjunct is pushed into
+// the table scan (bitmap path) while the `week` conjunct stays above the map and is realized as an
+// Arrow filter, so the query composes and executes instead of erroring. No row has a mutation at
+// segment1 position 1 (id_0 matches the reference, id_1 has no sequence), so the result is empty.
 const QueryTestScenario FILTER_MIXED_PUSHABLE_AND_DERIVED_SCENARIO = {
    .name = "FILTER_MIXED_PUSHABLE_AND_DERIVED",
    .query =
       "default.map({week := date.isoWeek()})"
       ".filter(hasMutation(sequenceName := 'segment1', position := 1) && week = '2023-W01')"
       ".project({primaryKey})",
-   .expected_query_result = {},
-   .expected_error_message =
-      "Error when planning query execution: NotImplemented: the scalar "
-      "expression segment1:1 has no Arrow compute translation"
+   .expected_query_result = nlohmann::json::array()
 };
 
 // A filter on a passed-through column (`int_value`) stacked above a map that produces an
