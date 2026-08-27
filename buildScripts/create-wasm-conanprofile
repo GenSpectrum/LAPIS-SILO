@@ -9,8 +9,15 @@ mkdir -p build/wasm
 # call TEST_BIG_ENDIAN fall back to a broken detection path and fail to
 # configure. Conan generates its own toolchain, so we chain-load Emscripten's
 # via tools.cmake.cmaketoolchain:user_toolchain.
-EMCC_PATH=$(command -v emcc)
-EMSCRIPTEN_TOOLCHAIN="$(dirname "${EMCC_PATH}")/cmake/Modules/Platform/Emscripten.cmake"
+if ! command -v emcc > /dev/null; then
+   echo "emcc is not on your PATH. Install and activate the Emscripten SDK:" >&2
+   echo "  https://emscripten.org/docs/getting_started/downloads.html" >&2
+   echo "  (then 'source /path/to/emsdk/emsdk_env.sh' in this shell)" >&2
+   exit 1
+fi
+
+EMSCRIPTEN_ROOT=$(em-config EMSCRIPTEN_ROOT)
+EMSCRIPTEN_TOOLCHAIN="${EMSCRIPTEN_ROOT}/cmake/Modules/Platform/Emscripten.cmake"
 if [ ! -f "${EMSCRIPTEN_TOOLCHAIN}" ]; then
    echo "Could not find Emscripten CMake toolchain at ${EMSCRIPTEN_TOOLCHAIN}" >&2
    exit 1
