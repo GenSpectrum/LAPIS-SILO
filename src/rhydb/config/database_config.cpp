@@ -89,7 +89,11 @@ bool YAML::convert<rhydb::config::DatabaseSchema>::decode(
    rhydb::config::DatabaseSchema& schema
 ) {
    schema.instance_name = node["instanceName"].as<std::string>();
-   schema.primary_key = node["primaryKey"].as<std::string>();
+   if (node["primaryKey"].IsDefined() && !node["primaryKey"].IsNull()) {
+      schema.primary_key = node["primaryKey"].as<std::string>();
+   } else {
+      schema.primary_key = std::nullopt;
+   }
 
    if (!node["metadata"].IsSequence()) {
       return false;
@@ -106,7 +110,9 @@ YAML::Node YAML::convert<rhydb::config::DatabaseSchema>::encode(
 ) {
    Node node;
    node["instanceName"] = schema.instance_name;
-   node["primaryKey"] = schema.primary_key;
+   if (schema.primary_key.has_value()) {
+      node["primaryKey"] = schema.primary_key.value();
+   }
    node["metadata"] = schema.metadata;
    return node;
 }
@@ -323,7 +329,8 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
       throw ConfigException("Database config without fields not possible");
    }
 
-   if (!metadata_map.contains(config.schema.primary_key)) {
+   if (config.schema.primary_key.has_value() &&
+       !metadata_map.contains(config.schema.primary_key.value())) {
       throw ConfigException("Primary key is not in metadata");
    }
 }
@@ -343,9 +350,11 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
 ) -> decltype(ctx.out()) {
    return fmt::format_to(
       ctx.out(),
-      "{{ instance_name: '{}', primary_key: '{}', metadata: [{}] }}",
+      "{{ instance_name: '{}', primary_key: {}, metadata: [{}] }}",
       database_schema.instance_name,
-      database_schema.primary_key,
+      database_schema.primary_key.has_value()
+         ? fmt::format("'{}'", database_schema.primary_key.value())
+         : "none",
       fmt::join(database_schema.metadata, ",")
    );
 }

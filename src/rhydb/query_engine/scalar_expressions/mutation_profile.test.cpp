@@ -265,7 +265,103 @@ const QueryTestScenario AA_MUTATION_OUT_OF_BOUNDS = {
       "AminoAcid MutationProfile mutation position 123456 is out of bounds (reference length 2)"
 };
 
+// ------ Tests on a table that declares no primary key ------
+// The schema below sets `primaryKey: ~`, so sequenceId lookups have nothing to resolve against,
+// while the mutations and querySequence input methods stay fully usable.
+
+nlohmann::json createDataWithoutPrimaryKey(
+   const std::string& name,
+   const std::string& nucleotide_sequence,
+   const std::string& amino_acid_sequence
+) {
+   return {
+      {"name", name},
+      {"segment1", {{"sequence", nucleotide_sequence}, {"insertions", nlohmann::json::array()}}},
+      {"gene1", {{"sequence", amino_acid_sequence}, {"insertions", nlohmann::json::array()}}},
+      {"gene2", nullptr}
+   };
+}
+
+const auto DATABASE_CONFIG_WITHOUT_PRIMARY_KEY = R"(
+schema:
+  instanceName: "test"
+  metadata:
+    - name: "name"
+      type: "string"
+  primaryKey: ~
+)";
+
+const QueryTestData TEST_DATA_WITHOUT_PRIMARY_KEY{
+   .ndjson_input_data =
+      {createDataWithoutPrimaryKey("seq_ref", "ATGCN", "M*"),
+       createDataWithoutPrimaryKey("seq_1mut", "CTGCN", "C*")},
+   .database_config = DATABASE_CONFIG_WITHOUT_PRIMARY_KEY,
+   .reference_genomes = REFERENCE_GENOMES,
+   .without_unaligned_sequences = true
+};
+
+// sequenceId lookup without a primary key → error
+const QueryTestScenario NO_PRIMARY_KEY_SEQUENCE_ID = {
+   .name = "NO_PRIMARY_KEY_SEQUENCE_ID",
+   .query =
+      "default.filter(nucleotideMutationProfile(distance:=0, sequenceName:='segment1', "
+      "sequenceId:='seq_1mut')).project(name)",
+   .expected_error_message =
+      "Nucleotide MutationProfile sequenceId lookup requires the table to declare a primary key"
+};
+
+// Same for amino acids
+const QueryTestScenario NO_PRIMARY_KEY_AA_SEQUENCE_ID = {
+   .name = "NO_PRIMARY_KEY_AA_SEQUENCE_ID",
+   .query =
+      "default.filter(aminoAcidMutationProfile(distance:=0, sequenceName:='gene1', "
+      "sequenceId:='seq_1mut')).project(name)",
+   .expected_error_message =
+      "AminoAcid MutationProfile sequenceId lookup requires the table to declare a primary key"
+};
+
+// mutations input method remains usable without a primary key.
+// Profile = reference (ATGCN), distance=0 → only seq_ref matches (seq_1mut differs at pos1).
+const QueryTestScenario NO_PRIMARY_KEY_MUTATIONS = {
+   .name = "NO_PRIMARY_KEY_MUTATIONS",
+   .query =
+      "default.filter(nucleotideMutationProfile(distance:=0, sequenceName:='segment1', "
+      "mutations:={})).project(name)",
+   .expected_query_result = nlohmann::json::parse(R"([{"name":"seq_ref"}])")
+};
+
+// querySequence input method remains usable without a primary key.
+// Profile = CTGCN → only seq_1mut matches.
+const QueryTestScenario NO_PRIMARY_KEY_QUERY_SEQUENCE = {
+   .name = "NO_PRIMARY_KEY_QUERY_SEQUENCE",
+   .query =
+      "default.filter(nucleotideMutationProfile(distance:=0, sequenceName:='segment1', "
+      "querySequence:='CTGCN')).project(name)",
+   .expected_query_result = nlohmann::json::parse(R"([{"name":"seq_1mut"}])")
+};
+
+// querySequence on the amino acid side, to confirm AA profiles work without a primary key too.
+const QueryTestScenario NO_PRIMARY_KEY_AA_QUERY_SEQUENCE = {
+   .name = "NO_PRIMARY_KEY_AA_QUERY_SEQUENCE",
+   .query =
+      "default.filter(aminoAcidMutationProfile(distance:=0, sequenceName:='gene1', "
+      "querySequence:='M*')).project(name)",
+   .expected_query_result = nlohmann::json::parse(R"([{"name":"seq_ref"}])")
+};
+
 }  // namespace
+
+QUERY_TEST(
+   MutationProfileWithoutPrimaryKey,
+   TEST_DATA_WITHOUT_PRIMARY_KEY,
+   ::testing::Values(
+      NO_PRIMARY_KEY_SEQUENCE_ID,
+      NO_PRIMARY_KEY_AA_SEQUENCE_ID,
+      NO_PRIMARY_KEY_MUTATIONS,
+      NO_PRIMARY_KEY_QUERY_SEQUENCE,
+      NO_PRIMARY_KEY_AA_QUERY_SEQUENCE
+   )
+);
 
 QUERY_TEST(
    MutationProfile,

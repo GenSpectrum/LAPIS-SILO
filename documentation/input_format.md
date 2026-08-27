@@ -64,6 +64,11 @@ schema:
 - `treatUnknownLineagesAsNull`: Treats unknown lineage values as null when adding them to the lineage index
 - `isPhyloTreeField`: Mark this column as a phyloTreeField, which enables the phylogenetic queries. See [phylogenetic_queries.md](phylogenetic_queries.md)
 
+**Schema Options**:
+- `instanceName`: Name of the database instance
+- `metadata`: The list of metadata fields described above
+- `primaryKey`: Selects the metadata field that uniquely identifies a record. Optional — omit it to declare no primary key
+
 ### reference_genomes.json
 
 Defines reference sequences for alignment:
@@ -326,5 +331,5 @@ schema:
 | Invalid insertion format | Malformed insertion string | Error with details |
 | Invalid base64 in `sequenceCompressed` | Illegal characters or wrong padding | Error with details |
 | Invalid ZSTD data in `sequenceCompressed` | Wrong dictionary or corrupt bytes | Error with details |
-| Duplicate primary key | Same primary key appears twice | Error at validation |
+| Duplicate primary key | Same primary key appears twice | Error at validation. Only checked when `primaryKey` is declared; skipped when it is null |
 | Unknown field | Field in JSON not in schema | Warning, ignored |
