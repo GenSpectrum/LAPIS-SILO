@@ -28,7 +28,11 @@ std::vector<schema::ColumnIdentifier> IsoWeek::freeIUs() const {
 
 arrow::Result<arrow::compute::Expression> IsoWeek::toArrowExpression() const {
    ARROW_ASSIGN_OR_RAISE(auto input_expression, input->toArrowExpression());
-   // Render the ISO 8601 week date `<ISO-year>-W<ISO-week>`, e.g. `2026-W12`
+   // Render the ISO 8601 week date `<ISO-year>-W<ISO-week>`, e.g. `2026-W12`, from the ISO
+   // week-numbering year and week. Built from `iso_year` / `iso_week` (both operate on the naive
+   // date) rather than `strftime`: strftime's kernel needs the IANA timezone database at runtime
+   // -- it looks up `UTC` even for a timezone-naive date32 -- which is not present in every
+   // deployment (minimal containers, wasm, ...) and fails there with "Cannot locate ... 'UTC'".
    const auto year_string = arrow::compute::call(
       "cast",
       {arrow::compute::call("iso_year", {input_expression})},

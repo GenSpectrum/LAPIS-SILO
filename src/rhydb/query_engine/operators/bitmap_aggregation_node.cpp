@@ -32,7 +32,6 @@
 #include "rhydb/common/symbol_map.h"
 #include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
-#include "rhydb/query_engine/exec_node/scalar_to_arrow_expression.h"
 #include "rhydb/query_engine/exec_node/table_scan.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
@@ -709,8 +708,7 @@ std::unique_ptr<ChunkGrouper> makeGrouper(
    const storage::Table& table
 ) {
    const auto referenced = resolveReferencedColumns(*dimension.expression, table);
-   const auto arrow_expression =
-      orThrowQuery(exec_node::scalarToArrowExpression(*dimension.expression));
+   const auto arrow_expression = orThrowQuery(dimension.expression->toArrowExpression());
    const auto input_schema = exec_node::columnsToArrowSchema(referenced);
    const auto bound_expression = orThrowQuery(arrow_expression.Bind(*input_schema));
    const auto output_type = exec_node::columnTypeToArrowType(dimension.output_type);
