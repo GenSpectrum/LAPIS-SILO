@@ -41,23 +41,37 @@
             <section>
                 <h2>2. Preprocess a BAM file</h2>
                 <p>
-                    Upload a <code>.bam</code> file together with the same config files
-                    (<code>preprocessing_config.yaml</code>, <code>database_config.yaml</code>,
-                    <code>reference_genomes.json</code>). Point the config's input file at the
-                    uploaded <code>.bam</code>: each read is projected onto reference coordinates
-                    and ingested through the normal append pipeline. The table columns are drawn
-                    from the BAM fields (<code>qname</code>, <code>flag</code>, <code>rname</code>,
-                    <code>pos</code>, <code>mapq</code>, <code>cigar</code>, ...) plus one
-                    nucleotide-sequence column.
+                    Upload a <code>.bam</code> file and a <code>reference_genomes.json</code>.
+                    Unlike the NDJSON flow, no configs are uploaded: BAM ingest can only fill a
+                    fixed set of columns, so <code>preprocessing_config.yaml</code> and
+                    <code>database_config.yaml</code> are generated here and written straight into
+                    the virtual filesystem. The reference still has to be supplied, because a BAM
+                    header carries reference names and lengths but not the reference bases.
+                </p>
+                <p>
+                    Each read is projected onto reference coordinates via its CIGAR and ingested
+                    through the normal append pipeline. Only primary mapped reads are kept. The
+                    generated schema declares the BAM fields (<code>read_index</code>,
+                    <code>qname</code>, <code>flag</code>, <code>rname</code>, <code>pos</code>,
+                    <code>mapq</code>, <code>cigar</code>, ...) and no primary key, since reads
+                    legitimately share a <code>qname</code>.
                 </p>
                 <label>
-                    Input files (.bam + config)
-                    <input id="bam-input-files" type="file" multiple />
+                    BAM file
+                    <input id="bam-file" type="file" accept=".bam,application/octet-stream" />
                 </label>
                 <label>
-                    Preprocessing config path
-                    <input id="bam-config-path" value="preprocessing_config.yaml" />
+                    Reference genomes
+                    <input id="bam-reference-file" type="file" accept="application/json,.json" />
                 </label>
+                <label id="bam-sequence-label" hidden>
+                    Reference sequence to align reads to
+                    <select id="bam-sequence"></select>
+                </label>
+                <details>
+                    <summary>Generated config</summary>
+                    <pre id="bam-generated-config"></pre>
+                </details>
                 <button id="preprocess-bam">Preprocess BAM and download state</button>
             </section>
 

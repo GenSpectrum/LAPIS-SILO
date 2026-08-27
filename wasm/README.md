@@ -125,7 +125,7 @@ This builds `rhydb_wasm` first if necessary, then runs `node --test wasm/test/*.
 
 ## Example App
 
-An example app is available in `./example`. It has separate flows for preprocessing NDJSON, a BAM file, and a FASTA file, alongside load/save and query. Any static web server can be used as long as it sets the headers. Opening the `index.html` directly as a local file is not enough for the pthread-enabled build.
+An example app is available in `./example`. It has separate flows for preprocessing NDJSON, a BAM file, and a FASTA file, alongside load/save and query. The BAM flow takes only the `.bam` and a `reference_genomes.json`: because BAM ingest can fill just one fixed set of columns, the example generates `preprocessing_config.yaml` and `database_config.yaml` itself (schema over the canonical BAM fields, no primary key, `withoutUnalignedSequences: true`) and narrows the reference to the single nucleotide sequence the reads are aligned to. Any static web server can be used as long as it sets the headers. Opening the `index.html` directly as a local file is not enough for the pthread-enabled build.
 
 ## Usage Reference
 

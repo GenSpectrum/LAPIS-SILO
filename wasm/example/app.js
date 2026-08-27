@@ -26,14 +26,9 @@ preprocessButton.addEventListener("click", () =>
         method: "preprocess",
     }),
 );
-preprocessBamButton.addEventListener("click", () =>
-    preprocessAndDownloadState({
-        button: preprocessBamButton,
-        filesSelector: "#bam-input-files",
-        configSelector: "#bam-config-path",
-        method: "preprocessBam",
-    }),
-);
+preprocessBamButton.addEventListener("click", preprocessBamAndDownloadState);
+$("#bam-reference-file").addEventListener("change", refreshBamReference);
+$("#bam-sequence").addEventListener("change", renderBamGeneratedConfig);
 preprocessFastaButton.addEventListener("click", () =>
     preprocessAndDownloadState({
         button: preprocessFastaButton,
@@ -190,8 +185,9 @@ function getRhydbModule() {
     return modulePromise;
 }
 
-// Shared by the NDJSON and BAM flows: they differ only in the input elements and
-// in which module entry point (`preprocess` vs `preprocessBam`) is invoked.
+// Shared by the NDJSON and FASTA flows: they differ only in the input elements
+// and in which module entry point (`preprocess` vs `preprocessFasta`) is
+// invoked. The BAM flow generates its configs instead, see below.
 async function preprocessAndDownloadState({ button, filesSelector, configSelector, method }) {
     const files = [...$(filesSelector).files];
     const configPath = $(configSelector).value.trim();
@@ -225,12 +221,221 @@ async function preprocessAndDownloadState({ button, filesSelector, configSelecto
         await flushLog();
         currentHandle = module[method](configPath);
 
-        log("Saving processed state...");
+        await saveAndDownloadState(module);
+    });
+}
+
+async function saveAndDownloadState(module) {
+    log("Saving processed state...");
+    await flushLog();
+    module.save(currentHandle, "/example-output");
+    const archive = readDirectoryAsArchive(module, "/example-output");
+    downloadJson("silo-state.json", archive);
+    log(`Downloaded ${archive.files.length} processed state file(s).`);
+}
+
+// --- BAM: generated configuration ----------------------------------------
+// preprocessBam() consumes the same PreprocessingConfig as NDJSON preprocessing,
+// so it still needs a preprocessing_config.yaml and a database_config.yaml. What
+// those may contain is fully determined by what BAM ingest can supply, so this
+// example writes them itself instead of asking for an upload. Only the reference
+// genome has to come from the user: a BAM header carries reference names and
+// lengths, but not the reference bases.
+
+const BAM_DIRECTORY = "/example-input";
+const BAM_INPUT_FILENAME = "input.bam";
+const BAM_PREPROCESSING_CONFIG_FILENAME = "preprocessing_config.yaml";
+const BAM_DATABASE_CONFIG_FILENAME = "database_config.yaml";
+const BAM_REFERENCE_FILENAME = "reference_genomes.json";
+
+// The only columns BamNdjsonInputStream can fill; see isSupportedMetadataColumn
+// in src/rhydb/append/bam/bam_ndjson_input_stream.cpp. Declaring anything beyond
+// this set makes BAM ingest throw, so this list is the entire schema.
+const BAM_METADATA_COLUMNS = [
+    { name: "read_index", type: "int" },
+    { name: "qname", type: "string" },
+    { name: "flag", type: "int" },
+    { name: "rname", type: "string", generateIndex: true },
+    { name: "pos", type: "int" },
+    { name: "mapq", type: "int" },
+    { name: "cigar", type: "string" },
+    { name: "mate_rname", type: "string" },
+    { name: "mate_pos", type: "int" },
+    { name: "tlen", type: "int" },
+    { name: "qual", type: "string" },
+];
+
+// Parsed contents of the uploaded reference_genomes.json, or null.
+let bamReference = null;
+
+// Show what will be written before anything is uploaded.
+renderBamGeneratedConfig();
+
+async function refreshBamReference() {
+    const file = $("#bam-reference-file").files[0];
+    bamReference = null;
+    if (file) {
+        try {
+            bamReference = parseReferenceGenomes(await file.text());
+        } catch (error) {
+            log(`Could not read the reference genomes file: ${describeError(error)}`, "error");
+        }
+    }
+
+    const select = $("#bam-sequence");
+    select.replaceChildren();
+    for (const sequence of bamReference?.nucleotideSequences ?? []) {
+        const option = document.createElement("option");
+        option.value = sequence.name;
+        option.textContent = `${sequence.name} (${sequence.sequence.length} bases)`;
+        select.append(option);
+    }
+    // BAM ingest accepts exactly one nucleotide-sequence column, so the choice
+    // is only worth offering when the reference declares several.
+    $("#bam-sequence-label").hidden = (bamReference?.nucleotideSequences.length ?? 0) < 2;
+    renderBamGeneratedConfig();
+}
+
+function parseReferenceGenomes(text) {
+    const parsed = JSON.parse(text);
+    const sequences = parsed?.nucleotideSequences;
+    if (!Array.isArray(sequences) || sequences.length === 0) {
+        throw new Error('Expected a "nucleotideSequences" array with at least one entry.');
+    }
+    for (const sequence of sequences) {
+        if (typeof sequence?.name !== "string" || typeof sequence?.sequence !== "string") {
+            throw new Error('Every nucleotideSequences entry needs a string "name" and "sequence".');
+        }
+    }
+    return {
+        nucleotideSequences: sequences,
+        geneCount: Array.isArray(parsed.genes) ? parsed.genes.length : 0,
+    };
+}
+
+function selectedBamSequence() {
+    if (!bamReference) return null;
+    const chosen = $("#bam-sequence").value;
+    return (
+        bamReference.nucleotideSequences.find((sequence) => sequence.name === chosen) ??
+        bamReference.nucleotideSequences[0]
+    );
+}
+
+function bamDatabaseConfigYaml() {
+    const metadata = BAM_METADATA_COLUMNS.map((column) => {
+        const lines = [`    - name: ${column.name}`, `      type: ${column.type}`];
+        if (column.generateIndex) lines.push("      generateIndex: true");
+        return lines.join("\n");
+    }).join("\n");
+    // The primary key is declared null: it is optional (see
+    // assertPrimaryKeyInMetadata in src/rhydb/initialize/initializer.cpp) and would
+    // have to be a string column. qname is the only candidate a BAM offers, and it
+    // is not unique -- both mates of a pair share it -- so declaring it would fail
+    // the uniqueness check. The key has to be present even when null, because
+    // yaml-cpp rejects the config outright when it is absent.
+    return `schema:\n  instanceName: bam_reads\n  primaryKey: null\n  metadata:\n${metadata}\n`;
+}
+
+// `withoutUnalignedSequences: true` is required rather than cosmetic: otherwise
+// the initializer adds an `unaligned_<sequence>` column that BAM ingest has no
+// data for and rejects.
+function bamPreprocessingConfigYaml() {
+    return [
+        'inputDirectory: "."',
+        `ndjsonInputFilename: "${BAM_INPUT_FILENAME}"`,
+        `databaseConfig: "${BAM_DATABASE_CONFIG_FILENAME}"`,
+        `referenceGenomeFilename: "${BAM_REFERENCE_FILENAME}"`,
+        "withoutUnalignedSequences: true",
+        "",
+    ].join("\n");
+}
+
+// BAM ingest takes exactly one nucleotide-sequence column and cannot fill an
+// amino-acid one, so the reference is narrowed to the selected sequence with an
+// empty gene list. `genes` is a required key of the format, not optional.
+function bamReferenceJson(sequence) {
+    return `${JSON.stringify({ nucleotideSequences: [sequence], genes: [] }, null, 2)}\n`;
+}
+
+function renderBamGeneratedConfig() {
+    const sequence = selectedBamSequence();
+    const parts = [
+        `# ${BAM_PREPROCESSING_CONFIG_FILENAME}`,
+        bamPreprocessingConfigYaml(),
+        `# ${BAM_DATABASE_CONFIG_FILENAME}`,
+        bamDatabaseConfigYaml(),
+        `# ${BAM_REFERENCE_FILENAME}`,
+        sequence
+            ? bamReferenceJson({ name: sequence.name, sequence: `<${sequence.sequence.length} bases>` })
+            : "(choose a reference_genomes.json)\n",
+    ];
+    $("#bam-generated-config").textContent = parts.join("\n");
+}
+
+async function preprocessBamAndDownloadState() {
+    const bamFile = $("#bam-file").files[0];
+    if (!bamFile) {
+        log("Choose a .bam file first.", "warn");
+        return;
+    }
+    if (!bamReference) {
+        log("Choose a reference_genomes.json first.", "warn");
+        return;
+    }
+    const sequence = selectedBamSequence();
+
+    await withDisabled(preprocessBamButton, async () => {
+        const module = await getRhydbModule();
+        if (typeof module.preprocessBam !== "function") {
+            log("This WASM build does not expose preprocessBam(). Rebuild the module (make wasm).", "error");
+            return;
+        }
+        disposeCurrentHandle(module);
+
+        module.FS.chdir("/");
+        removeTreeIfExists(module, BAM_DIRECTORY);
+        removeTreeIfExists(module, "/example-output");
+        mkdirp(module, BAM_DIRECTORY);
+
+        module.FS.writeFile(
+            `${BAM_DIRECTORY}/${BAM_INPUT_FILENAME}`,
+            new Uint8Array(await bamFile.arrayBuffer()),
+        );
+        module.FS.writeFile(`${BAM_DIRECTORY}/${BAM_REFERENCE_FILENAME}`, bamReferenceJson(sequence));
+        module.FS.writeFile(`${BAM_DIRECTORY}/${BAM_DATABASE_CONFIG_FILENAME}`, bamDatabaseConfigYaml());
+        module.FS.writeFile(
+            `${BAM_DIRECTORY}/${BAM_PREPROCESSING_CONFIG_FILENAME}`,
+            bamPreprocessingConfigYaml(),
+        );
+
+        if (bamReference.nucleotideSequences.length > 1) {
+            log(
+                `Reference declares ${bamReference.nucleotideSequences.length} nucleotide sequences, ` +
+                    `BAM ingest supports one: using "${sequence.name}".`,
+                "warn",
+            );
+        }
+        if (bamReference.geneCount > 0) {
+            log(
+                `Dropped ${bamReference.geneCount} gene(s) from the reference: BAM ingest cannot fill ` +
+                    "amino-acid-sequence columns.",
+                "warn",
+            );
+        }
+        log(
+            `Generated ${BAM_PREPROCESSING_CONFIG_FILENAME} and ${BAM_DATABASE_CONFIG_FILENAME}. ` +
+                `Preprocessing ${bamFile.name} with preprocessBam()...`,
+        );
+
+        module.FS.chdir(BAM_DIRECTORY);
         await flushLog();
-        module.save(currentHandle, "/example-output");
-        const archive = readDirectoryAsArchive(module, "/example-output");
-        downloadJson("silo-state.json", archive);
-        log(`Downloaded ${archive.files.length} processed state file(s).`);
+        currentHandle = module.preprocessBam(BAM_PREPROCESSING_CONFIG_FILENAME);
+
+        // The reads explorer queries this column by name.
+        $("#reads-seqcol").value = sequence.name;
+
+        await saveAndDownloadState(module);
     });
 }
 

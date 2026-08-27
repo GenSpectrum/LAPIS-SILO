@@ -33,6 +33,11 @@ p {
     line-height: 1.5;
 }
 
+/* label's `display: grid` would otherwise override the UA [hidden] rule. */
+label[hidden] {
+    display: none;
+}
+
 label {
     display: grid;
     gap: 6px;
