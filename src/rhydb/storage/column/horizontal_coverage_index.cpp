@@ -143,12 +143,12 @@ roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
 ) const {
    roaring::Roaring result;
    if (chunk_id >= starts.size()) {
-      return roaring_util::RoaringContainer{};
+      return roaring_util::RoaringContainer::withCapacity(1);
    }
 
    // No row in this chunk can cover the position.
    if (batch_max_end.at(chunk_id) <= position || batch_min_start.at(chunk_id) > position) {
-      return roaring_util::RoaringContainer{};
+      return roaring_util::RoaringContainer::withCapacity(1);
    }
 
    const uint32_t base_row_id = static_cast<uint32_t>(chunk_id) << 16U;
@@ -201,7 +201,7 @@ roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
    // becomes an empty container.
    auto& roaring_array = result.roaring.high_low_container;
    if (roaring_array.size == 0) {
-      return roaring_util::RoaringContainer{};
+      return roaring_util::RoaringContainer::withCapacity(1);
    }
    SILO_ASSERT_EQ(roaring_array.size, 1);
    const auto cardinality = static_cast<uint32_t>(roaring::internal::container_get_cardinality(
