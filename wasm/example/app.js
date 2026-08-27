@@ -4,13 +4,38 @@ const $ = (selector) => document.querySelector(selector);
 const logEl = $("#log");
 const resultEl = $("#result");
 const preprocessButton = $("#preprocess");
+const preprocessBamButton = $("#preprocess-bam");
+const preprocessFastaButton = $("#preprocess-fasta");
 const loadStateButton = $("#load-state");
 const runQueryButton = $("#run-query");
 
 let modulePromise;
 let currentHandle = null;
 
-preprocessButton.addEventListener("click", preprocessAndDownloadState);
+preprocessButton.addEventListener("click", () =>
+    preprocessAndDownloadState({
+        button: preprocessButton,
+        filesSelector: "#input-files",
+        configSelector: "#config-path",
+        method: "preprocess",
+    }),
+);
+preprocessBamButton.addEventListener("click", () =>
+    preprocessAndDownloadState({
+        button: preprocessBamButton,
+        filesSelector: "#bam-input-files",
+        configSelector: "#bam-config-path",
+        method: "preprocessBam",
+    }),
+);
+preprocessFastaButton.addEventListener("click", () =>
+    preprocessAndDownloadState({
+        button: preprocessFastaButton,
+        filesSelector: "#fasta-input-files",
+        configSelector: "#fasta-config-path",
+        method: "preprocessFasta",
+    }),
+);
 loadStateButton.addEventListener("click", loadProcessedState);
 runQueryButton.addEventListener("click", runQuery);
 
@@ -31,16 +56,22 @@ function getRhydbModule() {
     return modulePromise;
 }
 
-async function preprocessAndDownloadState() {
-    const files = [...$("#input-files").files];
-    const configPath = $("#config-path").value.trim();
+// Shared by the NDJSON and BAM flows: they differ only in the input elements and
+// in which module entry point (`preprocess` vs `preprocessBam`) is invoked.
+async function preprocessAndDownloadState({ button, filesSelector, configSelector, method }) {
+    const files = [...$(filesSelector).files];
+    const configPath = $(configSelector).value.trim();
     if (!files.length || !configPath) {
         log("Choose input files and a preprocessing config path first.");
         return;
     }
 
-    await withDisabled(preprocessButton, async () => {
+    await withDisabled(button, async () => {
         const module = await getRhydbModule();
+        if (typeof module[method] !== "function") {
+            log(`This WASM build does not expose ${method}(). Rebuild the module (make build/wasm/...).`);
+            return;
+        }
         disposeCurrentHandle(module);
 
         removeTreeIfExists(module, "/example-input");
@@ -54,9 +85,9 @@ async function preprocessAndDownloadState() {
             module.FS.writeFile(path, new Uint8Array(await file.arrayBuffer()));
         }
 
-        log("Preprocessing uploaded files...");
+        log(`Preprocessing uploaded files with ${method}()...`);
         module.FS.chdir("/example-input");
-        currentHandle = module.preprocess(configPath);
+        currentHandle = module[method](configPath);
 
         log("Saving processed state...");
         module.save(currentHandle, "/example-output");

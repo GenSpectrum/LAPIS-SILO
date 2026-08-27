@@ -96,6 +96,20 @@ int preprocessBam(const std::string& preprocessing_config_path) {
    return handle;
 }
 
+// Build a database from a FASTA file. Like preprocessBam, the uploaded file is
+// expected in the Emscripten virtual filesystem and the config's input file
+// points at it. Each record's identifier becomes the primary key and its
+// (reference-aligned) sequence is ingested into the table's sequence column.
+int preprocessFasta(const std::string& preprocessing_config_path) {
+   initializeArrowCompute();
+   auto database = std::make_unique<rhydb::Database>(
+      rhydb::preprocessing::preprocessingFasta(readPreprocessingConfig(preprocessing_config_path))
+   );
+   const int handle = next_database_handle++;
+   databases.emplace(handle, std::move(database));
+   return handle;
+}
+
 void save(int handle, const std::string& output_directory) {
    const auto database = databases.find(handle);
    if (database == databases.end()) {
@@ -149,6 +163,7 @@ void dispose(int handle) {
 EMSCRIPTEN_BINDINGS(rhydb_wasm) {
    emscripten::function("preprocess", &preprocess);
    emscripten::function("preprocessBam", &preprocessBam);
+   emscripten::function("preprocessFasta", &preprocessFasta);
    emscripten::function("save", &save);
    emscripten::function("load", &load);
    emscripten::function("query", &query);

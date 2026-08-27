@@ -48,7 +48,12 @@ find_package(simdutf REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
 # zlib provides the inflate() used to decode the BGZF container of BAM inputs.
-find_package(ZLIB REQUIRED)
+# The native build gets it from Conan/system. The Emscripten build instead uses
+# Emscripten's bundled zlib port (-sUSE_ZLIB=1, wired below), which supplies both
+# <zlib.h> at compile time and the library at link time.
+if(NOT EMSCRIPTEN)
+    find_package(ZLIB REQUIRED)
+endif()
 
 # Native-only: lzma-compressed inputs. Not available for Emscripten (the browser
 # build accepts raw and .zst inputs only).
@@ -75,8 +80,17 @@ target_link_libraries(rhydblib_deps INTERFACE
         ${yaml-cpp_LIBRARIES}
         zstd::libzstd_static
         re2::re2
-        ZLIB::ZLIB
 )
+
+# BGZF decoding needs zlib. Native links the Conan/system target; the browser
+# build uses Emscripten's zlib port, which must be set at both compile time (for
+# <zlib.h>) and link time (the link flag is on the rhydb_wasm target in
+# wasm/CMakeLists.txt).
+if(EMSCRIPTEN)
+    target_compile_options(rhydblib_deps INTERFACE -sUSE_ZLIB=1)
+else()
+    target_link_libraries(rhydblib_deps INTERFACE ZLIB::ZLIB)
+endif()
 
 target_include_directories(rhydblib_deps INTERFACE "src")
 

@@ -49,6 +49,11 @@ class Database {
       append::bam::BamIngestOptions options = {}
    );
 
+   /// Append the records of a FASTA byte stream into `table_name`: the header
+   /// identifier becomes the primary key and the (reference-aligned) sequence
+   /// goes into the table's single sequence column. Reuses the NDJSON append path.
+   void appendFastaData(const schema::TableName& table_name, std::istream& fasta_input_stream);
+
    void createNucleotideSequenceTable(
       const std::string& table_name,
       const std::string& primary_key_name,
