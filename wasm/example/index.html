@@ -54,7 +54,17 @@
             </section>
 
             <section>
-                <h2>Status</h2>
+                <h2>Log</h2>
+                <p>
+                    Everything rhydb-wasm writes to stdout and stderr is shown here, together with
+                    JavaScript errors and any C++ exception that escapes an embind call. The
+                    <code>preprocess</code>, <code>load</code> and <code>query</code> calls run
+                    synchronously on the main thread, so their log lines only appear once the call
+                    returns; open the devtools console for a live view.
+                </p>
+                <div class="log-toolbar">
+                    <button id="clear-log" type="button">Clear log</button>
+                </div>
                 <pre id="log"></pre>
             </section>
         </main>

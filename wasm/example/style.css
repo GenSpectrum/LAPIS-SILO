@@ -83,3 +83,35 @@ code {
     border-radius: 4px;
     background: #eef2f5;
 }
+
+.log-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+
+#log {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.log-line {
+    display: block;
+}
+
+.log-stdout {
+    color: #b7c4d0;
+}
+
+.log-stderr {
+    color: #f0b072;
+}
+
+.log-warn {
+    color: #f0c674;
+}
+
+.log-error {
+    color: #ff8080;
+    font-weight: 600;
+}
