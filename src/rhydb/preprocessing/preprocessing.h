@@ -18,4 +18,9 @@ Database preprocessingBam(
    append::bam::BamIngestOptions options = {}
 );
 
+/// Like preprocessing(), but the configured input file is a FASTA: each record's
+/// identifier becomes the primary key and its (reference-aligned) sequence is
+/// ingested into the table's single sequence column.
+Database preprocessingFasta(const config::PreprocessingConfig& preprocessing_config);
+
 }  // namespace rhydb::preprocessing

@@ -9,15 +9,29 @@ This directory builds a browser-usable version of SILO using WebAssembly (WASM).
 The generated JavaScript module exports these embind functions:
 
 - `preprocess(preprocessingConfigPath)`: reads a SILO preprocessing config from Emscripten's virtual filesystem and returns a database handle.
+- `preprocessBam(preprocessingConfigPath)`: like `preprocess`, but the input file named by the config is a BAM. Each read is projected onto reference coordinates (via its CIGAR) and ingested through the same append pipeline; returns a database handle. See [BAM inputs](#bam-inputs).
+- `preprocessFasta(preprocessingConfigPath)`: like `preprocess`, but the input file named by the config is a FASTA. Each record's header identifier becomes the primary key and its (reference-aligned) sequence is ingested into the table's sequence column; returns a database handle. See [FASTA inputs](#fasta-inputs).
 - `save(handle, outputDirectory)`: writes the in-memory database as SILO's normal processed-state files into the virtual filesystem.
 - `load(stateDirectory)`: loads a saved SILO processed state from the virtual filesystem and returns a database handle.
 - `query(handle, saneqlQuery)`: runs SaneQL and returns the result as NDJSON.
 - `info(handle)`: returns database information as JSON.
 - `dispose(handle)`: releases a database handle.
 
-The module also exposes Emscripten's `FS` runtime API. Browser code uses `FS` to write uploaded files into the virtual filesystem before calling `preprocess` or `load`, and to read files back after calling `save`.
+The module also exposes Emscripten's `FS` runtime API. Browser code uses `FS` to write uploaded files into the virtual filesystem before calling `preprocess`, `preprocessBam`, `preprocessFasta`, or `load`, and to read files back after calling `save`.
 
 The WASM build supports raw and `.zst` preprocessing inputs. The native `.xz` input path is not included in the WASM target.
+
+### BAM inputs
+
+`preprocessBam` accepts a binary `.bam` file directly; its BGZF container is decompressed internally, so it is not additionally `.zst`-wrapped. The schema and reference are declared exactly as for NDJSON preprocessing (`database_config.yaml` + `reference_genomes.json`). Declare the table's columns from this canonical BAM field set, plus one nucleotide-sequence column that receives each read projected onto reference coordinates:
+
+`read_index` (synthetic 0-based counter), `qname`, `flag`, `rname`, `pos` (1-based), `mapq`, `cigar`, `mate_rname`, `mate_pos` (1-based), `tlen`, `qual`.
+
+By default only primary mapped reads are ingested (unmapped, secondary, and supplementary alignments are skipped).
+
+### FASTA inputs
+
+`preprocessFasta` accepts a text `.fasta` file. Each record's header identifier (the first whitespace-delimited token after `>`) becomes the primary key, and its sequence is ingested into the table's single sequence column. Sequences are treated as already aligned to that column's reference (same coordinate system, length up to the reference length, gaps written as `-`); FASTA carries no alignment, so unaligned reads must be aligned beforehand. The schema declares only the primary-key column and one sequence column (nucleotide or amino acid) — there are no metadata columns.
 
 Browser queries use a smaller materialization cutoff than native SILO to keep intermediate batches within browser memory limits, especially when projecting full nucleotide sequences.
 
@@ -111,7 +125,7 @@ This builds `rhydb_wasm` first if necessary, then runs `node --test wasm/test/*.
 
 ## Example App
 
-An example app is available in `./example`. Any static web server can be used as long as it sets the headers. Opening the `index.html` directly as a local file is not enough for the pthread-enabled build.
+An example app is available in `./example`. It has separate flows for preprocessing NDJSON, a BAM file, and a FASTA file, alongside load/save and query. Any static web server can be used as long as it sets the headers. Opening the `index.html` directly as a local file is not enough for the pthread-enabled build.
 
 ## Usage Reference
 
@@ -146,6 +160,22 @@ silo.FS.writeFile("/input/sequences.ndjson.zst", ndjsonBytes);
 
 silo.FS.chdir("/input");
 const handle = silo.preprocess("preprocessing_config.yaml");
+```
+
+Ingest a BAM file instead of NDJSON. Write the uploaded `.bam` alongside the same config files and point the preprocessing config's input file at it:
+
+```js
+silo.FS.writeFile("/input/reads.bam", bamBytes);
+silo.FS.chdir("/input");
+const bamHandle = silo.preprocessBam("preprocessing_config.yaml");
+```
+
+Or ingest a FASTA file of reference-aligned sequences:
+
+```js
+silo.FS.writeFile("/input/sequences.fasta", fastaBytes);
+silo.FS.chdir("/input");
+const fastaHandle = silo.preprocessFasta("preprocessing_config.yaml");
 ```
 
 Query an in-memory database:

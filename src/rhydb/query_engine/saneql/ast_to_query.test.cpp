@@ -10,6 +10,8 @@
 #include <gtest/gtest.h>
 
 #include "rhydb/query_engine/illegal_query_exception.h"
+#include "rhydb/query_engine/operators/aggregate_node.h"
+#include "rhydb/query_engine/operators/query_node.h"
 #include "rhydb/query_engine/saneql/ast.h"
 #include "rhydb/query_engine/saneql/parser.h"
 #include "rhydb/schema/database_schema.h"
@@ -379,6 +381,77 @@ TEST(AstToQueryGroupBy, fieldNotInSchemaThrows) {
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
          "groupBy field 'nonexistent' is not present in the input's output schema"
       ))
+   );
+}
+
+TEST(AstToQueryGroupBy, scalarExpressionGroupKeyIsMaterialized) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree =
+      parseAndConvertToQueryTree("default.groupBy({n := count()}, {date.isoWeek()})", tables);
+   // The computed group key is exposed under the expression's text as its column name.
+   const auto output_schema = query_tree->getOutputSchema();
+   const auto found = std::ranges::find_if(output_schema, [](const auto& col) {
+      return col.name == "isoWeek(date)";
+   });
+   ASSERT_NE(found, output_schema.end());
+   EXPECT_EQ(found->type, rhydb::schema::ColumnType::STRING);
+   // A MapNode is inserted below the aggregate to compute the key.
+   using rhydb::query_engine::operators::NodeKind;
+   ASSERT_EQ(query_tree->kind(), NodeKind::AGGREGATE);
+   const auto& aggregate =
+      static_cast<const rhydb::query_engine::operators::AggregateNode&>(*query_tree);
+   EXPECT_EQ(aggregate.child->kind(), NodeKind::MAP);
+}
+
+TEST(AstToQueryGroupBy, namedScalarExpressionGroupKey) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree = parseAndConvertToQueryTree(
+      "default.groupBy({n := count()}, {week := date.isoWeek()})", tables
+   );
+   const auto output_schema = query_tree->getOutputSchema();
+   const auto found =
+      std::ranges::find_if(output_schema, [](const auto& col) { return col.name == "week"; });
+   ASSERT_NE(found, output_schema.end());
+   EXPECT_EQ(found->type, rhydb::schema::ColumnType::STRING);
+}
+
+TEST(AstToQueryGroupBy, plainColumnGroupKeyInsertsNoMap) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree =
+      parseAndConvertToQueryTree("default.groupBy({n := count()}, {date})", tables);
+   using rhydb::query_engine::operators::NodeKind;
+   ASSERT_EQ(query_tree->kind(), NodeKind::AGGREGATE);
+   const auto& aggregate =
+      static_cast<const rhydb::query_engine::operators::AggregateNode&>(*query_tree);
+   // No MapNode is inserted when every group key is a plain column reference.
+   EXPECT_NE(aggregate.child->kind(), NodeKind::MAP);
+}
+
+TEST(AstToQueryGroupBy, duplicateGroupKeyThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() {
+         (void)parseAndConvertToQueryTree(
+            "default.groupBy({n := count()}, {week := date.isoWeek(), week := date.isoWeek()})",
+            tables
+         );
+      },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("groupBy field 'week' is specified more than once")
+      )
+   );
+}
+
+TEST(AstToQueryGroupBy, scalarExpressionGroupKeyOnUnknownColumnThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() {
+         (void
+         )parseAndConvertToQueryTree("default.groupBy({n := count()}, {nope.isoWeek()})", tables);
+      },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("isoWeek(): the field nope is not found in the current context")
+      )
    );
 }
 
