@@ -11,7 +11,9 @@
 
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/operators/aggregate_node.h"
+#include "rhydb/query_engine/operators/filter_node.h"
 #include "rhydb/query_engine/operators/query_node.h"
+#include "rhydb/query_engine/operators/table_scan_node.h"
 #include "rhydb/query_engine/saneql/ast.h"
 #include "rhydb/query_engine/saneql/parser.h"
 #include "rhydb/schema/database_schema.h"
@@ -58,6 +60,50 @@ Tables makeTablesWithDefault() {
    const rhydb::schema::TableName table_name("default");
    tables[table_name] = std::make_shared<rhydb::storage::Table>(table_name, schema);
    return tables;
+}
+
+// --- table name resolution ---
+
+TEST(AstToQuery, dataIsAnAliasForTheDefaultTable) {
+   auto tables = makeTablesWithDefault();
+   auto query_tree = parseAndConvertToQueryTree("data.filter(id = 'a')", tables);
+
+   const auto* filter =
+      dynamic_cast<const rhydb::query_engine::operators::FilterNode*>(query_tree.get());
+   ASSERT_NE(filter, nullptr);
+   const auto* scan =
+      dynamic_cast<const rhydb::query_engine::operators::TableScanNode*>(filter->child.get());
+   ASSERT_NE(scan, nullptr);
+   EXPECT_EQ(scan->table->table_name, rhydb::schema::TableName::getDefault());
+}
+
+TEST(AstToQuery, anExistingDataTableTakesPrecedenceOverTheAlias) {
+   auto tables = makeTablesWithDefault();
+   const rhydb::schema::TableName data_table_name("data");
+   auto data_table = std::make_shared<rhydb::storage::Table>(
+      data_table_name, tables.at(rhydb::schema::TableName::getDefault())->schema
+   );
+   tables[data_table_name] = data_table;
+
+   auto query_tree = parseAndConvertToQueryTree("data.filter(id = 'a')", tables);
+
+   const auto* filter =
+      dynamic_cast<const rhydb::query_engine::operators::FilterNode*>(query_tree.get());
+   ASSERT_NE(filter, nullptr);
+   const auto* scan =
+      dynamic_cast<const rhydb::query_engine::operators::TableScanNode*>(filter->child.get());
+   ASSERT_NE(scan, nullptr);
+   EXPECT_EQ(scan->table, data_table);
+}
+
+TEST(AstToQuery, unknownTableThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() { (void)parseAndConvertToQueryTree("notATable.filter(id = 'a')", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("table 'notATable' not found in database")
+      )
+   );
 }
 
 // --- between ---

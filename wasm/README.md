@@ -80,6 +80,12 @@ class Handler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Cross-Origin-Opener-Policy", "same-origin")
         self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
+        # SimpleHTTPRequestHandler sends no ETag or Cache-Control, so browsers fall
+        # back to heuristic freshness. rhydb_wasm.js and rhydb_wasm.wasm are fetched
+        # through different cache paths (module script vs instantiateStreaming), so
+        # after a rebuild one can come from cache while the other is refetched. A
+        # mismatched pair fails deep inside the wasm with unrelated-looking errors.
+        self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
 ThreadingHTTPServer(("127.0.0.1", 8088), Handler).serve_forever()

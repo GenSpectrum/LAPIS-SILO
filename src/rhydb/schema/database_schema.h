@@ -198,6 +198,8 @@ class TableName {
 
    static const TableName& getDefault();
 
+   static const TableName& getDefaultAlias();
+
    bool operator==(const TableName& other) const { return name == other.name; }
    bool operator<(const TableName& other) const { return name < other.name; }
 
