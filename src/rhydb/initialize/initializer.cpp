@@ -282,10 +282,13 @@ void ColumnMetadataInitializer::operator()(
 namespace {
 
 void assertPrimaryKeyInMetadata(const rhydb::config::DatabaseConfig& database_config) {
+   if (!database_config.schema.primary_key.has_value()) {
+      return;
+   }
    auto primary_key_metadata = std::ranges::find_if(
       database_config.schema.metadata,
       [&database_config](const auto& metadata) {
-         return database_config.schema.primary_key == metadata.name;
+         return database_config.schema.primary_key.value() == metadata.name;
       }
    );
    if (primary_key_metadata == database_config.schema.metadata.end()) {
@@ -294,10 +297,13 @@ void assertPrimaryKeyInMetadata(const rhydb::config::DatabaseConfig& database_co
 }
 
 void assertPrimaryKeyOfTypeString(const rhydb::config::DatabaseConfig& database_config) {
+   if (!database_config.schema.primary_key.has_value()) {
+      return;
+   }
    auto primary_key_metadata = std::ranges::find_if(
       database_config.schema.metadata,
       [&database_config](const auto& metadata) {
-         return database_config.schema.primary_key == metadata.name;
+         return database_config.schema.primary_key.value() == metadata.name;
       }
    );
    auto primary_key_type = primary_key_metadata->getColumnType();
@@ -326,8 +332,10 @@ std::shared_ptr<schema::TableSchema> Initializer::createSchemaFromConfigFiles(
    assertPrimaryKeyInMetadata(database_config);
    assertPrimaryKeyOfTypeString(database_config);
 
+   // An empty name marks "no primary key declared" (see TableSchema::hasPrimaryKey).
    const schema::ColumnIdentifier primary_key{
-      .name = database_config.schema.primary_key, .type = schema::ColumnType::STRING
+      .name = database_config.schema.primary_key.value_or(""),
+      .type = schema::ColumnType::STRING
    };
 
    std::map<schema::ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>>

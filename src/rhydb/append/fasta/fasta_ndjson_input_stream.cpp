@@ -20,7 +20,10 @@ class FastaNdjsonInputStream::Streambuf : public std::streambuf {
    Streambuf(std::istream& fasta_input, const schema::TableSchema& schema)
        : reader(fasta_input),
          columns(schema.getColumnIdentifiers()),
-         primary_key_name(schema.primary_key.name) {
+         primary_key_name(
+            schema.hasPrimaryKey() ? std::optional<std::string>{schema.primary_key.name}
+                                   : std::nullopt
+         ) {
       for (const auto& column : columns) {
          if (schema::isSequenceColumn(column.type)) {
             if (sequence_column.has_value()) {
@@ -32,10 +35,10 @@ class FastaNdjsonInputStream::Streambuf : public std::streambuf {
                );
             }
             sequence_column = column.name;
-         } else if (column.name != primary_key_name) {
+         } else if (!primary_key_name.has_value() || column.name != primary_key_name.value()) {
             throw FastaException(
                "FASTA ingest has no data for the column '{}'. Declare only the primary-key column "
-               "and a single sequence column.",
+               "(if any) and a single sequence column.",
                column.name
             );
          }
@@ -85,7 +88,7 @@ class FastaNdjsonInputStream::Streambuf : public std::streambuf {
 
    FastaReader reader;
    std::vector<schema::ColumnIdentifier> columns;
-   std::string primary_key_name;
+   std::optional<std::string> primary_key_name;
    std::optional<std::string> sequence_column;
    std::string current_line;
 };

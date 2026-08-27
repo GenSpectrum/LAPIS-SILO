@@ -125,6 +125,12 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
    const std::string& valid_sequence_name
 ) const {
    const auto& seq_id = std::get<SequenceIdInput>(input).id;
+   if (!table.schema->hasPrimaryKey()) {
+      throw IllegalQueryException(fmt::format(
+         "{} MutationProfile sequenceId lookup requires the table to declare a primary key",
+         SymbolType::SYMBOL_NAME
+      ));
+   }
    const auto& primary_key_name = table.schema->primary_key.name;
    const auto primary_key_type = table.schema->primary_key.type;
 

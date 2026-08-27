@@ -46,7 +46,7 @@ class DatabaseSchema {
   public:
    std::string instance_name;
    std::vector<DatabaseMetadata> metadata;
-   std::string primary_key;
+   std::optional<std::string> primary_key;
 };
 
 class DatabaseConfig {
