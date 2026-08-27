@@ -98,6 +98,46 @@
             </section>
 
             <section>
+                <h2>5. Reads around this position</h2>
+                <p>
+                    Once a database with a sequence column is loaded (e.g. from BAM or FASTA),
+                    inspect the reads covering a genome position. Each row below is a distinct
+                    pattern of bases across the window; the top row is a consensus computed from
+                    these reads (not the reference). A dot means the read agrees with the consensus,
+                    a colored letter is a difference, and hatched cells are positions a read did not
+                    reach.
+                </p>
+                <div class="reads-controls">
+                    <label>
+                        Table
+                        <input id="reads-table" value="default" />
+                    </label>
+                    <label>
+                        Sequence column
+                        <input id="reads-seqcol" value="seq" />
+                    </label>
+                    <label>
+                        Position (1-based)
+                        <input id="reads-pos" type="number" min="1" value="1" />
+                    </label>
+                    <label>
+                        Window ±
+                        <select id="reads-window">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="30">30</option>
+                        </select>
+                    </label>
+                    <label>
+                        Min reads
+                        <input id="reads-min" type="number" min="1" value="1" />
+                    </label>
+                    <button id="reads-explore" type="button">Show reads</button>
+                </div>
+                <div id="reads-output"></div>
+            </section>
+
+            <section>
                 <h2>Status</h2>
                 <pre id="log"></pre>
             </section>

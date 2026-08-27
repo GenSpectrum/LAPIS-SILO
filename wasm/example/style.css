@@ -83,3 +83,139 @@ code {
     border-radius: 4px;
     background: #eef2f5;
 }
+
+/* --- Reads around this position --- */
+.reads-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 12px 16px;
+}
+
+.reads-controls label {
+    margin: 0;
+}
+
+.reads-controls input,
+.reads-controls select {
+    width: auto;
+    min-width: 64px;
+}
+
+.reads-controls input[type="number"] {
+    width: 96px;
+}
+
+.reads-controls button {
+    align-self: end;
+}
+
+.reads-scroll {
+    overflow-x: auto;
+    margin-top: 14px;
+}
+
+table.reads-grid {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+}
+
+.reads-grid th,
+.reads-grid td {
+    padding: 0 1px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.reads-grid td.pos,
+.reads-grid th.pos {
+    width: 15px;
+    min-width: 15px;
+    height: 16px;
+}
+
+.reads-grid .rowhead {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    padding-right: 10px;
+    text-align: right;
+    font-weight: 400;
+    color: #5a6672;
+    background: white;
+}
+
+.reads-grid tr.consensus .rowhead {
+    color: #172026;
+}
+
+.reads-grid .poshead {
+    color: #9aa4ad;
+    vertical-align: bottom;
+    font-weight: 400;
+}
+
+.reads-grid .poshead.center {
+    color: #205493;
+}
+
+.reads-grid .poslabel {
+    display: inline-block;
+    writing-mode: vertical-rl;
+    font-size: 10px;
+}
+
+.reads-grid .center {
+    background: rgba(32, 84, 147, 0.1);
+}
+
+.reads-grid .agree {
+    color: #c2c9d0;
+}
+
+.reads-grid .diff {
+    font-weight: 700;
+}
+
+.reads-grid .hatch {
+    background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 2px,
+        #dbe0e6 2px,
+        #dbe0e6 3px
+    );
+}
+
+.reads-grid .num {
+    padding-left: 12px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: #5a6672;
+}
+
+.reads-info {
+    margin-top: 10px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #5a6672;
+}
+
+.reads-pager {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 13px;
+}
+
+.reads-pager button {
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
+.reads-pager .spacer {
+    flex: 1;
+}
