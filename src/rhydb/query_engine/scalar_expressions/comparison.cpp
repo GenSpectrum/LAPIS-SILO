@@ -16,7 +16,9 @@
 #include "rhydb/common/panic.h"
 #include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/filter/operators/empty.h"
+#include "rhydb/query_engine/filter/operators/full.h"
 #include "rhydb/query_engine/filter/operators/index_scan.h"
+#include "rhydb/query_engine/filter/operators/intersection.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/filter/operators/selection.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
@@ -26,6 +28,7 @@
 #include "rhydb/query_engine/scalar_expressions/string_in_set.h"
 #include "rhydb/storage/column/bool_column.h"
 #include "rhydb/storage/column/date32_column.h"
+#include "rhydb/storage/column/dictionary_encoded_column.h"
 #include "rhydb/storage/column/float_column.h"
 #include "rhydb/storage/column/int_column.h"
 #include "rhydb/storage/column/string_column.h"
@@ -34,12 +37,16 @@ using rhydb::query_engine::filter::operators::Comparator;
 using rhydb::query_engine::filter::operators::CompareToValueSelection;
 using rhydb::query_engine::filter::operators::displayComparator;
 using rhydb::query_engine::filter::operators::Empty;
+using rhydb::query_engine::filter::operators::Full;
 using rhydb::query_engine::filter::operators::IndexScan;
+using rhydb::query_engine::filter::operators::Intersection;
 using rhydb::query_engine::filter::operators::Operator;
+using rhydb::query_engine::filter::operators::OperatorVector;
 using rhydb::query_engine::filter::operators::Selection;
 using rhydb::schema::ColumnIdentifier;
 using rhydb::storage::Table;
 using rhydb::storage::column::Date32Column;
+using rhydb::storage::column::DictionaryEncodedColumn;
 using rhydb::storage::column::FloatColumn;
 using rhydb::storage::column::Int32Column;
 using rhydb::storage::column::Int64Column;
@@ -130,6 +137,52 @@ std::unique_ptr<Operator> compileTypedComparison(
    );
 }
 
+/// `column <> literal` on a dictionary-encoded column. The excluded rows are those holding
+/// the literal plus the null rows (which never match a comparison), and both bitmaps are
+/// already indexed - so this needs one lookup instead of unioning the bitmap of every other
+/// distinct value, which matters on high-cardinality columns.
+std::unique_ptr<Operator> compileDictionaryInequality(
+   const Table& table,
+   const DictionaryEncodedColumn& dictionary_column,
+   const std::string& literal
+) {
+   const auto literal_bitmap = dictionary_column.filter(literal);
+   // The indexed value bitmaps are disjoint from the null bitmap
+   const uint64_t excluded_rows =
+      dictionary_column.null_bitmap.cardinality() +
+      (literal_bitmap == std::nullopt ? 0 : literal_bitmap.value()->cardinality());
+   if (excluded_rows == table.row_layout.numRows()) {
+      return std::make_unique<Empty>(table.row_layout);
+   }
+
+   OperatorVector excluded;
+   if (!dictionary_column.null_bitmap.isEmpty()) {
+      excluded.push_back(std::make_unique<IndexScan>(
+         CopyOnWriteBitmap{&dictionary_column.null_bitmap}, table.row_layout
+      ));
+   }
+   if (literal_bitmap != std::nullopt) {
+      excluded.push_back(
+         std::make_unique<IndexScan>(CopyOnWriteBitmap{literal_bitmap.value()}, table.row_layout)
+      );
+   }
+   if (excluded.empty()) {
+      // No nulls, and no row holds the literal, so every row differs from it.
+      return std::make_unique<Full>(table.row_layout);
+   }
+   if (excluded.size() == 1) {
+      return Operator::negate(std::move(excluded.front()));
+   }
+
+   OperatorVector intersection_children;
+   intersection_children.push_back(Operator::negate(std::move(excluded[0])));
+   OperatorVector intersection_negated_children;
+   intersection_negated_children.push_back(std::move(excluded[1]));
+   return std::make_unique<Intersection>(
+      std::move(intersection_children), std::move(intersection_negated_children), table.row_layout
+   );
+}
+
 std::unique_ptr<Operator> compileStringComparison(
    const Table& table,
    const std::string& column_name,
@@ -164,24 +217,8 @@ std::unique_ptr<Operator> compileStringComparison(
       return std::make_unique<IndexScan>(CopyOnWriteBitmap{bitmap.value()}, table.row_layout);
    }
 
-   // Inequality is the complement of one index lookup: every row except those holding
-   // the literal and except the null rows (which never match a comparison). Going
-   // through the complement keeps this a single lookup instead of unioning the bitmap
-   // of every other distinct value, which matters on high-cardinality columns.
    if (comparator == Comparator::NOT_EQUALS) {
-      roaring::Roaring excluded = dictionary_column.null_bitmap;
-      if (const auto bitmap = dictionary_column.filter(literal); bitmap != std::nullopt) {
-         excluded |= *bitmap.value();
-      }
-      // `excluded` is a subset of the valid row universe, so covering every row means the
-      // complement is empty. Return Empty directly, mirroring the equality path, instead of
-      // a Complement that evaluates to nothing.
-      if (excluded.cardinality() == table.row_layout.numRows()) {
-         return std::make_unique<Empty>(table.row_layout);
-      }
-      return Operator::negate(
-         std::make_unique<IndexScan>(CopyOnWriteBitmap{std::move(excluded)}, table.row_layout)
-      );
+      return compileDictionaryInequality(table, dictionary_column, literal);
    }
 
    // Bitmap-union fast path: every distinct dictionary value whose string matches

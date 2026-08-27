@@ -161,6 +161,13 @@ const QueryTestScenario NOT_EQUALS_DICT_COLUMN_ON_RIGHT = {
       nlohmann::json::parse(R"([{"primaryKey":"id_0"},{"primaryKey":"id_3"}])")
 };
 
+const QueryTestScenario NOT_EQUALS_DICT_IN_CONJUNCTION = {
+   .name = "NOT_EQUALS_DICT_IN_CONJUNCTION",
+   .query = "default.filter(dictField <> 'indexed2' && intField <> 999).project(primaryKey)",
+   .expected_query_result =
+      nlohmann::json::parse(R"([{"primaryKey":"id_0"},{"primaryKey":"id_3"}])")
+};
+
 const QueryTestScenario NOT_EQUALS_NULL_PLAIN = {
    .name = "NOT_EQUALS_NULL_PLAIN",
    .query = "default.filter(stringField <> null).project(primaryKey)",
@@ -205,6 +212,7 @@ QUERY_TEST(
       NOT_EQUALS_DICT_UNIONS_OTHER_VALUES,
       NOT_EQUALS_COLUMN_ON_RIGHT,
       NOT_EQUALS_DICT_COLUMN_ON_RIGHT,
+      NOT_EQUALS_DICT_IN_CONJUNCTION,
       NOT_EQUALS_NULL_PLAIN,
       NOT_EQUALS_NULL_DICT,
       NEGATED_EQUALS_STILL_INCLUDES_NULLS
@@ -263,4 +271,38 @@ QUERY_TEST(
    ComparisonNotEqualsEmpty,
    SINGLE_VALUE_TEST_DATA,
    ::testing::Values(NOT_EQUALS_DICT_MATCHES_NO_ROWS)
+);
+
+// --- A dictionary column without any null row: only the literal has to be excluded, so
+// there is no second bitmap to intersect with. ---
+
+namespace {
+const QueryTestData NO_NULLS_TEST_DATA{
+   .ndjson_input_data =
+      {
+         createSingleValueData("id_a", "a"),
+         createSingleValueData("id_b", "b"),
+      },
+   .database_config = SINGLE_VALUE_DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
+};
+
+const QueryTestScenario NOT_EQUALS_DICT_NO_NULLS = {
+   .name = "NOT_EQUALS_DICT_NO_NULLS",
+   .query = "default.filter(dictField <> 'a').project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_b"}])")
+};
+
+const QueryTestScenario NOT_EQUALS_DICT_NO_NULLS_LITERAL_ABSENT = {
+   .name = "NOT_EQUALS_DICT_NO_NULLS_LITERAL_ABSENT",
+   .query = "default.filter(dictField <> 'never_indexed').project(primaryKey)",
+   .expected_query_result =
+      nlohmann::json::parse(R"([{"primaryKey":"id_a"},{"primaryKey":"id_b"}])")
+};
+}  // namespace
+
+QUERY_TEST(
+   ComparisonNotEqualsNoNulls,
+   NO_NULLS_TEST_DATA,
+   ::testing::Values(NOT_EQUALS_DICT_NO_NULLS, NOT_EQUALS_DICT_NO_NULLS_LITERAL_ABSENT)
 );
