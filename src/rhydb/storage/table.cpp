@@ -66,8 +66,7 @@ nlohmann::json Table::logTable() const {
    return {
       {"name", table_name.getName()},
       {"primaryKey",
-       schema->hasPrimaryKey() ? nlohmann::json(schema->primary_key.name)
-                               : nlohmann::json(nullptr)}
+       schema->hasPrimaryKey() ? nlohmann::json(schema->primary_key.name) : nlohmann::json(nullptr)}
    };
 }
 

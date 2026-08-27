@@ -109,7 +109,7 @@ namespace {
 TableName default_table_name{"default"};
 TableName default_table_name_alias{"data"};
 
-}
+}  // namespace
 
 const TableName& TableName::getDefault() {
    return default_table_name;

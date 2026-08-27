@@ -334,8 +334,7 @@ std::shared_ptr<schema::TableSchema> Initializer::createSchemaFromConfigFiles(
 
    // An empty name marks "no primary key declared" (see TableSchema::hasPrimaryKey).
    const schema::ColumnIdentifier primary_key{
-      .name = database_config.schema.primary_key.value_or(""),
-      .type = schema::ColumnType::STRING
+      .name = database_config.schema.primary_key.value_or(""), .type = schema::ColumnType::STRING
    };
 
    std::map<schema::ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>>
