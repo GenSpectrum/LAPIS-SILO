@@ -63,23 +63,21 @@ namespace rhydb::common {
 
 [[noreturn]] void assertFailure(const char* msg, const char* file, int line);
 
-#define SILO_INTERNAL_ASSERT_OP_(prefix_str, e1, op, e2)                                 \
-   do {                                                                                  \
-      auto silo_internal_assert_op_v1 = (e1);                                           \
-      auto silo_internal_assert_op_v2 = (e2);                                           \
-      if (!(silo_internal_assert_op_v1 op silo_internal_assert_op_v2)) {               \
-         rhydb::common::assertOpFailure(                                                 \
-            prefix_str,                                                                  \
-            #e1,                                                                         \
-            #op,                                                                         \
-            #e2,                                                                         \
-            fmt::format(                                                                 \
-               "{} " #op " {}", silo_internal_assert_op_v1, silo_internal_assert_op_v2 \
-            ),                                                                           \
-            __FILE__,                                                                    \
-            __LINE__                                                                     \
-         );                                                                              \
-      }                                                                                  \
+#define SILO_INTERNAL_ASSERT_OP_(prefix_str, e1, op, e2)                                          \
+   do {                                                                                           \
+      auto silo_internal_assert_op_v1 = (e1);                                                     \
+      auto silo_internal_assert_op_v2 = (e2);                                                     \
+      if (!(silo_internal_assert_op_v1 op silo_internal_assert_op_v2)) {                          \
+         rhydb::common::assertOpFailure(                                                          \
+            prefix_str,                                                                           \
+            #e1,                                                                                  \
+            #op,                                                                                  \
+            #e2,                                                                                  \
+            fmt::format("{} " #op " {}", silo_internal_assert_op_v1, silo_internal_assert_op_v2), \
+            __FILE__,                                                                             \
+            __LINE__                                                                              \
+         );                                                                                       \
+      }                                                                                           \
    } while (0)
 
 #define SILO_ASSERT_OP_(partial_prefix, e1, op, e2) \
