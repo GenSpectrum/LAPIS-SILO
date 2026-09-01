@@ -21,7 +21,7 @@ namespace rhydb::common {
 /// connections. OTOH, to make debugging via gdb or core dumps
 /// possible even when the code that captures exceptions can't be
 /// disabled, `panic` can be instructed at runtime to call `abort`
-/// instead by setting the `SILO_PANIC` environment variable to the
+/// instead by setting the `RHYDB_PANIC` environment variable to the
 /// string `abort` (with any other value, or when unset, panic
 /// silently throws the mentioned exception instead).
 [[noreturn]] void panic(const std::string& msg, const char* file, int line);

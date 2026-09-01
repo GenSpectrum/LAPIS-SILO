@@ -17,9 +17,9 @@ class AppendConfig {
    AppendConfig() = default;
 
   public:
-   std::filesystem::path silo_directory;
+   std::filesystem::path data_directory;
    std::optional<std::filesystem::path> append_file;
-   std::optional<std::filesystem::path> silo_data_source;
+   std::optional<std::filesystem::path> data_source;
 
    /// Create AppendConfig with all default values from the specification
    static AppendConfig withDefaults();
@@ -35,7 +35,7 @@ class AppendConfig {
       const VerifiedConfigAttributes& env_source
    );
 
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE(AppendConfig, silo_directory, append_file, silo_data_source)
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE(AppendConfig, data_directory, append_file, data_source)
 };
 
 }  // namespace rhydb::config

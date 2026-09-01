@@ -90,8 +90,8 @@ TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    EXPECT_GT(database_info.horizontal_bitmaps_size, 0);
 
    // When bumping the serialization version, run `make bump-serialization-version` which sets
-   // SILO_KEEP_SERIALIZED_STATE=1 to preserve the produced directory for committing to Git.
-   if (std::getenv("SILO_KEEP_SERIALIZED_STATE") == nullptr) {
+   // RHYDB_KEEP_SERIALIZED_STATE=1 to preserve the produced directory for committing to Git.
+   if (std::getenv("RHYDB_KEEP_SERIALIZED_STATE") == nullptr) {
       std::filesystem::remove_all(data_source.path);
    }
 }

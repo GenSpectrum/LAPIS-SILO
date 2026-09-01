@@ -7,7 +7,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/split.hpp>
 
-constexpr std::string_view ENV_VAR_PREFIX = "SILO_";
+constexpr std::string_view ENV_VAR_PREFIX = "RHYDB_";
 
 namespace {
 
