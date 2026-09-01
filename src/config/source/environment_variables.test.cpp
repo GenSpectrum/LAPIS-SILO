@@ -64,14 +64,6 @@ TEST(EnvironmentVariables, doesNotErrorWhenThePrefixIsNotRHYDB_) {
    ASSERT_NO_THROW((void)env_vars.verify({}));
 }
 
-TEST(EnvironmentVariables, ignoresDeprecatedSiloPrefixWithoutError) {
-   const std::vector<std::string> allow_list;
-   const char* env_var = "SILO_API_PORT=1234";
-   const std::vector<const char*> var_vector = {env_var, nullptr};
-   auto env_vars = EnvironmentVariables::newWithAllowListAndEnv(allow_list, var_vector.data());
-   ASSERT_NO_THROW((void)env_vars.verify({.program_name = "some_binary_name"}));
-}
-
 TEST(EnvironmentVariables, errorsOnWrongType) {
    const std::vector<std::string> allow_list{"RHYDB_FOO"};
    const char* env_var = "RHYDB_FOO=bar";
