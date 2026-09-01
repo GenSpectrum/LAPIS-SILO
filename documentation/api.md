@@ -12,7 +12,7 @@ rhydb api \
 
 ### Runtime Configuration
 
-Configuration is resolved in order of precedence: CLI arguments > environment variables (prefixed `SILO_`) > config file > defaults.
+Configuration is resolved in order of precedence: CLI arguments > environment variables (prefixed `RHYDB_`) > config file > defaults.
 
 | Key | Default | Description |
 |-----|---------|-------------|

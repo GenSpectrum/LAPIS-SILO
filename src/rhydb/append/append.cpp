@@ -43,10 +43,10 @@ rhydb::RhyDBDataSource getMostRecentOrSpecifiedDatabaseState(
 namespace rhydb::append {
 
 int runAppend(const rhydb::config::AppendConfig& append_config) {
-   const rhydb::RhyDBDirectory silo_directory{append_config.data_directory};
+   const rhydb::RhyDBDirectory data_directory{append_config.data_directory};
 
    const auto database_state_directory =
-      getMostRecentOrSpecifiedDatabaseState(silo_directory, append_config.data_source);
+      getMostRecentOrSpecifiedDatabaseState(data_directory, append_config.data_source);
 
    SPDLOG_INFO("append - Loading database from {}", database_state_directory.path);
    Database database = Database::loadDatabaseState(database_state_directory);

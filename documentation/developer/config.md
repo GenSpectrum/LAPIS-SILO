@@ -64,15 +64,17 @@ There are some complications:
   if given, user-provided config file (taken from (defaults,) env vars
   and command line options).
 
-* Allowing multiple modes (with `silo` currently `api` and
+* Allowing multiple modes (with `rhydb` currently `api` and
   `preprocessing`), while also allowing configuration via environment
   variables, requires that environment variables meant for the other
   mode should not lead to errors. Environment variables are often set
   before deciding in which mode the program should run, or hang
   around, or in the case of the Docker image the configuration files
-  are always specified via env vars, for both modes. However, while
+  are always specified via env vars, for both modes. However,
   totally unknown environment variables that start with the
-  application prefix (`SILO_`) should be reported as usage errors.
+  application prefix (`RHYDB_`) should be reported as usage errors.
+  Variables that still use the deprecated `SILO_` prefix are warned
+  about and ignored, to ease migration.
 
 The logic for handling the precedence and these complications is in
 the templated [`getConfig`](../src/config/config_interface.h)

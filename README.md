@@ -2,8 +2,8 @@
 
 High-performance analytical database for sequence alignment data
 
-RhyDB was formerly named SILO. The rename is still in progress: environment variables still use the `SILO_` prefix, and
-the repository is still `GenSpectrum/LAPIS-SILO`. Documentation refers to those by their actual names.
+RhyDB was formerly named SILO. The rename is still in progress: the repository is still `GenSpectrum/LAPIS-SILO`.
+Documentation refers to those by their actual names.
 
 For information on how to build, test, and contribute to RhyDB, see [Contributing](documentation/developer/contributing.md).
 

@@ -73,7 +73,7 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
    const std::string& key_path_string
 ) {
    if (!key_path_string.starts_with(ENV_VAR_PREFIX)) {
-      throw rhydb::config::ConfigException(fmt::format(
+      throw ConfigException(fmt::format(
          "the provided option '{}' is not a valid environment variable option. It should be "
          "prefixed with '{}'",
          key_path_string,
@@ -94,7 +94,7 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
 
    auto result = AmbiguousConfigKeyPath::tryFrom(std::move(delimited_lowercase_strings));
    if (result == std::nullopt) {
-      throw rhydb::config::ConfigException(fmt::format(
+      throw ConfigException(fmt::format(
          "the provided option '{}' is not a valid environment variable option", key_path_string
       ));
    }
@@ -130,7 +130,7 @@ AmbiguousConfigKeyPath EnvironmentVariables::stringToConfigKeyPath(
    if (!invalid_config_keys.empty()) {
       const std::string_view keys_or_options =
          (invalid_config_keys.size() >= 2) ? "variables" : "variable";
-      throw rhydb::config::ConfigException(fmt::format(
+      throw ConfigException(fmt::format(
          "in {}: unknown {} {} for '{}'",
          debugContext(),
          keys_or_options,

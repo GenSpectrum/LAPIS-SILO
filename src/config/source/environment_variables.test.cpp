@@ -43,7 +43,7 @@ TEST(EnvironmentVariables, successfullyIgnoreTheAllowList) {
    ASSERT_NO_THROW((void)env_vars.verify({}));
 }
 
-TEST(EnvironmentVariables, errorsIfSiloDebugIsProvidedButNotAllowed) {
+TEST(EnvironmentVariables, errorsIfRhydbDebugIsProvidedButNotAllowed) {
    const std::vector<std::string> allow_list;
    const char* env_var = "RHYDB_DEBUG=1";
    const std::vector<const char*> var_vector = {env_var, nullptr};
