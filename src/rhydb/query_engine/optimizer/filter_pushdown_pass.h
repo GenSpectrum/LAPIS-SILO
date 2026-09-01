@@ -17,6 +17,9 @@ class MostRecentCommonAncestorNode;
 class UnionAllNode;
 class JoinNode;
 class SchemaNode;
+class FetchNode;
+class OrderByWithLimitNode;
+class AggregateNode;
 }  // namespace rhydb::query_engine::operators
 
 namespace rhydb::query_engine::optimizer {
@@ -48,6 +51,10 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    operators::QueryNodePtr operator()(operators::UnionAllNode& node);
 
    operators::QueryNodePtr operator()(operators::JoinNode& node);
+
+   operators::QueryNodePtr operator()(operators::FetchNode& node);
+   operators::QueryNodePtr operator()(operators::OrderByWithLimitNode& node);
+   operators::QueryNodePtr operator()(operators::AggregateNode& node);
 };
 
 }  // namespace rhydb::query_engine::optimizer

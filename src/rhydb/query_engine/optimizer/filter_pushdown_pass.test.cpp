@@ -1,19 +1,25 @@
 #include "rhydb/query_engine/optimizer/filter_pushdown_pass.h"
 
+#include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <arrow/acero/options.h>
 
+#include "rhydb/query_engine/operators/aggregate_node.h"
+#include "rhydb/query_engine/operators/fetch_node.h"
 #include "rhydb/query_engine/operators/filter_node.h"
 #include "rhydb/query_engine/operators/join_node.h"
 #include "rhydb/query_engine/operators/map_node.h"
+#include "rhydb/query_engine/operators/order_by_with_limit_node.h"
 #include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
+#include "rhydb/query_engine/order_by_field.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/query_engine/scalar_expressions/zstd_decompress_scalar.h"
@@ -406,6 +412,85 @@ TEST(FilterPushdownPass, pushesFiltersInsideJoinInputsIntoScans) {
    // left: branch filter (false) + scan filter (true); right: only its scan filter (true)
    EXPECT_EQ(left_scan->filter->toString(), "And(false & true)");
    EXPECT_EQ(right_scan->filter->toString(), "And(true)");
+}
+
+// --- FilterNode(FetchNode(FilterNode(TableScanNode))) ---
+//
+// A FetchNode (limit/offset) changes which rows survive, so a filter above it must NOT be pushed
+// below it (`limit(1).filter(...)` must filter the single limited row, not pre-filter and then
+// limit). The outer filter is retained above the fetch; a filter living inside the fetch's child
+// subtree is still pushed into the scan.
+TEST(FilterPushdownPass, retainsFilterAboveFetchWhilePushingChildFilters) {
+   auto fetch = std::make_unique<operators::FetchNode>(
+      makeFilteredScan(false), std::optional<uint32_t>{1}, std::nullopt
+   );
+   auto filter_node = std::make_unique<operators::FilterNode>(std::move(fetch), makeDummyFilter());
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::FILTER);
+   auto* filter = dynamic_cast<operators::FilterNode*>(result.get());
+   EXPECT_EQ(filter->filter->toString(), "And(true)");
+   ASSERT_EQ(filter->child->kind(), operators::NodeKind::FETCH);
+   auto* fetch_node = dynamic_cast<operators::FetchNode*>(filter->child.get());
+   ASSERT_EQ(fetch_node->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(fetch_node->child.get());
+   // The child-internal filter (false) and the scan's own filter (true) were merged into the scan.
+   EXPECT_EQ(table_scan->filter->toString(), "And(false & true)");
+}
+
+// --- FilterNode(OrderByWithLimitNode(FilterNode(TableScanNode))) ---
+//
+// A top-k node keeps only the `offset + limit` smallest rows, so like FetchNode a filter above it
+// must be retained rather than pushed below it. Child-internal filters still reach the scan.
+TEST(FilterPushdownPass, retainsFilterAboveOrderByWithLimitWhilePushingChildFilters) {
+   auto order_limit = std::make_unique<operators::OrderByWithLimitNode>(
+      makeFilteredScan(false),
+      std::vector<rhydb::query_engine::OrderByField>{},
+      uint32_t{1},
+      std::nullopt,
+      std::nullopt
+   );
+   auto filter_node =
+      std::make_unique<operators::FilterNode>(std::move(order_limit), makeDummyFilter());
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::FILTER);
+   auto* filter = dynamic_cast<operators::FilterNode*>(result.get());
+   EXPECT_EQ(filter->filter->toString(), "And(true)");
+   ASSERT_EQ(filter->child->kind(), operators::NodeKind::ORDER_BY_WITH_LIMIT);
+   auto* order_node = dynamic_cast<operators::OrderByWithLimitNode*>(filter->child.get());
+   ASSERT_EQ(order_node->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(order_node->child.get());
+   EXPECT_EQ(table_scan->filter->toString(), "And(false & true)");
+}
+
+// --- FilterNode(AggregateNode(FilterNode(TableScanNode))) ---
+//
+// An aggregate produces a new schema (group-by keys and aggregate outputs such as `count`) that
+// does not exist below it, so a filter referencing those columns must be retained above the
+// aggregate and realized as an Arrow filter over its output, not pushed into the scan. Filters
+// inside the aggregate's input subtree are still pushed down.
+TEST(FilterPushdownPass, retainsFilterAboveAggregateWhilePushingChildFilters) {
+   auto aggregate = std::make_unique<operators::AggregateNode>(
+      makeFilteredScan(false),
+      std::vector<rhydb::schema::ColumnIdentifier>{},
+      std::vector<operators::AggregateDefinition>{}
+   );
+   auto filter_node =
+      std::make_unique<operators::FilterNode>(std::move(aggregate), makeDummyFilter());
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::FILTER);
+   auto* filter = dynamic_cast<operators::FilterNode*>(result.get());
+   EXPECT_EQ(filter->filter->toString(), "And(true)");
+   ASSERT_EQ(filter->child->kind(), operators::NodeKind::AGGREGATE);
+   auto* aggregate_node = dynamic_cast<operators::AggregateNode*>(filter->child.get());
+   ASSERT_EQ(aggregate_node->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(aggregate_node->child.get());
+   EXPECT_EQ(table_scan->filter->toString(), "And(false & true)");
 }
 
 }  // namespace

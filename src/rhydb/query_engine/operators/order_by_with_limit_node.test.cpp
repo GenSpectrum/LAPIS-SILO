@@ -101,10 +101,25 @@ const QueryTestScenario LIMIT_LARGER_THAN_INPUT_SCENARIO = {
    )
 };
 
+// A filter applied to the *output* of a limit must run after the limit, not be pushed below it.
+const QueryTestScenario FILTER_ABOVE_LIMIT_SCENARIO = {
+   .name = "FILTER_ABOVE_LIMIT_NOT_PUSHED_BELOW",
+   .query =
+      "default.project({primaryKey, int_value, date}).orderBy({int_value.asc(), "
+      "date.asc()}).limit(3).filter(int_value = 1)",
+   .expected_query_result =
+      nlohmann::json({{{"primaryKey", "id_2"}, {"int_value", 1}, {"date", nullptr}}})
+};
+
 }  // namespace
 
 QUERY_TEST(
    OrderByWithLimitNodeTest,
    TEST_DATA,
-   ::testing::Values(ASC_LIMIT_SCENARIO, DESC_LIMIT_SCENARIO, LIMIT_LARGER_THAN_INPUT_SCENARIO)
+   ::testing::Values(
+      ASC_LIMIT_SCENARIO,
+      DESC_LIMIT_SCENARIO,
+      LIMIT_LARGER_THAN_INPUT_SCENARIO,
+      FILTER_ABOVE_LIMIT_SCENARIO
+   )
 );
