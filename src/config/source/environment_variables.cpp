@@ -8,6 +8,7 @@
 #include <boost/algorithm/string/split.hpp>
 
 constexpr std::string_view ENV_VAR_PREFIX = "RHYDB_";
+constexpr std::string_view DEPRECATED_ENV_VAR_PREFIX = "SILO_";
 
 namespace {
 
@@ -34,6 +35,14 @@ EnvironmentVariables EnvironmentVariables::newWithAllowListAndEnv(
             if (key.starts_with(ENV_VAR_PREFIX)) {
                const std::string val{env + i + 1};
                key_value_pairs.emplace_back(key, val);
+            } else if (key.starts_with(DEPRECATED_ENV_VAR_PREFIX)) {
+               SPDLOG_WARN(
+                  "Ignoring environment variable '{}': the '{}' prefix is deprecated and no longer "
+                  "read. Environment variables now use the '{}' prefix.",
+                  key,
+                  DEPRECATED_ENV_VAR_PREFIX,
+                  ENV_VAR_PREFIX
+               );
             }
             break;
          }
