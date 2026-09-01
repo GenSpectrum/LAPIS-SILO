@@ -25,8 +25,8 @@ The bindings depend on `pyarrow` and `pyroaring`, which are installed automatica
 ```python
 from rhydb import Database
 
-# Load a preprocessed database state from a silo-directory
-db = Database("path/to/silo-directory")
+# Load a preprocessed database state from a data directory
+db = Database("path/to/data-directory")
 
 # Run a SaneQL query; results come back as a pyarrow.Table
 table = db.query("default.filter(region = 'Europe').project({primaryKey, age})")
@@ -45,7 +45,7 @@ db.update_column("default", "age", "0", filter_expression="age = 4")
 **`Database(file_name=None)`**
 Creates an empty database, or loads an existing one when `file_name` is given.
 
-`file_name` is a **silo-directory**: the directory that holds one or more versioned database states (see [Data Directories](data_directories.md)). The most recent compatible state is loaded automatically.
+`file_name` is a **data directory**: the directory that holds one or more versioned database states (see [Data Directories](data_directories.md)). The most recent compatible state is loaded automatically.
 
 ```python
 empty = Database()                       # in-memory, no tables

@@ -56,9 +56,9 @@ TEST(EnvironmentVariables, errorsIfSiloDebugIsProvidedButNotAllowed) {
    );
 }
 
-TEST(EnvironmentVariables, doesNotErrorWhenThePrefixIsNotSILO_) {
+TEST(EnvironmentVariables, doesNotErrorWhenThePrefixIsNotRHYDB_) {
    const std::vector<std::string> allow_list;
-   const char* env_var = "SILODEBUG=1";
+   const char* env_var = "RHYDBDEBUG=1";
    const std::vector<const char*> var_vector = {env_var, nullptr};
    auto env_vars = EnvironmentVariables::newWithAllowListAndEnv(allow_list, var_vector.data());
    ASSERT_NO_THROW((void)env_vars.verify({}));
