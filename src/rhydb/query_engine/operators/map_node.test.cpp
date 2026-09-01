@@ -448,10 +448,33 @@ const QueryTestScenario FILTER_ISNULL_ABOVE_MAP_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
 };
 
+// Negation over a map-produced column follows SILO's set-complement semantics (a null cell is part
+// of the complement and is kept), not SQL three-valued logic. id_0's date is null, so its derived
+// `week` is null and `!(week = '2020-W53')` retains it; id_1's week is '2020-W53' and is removed.
+const QueryTestScenario FILTER_NEGATION_KEEPS_NULL_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_NEGATION_KEEPS_NULL_ABOVE_MAP",
+   .query =
+      "default.map({week := date.isoWeek()}).filter(!(week = '2020-W53')).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
+};
+
+// The equivalent negation pushed into the table scan (bitmap path) must return the same row, so
+// the result is independent of whether the filter is executed above the map or pushed down.
+const QueryTestScenario FILTER_NEGATION_KEEPS_NULL_PUSHED_DOWN_SCENARIO = {
+   .name = "FILTER_NEGATION_KEEPS_NULL_PUSHED_DOWN",
+   .query = "default.filter(!(date = '2020-12-31'::date)).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
+};
+
 }  // namespace
 
 QUERY_TEST(
    MapIsoWeekNullTest,
    ISO_WEEK_NULL_TEST_DATA,
-   ::testing::Values(MAP_ISO_WEEK_NULL_SCENARIO, FILTER_ISNULL_ABOVE_MAP_SCENARIO)
+   ::testing::Values(
+      MAP_ISO_WEEK_NULL_SCENARIO,
+      FILTER_ISNULL_ABOVE_MAP_SCENARIO,
+      FILTER_NEGATION_KEEPS_NULL_ABOVE_MAP_SCENARIO,
+      FILTER_NEGATION_KEEPS_NULL_PUSHED_DOWN_SCENARIO
+   )
 );
