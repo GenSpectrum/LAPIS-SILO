@@ -138,6 +138,27 @@ const QueryTestScenario ORDERING_COLUMN_ON_RIGHT_REJECTED = {
       "The comparison operators <,>,<=,>= are not supported for boolean column 'boolField'"
 };
 
+const QueryTestScenario BARE_BOOL_FILTER = {
+   .name = "BOOL_BARE_FILTER",
+   .query = "default.filter(boolField).project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_true"}])")
+};
+
+const QueryTestScenario NEGATED_BARE_BOOL_FILTER = {
+   .name = "BOOL_NEGATED_BARE_FILTER",
+   .query = "default.filter(!boolField).project(primaryKey)",
+   .expected_query_result =
+      nlohmann::json::parse(R"([{"primaryKey":"id_false"},{"primaryKey":"id_null"}])")
+};
+
+const QueryTestScenario BARE_NON_BOOL_FILTER_REJECTED = {
+   .name = "BOOL_BARE_NON_BOOL_FILTER_REJECTED",
+   .query = "default.filter(intField).project(primaryKey)",
+   .expected_error_message =
+      "column 'intField' has type INT32 and cannot be used directly as a filter predicate; only "
+      "boolean columns can. Use a comparison such as `intField = ...` instead, at 1:16"
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -156,6 +177,9 @@ QUERY_TEST(
       LESS_EQUAL_REJECTED,
       GREATER_THAN_REJECTED,
       GREATER_EQUAL_REJECTED,
-      ORDERING_COLUMN_ON_RIGHT_REJECTED
+      ORDERING_COLUMN_ON_RIGHT_REJECTED,
+      BARE_BOOL_FILTER,
+      NEGATED_BARE_BOOL_FILTER,
+      BARE_NON_BOOL_FILTER_REJECTED
    )
 );

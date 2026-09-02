@@ -229,6 +229,34 @@ TEST(AstToQueryConvertToFilter, unsupportedExpressionTypeThrows) {
    );
 }
 
+TEST(AstToQueryConvertToFilter, booleanColumnReferenceBuildsFieldRef) {
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "isHuman", .type = rhydb::schema::ColumnType::BOOL}
+   };
+   EXPECT_EQ(parseFilter("isHuman", schema)->toString(), "isHuman");
+}
+
+TEST(AstToQueryConvertToFilter, nonBooleanColumnReferenceThrows) {
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+   };
+   EXPECT_THAT(
+      [&]() { (void)parseFilter("age", schema); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("cannot be used directly as a filter predicate")
+      )
+   );
+}
+
+TEST(AstToQueryConvertToFilter, unknownColumnReferenceThrows) {
+   EXPECT_THAT(
+      []() { (void)parseFilter("missing"); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("filter references unknown column 'missing'")
+      )
+   );
+}
+
 // --- integer comparisons ---
 
 TEST(AstToQueryIntComparison, lessThanBuildsComparison) {

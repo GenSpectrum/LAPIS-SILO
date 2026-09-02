@@ -674,6 +674,57 @@ ScalarExpressionPtr handleMutationProfile(
    );
 }
 
+ScalarExpressionPtr convertIdentifierToFilter(
+   const ast::Identifier& node,
+   const ast::Expression& ast,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   auto found =
+      std::ranges::find_if(schema, [&](const auto& col) { return col.name == node.name; });
+   CHECK_RHYDB_QUERY(
+      found != schema.end(),
+      "filter references unknown column '{}' at {}:{}",
+      node.name,
+      ast.location.line,
+      ast.location.column
+   );
+   CHECK_RHYDB_QUERY(
+      found->type == schema::ColumnType::BOOL,
+      "column '{}' has type {} and cannot be used directly as a filter predicate; only boolean "
+      "columns can. Use a comparison such as `{} = ...` instead, at {}:{}",
+      node.name,
+      schema::columnTypeToString(found->type),
+      node.name,
+      ast.location.line,
+      ast.location.column
+   );
+   return std::make_unique<scalar_expressions::FieldRef>(*found);
+}
+
+ScalarExpressionPtr convertFunctionCallToFilter(
+   const ast::FunctionCall& node,
+   const ast::Expression& ast,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   const auto* entry = ScalarFunctionRegistry::instance().findFunction(node.function_name);
+   CHECK_RHYDB_QUERY(entry != nullptr, "unknown scalar function '{}'", node.function_name);
+   auto bound = bindArguments(
+      node.function_name, entry->signature, node.positional_arguments, node.named_arguments
+   );
+   auto expression = entry->handler(bound, schema);
+   // The registry also holds value-producing scalar functions (e.g. `at`), which are not filter
+   // predicates. Reject them here rather than letting a non-boolean expression reach compile().
+   CHECK_RHYDB_QUERY(
+      expression->type() == schema::ColumnType::BOOL,
+      "scalar function '{}' produces a {} value and cannot be used as a filter predicate at {}:{}",
+      node.function_name,
+      schema::columnTypeToString(expression->type()),
+      ast.location.line,
+      ast.location.column
+   );
+   return expression;
+}
+
 }  // namespace
 
 std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
@@ -692,26 +743,10 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
             );
          } else if constexpr (std::is_same_v<T, ast::BoolLiteral>) {
             return std::make_unique<scalar_expressions::BoolLiteral>(node.value);
+         } else if constexpr (std::is_same_v<T, ast::Identifier>) {
+            return convertIdentifierToFilter(node, ast, schema);
          } else if constexpr (std::is_same_v<T, ast::FunctionCall>) {
-            const auto* entry = ScalarFunctionRegistry::instance().findFunction(node.function_name);
-            CHECK_RHYDB_QUERY(entry != nullptr, "unknown scalar function '{}'", node.function_name);
-            auto bound = bindArguments(
-               node.function_name, entry->signature, node.positional_arguments, node.named_arguments
-            );
-            auto expression = entry->handler(bound, schema);
-            // The registry also holds value-producing scalar functions (e.g. `at`),
-            // which are not filter predicates. Reject them here rather than letting a
-            // non-boolean expression reach compile().
-            CHECK_RHYDB_QUERY(
-               expression->type() == schema::ColumnType::BOOL,
-               "scalar function '{}' produces a {} value and cannot be used as a filter "
-               "predicate at {}:{}",
-               node.function_name,
-               schema::columnTypeToString(expression->type()),
-               ast.location.line,
-               ast.location.column
-            );
-            return expression;
+            return convertFunctionCallToFilter(node, ast, schema);
          } else {
             throw IllegalQueryException(
                "unsupported expression type in filter context at {}:{}",
