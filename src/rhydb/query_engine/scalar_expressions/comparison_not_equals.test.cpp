@@ -16,6 +16,7 @@ nlohmann::json createData(
    const std::optional<std::string>& string_field,
    const std::optional<std::string>& dict_field,
    const std::optional<int32_t>& int_field,
+   const std::optional<int64_t>& int64_field,
    const std::optional<double>& float_field,
    const std::optional<std::string>& date_field,
    const std::optional<bool>& bool_field
@@ -29,6 +30,7 @@ nlohmann::json createData(
    result["stringField"] = to_json(string_field);
    result["dictField"] = to_json(dict_field);
    result["intField"] = to_json(int_field);
+   result["int64Field"] = to_json(int64_field);
    result["floatField"] = to_json(float_field);
    result["dateField"] = to_json(date_field);
    result["boolField"] = to_json(bool_field);
@@ -49,6 +51,8 @@ schema:
      generateIndex: true
    - name: "intField"
      type: "int"
+   - name: "int64Field"
+     type: "int64"
    - name: "floatField"
      type: "float"
    - name: "dateField"
@@ -60,13 +64,17 @@ schema:
 
 const auto REFERENCE_GENOMES = ReferenceGenomes{{}, {}};
 
+// Outside the int32 range
+const int64_t INT64_VALUE = 5'000'000'001LL;
+const int64_t OTHER_INT64_VALUE = 5'000'000'002LL;
+
 // id_2 is null in every column, so it is the row that distinguishes "<> excludes
 // nulls" from the old negated-equality behaviour.
 const QueryTestData TEST_DATA{
    .ndjson_input_data =
       {
-         createData("id_0", "value1", "indexed1", 1, 1.5, "2021-01-01", true),
-         createData("id_1", "value2", "indexed2", 2, 2.5, "2021-02-01", false),
+         createData("id_0", "value1", "indexed1", 1, INT64_VALUE, 1.5, "2021-01-01", true),
+         createData("id_1", "value2", "indexed2", 2, OTHER_INT64_VALUE, 2.5, "2021-02-01", false),
          createData(
             "id_2",
             std::nullopt,
@@ -74,9 +82,10 @@ const QueryTestData TEST_DATA{
             std::nullopt,
             std::nullopt,
             std::nullopt,
+            std::nullopt,
             std::nullopt
          ),
-         createData("id_3", "value1", "indexed1", 1, 1.5, "2021-01-01", true),
+         createData("id_3", "value1", "indexed1", 1, INT64_VALUE, 1.5, "2021-01-01", true),
       },
    .database_config = DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES
@@ -98,6 +107,12 @@ const QueryTestScenario NOT_EQUALS_INT = {
    .name = "NOT_EQUALS_INT",
    .query = "default.filter(intField <> 1).project(primaryKey)",
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_1"}])")
+};
+
+const QueryTestScenario NOT_EQUALS_INT64 = {
+   .name = "NOT_EQUALS_INT64",
+   .query = "default.filter(int64Field <> 5000000001).project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_1"}])"),
 };
 
 const QueryTestScenario NOT_EQUALS_FLOAT = {
@@ -141,11 +156,11 @@ const QueryTestScenario NOT_EQUALS_DICT_VALUE_NOT_IN_DICTIONARY = {
       )
 };
 
-const QueryTestScenario NOT_EQUALS_DICT_UNIONS_OTHER_VALUES = {
-   .name = "NOT_EQUALS_DICT_UNIONS_OTHER_VALUES",
+const QueryTestScenario NOT_EQUALS_DICT_EXCLUDES_MATCHING_VALUE = {
+   .name = "NOT_EQUALS_DICT_EXCLUDES_MATCHING_VALUE",
    .query = "default.filter(dictField <> 'indexed2').project(primaryKey)",
    .expected_query_result =
-      nlohmann::json::parse(R"([{"primaryKey":"id_0"},{"primaryKey":"id_3"}])")
+      nlohmann::json::parse(R"([{"primaryKey":"id_0"},{"primaryKey":"id_3"}])"),
 };
 
 const QueryTestScenario NOT_EQUALS_COLUMN_ON_RIGHT = {
@@ -203,13 +218,14 @@ QUERY_TEST(
       NOT_EQUALS_STRING_PLAIN,
       NOT_EQUALS_STRING_DICT,
       NOT_EQUALS_INT,
+      NOT_EQUALS_INT64,
       NOT_EQUALS_FLOAT,
       NOT_EQUALS_DATE,
       NOT_EQUALS_BOOL_TRUE,
       NOT_EQUALS_BOOL_FALSE,
       NOT_EQUALS_VALUE_NOT_PRESENT,
       NOT_EQUALS_DICT_VALUE_NOT_IN_DICTIONARY,
-      NOT_EQUALS_DICT_UNIONS_OTHER_VALUES,
+      NOT_EQUALS_DICT_EXCLUDES_MATCHING_VALUE,
       NOT_EQUALS_COLUMN_ON_RIGHT,
       NOT_EQUALS_DICT_COLUMN_ON_RIGHT,
       NOT_EQUALS_DICT_IN_CONJUNCTION,
