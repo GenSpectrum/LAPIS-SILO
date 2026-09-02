@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <utility>
 
+#include <arrow/compute/api.h>
 #include <fmt/format.h>
 
 #include "rhydb/common/panic.h"
@@ -119,6 +120,12 @@ std::vector<schema::ColumnIdentifier> Equals::freeIUs() const {
       }
    }
    return result;
+}
+
+arrow::Result<arrow::compute::Expression> Equals::toArrowExpression() const {
+   ARROW_ASSIGN_OR_RAISE(auto left_expression, left->toArrowExpression());
+   ARROW_ASSIGN_OR_RAISE(auto right_expression, right->toArrowExpression());
+   return arrow::compute::equal(left_expression, right_expression);
 }
 
 std::unique_ptr<ScalarExpression> Equals::rewrite(

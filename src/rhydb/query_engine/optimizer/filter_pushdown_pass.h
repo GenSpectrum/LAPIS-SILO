@@ -17,6 +17,9 @@ class MostRecentCommonAncestorNode;
 class UnionAllNode;
 class JoinNode;
 class SchemaNode;
+class FetchNode;
+class OrderByWithLimitNode;
+class AggregateNode;
 }  // namespace rhydb::query_engine::operators
 
 namespace rhydb::query_engine::optimizer {
@@ -25,6 +28,10 @@ namespace rhydb::query_engine::optimizer {
 /// into the child node's filter field
 class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    std::vector<std::unique_ptr<scalar_expressions::ScalarExpression>> current_filters;
+
+   /// Adds a filter to `current_filters`, splitting a top-level conjunction (`And`) into its
+   /// individual conjuncts so each can be pushed to the deepest node that supports it.
+   void addFilter(std::unique_ptr<scalar_expressions::ScalarExpression> filter);
 
   public:
    using PipelinePassBase<FilterPushdownPass>::operator();
@@ -44,6 +51,10 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    operators::QueryNodePtr operator()(operators::UnionAllNode& node);
 
    operators::QueryNodePtr operator()(operators::JoinNode& node);
+
+   operators::QueryNodePtr operator()(operators::FetchNode& node);
+   operators::QueryNodePtr operator()(operators::OrderByWithLimitNode& node);
+   operators::QueryNodePtr operator()(operators::AggregateNode& node);
 };
 
 }  // namespace rhydb::query_engine::optimizer

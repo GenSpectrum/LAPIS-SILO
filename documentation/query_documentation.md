@@ -366,7 +366,7 @@ join(
 
   fails because `primaryKey` and `country` are present in both inputs; give the two sides distinct names instead (`primaryKey = pk`).
 
-- `filter()` cannot be applied to the output of a `join()`. A predicate above a join is not pushed into a join input, because doing so is not semantics-preserving in general (for example, pushing into the null-supplying side of an outer join would keep null-extended rows that the predicate should have removed). Apply the filter to one of the join inputs instead:
+- `filter()` above a `join()` is applied to the join output rather than pushed into an input, because pushing into an input is not semantics-preserving in general (for example, pushing into the null-supplying side of an outer join would keep null-extended rows that the predicate should have removed). The predicate must have an Arrow translation (bitmap-only predicates such as `hasMutation()` do not); to filter on such a predicate, apply it to a join input instead:
 
 ```
 join(
@@ -481,7 +481,7 @@ so operators such as `project`, `map`, `orderBy` and `limit` can be chained afte
 When a sequence column is read into a pipeline it is decompressed to a string before `schema()` observes it,
 so nucleotide and amino acid sequences cannot be distinguished from ordinary strings at this point.
 
-**Limitation:** `filter(...)` cannot be applied to `schema()`. A filter is only realizable when it can be pushed into a table scan, and there is none above `schema()`.
+**Limitation:** `filter(...)` cannot be applied to `schema()`. `schema()` is a pipeline breaker that produces a new result relation, and filtering its output is not supported; apply the filter before `schema()` instead.
 
 ---
 
