@@ -236,18 +236,6 @@ TEST(AstToQueryConvertToFilter, booleanColumnReferenceBuildsFieldRef) {
    EXPECT_EQ(parseFilter("isHuman", schema)->toString(), "isHuman");
 }
 
-TEST(AstToQueryConvertToFilter, nonBooleanColumnReferenceThrows) {
-   const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
-   };
-   EXPECT_THAT(
-      [&]() { (void)parseFilter("age", schema); },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("cannot be used directly as a filter predicate")
-      )
-   );
-}
-
 TEST(AstToQueryConvertToFilter, unknownColumnReferenceThrows) {
    EXPECT_THAT(
       []() { (void)parseFilter("missing"); },

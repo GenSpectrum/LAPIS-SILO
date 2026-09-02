@@ -688,16 +688,6 @@ ScalarExpressionPtr convertIdentifierToFilter(
       ast.location.line,
       ast.location.column
    );
-   CHECK_RHYDB_QUERY(
-      found->type == schema::ColumnType::BOOL,
-      "column '{}' has type {} and cannot be used directly as a filter predicate; only boolean "
-      "columns can. Use a comparison such as `{} = ...` instead, at {}:{}",
-      node.name,
-      schema::columnTypeToString(found->type),
-      node.name,
-      ast.location.line,
-      ast.location.column
-   );
    return std::make_unique<scalar_expressions::FieldRef>(*found);
 }
 

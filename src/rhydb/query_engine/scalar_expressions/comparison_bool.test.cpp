@@ -155,8 +155,7 @@ const QueryTestScenario BARE_NON_BOOL_FILTER_REJECTED = {
    .name = "BOOL_BARE_NON_BOOL_FILTER_REJECTED",
    .query = "default.filter(intField).project(primaryKey)",
    .expected_error_message =
-      "column 'intField' has type INT32 and cannot be used directly as a filter predicate; only "
-      "boolean columns can. Use a comparison such as `intField = ...` instead, at 1:16"
+      "The column 'intField' is not of type bool and cannot be used directly as a filter predicate"
 };
 
 }  // namespace
