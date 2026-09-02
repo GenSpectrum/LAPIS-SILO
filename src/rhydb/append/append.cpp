@@ -5,10 +5,10 @@
 #include "rhydb/common/silo_directory.h"
 #include "rhydb/database.h"
 
-using rhydb::config::AppendConfig;
 using rhydb::Database;
 using rhydb::RhyDBDataSource;
 using rhydb::RhyDBDirectory;
+using rhydb::config::AppendConfig;
 
 class AppendError : public std::runtime_error {
   public:
