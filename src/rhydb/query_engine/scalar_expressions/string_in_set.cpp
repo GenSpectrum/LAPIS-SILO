@@ -41,12 +41,12 @@ std::unique_ptr<ScalarExpression> StringInSet::rewrite(
    const storage::Table& table,
    AmbiguityMode /*mode*/
 ) const {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.schema->getColumn(column.name).has_value(),
       "The database does not contain the column '{}'",
       column.name
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.columns.string_columns.contains(column.name) ||
          table.columns.dictionary_encoded_columns.contains(column.name),
       "The column '{}' is not of type string",

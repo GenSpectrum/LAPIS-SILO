@@ -17,7 +17,7 @@ BoundArguments::BoundArguments(
 
 const ast::Expression& BoundArguments::at(const std::string& name) const {
    auto it = bound_.find(name);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       it != bound_.end(), "{}(): required argument '{}' is missing", function_name_, name
    );
    return *it->second;
@@ -75,7 +75,7 @@ BoundArguments bindArguments(
          }
          ++next_param;
       }
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          target != nullptr, "{}() received too many positional arguments", function_name
       );
       bound[target->name] = pos_arg.value.get();
@@ -89,13 +89,13 @@ BoundArguments bindArguments(
 
    // Bind named arguments
    for (const auto& named_arg : named) {
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          valid_names.contains(named_arg.name),
          "{}() received unknown argument '{}'",
          function_name,
          named_arg.name
       );
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          !bound.contains(named_arg.name),
          "{}() received duplicate argument '{}'",
          function_name,
@@ -106,7 +106,7 @@ BoundArguments bindArguments(
 
    // Check that all required parameters are bound
    for (const auto& param : signature.parameters) {
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          !param.required || bound.contains(param.name),
          "{}() requires argument '{}'",
          function_name,
