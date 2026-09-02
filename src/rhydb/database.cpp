@@ -244,7 +244,7 @@ std::string Database::getAminoAcidReferenceSequence(
       table_schema->getColumnMetadata<storage::column::SequenceColumn<AminoAcid>>(sequence_name);
    if (maybe_sequence_column_metadata == std::nullopt) {
       SPDLOG_ERROR(
-         "The database table {} does not contain the nucleotide sequence column {}",
+         "The database table {} does not contain the amino acid sequence column {}",
          table_name,
          sequence_name
       );
