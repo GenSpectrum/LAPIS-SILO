@@ -113,7 +113,7 @@ ExpressionPtr makeExpr(ExpressionVariant value, SourceLocation location) {
 }
 
 std::string extractIdentifierName(const Expression& expression) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<Identifier>(expression.value),
       "expected identifier at {}:{}",
       expression.location.line,
@@ -123,7 +123,7 @@ std::string extractIdentifierName(const Expression& expression) {
 }
 
 std::string extractStringLiteral(const Expression& expression) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<StringLiteral>(expression.value),
       "expected string literal at {}:{}",
       expression.location.line,
@@ -133,19 +133,19 @@ std::string extractStringLiteral(const Expression& expression) {
 }
 
 uint32_t extractUint32Literal(const Expression& expression) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<IntLiteral>(expression.value),
       "expected integer literal at {}:{}",
       expression.location.line,
       expression.location.column
    );
    int64_t parsed_value = std::get<IntLiteral>(expression.value).value;
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       parsed_value >= std::numeric_limits<uint32_t>::min(),
       "Cannot cast {} to uint32. Value out of range",
       parsed_value
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       parsed_value <= std::numeric_limits<uint32_t>::max(),
       "Cannot cast {} to uint32. Value out of range",
       parsed_value
@@ -154,19 +154,19 @@ uint32_t extractUint32Literal(const Expression& expression) {
 }
 
 int32_t extractInt32Literal(const Expression& expression) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<IntLiteral>(expression.value),
       "expected integer literal at {}:{}",
       expression.location.line,
       expression.location.column
    );
    int64_t parsed_value = std::get<IntLiteral>(expression.value).value;
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       parsed_value >= std::numeric_limits<int32_t>::min(),
       "Cannot cast {} to int32. Value out of range",
       parsed_value
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       parsed_value <= std::numeric_limits<int32_t>::max(),
       "Cannot cast {} to int32. Value out of range",
       parsed_value
@@ -175,7 +175,7 @@ int32_t extractInt32Literal(const Expression& expression) {
 }
 
 int64_t extractInt64Literal(const Expression& expression) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<IntLiteral>(expression.value),
       "expected integer literal at {}:{}",
       expression.location.line,
@@ -197,7 +197,7 @@ double extractNumericAsFloatLiteral(const Expression& expression) {
 }
 
 bool extractBoolLiteral(const Expression& expression) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<BoolLiteral>(expression.value),
       "expected boolean literal at {}:{}",
       expression.location.line,
@@ -207,14 +207,14 @@ bool extractBoolLiteral(const Expression& expression) {
 }
 
 common::Date32 extractDateValue(const Expression& expression) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<TypeCast>(expression.value),
       "expected date type cast at {}:{}",
       expression.location.line,
       expression.location.column
    );
    const auto& cast = std::get<TypeCast>(expression.value);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       cast.target_type == "date",
       "expected cast to 'date', got '{}' at {}:{}",
       cast.target_type,
@@ -223,7 +223,7 @@ common::Date32 extractDateValue(const Expression& expression) {
    );
    auto date_string = extractStringLiteral(*cast.operand);
    auto result = common::stringToDate32(date_string);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       result.has_value(),
       "invalid date '{}' at {}:{}: {}",
       date_string,
@@ -242,7 +242,7 @@ std::optional<common::Date32> extractOptionalDateValue(const Expression& express
 }
 
 std::vector<std::string> extractSetOfIdentifiers(const Expression& expression) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<SetLiteral>(expression.value),
       "expected set literal at {}:{}",
       expression.location.line,
@@ -258,7 +258,7 @@ std::vector<std::string> extractSetOfIdentifiers(const Expression& expression) {
 }
 
 const SetLiteral& extractSetLiteral(const Expression& expression) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<SetLiteral>(expression.value),
       "expected set literal at {}:{}",
       expression.location.line,
