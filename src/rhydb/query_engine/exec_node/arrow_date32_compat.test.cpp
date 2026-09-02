@@ -53,9 +53,9 @@ TEST(SiloDate32MatchesArrowDate32, builderAcceptsSiloDate32Values) {
 
    arrow::Date32Builder builder;
    for (const auto& date_string : dates) {
-      const auto silo_value = stringToDate32(date_string);
-      ASSERT_TRUE(silo_value.has_value());
-      ASSERT_TRUE(builder.Append(silo_value.value()).ok());
+      const auto rhydb_value = stringToDate32(date_string);
+      ASSERT_TRUE(rhydb_value.has_value());
+      ASSERT_TRUE(builder.Append(rhydb_value.value()).ok());
    }
 
    ASSERT_TRUE(builder.AppendNull().ok());
@@ -69,9 +69,9 @@ TEST(SiloDate32MatchesArrowDate32, builderAcceptsSiloDate32Values) {
 
    for (size_t i = 0; i < dates.size(); ++i) {
       ASSERT_FALSE(date_array.IsNull(static_cast<int64_t>(i)));
-      const int32_t silo_value = stringToDate32(dates.at(i)).value();
+      const int32_t rhydb_value = stringToDate32(dates.at(i)).value();
       const int32_t arrow_value = date_array.Value(static_cast<int64_t>(i));
-      EXPECT_EQ(silo_value, arrow_value) << "Mismatch for date " << dates.at(i);
+      EXPECT_EQ(rhydb_value, arrow_value) << "Mismatch for date " << dates.at(i);
       EXPECT_EQ(date32ToString(arrow_value), dates.at(i));
    }
    EXPECT_TRUE(date_array.IsNull(static_cast<int64_t>(dates.size())));
@@ -110,9 +110,9 @@ TEST(SiloDate32MatchesArrowDate32, arrowCastFromStringMatchesSiloEncoding) {
    ASSERT_EQ(arrow_dates->length(), static_cast<int64_t>(dates.size()));
 
    for (size_t i = 0; i < dates.size(); ++i) {
-      const int32_t silo_value = stringToDate32(dates.at(i)).value();
+      const int32_t rhydb_value = stringToDate32(dates.at(i)).value();
       const int32_t arrow_value = arrow_dates->Value(static_cast<int64_t>(i));
-      EXPECT_EQ(silo_value, arrow_value) << "Encoding mismatch for date " << dates.at(i);
+      EXPECT_EQ(rhydb_value, arrow_value) << "Encoding mismatch for date " << dates.at(i);
    }
 }
 
@@ -131,9 +131,9 @@ TEST(SiloDate32MatchesArrowDate32, scalarToStringMatchesSiloFormatting) {
       {.string_value = "2010-12-03", .expected_int = 14946},
    };
    for (const auto& sample : samples) {
-      const auto silo_value = stringToDate32(sample.string_value);
-      ASSERT_TRUE(silo_value.has_value());
-      EXPECT_EQ(silo_value.value(), sample.expected_int);
+      const auto rhydb_value = stringToDate32(sample.string_value);
+      ASSERT_TRUE(rhydb_value.has_value());
+      EXPECT_EQ(rhydb_value.value(), sample.expected_int);
 
       const arrow::Date32Scalar scalar{sample.expected_int};
       EXPECT_EQ(scalar.value, sample.expected_int);
@@ -181,8 +181,8 @@ TEST(SiloDate32MatchesArrowDate32, extremalInt32ValuesRoundTripBitwise) {
 
    for (size_t i = 0; i < values.size(); ++i) {
       EXPECT_EQ(date_array.Value(static_cast<int64_t>(i)), values.at(i));
-      const Date32 silo_value = date_array.Value(static_cast<int64_t>(i));
-      EXPECT_EQ(silo_value, values.at(i));
+      const Date32 rhydb_value = date_array.Value(static_cast<int64_t>(i));
+      EXPECT_EQ(rhydb_value, values.at(i));
    }
 }
 

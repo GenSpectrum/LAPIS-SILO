@@ -53,13 +53,13 @@ std::optional<RhyDBDataSource> RhyDBDirectory::getMostRecentDataDirectory() cons
    for (const auto& directory_entry : std::filesystem::directory_iterator{directory}) {
       SPDLOG_TRACE("Checking directory entry {}", directory_entry.path().string());
       try {
-         auto silo_data_source = RhyDBDataSource::checkValidDataSource(directory_entry.path());
+         auto rhydb_data_source = RhyDBDataSource::checkValidDataSource(directory_entry.path());
          SPDLOG_TRACE(
             "Found candidate data source {} with data version {}",
             directory_entry.path().string(),
-            silo_data_source.data_version.toString()
+            rhydb_data_source.data_version.toString()
          );
-         all_found_data.emplace_back(std::move(silo_data_source));
+         all_found_data.emplace_back(std::move(rhydb_data_source));
       } catch (const InvalidSiloDataSourceException& exception) {
          SPDLOG_TRACE(exception.what());
       }

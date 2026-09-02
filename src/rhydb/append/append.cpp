@@ -1,12 +1,14 @@
 #include "rhydb/append/append.h"
 
-#include "rhydb/append/ndjson_line_reader.h"
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/input_stream_wrapper.h"
 #include "rhydb/common/silo_directory.h"
 #include "rhydb/database.h"
 
+using rhydb::config::AppendConfig;
 using rhydb::Database;
+using rhydb::RhyDBDataSource;
+using rhydb::RhyDBDirectory;
 
 class AppendError : public std::runtime_error {
   public:
@@ -16,22 +18,22 @@ class AppendError : public std::runtime_error {
 
 namespace {
 
-rhydb::RhyDBDataSource getMostRecentOrSpecifiedDatabaseState(
-   const rhydb::RhyDBDirectory& silo_directory,
+RhyDBDataSource getMostRecentOrSpecifiedDatabaseState(
+   const RhyDBDirectory& rhydb_directory,
    const std::optional<std::filesystem::path>& specified_directory
 ) {
    if (specified_directory.has_value()) {
-      return rhydb::RhyDBDataSource::checkValidDataSource(specified_directory.value());
+      return RhyDBDataSource::checkValidDataSource(specified_directory.value());
    }
    SPDLOG_INFO(
-      "No data directory specified, automatically using the most recent one in the silo-directory "
+      "No data directory specified, automatically using the most recent one in the data directory "
       "{}",
-      silo_directory
+      rhydb_directory
    );
-   auto most_recent_data_directory = silo_directory.getMostRecentDataDirectory();
+   auto most_recent_data_directory = rhydb_directory.getMostRecentDataDirectory();
    if (most_recent_data_directory == std::nullopt) {
       throw AppendError{
-         "No data directory specified and the silo-directory does not contain any valid data "
+         "No data directory specified and the data directory does not contain any valid data "
          "source."
       };
    }
@@ -42,8 +44,8 @@ rhydb::RhyDBDataSource getMostRecentOrSpecifiedDatabaseState(
 
 namespace rhydb::append {
 
-int runAppend(const rhydb::config::AppendConfig& append_config) {
-   const rhydb::RhyDBDirectory data_directory{append_config.data_directory};
+int runAppend(const AppendConfig& append_config) {
+   const RhyDBDirectory data_directory{append_config.data_directory};
 
    const auto database_state_directory =
       getMostRecentOrSpecifiedDatabaseState(data_directory, append_config.data_source);

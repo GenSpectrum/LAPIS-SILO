@@ -52,18 +52,18 @@ int Api::runApi(const rhydb::config::RuntimeConfig& runtime_config) {
 
    auto database = std::make_shared<ActiveDatabase>();
 
-   auto silo_request_handler_factory =
-      std::make_unique<rhydb_app::RhyDBRequestHandlerFactory>(runtime_config, database);
+   auto rhydb_request_handler_factory =
+      std::make_unique<RhyDBRequestHandlerFactory>(runtime_config, database);
 
-   const rhydb_app::RhyDBDirectoryWatcher directory_watcher(
+   const RhyDBDirectoryWatcher directory_watcher(
       rhydb::RhyDBDirectory{runtime_config.data_directory}, database
    );
 
-   const rhydb_app::MemoryMonitor memory_monitor{runtime_config.api_options.soft_memory_limit};
+   const MemoryMonitor memory_monitor{runtime_config.api_options.soft_memory_limit};
 
    // HTTPServer will erase the memory of the request_handler, therefore we call `release`
    Poco::Net::HTTPServer server(
-      silo_request_handler_factory.release(), thread_pool, server_socket, poco_parameter
+      rhydb_request_handler_factory.release(), thread_pool, server_socket, poco_parameter
    );
 
    SPDLOG_INFO("Listening on port {}", runtime_config.api_options.port);

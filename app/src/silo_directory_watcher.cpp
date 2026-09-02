@@ -13,10 +13,10 @@
 #include "active_database.h"
 
 rhydb_app::RhyDBDirectoryWatcher::RhyDBDirectoryWatcher(
-   rhydb::RhyDBDirectory silo_directory,
+   rhydb::RhyDBDirectory rhydb_directory,
    std::shared_ptr<ActiveDatabase> database_handle
 )
-    : silo_directory(std::move(silo_directory)),
+    : rhydb_directory(std::move(rhydb_directory)),
       database_handle(std::move(database_handle)),
       timer(0, 2000) {
    timer.start(Poco::TimerCallback<RhyDBDirectoryWatcher>(
@@ -25,10 +25,10 @@ rhydb_app::RhyDBDirectoryWatcher::RhyDBDirectoryWatcher(
 }
 
 void rhydb_app::RhyDBDirectoryWatcher::checkDirectoryForData(Poco::Timer& /*timer*/) {
-   auto maybe_most_recent_database_state = silo_directory.getMostRecentDataDirectory();
+   auto maybe_most_recent_database_state = rhydb_directory.getMostRecentDataDirectory();
 
    if (maybe_most_recent_database_state == std::nullopt) {
-      SPDLOG_INFO("No data found in {} for ingestion", silo_directory);
+      SPDLOG_INFO("No data found in {} for ingestion", rhydb_directory);
       return;
    }
    const auto& most_recent_database_state = maybe_most_recent_database_state.value();

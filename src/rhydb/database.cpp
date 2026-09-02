@@ -415,17 +415,17 @@ DataVersion loadDataVersion(const std::filesystem::path& file_path) {
 std::optional<Database> Database::loadDatabaseStateFromPath(
    const std::filesystem::path& save_directory
 ) {
-   const RhyDBDirectory silo_directory{save_directory};
-   auto silo_data_source = silo_directory.getMostRecentDataDirectory();
-   if (silo_data_source.has_value()) {
-      return loadDatabaseState(silo_data_source.value());
+   const RhyDBDirectory rhydb_directory{save_directory};
+   auto rhydb_data_source = rhydb_directory.getMostRecentDataDirectory();
+   if (rhydb_data_source.has_value()) {
+      return loadDatabaseState(rhydb_data_source.value());
    }
    return std::nullopt;
 }
 
-Database Database::loadDatabaseState(const rhydb::RhyDBDataSource& silo_data_source) {
-   SPDLOG_INFO("Loading database from data source: {}", silo_data_source.toDebugString());
-   const auto save_directory = silo_data_source.path;
+Database Database::loadDatabaseState(const RhyDBDataSource& rhydb_data_source) {
+   SPDLOG_INFO("Loading database from data source: {}", rhydb_data_source.toDebugString());
+   const auto save_directory = rhydb_data_source.path;
 
    const auto database_schema_path = save_directory / DATABASE_SCHEMA_FILENAME;
    auto schema = schema::DatabaseSchema::loadFromFile(database_schema_path);
