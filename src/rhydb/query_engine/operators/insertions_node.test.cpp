@@ -66,6 +66,16 @@ const QueryTestScenario INSERTIONS_SEQUENCE_NAMES_SELECTS = {
    ])")
 };
 
+const QueryTestScenario INSERTIONS_WITH_INPUT_FILTER = {
+   .name = "INSERTIONS_WITH_INPUT_FILTER",
+   .query =
+      "default.filter(primaryKey = 's1' || primaryKey = 's2')"
+      ".insertions().orderBy({sequenceName, position})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"position":2,"insertedSymbols":"TT","sequenceName":"segment1","count":2}
+   ])")
+};
+
 const QueryTestScenario INSERTIONS_ON_NON_SCAN = {
    .name = "INSERTIONS_ON_NON_SCAN",
    .query = "default.project({primaryKey}).insertions()",
@@ -119,6 +129,7 @@ QUERY_TEST(
    ::testing::Values(
       INSERTIONS_ALL_FIELDS,
       INSERTIONS_SEQUENCE_NAMES_SELECTS,
+      INSERTIONS_WITH_INPUT_FILTER,
       INSERTIONS_ON_NON_SCAN,
       INSERTIONS_UNKNOWN_SEQUENCE_NAME,
       INSERTIONS_WRONG_TYPE_SEQUENCE_NAME

@@ -90,6 +90,19 @@ const QueryTestScenario MUTATIONS_SEQUENCE_NAMES_SELECTS = {
    ])")
 };
 
+const QueryTestScenario MUTATIONS_WITH_INPUT_FILTER = {
+   .name = "MUTATIONS_WITH_INPUT_FILTER",
+   .query =
+      "default.filter(primaryKey = 's2' || primaryKey = 's3')"
+      ".mutations(minProportion:=0.0).orderBy({sequenceName, position, mutationTo})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"mutationFrom":"A","mutationTo":"C","sequenceName":"segment1","position":1,
+       "proportion":1.0,"coverage":2,"count":2},
+      {"mutationFrom":"G","mutationTo":"T","sequenceName":"segment2","position":1,
+       "proportion":0.5,"coverage":2,"count":1}
+   ])")
+};
+
 const QueryTestScenario MUTATIONS_FIELDS_NARROWED = {
    .name = "MUTATIONS_FIELDS_NARROWED",
    .query =
@@ -182,6 +195,7 @@ QUERY_TEST(
       MUTATIONS_MIN_PROPORTION_KEEPS_SUBSET,
       MUTATIONS_MIN_PROPORTION_EXCLUDES_ALL,
       MUTATIONS_SEQUENCE_NAMES_SELECTS,
+      MUTATIONS_WITH_INPUT_FILTER,
       MUTATIONS_FIELDS_NARROWED,
       MUTATIONS_INVALID_MIN_PROPORTION,
       MUTATIONS_MISSING_MIN_PROPORTION,
