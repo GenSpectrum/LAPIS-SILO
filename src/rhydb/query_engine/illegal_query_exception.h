@@ -5,7 +5,7 @@
 
 #include <fmt/format.h>
 
-#define CHECK_RHYDB_QUERY(condition, ...)                                \
+#define CHECK_RHYDB_QUERY(condition, ...)                               \
    do {                                                                 \
       const bool condition_bool = condition;                            \
       if (!(condition_bool)) {                                          \

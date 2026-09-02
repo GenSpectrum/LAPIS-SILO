@@ -982,7 +982,9 @@ operators::QueryNodePtr buildScanNode(
    const auto& name = std::get<ast::Identifier>(ast.value).name;
    auto table_name = schema::TableName(name);
    auto iter = tables.find(table_name);
-   CHECK_RHYDB_QUERY(iter != tables.end(), "table '{}' not found in database", table_name.getName());
+   CHECK_RHYDB_QUERY(
+      iter != tables.end(), "table '{}' not found in database", table_name.getName()
+   );
    const auto table_schema = iter->second->schema;
    std::vector<schema::ColumnIdentifier> fields = iter->second->schema->getColumnIdentifiers();
    auto table_scan = std::make_unique<operators::TableScanNode>(

@@ -154,7 +154,9 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
    operators::UnresolvedMostRecentCommonAncestorNode& node
 ) {
    auto scan = getTableScanOrNone(*node.child);
-   CHECK_RHYDB_QUERY(scan.has_value(), "mostRecentCommonAncestor() must be applied to a table scan");
+   CHECK_RHYDB_QUERY(
+      scan.has_value(), "mostRecentCommonAncestor() must be applied to a table scan"
+   );
    return std::make_unique<operators::MostRecentCommonAncestorNode>(
       std::move((*scan)->table),
       std::move((*scan)->filter),
