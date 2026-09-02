@@ -2,7 +2,7 @@
 
 #include <Poco/Timer.h>
 
-#include <rhydb/common/silo_directory.h>
+#include <rhydb/common/rhydb_directory.h>
 
 #include "active_database.h"
 

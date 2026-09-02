@@ -20,7 +20,7 @@
 #include "rhydb/common/data_version.h"
 #include "rhydb/common/nucleotide_symbols.h"
 #include "rhydb/common/panic.h"
-#include "rhydb/common/silo_directory.h"
+#include "rhydb/common/rhydb_directory.h"
 #include "rhydb/common/version.h"
 #include "rhydb/database_info.h"
 #include "rhydb/persistence/exception.h"
