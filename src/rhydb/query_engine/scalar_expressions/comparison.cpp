@@ -16,7 +16,6 @@
 #include "rhydb/common/panic.h"
 #include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/filter/operators/empty.h"
-#include "rhydb/query_engine/filter/operators/full.h"
 #include "rhydb/query_engine/filter/operators/index_scan.h"
 #include "rhydb/query_engine/filter/operators/intersection.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
@@ -37,7 +36,6 @@ using rhydb::query_engine::filter::operators::Comparator;
 using rhydb::query_engine::filter::operators::CompareToValueSelection;
 using rhydb::query_engine::filter::operators::displayComparator;
 using rhydb::query_engine::filter::operators::Empty;
-using rhydb::query_engine::filter::operators::Full;
 using rhydb::query_engine::filter::operators::IndexScan;
 using rhydb::query_engine::filter::operators::Intersection;
 using rhydb::query_engine::filter::operators::Operator;
@@ -166,21 +164,7 @@ std::unique_ptr<Operator> compileDictionaryInequality(
          std::make_unique<IndexScan>(CopyOnWriteBitmap{literal_bitmap.value()}, table.row_layout)
       );
    }
-   if (excluded.empty()) {
-      // No nulls, and no row holds the literal, so every row differs from it.
-      return std::make_unique<Full>(table.row_layout);
-   }
-   if (excluded.size() == 1) {
-      return Operator::negate(std::move(excluded.front()));
-   }
-
-   OperatorVector intersection_children;
-   intersection_children.push_back(Operator::negate(std::move(excluded[0])));
-   OperatorVector intersection_negated_children;
-   intersection_negated_children.push_back(std::move(excluded[1]));
-   return std::make_unique<Intersection>(
-      std::move(intersection_children), std::move(intersection_negated_children), table.row_layout
-   );
+   return Intersection::ofComplements(std::move(excluded), table.row_layout);
 }
 
 std::unique_ptr<Operator> compileStringComparison(

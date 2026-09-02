@@ -66,14 +66,17 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
 
 const QueryTestData TEST_DATA{
    .ndjson_input_data =
-      {createData("Switzerland", "2020-01-01"),
-       createData("Germany", "2000-03-07"),
-       createData("Germany", "2009-06-07"),
-       createData("Switzerland", "2003-07-02"),
-       createData("Switzerland", "2002-01-04"),
-       createData("Switzerland", "2001-12-07")},
+      {
+         createData("Switzerland", "2020-01-01"),
+         createData("Germany", "2000-03-07"),
+         createData("Germany", "2009-06-07"),
+         createData("Switzerland", "2003-07-02"),
+         createData("Switzerland", "2002-01-04"),
+         createData("Switzerland", "2001-12-07"),
+         createData("Austria", "2015-05-05"),
+      },
    .database_config = DATABASE_CONFIG,
-   .reference_genomes = REFERENCE_GENOMES
+   .reference_genomes = REFERENCE_GENOMES,
 };
 
 const QueryTestScenario NESTED_AND = {
@@ -87,6 +90,14 @@ const QueryTestScenario NESTED_AND = {
    )
 };
 
+const QueryTestScenario ALL_NEGATED_AND_ON_INDEXED_COLUMN = {
+   .name = "ALL_NEGATED_AND_ON_INDEXED_COLUMN",
+   .query =
+      "default.filter(!(country = 'Germany') && !(country = 'Switzerland'))"
+      ".project(primaryKey)",
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_6"}])"),
+};
+
 }  // namespace
 
-QUERY_TEST(And, TEST_DATA, ::testing::Values(NESTED_AND));
+QUERY_TEST(And, TEST_DATA, ::testing::Values(NESTED_AND, ALL_NEGATED_AND_ON_INDEXED_COLUMN));

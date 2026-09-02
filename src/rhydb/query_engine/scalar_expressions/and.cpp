@@ -11,18 +11,16 @@
 #include <spdlog/spdlog.h>
 
 #include "rhydb/common/string_utils.h"
-#include "rhydb/query_engine/filter/operators/complement.h"
 #include "rhydb/query_engine/filter/operators/empty.h"
 #include "rhydb/query_engine/filter/operators/full.h"
 #include "rhydb/query_engine/filter/operators/intersection.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/filter/operators/selection.h"
-#include "rhydb/query_engine/filter/operators/union.h"
-#include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
 
 namespace rhydb::query_engine::scalar_expressions {
 
+using filter::operators::Intersection;
 using filter::operators::Operator;
 using filter::operators::OperatorVector;
 
@@ -116,7 +114,7 @@ std::tuple<OperatorVector, OperatorVector, filter::operators::PredicateVector> A
          return {std::move(empty), OperatorVector(), filter::operators::PredicateVector{}};
       }
       if (child->type() == filter::operators::INTERSECTION) {
-         auto* intersection_child = dynamic_cast<filter::operators::Intersection*>(child.get());
+         auto* intersection_child = dynamic_cast<Intersection*>(child.get());
          appendVectorToVector(intersection_child->children, non_negated_child_operators);
          appendVectorToVector(intersection_child->negated_children, negated_child_operators);
       } else if (child->type() == filter::operators::COMPLEMENT) {
@@ -183,19 +181,11 @@ std::unique_ptr<Operator> And::compile(const storage::Table& table) const {
    std::unique_ptr<Operator> index_arithmetic_operator;
    if (non_negated_child_operators.size() == 1 && negated_child_operators.empty()) {
       index_arithmetic_operator = std::move(non_negated_child_operators[0]);
-   } else if (negated_child_operators.size() == 1 && non_negated_child_operators.empty()) {
-      index_arithmetic_operator = std::make_unique<filter::operators::Complement>(
-         std::move(negated_child_operators[0]), table.row_layout
-      );
    } else if (non_negated_child_operators.empty()) {
-      std::unique_ptr<filter::operators::Union> union_ret =
-         std::make_unique<filter::operators::Union>(
-            std::move(negated_child_operators), table.row_layout
-         );
       index_arithmetic_operator =
-         std::make_unique<filter::operators::Complement>(std::move(union_ret), table.row_layout);
+         Intersection::ofComplements(std::move(negated_child_operators), table.row_layout);
    } else {
-      index_arithmetic_operator = std::make_unique<filter::operators::Intersection>(
+      index_arithmetic_operator = std::make_unique<Intersection>(
          std::move(non_negated_child_operators),
          std::move(negated_child_operators),
          table.row_layout
