@@ -114,7 +114,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    SPDLOG_INFO("Starting SILO (version {})", rhydb::RELEASE_VERSION);
 
    std::vector<std::string> env_allow_list;
-   env_allow_list.emplace_back("SILO_PANIC");
+   env_allow_list.emplace_back("RHYDB_PANIC");
    for (auto& field :
         rhydb::config::PreprocessingConfig::getConfigSpecification().attribute_specifications) {
       env_allow_list.emplace_back(

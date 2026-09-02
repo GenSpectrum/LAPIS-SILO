@@ -8,64 +8,65 @@ using rhydb::config::EnvironmentVariables;
 
 TEST(EnvironmentVariables, correctPrefixedUppercase) {
    ASSERT_EQ(
-      EnvironmentVariables::configKeyPathToString(ConfigKeyPath::tryFrom({{"a"}}).value()), "SILO_A"
+      EnvironmentVariables::configKeyPathToString(ConfigKeyPath::tryFrom({{"a"}}).value()),
+      "RHYDB_A"
    );
    ASSERT_EQ(
       EnvironmentVariables::configKeyPathToString(ConfigKeyPath::tryFrom({{"abc"}}).value()),
-      "SILO_ABC"
+      "RHYDB_ABC"
    );
    ASSERT_EQ(
       EnvironmentVariables::configKeyPathToString(
          ConfigKeyPath::tryFrom({{"some", "snake", "case"}}).value()
       ),
-      "SILO_SOME_SNAKE_CASE"
+      "RHYDB_SOME_SNAKE_CASE"
    );
    ASSERT_EQ(
       EnvironmentVariables::configKeyPathToString(
          ConfigKeyPath::tryFrom({{"some"}, {"subsectioned", "sequence"}}).value()
       ),
-      "SILO_SOME_SUBSECTIONED_SEQUENCE"
+      "RHYDB_SOME_SUBSECTIONED_SEQUENCE"
    );
    ASSERT_EQ(
       EnvironmentVariables::configKeyPathToString(
          ConfigKeyPath::tryFrom({{"some"}, {"more"}, {"sections"}}).value()
       ),
-      "SILO_SOME_MORE_SECTIONS"
+      "RHYDB_SOME_MORE_SECTIONS"
    );
 }
 
 TEST(EnvironmentVariables, successfullyIgnoreTheAllowList) {
-   const std::vector<std::string> allow_list = {"SILO_DEBUG"};
-   const char* env_var = "SILO_DEBUG=1";
+   const std::vector<std::string> allow_list = {"RHYDB_DEBUG"};
+   const char* env_var = "RHYDB_DEBUG=1";
    const std::vector<const char*> var_vector = {env_var, nullptr};
    auto env_vars = EnvironmentVariables::newWithAllowListAndEnv(allow_list, var_vector.data());
    ASSERT_NO_THROW((void)env_vars.verify({}));
 }
 
-TEST(EnvironmentVariables, errorsIfSiloDebugIsProvidedButNotAllowed) {
+TEST(EnvironmentVariables, errorsIfRhydbDebugIsProvidedButNotAllowed) {
    const std::vector<std::string> allow_list;
-   const char* env_var = "SILO_DEBUG=1";
+   const char* env_var = "RHYDB_DEBUG=1";
    const std::vector<const char*> var_vector = {env_var, nullptr};
    auto env_vars = EnvironmentVariables::newWithAllowListAndEnv(allow_list, var_vector.data());
    EXPECT_THAT(
       [&]() { (void)env_vars.verify({.program_name = "some_binary_name"}); },
       ThrowsMessage<rhydb::config::ConfigException>(::testing::HasSubstr(
-         "in environment variables: unknown variable SILO_DEBUG for 'some_binary_name'"
+         "in environment variables: unknown variable RHYDB_DEBUG for 'some_binary_name'"
       ))
    );
 }
 
-TEST(EnvironmentVariables, doesNotErrorWhenThePrefixIsNotSILO_) {
+TEST(EnvironmentVariables, doesNotErrorWhenThePrefixIsNotRHYDB_) {
    const std::vector<std::string> allow_list;
-   const char* env_var = "SILODEBUG=1";
+   const char* env_var = "RHYDBDEBUG=1";
    const std::vector<const char*> var_vector = {env_var, nullptr};
    auto env_vars = EnvironmentVariables::newWithAllowListAndEnv(allow_list, var_vector.data());
    ASSERT_NO_THROW((void)env_vars.verify({}));
 }
 
 TEST(EnvironmentVariables, errorsOnWrongType) {
-   const std::vector<std::string> allow_list{"SILO_FOO"};
-   const char* env_var = "SILO_FOO=bar";
+   const std::vector<std::string> allow_list{"RHYDB_FOO"};
+   const char* env_var = "RHYDB_FOO=bar";
    const std::vector<const char*> var_vector = {env_var, nullptr};
    auto env_vars = EnvironmentVariables::newWithAllowListAndEnv(allow_list, var_vector.data());
    EXPECT_THAT(
@@ -86,9 +87,9 @@ TEST(EnvironmentVariables, errorsOnWrongType) {
 }
 
 TEST(EnvironmentVariables, parsesVariables) {
-   const std::vector<std::string> allow_list{"SILO_FOO", "SILO_FOO_INT"};
-   const char* env_var1 = "SILO_FOO=bar";
-   const char* env_var2 = "SILO_FOO_INT=1";
+   const std::vector<std::string> allow_list{"RHYDB_FOO", "RHYDB_FOO_INT"};
+   const char* env_var1 = "RHYDB_FOO=bar";
+   const char* env_var2 = "RHYDB_FOO_INT=1";
    const std::vector<const char*> var_vector = {env_var1, env_var2, nullptr};
    auto env_vars = EnvironmentVariables::newWithAllowListAndEnv(allow_list, var_vector.data());
    ASSERT_NO_THROW((void)env_vars.verify(rhydb::config::ConfigSpecification{
@@ -108,8 +109,8 @@ TEST(EnvironmentVariables, parsesVariables) {
 }
 
 TEST(EnvironmentVariables, parsesVariablesWithDoubleEquals) {
-   const std::vector<std::string> allow_list{"SILO_FOO"};
-   const char* env_var1 = "SILO_FOO=bar=baz";
+   const std::vector<std::string> allow_list{"RHYDB_FOO"};
+   const char* env_var1 = "RHYDB_FOO=bar=baz";
    const std::vector<const char*> var_vector = {env_var1, nullptr};
    auto env_vars = EnvironmentVariables::newWithAllowListAndEnv(allow_list, var_vector.data());
    ASSERT_EQ(

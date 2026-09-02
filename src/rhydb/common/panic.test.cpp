@@ -45,19 +45,19 @@ void nullCapableSetenv(const char* name, const char* value, int overwrite) {
 TEST(panic, assertEqPanicModes) {
    SILO_ASSERT_EQ(1 + 1, 2);
 
-   const char* old_env = getenv("SILO_PANIC");
-   setenv("SILO_PANIC", "", 1);
+   const char* old_env = getenv("RHYDB_PANIC");
+   setenv("RHYDB_PANIC", "", 1);
    try {
       SILO_ASSERT_EQ(1 + 1, 3);
    } catch (const std::exception& ex) {
       assertMsg(ex.what(), "ASSERT_EQ failure: 1 + 1 == 3: 2 == 3");
    };
 
-   setenv("SILO_PANIC", "abort", 1);
+   setenv("RHYDB_PANIC", "abort", 1);
    ASSERT_DEATH(SILO_ASSERT_EQ(1 + 1, 3), "ASSERT_EQ failure: 1 \\+ 1 == 3: 2 == 3");
 
    // revert it back
-   nullCapableSetenv("SILO_PANIC", old_env, 1);
+   nullCapableSetenv("RHYDB_PANIC", old_env, 1);
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
@@ -71,14 +71,14 @@ TEST(panic, debugAssertBehavesAsPerCompilationMode) {
 
 #if SILO_DEBUG_ASSERTIONS
 
-   const char* old_env = getenv("SILO_PANIC");
-   setenv("SILO_PANIC", "", 1);
+   const char* old_env = getenv("RHYDB_PANIC");
+   setenv("RHYDB_PANIC", "", 1);
    try {
       SILO_DEBUG_ASSERT(1 + 1 == 3);
    } catch (const std::exception& ex) {
       assertMsg(ex.what(), "DEBUG_ASSERT failure: 1 + 1 == 3");
    };
-   nullCapableSetenv("SILO_PANIC", old_env, 1);
+   nullCapableSetenv("RHYDB_PANIC", old_env, 1);
 
 #else
    // check that SILO_DEBUG_ASSERT is disabled
@@ -95,14 +95,14 @@ TEST(panic, debugAssertGeWorks) {
 
 #if SILO_DEBUG_ASSERTIONS
 
-   const char* old_env = getenv("SILO_PANIC");
-   setenv("SILO_PANIC", "", 1);
+   const char* old_env = getenv("RHYDB_PANIC");
+   setenv("RHYDB_PANIC", "", 1);
    try {
       SILO_DEBUG_ASSERT_GE(1 + 5, 7);
    } catch (const std::exception& ex) {
       assertMsg(ex.what(), "DEBUG_ASSERT_GE failure: 1 + 5 >= 7: 6 >= 7");
    };
-   nullCapableSetenv("SILO_PANIC", old_env, 1);
+   nullCapableSetenv("RHYDB_PANIC", old_env, 1);
 
 #else
    // check that SILO_DEBUG_ASSERT is disabled

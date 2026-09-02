@@ -16,7 +16,7 @@ namespace {
    const char* file,
    int line
 ) {
-   const char* env = getenv("SILO_PANIC");
+   const char* env = getenv("RHYDB_PANIC");
    bool do_abort;
    if (env) {
       do_abort = strcmp(env, "abort") == 0;

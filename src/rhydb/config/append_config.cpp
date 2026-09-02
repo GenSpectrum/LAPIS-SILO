@@ -10,14 +10,14 @@ namespace {
 ConfigKeyPath appendConfigOptionKey() {
    return YamlFile::stringToConfigKeyPath("appendConfig");
 }
-ConfigKeyPath siloDirectoryOptionKey() {
-   return YamlFile::stringToConfigKeyPath("siloDirectory");
+ConfigKeyPath dataDirectoryOptionKey() {
+   return YamlFile::stringToConfigKeyPath("dataDirectory");
 }
 ConfigKeyPath appendFileOptionKey() {
    return YamlFile::stringToConfigKeyPath("appendFile");
 }
-ConfigKeyPath siloDataSourceOptionKey() {
-   return YamlFile::stringToConfigKeyPath("siloDataSource");
+ConfigKeyPath dataSourceOptionKey() {
+   return YamlFile::stringToConfigKeyPath("dataSource");
 }
 }  // namespace
 
@@ -36,11 +36,11 @@ ConfigSpecification AppendConfig::getConfigSpecification() {
       .program_name = "rhydb append",
       .attribute_specifications{
          ConfigAttributeSpecification::createWithDefault(
-            siloDirectoryOptionKey(),
+            dataDirectoryOptionKey(),
             ConfigValue::fromPath("."),
-            "The path to a silo-directory, a directory that contains silo outputs. This may be "
+            "The path to a data directory that contains rhydb outputs. This may be "
             "used for input (see `rhydb api --help`) and will be used for the output of the new "
-            "silo state"
+            "state"
          ),
          ConfigAttributeSpecification::createWithoutDefault(
             appendFileOptionKey(),
@@ -49,24 +49,24 @@ ConfigSpecification AppendConfig::getConfigSpecification() {
             "the database. If no file is given, the data is expected on stdin instead."
          ),
          ConfigAttributeSpecification::createWithoutDefault(
-            siloDataSourceOptionKey(),
+            dataSourceOptionKey(),
             ConfigValueType::PATH,
-            "A directory that contains a valid silo state. If this is not given, the most recent "
-            "database state from the silo-directory is taken instead."
+            "A directory that contains a valid rhydb state. If this is not given, the most recent "
+            "database state from the data directory is taken instead."
          )
       }
    };
 }
 
 void AppendConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
-   if (auto var = config_source.getPath(siloDirectoryOptionKey())) {
-      silo_directory = var.value();
+   if (auto var = config_source.getPath(dataDirectoryOptionKey())) {
+      data_directory = var.value();
    }
    if (auto var = config_source.getPath(appendFileOptionKey())) {
       append_file = var.value();
    }
-   if (auto var = config_source.getPath(siloDataSourceOptionKey())) {
-      silo_data_source = var.value();
+   if (auto var = config_source.getPath(dataSourceOptionKey())) {
+      data_source = var.value();
    }
 }
 
