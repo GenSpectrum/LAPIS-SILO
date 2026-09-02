@@ -10,6 +10,7 @@
 
 #include <arrow/acero/options.h>
 
+#include "rhydb/common/nucleotide_symbols.h"
 #include "rhydb/query_engine/operators/aggregate_node.h"
 #include "rhydb/query_engine/operators/fetch_node.h"
 #include "rhydb/query_engine/operators/filter_node.h"
@@ -19,6 +20,7 @@
 #include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
+#include "rhydb/query_engine/operators/unresolved_mutations_node.h"
 #include "rhydb/query_engine/order_by_field.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
@@ -412,6 +414,35 @@ TEST(FilterPushdownPass, pushesFiltersInsideJoinInputsIntoScans) {
    // left: branch filter (false) + scan filter (true); right: only its scan filter (true)
    EXPECT_EQ(left_scan->filter->toString(), "And(false & true)");
    EXPECT_EQ(right_scan->filter->toString(), "And(true)");
+}
+
+// --- FilterNode(UnresolvedMutationsNode(FilterNode(TableScanNode))) ---
+//
+// mutations() produces a new result schema (proportion, count, position, ...); the input columns
+// are gone above it. A filter above it references those output columns and must be retained above
+// (later realized as an Arrow filter over the mutations output), NOT pushed into the input scan
+// where those columns do not exist. The pre-filter written below mutations still reaches the scan
+// so node resolution finds a bare table scan.
+TEST(FilterPushdownPass, retainsFilterAboveMutationsWhilePushingChildFilters) {
+   auto mutations = std::make_unique<operators::UnresolvedMutationsNode<rhydb::Nucleotide>>(
+      makeFilteredScan(false), std::vector<std::string>{}, 0.0, std::vector<std::string>{}
+   );
+   auto filter_node =
+      std::make_unique<operators::FilterNode>(std::move(mutations), makeDummyFilter());
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::FILTER);
+   auto* filter = dynamic_cast<operators::FilterNode*>(result.get());
+   EXPECT_EQ(filter->filter->toString(), "And(true)");
+   ASSERT_EQ(filter->child->kind(), operators::NodeKind::UNRESOLVED_MUTATIONS_NUCLEOTIDE);
+   auto* mutations_node =
+      dynamic_cast<operators::UnresolvedMutationsNode<rhydb::Nucleotide>*>(filter->child.get());
+   ASSERT_EQ(mutations_node->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(mutations_node->child.get());
+   // The child-internal (pre-)filter (false) plus the scan's own filter (true) reached the scan;
+   // the above-filter (true) stayed above the mutations node.
+   EXPECT_EQ(table_scan->filter->toString(), "And(false & true)");
 }
 
 // --- FilterNode(FetchNode(FilterNode(TableScanNode))) ---

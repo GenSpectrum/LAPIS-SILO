@@ -21,6 +21,10 @@
 #include "rhydb/query_engine/operators/schema_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
+#include "rhydb/query_engine/operators/unresolved_insertions_node.h"
+#include "rhydb/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
+#include "rhydb/query_engine/operators/unresolved_mutations_node.h"
+#include "rhydb/query_engine/operators/unresolved_phylo_subtree_node.h"
 #include "rhydb/query_engine/scalar_expressions/and.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
 #include "rhydb/query_engine/scalar_expressions/zstd_decompress_scalar.h"
@@ -287,6 +291,112 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::AggregateNode&
    current_filters.clear();
    return std::make_unique<operators::FilterNode>(std::move(rebuilt), std::move(remaining_filter));
 }
+
+// mutations()/insertions() and the phylo source operators produce a NEW result schema (e.g.
+// mutationFrom, position, proportion, count); the input columns are gone above them. A filter
+// written above such a node can therefore only reference its output columns, so it must be retained
+// above and realized as an Arrow filter over the node's output rather than pushed into the input
+// scan (where those columns do not exist - the cause of "database does not contain the column
+// ...").
+//
+// The pre-filter written BELOW the node (`default.filter(...).mutations()`) lives inside the child
+// subtree; a fresh pass pushes it into the scan so NodeResolutionPass still finds a bare table scan
+// below the node. `current_filters` here holds only the filters accumulated from ABOVE.
+template <typename SymbolType>
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr FilterPushdownPass::operator()(
+   operators::UnresolvedMutationsNode<SymbolType>& node
+) {
+   FilterPushdownPass child_pass;
+   child_pass.propagateToNode(node.child);
+
+   if (current_filters.empty()) {
+      return nullptr;
+   }
+
+   auto rebuilt = std::make_unique<operators::UnresolvedMutationsNode<SymbolType>>(
+      std::move(node.child),
+      std::move(node.sequence_names),
+      node.min_proportion,
+      std::move(node.fields)
+   );
+   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
+   current_filters.clear();
+   return std::make_unique<operators::FilterNode>(std::move(rebuilt), std::move(remaining_filter));
+}
+
+template <typename SymbolType>
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr FilterPushdownPass::operator()(
+   operators::UnresolvedInsertionsNode<SymbolType>& node
+) {
+   FilterPushdownPass child_pass;
+   child_pass.propagateToNode(node.child);
+
+   if (current_filters.empty()) {
+      return nullptr;
+   }
+
+   auto rebuilt = std::make_unique<operators::UnresolvedInsertionsNode<SymbolType>>(
+      std::move(node.child), std::move(node.sequence_names)
+   );
+   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
+   current_filters.clear();
+   return std::make_unique<operators::FilterNode>(std::move(rebuilt), std::move(remaining_filter));
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnresolvedPhyloSubtreeNode& node
+) {
+   FilterPushdownPass child_pass;
+   child_pass.propagateToNode(node.child);
+
+   if (current_filters.empty()) {
+      return nullptr;
+   }
+
+   auto rebuilt = std::make_unique<operators::UnresolvedPhyloSubtreeNode>(
+      std::move(node.child),
+      std::move(node.column_name),
+      node.print_nodes_not_in_tree,
+      node.contract_unary_nodes
+   );
+   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
+   current_filters.clear();
+   return std::make_unique<operators::FilterNode>(std::move(rebuilt), std::move(remaining_filter));
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr FilterPushdownPass::operator()(
+   operators::UnresolvedMostRecentCommonAncestorNode& node
+) {
+   FilterPushdownPass child_pass;
+   child_pass.propagateToNode(node.child);
+
+   if (current_filters.empty()) {
+      return nullptr;
+   }
+
+   auto rebuilt = std::make_unique<operators::UnresolvedMostRecentCommonAncestorNode>(
+      std::move(node.child), std::move(node.column_name), node.print_nodes_not_in_tree
+   );
+   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
+   current_filters.clear();
+   return std::make_unique<operators::FilterNode>(std::move(rebuilt), std::move(remaining_filter));
+}
+
+template operators::QueryNodePtr FilterPushdownPass::operator()(
+   operators::UnresolvedMutationsNode<Nucleotide>& node
+);
+template operators::QueryNodePtr FilterPushdownPass::operator()(
+   operators::UnresolvedMutationsNode<AminoAcid>& node
+);
+template operators::QueryNodePtr FilterPushdownPass::operator()(
+   operators::UnresolvedInsertionsNode<Nucleotide>& node
+);
+template operators::QueryNodePtr FilterPushdownPass::operator()(
+   operators::UnresolvedInsertionsNode<AminoAcid>& node
+);
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& node) {

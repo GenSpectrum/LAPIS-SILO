@@ -20,6 +20,12 @@ class SchemaNode;
 class FetchNode;
 class OrderByWithLimitNode;
 class AggregateNode;
+template <typename SymbolType>
+class UnresolvedMutationsNode;
+template <typename SymbolType>
+class UnresolvedInsertionsNode;
+class UnresolvedPhyloSubtreeNode;
+class UnresolvedMostRecentCommonAncestorNode;
 }  // namespace rhydb::query_engine::operators
 
 namespace rhydb::query_engine::optimizer {
@@ -55,6 +61,16 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    operators::QueryNodePtr operator()(operators::FetchNode& node);
    operators::QueryNodePtr operator()(operators::OrderByWithLimitNode& node);
    operators::QueryNodePtr operator()(operators::AggregateNode& node);
+
+   // Schema-producing source operators: a filter above them can only reference their output
+   // columns, so it must be retained above (realized as an Arrow filter) rather than pushed into
+   // the input scan.
+   template <typename SymbolType>
+   operators::QueryNodePtr operator()(operators::UnresolvedMutationsNode<SymbolType>& node);
+   template <typename SymbolType>
+   operators::QueryNodePtr operator()(operators::UnresolvedInsertionsNode<SymbolType>& node);
+   operators::QueryNodePtr operator()(operators::UnresolvedPhyloSubtreeNode& node);
+   operators::QueryNodePtr operator()(operators::UnresolvedMostRecentCommonAncestorNode& node);
 };
 
 }  // namespace rhydb::query_engine::optimizer
