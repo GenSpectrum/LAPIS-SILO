@@ -90,7 +90,7 @@ struct BinaryDecompressKernel {
 };
 
 arrow::Result<std::string> registerCustomFunctionImpl() {
-   std::string function_name = "silo_zstd_decompressor";
+   std::string function_name = "rhydb_zstd_decompressor";
    auto* registry = arrow::compute::GetFunctionRegistry();
 
    const std::string summary =

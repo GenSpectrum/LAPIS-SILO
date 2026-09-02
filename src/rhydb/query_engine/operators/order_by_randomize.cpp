@@ -18,7 +18,7 @@
 
 namespace rhydb::query_engine::operators {
 
-const std::string RANDOMIZE_HASH_FIELD_NAME{"__SILO_RANDOMIZE_HASH"};
+const std::string RANDOMIZE_HASH_FIELD_NAME{"__RHYDB_RANDOMIZE_HASH"};
 
 namespace {
 
