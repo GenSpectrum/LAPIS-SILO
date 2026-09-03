@@ -1,4 +1,4 @@
-# Makefile / scripts to do SILO benchmarking runs
+# Makefile / scripts to do RhyDB benchmarking runs
 
 This is meant to be run via the `evobench-run` tool from
 [evobench](https://github.com/GenSpectrum/evobench/). Note that there
@@ -62,8 +62,8 @@ a server on
 
  1. Run an instance of a daemon, `evobench-run --verbose run daemon`
     (the `--verbose` allows you to see what's going on, feel free to
-    omit it). Important: since the daemon is going to build SILO, and
-    neither the SILO build process nor the setup here install conan
+    omit it). Important: since the daemon is going to build RhyDB, and
+    neither the RhyDB build process nor the setup here install conan
     for you, you need to make sure that conan is in the context of the
     daemon. In other words, run your `source ~/venv/bin/activate` or
     similar *before* starting the daemon.
@@ -83,7 +83,7 @@ a server on
     renaming it to just the id at the beginning of the directory name
     (unless perhaps it's somehow messed up in a way that "git reset
     --hard" won't recover from, i.e. .git's metadata is broken, or
-    there are issues in the SILO build system that would require a
+    there are issues in the RhyDB build system that would require a
     make clean or similar--in those cases delete the directory).
 
  1. Once the jobs have finished, find the results in

@@ -1,0 +1,22 @@
+#!/bin/bash
+set -meuo pipefail
+IFS=
+
+if [ -e .rhydb.pid ]; then
+    pid=$(cat .rhydb.pid)
+    if kill -INT "$pid"; then
+
+        echo "Waiting for rhydb (PID $pid) to shut down..."
+        while kill -0 "$pid"; do 
+            sleep 0.5
+        done
+    fi
+
+    rm -f .rhydb.pid
+    
+    echo "done."
+    
+else
+    echo "Not running (there is no .rhydb.pid file)"
+fi
+
