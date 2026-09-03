@@ -32,6 +32,8 @@ enum class TokenType : uint8_t {
    RIGHT_PAREN,
    LEFT_BRACE,
    RIGHT_BRACE,
+   LEFT_BRACKET,
+   RIGHT_BRACKET,
    COMMA,
    END_OF_FILE
 };

@@ -214,6 +214,12 @@ Token Lexer::nextToken() {
       case '}':
          advance();
          return makeToken(TokenType::RIGHT_BRACE, start);
+      case '[':
+         advance();
+         return makeToken(TokenType::LEFT_BRACKET, start);
+      case ']':
+         advance();
+         return makeToken(TokenType::RIGHT_BRACKET, start);
       case '!':
          advance();
          return makeToken(TokenType::NOT, start);
