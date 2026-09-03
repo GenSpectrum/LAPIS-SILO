@@ -61,7 +61,7 @@ async function preprocessAndDownloadState() {
         log("Saving processed state...");
         module.save(currentHandle, "/example-output");
         const archive = readDirectoryAsArchive(module, "/example-output");
-        downloadJson("silo-state.json", archive);
+        downloadJson("rhydb-state.json", archive);
         log(`Downloaded ${archive.files.length} processed state file(s).`);
     });
 }
@@ -126,7 +126,7 @@ async function withDisabled(button, fn) {
 function readDirectoryAsArchive(module, rootPath) {
     const files = [];
     walk(rootPath);
-    return { format: "silo-wasm-state-v1", files };
+    return { format: "rhydb-wasm-state-v1", files };
 
     function walk(directory) {
         for (const entry of module.FS.readdir(directory)) {
@@ -146,8 +146,8 @@ function readDirectoryAsArchive(module, rootPath) {
 }
 
 function writeArchiveToDirectory(module, archive, rootPath) {
-    if (archive.format !== "silo-wasm-state-v1" || !Array.isArray(archive.files)) {
-        throw new Error("Not a SILO WASM state archive.");
+    if (archive.format !== "rhydb-wasm-state-v1" || !Array.isArray(archive.files)) {
+        throw new Error("Not a RhyDB WASM state archive.");
     }
     for (const file of archive.files) {
         const path = `${rootPath}/${file.path}`;
