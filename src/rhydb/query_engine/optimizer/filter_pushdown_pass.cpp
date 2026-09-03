@@ -159,7 +159,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::SchemaNode& no
    // schema() reports a child's output schema; it is a result-producing source with no
    // place to push a predicate into. A filter() applied to its output therefore cannot be
    // realized -> reject the query.
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       current_filters.empty(),
       "filter() cannot be applied to the output of schema(); schema() is a source operator "
       "and its result cannot be filtered. Apply filter() before schema() instead."
@@ -182,7 +182,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::JoinNode& node
    // outer join changes the result (null-extended rows would no longer be filtered out), as
    // does pushing a predicate that references no column at all. Rather than push unsafely,
    // reject any filter above join() and point the user at the inputs.
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       current_filters.empty(),
       "filter() cannot be applied to the output of join(); a filter above a join cannot be "
       "pushed into a join input safely. Apply the filter to one of the join inputs instead."

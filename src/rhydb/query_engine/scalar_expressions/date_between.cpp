@@ -59,12 +59,12 @@ using filter::operators::RangeSelection;
 using filter::operators::Selection;
 
 std::unique_ptr<Operator> DateBetween::compile(const storage::Table& table) const {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.schema->getColumn(column.name).has_value(),
       "The database does not contain the column '{}'",
       column.name
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.columns.date32_columns.contains(column.name),
       "The column '{}' is not of type date",
       column.name

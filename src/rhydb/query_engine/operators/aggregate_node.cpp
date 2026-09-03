@@ -42,7 +42,7 @@ arrow::acero::AggregateNodeOptions buildAggregateOptions(
       switch (agg.function) {
          case AggregateFunction::COUNT: {
             // TODO(#1231) implement path including source column
-            CHECK_SILO_QUERY(
+            CHECK_RHYDB_QUERY(
                !agg.source_column.has_value(), "count(<column_ref>) not yet implemented"
             );
             options = std::make_shared<arrow::compute::CountOptions>(

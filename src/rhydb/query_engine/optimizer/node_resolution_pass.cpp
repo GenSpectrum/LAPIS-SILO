@@ -33,12 +33,12 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
    operators::UnresolvedMutationsNode<SymbolType>& node
 ) {
    auto scan = getTableScanOrNone(*node.child);
-   CHECK_SILO_QUERY(scan.has_value(), "mutations() must be applied to a table scan");
+   CHECK_RHYDB_QUERY(scan.has_value(), "mutations() must be applied to a table scan");
 
    std::vector<schema::ColumnIdentifier> bound_sequence_columns;
    for (const auto& sequence_name : node.sequence_names) {
       auto column_identifier = (*scan)->table->schema->getColumn(sequence_name);
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          column_identifier.has_value() && column_identifier.value().type == SymbolType::COLUMN_TYPE,
          "The database does not contain the {} sequence '{}'",
          SymbolType::SYMBOL_NAME,
@@ -67,7 +67,7 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
    } else {
       for (const auto& field_str : node.fields) {
          auto it = std::ranges::find(operators::MutationsNode<SymbolType>::VALID_FIELDS, field_str);
-         CHECK_SILO_QUERY(
+         CHECK_RHYDB_QUERY(
             it != operators::MutationsNode<SymbolType>::VALID_FIELDS.end(),
             "The attribute 'fields' contains an invalid field '{}'. Valid fields are "
             "mutationFrom, mutationTo, position, sequenceName, proportion, coverage, count.",
@@ -92,12 +92,12 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
    operators::UnresolvedInsertionsNode<SymbolType>& node
 ) {
    auto scan = getTableScanOrNone(*node.child);
-   CHECK_SILO_QUERY(scan.has_value(), "insertions() must be applied to a table scan");
+   CHECK_RHYDB_QUERY(scan.has_value(), "insertions() must be applied to a table scan");
 
    std::vector<schema::ColumnIdentifier> bound_sequence_columns;
    for (const auto& sequence_name : node.sequence_names) {
       auto column_identifier = (*scan)->table->schema->getColumn(sequence_name);
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          column_identifier.has_value() && column_identifier.value().type == SymbolType::COLUMN_TYPE,
          "The database does not contain the {} sequence '{}'",
          SymbolType::SYMBOL_NAME,
@@ -138,7 +138,7 @@ operators::QueryNodePtr NodeResolutionPass::operator()(operators::AggregateNode&
 operators::QueryNodePtr NodeResolutionPass::operator()(operators::UnresolvedPhyloSubtreeNode& node
 ) {
    auto scan = getTableScanOrNone(*node.child);
-   CHECK_SILO_QUERY(scan.has_value(), "phyloSubtree() must be applied to a table scan");
+   CHECK_RHYDB_QUERY(scan.has_value(), "phyloSubtree() must be applied to a table scan");
 
    return std::make_unique<operators::PhyloSubtreeNode>(
       std::move((*scan)->table),
@@ -154,7 +154,9 @@ operators::QueryNodePtr NodeResolutionPass::operator()(
    operators::UnresolvedMostRecentCommonAncestorNode& node
 ) {
    auto scan = getTableScanOrNone(*node.child);
-   CHECK_SILO_QUERY(scan.has_value(), "mostRecentCommonAncestor() must be applied to a table scan");
+   CHECK_RHYDB_QUERY(
+      scan.has_value(), "mostRecentCommonAncestor() must be applied to a table scan"
+   );
    return std::make_unique<operators::MostRecentCommonAncestorNode>(
       std::move((*scan)->table),
       std::move((*scan)->filter),

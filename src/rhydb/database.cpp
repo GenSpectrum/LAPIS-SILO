@@ -20,7 +20,7 @@
 #include "rhydb/common/data_version.h"
 #include "rhydb/common/nucleotide_symbols.h"
 #include "rhydb/common/panic.h"
-#include "rhydb/common/silo_directory.h"
+#include "rhydb/common/rhydb_directory.h"
 #include "rhydb/common/version.h"
 #include "rhydb/database_info.h"
 #include "rhydb/persistence/exception.h"
@@ -244,7 +244,7 @@ std::string Database::getAminoAcidReferenceSequence(
       table_schema->getColumnMetadata<storage::column::SequenceColumn<AminoAcid>>(sequence_name);
    if (maybe_sequence_column_metadata == std::nullopt) {
       SPDLOG_ERROR(
-         "The database table {} does not contain the nucleotide sequence column {}",
+         "The database table {} does not contain the amino acid sequence column {}",
          table_name,
          sequence_name
       );

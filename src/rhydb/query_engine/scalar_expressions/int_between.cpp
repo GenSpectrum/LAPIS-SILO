@@ -28,7 +28,7 @@ namespace {
 /// literal.
 void checkBoundFitsInt32(std::optional<int64_t> bound) {
    if (bound.has_value()) {
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          bound.value() >= std::numeric_limits<int32_t>::min() &&
             bound.value() <= std::numeric_limits<int32_t>::max(),
          "Cannot cast {} to int32. Value out of range",
@@ -108,12 +108,12 @@ std::unique_ptr<filter::operators::Operator> IntBetween::compileFor(
 
 std::unique_ptr<filter::operators::Operator> IntBetween::compile(const storage::Table& table
 ) const {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.schema->getColumn(column.name).has_value(),
       "The database does not contain the column '{}'",
       column.name
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.columns.int32_columns.contains(column.name) ||
          table.columns.int64_columns.contains(column.name),
       "The column '{}' is not of type int32 or int64",

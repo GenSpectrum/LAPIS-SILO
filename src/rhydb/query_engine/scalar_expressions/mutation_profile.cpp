@@ -65,7 +65,7 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
 ) const {
    const auto& query_sequence = std::get<QuerySequenceInput>(input).sequence;
    const size_t ref_len = sequence_column.metadata->reference_sequence.size();
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       query_sequence.size() == ref_len,
       "querySequence length {} does not match the reference sequence length {} for {} "
       "MutationProfile",
@@ -78,7 +78,7 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
    profile.reserve(ref_len);
    for (char character : query_sequence) {
       const auto symbol = SymbolType::charToSymbol(character);
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          symbol.has_value(),
          "Invalid {} symbol '{}' in querySequence for MutationProfile",
          SymbolType::SYMBOL_NAME,
@@ -159,7 +159,7 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
       return reconstructSequenceAtRow<SymbolType>(seq_col, found_row_id.value());
    }
 
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       false,
       "No sequence found with primary key '{}' in {} MutationProfile",
       seq_id,
@@ -182,7 +182,7 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
    );
 
    for (const auto& mutation : mutation_list) {
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          mutation.position_idx < ref_len,
          "{} MutationProfile mutation position {} is out of bounds (reference length {})",
          SymbolType::SYMBOL_NAME,

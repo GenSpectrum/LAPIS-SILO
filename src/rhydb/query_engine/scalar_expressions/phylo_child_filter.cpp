@@ -31,14 +31,14 @@ std::unique_ptr<filter::operators::Operator> createMatchingBitmap(
    const std::string& internal_node,
    storage::column::RowLayout row_layout
 ) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       string_column.metadata->phylo_tree.has_value(),
       "Phylotree filter cannot be called on Column '{}' as it does not have a phylogenetic tree "
       "associated with it",
       string_column.metadata->column_name
    );
    auto internal_tree_node = string_column.metadata->phylo_tree->getTreeNodeId(internal_node);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       internal_tree_node.has_value(),
       "The node '{}' does not exist in the phylogenetic tree of column '{}'",
       internal_node,
@@ -64,12 +64,12 @@ std::unique_ptr<ScalarExpression> PhyloChildFilter::rewrite(
 
 std::unique_ptr<filter::operators::Operator> PhyloChildFilter::compile(const storage::Table& table
 ) const {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.schema->getColumn(column.name).has_value(),
       "The database does not contain the column '{}'",
       column.name
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.columns.string_columns.contains(column.name),
       "The column '{}' is not of type string",
       column.name
