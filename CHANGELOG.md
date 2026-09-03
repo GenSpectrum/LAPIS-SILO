@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.14.0...v0.14.1) (2026-09-03)
+
+
+### Features
+
+* **query_engine:** allow a boolean field ref as filter ([#1517](https://github.com/GenSpectrum/LAPIS-SILO/issues/1517)) ([bfd6361](https://github.com/GenSpectrum/LAPIS-SILO/commit/bfd636160833f87a30d8dac6c8b0bcd7f550018e))
+
 ## [0.14.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.13.3...v0.14.0) (2026-09-03)
 
 
