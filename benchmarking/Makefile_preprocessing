@@ -38,11 +38,11 @@ $(DATASET_DIR)/sorted_input_file.ndjson.zst: $(DATASET_DIR)/input_file.ndjson.zs
 	    | zstd > $(DATASET_DIR)/sorted_input_file.ndjson.zst.tmp
 	mv $(DATASET_DIR)/sorted_input_file.ndjson.zst.tmp $(DATASET_DIR)/sorted_input_file.ndjson.zst
 
-# ---- Running silo -----------------------------------------------------------
+# ---- Running rhydb -----------------------------------------------------------
 
-# $(SILO) was built in parent Makefile already
-$(PREPROCESSING_STAMP): $(SILO) $(INPUT_FILE)
-	$(SILO) preprocessing --ndjson-input-filename $(INPUT_FILE) --output-directory $(OUTPUT_DIR)
+# $(RHYDB) was built in parent Makefile already
+$(PREPROCESSING_STAMP): $(RHYDB) $(INPUT_FILE)
+	$(RHYDB) preprocessing --ndjson-input-filename $(INPUT_FILE) --output-directory $(OUTPUT_DIR)
 	touch $(PREPROCESSING_STAMP)
 
 

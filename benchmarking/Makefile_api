@@ -63,19 +63,19 @@ $(API_QUERY): $(API_QUERY_CHECKOUT)
 # just for manual call comfort
 dependencies: $(API_QUERY)
 
-# ---- Running silo -----------------------------------------------------------
+# ---- Running rhydb -----------------------------------------------------------
 
-.silo.pid: $(PREPROCESSING_STAMP)
-	rm -f .silo.stopped
-	bin/start-silo
+.rhydb.pid: $(PREPROCESSING_STAMP)
+	rm -f .rhydb.stopped
+	bin/start-rhydb
 
-.silo.stopped:
-	bin/stop-silo
-	touch .silo.stopped
+.rhydb.stopped:
+	bin/stop-rhydb
+	touch .rhydb.stopped
 
-bench: $(QUERIES_DIR)/queries.ndjson $(API_QUERY) .silo.stopped
+bench: $(QUERIES_DIR)/queries.ndjson $(API_QUERY) .rhydb.stopped
 	@echo "running benchmark"
-	make -f Makefile_api .silo.pid
+	make -f Makefile_api .rhydb.pid
 	bin/api-query-iter
-	make -f Makefile_api .silo.stopped
+	make -f Makefile_api .rhydb.stopped
 	bin/api-query-log-compare

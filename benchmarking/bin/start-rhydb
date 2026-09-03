@@ -4,15 +4,15 @@ IFS=
 
 # Start and wait until up
 
-bin/run-silo > "$BENCH_OUTPUT_LOG" &
+bin/run-rhydb > "$BENCH_OUTPUT_LOG" &
 disown %
 
 echo "Waiting for pid file..."
 n=0
-until [ -e .silo.pid ]; do
+until [ -e .rhydb.pid ]; do
     n=$(( n + 1 ))
     if (( n > 180 )); then
-        echo "Timing out waiting for SILO to come up. Output so far:"
+        echo "Timing out waiting for RhyDB to come up. Output so far:"
         cat "$BENCH_OUTPUT_LOG"
         exit 1
     fi
@@ -20,21 +20,21 @@ until [ -e .silo.pid ]; do
 done
 echo "done."
 
-pid=$(cat .silo.pid)
+pid=$(cat .rhydb.pid)
 
 n=0
 until kill -0 "$pid"; do
     n=$(( n + 1 ))
     if (( n > 20 )); then
-        echo "SILO is not there. Output:"
+        echo "RhyDB is not there. Output:"
         cat "$BENCH_OUTPUT_LOG"
         exit 1
     fi
-    pid=$(cat .silo.pid)
+    pid=$(cat .rhydb.pid)
     sleep 0.5
 done
 
-echo "Waiting for silo (PID $pid) to be ready..."
+echo "Waiting for rhydb (PID $pid) to be ready..."
 until curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/info | grep -q "200"; do 
     sleep 0.5
 done
