@@ -41,14 +41,14 @@ class GermanStringPage {
 
    [[nodiscard]] bool full() const { return n() == MAX_STRINGS_PER_PAGE; }
 
-   [[nodiscard]] size_t insert(const RhyDBString& silo_string) const {
+   [[nodiscard]] size_t insert(const RhyDBString& rhydb_string) const {
       SILO_ASSERT(full() == false);
       // We need to silence a false-positive warning, where the linter does not realise that
       // the placement-new in the next expression needs a writeable pointer
       // NOLINTNEXTLINE(misc-const-correctness)
       uint8_t* const start_of_next_string_struct =
          page.buffer + sizeof(Header) + (n() * sizeof(RhyDBString));
-      new (start_of_next_string_struct) RhyDBString(silo_string);
+      new (start_of_next_string_struct) RhyDBString(rhydb_string);
       return n()++;
    }
 
@@ -74,7 +74,7 @@ class GermanStringRegistry {
    std::deque<GermanStringPage> german_string_pages;
 
   public:
-   Idx insert(const RhyDBString& silo_string);
+   Idx insert(const RhyDBString& rhydb_string);
 
    [[nodiscard]] RhyDBString get(Idx row_id) const;
 

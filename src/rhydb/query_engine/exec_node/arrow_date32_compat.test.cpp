@@ -23,7 +23,7 @@ using rhydb::common::Date32;
 using rhydb::common::date32ToString;
 using rhydb::common::stringToDate32;
 
-TEST(SiloDate32MatchesArrowDate32, cTypesAreIdentical) {
+TEST(RhyDBDate32MatchesArrowDate32, cTypesAreIdentical) {
    // SILO's Date32 must be bit-identical to Arrow's Date32 c_type so that one
    // can be reinterpreted as the other without conversion.
    static_assert(std::is_same_v<Date32, int32_t>);
@@ -31,14 +31,14 @@ TEST(SiloDate32MatchesArrowDate32, cTypesAreIdentical) {
    EXPECT_EQ(arrow::date32()->id(), arrow::Type::DATE32);
 }
 
-TEST(SiloDate32MatchesArrowDate32, dateUnitIsDays) {
+TEST(RhyDBDate32MatchesArrowDate32, dateUnitIsDays) {
    // SILO encodes Date32 as days since 1970-01-01. Arrow's Date32 uses the
    // same encoding (DateUnit::DAY since UNIX epoch).
    EXPECT_EQ(arrow::Date32Type::UNIT, arrow::DateUnit::DAY);
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(SiloDate32MatchesArrowDate32, builderAcceptsSiloDate32Values) {
+TEST(RhyDBDate32MatchesArrowDate32, builderAcceptsRhyDBDate32Values) {
    const std::vector<std::string> dates = {
       "1970-01-01",  // epoch
       "1969-12-31",  // pre-epoch
@@ -53,9 +53,9 @@ TEST(SiloDate32MatchesArrowDate32, builderAcceptsSiloDate32Values) {
 
    arrow::Date32Builder builder;
    for (const auto& date_string : dates) {
-      const auto silo_value = stringToDate32(date_string);
-      ASSERT_TRUE(silo_value.has_value());
-      ASSERT_TRUE(builder.Append(silo_value.value()).ok());
+      const auto rhydb_value = stringToDate32(date_string);
+      ASSERT_TRUE(rhydb_value.has_value());
+      ASSERT_TRUE(builder.Append(rhydb_value.value()).ok());
    }
 
    ASSERT_TRUE(builder.AppendNull().ok());
@@ -69,16 +69,16 @@ TEST(SiloDate32MatchesArrowDate32, builderAcceptsSiloDate32Values) {
 
    for (size_t i = 0; i < dates.size(); ++i) {
       ASSERT_FALSE(date_array.IsNull(static_cast<int64_t>(i)));
-      const int32_t silo_value = stringToDate32(dates.at(i)).value();
+      const int32_t rhydb_value = stringToDate32(dates.at(i)).value();
       const int32_t arrow_value = date_array.Value(static_cast<int64_t>(i));
-      EXPECT_EQ(silo_value, arrow_value) << "Mismatch for date " << dates.at(i);
+      EXPECT_EQ(rhydb_value, arrow_value) << "Mismatch for date " << dates.at(i);
       EXPECT_EQ(date32ToString(arrow_value), dates.at(i));
    }
    EXPECT_TRUE(date_array.IsNull(static_cast<int64_t>(dates.size())));
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(SiloDate32MatchesArrowDate32, arrowCastFromStringMatchesSiloEncoding) {
+TEST(RhyDBDate32MatchesArrowDate32, arrowCastFromStringMatchesRhyDBEncoding) {
    // Arrow's "cast from utf8 to date32" must produce the exact same int32
    // value that SILO produces. If this ever diverges, the storage layer and
    // the query result will disagree on what a date is.
@@ -110,13 +110,13 @@ TEST(SiloDate32MatchesArrowDate32, arrowCastFromStringMatchesSiloEncoding) {
    ASSERT_EQ(arrow_dates->length(), static_cast<int64_t>(dates.size()));
 
    for (size_t i = 0; i < dates.size(); ++i) {
-      const int32_t silo_value = stringToDate32(dates.at(i)).value();
+      const int32_t rhydb_value = stringToDate32(dates.at(i)).value();
       const int32_t arrow_value = arrow_dates->Value(static_cast<int64_t>(i));
-      EXPECT_EQ(silo_value, arrow_value) << "Encoding mismatch for date " << dates.at(i);
+      EXPECT_EQ(rhydb_value, arrow_value) << "Encoding mismatch for date " << dates.at(i);
    }
 }
 
-TEST(SiloDate32MatchesArrowDate32, scalarToStringMatchesSiloFormatting) {
+TEST(RhyDBDate32MatchesArrowDate32, scalarToStringMatchesRhyDBFormatting) {
    // Round-trip through arrow::Date32Scalar to ensure the same int32 value
    // is interpreted as the same calendar day.
    struct Sample {
@@ -131,9 +131,9 @@ TEST(SiloDate32MatchesArrowDate32, scalarToStringMatchesSiloFormatting) {
       {.string_value = "2010-12-03", .expected_int = 14946},
    };
    for (const auto& sample : samples) {
-      const auto silo_value = stringToDate32(sample.string_value);
-      ASSERT_TRUE(silo_value.has_value());
-      EXPECT_EQ(silo_value.value(), sample.expected_int);
+      const auto rhydb_value = stringToDate32(sample.string_value);
+      ASSERT_TRUE(rhydb_value.has_value());
+      EXPECT_EQ(rhydb_value.value(), sample.expected_int);
 
       const arrow::Date32Scalar scalar{sample.expected_int};
       EXPECT_EQ(scalar.value, sample.expected_int);
@@ -141,7 +141,7 @@ TEST(SiloDate32MatchesArrowDate32, scalarToStringMatchesSiloFormatting) {
    }
 }
 
-TEST(SiloDate32MatchesArrowDate32, dayArithmeticAgreesWithArrow) {
+TEST(RhyDBDate32MatchesArrowDate32, dayArithmeticAgreesWithArrow) {
    const auto jan1 = stringToDate32("2023-01-01").value();
    const auto jan2 = stringToDate32("2023-01-02").value();
    const auto dec31 = stringToDate32("2023-12-31").value();
@@ -159,7 +159,7 @@ TEST(SiloDate32MatchesArrowDate32, dayArithmeticAgreesWithArrow) {
    EXPECT_EQ(date_array.Value(2) - date_array.Value(0), 364);
 }
 
-TEST(SiloDate32MatchesArrowDate32, extremalInt32ValuesRoundTripBitwise) {
+TEST(RhyDBDate32MatchesArrowDate32, extremalInt32ValuesRoundTripBitwise) {
    // The Arrow Date32Builder accepts the full int32_t range. SILO must be
    // able to store and read back any value Arrow produces, even if the
    // resulting calendar date is outside the practical YYYY-MM-DD range.
@@ -181,8 +181,8 @@ TEST(SiloDate32MatchesArrowDate32, extremalInt32ValuesRoundTripBitwise) {
 
    for (size_t i = 0; i < values.size(); ++i) {
       EXPECT_EQ(date_array.Value(static_cast<int64_t>(i)), values.at(i));
-      const Date32 silo_value = date_array.Value(static_cast<int64_t>(i));
-      EXPECT_EQ(silo_value, values.at(i));
+      const Date32 rhydb_value = date_array.Value(static_cast<int64_t>(i));
+      EXPECT_EQ(rhydb_value, values.at(i));
    }
 }
 
