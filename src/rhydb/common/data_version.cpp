@@ -14,7 +14,7 @@
 namespace rhydb {
 
 // NOLINTBEGIN(readability-identifier-naming)
-const DataVersion::SerializationVersion DataVersion::CURRENT_SILO_SERIALIZATION_VERSION{
+const DataVersion::SerializationVersion DataVersion::CURRENT_RHYDB_SERIALIZATION_VERSION{
 // clang-format off
 #include "serialization_version.txt"
    // clang-format on
@@ -59,7 +59,7 @@ DataVersion DataVersion::mineDataVersion() {
    const auto now = std::chrono::system_clock::now();
    const auto now_as_time_t = std::chrono::system_clock::to_time_t(now);
    return DataVersion{
-      *Timestamp::fromString(std::to_string(now_as_time_t)), {CURRENT_SILO_SERIALIZATION_VERSION}
+      *Timestamp::fromString(std::to_string(now_as_time_t)), {CURRENT_RHYDB_SERIALIZATION_VERSION}
    };
 }
 
@@ -104,7 +104,7 @@ bool DataVersion::operator>=(const DataVersion& other) const {
 }
 
 bool DataVersion::isCompatibleVersion() const {
-   return this->serialization_version.value == CURRENT_SILO_SERIALIZATION_VERSION.value;
+   return this->serialization_version.value == CURRENT_RHYDB_SERIALIZATION_VERSION.value;
 }
 
 DataVersion::Timestamp DataVersion::getTimestamp() const {
