@@ -21,7 +21,7 @@ namespace rhydb_wasm {
 namespace {
 
 constexpr uint64_t QUERY_TIMEOUT_SECONDS = 120;
-// Native SILO defaults to DEFAULT_ARROW_BATCH_SIZE (32767, see
+// Native RhyDB defaults to DEFAULT_ARROW_BATCH_SIZE (32767, see
 // src/rhydb/config/runtime_config.cpp) rows before it stops collecting a query
 // result in memory and starts streaming it instead. Browser memory is far
 // more constrained than a server process, and detail queries that project
@@ -84,7 +84,7 @@ int preprocess(const std::string& preprocessing_config_path) {
 void save(int handle, const std::string& output_directory) {
    const auto database = databases.find(handle);
    if (database == databases.end()) {
-      throw std::runtime_error("Unknown SILO database handle");
+      throw std::runtime_error("Unknown RhyDB database handle");
    }
    database->second->saveDatabaseState(output_directory);
 }
@@ -93,7 +93,7 @@ int load(const std::string& state_directory) {
    initializeArrowCompute();
    auto database = rhydb::Database::loadDatabaseStateFromPath(state_directory);
    if (!database.has_value()) {
-      throw std::runtime_error("No compatible SILO state found in " + state_directory);
+      throw std::runtime_error("No compatible RhyDB state found in " + state_directory);
    }
    const int handle = next_database_handle++;
    databases.emplace(handle, std::make_unique<rhydb::Database>(std::move(database.value())));
@@ -104,11 +104,11 @@ std::string query(int handle, const std::string& saneql_query) {
    initializeArrowCompute();
    const auto database = databases.find(handle);
    if (database == databases.end()) {
-      throw std::runtime_error("Unknown SILO database handle");
+      throw std::runtime_error("Unknown RhyDB database handle");
    }
 
    auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
-      saneql_query, database->second->tables, browserQueryOptions(), "silo-wasm"
+      saneql_query, database->second->tables, browserQueryOptions(), "rhydb-wasm"
    );
 
    std::ostringstream output_stream;
@@ -122,7 +122,7 @@ std::string query(int handle, const std::string& saneql_query) {
 std::string info(int handle) {
    const auto database = databases.find(handle);
    if (database == databases.end()) {
-      throw std::runtime_error("Unknown SILO database handle");
+      throw std::runtime_error("Unknown RhyDB database handle");
    }
    return nlohmann::json(database->second->getDatabaseInfo()).dump();
 }
