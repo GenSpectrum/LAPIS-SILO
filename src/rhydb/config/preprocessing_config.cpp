@@ -63,7 +63,7 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
             ConfigValueType::PATH,
             "The path to a default preprocessing config that should be read first.\n"
             "This path will often be set by an environment variable, thus \n"
-            "providing defaults to a silo in a specific environment (e.g. Docker)."
+            "providing defaults to a RhyDB instance in a specific environment (e.g. Docker)."
          ),
          ConfigAttributeSpecification::createWithDefault(
             inputDirectoryOptionKey(),

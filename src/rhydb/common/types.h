@@ -3,6 +3,6 @@
 #include <cstdint>
 
 namespace rhydb {
-// Referencing to silo internal pointers
+// Referencing to rhydb internal pointers
 using Idx = uint32_t;
 }  // namespace rhydb

@@ -188,7 +188,7 @@ schema:
       type: string
   primaryKey: key
   features:
-    - name: this is unknown to SILO
+    - name: this is unknown to RhyDB
 )-";
 
    ASSERT_NO_THROW((void)DatabaseConfig::getValidatedConfig(yaml));

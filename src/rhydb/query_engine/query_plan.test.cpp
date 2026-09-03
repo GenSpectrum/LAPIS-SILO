@@ -128,7 +128,7 @@ TEST(QueryPlan, timesOutWhenAnInvalidPlanDoesNotFinish) {
          under_test.executeAndWrite(output_sink, 0);
       }),
       ThrowsMessage<std::runtime_error>(::testing::HasSubstr(
-         "Internal server error. Please notify developers. SILO likely constructed an invalid "
+         "Internal server error. Please notify developers. RhyDB likely constructed an invalid "
          "arrow plan and more user-input validation needs to be added: Request timed out, no batch"
          " within 0 seconds."
       ))

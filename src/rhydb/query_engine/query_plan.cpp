@@ -160,7 +160,7 @@ void QueryPlan::executeAndWrite(
          );
       } else {
          throw std::runtime_error(fmt::format(
-            "Request Id [{}] - Internal server error. Please notify developers. SILO likely "
+            "Request Id [{}] - Internal server error. Please notify developers. RhyDB likely "
             "constructed an invalid arrow plan and more user-input validation needs to be "
             "added: "
             "{}",

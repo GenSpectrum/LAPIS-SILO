@@ -20,7 +20,7 @@ void setupLogger() {
    spdlog::flush_every(FIVE_SECONDS);
 
    auto logger = spdlog::daily_logger_mt(
-      "logger", "logs/silo.log", AT_MIDNIGHT, AT_0_MINUTES, DONT_TRUNCATE, MAX_FILES_7
+      "logger", "logs/rhydb.log", AT_MIDNIGHT, AT_0_MINUTES, DONT_TRUNCATE, MAX_FILES_7
    );
    logger->sinks().push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
 
