@@ -1,6 +1,6 @@
 # Serialization Version
 
-The serialization version is a Unix timestamp (seconds since epoch) that identifies the binary format used to persist the database. It is defined in `src/rhydb/common/serialization_version.txt` and included into `src/rhydb/common/data_version.cpp` as `CURRENT_SILO_SERIALIZATION_VERSION`.
+The serialization version is a Unix timestamp (seconds since epoch) that identifies the binary format used to persist the database. It is defined in `src/rhydb/common/serialization_version.txt` and included into `src/rhydb/common/data_version.cpp` as `CURRENT_RHYDB_SERIALIZATION_VERSION`.
 
 ## Bumping the serialization version
 

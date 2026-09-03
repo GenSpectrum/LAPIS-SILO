@@ -15,7 +15,7 @@ class DataVersion {
       uint32_t value;
    };
 
-   static const SerializationVersion CURRENT_SILO_SERIALIZATION_VERSION;
+   static const SerializationVersion CURRENT_RHYDB_SERIALIZATION_VERSION;
 
    class Timestamp {
      public:
