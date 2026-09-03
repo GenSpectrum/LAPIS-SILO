@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.14.0](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.13.3...v0.14.0) (2026-09-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* environment variables now use the `RHYDB_` prefix instead of `SILO_`, and the `rhydb append` options `--silo-directory`/`--silo-data-source` are renamed to `--data-directory`/`--data-source` (YAML keys `dataDirectory`/`dataSource`). Update env vars, CLI flags, YAML config keys, and Docker/compose setups accordingly.
+* **query_engine:** `column = null` and `column <> null` filters are no longer supported and now return a query error. Use `column.isNull()` / `column.isNotNull()` instead.
+
+### Features
+
+* **query_engine:** add `<>` operator ([#1501](https://github.com/GenSpectrum/LAPIS-SILO/issues/1501)) ([61b0dc5](https://github.com/GenSpectrum/LAPIS-SILO/commit/61b0dc52492cac562e0c21843631d60104b6cac2))
+* **query_engine:** add comparison operators (`<`,`>`,`<=`,`>=`) to SaneQL ([#1495](https://github.com/GenSpectrum/LAPIS-SILO/issues/1495)) ([5351116](https://github.com/GenSpectrum/LAPIS-SILO/commit/53511162b341a78c807637ecb18aa027706234ab))
+* **query_engine:** disallow `column = null` filters ([#1504](https://github.com/GenSpectrum/LAPIS-SILO/issues/1504)) ([77b23a5](https://github.com/GenSpectrum/LAPIS-SILO/commit/77b23a58e62f43032fdd6a6254e28b8585e6268e))
+* rename env variables and CLI arguments (SILO -&gt; RhyDb) ([#1511](https://github.com/GenSpectrum/LAPIS-SILO/issues/1511)) ([f71a3a6](https://github.com/GenSpectrum/LAPIS-SILO/commit/f71a3a624c3398c8dce8a117797c2e4042efb67a))
+* **rhydb:** return ISO week date string from isoWeek() ([81e17a3](https://github.com/GenSpectrum/LAPIS-SILO/commit/81e17a32b62f8744ebc71f843bb9cce9c4415342))
+* **roaring_util:** add container-level set-algebra operators ([#1491](https://github.com/GenSpectrum/LAPIS-SILO/issues/1491)) ([70a1bdd](https://github.com/GenSpectrum/LAPIS-SILO/commit/70a1bdd9170a07e7f1caee69c6cfa3a022787863))
+* **storage:** implement int64 column ([#1448](https://github.com/GenSpectrum/LAPIS-SILO/issues/1448)) ([509820b](https://github.com/GenSpectrum/LAPIS-SILO/commit/509820b59f63ea63144b19412a990106abbea0fb))
+
 ## [0.13.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.13.2...v0.13.3) (2026-08-12)
 
 
