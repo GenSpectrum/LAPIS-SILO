@@ -6,12 +6,12 @@
 #include <Poco/Net/ServerSocket.h>
 #include <spdlog/spdlog.h>
 
-#include <rhydb/common/silo_directory.h>
+#include <rhydb/common/rhydb_directory.h>
 
 #include "active_database.h"
 #include "memory_monitor.h"
 #include "request_handler_factory.h"
-#include "silo_directory_watcher.h"
+#include "rhydb_directory_watcher.h"
 
 namespace rhydb_app {
 

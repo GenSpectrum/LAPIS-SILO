@@ -1,4 +1,4 @@
-#include "silo_directory_watcher.h"
+#include "rhydb_directory_watcher.h"
 
 #include <cxxabi.h>
 #include <optional>

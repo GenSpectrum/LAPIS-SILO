@@ -33,7 +33,7 @@ std::unique_ptr<ScalarExpression> IsNull::rewrite(
 
 std::unique_ptr<filter::operators::Operator> IsNull::compile(const storage::Table& table) const {
    const auto& maybe_target_column = table.schema->getColumn(column.name);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       maybe_target_column.has_value(),
       "The column '{}' is not contained in the database",
       column.name

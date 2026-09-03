@@ -2,7 +2,7 @@
 
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/input_stream_wrapper.h"
-#include "rhydb/common/silo_directory.h"
+#include "rhydb/common/rhydb_directory.h"
 #include "rhydb/database.h"
 
 using rhydb::Database;

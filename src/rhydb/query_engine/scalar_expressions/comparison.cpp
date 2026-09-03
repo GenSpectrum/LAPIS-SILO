@@ -124,7 +124,7 @@ std::unique_ptr<Operator> compileTypedComparison(
    std::string_view type_name,
    typename ColumnType::value_type value
 ) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       column_map.contains(column_name), "The column '{}' is not of type {}", column_name, type_name
    );
    return std::make_unique<Selection>(
@@ -185,7 +185,7 @@ std::unique_ptr<Operator> compileStringComparison(
       );
    }
 
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.columns.dictionary_encoded_columns.contains(column_name),
       "The column '{}' is not of type string",
       column_name
@@ -230,12 +230,12 @@ std::unique_ptr<Operator> compileBoolComparison(
 ) {
    // The column type is checked first so that comparing a non-bool column against a
    // bool literal reports the type mismatch rather than claiming the column is boolean.
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.columns.bool_columns.contains(column_name),
       "The column '{}' is not of type bool",
       column_name
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       comparator == Comparator::EQUALS || comparator == Comparator::NOT_EQUALS,
       "The comparison operators <,>,<=,>= are not supported for boolean column '{}'",
       column_name
@@ -265,12 +265,12 @@ std::unique_ptr<Operator> compileIntComparison(
          table, table.columns.int64_columns, column_name, comparator, "int64", value
       );
    }
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.columns.int32_columns.contains(column_name),
       "The column '{}' is not of type int",
       column_name
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       value >= std::numeric_limits<int32_t>::min() && value <= std::numeric_limits<int32_t>::max(),
       "Cannot cast {} to int32. Value out of range",
       value
@@ -324,12 +324,12 @@ std::unique_ptr<ScalarExpression> Comparison::rewrite(
    if (split.has_value()) {
       if (const auto* string_value = dynCast<StringLiteral>(split->value)) {
          const auto& column_name = split->column->column.name;
-         CHECK_SILO_QUERY(
+         CHECK_RHYDB_QUERY(
             table.schema->getColumn(column_name).has_value(),
             "The database does not contain the column '{}'",
             column_name
          );
-         CHECK_SILO_QUERY(
+         CHECK_RHYDB_QUERY(
             table.columns.string_columns.contains(column_name) ||
                table.columns.dictionary_encoded_columns.contains(column_name),
             "The column '{}' is not of type string",
@@ -348,7 +348,7 @@ std::unique_ptr<ScalarExpression> Comparison::rewrite(
 
 std::unique_ptr<Operator> Comparison::compile(const Table& table) const {
    auto split = splitColumnAndValue(left.get(), right.get());
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       split.has_value(),
       "A Comparison expression can only be compiled to a filter when exactly one side is a column "
       "reference and the other a literal value"
@@ -358,7 +358,7 @@ std::unique_ptr<Operator> Comparison::compile(const Table& table) const {
    const Comparator effective_comparator =
       split->column_on_right ? flipComparator(comparator) : comparator;
 
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.schema->getColumn(column_name).has_value(),
       "The database does not contain the column '{}'",
       column_name

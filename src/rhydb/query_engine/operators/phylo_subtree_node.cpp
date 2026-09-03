@@ -93,19 +93,19 @@ arrow::Result<arrow::acero::ExecNode*> PhyloSubtreeNode::addToExecPlan(
 ) const {
    auto bitmap_filter = computeFilter(filter, *table);
 
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table->schema->getColumn(column_name).has_value(),
       "Column '{}' not found in table schema",
       column_name
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table->schema->getColumn(column_name).value().type == schema::ColumnType::STRING,
       "PhyloSubtree action cannot be called on column '{}' as it is not a column of type STRING",
       column_name
    );
    const auto& optional_table_metadata =
       table->schema->getColumnMetadata<storage::column::StringColumn>(column_name);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       optional_table_metadata.has_value() &&
          optional_table_metadata.value()->phylo_tree.has_value(),
       "PhyloSubtree action cannot be called on Column '{}' as it does not have a "

@@ -4,7 +4,7 @@
 
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/data_version.h"
-#include "rhydb/common/silo_directory.h"
+#include "rhydb/common/rhydb_directory.h"
 #include "rhydb/database_info.h"
 #include "rhydb/query_engine/query_plan.h"
 #include "rhydb/schema/database_schema.h"
