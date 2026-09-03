@@ -111,6 +111,8 @@ Keeps only rows where the boolean predicate is true. Passes all input columns th
 default.filter(country = 'USA' && age > 30)
 ```
 
+A boolean column can be used directly as a predicate: `default.filter(isHuman)` is equivalent to `default.filter(isHuman = true)`, and `default.filter(!isHuman)` negates it (a set complement that also keeps rows where `isHuman` is null, matching `!(isHuman = true)`). Only boolean columns may be used this way; a bare reference to a non-boolean column is rejected.
+
 ### `groupBy(aggregates [, columns])`
 
 Aggregates rows, producing counts or other aggregate values. `aggregates` is a record literal; `columns` is an optional set of column names to group by.

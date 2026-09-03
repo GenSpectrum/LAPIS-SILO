@@ -12,8 +12,7 @@ namespace rhydb::query_engine::scalar_expressions {
 
 /// References an existing column by name. As a scalar expression it evaluates to
 /// that column's value per row, e.g. `y := age`; its type() is the referenced
-/// column's type. It is not a filter predicate, so it cannot be compile()d into a
-/// filter operator.
+/// column's type.
 class FieldRef : public ScalarExpression {
   public:
    schema::ColumnIdentifier column;
