@@ -200,6 +200,23 @@ ast::ExpressionPtr Parser::parsePostfixExpr() {
                method_name.location
             );
          }
+      } else if (check(TokenType::LEFT_BRACKET)) {
+         const SourceLocation loc = current().location;
+         advance();
+         auto index = parseExpression();
+         expect(TokenType::RIGHT_BRACKET);
+         // Desugar a[i] to at(a, i): receiver becomes first positional argument
+         std::vector<ast::PositionalArgument> pos_args;
+         pos_args.push_back(ast::PositionalArgument{.value = std::move(expr), .location = loc});
+         pos_args.push_back(ast::PositionalArgument{.value = std::move(index), .location = loc});
+         expr = ast::makeExpr(
+            ast::FunctionCall{
+               .function_name = "at",
+               .positional_arguments = std::move(pos_args),
+               .named_arguments = {}
+            },
+            loc
+         );
       } else if (check(TokenType::DOUBLE_COLON)) {
          const SourceLocation loc = current().location;
          advance();

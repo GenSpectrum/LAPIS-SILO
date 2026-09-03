@@ -636,6 +636,51 @@ TEST(SaneQLParser, parsesTypeCastChaining) {
    EXPECT_EQ(expr->toString(), "a::t1::t2");
 }
 
+TEST(SaneQLParser, parsesBracketIndexAsAtCall) {
+   // a[3] is sugar for a.at(3): desugared to at(a, 3)
+   Parser parser("a[3]");
+   auto expr = parser.parse();
+   ASSERT_TRUE(std::holds_alternative<ast::FunctionCall>(expr->value));
+   const auto& call = std::get<ast::FunctionCall>(expr->value);
+   EXPECT_EQ(call.function_name, "at");
+   ASSERT_EQ(call.positional_arguments.size(), 2);
+   EXPECT_EQ(call.positional_arguments[0].value->toString(), "a");
+   EXPECT_EQ(call.positional_arguments[1].value->toString(), "3");
+   ASSERT_TRUE(call.named_arguments.empty());
+   EXPECT_EQ(expr->toString(), "at(a, 3)");
+}
+
+TEST(SaneQLParser, parsesBracketIndexEqualsDotAt) {
+   // a[3] and a.at(3) produce identical ASTs
+   Parser bracket_parser("a[3]");
+   Parser dot_parser("a.at(3)");
+   EXPECT_EQ(bracket_parser.parse()->toString(), dot_parser.parse()->toString());
+}
+
+TEST(SaneQLParser, parsesChainedBracketIndex) {
+   // a[1][2] desugars to at(at(a, 1), 2)
+   Parser parser("a[1][2]");
+   auto expr = parser.parse();
+   EXPECT_EQ(expr->toString(), "at(at(a, 1), 2)");
+}
+
+TEST(SaneQLParser, parsesBracketIndexOnMethodCall) {
+   // Bracket indexing chains with method calls and other postfix ops
+   Parser parser("a.b()[0]");
+   auto expr = parser.parse();
+   EXPECT_EQ(expr->toString(), "at(b(a), 0)");
+}
+
+TEST(SaneQLParser, throwsOnUnclosedBracket) {
+   EXPECT_THAT(
+      []() {
+         Parser parser("a[3");
+         (void)parser.parse();
+      },
+      ThrowsMessage<ParseException>(::testing::HasSubstr("Expected RightBracket but got Eof"))
+   );
+}
+
 TEST(SaneQLParser, parsesNamedArgInMethodCall) {
    Parser parser("a.f(x:=1)");
    auto expr = parser.parse();

@@ -502,8 +502,11 @@ cannot be used as a filter predicate and are instead used as `map()` assignments
 
 Extracts the single character of a string `column` at the 1-based `position`, returning it as a string. `position` must be greater than 0. If `position` is past the end of the value, the result is an empty string `""` (a `null` value yields `null`). This is not a boolean predicate, so it cannot be used in `.filter(...)`; use it inside [`map()`](#mapexpressions).
 
+The square-bracket notation `column[position]` is shorthand for `column.at(position)`.
+
 ```
 default.map({second_char := primary_key.at(2)})
+default.map({second_char := primary_key[2]})
 ```
 
 ### `isoWeek(column)`
