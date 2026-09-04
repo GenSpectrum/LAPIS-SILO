@@ -43,12 +43,12 @@ uint32_t validateAndFindColumn(
    const auto found = std::ranges::find_if(child_schema, [&](const auto& column) {
       return column.name == column_name;
    });
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       found != child_schema.end(),
       "transitiveClosure() column '{}' is not present in the input's output schema",
       column_name
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       found->type == schema::ColumnType::STRING,
       "transitiveClosure() can only be applied to STRING columns, but column '{}' has type {}",
       column_name,

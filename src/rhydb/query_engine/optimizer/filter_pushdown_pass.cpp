@@ -180,7 +180,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::TransitiveClos
    // transitiveClosure() re-materializes its child into a fresh from/to relation; it is a
    // source operator with no place to push a predicate into. A filter() applied to its output
    // therefore cannot be realized -> reject the query.
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       current_filters.empty(),
       "filter() cannot be applied to the output of transitiveClosure(); transitiveClosure() is "
       "a source operator and its result cannot be filtered. Apply filter() to its input instead."
