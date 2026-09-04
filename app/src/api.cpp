@@ -18,7 +18,9 @@ namespace rhydb_app {
 int Api::runApi(const rhydb::config::RuntimeConfig& runtime_config) {
    SPDLOG_INFO("Starting RhyDB API");
 
-   const Poco::Net::SocketAddress address(runtime_config.api_options.port);
+   const Poco::Net::SocketAddress address(
+      runtime_config.api_options.address, runtime_config.api_options.port
+   );
 
    Poco::Net::ServerSocket server_socket;
    try {
@@ -26,7 +28,10 @@ int Api::runApi(const rhydb::config::RuntimeConfig& runtime_config) {
       server_socket.listen();
    } catch (const Poco::Net::NetException& e) {
       SPDLOG_ERROR(
-         "Failed to bind to port {}: {}", runtime_config.api_options.port, e.displayText()
+         "Failed to bind to {}:{}: {}",
+         runtime_config.api_options.address,
+         runtime_config.api_options.port,
+         e.displayText()
       );
       return EXIT_FAILURE;
    }
@@ -66,7 +71,9 @@ int Api::runApi(const rhydb::config::RuntimeConfig& runtime_config) {
       rhydb_request_handler_factory.release(), thread_pool, server_socket, poco_parameter
    );
 
-   SPDLOG_INFO("Listening on port {}", runtime_config.api_options.port);
+   SPDLOG_INFO(
+      "Listening on {}:{}", runtime_config.api_options.address, runtime_config.api_options.port
+   );
 
    server.start();
    waitForTerminationRequest();

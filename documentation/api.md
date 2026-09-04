@@ -17,6 +17,7 @@ Configuration is resolved in order of precedence: CLI arguments > environment va
 | Key | Default | Description |
 |-----|---------|-------------|
 | `dataDirectory` | `output` | Path to preprocessed database |
+| `api.address` | `0.0.0.0` | Address to bind the HTTP server to (`0.0.0.0` = all interfaces, `127.0.0.1` = localhost only) |
 | `api.port` | `8081` | HTTP listen port |
 | `api.maxQueuedHttpConnections` | `256` | Maximum queued connections |
 | `api.threadsForHttpConnections` | `0` | Worker threads (0 = number of CPUs) |
