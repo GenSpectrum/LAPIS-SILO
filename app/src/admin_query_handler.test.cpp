@@ -14,7 +14,7 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-#include <rhydb/common/silo_directory.h>
+#include <rhydb/common/rhydb_directory.h>
 #include <rhydb/config/runtime_config.h>
 #include <rhydb/database.h>
 #include <rhydb/schema/database_schema.h>

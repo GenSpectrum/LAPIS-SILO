@@ -70,7 +70,7 @@ DataVersion DataVersion::mineDataVersionAfter(const DataVersion& previous) {
    }
    const auto next_timestamp = std::stoull(previous.timestamp.value) + 1;
    return DataVersion{
-      *Timestamp::fromString(std::to_string(next_timestamp)), {CURRENT_SILO_SERIALIZATION_VERSION}
+      *Timestamp::fromString(std::to_string(next_timestamp)), {CURRENT_RHYDB_SERIALIZATION_VERSION}
    };
 }
 

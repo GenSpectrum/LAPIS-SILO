@@ -30,7 +30,7 @@ WriteCommandPtr buildInsertInto(
                                       ? saneql::ast::extractStringLiteral(target_expr)
                                       : saneql::ast::extractIdentifierName(target_expr);
    auto target_table = schema::TableName(target_name);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       tables.contains(target_table),
       "insertInto() target table '{}' not found in database",
       target_name

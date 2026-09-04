@@ -47,7 +47,7 @@ nlohmann::json InsertCommand::execute(
    // source must not read the table that is being written
    ScannedTableCollector scanned_tables;
    scanned_tables.collectFrom(source_query_);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       !scanned_tables.scanned_tables.contains(target_table_),
       "insertInto() cannot write into table '{}' while the query reads from it",
       target_table_.getName()

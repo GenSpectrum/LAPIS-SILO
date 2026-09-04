@@ -14,7 +14,7 @@
 #include <nlohmann/json.hpp>
 
 #include <rhydb/append/append_exception.h>
-#include <rhydb/common/silo_directory.h>
+#include <rhydb/common/rhydb_directory.h>
 #include <rhydb/database.h>
 #include <rhydb/query_engine/illegal_query_exception.h>
 #include <rhydb/query_engine/saneql/parse_exception.h>
