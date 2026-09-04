@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <string>
 
 #include <fmt/format.h>
 
@@ -13,6 +14,7 @@ class ApiOptions {
   public:
    int32_t max_connections;
    int32_t parallel_threads;
+   std::string address;
    uint16_t port;
    std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>
       estimated_startup_end;

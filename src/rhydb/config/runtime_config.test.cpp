@@ -15,6 +15,7 @@ TEST(RuntimeConfig, shouldReadConfig) {
 
    runtime_config.overwriteFrom(source);
 
+   ASSERT_EQ(runtime_config.api_options.address, "127.0.0.1");
    ASSERT_EQ(runtime_config.api_options.port, 1234);
    ASSERT_EQ(runtime_config.data_directory, "test/directory");
    ASSERT_TRUE(runtime_config.api_options.allow_admin_endpoint);

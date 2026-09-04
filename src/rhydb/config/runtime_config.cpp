@@ -27,6 +27,9 @@ ConfigKeyPath defaultRuntimeConfigOptionKey() {
 ConfigKeyPath dataDirectoryOptionKey() {
    return YamlFile::stringToConfigKeyPath("dataDirectory");
 }
+ConfigKeyPath apiAddressOptionKey() {
+   return YamlFile::stringToConfigKeyPath("api.address");
+}
 ConfigKeyPath apiPortOptionKey() {
    return YamlFile::stringToConfigKeyPath("api.port");
 }
@@ -77,6 +80,13 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
                dataDirectoryOptionKey(),
                ConfigValue::fromPath(DEFAULT_OUTPUT_DIRECTORY),
                "The path to the directory with the data files (output from preprocessing)."
+            ),
+            ConfigAttributeSpecification::createWithDefault(
+               apiAddressOptionKey(),
+               ConfigValue::fromString("0.0.0.0"),
+               "The address on which to listen for incoming HTTP connections. \n"
+               "Defaults to 0.0.0.0, which binds to all available network interfaces. \n"
+               "Set to 127.0.0.1 to only accept connections from localhost."
             ),
             ConfigAttributeSpecification::createWithDefault(
                apiPortOptionKey(),
@@ -156,6 +166,9 @@ void RuntimeConfig::overwriteFrom(const VerifiedConfigAttributes& config_source)
    if (auto var = config_source.getPath(dataDirectoryOptionKey())) {
       data_directory = var.value();
    }
+   if (auto var = config_source.getString(apiAddressOptionKey())) {
+      api_options.address = var.value();
+   }
    if (auto var = config_source.getUint16(apiPortOptionKey())) {
       api_options.port = var.value();
    }
@@ -189,6 +202,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
    rhydb::config::ApiOptions,
    max_connections,
    parallel_threads,
+   address,
    port,
    estimated_startup_end,
    allow_admin_endpoint
