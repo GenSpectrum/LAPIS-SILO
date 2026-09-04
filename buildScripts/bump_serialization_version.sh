@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bumps the SILO serialization version to a new Unix timestamp and rebuilds the committed
+# Bumps the RhyDB serialization version to a new Unix timestamp and rebuilds the committed
 # serialized test state so that unit tests pass with the new version.
 #
 # Usage: ./bump_serialization_version.sh

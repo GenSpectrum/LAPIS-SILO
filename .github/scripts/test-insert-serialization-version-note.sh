@@ -36,7 +36,7 @@ EXPECTED='## [0.5.0](url)
 
 ### ⚠ Serialization Version Changed
 
-The serialization version changed in this release. Databases serialized with previous SILO versions are incompatible and need to be re-preprocessed.
+The serialization version changed in this release. Databases serialized with previous RhyDB versions are incompatible and need to be re-preprocessed.
 
 ### Features
 * y
@@ -83,7 +83,7 @@ EXPECTED='## [0.5.0](url)
 
 ### ⚠ Serialization Version Changed
 
-The serialization version changed in this release. Databases serialized with previous SILO versions are incompatible and need to be re-preprocessed.
+The serialization version changed in this release. Databases serialized with previous RhyDB versions are incompatible and need to be re-preprocessed.
 
 ### Features
 * y
@@ -113,7 +113,7 @@ EXPECTED='## [0.11.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.11.2.
 
 ### ⚠ Serialization Version Changed
 
-The serialization version changed in this release. Databases serialized with previous SILO versions are incompatible and need to be re-preprocessed.
+The serialization version changed in this release. Databases serialized with previous RhyDB versions are incompatible and need to be re-preprocessed.
 
 
 ### Features
