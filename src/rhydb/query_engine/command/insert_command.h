@@ -13,7 +13,7 @@ class Database;
 
 namespace rhydb::query_engine::command {
 
-/// `<query>.insertInto(<targetTable>)`: runs the wrapped source query and inserts its result rows
+/// `<query>.insertInto(<table>)`: runs the wrapped source query and inserts its result rows
 /// into the target table. The source query's output columns are matched to the target's columns by
 /// name.
 class InsertCommand : public WriteCommand {

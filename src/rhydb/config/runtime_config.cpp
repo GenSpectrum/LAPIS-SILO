@@ -111,9 +111,12 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
             ConfigAttributeSpecification::createWithDefault(
                apiAllowAdminEndpointOptionKey(),
                ConfigValue::fromBool(false),
-               "Whether to serve the write-enabled 'POST /admin/query' endpoint, which mutates \n"
-               "the active database (e.g. via 'insertInto'). Disabled by default; while it is \n"
-               "disabled the endpoint responds with 404 and the instance stays read-only."
+               "Whether to serve the write-enabled 'POST /admin/query' endpoint, which changes \n"
+               "the data the server serves (e.g. via 'insertInto'). Each write saves a new data \n"
+               "version to the data directory, which must be writable, and is served once it has \n"
+               "been picked up from there. Disabled by default; while it is disabled the endpoint "
+               "\n"
+               "responds with 404 and the instance stays read-only."
             ),
             ConfigAttributeSpecification::createWithDefault(
                queryMaterializationOptionKey(),

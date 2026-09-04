@@ -494,9 +494,9 @@ so nucleotide and amino acid sequences cannot be distinguished from ordinary str
 
 ## Writing query results to a table
 
-### `insertInto(targetTable)`
+### `insertInto(query: expression, table: symbol)`
 
-Runs the query it is chained onto and inserts the resulting rows into an existing table — a query
+Runs `query` and inserts the resulting rows into `table` — a query
 against table A whose result lands in table B, expressed as a single SaneQL query. It is the only
 SaneQL construct that writes: it mutates the target table rather than returning rows to the caller.
 
@@ -524,8 +524,11 @@ through an insert query. A sequence column is decompressed to a plain string whe
 pipeline, which does not match the structured form the target's sequence column expects, so query
 results containing sequence columns cannot be inserted.
 
-Like other in-place mutations it bumps the data version and is not safe to run concurrently with other
-queries against the same database.
+It bumps the data version of the database it is applied to. The statement itself mutates its target
+table in place, so it is not safe to run next to other queries against the same database; the
+[`POST /admin/query`](api.md#post-adminquery) endpoint - the only way to issue it over the API -
+therefore applies it to a database loaded from the data directory and saves the result back as a new
+data version, which is served once the directory watcher picks it up.
 
 ---
 

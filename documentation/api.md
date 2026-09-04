@@ -195,15 +195,14 @@ print(table.to_pandas())
 
 ### `POST /admin/query`
 
-Executes a SaneQL **write statement** against the database. Currently the only write statement is
-`<query>.insertInto(<targetTable>)`, which runs the inner query and inserts its result rows into
-`<targetTable>` in place — see [`insertInto`](query_documentation.md#insertintotargettable) for
-semantics and limitations.
+Executes a SaneQL **write statement** against the database:
+- `insertInto(query: expression, table: symbol)`. Runs `query` and inserts its result rows into
+`table` — see [`insertInto`](query_documentation.md#`insertInto`) for semantics and
+limitations.
 
-This is kept on a separate `/admin` path from `POST /query` because, unlike the read-only query
-endpoint, it mutates the active database. In-place mutation is **not safe to run concurrently** with
-other queries against the same database, so this endpoint is intended for controlled administrative
-use rather than general traffic.
+The write goes through the [data directory](#runtime-configuration): the most recent state there is
+loaded into a database of its own, the statement is applied to that one, and the result is saved
+back as a new data version.
 
 The endpoint is **opt-in**: it is only served when
 [`api.allowAdminEndpoint`](#runtime-configuration) is set to `true`. While it is disabled the path
@@ -220,18 +219,13 @@ inserted:
 {"insertedRows": 42}
 ```
 
-A successful response carries the [`data-version`](#common-response-headers) header reflecting the
-version after the write.
+A successful response carries the [`data-version`](#common-response-headers) header naming the
+version the write produced, which is served once the directory watcher has picked it up. A failed
+write leaves the data version unchanged.
 
-**Errors** (400, `application/json`): returned when the body is not a valid write statement — e.g. a
-plain read query, an unknown target table, or a result that does not produce every column of the
-target table.
-```json
-{
-  "error": "Bad request",
-  "message": "description of what went wrong"
-}
-```
+**Errors** (400, `application/json`): returned when the body is not a valid write statement.
+A 500 is returned when the write itself could not be carried out, e.g. because the
+data directory holds no state to write to or could not be written.
 
 ```bash
 curl -X POST \

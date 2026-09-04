@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <memory>
 #include <mutex>
 
@@ -7,19 +8,18 @@
 #include <Poco/Net/HTTPServerResponse.h>
 
 #include <rhydb/config/runtime_config.h>
+#include <rhydb/database.h>
 
 #include "active_database.h"
 #include "rest_resource.h"
 
 namespace rhydb_app {
 
-/// Handles `POST /admin/query`: a write-enabled SaneQL endpoint for append queries of the form
-/// `<query>.insertInto(<targetTable>)`. Unlike `POST /query`, which only reads, this mutates the
-/// active database in place. It is intentionally kept on a separate `/admin` path because in-place
-/// mutation is not safe to run concurrently with other queries against the same database. It is
-/// only routed to when `api.allowAdminEndpoint` is enabled; otherwise the path 404s.
+/// Handles write-enabled endpoint `POST /admin/query`.
+/// Only routed to when `api.allowAdminEndpoint` is enabled.
 class AdminQueryHandler : public RestResource {
    rhydb::config::QueryOptions query_options;
+   std::filesystem::path data_directory;
    std::shared_ptr<ActiveDatabase> database_handle;
    std::shared_ptr<std::mutex> write_mutex;
 
@@ -27,11 +27,15 @@ class AdminQueryHandler : public RestResource {
    AdminQueryHandler(
       std::shared_ptr<ActiveDatabase> database_handle,
       rhydb::config::QueryOptions query_options,
+      std::filesystem::path data_directory,
       std::shared_ptr<std::mutex> write_mutex
    );
 
    void post(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response)
       override;
+
+  private:
+   [[nodiscard]] rhydb::Database loadDatabaseToWriteTo() const;
 };
 
 }  // namespace rhydb_app

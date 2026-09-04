@@ -437,7 +437,7 @@ TEST(DatabaseInsertQueryTest, insertsAResultThatSpansSeveralBatches) {
 
 // The rows are inserted while the query is still producing, so a query that reads the table it
 // writes into would read columns that the insert mutates underneath it.
-TEST(DatabaseInsertQueryTest, rejectsInsertThatReadsItsTargetTable) {
+TEST(DatabaseInsertQueryTest, rejectsInsertThatReadsItsTable) {
    rhydb::Database database;
    database.createTable(TableName{"source"}, makeValueColumnSchema());
 

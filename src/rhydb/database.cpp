@@ -456,7 +456,7 @@ DataVersion::Timestamp Database::getDataVersionTimestamp() const {
 }
 
 void Database::updateDataVersion() {
-   data_version_ = DataVersion::mineDataVersion();
+   data_version_ = DataVersion::mineDataVersionAfter(data_version_);
    SPDLOG_DEBUG("Data version was set to {}", data_version_.toString());
 }
 
@@ -486,7 +486,7 @@ nlohmann::json Database::executeWrite(
    const auto* command = std::get_if<query_engine::command::WriteCommandPtr>(&request);
    if (command == nullptr) {
       throw query_engine::IllegalQueryException(
-         "expected a write statement, e.g. `<query>.insertInto(<targetTable>)`"
+         "expected a write statement, e.g. `<query>.insertInto(<table>)`"
       );
    }
    return (*command)->execute(*this, query_options);
