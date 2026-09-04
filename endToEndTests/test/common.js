@@ -1,12 +1,12 @@
 import supertest from 'supertest';
 import { expect } from 'chai';
 
-const siloUrl = process.env.RHYDB_URL;
-if (!siloUrl) {
+const rhydbUrl = process.env.RHYDB_URL;
+if (!rhydbUrl) {
   throw new Error('Test execution issue: Execute the tests with "RHYDB_URL=<url>" set');
 }
 
-export const server = supertest.agent(siloUrl);
+export const server = supertest.agent(rhydbUrl);
 
 export function expectHeaderToHaveDataVersion(response) {
   const headers = response.headers;
