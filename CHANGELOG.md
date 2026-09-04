@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.14.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.14.1...v0.14.2) (2026-09-04)
+
+
+### Features
+
+* **app:** add config option for binding address ([#1539](https://github.com/GenSpectrum/LAPIS-SILO/issues/1539)) ([62d13a6](https://github.com/GenSpectrum/LAPIS-SILO/commit/62d13a65f9b81879d520ba044617acc8ee1b820b))
+* **rhydb:** add `transitiveClosure` table function ([#1493](https://github.com/GenSpectrum/LAPIS-SILO/issues/1493)) ([2e43349](https://github.com/GenSpectrum/LAPIS-SILO/commit/2e43349f9425392c313b2b2175a250f1a4ae6716))
+* **rhydb:** add function `insertInto` and `/admin/query` endpoint ([#1502](https://github.com/GenSpectrum/LAPIS-SILO/issues/1502)) ([660b830](https://github.com/GenSpectrum/LAPIS-SILO/commit/660b830945b631fea7a988e8601a04540d4173c6))
+
 ## [0.14.1](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.14.0...v0.14.1) (2026-09-03)
 
 
