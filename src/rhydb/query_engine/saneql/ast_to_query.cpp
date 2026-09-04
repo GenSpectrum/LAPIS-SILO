@@ -15,6 +15,7 @@
 #include "rhydb/common/aa_symbols.h"
 #include "rhydb/common/lineage_tree.h"
 #include "rhydb/common/nucleotide_symbols.h"
+#include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/operators/aggregate_node.h"
 #include "rhydb/query_engine/operators/fetch_node.h"
@@ -25,6 +26,7 @@
 #include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/schema_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
+#include "rhydb/query_engine/operators/transitive_closure_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
 #include "rhydb/query_engine/operators/unresolved_insertions_node.h"
 #include "rhydb/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
@@ -1387,7 +1389,8 @@ void collectJoinKeys(
       on_expression.location.toString()
    );
    CHECK_RHYDB_QUERY(
-      first.column.type == second.column.type,
+      exec_node::columnTypeToArrowType(first.column.type)
+         ->Equals(*exec_node::columnTypeToArrowType(second.column.type)),
       "join() on-expression equality must reference equal column types from each input, but "
       "'{}' and '{}' have mismatching types {} and {} at {}",
       binary.left->toString(),
@@ -1506,6 +1509,25 @@ operators::QueryNodePtr handleUnionAll(
    );
 
    return std::make_unique<operators::UnionAllNode>(std::move(left), std::move(right));
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr handleTransitiveClosure(
+   const BoundArguments& args,
+   const Tables& tables,
+   const ChildConverter& convert_child
+) {
+   auto child = convert_child(args.at("input"), tables);
+   auto from_column = extractStringLiteral(args.at("from"));
+   auto to_column = extractStringLiteral(args.at("to"));
+   bool include_vertices = false;
+   if (const auto* expr = args.get("includeVertices")) {
+      include_vertices = extractBoolLiteral(*expr);
+   }
+
+   return std::make_unique<operators::TransitiveClosureNode>(
+      std::move(child), std::move(from_column), std::move(to_column), include_vertices
+   );
 }
 
 }  // namespace
@@ -1634,6 +1656,12 @@ FunctionRegistry::FunctionRegistry() {
 
    registerFunction(
       "join", {{pos("left"), pos("right"), pos("on"), named("type", false)}}, handleJoin
+   );
+
+   registerFunction(
+      "transitiveClosure",
+      {{pos("input"), pos("from"), pos("to"), named("includeVertices", false)}},
+      handleTransitiveClosure
    );
 }
 

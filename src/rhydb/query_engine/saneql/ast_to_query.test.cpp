@@ -13,6 +13,7 @@
 #include "rhydb/query_engine/saneql/ast.h"
 #include "rhydb/query_engine/saneql/parser.h"
 #include "rhydb/schema/database_schema.h"
+#include "rhydb/storage/column/dictionary_encoded_column.h"
 #include "rhydb/storage/column/string_column.h"
 #include "rhydb/storage/table.h"
 
@@ -50,6 +51,27 @@ Tables makeTablesWithDefault() {
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
       {date_column, std::make_shared<ColumnMetadata>(date_column.name)}
+   };
+   auto schema = std::make_shared<rhydb::schema::TableSchema>(std::move(col_meta), primary_key);
+   Tables tables;
+   const rhydb::schema::TableName table_name("default");
+   tables[table_name] = std::make_shared<rhydb::storage::Table>(table_name, schema);
+   return tables;
+}
+
+/// A table whose `lineage` column is dictionary-encoded, next to the plain string `id` column.
+Tables makeTablesWithDictionaryEncodedColumn() {
+   using rhydb::schema::ColumnIdentifier;
+   using rhydb::schema::ColumnType;
+   using rhydb::storage::column::ColumnMetadata;
+   using rhydb::storage::column::DictionaryEncodedColumnMetadata;
+   using rhydb::storage::column::StringColumnMetadata;
+
+   ColumnIdentifier primary_key{.name = "id", .type = ColumnType::STRING};
+   ColumnIdentifier lineage_column{.name = "lineage", .type = ColumnType::DICTIONARY_ENCODED};
+   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
+      {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
+      {lineage_column, std::make_shared<DictionaryEncodedColumnMetadata>(lineage_column.name)}
    };
    auto schema = std::make_shared<rhydb::schema::TableSchema>(std::move(col_meta), primary_key);
    Tables tables;
@@ -760,7 +782,7 @@ TEST(AstToQueryJoin, onExpressionEqualityOfMismatchingColumnTypesThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
       [&tables]() {
-         (void)parseAndConvertToQueryTree(
+         auto query_tree = parseAndConvertToQueryTree(
             "join(default.project({id}), default.map({num := 3}).project({num}), id = num)", tables
          );
       },
@@ -769,6 +791,16 @@ TEST(AstToQueryJoin, onExpressionEqualityOfMismatchingColumnTypesThrows) {
          "'id' and 'num' have mismatching types STRING and INT64"
       ))
    );
+}
+
+// A dictionary-encoded column and a plain string column both materialize as an arrow utf8 array,
+// so they are interchangeable as join keys - e.g. joining a transitiveClosure() result (always
+// plain STRING) against an indexed lineage column, which is necessarily dictionary-encoded.
+TEST(AstToQueryJoin, onExpressionEqualityOfStringAndDictionaryEncodedColumnsSucceeds) {
+   auto tables = makeTablesWithDictionaryEncodedColumn();
+   EXPECT_NO_THROW((void)parseAndConvertToQueryTree(
+      "join(default.project({id}), default.map({lin := lineage}).project({lin}), id = lin)", tables
+   ));
 }
 
 // --- resolveJoinColumn ---
