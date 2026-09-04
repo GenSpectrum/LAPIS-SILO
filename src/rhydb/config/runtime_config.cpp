@@ -68,7 +68,7 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
                ConfigValueType::PATH,
                "The path to config file in YAML format with default values. \n"
                "This path will often be set by an environment variable, thus \n"
-               "providing defaults to a silo in a specific environment (e.g. Docker)."
+               "providing defaults to a RhyDB instance in a specific environment (e.g. Docker)."
             ),
             ConfigAttributeSpecification::createWithDefault(
                dataDirectoryOptionKey(),
@@ -95,8 +95,8 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
                apiEstimatedStartupTimeOptionKey(),
                ConfigValueType::UINT32,
                "Estimated time in minutes that the initial loading of the database takes. \n"
-               "As long as no database is loaded yet, SILO will throw a 503 error. \n"
-               "This option allows SILO to compute a Retry-After header for the 503 response."
+               "As long as no database is loaded yet, RhyDB will throw a 503 error. \n"
+               "This option allows RhyDB to compute a Retry-After header for the 503 response."
             ),
             ConfigAttributeSpecification::createWithDefault(
                softMemoryLimitOptionKey(),

@@ -45,7 +45,7 @@ namespace {
 [[noreturn]] void unreachable(const char* file, int line) {
    panic(
       "UNREACHABLE: ",
-      "Please report this as a bug in SILO: this code should never be reachable",
+      "Please report this as a bug in RhyDB: this code should never be reachable",
       file,
       line
    );

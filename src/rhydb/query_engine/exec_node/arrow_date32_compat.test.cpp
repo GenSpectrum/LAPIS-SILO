@@ -24,7 +24,7 @@ using rhydb::common::date32ToString;
 using rhydb::common::stringToDate32;
 
 TEST(RhyDBDate32MatchesArrowDate32, cTypesAreIdentical) {
-   // SILO's Date32 must be bit-identical to Arrow's Date32 c_type so that one
+   // RhyDB's Date32 must be bit-identical to Arrow's Date32 c_type so that one
    // can be reinterpreted as the other without conversion.
    static_assert(std::is_same_v<Date32, int32_t>);
    static_assert(std::is_same_v<arrow::Date32Type::c_type, int32_t>);
@@ -32,7 +32,7 @@ TEST(RhyDBDate32MatchesArrowDate32, cTypesAreIdentical) {
 }
 
 TEST(RhyDBDate32MatchesArrowDate32, dateUnitIsDays) {
-   // SILO encodes Date32 as days since 1970-01-01. Arrow's Date32 uses the
+   // RhyDB encodes Date32 as days since 1970-01-01. Arrow's Date32 uses the
    // same encoding (DateUnit::DAY since UNIX epoch).
    EXPECT_EQ(arrow::Date32Type::UNIT, arrow::DateUnit::DAY);
 }
@@ -80,7 +80,7 @@ TEST(RhyDBDate32MatchesArrowDate32, builderAcceptsRhyDBDate32Values) {
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(RhyDBDate32MatchesArrowDate32, arrowCastFromStringMatchesRhyDBEncoding) {
    // Arrow's "cast from utf8 to date32" must produce the exact same int32
-   // value that SILO produces. If this ever diverges, the storage layer and
+   // value that RhyDB produces. If this ever diverges, the storage layer and
    // the query result will disagree on what a date is.
    const std::vector<std::string> dates = {
       "1970-01-01",
@@ -160,7 +160,7 @@ TEST(RhyDBDate32MatchesArrowDate32, dayArithmeticAgreesWithArrow) {
 }
 
 TEST(RhyDBDate32MatchesArrowDate32, extremalInt32ValuesRoundTripBitwise) {
-   // The Arrow Date32Builder accepts the full int32_t range. SILO must be
+   // The Arrow Date32Builder accepts the full int32_t range. RhyDB must be
    // able to store and read back any value Arrow produces, even if the
    // resulting calendar date is outside the practical YYYY-MM-DD range.
    const std::vector<int32_t> values = {

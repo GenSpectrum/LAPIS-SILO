@@ -116,7 +116,7 @@ namespace rhydb::common {
 
 /// `SILO_DEBUG_ASSERT` is like `SILO_ASSERT`, but for cases where performance
 /// is more important than verification in production: instantiations
-/// are only active when compiling SILO in debug (via
+/// are only active when compiling RhyDB in debug (via
 /// `CMakeLists.txt`; concretely, they are compiled to be active when
 /// the preprocessor variable `SILO_DEBUG_ASSERTIONS` is set to 1, and
 /// ignored if that variable is set to 0; if the variable is missing,
@@ -124,7 +124,7 @@ namespace rhydb::common {
 /// present with another value, a compilation error results. Note that
 /// `SILO_DEBUG_ASSERTIONS` must be set to 1 for debug builds or
 /// `SILO_DEBUG_ASSERT` won't even check the assertion in debug builds. The
-/// SILO `CMakeLists.txt` does set it up that way.)
+/// RhyDB `CMakeLists.txt` does set it up that way.)
 #ifndef SILO_DEBUG_ASSERTIONS
 #warning \
    "SILO_DEBUG_ASSERTIONS is not set, should be 0 to ignore SILO_DEBUG_ASSERT, 1 to compile it in, assuming 0"

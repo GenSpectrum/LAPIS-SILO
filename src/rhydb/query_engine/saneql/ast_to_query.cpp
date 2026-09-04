@@ -129,7 +129,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertScalarFunctionCall(
    return expression;
 }
 
-/// Converts a saneql expression into a SILO scalar Expression: a value-producing
+/// Converts a saneql expression into a RhyDB scalar Expression: a value-producing
 /// expression (as opposed to convertToFilter, which yields a boolean predicate).
 /// Supported forms are literals (int, float, string, bool), references to an
 /// existing column of `schema` (resolved to that column's type), and scalar

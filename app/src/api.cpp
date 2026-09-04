@@ -16,7 +16,7 @@
 namespace rhydb_app {
 
 int Api::runApi(const rhydb::config::RuntimeConfig& runtime_config) {
-   SPDLOG_INFO("Starting SILO API");
+   SPDLOG_INFO("Starting RhyDB API");
 
    const Poco::Net::SocketAddress address(runtime_config.api_options.port);
 
