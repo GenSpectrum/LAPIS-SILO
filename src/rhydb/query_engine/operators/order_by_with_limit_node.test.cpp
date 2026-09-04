@@ -101,10 +101,24 @@ const QueryTestScenario LIMIT_LARGER_THAN_INPUT_SCENARIO = {
    )
 };
 
+// An empty input must not crash the sort+limit path; it returns no rows (regression for #1530).
+const QueryTestScenario EMPTY_INPUT_SCENARIO = {
+   .name = "ORDER_BY_WITH_LIMIT_EMPTY_INPUT",
+   .query =
+      "default.filter(int_value = 999).project({primaryKey, int_value}).orderBy({int_value.asc()})"
+      ".limit(3)",
+   .expected_query_result = nlohmann::json::array()
+};
+
 }  // namespace
 
 QUERY_TEST(
    OrderByWithLimitNodeTest,
    TEST_DATA,
-   ::testing::Values(ASC_LIMIT_SCENARIO, DESC_LIMIT_SCENARIO, LIMIT_LARGER_THAN_INPUT_SCENARIO)
+   ::testing::Values(
+      ASC_LIMIT_SCENARIO,
+      DESC_LIMIT_SCENARIO,
+      LIMIT_LARGER_THAN_INPUT_SCENARIO,
+      EMPTY_INPUT_SCENARIO
+   )
 );
