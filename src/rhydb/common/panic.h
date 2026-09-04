@@ -65,15 +65,15 @@ namespace rhydb::common {
 
 #define RHYDB_INTERNAL_ASSERT_OP_(prefix_str, e1, op, e2)                                         \
    do {                                                                                           \
-      auto silo_internal_assert_op_v1 = (e1);                                                     \
-      auto silo_internal_assert_op_v2 = (e2);                                                     \
-      if (!(silo_internal_assert_op_v1 op silo_internal_assert_op_v2)) {                          \
+      auto rhydb_internal_assert_op_v1 = (e1);                                                     \
+      auto rhydb_internal_assert_op_v2 = (e2);                                                     \
+      if (!(rhydb_internal_assert_op_v1 op rhydb_internal_assert_op_v2)) {                          \
          rhydb::common::assertOpFailure(                                                          \
             prefix_str,                                                                           \
             #e1,                                                                                  \
             #op,                                                                                  \
             #e2,                                                                                  \
-            fmt::format("{} " #op " {}", silo_internal_assert_op_v1, silo_internal_assert_op_v2), \
+            fmt::format("{} " #op " {}", rhydb_internal_assert_op_v1, rhydb_internal_assert_op_v2), \
             __FILE__,                                                                             \
             __LINE__                                                                              \
          );                                                                                       \
