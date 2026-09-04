@@ -43,15 +43,15 @@ TEST(StringColumn, rawInsertedValuesRequeried) {
    StringColumn under_test(&metadata);
 
    RHYDB_ASSERT(appendStringValues(
-                  under_test,
-                  {"value 1",
-                   "value 2",
-                   "value 2",
-                   "value 3",
-                   "some string that is a little longer 1",
-                   "value 1"}
+                   under_test,
+                   {"value 1",
+                    "value 2",
+                    "value 2",
+                    "value 3",
+                    "some string that is a little longer 1",
+                    "value 1"}
    )
-                  .has_value());
+                   .has_value());
 
    EXPECT_EQ(under_test.getValueString(RowId(0, 0)), "value 1");
    EXPECT_EQ(under_test.getValueString(RowId(0, 1)), "value 2");
@@ -183,15 +183,15 @@ TEST(StringColumn, rawInsertedValuesRequeryLongValue) {
    StringColumn under_test{&column};
 
    RHYDB_ASSERT(appendStringValues(
-                  under_test,
-                  {"value 1",
-                   "value 2",
-                   "value 2",
-                   "value 3",
-                   "some string that is a little longer 1",
-                   "value 1"}
+                   under_test,
+                   {"value 1",
+                    "value 2",
+                    "value 2",
+                    "value 3",
+                    "some string that is a little longer 1",
+                    "value 1"}
    )
-                  .has_value());
+                   .has_value());
 
    EXPECT_EQ(under_test.getValueString(RowId(0, 4)), "some string that is a little longer 1");
 }
@@ -201,27 +201,27 @@ TEST(StringColumn, compareAcrossColumns) {
    StringColumnMetadata under_test("string_column");
    StringColumn column_1{&under_test};
    RHYDB_ASSERT(appendStringValues(
-                  column_1,
-                  {"value 1",
-                   "value 2",
-                   "value 2",
-                   "value 3",
-                   "some string that is a little longer 1",
-                   "value 1"}
+                   column_1,
+                   {"value 1",
+                    "value 2",
+                    "value 2",
+                    "value 3",
+                    "some string that is a little longer 1",
+                    "value 1"}
    )
-                  .has_value());
+                   .has_value());
 
    StringColumn column_2{&under_test};
    RHYDB_ASSERT(appendStringValues(
-                  column_2,
-                  {"other value 2",
-                   "other values 3",
-                   "value 1",
-                   "other value 3",
-                   "some string that is a little longer 1",
-                   "other value 1"}
+                   column_2,
+                   {"other value 2",
+                    "other values 3",
+                    "value 1",
+                    "other value 3",
+                    "some string that is a little longer 1",
+                    "other value 1"}
    )
-                  .has_value());
+                   .has_value());
 
    EXPECT_EQ(column_1.getValueString(RowId(0, 0)), column_1.getValueString(RowId(0, 5)));
    EXPECT_EQ(column_1.getValueString(RowId(0, 5)), column_2.getValueString(RowId(0, 2)));

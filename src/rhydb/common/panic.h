@@ -53,7 +53,7 @@ namespace rhydb::common {
 /// calls `panic` with the stringification of the code `e` and
 /// file/line information. `RHYDB_ASSERT` is always compiled in; if
 /// performance overrides safety, use `RHYDB_DEBUG_ASSERT` instead.
-#define RHYDB_ASSERT(e)                                         \
+#define RHYDB_ASSERT(e)                                        \
    do {                                                        \
       const bool condition = (e);                              \
       if (!condition) {                                        \
@@ -63,7 +63,7 @@ namespace rhydb::common {
 
 [[noreturn]] void assertFailure(const char* msg, const char* file, int line);
 
-#define RHYDB_INTERNAL_ASSERT_OP_(prefix_str, e1, op, e2)                                          \
+#define RHYDB_INTERNAL_ASSERT_OP_(prefix_str, e1, op, e2)                                         \
    do {                                                                                           \
       auto silo_internal_assert_op_v1 = (e1);                                                     \
       auto silo_internal_assert_op_v2 = (e2);                                                     \
@@ -137,9 +137,9 @@ namespace rhydb::common {
 #endif
 #endif
 
-#define RHYDB_DEBUG_ASSERT(e)                                           \
+#define RHYDB_DEBUG_ASSERT(e)                                          \
    do {                                                                \
-      if (RHYDB_DEBUG_ASSERTIONS) {                                     \
+      if (RHYDB_DEBUG_ASSERTIONS) {                                    \
          if (!(e)) {                                                   \
             rhydb::common::debugAssertFailure(#e, __FILE__, __LINE__); \
          }                                                             \
@@ -149,10 +149,10 @@ namespace rhydb::common {
 [[noreturn]] void debugAssertFailure(const char* msg, const char* file, int line);
 
 #define RHYDB_DEBUG_ASSERT_OP_(partial_prefix, e1, op, e2)                       \
-   do {                                                                         \
+   do {                                                                          \
       if (RHYDB_DEBUG_ASSERTIONS) {                                              \
          RHYDB_INTERNAL_ASSERT_OP_("DEBUG_ASSERT_" #partial_prefix, e1, op, e2); \
-      }                                                                         \
+      }                                                                          \
    } while (0)
 
 /// Like `RHYDB_ASSERT_EQ`, but like `RHYDB_DEBUG_ASSERT`, for cases where
