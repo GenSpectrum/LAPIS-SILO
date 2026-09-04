@@ -43,7 +43,7 @@ conan profile detect
 Copy `conanprofile.example` to `conanprofile` and insert the values of `os`, `os_build`, `arch` and `arch_build` from
 myProfile.
 
-Build silo in `./build`. This build will load and build the required libraries to `~/.conan2/data/` (can not be set by
+Build rhydb in `./build`. This build will load and build the required libraries to `~/.conan2/data/` (can not be set by
 hand).
 
 ```shell
@@ -257,7 +257,7 @@ If a scope is given, it must be one of the allowed scopes:
 
 - any git-tracked top-level directory of the repository (e.g. `app`, `performance`, `python`, `wasm`),
 - any subdirectory of `src/rhydb/` (e.g. `query_engine`, `storage`, `preprocessing`),
-- or the literal value `silo`.
+- or the literal value `rhydb`.
 
 Both directory lists are determined when commitlint runs (via `git ls-tree`, see `.commitlintrc.js`),
 so new directories are picked up automatically and results are consistent between local runs and CI.
@@ -267,7 +267,7 @@ A commit message without a scope (e.g. `feat: my fancy new feature`) is also all
 Pick the most specific scope that covers the change:
 if the change is restricted to a single subsystem or subdirectory, use that directory as the scope
 (e.g. `fix(query_engine): ...` for a change confined to `src/rhydb/query_engine/`).
-If the change spans multiple subsystems, use `silo`.
+If the change spans multiple subsystems, use `rhydb`.
 
 The last commit message can be checked with
 
