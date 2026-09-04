@@ -40,24 +40,19 @@ std::vector<schema::ColumnIdentifier> OrderByWithLimitNode::getOutputSchema() co
    return child->getOutputSchema();
 }
 
-arrow::Result<arrow::acero::ExecNode*> OrderByWithLimitNode::addToExecPlan(
-   arrow::acero::ExecPlan& plan,
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
-   const config::QueryOptions& query_options
-) const {
-   // The rewrite pass only produces this node when there is something to order by: sort fields, a
-   // randomize seed, or both.
-   SILO_ASSERT(!fields.empty() || randomize_seed.has_value());
+namespace {
 
-   ARROW_ASSIGN_OR_RAISE(auto* top_node, child->addToExecPlan(plan, tables, query_options));
-
+std::vector<arrow::compute::SortKey> buildSortKeys(
+   const std::vector<OrderByField>& fields,
+   bool has_randomize_seed
+) {
    using arrow::compute::NullPlacement;
    using arrow::compute::SortOrder;
 
    // Build the sort keys exactly as OrderByNode does, so a rewritten query orders identically to
    // the `order_by | limit` it replaces. Nulls sort as the smallest element.
    std::vector<arrow::compute::SortKey> sort_keys;
-   sort_keys.reserve(fields.size() + (randomize_seed.has_value() ? 1 : 0));
+   sort_keys.reserve(fields.size() + (has_randomize_seed ? 1 : 0));
    for (const auto& order_by_field : fields) {
       const auto sort_order =
          order_by_field.ascending ? SortOrder::Ascending : SortOrder::Descending;
@@ -68,19 +63,24 @@ arrow::Result<arrow::acero::ExecNode*> OrderByWithLimitNode::addToExecPlan(
    // A randomize seed adds the per-row random hash as the lowest-priority (tie-breaking) sort key,
    // matching OrderByNode; with no explicit fields it becomes the sole key, yielding a random
    // order.
-   if (randomize_seed.has_value()) {
+   if (has_randomize_seed) {
       sort_keys.emplace_back(RANDOMIZE_HASH_FIELD_NAME);
    }
+   return sort_keys;
+}
 
+arrow::Result<arrow::acero::ExecNode*> addSelectKAndLimitNodes(
+   arrow::acero::ExecPlan& plan,
+   arrow::acero::ExecNode* top_node,
+   const arrow::Ordering& ordering,
+   const std::vector<arrow::compute::SortKey>& sort_keys,
+   const std::vector<std::shared_ptr<arrow::Field>>& output_fields,
+   uint32_t offset,
+   uint32_t limit
+) {
    // select_k returns the `k` smallest rows in sorted order. To honor an offset we select the whole
    // window that starts at row 0 and covers up to `offset + limit`, then skip the offset below.
-   const int64_t select_k = static_cast<int64_t>(offset.value_or(0)) + static_cast<int64_t>(limit);
-
-   const arrow::Ordering ordering{sort_keys};
-
-   if (randomize_seed.has_value()) {
-      ARROW_ASSIGN_OR_RAISE(top_node, addRandomizeColumn(plan, top_node, randomize_seed.value()));
-   }
+   const int64_t select_k = static_cast<int64_t>(offset) + static_cast<int64_t>(limit);
 
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> generator;
    ARROW_ASSIGN_OR_RAISE(
@@ -96,14 +96,6 @@ arrow::Result<arrow::acero::ExecNode*> OrderByWithLimitNode::addToExecPlan(
    );
    top_node->SetLabel("order by with limit");
 
-   // The batches produced by select_k still carry the random-hash column (when randomizing), so the
-   // re-source schema must include it; `removeRandomizeColumn` projects it back out afterwards.
-   auto output_fields = exec_node::columnsToArrowSchema(getOutputSchema())->fields();
-   if (randomize_seed.has_value()) {
-      output_fields.emplace_back(
-         std::make_shared<arrow::Field>(RANDOMIZE_HASH_FIELD_NAME, arrow::uint64())
-      );
-   }
    ARROW_ASSIGN_OR_RAISE(
       top_node,
       arrow::acero::MakeExecNode(
@@ -119,17 +111,56 @@ arrow::Result<arrow::acero::ExecNode*> OrderByWithLimitNode::addToExecPlan(
    // select_k already caps the output at the window size; only a non-zero offset still needs a
    // fetch to skip the leading rows. The fetch runs before the random-hash column is projected out,
    // while the stream still carries the ordering the fetch requires.
-   if (offset.value_or(0) > 0) {
+   if (offset > 0) {
       ARROW_ASSIGN_OR_RAISE(
          top_node,
          arrow::acero::MakeExecNode(
             std::string{arrow::acero::FetchNodeOptions::kName},
             &plan,
             {top_node},
-            arrow::acero::FetchNodeOptions(offset.value(), limit)
+            arrow::acero::FetchNodeOptions(offset, limit)
          )
       );
    }
+   return top_node;
+}
+
+}  // namespace
+
+arrow::Result<arrow::acero::ExecNode*> OrderByWithLimitNode::addToExecPlan(
+   arrow::acero::ExecPlan& plan,
+   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
+   const config::QueryOptions& query_options
+) const {
+   // The rewrite pass only produces this node when there is something to order by: sort fields, a
+   // randomize seed, or both.
+   SILO_ASSERT(!fields.empty() || randomize_seed.has_value());
+
+   ARROW_ASSIGN_OR_RAISE(auto* top_node, child->addToExecPlan(plan, tables, query_options));
+
+   const std::vector<arrow::compute::SortKey> sort_keys =
+      buildSortKeys(fields, randomize_seed.has_value());
+   const arrow::Ordering ordering{sort_keys};
+
+   if (randomize_seed.has_value()) {
+      ARROW_ASSIGN_OR_RAISE(top_node, addRandomizeColumn(plan, top_node, randomize_seed.value()));
+   }
+
+   // The batches produced by select_k still carry the random-hash column (when randomizing), so the
+   // re-source schema must include it; `removeRandomizeColumn` projects it back out afterwards.
+   auto output_fields = exec_node::columnsToArrowSchema(getOutputSchema())->fields();
+   if (randomize_seed.has_value()) {
+      output_fields.emplace_back(
+         std::make_shared<arrow::Field>(RANDOMIZE_HASH_FIELD_NAME, arrow::uint64())
+      );
+   }
+
+   ARROW_ASSIGN_OR_RAISE(
+      top_node,
+      addSelectKAndLimitNodes(
+         plan, top_node, ordering, sort_keys, output_fields, offset.value_or(0), limit
+      )
+   );
 
    if (randomize_seed.has_value()) {
       ARROW_ASSIGN_OR_RAISE(top_node, removeRandomizeColumn(plan, top_node));
