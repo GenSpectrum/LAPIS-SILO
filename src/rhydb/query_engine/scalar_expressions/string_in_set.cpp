@@ -74,7 +74,7 @@ std::unique_ptr<ScalarExpression> StringInSet::rewrite(
 
 std::unique_ptr<filter::operators::Operator> StringInSet::compile(const storage::Table& table
 ) const {
-   SILO_ASSERT(table.columns.string_columns.contains(column.name));
+   RHYDB_ASSERT(table.columns.string_columns.contains(column.name));
    const auto& string_column = table.columns.string_columns.at(column.name);
    return std::make_unique<filter::operators::Selection>(
       std::make_unique<filter::operators::StringInSet<StringColumn>>(

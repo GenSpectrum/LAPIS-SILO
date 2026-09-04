@@ -27,7 +27,7 @@ JoinNode::JoinNode(
       join_type(join_type) {
    // Equi-join key vectors are paired positionally (left_keys[i] == right_keys[i]), so they
    // must have the same length
-   SILO_ASSERT_EQ(this->left_keys.size(), this->right_keys.size());
+   RHYDB_ASSERT_EQ(this->left_keys.size(), this->right_keys.size());
 }
 
 std::string_view joinTypeToString(JoinType join_type) {
@@ -49,7 +49,7 @@ std::string_view joinTypeToString(JoinType join_type) {
       case JoinType::RIGHT_ANTI:
          return "rightAnti";
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 std::vector<schema::ColumnIdentifier> JoinNode::getOutputSchema() const {

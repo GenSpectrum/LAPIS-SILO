@@ -53,7 +53,7 @@ class ColumnMetadataSaverByType {
       const std::shared_ptr<storage::column::ColumnMetadata>& metadata
    ) {
       auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(metadata.get());
-      SILO_ASSERT(typed_metadata != nullptr);
+      RHYDB_ASSERT(typed_metadata != nullptr);
       archive << *typed_metadata;
    }
 };

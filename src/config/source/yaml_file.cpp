@@ -216,7 +216,7 @@ ConfigValue yamlNodeToConfigValue(
          case ConfigValueType::LIST:
             return ConfigValue::fromList(yaml.as<std::vector<std::string>>());
       }
-      SILO_UNREACHABLE();
+      RHYDB_UNREACHABLE();
    } catch (YAML::BadConversion& error) {
       throw ConfigException(fmt::format(
          "cannot parse '{}' as {}: {}",

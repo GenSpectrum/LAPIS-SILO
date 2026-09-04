@@ -95,7 +95,7 @@ void Database::appendData(
    append::ClusteredBufferingOptions clustering_options
 ) {
    rhydb::append::NdjsonLineReader input_data{input_stream};
-   SILO_ASSERT(tables.contains(table_name));
+   RHYDB_ASSERT(tables.contains(table_name));
    auto& table = tables.at(table_name);
    rhydb::append::appendDataToTable(table, input_data, std::move(clustering_options));
    updateDataVersion();

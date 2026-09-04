@@ -93,7 +93,7 @@ SequenceColumn<SymbolType>::SequenceColumn(SequenceColumnMetadata<SymbolType>* m
       genome_length(metadata->reference_sequence.size()),
       local_reference_sequence_string(SymbolType::sequenceToString(metadata->reference_sequence)) {
    mutation_buffer.resize(genome_length);
-   SILO_ASSERT_GT(genome_length, 0ULL);
+   RHYDB_ASSERT_GT(genome_length, 0ULL);
 }
 
 template <typename SymbolType>
@@ -184,7 +184,7 @@ void SequenceColumn<SymbolType>::finalize() {
       const auto new_reference_symbol = vertical_sequence_index.adaptLocalReference(
          coverage_bitmap, position_idx, current_reference_symbol
       );
-      SILO_ASSERT(new_reference_symbol.has_value());
+      RHYDB_ASSERT(new_reference_symbol.has_value());
       SPDLOG_DEBUG(
          "At position {} adapted local reference symbol to '{}'",
          position_idx,
@@ -302,8 +302,8 @@ SequenceColumnBuilder<SymbolType>::SequenceColumnBuilder(
       compressed_input_decompressor(std::make_shared<ZstdDDictionary>(
          SymbolType::sequenceToString(metadata->reference_sequence)
       )) {
-   SILO_ASSERT_GT(metadata->reference_sequence.size(), 0ULL);
-   SILO_ASSERT_EQ(this->local_reference.size(), metadata->reference_sequence.size());
+   RHYDB_ASSERT_GT(metadata->reference_sequence.size(), 0ULL);
+   RHYDB_ASSERT_EQ(this->local_reference.size(), metadata->reference_sequence.size());
    local_reference_contains_missing_symbol =
       referenceContainsMissingSymbol<SymbolType>(this->local_reference);
 }
@@ -324,7 +324,7 @@ void SequenceColumnBuilder<SymbolType>::insert(
          genome_length
       );
    }
-   SILO_ASSERT(sequence.size() + offset < UINT32_MAX);
+   RHYDB_ASSERT(sequence.size() + offset < UINT32_MAX);
 
    auto coverage_mutations = extractCoverageAndMutationsFromSequence<SymbolType>(
       sequence, offset, std::string_view{local_reference}, local_reference_contains_missing_symbol

@@ -91,7 +91,7 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
       case NodeKind::BITMAP_AGGREGATION:
          return std::forward<Func>(func)(static_cast<BitmapAggregationNode&>(node));
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 }  // namespace rhydb::query_engine::operators

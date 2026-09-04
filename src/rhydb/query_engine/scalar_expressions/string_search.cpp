@@ -78,7 +78,7 @@ std::unique_ptr<filter::operators::Operator> StringSearch::compile(const storage
       const auto& string_column = table.columns.dictionary_encoded_columns.at(column.name);
       return createMatchingBitmap(string_column, *search_expression, table.row_layout);
    }
-   SILO_ASSERT(table.columns.string_columns.contains(column.name));
+   RHYDB_ASSERT(table.columns.string_columns.contains(column.name));
    const auto& string_column = table.columns.string_columns.at(column.name);
    return createMatchingBitmap(string_column, *search_expression, table.row_layout);
 }
