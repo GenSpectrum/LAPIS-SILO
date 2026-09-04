@@ -21,6 +21,7 @@ Configuration is resolved in order of precedence: CLI arguments > environment va
 | `api.maxQueuedHttpConnections` | `256` | Maximum queued connections |
 | `api.threadsForHttpConnections` | `0` | Worker threads (0 = number of CPUs) |
 | `api.estimatedStartupTimeInMinutes` | — | Used in `Retry-After` header during startup |
+| `api.allowAdminEndpoint` | `false` | Whether to serve the write-enabled [`POST /admin/query`](#post-adminquery) endpoint. Opt-in: while it is disabled, the instance is read-only and the path returns 404 |
 | `query.materializationCutoff` | `32767` | Batch size threshold for streaming. (Note: batch size of results is not guaranteed to stay below this number) |
 
 ## Common Response Headers
@@ -189,6 +190,52 @@ with open("result.arrow", "rb") as f:
 
 print(table.to_pandas())
 ```
+
+---
+
+### `POST /admin/query`
+
+Executes a SaneQL **write statement** against the database:
+- `insertInto(query: expression, table: symbol)`. Runs `query` and inserts its result rows into
+`table` — see [`insertInto`](query_documentation.md) for semantics and
+limitations.
+
+The write goes through the [data directory](#runtime-configuration): the most recent state there is
+loaded into a database of its own, the statement is applied to that one, and the result is saved
+back as a new data version.
+
+The endpoint is **opt-in**: it is only served when
+[`api.allowAdminEndpoint`](#runtime-configuration) is set to `true`. While it is disabled the path
+does not exist and requests to it get a 404, so an instance that does not enable it stays read-only.
+When enabled, it is generally available and no authentication is possible. If used in publicly
+available instances the endpoint should be guarded by other means (e.g. using `nginx` rules).
+
+**Request** (a SaneQL write statement as the raw request body):
+```
+source.filter(country='CH').project({primaryKey, country}).insertInto(archive)
+```
+
+**Response** (200, `application/json`): a summary of the effect. For `insertInto`, the number of rows
+inserted:
+```json
+{"insertedRows": 42}
+```
+
+A successful response carries the [`data-version`](#common-response-headers) header naming the
+version the write produced, which is served once the directory watcher has picked it up. A failed
+write leaves the data version unchanged.
+
+**Errors** (400, `application/json`): returned when the body is not a valid write statement.
+A 500 is returned when the write itself could not be carried out, e.g. because the
+data directory holds no state to write to or could not be written.
+
+```bash
+curl -X POST \
+  --data "source.filter(country='CH').project({primaryKey, country}).insertInto(archive)" \
+  http://localhost:8081/admin/query
+```
+
+The append times out after 120 seconds.
 
 ---
 

@@ -52,6 +52,9 @@ class DataVersion {
 
    static DataVersion mineDataVersion();
 
+   // Generate timestamp that is guaranteed to be greater than previous
+   static DataVersion mineDataVersionAfter(const DataVersion& previous);
+
    static std::optional<DataVersion> fromFile(const std::filesystem::path& file_path);
 
    void saveToFile(const std::filesystem::path& save_file) const;

@@ -63,6 +63,17 @@ DataVersion DataVersion::mineDataVersion() {
    };
 }
 
+DataVersion DataVersion::mineDataVersionAfter(const DataVersion& previous) {
+   auto mined = mineDataVersion();
+   if (previous.timestamp.value.empty() || mined.timestamp > previous.timestamp) {
+      return mined;
+   }
+   const auto next_timestamp = std::stoull(previous.timestamp.value) + 1;
+   return DataVersion{
+      *Timestamp::fromString(std::to_string(next_timestamp)), {CURRENT_RHYDB_SERIALIZATION_VERSION}
+   };
+}
+
 DataVersion::DataVersion(
    DataVersion::Timestamp timestamp,
    SerializationVersion serialization_version

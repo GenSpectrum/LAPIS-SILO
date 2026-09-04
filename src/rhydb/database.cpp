@@ -8,12 +8,14 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <variant>
 
 #include <arrow/api.h>
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/aa_symbols.h"
@@ -24,6 +26,7 @@
 #include "rhydb/common/version.h"
 #include "rhydb/database_info.h"
 #include "rhydb/persistence/exception.h"
+#include "rhydb/query_engine/command/write_command.h"
 #include "rhydb/query_engine/exec_node/arrow_ipc_sink.h"
 #include "rhydb/query_engine/exec_node/ndjson_sink.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
@@ -453,7 +456,7 @@ DataVersion::Timestamp Database::getDataVersionTimestamp() const {
 }
 
 void Database::updateDataVersion() {
-   data_version_ = DataVersion::mineDataVersion();
+   data_version_ = DataVersion::mineDataVersionAfter(data_version_);
    SPDLOG_DEBUG("Data version was set to {}", data_version_.toString());
 }
 
@@ -473,6 +476,21 @@ std::string Database::executeQueryAsArrowIpc(const std::string& query_string) co
    }
    query_plan.executeAndWrite(output_sink.ValueUnsafe(), DEFAULT_TIMEOUT_SECONDS);
    return output_stream.str();
+}
+
+nlohmann::json Database::executeWrite(
+   const std::string& query_string,
+   const config::QueryOptions& query_options,
+   std::string_view request_id
+) {
+   const auto request = query_engine::command::parseRequest(query_string, tables);
+   const auto* command = std::get_if<query_engine::command::WriteCommandPtr>(&request);
+   if (command == nullptr) {
+      throw query_engine::IllegalQueryException(
+         "expected a write statement, e.g. `<query>.insertInto(<table>)`"
+      );
+   }
+   return (*command)->execute(*this, query_options, request_id);
 }
 
 std::string Database::getTablesAsArrowIpc() const {

@@ -492,6 +492,46 @@ so nucleotide and amino acid sequences cannot be distinguished from ordinary str
 
 ---
 
+## Writing query results to a table
+
+### `insertInto(query: expression, table: symbol)`
+
+Runs `query` and inserts the resulting rows into `table` — a query
+against table A whose result lands in table B, expressed as a single SaneQL query. It is the only
+SaneQL construct that writes: it mutates the target table rather than returning rows to the caller.
+
+```
+source.filter(country='CH').insertInto(archive)
+source.filter(country='CH').project({primaryKey, country, age}).insertInto(archive)
+source.insertInto('archive')
+```
+
+The target may be written as a bare identifier (`archive`) or a string literal (`'archive'`). It
+must be an existing table in the database; `insertInto` never creates a table.
+
+**Column matching.** The query's output columns are matched to the target table's columns *by name*.
+Every column of the target table must be produced by the query; any extra output columns are ignored.
+Use `project({...})` (or `map({...})`) to shape the result so it lines up with the target's schema.
+A missing column, or a value whose type does not match the target column, is a query error and no
+rows are inserted.
+
+**Placement.** `insertInto` is a *write statement*, not a pipeline operator: it must be the whole
+query (its outermost operation) and cannot be chained further (e.g. `x.insertInto(y).filter(...)` is
+not valid).
+
+**Limitation:** only value columns (`STRING`, `INT32`, `INT64`, `FLOAT`, `DATE32`, `BOOL`) round-trip
+through an insert query. A sequence column is decompressed to a plain string when read into a
+pipeline, which does not match the structured form the target's sequence column expects, so query
+results containing sequence columns cannot be inserted.
+
+It bumps the data version of the database it is applied to. The statement itself mutates its target
+table in place, so it is not safe to run next to other queries against the same database; the
+[`POST /admin/query`](api.md#post-adminquery) endpoint - the only way to issue it over the API -
+therefore applies it to a database loaded from the data directory and saves the result back as a new
+data version, which is served once the directory watcher picks it up.
+
+---
+
 ## Scalar Functions
 
 Most scalar functions are boolean predicates used inside `.filter(...)`.

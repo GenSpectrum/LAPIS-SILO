@@ -2,6 +2,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "admin_query_handler.h"
 #include "health_handler.h"
 #include "info_handler.h"
 #include "lineage_definition_handler.h"
@@ -14,7 +15,10 @@ using rhydb_app::RhyDBRequestHandlerFactory;
 
 namespace {
 
-std::unique_ptr<RhyDBRequestHandlerFactory> createRequestHandlerWithInitializedDatabase() {
+// `allow_admin_endpoint` switches on the opt-in write endpoint, which is off by default.
+std::unique_ptr<RhyDBRequestHandlerFactory> createRequestHandlerWithInitializedDatabase(
+   bool allow_admin_endpoint = false
+) {
    auto handle = std::make_shared<rhydb_app::ActiveDatabase>();
    auto table_schema = std::make_shared<rhydb::schema::TableSchema>();
    table_schema->primary_key = {.name = "primary_key", .type = rhydb::schema::ColumnType::STRING};
@@ -27,9 +31,10 @@ std::unique_ptr<RhyDBRequestHandlerFactory> createRequestHandlerWithInitializedD
    rhydb::schema::DatabaseSchema schema;
    schema.tables.emplace(rhydb::schema::TableName::getDefault(), table_schema);
    handle->setActiveDatabase(rhydb::Database(schema));
-   auto request_handler = std::make_unique<RhyDBRequestHandlerFactory>(
-      rhydb::config::RuntimeConfig::withDefaults(), handle
-   );
+   auto runtime_config = rhydb::config::RuntimeConfig::withDefaults();
+   runtime_config.api_options.allow_admin_endpoint = allow_admin_endpoint;
+   auto request_handler =
+      std::make_unique<RhyDBRequestHandlerFactory>(std::move(runtime_config), handle);
    return request_handler;
 }
 
@@ -120,6 +125,26 @@ TEST(RhyDBRequestHandlerFactory, routesPostQueryRequest) {
    auto handler = under_test->routeRequest(uri);
 
    assertHoldsHandlerType<rhydb_app::QueryHandler>(handler);
+}
+
+TEST(RhyDBRequestHandlerFactory, routesPostAdminQueryRequestWhenAdminEndpointIsAllowed) {
+   const Poco::URI uri("/admin/query");
+
+   auto under_test = createRequestHandlerWithInitializedDatabase(/*allow_admin_endpoint=*/true);
+
+   auto handler = under_test->routeRequest(uri);
+
+   assertHoldsHandlerType<rhydb_app::AdminQueryHandler>(handler);
+}
+
+TEST(RhyDBRequestHandlerFactory, routesPostAdminQueryRequestToNotFoundHandlerByDefault) {
+   const Poco::URI uri("/admin/query");
+
+   auto under_test = createRequestHandlerWithInitializedDatabase();
+
+   auto handler = under_test->routeRequest(uri);
+
+   assertHoldsHandlerType<rhydb_app::NotFoundHandler>(handler);
 }
 
 TEST(RhyDBRequestHandlerFactory, routesUnknownUrlToNotFoundHandler) {

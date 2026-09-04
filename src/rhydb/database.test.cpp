@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include "config/source/yaml_file.h"
+#include "rhydb/append/append_exception.h"
 #include "rhydb/common/lineage_tree.h"
 #include "rhydb/common/phylo_tree.h"
 #include "rhydb/config/preprocessing_config.h"
@@ -297,4 +298,272 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
    ASSERT_EQ(
       rhydb::test::executeQueryToJsonArray(query_plan_2), nlohmann::json::array({{{"count", 1}}})
    );
+}
+
+namespace {
+using rhydb::schema::TableName;
+
+// The query options the API serves write statements with; the admin endpoint threads the runtime
+// config's options through, so the tests use the same defaults.
+rhydb::config::QueryOptions defaultQueryOptions() {
+   return rhydb::config::RuntimeConfig::withDefaults().query_options;
+}
+
+// Builds a metadata-only table schema (string primary key + a string and an int32 column). Append
+// queries copy query output back through the NDJSON append path, which round-trips value columns
+// cleanly; sequence columns are intentionally left out (a query emits them as decompressed strings,
+// while the append path ingests them as structured objects).
+std::shared_ptr<TableSchema> makeValueColumnSchema() {
+   const ColumnIdentifier key{.name = "key", .type = ColumnType::STRING};
+   const ColumnIdentifier country{.name = "country", .type = ColumnType::STRING};
+   const ColumnIdentifier age{.name = "age", .type = ColumnType::INT32};
+   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
+      {key, std::make_shared<StringColumnMetadata>(key.name)},
+      {country, std::make_shared<StringColumnMetadata>(country.name)},
+      {age, std::make_shared<ColumnMetadata>(age.name)},
+   };
+   return std::make_shared<TableSchema>(std::move(column_metadata), key);
+}
+
+// Runs a count aggregation over `table_name` filtered by `filter` and returns the matched row
+// count.
+int64_t countInTableWhere(
+   rhydb::Database& database,
+   const std::string& table_name,
+   const std::string& filter
+) {
+   auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
+      fmt::format("{}.filter({}).groupBy({{count:=count()}})", table_name, filter),
+      database.tables,
+      rhydb::config::QueryOptions{},
+      "count_query"
+   );
+   auto result = rhydb::test::executeQueryToJsonArray(query_plan);
+   if (result.empty()) {
+      return 0;
+   }
+   return result.at(0).at("count").get<int64_t>();
+}
+}  // namespace
+
+TEST(DatabaseInsertQueryTest, copiesFilteredRowsFromOneTableIntoAnother) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   database.createTable(TableName{"archive"}, makeValueColumnSchema());
+
+   std::stringstream source_data;
+   source_data << R"({"key":"a","country":"CH","age":1})" << "\n"
+               << R"({"key":"b","country":"US","age":2})" << "\n"
+               << R"({"key":"c","country":"CH","age":3})" << "\n";
+   database.appendData(TableName{"source"}, source_data);
+
+   const nlohmann::json result = database.executeWrite(
+      "source.filter(country='CH').insertInto(archive)", defaultQueryOptions(), "test_request_id"
+   );
+
+   EXPECT_EQ(result.at("insertedRows").get<size_t>(), 2);
+   EXPECT_EQ(countInTableWhere(database, "archive", "true"), 2);
+   EXPECT_EQ(countInTableWhere(database, "archive", "country='CH'"), 2);
+   EXPECT_EQ(countInTableWhere(database, "archive", "country='US'"), 0);
+   EXPECT_EQ(countInTableWhere(database, "archive", "age=1"), 1);
+   EXPECT_EQ(countInTableWhere(database, "archive", "age=3"), 1);
+   // The source table is left unchanged.
+   EXPECT_EQ(countInTableWhere(database, "source", "true"), 3);
+}
+
+TEST(DatabaseInsertQueryTest, reshapesWithProjectAcceptsStringTargetAndAccumulates) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   // Target keeps only a subset of columns; the query must project down to match it.
+   const ColumnIdentifier key{.name = "key", .type = ColumnType::STRING};
+   const ColumnIdentifier country{.name = "country", .type = ColumnType::STRING};
+   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> archive_metadata{
+      {key, std::make_shared<StringColumnMetadata>(key.name)},
+      {country, std::make_shared<StringColumnMetadata>(country.name)},
+   };
+   database.createTable(
+      TableName{"archive"}, std::make_shared<TableSchema>(std::move(archive_metadata), key)
+   );
+
+   std::stringstream source_data;
+   source_data << R"({"key":"a","country":"CH","age":1})" << "\n"
+               << R"({"key":"b","country":"US","age":2})" << "\n";
+   database.appendData(TableName{"source"}, source_data);
+
+   // Target named as a string literal; project drops the `age` column the target does not have.
+   const nlohmann::json result = database.executeWrite(
+      "source.project({key, country}).insertInto('archive')",
+      defaultQueryOptions(),
+      "test_request_id"
+   );
+   EXPECT_EQ(result.at("insertedRows").get<size_t>(), 2);
+   EXPECT_EQ(countInTableWhere(database, "archive", "true"), 2);
+
+   // A second append accumulates on top of the existing rows rather than replacing them.
+   const nlohmann::json result_again = database.executeWrite(
+      "source.filter(country='US').project({key, country}).insertInto(archive)",
+      defaultQueryOptions(),
+      "test_request_id"
+   );
+   EXPECT_EQ(result_again.at("insertedRows").get<size_t>(), 1);
+   EXPECT_EQ(countInTableWhere(database, "archive", "true"), 3);
+}
+
+// The insert streams the query result into the target table batch by batch. With a small
+// materialization cutoff the source query produces several batches, so this covers that the field
+// order sniffed from the first line is reused for the later batches and that every batch lands.
+TEST(DatabaseInsertQueryTest, insertsAResultThatSpansSeveralBatches) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   database.createTable(TableName{"archive"}, makeValueColumnSchema());
+
+   constexpr size_t NUMBER_OF_ROWS = 25;
+   std::stringstream source_data;
+   for (size_t row = 0; row < NUMBER_OF_ROWS; ++row) {
+      source_data << fmt::format(
+                        R"({{"key":"key{}","country":"CH","age":{}}})", row, static_cast<int>(row)
+                     )
+                  << "\n";
+   }
+   database.appendData(TableName{"source"}, source_data);
+
+   // A cutoff of 1 makes the table scan emit tiny batches, so the insert sees many of them.
+   const nlohmann::json result = database.executeWrite(
+      "source.insertInto(archive)",
+      rhydb::config::QueryOptions{.materialization_cutoff = 1},
+      "test_request_id"
+   );
+
+   EXPECT_EQ(result.at("insertedRows").get<size_t>(), NUMBER_OF_ROWS);
+   EXPECT_EQ(countInTableWhere(database, "archive", "true"), NUMBER_OF_ROWS);
+   EXPECT_EQ(countInTableWhere(database, "archive", "country='CH'"), NUMBER_OF_ROWS);
+   EXPECT_EQ(countInTableWhere(database, "archive", "age=24"), 1);
+}
+
+// The rows are inserted while the query is still producing, so a query that reads the table it
+// writes into would read columns that the insert mutates underneath it.
+TEST(DatabaseInsertQueryTest, rejectsInsertThatReadsItsTable) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+
+   std::stringstream source_data;
+   source_data << R"({"key":"a","country":"CH","age":1})" << "\n";
+   database.appendData(TableName{"source"}, source_data);
+
+   EXPECT_THAT(
+      [&]() {
+         database.executeWrite(
+            "source.insertInto(source)", defaultQueryOptions(), "test_request_id"
+         );
+      },
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("cannot write into table 'source' while the query reads from it")
+      )
+   );
+   // The rejected write left the table untouched.
+   EXPECT_EQ(countInTableWhere(database, "source", "true"), 1);
+}
+
+TEST(DatabaseInsertQueryTest, rejectsInvalidInsertQueries) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   database.createTable(TableName{"archive"}, makeValueColumnSchema());
+
+   std::stringstream source_data;
+   source_data << R"({"key":"a","country":"CH","age":1})" << "\n";
+   database.appendData(TableName{"source"}, source_data);
+
+   // A plain read query is not a write statement.
+   EXPECT_THAT(
+      [&]() {
+         database.executeWrite(
+            "source.filter(country='CH')", defaultQueryOptions(), "test_request_id"
+         );
+      },
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("expected a write statement")
+      )
+   );
+
+   // The target table must exist.
+   EXPECT_THAT(
+      [&]() {
+         database.executeWrite(
+            "source.insertInto(does_not_exist)", defaultQueryOptions(), "test_request_id"
+         );
+      },
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("target table 'does_not_exist' not found")
+      )
+   );
+
+   // insertInto needs both a source and a target.
+   EXPECT_THAT(
+      [&]() {
+         database.executeWrite("insertInto(source)", defaultQueryOptions(), "test_request_id");
+      },
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("insertInto() requires argument 'target'")
+      )
+   );
+}
+
+// A query that does not produce every column of the target is rejected outright: the target keeps
+// exactly the rows it had, no prefix of the result is inserted.
+TEST(DatabaseInsertQueryTest, insertsNothingWhenAColumnOfTheTargetIsMissing) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   database.createTable(TableName{"archive"}, makeValueColumnSchema());
+
+   std::stringstream source_data;
+   source_data << R"({"key":"a","country":"CH","age":1})" << "\n"
+               << R"({"key":"b","country":"US","age":2})" << "\n";
+   database.appendData(TableName{"source"}, source_data);
+
+   std::stringstream archive_data;
+   archive_data << R"({"key":"existing","country":"DE","age":9})" << "\n";
+   database.appendData(TableName{"archive"}, archive_data);
+
+   EXPECT_THAT(
+      [&]() {
+         database.executeWrite(
+            "source.project({key}).insertInto(archive)", defaultQueryOptions(), "test_request_id"
+         );
+      },
+      ThrowsMessage<rhydb::append::AppendException>(
+         ::testing::HasSubstr("the column 'age' is not contained in the object")
+      )
+   );
+
+   // The pre-existing row is untouched and nothing of the rejected query landed.
+   EXPECT_EQ(countInTableWhere(database, "archive", "true"), 1);
+   EXPECT_EQ(countInTableWhere(database, "archive", "key='existing'"), 1);
+}
+
+// The same contract for a result column whose type does not match the target column's type.
+TEST(DatabaseInsertQueryTest, insertsNothingWhenAColumnHasTheWrongType) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   database.createTable(TableName{"archive"}, makeValueColumnSchema());
+
+   std::stringstream source_data;
+   source_data << R"({"key":"a","country":"CH","age":1})" << "\n";
+   database.appendData(TableName{"source"}, source_data);
+
+   // `age` is an INT32 column in the target, the query hands it a string.
+   EXPECT_THAT(
+      [&]() {
+         database.executeWrite(
+            "source.project({key, country}).map({age := country}).insertInto(archive)",
+            defaultQueryOptions(),
+            "test_request_id"
+         );
+      },
+      ThrowsMessage<rhydb::append::AppendException>(::testing::AllOf(
+         ::testing::HasSubstr("error inserting into column 'age'"),
+         ::testing::HasSubstr("error getting value as int32")
+      ))
+   );
+
+   EXPECT_EQ(countInTableWhere(database, "archive", "true"), 0);
 }

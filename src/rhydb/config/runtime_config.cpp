@@ -42,6 +42,9 @@ ConfigKeyPath apiEstimatedStartupTimeOptionKey() {
 ConfigKeyPath softMemoryLimitOptionKey() {
    return YamlFile::stringToConfigKeyPath("api.softMemoryLimit");
 }
+ConfigKeyPath apiAllowAdminEndpointOptionKey() {
+   return YamlFile::stringToConfigKeyPath("api.allowAdminEndpoint");
+}
 ConfigKeyPath queryMaterializationOptionKey() {
    return YamlFile::stringToConfigKeyPath("query.materializationCutoff");
 }
@@ -106,6 +109,16 @@ ConfigSpecification RuntimeConfig::getConfigSpecification() {
                "Only supported on Linux."
             ),
             ConfigAttributeSpecification::createWithDefault(
+               apiAllowAdminEndpointOptionKey(),
+               ConfigValue::fromBool(false),
+               "Whether to serve the write-enabled 'POST /admin/query' endpoint, which changes \n"
+               "the data the server serves (e.g. via 'insertInto'). Each write saves a new data \n"
+               "version to the data directory, which must be writable, and is served once it has \n"
+               "been picked up from there. Disabled by default; while it is disabled the endpoint "
+               "\n"
+               "responds with 404 and the instance stays read-only."
+            ),
+            ConfigAttributeSpecification::createWithDefault(
                queryMaterializationOptionKey(),
                ConfigValue::fromUint32(DEFAULT_ARROW_BATCH_SIZE),
                "If a query results in fewer rows, the query result will be collected \n"
@@ -160,6 +173,9 @@ void RuntimeConfig::overwriteFrom(const VerifiedConfigAttributes& config_source)
    if (auto var = config_source.getUint32(softMemoryLimitOptionKey())) {
       api_options.soft_memory_limit = var.value();
    }
+   if (auto var = config_source.getBool(apiAllowAdminEndpointOptionKey())) {
+      api_options.allow_admin_endpoint = var.value();
+   }
    if (auto var = config_source.getUint32(queryMaterializationOptionKey())) {
       query_options.materialization_cutoff = var.value();
    }
@@ -174,7 +190,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
    max_connections,
    parallel_threads,
    port,
-   estimated_startup_end
+   estimated_startup_end,
+   allow_admin_endpoint
 )
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(rhydb::config::QueryOptions, materialization_cutoff)
