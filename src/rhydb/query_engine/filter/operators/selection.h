@@ -70,7 +70,7 @@ inline std::string displayComparator(Comparator comparator) {
       case Comparator::HIGHER_OR_EQUALS:
          return ">=";
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 template <storage::column::Column ColumnType>
@@ -127,7 +127,7 @@ class CompareToValueSelection : public Predicate {
          case Comparator::LESS_OR_EQUALS:
             return column.getValue(row_id) <= value;
       }
-      SILO_UNREACHABLE();
+      RHYDB_UNREACHABLE();
    }
 
    [[nodiscard]] std::unique_ptr<Predicate> copy() const override {
@@ -161,7 +161,7 @@ class CompareToValueSelection : public Predicate {
                column, Comparator::HIGHER, value, !with_nulls
             );
       }
-      SILO_UNREACHABLE();
+      RHYDB_UNREACHABLE();
    }
 };
 

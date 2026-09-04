@@ -96,7 +96,7 @@ void Table::finalize() {
 void Table::validatePrimaryKeyUnique() const {
    SPDLOG_DEBUG("Checking that primary keys are unique.");
    const auto primary_key = schema->primary_key;
-   SILO_ASSERT(primary_key.type == schema::ColumnType::STRING);
+   RHYDB_ASSERT(primary_key.type == schema::ColumnType::STRING);
 
    const auto& primary_key_column = columns.string_columns.at(primary_key.name);
 
@@ -115,7 +115,7 @@ void Table::validatePrimaryKeyUnique() const {
 void Table::validateNucleotideSequences() const {
    for (const auto& [name, nuc_column] : columns.nuc_columns) {
       if (nuc_column.sequence_count > sequence_count) {
-         SILO_PANIC(
+         RHYDB_PANIC(
             "nuc_store {} ({}) has invalid size (expected {}).",
             name,
             nuc_column.sequence_count,
@@ -123,7 +123,7 @@ void Table::validateNucleotideSequences() const {
          );
       }
       if (nuc_column.metadata->reference_sequence.empty()) {
-         SILO_PANIC("reference_sequence {} is empty.", name);
+         RHYDB_PANIC("reference_sequence {} is empty.", name);
       }
    }
 }
@@ -131,7 +131,7 @@ void Table::validateNucleotideSequences() const {
 void Table::validateAminoAcidSequences() const {
    for (const auto& [name, aa_column] : columns.aa_columns) {
       if (aa_column.sequence_count > sequence_count) {
-         SILO_PANIC(
+         RHYDB_PANIC(
             "aa_store {} ({}) has invalid size (expected {}).",
             name,
             aa_column.sequence_count,
@@ -139,7 +139,7 @@ void Table::validateAminoAcidSequences() const {
          );
       }
       if (aa_column.metadata->reference_sequence.empty()) {
-         SILO_PANIC("reference_sequence {} is empty.", name);
+         RHYDB_PANIC("reference_sequence {} is empty.", name);
       }
    }
 }

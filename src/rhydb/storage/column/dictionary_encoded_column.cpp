@@ -111,7 +111,7 @@ void DictionaryEncodedColumn::update(
    const roaring::Roaring& row_ids,
    const std::optional<std::string>& value
 ) {
-   SILO_ASSERT(!lineage_index.has_value());
+   RHYDB_ASSERT(!lineage_index.has_value());
 
    // Null rows carry the empty-string placeholder id as their stored value (see `appendChunk`), so
    // the target id is that placeholder for a null update and the interned value id otherwise.

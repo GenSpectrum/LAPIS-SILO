@@ -14,7 +14,7 @@ namespace rhydb::query_engine::scalar_expressions {
 
 IsoWeek::IsoWeek(std::unique_ptr<ScalarExpression> input)
     : input(std::move(input)) {
-   SILO_ASSERT(this->input != nullptr);
+   RHYDB_ASSERT(this->input != nullptr);
 }
 
 std::string IsoWeek::toString() const {
@@ -32,7 +32,7 @@ std::unique_ptr<ScalarExpression> IsoWeek::rewrite(const storage::Table& table, 
 
 std::unique_ptr<filter::operators::Operator> IsoWeek::compile(const storage::Table& /*table*/)
    const {
-   SILO_UNIMPLEMENTED();
+   RHYDB_UNIMPLEMENTED();
 }
 
 }  // namespace rhydb::query_engine::scalar_expressions

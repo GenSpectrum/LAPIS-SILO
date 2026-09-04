@@ -27,7 +27,7 @@ std::string binaryOpToString(BinaryOp op) {
       case BinaryOp::GREATER_EQUAL:
          return ">=";
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 namespace {

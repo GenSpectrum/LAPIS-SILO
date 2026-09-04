@@ -88,7 +88,7 @@ inline void from_json(
    std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>&
    /*opt_nanos*/
 ) {
-   SILO_UNIMPLEMENTED();
+   RHYDB_UNIMPLEMENTED();
 }
 
 }  // namespace nlohmann

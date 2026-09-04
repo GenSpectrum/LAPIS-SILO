@@ -38,7 +38,7 @@ static decltype(auto) visit(schema::ColumnType type, VisitorFunction&& func, Arg
       case schema::ColumnType::ZSTD_COMPRESSED_STRING:
          return func.template operator()<ZstdCompressedStringColumn>(std::forward<Args>(args)...);
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 }  // namespace rhydb::storage::column

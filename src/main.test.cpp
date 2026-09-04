@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
    if (spdlog::get_level() > spdlog::level::debug) {
       spdlog::set_level(spdlog::level::trace);
    }
-   SILO_ASSERT(arrow::compute::Initialize().ok());
+   RHYDB_ASSERT(arrow::compute::Initialize().ok());
    ::testing::InitGoogleMock(&argc, argv);
    return RUN_ALL_TESTS();
 }

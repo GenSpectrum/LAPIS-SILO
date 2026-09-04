@@ -67,7 +67,7 @@ struct formatter<YAML::Node> : fmt::formatter<std::string> {
    auto format(const YAML::Node& yaml, FormatContext& ctx) -> decltype(ctx.out()) {
       YAML::Emitter out;
       out << yaml;
-      SILO_ASSERT(out.good());
+      RHYDB_ASSERT(out.good());
       return fmt::format_to(ctx.out(), "{}", out.c_str());
    }
 };

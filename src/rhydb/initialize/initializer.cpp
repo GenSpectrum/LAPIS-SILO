@@ -243,7 +243,7 @@ void ColumnMetadataInitializer::operator()<storage::column::ZstdCompressedString
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
-   SILO_PANIC("unaligned nucleotide sequences cannot be in config::DatabaseMetadata");
+   RHYDB_PANIC("unaligned nucleotide sequences cannot be in config::DatabaseMetadata");
 }
 
 template <>
@@ -254,7 +254,7 @@ void ColumnMetadataInitializer::operator()<storage::column::SequenceColumn<Nucle
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
-   SILO_PANIC("nucleotides cannot be in config::DatabaseMetadata");
+   RHYDB_PANIC("nucleotides cannot be in config::DatabaseMetadata");
 }
 
 template <>
@@ -265,7 +265,7 @@ void ColumnMetadataInitializer::operator()<storage::column::SequenceColumn<Amino
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
-   SILO_PANIC("amino acid cannot be in config::DatabaseMetadata");
+   RHYDB_PANIC("amino acid cannot be in config::DatabaseMetadata");
 }
 
 template <storage::column::Column ColumnType>

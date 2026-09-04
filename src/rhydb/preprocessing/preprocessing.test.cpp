@@ -61,7 +61,7 @@ rhydb::config::PreprocessingConfig prepareInputDirAndPreprocessorForScenario(
 
    for (const auto& [filename, lineage_tree] : scenario.lineage_trees) {
       // Assert that 'filename' is a filename and not a path
-      SILO_ASSERT_EQ(filename.filename(), filename);
+      RHYDB_ASSERT_EQ(filename.filename(), filename);
       std::ofstream lineage_definition_file(input_directory / filename);
       lineage_definition_file << lineage_tree;
       lineage_definition_file.close();

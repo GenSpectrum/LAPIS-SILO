@@ -65,7 +65,7 @@ class NumericColumn {
    [[nodiscard]] bool isNull(RowId row_id) const { return null_bitmap.contains(row_id.toGlobal()); }
 
    [[nodiscard]] T getValue(RowId row_id) const {
-      SILO_ASSERT(!null_bitmap.contains(row_id.toGlobal()));
+      RHYDB_ASSERT(!null_bitmap.contains(row_id.toGlobal()));
       return values.at(row_id);
    }
 

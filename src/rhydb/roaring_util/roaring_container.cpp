@@ -15,7 +15,7 @@ RoaringContainer RoaringContainer::withCapacity(int32_t capacity) {
       container = roaring::internal::bitset_container_create();
       typecode = BITSET_CONTAINER_TYPE;
    }
-   SILO_ASSERT(container != nullptr);
+   RHYDB_ASSERT(container != nullptr);
    return RoaringContainer{container, 0, typecode};
 }
 
@@ -24,7 +24,7 @@ RoaringContainer RoaringContainer::clonedFrom(
    uint8_t typecode
 ) {
    auto* clone = roaring::internal::container_clone(source, typecode);
-   SILO_ASSERT(clone != nullptr);
+   RHYDB_ASSERT(clone != nullptr);
    const auto cardinality =
       static_cast<uint32_t>(roaring::internal::container_get_cardinality(clone, typecode));
    return RoaringContainer{clone, cardinality, typecode};

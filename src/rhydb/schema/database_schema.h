@@ -67,7 +67,7 @@ constexpr std::string_view columnTypeToString(ColumnType type) {
       case ColumnType::ZSTD_COMPRESSED_STRING:
          return "ZSTD_COMPRESSED_STRING";
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 constexpr std::string_view valueTypeToString(ValueType type) {
@@ -89,7 +89,7 @@ constexpr std::string_view valueTypeToString(ValueType type) {
       case ValueType::AMINO_ACID_SEQUENCE:
          return "aminoAcidSequence";
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 bool isSequenceColumn(ColumnType type);
@@ -126,7 +126,7 @@ class TableSchema {
    )
        : column_metadata(std::move(column_metadata)),
          primary_key(std::move(primary_key)) {
-      SILO_ASSERT(this->column_metadata.contains(this->primary_key));
+      RHYDB_ASSERT(this->column_metadata.contains(this->primary_key));
    }
 
    [[nodiscard]] std::optional<ColumnIdentifier> getColumn(std::string_view name) const;
@@ -160,7 +160,7 @@ class TableSchema {
          return std::nullopt;
       }
       auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(iter->second.get());
-      SILO_ASSERT(typed_metadata != nullptr);
+      RHYDB_ASSERT(typed_metadata != nullptr);
       return typed_metadata;
    }
 

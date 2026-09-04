@@ -63,7 +63,7 @@ std::string_view nodeKindToString(NodeKind kind) {
       case NodeKind::BITMAP_AGGREGATION:
          return "BitmapAggregation";
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 nlohmann::json columnToJson(const schema::ColumnIdentifier& column) {

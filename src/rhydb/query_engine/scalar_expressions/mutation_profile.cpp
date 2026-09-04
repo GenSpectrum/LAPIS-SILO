@@ -111,7 +111,7 @@ std::vector<typename SymbolType::Symbol> reconstructSequenceAtRow(
    profile.reserve(sequences[0].size());
    for (const char character : sequences[0]) {
       const auto sym = SymbolType::charToSymbol(character);
-      SILO_ASSERT(sym.has_value());
+      RHYDB_ASSERT(sym.has_value());
       profile.push_back(sym.value());
    }
    return profile;
@@ -165,7 +165,7 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
       seq_id,
       SymbolType::SYMBOL_NAME
    );
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 template <typename SymbolType>

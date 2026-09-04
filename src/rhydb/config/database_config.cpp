@@ -62,7 +62,7 @@ std::string_view rhydb::config::lineageIndexTypeToString(LineageIndexType type) 
       case LineageIndexType::BOTH:
          return "both";
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 bool YAML::convert<rhydb::config::DatabaseConfig>::decode(

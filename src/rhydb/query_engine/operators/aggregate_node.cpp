@@ -22,7 +22,7 @@ std::string arrowFunctionName(AggregateFunction func, bool has_groups) {
       case AggregateFunction::COUNT:
          return has_groups ? "hash_count_all" : "count_all";
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 arrow::acero::AggregateNodeOptions buildAggregateOptions(
@@ -67,7 +67,7 @@ arrow::acero::AggregateNodeOptions buildAggregateOptions(
    std::vector<arrow::FieldRef> field_refs;
    field_refs.reserve(group_by_fields.size());
    for (const auto& field : group_by_fields) {
-      SILO_ASSERT(input_schema.CanReferenceFieldByName(field.name).ok());
+      RHYDB_ASSERT(input_schema.CanReferenceFieldByName(field.name).ok());
       field_refs.emplace_back(field.name);
    }
 
@@ -80,7 +80,7 @@ ColumnType getType(const AggregateDefinition& aggregate_definition) {
       case AggregateFunction::COUNT:
          return ColumnType::INT64;
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 }  // namespace
@@ -92,7 +92,7 @@ std::string_view displayName(AggregateFunction aggregate) {
       case AggregateFunction::COUNT:
          return "COUNT";
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 AggregateNode::AggregateNode(

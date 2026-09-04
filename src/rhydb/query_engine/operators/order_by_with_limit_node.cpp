@@ -47,7 +47,7 @@ arrow::Result<arrow::acero::ExecNode*> OrderByWithLimitNode::addToExecPlan(
 ) const {
    // The rewrite pass only produces this node when there is something to order by: sort fields, a
    // randomize seed, or both.
-   SILO_ASSERT(!fields.empty() || randomize_seed.has_value());
+   RHYDB_ASSERT(!fields.empty() || randomize_seed.has_value());
 
    ARROW_ASSIGN_OR_RAISE(auto* top_node, child->addToExecPlan(plan, tables, query_options));
 

@@ -29,7 +29,7 @@ std::pair<std::shared_ptr<ColumnMetadata>, Int32Column> makeTestColumn(
    for (auto value : values) {
       builder.insert(value);
    }
-   SILO_ASSERT(test_column.appendChunk(builder.finalize()).has_value());
+   RHYDB_ASSERT(test_column.appendChunk(builder.finalize()).has_value());
    return {metadata, test_column};
 }
 

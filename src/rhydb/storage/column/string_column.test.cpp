@@ -42,7 +42,7 @@ TEST(StringColumn, rawInsertedValuesRequeried) {
    StringColumnMetadata metadata{"string_column"};
    StringColumn under_test(&metadata);
 
-   SILO_ASSERT(appendStringValues(
+   RHYDB_ASSERT(appendStringValues(
                   under_test,
                   {"value 1",
                    "value 2",
@@ -69,7 +69,7 @@ TEST(StringColumn, serializationOfMetadataWorks) {
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
    StringColumn column(&metadata);
 
-   SILO_ASSERT(appendStringValues(column, {"CHILD2", "CHILD3", "NOT_IN_TREE"}).has_value());
+   RHYDB_ASSERT(appendStringValues(column, {"CHILD2", "CHILD3", "NOT_IN_TREE"}).has_value());
 
    std::ostringstream oss;
    boost::archive::binary_oarchive oarchive(oss);
@@ -110,7 +110,7 @@ TEST(StringColumn, rawInsertedValuesWithPhyloTreeRequeried) {
    StringColumnMetadata metadata{"string_column", std::move(phylo_tree)};
    StringColumn under_test(&metadata);
 
-   SILO_ASSERT(appendStringValues(under_test, {"CHILD2", "CHILD3", "NOT_IN_TREE"}).has_value());
+   RHYDB_ASSERT(appendStringValues(under_test, {"CHILD2", "CHILD3", "NOT_IN_TREE"}).has_value());
 
    auto tree_node_id_child = metadata.phylo_tree->getTreeNodeId("CHILD");
    auto tree_node_id_child2 = metadata.phylo_tree->getTreeNodeId("CHILD2");
@@ -137,7 +137,7 @@ TEST(StringColumn, duplicatePhyloLeafLeavesColumnUnmodified) {
    StringColumn under_test(&metadata);
 
    // First append a valid leaf so we have committed state that must survive the failed append.
-   SILO_ASSERT(appendStringValues(under_test, {"CHILD2"}).has_value());
+   RHYDB_ASSERT(appendStringValues(under_test, {"CHILD2"}).has_value());
 
    // A buffer that re-uses CHILD2 (already committed) with a null in between must fail, and must
    // not leave the null in null_bitmap or grow the column.
@@ -182,7 +182,7 @@ TEST(StringColumn, rawInsertedValuesRequeryLongValue) {
    StringColumnMetadata column("string_column");
    StringColumn under_test{&column};
 
-   SILO_ASSERT(appendStringValues(
+   RHYDB_ASSERT(appendStringValues(
                   under_test,
                   {"value 1",
                    "value 2",
@@ -200,7 +200,7 @@ TEST(StringColumn, rawInsertedValuesRequeryLongValue) {
 TEST(StringColumn, compareAcrossColumns) {
    StringColumnMetadata under_test("string_column");
    StringColumn column_1{&under_test};
-   SILO_ASSERT(appendStringValues(
+   RHYDB_ASSERT(appendStringValues(
                   column_1,
                   {"value 1",
                    "value 2",
@@ -212,7 +212,7 @@ TEST(StringColumn, compareAcrossColumns) {
                   .has_value());
 
    StringColumn column_2{&under_test};
-   SILO_ASSERT(appendStringValues(
+   RHYDB_ASSERT(appendStringValues(
                   column_2,
                   {"other value 2",
                    "other values 3",
@@ -233,8 +233,8 @@ TEST(StringColumn, updateRebuildsTouchedChunks) {
    StringColumnMetadata metadata{"string_column"};
    StringColumn under_test(&metadata);
 
-   SILO_ASSERT(appendStringValues(under_test, {"short a", "value to overwrite"}).has_value());
-   SILO_ASSERT(appendStringValues(under_test, {"short b", "short c"}).has_value());
+   RHYDB_ASSERT(appendStringValues(under_test, {"short a", "value to overwrite"}).has_value());
+   RHYDB_ASSERT(appendStringValues(under_test, {"short b", "short c"}).has_value());
 
    // Overwrite a short value with a long one (moving it into the variable-data registry) and a long
    // value with a short one, targeting rows in both chunks at once. Untouched rows in a rebuilt
@@ -272,14 +272,14 @@ TEST(StringColumn, valuesSpanningMultipleAppendedChunks) {
    // Each appendChunk starts a fresh, immutable chunk whose row ids begin at a fresh 2^16-aligned
    // offset (chunk k starts at k << 16). Both short (in-place) and long (suffix in variable data)
    // values must resolve to their own chunk's registries.
-   SILO_ASSERT(
+   RHYDB_ASSERT(
       appendStringValues(under_test, {"short a", "a long value that spills over 1"}).has_value()
    );
-   SILO_ASSERT(
+   RHYDB_ASSERT(
       appendStringValues(under_test, {"short b", "a long value that spills over 2", "short c"})
          .has_value()
    );
-   SILO_ASSERT(appendStringValues(under_test, {"a long value that spills over 3"}).has_value());
+   RHYDB_ASSERT(appendStringValues(under_test, {"a long value that spills over 3"}).has_value());
 
    EXPECT_EQ(under_test.numChunks(), 3);
    EXPECT_EQ(under_test.chunkSize(0), 2);
@@ -307,7 +307,7 @@ TEST(StringColumn, manyLongValues) {
    for (auto& value : test_values) {
       builder.insert(value);
    }
-   SILO_ASSERT(column.appendChunk(builder.finalize()).has_value());
+   RHYDB_ASSERT(column.appendChunk(builder.finalize()).has_value());
 
    for (size_t i = 0; i < 50000; ++i) {
       ASSERT_EQ(column.getValue(RowId(0, i)).fastCompare(test_values.at(i)), std::nullopt);
@@ -336,7 +336,7 @@ TEST(StringColumn, manyMixedValues) {
    for (auto& value : test_values) {
       builder.insert(value);
    }
-   SILO_ASSERT(column.appendChunk(builder.finalize()).has_value());
+   RHYDB_ASSERT(column.appendChunk(builder.finalize()).has_value());
 
    for (size_t i = 0; i < 50001; ++i) {
       if (i % 2 == 1) {
