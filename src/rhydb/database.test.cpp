@@ -358,7 +358,7 @@ TEST(DatabaseInsertQueryTest, copiesFilteredRowsFromOneTableIntoAnother) {
    database.appendData(TableName{"source"}, source_data);
 
    const nlohmann::json result = database.executeWrite(
-      "source.filter(country='CH').insertInto(archive)", defaultQueryOptions()
+      "source.filter(country='CH').insertInto(archive)", defaultQueryOptions(), "test_request_id"
    );
 
    EXPECT_EQ(result.at("insertedRows").get<size_t>(), 2);
@@ -392,7 +392,9 @@ TEST(DatabaseInsertQueryTest, reshapesWithProjectAcceptsStringTargetAndAccumulat
 
    // Target named as a string literal; project drops the `age` column the target does not have.
    const nlohmann::json result = database.executeWrite(
-      "source.project({key, country}).insertInto('archive')", defaultQueryOptions()
+      "source.project({key, country}).insertInto('archive')",
+      defaultQueryOptions(),
+      "test_request_id"
    );
    EXPECT_EQ(result.at("insertedRows").get<size_t>(), 2);
    EXPECT_EQ(countInTableWhere(database, "archive", "true"), 2);
@@ -400,7 +402,8 @@ TEST(DatabaseInsertQueryTest, reshapesWithProjectAcceptsStringTargetAndAccumulat
    // A second append accumulates on top of the existing rows rather than replacing them.
    const nlohmann::json result_again = database.executeWrite(
       "source.filter(country='US').project({key, country}).insertInto(archive)",
-      defaultQueryOptions()
+      defaultQueryOptions(),
+      "test_request_id"
    );
    EXPECT_EQ(result_again.at("insertedRows").get<size_t>(), 1);
    EXPECT_EQ(countInTableWhere(database, "archive", "true"), 3);
@@ -426,7 +429,9 @@ TEST(DatabaseInsertQueryTest, insertsAResultThatSpansSeveralBatches) {
 
    // A cutoff of 1 makes the table scan emit tiny batches, so the insert sees many of them.
    const nlohmann::json result = database.executeWrite(
-      "source.insertInto(archive)", rhydb::config::QueryOptions{.materialization_cutoff = 1}
+      "source.insertInto(archive)",
+      rhydb::config::QueryOptions{.materialization_cutoff = 1},
+      "test_request_id"
    );
 
    EXPECT_EQ(result.at("insertedRows").get<size_t>(), NUMBER_OF_ROWS);
@@ -446,7 +451,11 @@ TEST(DatabaseInsertQueryTest, rejectsInsertThatReadsItsTable) {
    database.appendData(TableName{"source"}, source_data);
 
    EXPECT_THAT(
-      [&]() { database.executeWrite("source.insertInto(source)", defaultQueryOptions()); },
+      [&]() {
+         database.executeWrite(
+            "source.insertInto(source)", defaultQueryOptions(), "test_request_id"
+         );
+      },
       ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
          ::testing::HasSubstr("cannot write into table 'source' while the query reads from it")
       )
@@ -466,7 +475,11 @@ TEST(DatabaseInsertQueryTest, rejectsInvalidInsertQueries) {
 
    // A plain read query is not a write statement.
    EXPECT_THAT(
-      [&]() { database.executeWrite("source.filter(country='CH')", defaultQueryOptions()); },
+      [&]() {
+         database.executeWrite(
+            "source.filter(country='CH')", defaultQueryOptions(), "test_request_id"
+         );
+      },
       ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
          ::testing::HasSubstr("expected a write statement")
       )
@@ -474,7 +487,11 @@ TEST(DatabaseInsertQueryTest, rejectsInvalidInsertQueries) {
 
    // The target table must exist.
    EXPECT_THAT(
-      [&]() { database.executeWrite("source.insertInto(does_not_exist)", defaultQueryOptions()); },
+      [&]() {
+         database.executeWrite(
+            "source.insertInto(does_not_exist)", defaultQueryOptions(), "test_request_id"
+         );
+      },
       ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
          ::testing::HasSubstr("target table 'does_not_exist' not found")
       )
@@ -482,7 +499,9 @@ TEST(DatabaseInsertQueryTest, rejectsInvalidInsertQueries) {
 
    // insertInto needs both a source and a target.
    EXPECT_THAT(
-      [&]() { database.executeWrite("insertInto(source)", defaultQueryOptions()); },
+      [&]() {
+         database.executeWrite("insertInto(source)", defaultQueryOptions(), "test_request_id");
+      },
       ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
          ::testing::HasSubstr("insertInto() requires argument 'target'")
       )
@@ -507,7 +526,9 @@ TEST(DatabaseInsertQueryTest, insertsNothingWhenAColumnOfTheTargetIsMissing) {
 
    EXPECT_THAT(
       [&]() {
-         database.executeWrite("source.project({key}).insertInto(archive)", defaultQueryOptions());
+         database.executeWrite(
+            "source.project({key}).insertInto(archive)", defaultQueryOptions(), "test_request_id"
+         );
       },
       ThrowsMessage<rhydb::append::AppendException>(
          ::testing::HasSubstr("the column 'age' is not contained in the object")
@@ -534,7 +555,8 @@ TEST(DatabaseInsertQueryTest, insertsNothingWhenAColumnHasTheWrongType) {
       [&]() {
          database.executeWrite(
             "source.project({key, country}).map({age := country}).insertInto(archive)",
-            defaultQueryOptions()
+            defaultQueryOptions(),
+            "test_request_id"
          );
       },
       ThrowsMessage<rhydb::append::AppendException>(::testing::AllOf(

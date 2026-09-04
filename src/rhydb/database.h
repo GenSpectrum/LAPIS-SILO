@@ -105,7 +105,8 @@ class Database {
 
    nlohmann::json executeWrite(
       const std::string& query_string,
-      const config::QueryOptions& query_options
+      const config::QueryOptions& query_options,
+      std::string_view request_id
    );
 
    [[nodiscard]] std::string getTablesAsArrowIpc() const;

@@ -480,7 +480,8 @@ std::string Database::executeQueryAsArrowIpc(const std::string& query_string) co
 
 nlohmann::json Database::executeWrite(
    const std::string& query_string,
-   const config::QueryOptions& query_options
+   const config::QueryOptions& query_options,
+   std::string_view request_id
 ) {
    const auto request = query_engine::command::parseRequest(query_string, tables);
    const auto* command = std::get_if<query_engine::command::WriteCommandPtr>(&request);
@@ -489,7 +490,7 @@ nlohmann::json Database::executeWrite(
          "expected a write statement, e.g. `<query>.insertInto(<table>)`"
       );
    }
-   return (*command)->execute(*this, query_options);
+   return (*command)->execute(*this, query_options, request_id);
 }
 
 std::string Database::getTablesAsArrowIpc() const {

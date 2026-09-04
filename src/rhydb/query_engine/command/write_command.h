@@ -29,7 +29,8 @@ class WriteCommand {
    /// with the configured materialization behaviour.
    [[nodiscard]] virtual nlohmann::json execute(
       Database& database,
-      const config::QueryOptions& query_options
+      const config::QueryOptions& query_options,
+      std::string_view request_id
    ) = 0;
 };
 

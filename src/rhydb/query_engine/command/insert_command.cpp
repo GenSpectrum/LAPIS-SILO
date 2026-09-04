@@ -41,7 +41,8 @@ InsertCommand::InsertCommand(operators::QueryNodePtr source_query, schema::Table
 
 nlohmann::json InsertCommand::execute(
    Database& database,
-   const config::QueryOptions& query_options
+   const config::QueryOptions& query_options,
+   std::string_view request_id
 ) {
    // Inserting streams into the target table while the source query is still producing, so the
    // source must not read the table that is being written
@@ -54,7 +55,7 @@ nlohmann::json InsertCommand::execute(
    );
 
    auto query_plan =
-      Planner::planQuery(std::move(source_query_), database.tables, query_options, "insertInto");
+      Planner::planQuery(std::move(source_query_), database.tables, query_options, request_id);
 
    auto target_table = database.tables.at(target_table_);
    const size_t rows_before = target_table->row_layout.numRows();

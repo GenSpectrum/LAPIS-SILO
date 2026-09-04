@@ -197,7 +197,7 @@ print(table.to_pandas())
 
 Executes a SaneQL **write statement** against the database:
 - `insertInto(query: expression, table: symbol)`. Runs `query` and inserts its result rows into
-`table` — see [`insertInto`](query_documentation.md#`insertInto`) for semantics and
+`table` — see [`insertInto`](query_documentation.md) for semantics and
 limitations.
 
 The write goes through the [data directory](#runtime-configuration): the most recent state there is
@@ -207,6 +207,8 @@ back as a new data version.
 The endpoint is **opt-in**: it is only served when
 [`api.allowAdminEndpoint`](#runtime-configuration) is set to `true`. While it is disabled the path
 does not exist and requests to it get a 404, so an instance that does not enable it stays read-only.
+When enabled, it is generally available and no authentication is possible. If used in publicly
+available instances the endpoint should be guarded by other means (e.g. using `nginx` rules).
 
 **Request** (a SaneQL write statement as the raw request body):
 ```

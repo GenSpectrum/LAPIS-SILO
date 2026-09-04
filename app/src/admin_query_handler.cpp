@@ -90,7 +90,8 @@ void AdminQueryHandler::post(
 
       rhydb::Database staged_database = loadDatabaseToWriteTo();
 
-      const nlohmann::json result = staged_database.executeWrite(query_string, query_options);
+      const nlohmann::json result =
+         staged_database.executeWrite(query_string, query_options, request_id);
 
       staged_database.saveDatabaseState(data_directory);
 
