@@ -26,14 +26,19 @@ std::vector<schema::ColumnIdentifier> Negation::freeIUs() const {
 }
 
 arrow::Result<arrow::compute::Expression> Negation::toArrowExpression() const {
-   ARROW_ASSIGN_OR_RAISE(auto child_expression, child->toArrowExpression());
-   // SILO negation is a set complement over all rows, not SQL three-valued logic: `!(x)` keeps
-   // every row that is not in `x`'s result set, i.e. where `x` is false OR null. A bare Arrow
-   // `invert` would follow 3VL (`invert(null) = null`) and drop null rows, diverging from the
-   // bitmap filter path. `coalesce(invert(x), true)` maps a null result back to true so those rows
-   // are kept.
-   return arrow::compute::call(
-      "coalesce", {arrow::compute::not_(child_expression), arrow::compute::literal(true)}
+   // Negation is intentionally NOT translated for filters on subexpressions (the Arrow path).
+   //
+   // In the native bitmap path `!(...)` is a set complement over all rows that includes nulls,
+   // which is inconsistent with the equivalent flipped comparison (e.g. `!(age > 50)` != `age <=
+   // 50`, they differ by the null rows). Picking a null semantics here would either match the
+   // native path (and inherit that inconsistency) or match SQL three-valued logic (and diverge from
+   // the native path). Rather than lock in a behaviour that must change once the native
+   // inconsistency is resolved, we bail out so subexpression filters containing a negation are
+   // rejected. Once #1525 is fixed this should be implemented to match the corrected native
+   // semantics.
+   return arrow::Status::NotImplemented(
+      "negation ('!') is not yet supported in filters on subexpressions (see GitHub issue #1525); "
+      "apply the negation in a filter that is pushed into the table scan instead"
    );
 }
 

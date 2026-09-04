@@ -360,13 +360,17 @@ const QueryTestScenario FILTER_OR_ABOVE_MAP_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
-// A negated equality over a map-produced column, executed as an Arrow filter above the map.
-const QueryTestScenario FILTER_NEGATION_ABOVE_MAP_SCENARIO = {
-   .name = "FILTER_NEGATION_ABOVE_MAP",
+// Negation is deliberately rejected in filters on subexpressions until the native null-semantics
+// inconsistency (issue #1525) is resolved.
+const QueryTestScenario FILTER_NEGATION_ABOVE_MAP_REJECTED_SCENARIO = {
+   .name = "FILTER_NEGATION_ABOVE_MAP_REJECTED",
    .query =
       "default.map({week := date.isoWeek()})"
       ".filter(!(week = '2023-W01')).project({primaryKey})",
-   .expected_query_result = nlohmann::json({{{"primaryKey", "id_1"}}})
+   .expected_error_message =
+      "Error when planning query execution: NotImplemented: negation ('!') is not yet supported in "
+      "filters on subexpressions (see GitHub issue #1525); apply the negation in a filter that is "
+      "pushed into the table scan instead"
 };
 
 // `isoWeek` maps a date column to its ISO 8601 week date, `<ISO-year>-W<ISO-week>`, as a string.
@@ -414,7 +418,7 @@ QUERY_TEST(
       FILTER_COMPARISON_ABOVE_MAP_SCENARIO,
       FILTER_AND_RANGE_ABOVE_MAP_SCENARIO,
       FILTER_OR_ABOVE_MAP_SCENARIO,
-      FILTER_NEGATION_ABOVE_MAP_SCENARIO,
+      FILTER_NEGATION_ABOVE_MAP_REJECTED_SCENARIO,
       MAP_ISO_WEEK_SCENARIO
    )
 );
@@ -448,18 +452,20 @@ const QueryTestScenario FILTER_ISNULL_ABOVE_MAP_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
 };
 
-// Negation over a map-produced column follows SILO's set-complement semantics (a null cell is part
-// of the complement and is kept), not SQL three-valued logic. id_0's date is null, so its derived
-// `week` is null and `!(week = '2020-W53')` retains it; id_1's week is '2020-W53' and is removed.
-const QueryTestScenario FILTER_NEGATION_KEEPS_NULL_ABOVE_MAP_SCENARIO = {
-   .name = "FILTER_NEGATION_KEEPS_NULL_ABOVE_MAP",
+// Negation above a map runs on the Arrow (subexpression) path, which deliberately rejects negation
+// until issue #1525 resolves the native null-semantics inconsistency.
+const QueryTestScenario FILTER_NEGATION_ABOVE_MAP_NULL_REJECTED_SCENARIO = {
+   .name = "FILTER_NEGATION_ABOVE_MAP_NULL_REJECTED",
    .query =
       "default.map({week := date.isoWeek()}).filter(!(week = '2020-W53')).project({primaryKey})",
-   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
+   .expected_error_message =
+      "Error when planning query execution: NotImplemented: negation ('!') is not yet supported in "
+      "filters on subexpressions (see GitHub issue #1525); apply the negation in a filter that is "
+      "pushed into the table scan instead"
 };
 
-// The equivalent negation pushed into the table scan (bitmap path) must return the same row, so
-// the result is independent of whether the filter is executed above the map or pushed down.
+// The same negation pushed into the table scan runs on the native bitmap path, which is unaffected
+// by the rejection above: id_0 has a null date and is kept by the set-complement `!(date = ...)`.
 const QueryTestScenario FILTER_NEGATION_KEEPS_NULL_PUSHED_DOWN_SCENARIO = {
    .name = "FILTER_NEGATION_KEEPS_NULL_PUSHED_DOWN",
    .query = "default.filter(!(date = '2020-12-31'::date)).project({primaryKey})",
@@ -474,7 +480,7 @@ QUERY_TEST(
    ::testing::Values(
       MAP_ISO_WEEK_NULL_SCENARIO,
       FILTER_ISNULL_ABOVE_MAP_SCENARIO,
-      FILTER_NEGATION_KEEPS_NULL_ABOVE_MAP_SCENARIO,
+      FILTER_NEGATION_ABOVE_MAP_NULL_REJECTED_SCENARIO,
       FILTER_NEGATION_KEEPS_NULL_PUSHED_DOWN_SCENARIO
    )
 );
