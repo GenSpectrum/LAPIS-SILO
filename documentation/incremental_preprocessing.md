@@ -65,17 +65,17 @@ rhydb append --append-file new_sequences.ndjson
 Append compressed data to a specific data directory:
 
 ```
-rhydb append --data-directory /data/silo --append-file new_sequences.ndjson.zst
+rhydb append --data-directory /data/rhydb --append-file new_sequences.ndjson.zst
 ```
 
 Pipe data from another process into append:
 
 ```
-generate_data | rhydb append --data-directory /data/silo
+generate_data | rhydb append --data-directory /data/rhydb
 ```
 
 Append to a specific base state rather than the most recent one:
 
 ```
-rhydb append --data-directory /data/silo --data-source /data/silo/20240101T120000
+rhydb append --data-directory /data/rhydb --data-source /data/rhydb/20240101T120000
 ```

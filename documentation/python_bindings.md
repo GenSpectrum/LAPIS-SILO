@@ -49,7 +49,7 @@ Creates an empty database, or loads an existing one when `file_name` is given.
 
 ```python
 empty = Database()                       # in-memory, no tables
-loaded = Database("path/to/silo-dir")    # loads the most recent state
+loaded = Database("path/to/rhydb-dir")    # loads the most recent state
 ```
 
 Raises `FileNotFoundError` if the path does not exist, and `RuntimeError` if no valid state can be loaded (for example, an incompatible serialization version).
@@ -57,7 +57,7 @@ Raises `FileNotFoundError` if the path does not exist, and `RuntimeError` if no 
 `Database` is also a context manager:
 
 ```python
-with Database("path/to/silo-dir") as db:
+with Database("path/to/rhydb-dir") as db:
     result = db.query("default")
 ```
 
@@ -139,7 +139,7 @@ Assigns a single `value` to `column_name` for every row matched by `filter_expre
 Scalar value columns (int32, int64, float, date, bool) and string columns (plain, indexed, and zstd-compressed) can be updated. Two kinds of string column are rejected because their auxiliary indexes have no in-place update support: columns backed by a **phylogenetic tree** (e.g. the primary key when it is a phylo field) and columns backed by a **lineage index**. Sequence columns are also rejected.
 
 ```python
-db = Database("path/to/silo-dir")
+db = Database("path/to/rhydb-dir")
 
 # Set every row's age to 0
 db.update_column("default", "age", "0")
@@ -168,8 +168,8 @@ Writes the current database state into `save_directory` as a new versioned state
 
 ```python
 db.update_column("default", "age", "0")
-db.save_checkpoint("out/silo-dir")
-reloaded = Database("out/silo-dir")
+db.save_checkpoint("out/rhydb-dir")
+reloaded = Database("out/rhydb-dir")
 ```
 
 ## Error Handling
@@ -192,7 +192,7 @@ except ValueError as e:
 ```python
 from rhydb import Database
 
-with Database("path/to/silo-dir") as db:
+with Database("path/to/rhydb-dir") as db:
     # Count the rows we are about to change
     before = len(db.get_filtered_bitmap("default", "age = 4"))
 
@@ -206,5 +206,5 @@ with Database("path/to/silo-dir") as db:
     assert cleared >= before
 
     # Persist the edited database as a new state
-    db.save_checkpoint("out/silo-dir")
+    db.save_checkpoint("out/rhydb-dir")
 ```
