@@ -213,7 +213,7 @@ ast::ExpressionPtr Parser::parsePostfixExpr() {
             ast::FunctionCall{
                .function_name = "at",
                .positional_arguments = std::move(pos_args),
-               .named_arguments = {}
+               .named_arguments = {},
             },
             loc
          );
