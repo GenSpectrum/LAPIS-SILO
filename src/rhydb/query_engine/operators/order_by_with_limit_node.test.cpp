@@ -101,10 +101,40 @@ const QueryTestScenario LIMIT_LARGER_THAN_INPUT_SCENARIO = {
    )
 };
 
+// Same query with multiple batches
+const QueryTestScenario MULTI_BATCH_SCENARIO = {
+   .name = "ORDER_BY_WITH_LIMIT_MULTI_BATCH",
+   .query =
+      "default.project({primaryKey, int_value, date}).orderBy({int_value.asc(), "
+      "date.asc()}).limit(3)",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"int_value", nullptr}, {"date", nullptr}},
+       {{"primaryKey", "id_1"}, {"int_value", nullptr}, {"date", "2023-01-01"}},
+       {{"primaryKey", "id_2"}, {"int_value", 1}, {"date", nullptr}}}
+   ),
+   .query_options = rhydb::config::QueryOptions{.materialization_cutoff = 2}
+};
+
+// An empty input must not crash the sort+limit path (See
+// https://github.com/apache/arrow/issues/51210)
+const QueryTestScenario EMPTY_INPUT_SCENARIO = {
+   .name = "ORDER_BY_WITH_LIMIT_EMPTY_INPUT",
+   .query =
+      "default.filter(int_value = 999).project({primaryKey, int_value}).orderBy({int_value.asc()})"
+      ".limit(3)",
+   .expected_query_result = nlohmann::json::array()
+};
+
 }  // namespace
 
 QUERY_TEST(
    OrderByWithLimitNodeTest,
    TEST_DATA,
-   ::testing::Values(ASC_LIMIT_SCENARIO, DESC_LIMIT_SCENARIO, LIMIT_LARGER_THAN_INPUT_SCENARIO)
+   ::testing::Values(
+      ASC_LIMIT_SCENARIO,
+      DESC_LIMIT_SCENARIO,
+      LIMIT_LARGER_THAN_INPUT_SCENARIO,
+      MULTI_BATCH_SCENARIO,
+      EMPTY_INPUT_SCENARIO
+   )
 );
