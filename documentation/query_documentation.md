@@ -149,6 +149,17 @@ Sequence data columns use the naming convention `<sequenceName>` for aligned seq
 {"primary_key": "key_31", "country": "Switzerland", "date": "2021-03-21", "pango_lineage": "B.1.1.7", "qc_value": 0.96}
 ```
 
+### `projectout(fields)`
+
+The complement of [`project`](#projectfields): returns all columns except the specified ones. `fields` is a set of column names (or a single name without braces). All named columns must exist in the input's output schema.
+
+```
+default.projectout({date, qc_value})
+default.projectout(division)
+```
+
+**Output:** one row per input row containing all input columns except the removed ones, in their original order.
+
 ### `map(expressions)`
 
 Adds columns to the table. `expressions` is a record of `name := value` assignments. Each value may be a literal (integers, floats, single-quoted strings, or booleans), a field reference, or a call to a non-boolean [scalar function](#scalar-functions) such as [`at`](#atcolumn-position).

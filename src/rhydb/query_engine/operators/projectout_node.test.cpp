@@ -1,0 +1,81 @@
+#include <nlohmann/json.hpp>
+
+#include "rhydb/test/query_fixture.test.h"
+
+namespace {
+using rhydb::ReferenceGenomes;
+using rhydb::test::QueryTestData;
+using rhydb::test::QueryTestScenario;
+
+const std::vector<nlohmann::json> DATA = {
+   {{"primaryKey", "id_0"}, {"country", "Switzerland"}, {"age", 5}},
+   {{"primaryKey", "id_1"}, {"country", "Germany"}, {"age", 7}}
+};
+
+const auto DATABASE_CONFIG =
+   R"(
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+    - name: "country"
+      type: "string"
+    - name: "age"
+      type: "int"
+  primaryKey: "primaryKey"
+)";
+
+const auto REFERENCE_GENOMES = ReferenceGenomes{{}, {}};
+
+const QueryTestData TEST_DATA{
+   .ndjson_input_data = DATA,
+   .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
+};
+
+// Removes a single column given as a set; all others are kept in their original order.
+const QueryTestScenario PROJECTOUT_SET_SCENARIO = {
+   .name = "PROJECTOUT_SET",
+   .query = "default.projectout({age})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"country", "Switzerland"}},
+       {{"primaryKey", "id_1"}, {"country", "Germany"}}}
+   )
+};
+
+// A single column name may be given without braces.
+const QueryTestScenario PROJECTOUT_SINGLE_SCENARIO = {
+   .name = "PROJECTOUT_SINGLE",
+   .query = "default.projectout(country)",
+   .expected_query_result =
+      nlohmann::json({{{"primaryKey", "id_0"}, {"age", 5}}, {{"primaryKey", "id_1"}, {"age", 7}}})
+};
+
+// Multiple columns can be removed at once.
+const QueryTestScenario PROJECTOUT_MULTIPLE_SCENARIO = {
+   .name = "PROJECTOUT_MULTIPLE",
+   .query = "default.projectout({country, age})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
+};
+
+// Removing a column that does not exist is rejected.
+const QueryTestScenario PROJECTOUT_UNKNOWN_COLUMN_SCENARIO = {
+   .name = "PROJECTOUT_UNKNOWN_COLUMN",
+   .query = "default.projectout({doesNotExist})",
+   .expected_error_message =
+      "projectout field 'doesNotExist' is not present in the input's output schema"
+};
+
+}  // namespace
+
+QUERY_TEST(
+   ProjectoutTest,
+   TEST_DATA,
+   ::testing::Values(
+      PROJECTOUT_SET_SCENARIO,
+      PROJECTOUT_SINGLE_SCENARIO,
+      PROJECTOUT_MULTIPLE_SCENARIO,
+      PROJECTOUT_UNKNOWN_COLUMN_SCENARIO
+   )
+);
