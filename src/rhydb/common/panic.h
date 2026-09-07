@@ -63,21 +63,23 @@ namespace rhydb::common {
 
 [[noreturn]] void assertFailure(const char* msg, const char* file, int line);
 
-#define RHYDB_INTERNAL_ASSERT_OP_(prefix_str, e1, op, e2)                                         \
-   do {                                                                                           \
-      auto rhydb_internal_assert_op_v1 = (e1);                                                     \
-      auto rhydb_internal_assert_op_v2 = (e2);                                                     \
-      if (!(rhydb_internal_assert_op_v1 op rhydb_internal_assert_op_v2)) {                          \
-         rhydb::common::assertOpFailure(                                                          \
-            prefix_str,                                                                           \
-            #e1,                                                                                  \
-            #op,                                                                                  \
-            #e2,                                                                                  \
-            fmt::format("{} " #op " {}", rhydb_internal_assert_op_v1, rhydb_internal_assert_op_v2), \
-            __FILE__,                                                                             \
-            __LINE__                                                                              \
-         );                                                                                       \
-      }                                                                                           \
+#define RHYDB_INTERNAL_ASSERT_OP_(prefix_str, e1, op, e2)                                \
+   do {                                                                                  \
+      auto rhydb_internal_assert_op_v1 = (e1);                                           \
+      auto rhydb_internal_assert_op_v2 = (e2);                                           \
+      if (!(rhydb_internal_assert_op_v1 op rhydb_internal_assert_op_v2)) {               \
+         rhydb::common::assertOpFailure(                                                 \
+            prefix_str,                                                                  \
+            #e1,                                                                         \
+            #op,                                                                         \
+            #e2,                                                                         \
+            fmt::format(                                                                 \
+               "{} " #op " {}", rhydb_internal_assert_op_v1, rhydb_internal_assert_op_v2 \
+            ),                                                                           \
+            __FILE__,                                                                    \
+            __LINE__                                                                     \
+         );                                                                              \
+      }                                                                                  \
    } while (0)
 
 #define RHYDB_ASSERT_OP_(partial_prefix, e1, op, e2) \
