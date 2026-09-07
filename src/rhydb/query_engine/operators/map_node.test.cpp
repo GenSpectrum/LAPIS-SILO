@@ -128,7 +128,7 @@ const QueryTestScenario MAP_AT_BRACKET_SCENARIO = {
    .query = "default.map({second := primaryKey[4]}).project({primaryKey, second})",
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "id_0"}, {"second", "0"}}, {{"primaryKey", "id_1"}, {"second", "1"}}}
-   )
+   ),
 };
 
 // When the position is past the end of the string, `at` yields an empty string
