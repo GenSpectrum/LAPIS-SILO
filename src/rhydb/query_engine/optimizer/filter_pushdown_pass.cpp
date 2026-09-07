@@ -8,16 +8,15 @@
 #include "rhydb/common/aa_symbols.h"
 #include "rhydb/common/nucleotide_symbols.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
+#include "rhydb/query_engine/operator_visitor.h"
 #include "rhydb/query_engine/operators/aggregate_node.h"
 #include "rhydb/query_engine/operators/fetch_node.h"
 #include "rhydb/query_engine/operators/filter_node.h"
-#include "rhydb/query_engine/operators/insertions_node.h"
 #include "rhydb/query_engine/operators/join_node.h"
 #include "rhydb/query_engine/operators/map_node.h"
-#include "rhydb/query_engine/operators/most_recent_common_ancestor_node.h"
-#include "rhydb/query_engine/operators/mutations_node.h"
+#include "rhydb/query_engine/operators/order_by_node.h"
 #include "rhydb/query_engine/operators/order_by_with_limit_node.h"
-#include "rhydb/query_engine/operators/phylo_subtree_node.h"
+#include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/schema_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
@@ -52,6 +51,20 @@ bool isFieldRef(const operators::MapNode::Assignment& assignment) {
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
+void FilterPushdownPass::propagateToNode(operators::QueryNodePtr& node) {
+   if (auto replacement = operators::visit(*node, *this)) {
+      node = std::move(replacement);
+   }
+   // Fail-closed default: whatever filters the node did not push into its child or consume itself
+   // are retained ABOVE it as a FilterNode (an Arrow filter).
+   if (!current_filters.empty()) {
+      auto remaining_filter = std::make_unique<And>(std::move(current_filters));
+      current_filters.clear();
+      node = std::make_unique<operators::FilterNode>(std::move(node), std::move(remaining_filter));
+   }
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
 void FilterPushdownPass::addFilter(std::unique_ptr<scalar_expressions::ScalarExpression> filter) {
    // Split a top-level conjunction into its conjuncts so each can be pushed independently, e.g. a
    // hasMutation() conjunct into the scan while a conjunct on a map-produced column stays above the
@@ -71,6 +84,20 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::FilterNode& no
    auto child = std::move(node.child);
    propagateToNode(child);
    return child;
+}
+
+// Filter-transparent: a project neither changes the row set nor the values of the columns
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr FilterPushdownPass::operator()(operators::ProjectNode& node) {
+   propagateToNode(node.child);
+   return nullptr;
+}
+
+// Filter-transparent: ordering does not change which rows exist
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr FilterPushdownPass::operator()(operators::OrderByNode& node) {
+   propagateToNode(node.child);
+   return nullptr;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -113,65 +140,15 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::MapNode& node)
    current_filters = std::move(filters_to_push_down);
    propagateToNode(node.child);
 
-   if (filters_staying_above.empty()) {
-      // Every filter could be pushed below the map; keep the map in place.
-      return nullptr;
-   }
-
-   // Rebuild the map (its child may have been rewritten by the pushdown above) and place the
-   // remaining filters back on top of it as a single FilterNode. It cannot be pushed further.
-   auto rebuilt_map =
-      std::make_unique<operators::MapNode>(std::move(node.child), std::move(node.assignments));
-   auto remaining_filter = std::make_unique<And>(std::move(filters_staying_above));
-   return std::make_unique<operators::FilterNode>(
-      std::move(rebuilt_map), std::move(remaining_filter)
-   );
+   // Leave the blocking filters in `current_filters`; propagateToNode retains them above this map.
+   current_filters = std::move(filters_staying_above);
+   return nullptr;
 }
 
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::TableScanNode& node) {
    current_filters.push_back(std::move(node.filter));
    node.filter = std::make_unique<And>(std::move(current_filters));
-   return nullptr;
-}
-
-operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::MutationsNode<rhydb::Nucleotide>& node
-) {
-   current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<And>(std::move(current_filters));
-   return nullptr;
-}
-
-operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::MutationsNode<rhydb::AminoAcid>& node
-) {
-   current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<And>(std::move(current_filters));
-   return nullptr;
-}
-operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::InsertionsNode<rhydb::Nucleotide>& node
-) {
-   current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<And>(std::move(current_filters));
-   return nullptr;
-}
-operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::InsertionsNode<rhydb::AminoAcid>& node
-) {
-   current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<And>(std::move(current_filters));
-   return nullptr;
-}
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::PhyloSubtreeNode& node) {
-   current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<And>(std::move(current_filters));
-   return nullptr;
-}
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::MostRecentCommonAncestorNode& node
-) {
-   current_filters.push_back(std::move(node.filter));
-   node.filter = std::make_unique<And>(std::move(current_filters));
+   current_filters.clear();
    return nullptr;
 }
 
@@ -202,8 +179,8 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::JoinNode& node
    // semantics-preserving for some combinations: pushing into the null-supplying side of an
    // outer join changes the result (null-extended rows would no longer be filtered out), as
    // does pushing a predicate that references no column at all. Rather than push unsafely, any
-   // filters above the join are left in place and realized as an Arrow filter over the join
-   // output (their expression must have an Arrow translation).
+   // filters above the join are left in `current_filters` and retained above the join by
+   // propagateToNode (realized as an Arrow filter over the join output).
    //
    // The child subtrees may still contain FilterNodes of their own (e.g.
    // `join(default.filter(...), ...)`); push those down within each input using fresh passes so no
@@ -212,44 +189,17 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::JoinNode& node
    FilterPushdownPass right_pass;
    left_pass.propagateToNode(node.left);
    right_pass.propagateToNode(node.right);
-
-   if (current_filters.empty()) {
-      return nullptr;
-   }
-
-   auto rebuilt_join = std::make_unique<operators::JoinNode>(
-      std::move(node.left),
-      std::move(node.right),
-      std::move(node.left_keys),
-      std::move(node.right_keys),
-      node.join_type
-   );
-   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
-   current_filters.clear();
-   return std::make_unique<operators::FilterNode>(
-      std::move(rebuilt_join), std::move(remaining_filter)
-   );
+   return nullptr;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::FetchNode& node) {
    // A FetchNode (limit/offset) changes which rows survive, so a filter above it must not be pushed
-   // below: `default.limit(1).filter(...)` must filter the single limited row, not pre-filter the
-   // input and then limit.
+   // below it: `default.limit(1).filter(...)` must filter the single limited row, not pre-filter
+   // the input and then limit.
    FilterPushdownPass child_pass;
    child_pass.propagateToNode(node.child);
-
-   if (current_filters.empty()) {
-      return nullptr;
-   }
-
-   auto rebuilt_fetch =
-      std::make_unique<operators::FetchNode>(std::move(node.child), node.count, node.offset);
-   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
-   current_filters.clear();
-   return std::make_unique<operators::FilterNode>(
-      std::move(rebuilt_fetch), std::move(remaining_filter)
-   );
+   return nullptr;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -258,50 +208,18 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::OrderByWithLim
    // would change the result set.
    FilterPushdownPass child_pass;
    child_pass.propagateToNode(node.child);
-
-   if (current_filters.empty()) {
-      return nullptr;
-   }
-
-   auto rebuilt = std::make_unique<operators::OrderByWithLimitNode>(
-      std::move(node.child), std::move(node.fields), node.limit, node.offset, node.randomize_seed
-   );
-   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
-   current_filters.clear();
-   return std::make_unique<operators::FilterNode>(std::move(rebuilt), std::move(remaining_filter));
+   return nullptr;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::AggregateNode& node) {
-   // An aggregate produces a new schema (group-by keys and aggregate outputs such as `count`). A
-   // filter above it references those produced columns, which do not exist below the aggregate, so
-   // pushing it down would filter against a missing column. Retain such filters above the aggregate
-   // and realize them as an Arrow filter over its output; push child-internal filters down.
+   // An aggregate produces a new schema (group-by keys and aggregate outputs such as `count`).
    FilterPushdownPass child_pass;
    child_pass.propagateToNode(node.child);
-
-   if (current_filters.empty()) {
-      return nullptr;
-   }
-
-   auto rebuilt = std::make_unique<operators::AggregateNode>(
-      std::move(node.child), std::move(node.group_by_fields), std::move(node.aggregates)
-   );
-   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
-   current_filters.clear();
-   return std::make_unique<operators::FilterNode>(std::move(rebuilt), std::move(remaining_filter));
+   return nullptr;
 }
 
-// mutations()/insertions() and the phylo source operators produce a NEW result schema (e.g.
-// mutationFrom, position, proportion, count); the input columns are gone above them. A filter
-// written above such a node can therefore only reference its output columns, so it must be retained
-// above and realized as an Arrow filter over the node's output rather than pushed into the input
-// scan (where those columns do not exist - the cause of "database does not contain the column
-// ...").
-//
-// The pre-filter written BELOW the node (`default.filter(...).mutations()`) lives inside the child
-// subtree; a fresh pass pushes it into the scan so NodeResolutionPass still finds a bare table scan
-// below the node. `current_filters` here holds only the filters accumulated from ABOVE.
+// mutations()/insertions() and the phylo source operators produce a NEW result schema.
 template <typename SymbolType>
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(
@@ -309,20 +227,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(
 ) {
    FilterPushdownPass child_pass;
    child_pass.propagateToNode(node.child);
-
-   if (current_filters.empty()) {
-      return nullptr;
-   }
-
-   auto rebuilt = std::make_unique<operators::UnresolvedMutationsNode<SymbolType>>(
-      std::move(node.child),
-      std::move(node.sequence_names),
-      node.min_proportion,
-      std::move(node.fields)
-   );
-   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
-   current_filters.clear();
-   return std::make_unique<operators::FilterNode>(std::move(rebuilt), std::move(remaining_filter));
+   return nullptr;
 }
 
 template <typename SymbolType>
@@ -332,17 +237,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(
 ) {
    FilterPushdownPass child_pass;
    child_pass.propagateToNode(node.child);
-
-   if (current_filters.empty()) {
-      return nullptr;
-   }
-
-   auto rebuilt = std::make_unique<operators::UnresolvedInsertionsNode<SymbolType>>(
-      std::move(node.child), std::move(node.sequence_names)
-   );
-   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
-   current_filters.clear();
-   return std::make_unique<operators::FilterNode>(std::move(rebuilt), std::move(remaining_filter));
+   return nullptr;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -350,20 +245,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnresolvedPhyl
 ) {
    FilterPushdownPass child_pass;
    child_pass.propagateToNode(node.child);
-
-   if (current_filters.empty()) {
-      return nullptr;
-   }
-
-   auto rebuilt = std::make_unique<operators::UnresolvedPhyloSubtreeNode>(
-      std::move(node.child),
-      std::move(node.column_name),
-      node.print_nodes_not_in_tree,
-      node.contract_unary_nodes
-   );
-   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
-   current_filters.clear();
-   return std::make_unique<operators::FilterNode>(std::move(rebuilt), std::move(remaining_filter));
+   return nullptr;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -372,17 +254,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(
 ) {
    FilterPushdownPass child_pass;
    child_pass.propagateToNode(node.child);
-
-   if (current_filters.empty()) {
-      return nullptr;
-   }
-
-   auto rebuilt = std::make_unique<operators::UnresolvedMostRecentCommonAncestorNode>(
-      std::move(node.child), std::move(node.column_name), node.print_nodes_not_in_tree
-   );
-   auto remaining_filter = std::make_unique<And>(std::move(current_filters));
-   current_filters.clear();
-   return std::make_unique<operators::FilterNode>(std::move(rebuilt), std::move(remaining_filter));
+   return nullptr;
 }
 
 template operators::QueryNodePtr FilterPushdownPass::operator()(
@@ -407,6 +279,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& 
    }
    FilterPushdownPass left_pass;
    left_pass.current_filters = std::move(current_filters);
+   current_filters.clear();
 
    left_pass.propagateToNode(node.left);
    right_pass.propagateToNode(node.right);
