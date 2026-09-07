@@ -43,7 +43,7 @@ conan profile detect
 Copy `conanprofile.example` to `conanprofile` and insert the values of `os`, `os_build`, `arch` and `arch_build` from
 myProfile.
 
-Build rhydb in `./build`. This build will load and build the required libraries to `~/.conan2/data/` (can not be set by
+Build RhyDB in `./build`. This build will load and build the required libraries to `~/.conan2/data/` (can not be set by
 hand).
 
 ```shell
