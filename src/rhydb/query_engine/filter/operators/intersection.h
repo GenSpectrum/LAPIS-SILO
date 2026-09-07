@@ -30,6 +30,13 @@ class Intersection : public Operator {
       storage::column::RowLayout row_layout
    );
 
+   /// Builds `!child1 && !child2 && ...`, the intersection of the complements of `children`
+   /// - equivalently every row that none of the children select.
+   static std::unique_ptr<Operator> ofComplements(
+      OperatorVector children,
+      storage::column::RowLayout row_layout
+   );
+
    ~Intersection() noexcept override;
 
    [[nodiscard]] std::string toString() const override;

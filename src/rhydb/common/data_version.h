@@ -15,7 +15,7 @@ class DataVersion {
       uint32_t value;
    };
 
-   static const SerializationVersion CURRENT_SILO_SERIALIZATION_VERSION;
+   static const SerializationVersion CURRENT_RHYDB_SERIALIZATION_VERSION;
 
    class Timestamp {
      public:
@@ -51,6 +51,9 @@ class DataVersion {
    [[nodiscard]] Timestamp getTimestamp() const;
 
    static DataVersion mineDataVersion();
+
+   // Generate timestamp that is guaranteed to be greater than previous
+   static DataVersion mineDataVersionAfter(const DataVersion& previous);
 
    static std::optional<DataVersion> fromFile(const std::filesystem::path& file_path);
 

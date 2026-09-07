@@ -68,11 +68,16 @@ default
 | `<`, `<=`, `>`, `>=` | ordering | int, float, date, string (lexicographic) |
 
 Notes:
-- One side must be a column identifier; the other a literal value. For ordering
-  operators the column may be on either side (`age > 30` equals `30 < age`).
+- One side must be a column identifier; the other a literal value. The column may
+  be on either side (`age > 30` equals `30 < age`).
 - The literal operand must **not** be `null`; use `isNull()` or `isNotNull()` instead.
-- Ordering operators are **not** supported for boolean columns, and comparisons
-  **exclude** null values (a null cell never matches an ordering comparison).
+- Ordering operators are **not** supported for boolean columns.
+- Comparisons **exclude** null values: a null cell never matches any comparison,
+  including `<>`. So `country <> 'Germany'` does not return rows where `country`
+  is null.
+- `!` is a set complement, not SQL's `NOT`, so it does **not** mean the same as
+  `<>`: `!(country = 'Germany')` *does* return rows where `country` is null,
+  whereas `country <> 'Germany'` does not.
 - String ordering is lexicographic and applies to both plain and
   dictionary-encoded string columns.
 
@@ -105,6 +110,8 @@ Keeps only rows where the boolean predicate is true. Passes all input columns th
 ```
 default.filter(country = 'USA' && age > 30)
 ```
+
+A boolean column can be used directly as a predicate: `default.filter(isHuman)` is equivalent to `default.filter(isHuman = true)`, and `default.filter(!isHuman)` negates it (a set complement that also keeps rows where `isHuman` is null, matching `!(isHuman = true)`). Only boolean columns may be used this way; a bare reference to a non-boolean column is rejected.
 
 ### `groupBy(aggregates [, columns])`
 
@@ -482,6 +489,95 @@ When a sequence column is read into a pipeline it is decompressed to a string be
 so nucleotide and amino acid sequences cannot be distinguished from ordinary strings at this point.
 
 **Limitation:** `filter(...)` cannot be applied to `schema()`. `schema()` is a pipeline breaker that produces a new result relation, and filtering its output is not supported; apply the filter before `schema()` instead.
+
+### `transitiveClosure(input, from, to [, includeVertices:=bool])`
+
+Computes the transitive closure of a directed relation. The `input` is any relation-producing
+pipeline whose rows describe edges: each row contributes an edge from the value in its `from`
+column to the value in its `to` column (`from` and `to` name string columns of the input, and
+rows with a null vertex are ignored). The result is a two-column relation with columns named
+`from` and `to`, holding one row for every ordered pair `(a, b)` where `b` is reachable from
+`a` by following one or more edges.
+
+With `includeVertices:=true` (default `false`), the reflexive pair `(v, v)` is additionally
+emitted for every vertex `v` that appears in the relation, yielding the *reflexive*-transitive
+closure.
+
+A typical input is a **lineage relation table**. When a column is configured with
+`lineageIndexType: table` (or `both`), preprocessing materializes a companion table (named after
+that column) with one row per direct edge, holding the child lineage in a `lineage` column and
+its direct parent in a `parent` column (null for roots). Its closure pairs every lineage with
+each of its descendants:
+
+```
+pango_lineage.transitiveClosure('parent', 'lineage').orderBy({from, to})
+```
+
+**Counting a lineage together with all of its sublineages.** Joining the reflexive closure's
+`to` column against a data table's lineage column and grouping by `from` sums, for each lineage,
+all sequences below it in the hierarchy (and — thanks to the reflexive pair — the lineage's own
+sequences):
+
+```
+pango_lineage.transitiveClosure('parent', 'lineage', includeVertices:=true)
+  .join(default, to = lineage_column)
+  .groupBy({count := count()}, {from})
+  .orderBy({from})
+```
+
+Here `lineage_column` is a `STRING` column of `default` holding each sequence's lineage. Because
+`join` requires both key columns to have the same type and the closure emits `STRING` columns,
+the joined-against column must itself be `STRING` (a lineage column configured with an index is
+dictionary-encoded and cannot be used as the join key directly).
+
+**Restrictions:**
+
+- `from` and `to` must be `STRING` columns of the input.
+- `filter(...)` cannot be applied to the output of `transitiveClosure()`; it is a source
+  operator with nowhere to push a predicate. Filter the input instead.
+
+**Output:** the reachable `{from, to}` pairs. The order of rows is not guaranteed; use
+`orderBy(...)` for a deterministic order.
+
+---
+
+## Writing query results to a table
+
+### `insertInto(query: expression, table: symbol)`
+
+Runs `query` and inserts the resulting rows into `table` — a query
+against table A whose result lands in table B, expressed as a single SaneQL query. It is the only
+SaneQL construct that writes: it mutates the target table rather than returning rows to the caller.
+
+```
+source.filter(country='CH').insertInto(archive)
+source.filter(country='CH').project({primaryKey, country, age}).insertInto(archive)
+source.insertInto('archive')
+```
+
+The target may be written as a bare identifier (`archive`) or a string literal (`'archive'`). It
+must be an existing table in the database; `insertInto` never creates a table.
+
+**Column matching.** The query's output columns are matched to the target table's columns *by name*.
+Every column of the target table must be produced by the query; any extra output columns are ignored.
+Use `project({...})` (or `map({...})`) to shape the result so it lines up with the target's schema.
+A missing column, or a value whose type does not match the target column, is a query error and no
+rows are inserted.
+
+**Placement.** `insertInto` is a *write statement*, not a pipeline operator: it must be the whole
+query (its outermost operation) and cannot be chained further (e.g. `x.insertInto(y).filter(...)` is
+not valid).
+
+**Limitation:** only value columns (`STRING`, `INT32`, `INT64`, `FLOAT`, `DATE32`, `BOOL`) round-trip
+through an insert query. A sequence column is decompressed to a plain string when read into a
+pipeline, which does not match the structured form the target's sequence column expects, so query
+results containing sequence columns cannot be inserted.
+
+It bumps the data version of the database it is applied to. The statement itself mutates its target
+table in place, so it is not safe to run next to other queries against the same database; the
+[`POST /admin/query`](api.md#post-adminquery) endpoint - the only way to issue it over the API -
+therefore applies it to a database loaded from the data directory and saves the result back as a new
+data version, which is served once the directory watcher picks it up.
 
 ---
 

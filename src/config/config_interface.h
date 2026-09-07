@@ -42,7 +42,7 @@ concept Config = requires(
    /// Overwrite the fields of an instance of the target type; done
    /// that way so that multiple kinds of config sources can shadow
    /// each other's values by application in sequence. Does not throw
-   /// exceptions, except overwriteFrom can call SILO_PANIC when there
+   /// exceptions, except overwriteFrom can call RHYDB_PANIC when there
    /// is an inconsistency (bug) between ConfigSpecification and
    /// overwriteFrom implementation.
    { config.overwriteFrom(config_source) } -> std::same_as<void>;
@@ -60,7 +60,7 @@ std::optional<std::filesystem::path> getConfigFilePath(
 /// This function needs a reference to the (remaining) command line
 /// arguments to be parsed, thus the application gets a chance to take
 /// off some arguments first (like "api" or "preprocessing" in the
-/// current SILO version).
+/// current RhyDB version).
 ///
 /// In case of error, returns the exit code that the caller should
 /// pass to exit(): 0 if the user gave --help, 1 in case of erroneous
@@ -85,7 +85,7 @@ std::variant<C, int32_t> getConfig(
       }
       if (!cmd_source.positional_arguments.empty()) {
          throw rhydb::config::ConfigException{fmt::format(
-            "SILO does not expect positional arguments, found {}",
+            "RhyDB does not expect positional arguments, found {}",
             nlohmann::json{cmd_source.positional_arguments}.dump()
          )};
       }

@@ -1,4 +1,4 @@
-#include "rhydb/common/silo_directory.h"
+#include "rhydb/common/rhydb_directory.h"
 
 #include <spdlog/spdlog.h>
 
@@ -8,20 +8,20 @@ RhyDBDataSource RhyDBDataSource::checkValidDataSource(
    const std::filesystem::path& candidate_data_source_path
 ) {
    if (!std::filesystem::is_directory(candidate_data_source_path)) {
-      throw InvalidSiloDataSourceException(
+      throw InvalidRhyDBDataSourceException(
          "Skipping {} because it is not a directory", candidate_data_source_path
       );
    }
    auto folder_name_timestamp =
       rhydb::DataVersion::Timestamp::fromString(candidate_data_source_path.filename());
    if (folder_name_timestamp == std::nullopt) {
-      throw InvalidSiloDataSourceException(
+      throw InvalidRhyDBDataSourceException(
          "Skipping {}. Its name is not a valid data version.", candidate_data_source_path.string()
       );
    }
    auto data_version_filepath = candidate_data_source_path / "data_version.silo";
    if (!std::filesystem::is_regular_file(data_version_filepath)) {
-      throw InvalidSiloDataSourceException(
+      throw InvalidRhyDBDataSourceException(
          "Skipping {}. it does not contain the data version file {}, which "
          "confirms a finished and valid data source",
          candidate_data_source_path.string(),
@@ -30,7 +30,7 @@ RhyDBDataSource RhyDBDataSource::checkValidDataSource(
    }
    auto maybe_data_version_in_file = rhydb::DataVersion::fromFile(data_version_filepath);
    if (maybe_data_version_in_file == std::nullopt) {
-      throw InvalidSiloDataSourceException(
+      throw InvalidRhyDBDataSourceException(
          "Skipping {}. The data version in data_version.silo could not be parsed",
          candidate_data_source_path.string()
       );
@@ -38,7 +38,7 @@ RhyDBDataSource RhyDBDataSource::checkValidDataSource(
    const auto& data_version_in_file = maybe_data_version_in_file.value();
 
    if (data_version_in_file.getTimestamp() != folder_name_timestamp) {
-      throw InvalidSiloDataSourceException(
+      throw InvalidRhyDBDataSourceException(
          "Skipping {}. The data version in data_version.silo is not equal to the directory name",
          candidate_data_source_path.string()
       );
@@ -53,14 +53,14 @@ std::optional<RhyDBDataSource> RhyDBDirectory::getMostRecentDataDirectory() cons
    for (const auto& directory_entry : std::filesystem::directory_iterator{directory}) {
       SPDLOG_TRACE("Checking directory entry {}", directory_entry.path().string());
       try {
-         auto silo_data_source = RhyDBDataSource::checkValidDataSource(directory_entry.path());
+         auto rhydb_data_source = RhyDBDataSource::checkValidDataSource(directory_entry.path());
          SPDLOG_TRACE(
             "Found candidate data source {} with data version {}",
             directory_entry.path().string(),
-            silo_data_source.data_version.toString()
+            rhydb_data_source.data_version.toString()
          );
-         all_found_data.emplace_back(std::move(silo_data_source));
-      } catch (const InvalidSiloDataSourceException& exception) {
+         all_found_data.emplace_back(std::move(rhydb_data_source));
+      } catch (const InvalidRhyDBDataSourceException& exception) {
          SPDLOG_TRACE(exception.what());
       }
    }
@@ -83,7 +83,7 @@ std::optional<RhyDBDataSource> RhyDBDirectory::getMostRecentDataDirectory() cons
       SPDLOG_WARN(
          "The database output {} is incompatible with the current SILO serialization version '{}'.",
          entry.data_version.toString(),
-         rhydb::DataVersion::CURRENT_SILO_SERIALIZATION_VERSION.value
+         rhydb::DataVersion::CURRENT_RHYDB_SERIALIZATION_VERSION.value
       );
    }
    return std::nullopt;

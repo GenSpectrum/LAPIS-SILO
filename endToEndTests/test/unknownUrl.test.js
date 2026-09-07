@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import { server } from './common.js';
 
-describe('SILO', () => {
+describe('RhyDB', () => {
   it('should return a proper 404 message when GETting an unknown url', async () => {
     await server
       .get('/unknown-url')

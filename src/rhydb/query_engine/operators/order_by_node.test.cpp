@@ -27,7 +27,7 @@ nlohmann::json createData(
 // non-null `date` so it is also exercised on the tie-break key. This makes the per-field null
 // placement observable and independent: whether a null sorts to the start or the end within a
 // group depends only on the direction of that group's own sort key, never on the direction of a
-// higher-priority key. SILO's contract is that null/missing sorts as the smallest element for
+// higher-priority key. RhyDB's contract is that null/missing sorts as the smallest element for
 // every field.
 const std::vector<nlohmann::json> DATA = {
    createData("id_0", nullptr, nullptr),

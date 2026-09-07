@@ -15,6 +15,7 @@
 #include "rhydb/common/aa_symbols.h"
 #include "rhydb/common/lineage_tree.h"
 #include "rhydb/common/nucleotide_symbols.h"
+#include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/operators/aggregate_node.h"
 #include "rhydb/query_engine/operators/fetch_node.h"
@@ -25,6 +26,7 @@
 #include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/schema_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
+#include "rhydb/query_engine/operators/transitive_closure_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
 #include "rhydb/query_engine/operators/unresolved_insertions_node.h"
 #include "rhydb/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
@@ -38,7 +40,6 @@
 #include "rhydb/query_engine/scalar_expressions/at.h"
 #include "rhydb/query_engine/scalar_expressions/comparison.h"
 #include "rhydb/query_engine/scalar_expressions/date_between.h"
-#include "rhydb/query_engine/scalar_expressions/equals.h"
 #include "rhydb/query_engine/scalar_expressions/exact.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
 #include "rhydb/query_engine/scalar_expressions/float_between.h"
@@ -84,7 +85,7 @@ schema::ColumnIdentifier resolveColumn(
 ) {
    const auto found =
       std::ranges::find_if(schema, [&](const auto& col) { return col.name == column_name; });
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       found != schema.end(), "The database does not contain the column '{}'", column_name
    );
    return *found;
@@ -101,7 +102,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertScalarFunctionCall(
    std::string_view error_context
 ) {
    const auto* entry = ScalarFunctionRegistry::instance().findFunction(call.function_name);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       entry != nullptr,
       "{} references unknown scalar function '{}' at {}:{}",
       error_context,
@@ -118,7 +119,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertScalarFunctionCall(
    for (const auto& referenced : expression->freeIUs()) {
       const bool exists =
          std::ranges::any_of(schema, [&](const auto& col) { return col.name == referenced.name; });
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          exists,
          "{} references unknown column '{}' at {}:{}",
          error_context,
@@ -130,7 +131,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertScalarFunctionCall(
    return expression;
 }
 
-/// Converts a saneql expression into a SILO scalar Expression: a value-producing
+/// Converts a saneql expression into a RhyDB scalar Expression: a value-producing
 /// expression (as opposed to convertToFilter, which yields a boolean predicate).
 /// Supported forms are literals (int, float, string, bool), references to an
 /// existing column of `schema` (resolved to that column's type), and scalar
@@ -147,7 +148,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
    if (std::holds_alternative<ast::Identifier>(value)) {
       const auto& name = std::get<ast::Identifier>(value).name;
       auto found = std::ranges::find_if(schema, [&](const auto& col) { return col.name == name; });
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          found != schema.end(),
          "{} references unknown column '{}' at {}:{}",
          error_context,
@@ -198,29 +199,13 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
    );
 }
 
-ScalarExpressionPtr convertEqualsToFilter(
-   const std::string& column_name,
-   const ast::Expression& value_expr,
-   const std::vector<schema::ColumnIdentifier>& schema
-) {
-   // Build the value operand first so parse-time value errors (e.g. an invalid date
-   // literal or an unsupported value type) are reported before the column is resolved.
-   auto value = convertToScalar(value_expr, schema, "the value in an equality");
-
-   const auto found =
-      std::ranges::find_if(schema, [&](const auto& col) { return col.name == column_name; });
-   CHECK_SILO_QUERY(
-      found != schema.end(), "The database does not contain the column '{}'", column_name
-   );
-
-   return std::make_unique<scalar_expressions::Equals>(
-      std::make_unique<scalar_expressions::FieldRef>(*found), std::move(value)
-   );
-}
-
-/// Maps an ordering ast::BinaryOp to the filter operator comparator.
-Comparator toOrderingComparator(BinaryOp binary_op) {
+/// Maps a comparison ast::BinaryOp to the filter operator comparator.
+Comparator toComparator(BinaryOp binary_op) {
    switch (binary_op) {
+      case BinaryOp::EQUALS:
+         return Comparator::EQUALS;
+      case BinaryOp::NOT_EQUALS:
+         return Comparator::NOT_EQUALS;
       case BinaryOp::LESS_THAN:
          return Comparator::LESS;
       case BinaryOp::LESS_EQUAL:
@@ -230,7 +215,7 @@ Comparator toOrderingComparator(BinaryOp binary_op) {
       case BinaryOp::GREATER_EQUAL:
          return Comparator::HIGHER_OR_EQUALS;
       default:
-         throw IllegalQueryException("unexpected operator for ordering comparison");
+         throw IllegalQueryException("unexpected operator for comparison");
    }
 }
 
@@ -251,48 +236,17 @@ ScalarExpressionPtr convertBinaryExprToFilter(
          children.push_back(convertToFilter(*bin_expr.right, schema));
          return std::make_unique<scalar_expressions::Or>(std::move(children));
       }
-      case BinaryOp::EQUALS: {
-         if (std::holds_alternative<ast::Identifier>(bin_expr.left->value)) {
-            return convertEqualsToFilter(
-               extractIdentifierName(*bin_expr.left), *bin_expr.right, schema
-            );
-         }
-         if (std::holds_alternative<ast::Identifier>(bin_expr.right->value)) {
-            return convertEqualsToFilter(
-               extractIdentifierName(*bin_expr.right), *bin_expr.left, schema
-            );
-         }
-         throw IllegalQueryException(
-            "equality comparison requires an identifier on one side at {}:{}",
-            bin_expr.left->location.line,
-            bin_expr.left->location.column
-         );
-      }
-      case BinaryOp::NOT_EQUALS: {
-         if (std::holds_alternative<ast::Identifier>(bin_expr.left->value)) {
-            return std::make_unique<scalar_expressions::Negation>(
-               convertEqualsToFilter(extractIdentifierName(*bin_expr.left), *bin_expr.right, schema)
-            );
-         }
-         if (std::holds_alternative<ast::Identifier>(bin_expr.right->value)) {
-            return std::make_unique<scalar_expressions::Negation>(
-               convertEqualsToFilter(extractIdentifierName(*bin_expr.right), *bin_expr.left, schema)
-            );
-         }
-         throw IllegalQueryException(
-            "not-equals comparison requires an identifier on one side at {}:{}",
-            bin_expr.left->location.line,
-            bin_expr.left->location.column
-         );
-      }
+      case BinaryOp::EQUALS:
+      case BinaryOp::NOT_EQUALS:
       case BinaryOp::LESS_THAN:
       case BinaryOp::LESS_EQUAL:
       case BinaryOp::GREATER_THAN:
       case BinaryOp::GREATER_EQUAL: {
+         const Comparator comparator = toComparator(bin_expr.op);
+         auto left = convertToScalar(*bin_expr.left, schema, "the left side of a comparison");
+         auto right = convertToScalar(*bin_expr.right, schema, "the right side of a comparison");
          return std::make_unique<scalar_expressions::Comparison>(
-            convertToScalar(*bin_expr.left, schema, "the left side of a comparison"),
-            convertToScalar(*bin_expr.right, schema, "the right side of a comparison"),
-            toOrderingComparator(bin_expr.op)
+            std::move(left), std::move(right), comparator
          );
       }
    }
@@ -358,7 +312,7 @@ ScalarExpressionPtr handleIn(
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
    const auto& set_expr = args.at("values");
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::SetLiteral>(set_expr.value),
       "in() expects a set literal argument at {}:{}",
       set_expr.location.line,
@@ -450,7 +404,7 @@ ScalarExpressionPtr handleLike(
    auto column_name = extractIdentifierName(args.at("column"));
    auto pattern = extractStringLiteral(args.at("pattern"));
    auto regex = std::make_unique<re2::RE2>(pattern);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       regex->ok(),
       "Invalid Regular Expression. The parsing of the regular expression failed with the "
       "error '{}'. See https://github.com/google/re2/wiki/Syntax for a Syntax specification.",
@@ -467,10 +421,10 @@ ScalarExpressionPtr handleSymbolEquals(
    const std::vector<schema::ColumnIdentifier>& schema
 ) {
    const uint32_t position = extractUint32Literal(args.at("position"));
-   CHECK_SILO_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
+   CHECK_RHYDB_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
    const uint32_t position_idx = position - 1;
    auto symbol_str = extractStringLiteral(args.at("symbol"));
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       symbol_str.size() == 1, "{}() symbol must be a single character", args.functionName()
    );
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
@@ -482,7 +436,7 @@ ScalarExpressionPtr handleSymbolEquals(
       );
    }
    auto symbol = SymbolType::charToSymbol(symbol_char);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       symbol.has_value(), "{}() invalid symbol '{}'", args.functionName(), symbol_char
    );
    return std::make_unique<scalar_expressions::SymbolEquals<SymbolType>>(
@@ -496,7 +450,7 @@ ScalarExpressionPtr handleHasMutation(
    const std::vector<schema::ColumnIdentifier>& schema
 ) {
    const uint32_t position = extractUint32Literal(args.at("position"));
-   CHECK_SILO_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
+   CHECK_RHYDB_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
    auto column = resolveColumn(sequence_name, schema);
    return std::make_unique<scalar_expressions::HasMutation<SymbolType>>(
@@ -511,7 +465,7 @@ ScalarExpressionPtr handleInsertionContains(
 ) {
    auto position = extractUint32Literal(args.at("position"));
    auto value = extractStringLiteral(args.at("value"));
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       !value.empty(),
       "The field 'value' in an InsertionContains expression must not be an empty string"
    );
@@ -528,7 +482,7 @@ ScalarExpressionPtr handleAt(
 ) {
    auto input_column = extractIdentifierName(args.at("input"));
    const uint32_t position = extractUint32Literal(args.at("position"));
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       position > 0, "at(): the field 'position' is 1-indexed. Value of 0 not allowed."
    );
    // Resolve the referenced column against the available schema so the At carries the
@@ -536,7 +490,7 @@ ScalarExpressionPtr handleAt(
    // placeholder type; the caller reports the (contextual) unknown-column error.
    const auto found =
       std::ranges::find_if(schema, [&](const auto& col) { return col.name == input_column; });
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       found != schema.end(), "at(): the field {} is not found in the current context", input_column
    );
    return std::make_unique<scalar_expressions::At>(
@@ -551,12 +505,12 @@ ScalarExpressionPtr handleIsoWeek(
    auto input_column = extractIdentifierName(args.at("input"));
    const auto found =
       std::ranges::find_if(schema, [&](const auto& col) { return col.name == input_column; });
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       found != schema.end(),
       "isoWeek(): the field {} is not found in the current context",
       input_column
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       found->type == schema::ColumnType::DATE32,
       "isoWeek(): the field {} must be a date column",
       input_column
@@ -614,7 +568,7 @@ scalar_expressions::MutationProfile<SymbolType>::Mutation parseMutationRecord(
    for (const auto& field : record.fields) {
       if (field.name == "position") {
          const uint32_t pos_val = extractUint32Literal(*field.value);
-         CHECK_SILO_QUERY(
+         CHECK_RHYDB_QUERY(
             pos_val > 0,
             "The 'position' field in a {} MutationProfile mutation is 1-indexed; "
             "value 0 is not allowed",
@@ -628,23 +582,23 @@ scalar_expressions::MutationProfile<SymbolType>::Mutation parseMutationRecord(
       }
    }
 
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       found_position,
       "Each mutation in a {} MutationProfile expression must have a 'position' field",
       SymbolType::SYMBOL_NAME
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       found_symbol,
       "Each mutation in a {} MutationProfile expression must have a 'symbol' field",
       SymbolType::SYMBOL_NAME
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       symbol_str.size() == 1,
       "The 'symbol' field in a {} MutationProfile mutation must be a single character",
       SymbolType::SYMBOL_NAME
    );
    const auto sym = SymbolType::charToSymbol(symbol_str[0]);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       sym.has_value(),
       "Invalid {} symbol '{}' in MutationProfile",
       SymbolType::SYMBOL_NAME,
@@ -661,7 +615,7 @@ std::vector<typename scalar_expressions::MutationProfile<SymbolType>::Mutation> 
    using MP = scalar_expressions::MutationProfile<SymbolType>;
    std::vector<typename MP::Mutation> parsed_mutations;
    for (const auto& elem : mutations_set.elements) {
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          std::holds_alternative<ast::RecordLiteral>(elem->value),
          "Each element of 'mutations' in a {} MutationProfile expression must be a record "
          "literal with 'position' and 'symbol' fields",
@@ -689,7 +643,7 @@ ScalarExpressionPtr handleMutationProfile(
    const int input_count = static_cast<int>(query_seq_expr != nullptr) +
                            static_cast<int>(sequence_id_expr != nullptr) +
                            static_cast<int>(mutations_expr != nullptr);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       input_count == 1,
       "Exactly one of 'querySequence', 'sequenceId', or 'mutations' must be provided in a {} "
       "MutationProfile expression, but {} were provided",
@@ -710,7 +664,7 @@ ScalarExpressionPtr handleMutationProfile(
       );
    }
 
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::SetLiteral>(mutations_expr->value),
       "The 'mutations' argument of a {} MutationProfile expression must be a set literal",
       SymbolType::SYMBOL_NAME
@@ -720,6 +674,47 @@ ScalarExpressionPtr handleMutationProfile(
    return std::make_unique<MP>(
       std::move(column), distance, typename MP::MutationsInput{std::move(parsed_mutations)}
    );
+}
+
+ScalarExpressionPtr convertIdentifierToFilter(
+   const ast::Identifier& node,
+   const ast::Expression& ast,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   auto found =
+      std::ranges::find_if(schema, [&](const auto& col) { return col.name == node.name; });
+   CHECK_RHYDB_QUERY(
+      found != schema.end(),
+      "filter references unknown column '{}' at {}:{}",
+      node.name,
+      ast.location.line,
+      ast.location.column
+   );
+   return std::make_unique<scalar_expressions::FieldRef>(*found);
+}
+
+ScalarExpressionPtr convertFunctionCallToFilter(
+   const ast::FunctionCall& node,
+   const ast::Expression& ast,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   const auto* entry = ScalarFunctionRegistry::instance().findFunction(node.function_name);
+   CHECK_RHYDB_QUERY(entry != nullptr, "unknown scalar function '{}'", node.function_name);
+   auto bound = bindArguments(
+      node.function_name, entry->signature, node.positional_arguments, node.named_arguments
+   );
+   auto expression = entry->handler(bound, schema);
+   // The registry also holds value-producing scalar functions (e.g. `at`), which are not filter
+   // predicates. Reject them here rather than letting a non-boolean expression reach compile().
+   CHECK_RHYDB_QUERY(
+      expression->type() == schema::ColumnType::BOOL,
+      "scalar function '{}' produces a {} value and cannot be used as a filter predicate at {}:{}",
+      node.function_name,
+      schema::columnTypeToString(expression->type()),
+      ast.location.line,
+      ast.location.column
+   );
+   return expression;
 }
 
 }  // namespace
@@ -740,26 +735,10 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
             );
          } else if constexpr (std::is_same_v<T, ast::BoolLiteral>) {
             return std::make_unique<scalar_expressions::BoolLiteral>(node.value);
+         } else if constexpr (std::is_same_v<T, ast::Identifier>) {
+            return convertIdentifierToFilter(node, ast, schema);
          } else if constexpr (std::is_same_v<T, ast::FunctionCall>) {
-            const auto* entry = ScalarFunctionRegistry::instance().findFunction(node.function_name);
-            CHECK_SILO_QUERY(entry != nullptr, "unknown scalar function '{}'", node.function_name);
-            auto bound = bindArguments(
-               node.function_name, entry->signature, node.positional_arguments, node.named_arguments
-            );
-            auto expression = entry->handler(bound, schema);
-            // The registry also holds value-producing scalar functions (e.g. `at`),
-            // which are not filter predicates. Reject them here rather than letting a
-            // non-boolean expression reach compile().
-            CHECK_SILO_QUERY(
-               expression->type() == schema::ColumnType::BOOL,
-               "scalar function '{}' produces a {} value and cannot be used as a filter "
-               "predicate at {}:{}",
-               node.function_name,
-               schema::columnTypeToString(expression->type()),
-               ast.location.line,
-               ast.location.column
-            );
-            return expression;
+            return convertFunctionCallToFilter(node, ast, schema);
          } else {
             throw IllegalQueryException(
                "unsupported expression type in filter context at {}:{}",
@@ -796,7 +775,7 @@ operators::AggregateDefinition parseAggregateDefinition(
    const ast::RecordField& field,
    const std::vector<schema::ColumnIdentifier>& schema
 ) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::FunctionCall>(field.value->value),
       "aggregate definition '{}' must be a function call (e.g. count(), sum(col))",
       field.name
@@ -809,7 +788,7 @@ operators::AggregateDefinition parseAggregateDefinition(
       auto found = std::ranges::find_if(schema, [&](const auto& col) {
          return col.name == source_column_name;
       });
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          found != schema.end(),
          "source column {} is not present in the input's output schema",
          source_column_name
@@ -830,7 +809,7 @@ std::vector<schema::ColumnIdentifier> parseGroupByFields(
       auto group_by_name = extractIdentifierName(*elem);
       auto found =
          std::ranges::find_if(schema, [&](const auto& col) { return col.name == group_by_name; });
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          found != schema.end(),
          "groupBy field '{}' is not present in the input's output schema",
          group_by_name
@@ -848,7 +827,7 @@ GroupByArgs parseGroupBySpecs(
 
    // Parse aggregates (required) — a RecordLiteral like {count:=count()}
    const auto& agg_expr = args.at("aggregates");
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::RecordLiteral>(agg_expr.value),
       "groupBy aggregates must be a record literal like {{count:=count()}}"
    );
@@ -893,7 +872,7 @@ OrderByField parseOrderByField(
          std::ranges::find_if(child_schema.begin(), child_schema.end(), [&](const auto& col) {
             return col.name == identifier_name;
          });
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          found != child_schema.end(),
          "OrderByField {} is not contained in the result of this operation. "
          "Allowed values are {}.",
@@ -904,14 +883,14 @@ OrderByField parseOrderByField(
    }
    if (std::holds_alternative<ast::FunctionCall>(expression.value)) {
       const auto& call = std::get<ast::FunctionCall>(expression.value);
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          call.function_name == "asc" || call.function_name == "desc",
          "orderBy field must be an identifier or asc()/desc() call, got '{}' at {}:{}",
          call.function_name,
          expression.location.line,
          expression.location.column
       );
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          call.positional_arguments.size() == 1 && call.named_arguments.empty(),
          "{}() expects exactly one argument",
          call.function_name
@@ -921,7 +900,7 @@ OrderByField parseOrderByField(
          std::ranges::find_if(child_schema.begin(), child_schema.end(), [&](const auto& col) {
             return col.name == identifier_name;
          });
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          found != child_schema.end(),
          "OrderByField {} is not contained in the result of this operation. "
          "Allowed values are {}.",
@@ -1030,7 +1009,9 @@ operators::QueryNodePtr buildScanNode(
    const auto& name = std::get<ast::Identifier>(ast.value).name;
    auto table_name = schema::TableName(name);
    auto iter = tables.find(table_name);
-   CHECK_SILO_QUERY(iter != tables.end(), "table '{}' not found in database", table_name.getName());
+   CHECK_RHYDB_QUERY(
+      iter != tables.end(), "table '{}' not found in database", table_name.getName()
+   );
    const auto table_schema = iter->second->schema;
    std::vector<schema::ColumnIdentifier> fields = iter->second->schema->getColumnIdentifiers();
    auto table_scan = std::make_unique<operators::TableScanNode>(
@@ -1093,7 +1074,7 @@ operators::QueryNodePtr handleProject(
    for (const auto& name : field_names) {
       auto found =
          std::ranges::find_if(child_schema, [&](const auto& col) { return col.name == name; });
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          found != child_schema.end(),
          "project field '{}' is not present in the input's output schema",
          name
@@ -1131,12 +1112,12 @@ operators::QueryNodePtr handleMap(
    const ChildConverter& convert_child
 ) {
    const auto& expressions_argument = args.at("expressions");
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::RecordLiteral>(expressions_argument.value),
       "map() expects a record of assignments like {x := 3, y := age}"
    );
    const auto& record = std::get<ast::RecordLiteral>(expressions_argument.value);
-   CHECK_SILO_QUERY(!record.fields.empty(), "map() requires at least one assignment");
+   CHECK_RHYDB_QUERY(!record.fields.empty(), "map() requires at least one assignment");
 
    auto child = convert_child(args.at("input"), tables);
    const auto child_schema = child->getOutputSchema();
@@ -1145,7 +1126,7 @@ operators::QueryNodePtr handleMap(
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.reserve(record.fields.size());
    for (const auto& field : record.fields) {
-      CHECK_SILO_QUERY(
+      CHECK_RHYDB_QUERY(
          seen_output_names.insert(field.name).second,
          "map() assigns the output column '{}' more than once",
          field.name
@@ -1173,7 +1154,7 @@ operators::QueryNodePtr handleMutations(
       sequence_names = extractSetOfIdentifiers(*seq_expr);
    }
    auto min_proportion = extractNumericAsFloatLiteral(args.at("minProportion"));
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       min_proportion >= 0 && min_proportion <= 1,
       "Invalid proportion: minProportion must be in interval [0.0, 1.0]"
    );
@@ -1244,7 +1225,7 @@ operators::QueryNodePtr handleLimit(
 ) {
    auto child = convert_child(args.at("input"), tables);
    const uint32_t limit_val = extractUint32Literal(args.at("count"));
-   CHECK_SILO_QUERY(limit_val > 0, "limit must be a positive number");
+   CHECK_RHYDB_QUERY(limit_val > 0, "limit must be a positive number");
    auto offset = args.getOptionalUint32("offset");
    return std::make_unique<operators::FetchNode>(std::move(child), limit_val, offset);
 }
@@ -1343,7 +1324,7 @@ ResolvedJoinColumn resolveJoinColumn(
    const std::vector<schema::ColumnIdentifier>& left_schema,
    const std::vector<schema::ColumnIdentifier>& right_schema
 ) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::Identifier>(expression.value),
       "join() on-expression must compare column identifiers, got '{}' at {}:{}",
       expression.toString(),
@@ -1353,13 +1334,13 @@ ResolvedJoinColumn resolveJoinColumn(
    const auto name = extractIdentifierName(expression);
    auto in_left = findColumnByName(left_schema, name);
    auto in_right = findColumnByName(right_schema, name);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       !(in_left.has_value() && in_right.has_value()),
       "join() on-expression references column '{}', which exists in both inputs and is therefore "
       "ambiguous. Rename one side (e.g. via map()) before joining.",
       name
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       in_left.has_value() || in_right.has_value(),
       "join() on-expression references unknown column '{}'",
       name
@@ -1377,7 +1358,7 @@ void collectJoinKeys(
    const std::vector<schema::ColumnIdentifier>& right_schema,
    JoinKeys& keys
 ) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::BinaryExpr>(on_expression.value),
       "join() on-expression must be an equality between a left and a right column, or a "
       "conjunction (&&) of such equalities, at {}:{}",
@@ -1390,7 +1371,7 @@ void collectJoinKeys(
       collectJoinKeys(*binary.right, left_schema, right_schema, keys);
       return;
    }
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       binary.op == BinaryOp::EQUALS,
       "join() on-expression only supports equality (=) comparisons, optionally combined with "
       "'&&', at {}:{}",
@@ -1399,7 +1380,7 @@ void collectJoinKeys(
    );
    auto first = resolveJoinColumn(*binary.left, left_schema, right_schema);
    auto second = resolveJoinColumn(*binary.right, left_schema, right_schema);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       first.side != second.side,
       "join() on-expression equality must reference one column from each input, but both '{}' and "
       "'{}' resolve to the same input at {}",
@@ -1407,8 +1388,9 @@ void collectJoinKeys(
       binary.right->toString(),
       on_expression.location.toString()
    );
-   CHECK_SILO_QUERY(
-      first.column.type == second.column.type,
+   CHECK_RHYDB_QUERY(
+      exec_node::columnTypeToArrowType(first.column.type)
+         ->Equals(*exec_node::columnTypeToArrowType(second.column.type)),
       "join() on-expression equality must reference equal column types from each input, but "
       "'{}' and '{}' have mismatching types {} and {} at {}",
       binary.left->toString(),
@@ -1485,7 +1467,7 @@ operators::QueryNodePtr handleJoin(
          overlapping_names.push_back(left_column.name);
       }
    }
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       overlapping_names.empty(),
       "join() requires the two inputs to have disjoint column names, but the column(s) [{}] are "
       "present in both. Rename one side (e.g. via map()) before joining.",
@@ -1494,7 +1476,7 @@ operators::QueryNodePtr handleJoin(
 
    JoinKeys keys;
    collectJoinKeys(args.at("on"), left_schema, right_schema, keys);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       !keys.left.empty(),
       "join() on-expression must contain at least one equality between a left and a right column"
    );
@@ -1517,7 +1499,7 @@ operators::QueryNodePtr handleUnionAll(
 
    auto left_schema = left->getOutputSchema();
    auto right_schema = right->getOutputSchema();
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       left_schema == right_schema,
       "unionAll requires both inputs to have the same schema "
       "(same column names, types, and order). "
@@ -1527,6 +1509,25 @@ operators::QueryNodePtr handleUnionAll(
    );
 
    return std::make_unique<operators::UnionAllNode>(std::move(left), std::move(right));
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr handleTransitiveClosure(
+   const BoundArguments& args,
+   const Tables& tables,
+   const ChildConverter& convert_child
+) {
+   auto child = convert_child(args.at("input"), tables);
+   auto from_column = extractStringLiteral(args.at("from"));
+   auto to_column = extractStringLiteral(args.at("to"));
+   bool include_vertices = false;
+   if (const auto* expr = args.get("includeVertices")) {
+      include_vertices = extractBoolLiteral(*expr);
+   }
+
+   return std::make_unique<operators::TransitiveClosureNode>(
+      std::move(child), std::move(from_column), std::move(to_column), include_vertices
+   );
 }
 
 }  // namespace
@@ -1540,7 +1541,7 @@ operators::QueryNodePtr convertExpression(
       return buildScanNode(ast, tables);
    }
 
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::FunctionCall>(ast.value),
       "expected table reference or function call at {}:{}",
       ast.location.line,
@@ -1549,7 +1550,7 @@ operators::QueryNodePtr convertExpression(
    const auto& call = std::get<ast::FunctionCall>(ast.value);
 
    const auto* entry = FunctionRegistry::instance().findFunction(call.function_name);
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       entry != nullptr,
       "unknown function '{}' at {}:{}",
       call.function_name,
@@ -1655,6 +1656,12 @@ FunctionRegistry::FunctionRegistry() {
 
    registerFunction(
       "join", {{pos("left"), pos("right"), pos("on"), named("type", false)}}, handleJoin
+   );
+
+   registerFunction(
+      "transitiveClosure",
+      {{pos("input"), pos("from"), pos("to"), named("includeVertices", false)}},
+      handleTransitiveClosure
    );
 }
 

@@ -20,7 +20,7 @@ TEST(Date32Column, insertValues) {
       ASSERT_TRUE(date.has_value()) << date.error();
       builder.insert(date.value());
    }
-   SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
+   RHYDB_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
 
    ASSERT_EQ(under_test.numChunks(), 1);
    ASSERT_EQ(under_test.chunkSize(0), 5);
@@ -37,7 +37,7 @@ TEST(Date32Column, insertNull) {
 
    rhydb::storage::column::Date32Column::Builder builder;
    builder.insertNull();
-   SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
+   RHYDB_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
 
    ASSERT_EQ(under_test.numChunks(), 1);
    ASSERT_EQ(under_test.chunkSize(0), 1);
@@ -54,7 +54,7 @@ TEST(Date32Column, parseInvalidDateReturnsError) {
 namespace {
 rhydb::common::Date32 date(const std::string& value) {
    const auto parsed = rhydb::common::stringToDate32(value);
-   SILO_ASSERT(parsed.has_value());
+   RHYDB_ASSERT(parsed.has_value());
    return parsed.value();
 }
 
@@ -78,9 +78,9 @@ TEST(Date32Column, staysSortedWhenChunkBoundaryIsGloballySorted) {
 
    // Each chunk is sorted on its own, and the first value of every later chunk is >= the last
    // value of the previous chunk, so the column is globally sorted across boundaries.
-   SILO_ASSERT(under_test.appendChunk(chunkOf({"2020-01-01", "2020-06-01"})).has_value());
-   SILO_ASSERT(under_test.appendChunk(chunkOf({"2020-06-01", "2021-03-21"})).has_value());
-   SILO_ASSERT(under_test.appendChunk(chunkOf({"2022-01-01", "2025-12-31"})).has_value());
+   RHYDB_ASSERT(under_test.appendChunk(chunkOf({"2020-01-01", "2020-06-01"})).has_value());
+   RHYDB_ASSERT(under_test.appendChunk(chunkOf({"2020-06-01", "2021-03-21"})).has_value());
+   RHYDB_ASSERT(under_test.appendChunk(chunkOf({"2022-01-01", "2025-12-31"})).has_value());
 
    ASSERT_EQ(under_test.numChunks(), 3);
    ASSERT_EQ(under_test.chunkSize(0), 2);
@@ -96,8 +96,8 @@ TEST(Date32Column, notSortedWhenChunkBoundaryRegresses) {
    // Each chunk is sorted in isolation, but the second chunk starts before the first chunk ends.
    // Detecting this requires the cross-chunk ingestion state (last_appended_value); within-chunk
    // checks alone would wrongly report the column as sorted.
-   SILO_ASSERT(under_test.appendChunk(chunkOf({"2020-01-01", "2023-01-05"})).has_value());
-   SILO_ASSERT(under_test.appendChunk(chunkOf({"2021-12-03", "2025-01-01"})).has_value());
+   RHYDB_ASSERT(under_test.appendChunk(chunkOf({"2020-01-01", "2023-01-05"})).has_value());
+   RHYDB_ASSERT(under_test.appendChunk(chunkOf({"2021-12-03", "2025-01-01"})).has_value());
 
    ASSERT_EQ(under_test.numChunks(), 2);
    ASSERT_EQ(under_test.chunkSize(0), 2);
@@ -114,9 +114,9 @@ TEST(Date32Column, nullBitmapRowIdsAreOffsetAcrossChunks) {
    // chunk's global row ids begin at a fresh 2^16-aligned offset (chunk k starts at k << 16), so a
    // missing per-chunk offset would land the null bitmap on the wrong global row ids.
    using rhydb::storage::column::RowId;
-   SILO_ASSERT(under_test.appendChunk(chunkOf({"2020-01-01", ""})).has_value());
-   SILO_ASSERT(under_test.appendChunk(chunkOf({"", "2021-03-21", ""})).has_value());
-   SILO_ASSERT(under_test.appendChunk(chunkOf({"2022-01-01"})).has_value());
+   RHYDB_ASSERT(under_test.appendChunk(chunkOf({"2020-01-01", ""})).has_value());
+   RHYDB_ASSERT(under_test.appendChunk(chunkOf({"", "2021-03-21", ""})).has_value());
+   RHYDB_ASSERT(under_test.appendChunk(chunkOf({"2022-01-01"})).has_value());
 
    ASSERT_EQ(under_test.numChunks(), 3);
    ASSERT_EQ(under_test.chunkSize(0), 2);

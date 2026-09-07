@@ -234,7 +234,7 @@ std::unique_ptr<filter::operators::Operator> compileSymbolInSet(
    const std::vector<typename SymbolType::Symbol>& symbols,
    const storage::column::RowLayout& row_layout
 ) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       position_idx < sequence_column.metadata->reference_sequence.size(),
       "SymbolInSet<{}> position is out of bounds {} > {}",
       SymbolType::SYMBOL_NAME,

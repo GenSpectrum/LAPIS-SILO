@@ -2,9 +2,12 @@
 
 #include <filesystem>
 
+#include <nlohmann/json_fwd.hpp>
+
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/data_version.h"
-#include "rhydb/common/silo_directory.h"
+#include "rhydb/common/rhydb_directory.h"
+#include "rhydb/config/runtime_config.h"
 #include "rhydb/database_info.h"
 #include "rhydb/query_engine/query_plan.h"
 #include "rhydb/schema/database_schema.h"
@@ -92,13 +95,19 @@ class Database {
       const std::filesystem::path& save_directory
    );
 
-   static Database loadDatabaseState(const RhyDBDataSource& silo_data_source);
+   static Database loadDatabaseState(const RhyDBDataSource& rhydb_data_source);
 
    [[nodiscard]] virtual DatabaseInfo getDatabaseInfo() const;
 
    [[nodiscard]] virtual DataVersion::Timestamp getDataVersionTimestamp() const;
 
    [[nodiscard]] std::string executeQueryAsArrowIpc(const std::string& query_string) const;
+
+   nlohmann::json executeWrite(
+      const std::string& query_string,
+      const config::QueryOptions& query_options,
+      std::string_view request_id
+   );
 
    [[nodiscard]] std::string getTablesAsArrowIpc() const;
 

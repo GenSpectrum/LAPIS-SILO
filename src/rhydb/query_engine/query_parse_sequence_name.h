@@ -8,7 +8,7 @@ namespace rhydb {
 
 template <typename SymbolType>
 std::string validateSequenceName(std::string sequence_name, const schema::TableSchema& schema) {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       schema.getColumn(sequence_name).has_value() &&
          schema.getColumn(sequence_name).value().type == SymbolType::COLUMN_TYPE,
       "Database does not contain the {} Sequence with name: '{}'",

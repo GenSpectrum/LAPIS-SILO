@@ -19,7 +19,7 @@ size_t StringColumnChunk::insert(std::string_view value) {
    if (value.size() <= RhyDBString::SHORT_STRING_SIZE) {
       return fixed_string_data.insert(RhyDBString{value});
    }
-   SILO_ASSERT(value.length() < UINT32_MAX);
+   RHYDB_ASSERT(value.length() < UINT32_MAX);
    auto suffix_id = variable_string_data.insert(value.substr(RhyDBString::PREFIX_LENGTH));
    return fixed_string_data.insert(RhyDBString{
       static_cast<uint32_t>(value.length()), value.substr(0, RhyDBString::PREFIX_LENGTH), suffix_id

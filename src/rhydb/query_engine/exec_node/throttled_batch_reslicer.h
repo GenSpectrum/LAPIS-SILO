@@ -38,7 +38,7 @@ class ThrottledBatchReslicer {
          batch_size(batch_size),
          target_batch_rate(target_batch_rate),
          backpressure_monitor(backpressure_monitor) {
-      SILO_ASSERT(batch_size > 0);
+      RHYDB_ASSERT(batch_size > 0);
    }
 
    // By arrow specification, this function will not be called re-entrantly

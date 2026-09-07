@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <mutex>
+
 #include <Poco/Net/HTTPRequestHandler.h>
 #include <Poco/Net/HTTPRequestHandlerFactory.h>
 #include <Poco/Net/HTTPServerRequest.h>
@@ -13,9 +16,9 @@
 namespace rhydb_app {
 
 class RhyDBRequestHandlerFactory : public Poco::Net::HTTPRequestHandlerFactory {
-  private:
    const rhydb::config::RuntimeConfig runtime_config;
    std::shared_ptr<ActiveDatabase> database_handle;
+   std::shared_ptr<std::mutex> admin_write_mutex = std::make_shared<std::mutex>();
 
   public:
    RhyDBRequestHandlerFactory(

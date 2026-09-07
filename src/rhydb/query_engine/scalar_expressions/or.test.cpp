@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 
 #include "rhydb/common/nucleotide_symbols.h"
-#include "rhydb/query_engine/scalar_expressions/equals.h"
+#include "rhydb/query_engine/scalar_expressions/comparison.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/query_engine/scalar_expressions/string_in_set.h"
@@ -331,9 +331,10 @@ std::unique_ptr<ScalarExpression> stringEquals(
    const std::string& column,
    const std::string& value
 ) {
-   return std::make_unique<Equals>(
+   return std::make_unique<Comparison>(
       std::make_unique<FieldRef>(ColumnIdentifier{.name = column, .type = ColumnType::STRING}),
-      std::make_unique<StringLiteral>(value)
+      std::make_unique<StringLiteral>(value),
+      filter::operators::Comparator::EQUALS
    );
 }
 }  // namespace

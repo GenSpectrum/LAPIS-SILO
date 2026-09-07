@@ -140,7 +140,7 @@ class Nucleotide {
          case Symbol::N:
             return 'N';
       }
-      SILO_UNREACHABLE();
+      RHYDB_UNREACHABLE();
    }
 
    static constexpr std::optional<Nucleotide::Symbol> charToSymbolSwitch(char character) {

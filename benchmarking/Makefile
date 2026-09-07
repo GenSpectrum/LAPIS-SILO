@@ -58,26 +58,26 @@ export BUILD
 
 # ---- General -----------------------------------------------------------------
 
-SILO=../build/$(BUILD)/rhydb_$(COMMIT_ID)
-export SILO
+RHYDB=../build/$(BUILD)/rhydb_$(COMMIT_ID)
+export RHYDB
 PREPROCESSING_STAMP = $(OUTPUT_DIR)/.done
 export PREPROCESSING_STAMP
 
-$(SILO):
-	bin/build-silo
+$(RHYDB):
+	bin/build-rhydb
 
 # ---- Benchmarking targets ----------------------------------------------------
 
 # Want data on the preprocessing, hence remove the stamp and let it
 # re-run. Do not also run the api since it would clobber the log file
 # from the preprocessing.
-preprocessing: $(SILO)
+preprocessing: $(RHYDB)
 	rm -f $(PREPROCESSING_STAMP)
 	make -f Makefile_preprocessing
 
 # Want data on the api; still run the preprocessing if needed but
 # without logging
-api: $(SILO)
+api: $(RHYDB)
 	( unset EVOBENCH_LOG; make -f Makefile_preprocessing )
 	make -f Makefile_api
 

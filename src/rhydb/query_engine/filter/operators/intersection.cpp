@@ -10,6 +10,7 @@
 #include "rhydb/common/string_utils.h"
 #include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/filter/operators/complement.h"
+#include "rhydb/query_engine/filter/operators/full.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/query_compilation_exception.h"
 
@@ -38,6 +39,28 @@ Intersection::Intersection(
 
       throw QueryCompilationException("Compilation bug: Intersection needs at least two children.");
    }
+}
+
+std::unique_ptr<Operator> Intersection::ofComplements(
+   OperatorVector children,
+   storage::column::RowLayout row_layout
+) {
+   if (children.empty()) {
+      return std::make_unique<Full>(std::move(row_layout));
+   }
+   if (children.size() == 1) {
+      return std::make_unique<Complement>(std::move(children.front()), std::move(row_layout));
+   }
+   // The negated children are subtracted from the non-negated ones, so negating a single
+   // child yields the set the remaining ones can be subtracted from.
+   OperatorVector non_negated;
+   non_negated.push_back(std::make_unique<Complement>(std::move(children.front()), row_layout));
+   OperatorVector negated;
+   negated.reserve(children.size() - 1);
+   std::move(std::next(children.begin()), children.end(), std::back_inserter(negated));
+   return std::make_unique<Intersection>(
+      std::move(non_negated), std::move(negated), std::move(row_layout)
+   );
 }
 
 Intersection::~Intersection() noexcept = default;

@@ -11,13 +11,13 @@
 
 namespace rhydb {
 
-class InvalidSiloDataSourceException : public std::runtime_error {
+class InvalidRhyDBDataSourceException : public std::runtime_error {
   public:
-   explicit InvalidSiloDataSourceException(const std::string& error_message)
+   explicit InvalidRhyDBDataSourceException(const std::string& error_message)
        : std::runtime_error(error_message) {}
 
    template <typename... Args>
-   explicit InvalidSiloDataSourceException(fmt::format_string<Args...> fmt_str, Args&&... args)
+   explicit InvalidRhyDBDataSourceException(fmt::format_string<Args...> fmt_str, Args&&... args)
        : std::runtime_error(fmt::format(fmt_str, std::forward<Args>(args)...)) {}
 };
 

@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <string>
 
 #include <fmt/format.h>
 
@@ -13,10 +14,14 @@ class ApiOptions {
   public:
    int32_t max_connections;
    int32_t parallel_threads;
+   std::string address;
    uint16_t port;
    std::optional<std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>>
       estimated_startup_end;
    uint32_t soft_memory_limit;
+   /// Whether the write-enabled `POST /admin/query` endpoint is served. Opt-in, so an instance
+   /// that does not enable it stays strictly read-only.
+   bool allow_admin_endpoint;
 };
 
 class QueryOptions {

@@ -16,7 +16,7 @@ namespace {
    const char* file,
    int line
 ) {
-   const char* env = getenv("SILO_PANIC");
+   const char* env = getenv("RHYDB_PANIC");
    bool do_abort;
    if (env) {
       do_abort = strcmp(env, "abort") == 0;
@@ -45,7 +45,7 @@ namespace {
 [[noreturn]] void unreachable(const char* file, int line) {
    panic(
       "UNREACHABLE: ",
-      "Please report this as a bug in SILO: this code should never be reachable",
+      "Please report this as a bug in RhyDB: this code should never be reachable",
       file,
       line
    );

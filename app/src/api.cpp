@@ -6,19 +6,21 @@
 #include <Poco/Net/ServerSocket.h>
 #include <spdlog/spdlog.h>
 
-#include <rhydb/common/silo_directory.h>
+#include <rhydb/common/rhydb_directory.h>
 
 #include "active_database.h"
 #include "memory_monitor.h"
 #include "request_handler_factory.h"
-#include "silo_directory_watcher.h"
+#include "rhydb_directory_watcher.h"
 
 namespace rhydb_app {
 
 int Api::runApi(const rhydb::config::RuntimeConfig& runtime_config) {
-   SPDLOG_INFO("Starting SILO API");
+   SPDLOG_INFO("Starting RhyDB API");
 
-   const Poco::Net::SocketAddress address(runtime_config.api_options.port);
+   const Poco::Net::SocketAddress address(
+      runtime_config.api_options.address, runtime_config.api_options.port
+   );
 
    Poco::Net::ServerSocket server_socket;
    try {
@@ -26,7 +28,10 @@ int Api::runApi(const rhydb::config::RuntimeConfig& runtime_config) {
       server_socket.listen();
    } catch (const Poco::Net::NetException& e) {
       SPDLOG_ERROR(
-         "Failed to bind to port {}: {}", runtime_config.api_options.port, e.displayText()
+         "Failed to bind to {}:{}: {}",
+         runtime_config.api_options.address,
+         runtime_config.api_options.port,
+         e.displayText()
       );
       return EXIT_FAILURE;
    }
@@ -52,21 +57,23 @@ int Api::runApi(const rhydb::config::RuntimeConfig& runtime_config) {
 
    auto database = std::make_shared<ActiveDatabase>();
 
-   auto silo_request_handler_factory =
-      std::make_unique<rhydb_app::RhyDBRequestHandlerFactory>(runtime_config, database);
+   auto rhydb_request_handler_factory =
+      std::make_unique<RhyDBRequestHandlerFactory>(runtime_config, database);
 
-   const rhydb_app::RhyDBDirectoryWatcher directory_watcher(
+   const RhyDBDirectoryWatcher directory_watcher(
       rhydb::RhyDBDirectory{runtime_config.data_directory}, database
    );
 
-   const rhydb_app::MemoryMonitor memory_monitor{runtime_config.api_options.soft_memory_limit};
+   const MemoryMonitor memory_monitor{runtime_config.api_options.soft_memory_limit};
 
    // HTTPServer will erase the memory of the request_handler, therefore we call `release`
    Poco::Net::HTTPServer server(
-      silo_request_handler_factory.release(), thread_pool, server_socket, poco_parameter
+      rhydb_request_handler_factory.release(), thread_pool, server_socket, poco_parameter
    );
 
-   SPDLOG_INFO("Listening on port {}", runtime_config.api_options.port);
+   SPDLOG_INFO(
+      "Listening on {}:{}", runtime_config.api_options.address, runtime_config.api_options.port
+   );
 
    server.start();
    waitForTerminationRequest();

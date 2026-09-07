@@ -42,7 +42,7 @@ std::unique_ptr<ScalarExpression> HasMutation<SymbolType>::rewrite(
 
    auto column_metadata =
       table.schema->getColumnMetadata<typename SymbolType::Column>(valid_sequence_name).value();
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       position_idx < column_metadata->reference_sequence.size(),
       "Has{}Mutation position is out of bounds {} > {}",
       SymbolType::SYMBOL_NAME,

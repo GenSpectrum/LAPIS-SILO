@@ -2,13 +2,13 @@
 
 namespace rhydb::storage::vector {
 
-Idx GermanStringRegistry::insert(const rhydb::RhyDBString& silo_string) {
+Idx GermanStringRegistry::insert(const RhyDBString& rhydb_string) {
    const bool need_new_page = german_string_pages.empty() || german_string_pages.back().full();
    if (need_new_page) {
       german_string_pages.emplace_back();
    }
    const size_t page_id = german_string_pages.size() - 1;
-   const size_t row_in_page = german_string_pages.back().insert(silo_string);
+   const size_t row_in_page = german_string_pages.back().insert(rhydb_string);
    return (page_id * GermanStringPage::MAX_STRINGS_PER_PAGE) + row_in_page;
 }
 

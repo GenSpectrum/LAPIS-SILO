@@ -5,7 +5,7 @@
 namespace rhydb::storage::vector {
 
 VariableDataRegistry::Identifier VariableDataRegistry::insert(std::string_view data) {
-   if (variable_data_pages.empty() || offset + sizeof(size_t) > buffer::SILO_PAGE_SIZE) {
+   if (variable_data_pages.empty() || offset + sizeof(size_t) > buffer::RHYDB_PAGE_SIZE) {
       variable_data_pages.emplace_back();
       offset = 0;
    }
@@ -13,22 +13,22 @@ VariableDataRegistry::Identifier VariableDataRegistry::insert(std::string_view d
    *reinterpret_cast<size_t*>(variable_data_pages.back().buffer + offset) = data.length();
    const size_t page_id = variable_data_pages.size() - 1;
    if (page_id > UINT32_MAX) {
-      SILO_PANIC("Maximum number of variable string data reached. Aborting.");
+      RHYDB_PANIC("Maximum number of variable string data reached. Aborting.");
    }
    VariableDataRegistry::Identifier identifier{
       .page_id = static_cast<uint32_t>(page_id), .offset = offset
    };
    offset += sizeof(size_t);
 
-   if (offset == buffer::SILO_PAGE_SIZE) {
+   if (offset == buffer::RHYDB_PAGE_SIZE) {
       variable_data_pages.emplace_back();
       offset = 0;
    }
 
    std::string_view remaining_data = data;
    while (true) {
-      const size_t space_for_next_data_piece = buffer::SILO_PAGE_SIZE - offset;
-      SILO_ASSERT(space_for_next_data_piece > 0);
+      const size_t space_for_next_data_piece = buffer::RHYDB_PAGE_SIZE - offset;
+      RHYDB_ASSERT(space_for_next_data_piece > 0);
       if (space_for_next_data_piece >= remaining_data.length()) {
          std::memcpy(
             variable_data_pages.back().buffer + offset,
@@ -56,7 +56,7 @@ VariableDataRegistry::DataList getDataFromPage(
    size_t offset,
    size_t length
 ) {
-   const size_t length_on_page = std::min(length, buffer::SILO_PAGE_SIZE - offset);
+   const size_t length_on_page = std::min(length, buffer::RHYDB_PAGE_SIZE - offset);
    const char* start_pointer_on_page = reinterpret_cast<char*>(page.buffer + offset);
    const std::string_view data_on_page{start_pointer_on_page, length_on_page};
    return VariableDataRegistry::DataList{.data = data_on_page, .continuation = nullptr};

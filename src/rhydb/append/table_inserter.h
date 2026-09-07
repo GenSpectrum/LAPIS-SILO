@@ -112,6 +112,26 @@ class TableInserter {
    [[nodiscard]] Commit commit();
 };
 
+/// Feeds NDJSON lines into a TableInserter. It keeps the field order sniffed from the very first
+/// line and the running line count across calls, so a stream that arrives in several chunks (e.g.
+/// one query result batch at a time) is inserted exactly as one continuous NDJSON stream would be.
+/// Throws AppendException for a line that cannot be parsed or inserted.
+class NdjsonInsertStream {
+   TableInserter* table_inserter;
+   std::vector<TableInserter::SniffedField> field_order;
+   bool field_order_sniffed = false;
+   size_t line_count = 0;
+
+  public:
+   explicit NdjsonInsertStream(TableInserter& table_inserter)
+       : table_inserter(&table_inserter) {}
+
+   /// Inserts every line that `input_data` yields.
+   void insertAll(NdjsonLineReader& input_data);
+
+   [[nodiscard]] size_t lineCount() const { return line_count; }
+};
+
 TableInserter::Commit appendDataToTable(
    std::shared_ptr<rhydb::storage::Table> table,
    NdjsonLineReader& input_data,

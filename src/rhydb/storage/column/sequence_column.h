@@ -133,7 +133,7 @@ class SequenceColumn {
    }
 
    [[nodiscard]] SymbolType::Symbol getLocalReferencePosition(size_t position) const {
-      SILO_ASSERT(position < metadata->reference_sequence.size());
+      RHYDB_ASSERT(position < metadata->reference_sequence.size());
       return SymbolType::charToSymbol(local_reference_sequence_string.at(position)).value();
    }
 

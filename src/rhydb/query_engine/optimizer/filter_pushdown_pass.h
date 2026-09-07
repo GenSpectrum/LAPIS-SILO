@@ -22,6 +22,7 @@ template <typename SymbolType>
 class UnresolvedInsertionsNode;
 class UnresolvedPhyloSubtreeNode;
 class UnresolvedMostRecentCommonAncestorNode;
+class TransitiveClosureNode;
 }  // namespace rhydb::query_engine::operators
 
 namespace rhydb::query_engine::optimizer {
@@ -39,8 +40,8 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    void addFilter(std::unique_ptr<scalar_expressions::ScalarExpression> filter);
 
   public:
-   /// Visits `node`, then wraps any filters it left pending into a FilterNode above it. This is what
-   /// makes "break pushdown" the default.
+   /// Visits `node`, then wraps any filters it left pending into a FilterNode above it. This is
+   /// what makes "break pushdown" the default.
    void propagateToNode(operators::QueryNodePtr& node);
 
    // Transparent: push filters down into the child (row set and referenced columns unchanged).
@@ -55,6 +56,7 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    operators::QueryNodePtr operator()(operators::MapNode& node);
    operators::QueryNodePtr operator()(operators::UnionAllNode& node);
    operators::QueryNodePtr operator()(operators::SchemaNode& node);
+   operators::QueryNodePtr operator()(operators::TransitiveClosureNode& node);
 
    // Barriers: push filters inside their own child subtree down with a fresh pass; filters from
    // above are retained by `propagateToNode`.

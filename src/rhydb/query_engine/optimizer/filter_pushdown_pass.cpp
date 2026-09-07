@@ -19,6 +19,7 @@
 #include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/schema_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
+#include "rhydb/query_engine/operators/transitive_closure_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
 #include "rhydb/query_engine/operators/unresolved_insertions_node.h"
 #include "rhydb/query_engine/operators/unresolved_most_recent_common_ancestor_node.h"
@@ -157,7 +158,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::SchemaNode& no
    // schema() reports a child's output schema; it is a result-producing source with no
    // place to push a predicate into. A filter() applied to its output therefore cannot be
    // realized -> reject the query.
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       current_filters.empty(),
       "filter() cannot be applied to the output of schema(); schema() is a source operator "
       "and its result cannot be filtered. Apply filter() before schema() instead."
@@ -167,6 +168,23 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::SchemaNode& no
    // NodeResolutionPass requires this: it expects a bare table scan beneath
    // mutations()/insertions(). A separate instance is used so the filters from above schema()
    // cannot leak into the child.
+   FilterPushdownPass child_pass;
+   child_pass.propagateToNode(node.child);
+   return nullptr;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr FilterPushdownPass::operator()(operators::TransitiveClosureNode& node) {
+   // transitiveClosure() re-materializes its child into a fresh from/to relation; it is a
+   // source operator with no place to push a predicate into. A filter() applied to its output
+   // therefore cannot be realized -> reject the query.
+   CHECK_RHYDB_QUERY(
+      current_filters.empty(),
+      "filter() cannot be applied to the output of transitiveClosure(); transitiveClosure() is "
+      "a source operator and its result cannot be filtered. Apply filter() to its input instead."
+   );
+   // Push filters down within the child subtree using a fresh pass so nothing leaks across the
+   // materialization boundary (e.g. `relation.filter(...).transitiveClosure(...)`).
    FilterPushdownPass child_pass;
    child_pass.propagateToNode(node.child);
    return nullptr;

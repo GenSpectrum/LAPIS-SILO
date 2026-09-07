@@ -38,10 +38,10 @@ class RowLayout {
 
    /// Appends a chunk. `chunk_size` must be non-empty, see the class invariant.
    void appendChunk(uint32_t chunk_size) {
-      SILO_ASSERT_GT(chunk_size, 0U);
-      SILO_ASSERT_LE(chunk_size, static_cast<uint32_t>(COLUMN_CHUNK_SIZE));
+      RHYDB_ASSERT_GT(chunk_size, 0U);
+      RHYDB_ASSERT_LE(chunk_size, static_cast<uint32_t>(COLUMN_CHUNK_SIZE));
       // TODO(#1329) increase row-limit
-      SILO_ASSERT_LT(chunk_sizes.size(), static_cast<size_t>(UINT16_MAX));
+      RHYDB_ASSERT_LT(chunk_sizes.size(), static_cast<size_t>(UINT16_MAX));
       chunk_sizes.push_back(chunk_size);
       num_rows += chunk_size;
    }
@@ -93,7 +93,7 @@ class RowLayout {
       RowId operator*() const { return RowId{.chunk_id = chunk_id, .row_in_chunk = row_in_chunk}; }
 
       Iterator& operator++() {
-         SILO_ASSERT_LT(chunk_id, chunk_sizes->size());
+         RHYDB_ASSERT_LT(chunk_id, chunk_sizes->size());
          if (row_in_chunk == UINT16_MAX || row_in_chunk == chunk_sizes->at(chunk_id) - 1) {
             ++chunk_id;
             row_in_chunk = 0;

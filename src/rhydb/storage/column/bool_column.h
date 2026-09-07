@@ -60,7 +60,7 @@ class BoolColumn {
    }
 
    [[nodiscard]] bool getValue(RowId row_id) const {
-      SILO_ASSERT(!null_bitmap.contains(row_id.toGlobal()));
+      RHYDB_ASSERT(!null_bitmap.contains(row_id.toGlobal()));
       return true_bitmap.contains(row_id.toGlobal());
    }
 

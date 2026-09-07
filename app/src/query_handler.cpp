@@ -2,6 +2,7 @@
 
 #include <string>
 #include <utility>
+#include <variant>
 
 #include <Poco/Net/HTTPResponse.h>
 #include <Poco/Net/HTTPServerRequest.h>
@@ -9,6 +10,7 @@
 #include <Poco/StreamCopier.h>
 #include <spdlog/spdlog.h>
 
+#include <rhydb/query_engine/command/write_command.h>
 #include <rhydb/query_engine/exec_node/arrow_ipc_sink.h>
 #include <rhydb/query_engine/exec_node/ndjson_sink.h>
 #include <rhydb/query_engine/illegal_query_exception.h>
@@ -55,8 +57,21 @@ void QueryHandler::post(
    SPDLOG_INFO("Request Id [{}] - received query: {}", request_id, query_string);
 
    try {
-      auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
-         query_string, database->tables, query_options, request_id
+      auto parsed_request =
+         rhydb::query_engine::command::parseRequest(query_string, database->tables);
+
+      // The read query endpoint must not mutate the database. A write statement (e.g. `insertInto`)
+      // parses to a WriteCommand and has to go through the dedicated `POST /admin/query` endpoint.
+      auto* query_node = std::get_if<rhydb::query_engine::operators::QueryNodePtr>(&parsed_request);
+      if (query_node == nullptr) {
+         throw BadRequest(
+            "this query writes to the database; use the 'POST /admin/query' endpoint for write "
+            "statements"
+         );
+      }
+
+      auto query_plan = rhydb::query_engine::Planner::planQuery(
+         std::move(*query_node), database->tables, query_options, request_id
       );
 
       response.set("data-version", database->getDataVersionTimestamp().value);

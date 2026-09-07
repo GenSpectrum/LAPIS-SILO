@@ -110,7 +110,7 @@ TEST(
    auto database = std::make_shared<rhydb_app::ActiveDatabase>();
    ON_CALL(*wrapped_handler_mock, handleRequest).WillByDefault([&]() {
       database->getActiveDatabase();
-      SILO_UNREACHABLE();
+      RHYDB_UNREACHABLE();
    });
 
    auto runtime_config = getRuntimeConfigThatEndsInXMinutes(std::chrono::minutes{5});
@@ -145,7 +145,7 @@ TEST(
    auto database = std::make_shared<rhydb_app::ActiveDatabase>();
    ON_CALL(*wrapped_handler_mock, handleRequest).WillByDefault([&]() {
       database->getActiveDatabase();
-      SILO_UNREACHABLE();
+      RHYDB_UNREACHABLE();
    });
 
    auto runtime_config = getRuntimeConfigThatEndsInXMinutes(std::chrono::minutes{-4});

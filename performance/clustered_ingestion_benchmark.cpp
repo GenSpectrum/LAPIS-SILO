@@ -155,7 +155,7 @@ struct ScenarioResult {
 
 void run() {
    changeCwdToTestFolder();
-   SILO_ASSERT(arrow::compute::Initialize().ok());
+   RHYDB_ASSERT(arrow::compute::Initialize().ok());
 
    const std::string reference = readReferenceFromFile();
    SPDLOG_INFO("Read reference sequence of length {}", reference.size());

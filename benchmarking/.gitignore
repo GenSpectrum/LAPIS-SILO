@@ -8,6 +8,5 @@ output/
 sorted_output/
 logs/
 
-.silo.pid
-.silo.stopped
-
+.rhydb.pid
+.rhydb.stopped

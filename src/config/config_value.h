@@ -29,7 +29,7 @@ constexpr std::string_view configValueTypeToString(ConfigValueType type) {
       case ConfigValueType::LIST:
          return "list";
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 class ConfigValue {
@@ -58,7 +58,7 @@ class ConfigValue {
 
    static ConfigValue fromPath(const std::filesystem::path& value) {
       ConfigValue result{value};
-      SILO_ASSERT(get_if<std::filesystem::path>(&result.value) != nullptr);
+      RHYDB_ASSERT(get_if<std::filesystem::path>(&result.value) != nullptr);
       return result;
    }
 

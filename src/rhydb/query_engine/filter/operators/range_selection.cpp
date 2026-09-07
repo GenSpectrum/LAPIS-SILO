@@ -55,7 +55,7 @@ CopyOnWriteBitmap RangeSelection::evaluate() const {
    EVOBENCH_SCOPE("RangeSelection", "evaluate");
    roaring::Roaring result_bitmap;
    for (const auto& [start, end] : ranges) {
-      SILO_ASSERT(
+      RHYDB_ASSERT(
          (end.chunk_id < row_layout.numChunks() &&
           end.row_in_chunk < row_layout.chunkSize(end.chunk_id)) ||
          (end.chunk_id == row_layout.numChunks() && end.row_in_chunk == 0)

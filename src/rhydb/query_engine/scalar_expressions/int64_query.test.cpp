@@ -101,7 +101,8 @@ const QueryTestScenario INT64_EQUALS_NULL_REJECTED_SCENARIO = {
    .name = "INT64_EQUALS_NULL_REJECTED_SCENARIO",
    .query = "default.filter(int64_value = null)",
    .expected_error_message =
-      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
+      "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
+      "a "
       "column reference, or a scalar function call at 1:30"
 };
 
@@ -123,8 +124,8 @@ const QueryTestScenario INT64_EQUALS_FUNCTION_CALL_VALUE_SCENARIO = {
    .name = "INT64_EQUALS_FUNCTION_CALL_VALUE_SCENARIO",
    .query = "default.filter(int64_value = primaryKey.at(1))",
    .expected_error_message =
-      "An Equals expression can only be compiled to a filter when exactly one side is a column "
-      "reference and the other a literal value"
+      "Unsupported value type in comparison with column 'int64_value': the value must be an int, "
+      "float, date, string, or bool literal"
 };
 
 }  // namespace

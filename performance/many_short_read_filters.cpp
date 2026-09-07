@@ -107,7 +107,7 @@ void executeAllQueries(
 
 void run() {
    changeCwdToTestFolder();
-   SILO_ASSERT(arrow::compute::Initialize().ok());
+   RHYDB_ASSERT(arrow::compute::Initialize().ok());
    SPDLOG_INFO("Building database for benchmark:");
 
    auto [database, reference_length] = setupTestDatabase();

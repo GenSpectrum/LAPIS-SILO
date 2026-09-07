@@ -41,6 +41,7 @@ enum class NodeKind : uint8_t {
    JOIN,
    SCHEMA,
    BITMAP_AGGREGATION,
+   TRANSITIVE_CLOSURE,
 };
 
 class QueryNode {

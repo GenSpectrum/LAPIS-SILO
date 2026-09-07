@@ -50,7 +50,7 @@ std::optional<const roaring::Roaring*> LineageFilter::getBitmapForValue(
 
    const auto value_id_opt = lineage_column.getValueId(lineage.value());
 
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       value_id_opt.has_value(),
       "The lineage '{}' is not a valid lineage for column '{}'.",
       lineage.value(),
@@ -76,12 +76,12 @@ std::unique_ptr<ScalarExpression> LineageFilter::rewrite(
 
 std::unique_ptr<filter::operators::Operator> LineageFilter::compile(const storage::Table& table
 ) const {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.schema->getColumn(column.name).has_value(),
       "The database does not contain the column '{}'",
       column.name
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.columns.dictionary_encoded_columns.contains(column.name) &&
          table.columns.dictionary_encoded_columns.at(column.name).getLineageIndex().has_value(),
       "The database does not contain a lineage index for the column '{}'",

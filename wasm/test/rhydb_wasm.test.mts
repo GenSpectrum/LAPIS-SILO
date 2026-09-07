@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import createRhyDbModule from "../dist/rhydb_wasm.js";
+import createRhydbModule from "../dist/rhydb_wasm.js";
 import { type MainModule } from "../dist/rhydb_wasm.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -105,7 +105,7 @@ referenceGenomeFilename: "reference_genomes.json"
 }
 
 test("preprocess, query, save, and load a database end-to-end", async () => {
-    const module = await createRhyDbModule();
+    const module = await createRhydbModule();
 
     writeFixture(module, "/input");
     module.FS.chdir("/input");
@@ -141,7 +141,7 @@ test("preprocess, query, save, and load a database end-to-end", async () => {
 });
 
 test("save/query/info reject an unknown database handle", async () => {
-    const module = await createRhyDbModule();
+    const module = await createRhydbModule();
 
     const unknownHandle = 999999;
     for (const call of [
@@ -150,12 +150,12 @@ test("save/query/info reject an unknown database handle", async () => {
         () => module.info(unknownHandle),
     ]) {
         const message = expectThrows(module, call, "call with unknown handle");
-        assert.match(message, /Unknown SILO database handle/);
+        assert.match(message, /Unknown RhyDB database handle/);
     }
 });
 
-test("load rejects a directory without a compatible SILO state", async () => {
-    const module = await createRhyDbModule();
+test("load rejects a directory without a compatible RhyDB state", async () => {
+    const module = await createRhydbModule();
 
     mkdirp(module, "/empty-state");
     const message = expectThrows(
@@ -163,11 +163,11 @@ test("load rejects a directory without a compatible SILO state", async () => {
         () => module.load("/empty-state"),
         "load of an empty directory"
     );
-    assert.match(message, /No compatible SILO state/);
+    assert.match(message, /No compatible RhyDB state/);
 });
 
 test("dispose invalidates the handle and is idempotent", async () => {
-    const module = await createRhyDbModule();
+    const module = await createRhydbModule();
 
     writeFixture(module, "/dispose-input");
     module.FS.chdir("/dispose-input");
@@ -184,7 +184,7 @@ test("dispose invalidates the handle and is idempotent", async () => {
         () => module.info(handle),
         "info on a disposed handle"
     );
-    assert.match(message, /Unknown SILO database handle/);
+    assert.match(message, /Unknown RhyDB database handle/);
 
     // Disposing an already-disposed (or never-known) handle is a no-op.
     assert.doesNotThrow(() => module.dispose(handle));
@@ -192,7 +192,7 @@ test("dispose invalidates the handle and is idempotent", async () => {
 });
 
 test("preprocess reads a .zst-compressed NDJSON input", async () => {
-    const module = await createRhyDbModule();
+    const module = await createRhydbModule();
 
     const inputDir = "/zst-input";
     mkdirp(module, inputDir);

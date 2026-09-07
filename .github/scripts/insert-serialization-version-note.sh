@@ -59,7 +59,7 @@ awk -v ver="$ESCAPED_VERSION" '
           print ""
           print "### ⚠ Serialization Version Changed"
           print ""
-          print "The serialization version changed in this release. Databases serialized with previous SILO versions are incompatible and need to be re-preprocessed."
+          print "The serialization version changed in this release. Databases serialized with previous RhyDB versions are incompatible and need to be re-preprocessed."
         }
       }
     }

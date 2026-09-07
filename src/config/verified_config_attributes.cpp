@@ -19,7 +19,7 @@ std::optional<T> getValue(
    if (value_it != config_values.end()) {
       const ConfigValue& value = value_it->second;
       if (value.getValueType() != ExpectedType) {
-         SILO_PANIC(
+         RHYDB_PANIC(
             "Called getValue with type {} on a ConfigKeyPath ('{}') that belongs to a value of "
             "another type ({}).",
             configValueTypeToString(ExpectedType),
@@ -71,7 +71,7 @@ std::optional<bool> VerifiedConfigAttributes::getBool(const ConfigKeyPath& confi
    if (value_it != config_values.end()) {
       const ConfigValue& value = value_it->second;
       if (value.getValueType() != ConfigValueType::BOOL) {
-         SILO_PANIC(
+         RHYDB_PANIC(
             "Called getBool on a ConfigKeyPath ('{}') that belongs to a value of another "
             "type ({}).",
             YamlFile::configKeyPathToString(config_key_path),

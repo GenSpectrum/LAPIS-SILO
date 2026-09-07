@@ -83,7 +83,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    }
 
    setupLogger();
-   SILO_ASSERT(arrow::compute::Initialize().ok());
+   RHYDB_ASSERT(arrow::compute::Initialize().ok());
 
    ExecutionMode mode;
    if (args.empty()) {
@@ -111,10 +111,10 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
       return 1;
    }
 
-   SPDLOG_INFO("Starting SILO (version {})", rhydb::RELEASE_VERSION);
+   SPDLOG_INFO("Starting RhyDB (version {})", rhydb::RELEASE_VERSION);
 
    std::vector<std::string> env_allow_list;
-   env_allow_list.emplace_back("SILO_PANIC");
+   env_allow_list.emplace_back("RHYDB_PANIC");
    for (auto& field :
         rhydb::config::PreprocessingConfig::getConfigSpecification().attribute_specifications) {
       env_allow_list.emplace_back(
@@ -174,7 +174,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
             rhydb::config::getConfig<rhydb::config::RuntimeConfig>(args, env_allow_list)
          );
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 }  // namespace

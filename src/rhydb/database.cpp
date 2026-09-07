@@ -8,22 +8,25 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <variant>
 
 #include <arrow/api.h>
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/aa_symbols.h"
 #include "rhydb/common/data_version.h"
 #include "rhydb/common/nucleotide_symbols.h"
 #include "rhydb/common/panic.h"
-#include "rhydb/common/silo_directory.h"
+#include "rhydb/common/rhydb_directory.h"
 #include "rhydb/common/version.h"
 #include "rhydb/database_info.h"
 #include "rhydb/persistence/exception.h"
+#include "rhydb/query_engine/command/write_command.h"
 #include "rhydb/query_engine/exec_node/arrow_ipc_sink.h"
 #include "rhydb/query_engine/exec_node/ndjson_sink.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
@@ -95,7 +98,7 @@ void Database::appendData(
    append::ClusteredBufferingOptions clustering_options
 ) {
    rhydb::append::NdjsonLineReader input_data{input_stream};
-   SILO_ASSERT(tables.contains(table_name));
+   RHYDB_ASSERT(tables.contains(table_name));
    auto& table = tables.at(table_name);
    rhydb::append::appendDataToTable(table, input_data, std::move(clustering_options));
    updateDataVersion();
@@ -244,7 +247,7 @@ std::string Database::getAminoAcidReferenceSequence(
       table_schema->getColumnMetadata<storage::column::SequenceColumn<AminoAcid>>(sequence_name);
    if (maybe_sequence_column_metadata == std::nullopt) {
       SPDLOG_ERROR(
-         "The database table {} does not contain the nucleotide sequence column {}",
+         "The database table {} does not contain the amino acid sequence column {}",
          table_name,
          sequence_name
       );
@@ -415,17 +418,17 @@ DataVersion loadDataVersion(const std::filesystem::path& file_path) {
 std::optional<Database> Database::loadDatabaseStateFromPath(
    const std::filesystem::path& save_directory
 ) {
-   const RhyDBDirectory silo_directory{save_directory};
-   auto silo_data_source = silo_directory.getMostRecentDataDirectory();
-   if (silo_data_source.has_value()) {
-      return loadDatabaseState(silo_data_source.value());
+   const RhyDBDirectory rhydb_directory{save_directory};
+   auto rhydb_data_source = rhydb_directory.getMostRecentDataDirectory();
+   if (rhydb_data_source.has_value()) {
+      return loadDatabaseState(rhydb_data_source.value());
    }
    return std::nullopt;
 }
 
-Database Database::loadDatabaseState(const rhydb::RhyDBDataSource& silo_data_source) {
-   SPDLOG_INFO("Loading database from data source: {}", silo_data_source.toDebugString());
-   const auto save_directory = silo_data_source.path;
+Database Database::loadDatabaseState(const RhyDBDataSource& rhydb_data_source) {
+   SPDLOG_INFO("Loading database from data source: {}", rhydb_data_source.toDebugString());
+   const auto save_directory = rhydb_data_source.path;
 
    const auto database_schema_path = save_directory / DATABASE_SCHEMA_FILENAME;
    auto schema = schema::DatabaseSchema::loadFromFile(database_schema_path);
@@ -453,7 +456,7 @@ DataVersion::Timestamp Database::getDataVersionTimestamp() const {
 }
 
 void Database::updateDataVersion() {
-   data_version_ = DataVersion::mineDataVersion();
+   data_version_ = DataVersion::mineDataVersionAfter(data_version_);
    SPDLOG_DEBUG("Data version was set to {}", data_version_.toString());
 }
 
@@ -473,6 +476,21 @@ std::string Database::executeQueryAsArrowIpc(const std::string& query_string) co
    }
    query_plan.executeAndWrite(output_sink.ValueUnsafe(), DEFAULT_TIMEOUT_SECONDS);
    return output_stream.str();
+}
+
+nlohmann::json Database::executeWrite(
+   const std::string& query_string,
+   const config::QueryOptions& query_options,
+   std::string_view request_id
+) {
+   const auto request = query_engine::command::parseRequest(query_string, tables);
+   const auto* command = std::get_if<query_engine::command::WriteCommandPtr>(&request);
+   if (command == nullptr) {
+      throw query_engine::IllegalQueryException(
+         "expected a write statement, e.g. `<query>.insertInto(<table>)`"
+      );
+   }
+   return (*command)->execute(*this, query_options, request_id);
 }
 
 std::string Database::getTablesAsArrowIpc() const {

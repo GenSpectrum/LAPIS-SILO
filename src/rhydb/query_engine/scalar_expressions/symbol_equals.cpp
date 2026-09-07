@@ -71,7 +71,7 @@ std::unique_ptr<ScalarExpression> SymbolEquals<SymbolType>::rewrite(
    const auto& sequence_column =
       table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
 
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       position_idx < sequence_column.metadata->reference_sequence.size(),
       "{} position is out of bounds {} > {}",
       getFilterName(),

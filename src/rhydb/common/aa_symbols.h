@@ -176,7 +176,7 @@ class AminoAcid {
          case Symbol::STOP:
             return '*';
       }
-      SILO_UNREACHABLE();
+      RHYDB_UNREACHABLE();
    }
 
    static constexpr std::optional<AminoAcid::Symbol> charToSymbolSwitch(char character) {

@@ -105,24 +105,24 @@ const QueryTestScenario INT_EQUALS_NULL_REJECTED_SCENARIO = {
    .name = "INT_EQUALS_NULL_REJECTED_SCENARIO",
    .query = "default.filter(int_value = null)",
    .expected_error_message =
-      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
-      "column reference, or a scalar function call at 1:28"
+      "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
+      "a column reference, or a scalar function call at 1:28"
 };
 
 const QueryTestScenario NEGATED_INT_EQUALS_NULL_REJECTED_SCENARIO = {
    .name = "NEGATED_INT_EQUALS_NULL_REJECTED_SCENARIO",
    .query = "default.filter(!(int_value = null))",
    .expected_error_message =
-      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
-      "column reference, or a scalar function call at 1:30"
+      "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
+      "a column reference, or a scalar function call at 1:30"
 };
 
 const QueryTestScenario INT_NOT_EQUALS_NULL_REJECTED_SCENARIO = {
    .name = "INT_NOT_EQUALS_NULL_REJECTED_SCENARIO",
    .query = "default.filter(int_value <> null)",
    .expected_error_message =
-      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
-      "column reference, or a scalar function call at 1:29"
+      "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
+      "a column reference, or a scalar function call at 1:29"
 };
 
 const QueryTestScenario INT_EQUALS_WITH_OVERFLOW = {

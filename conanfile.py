@@ -2,7 +2,7 @@ from conan import ConanFile
 from conan.tools.cmake import CMakeDeps
 
 
-class SiloRecipe(ConanFile):
+class RhyDbRecipe(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
 
     # The `wasm` option selects the Emscripten/WebAssembly build variant. It

@@ -1,0 +1,5 @@
+#!/bin/bash
+set -meuo pipefail
+
+echo "$$" > .rhydb.pid
+exec "$RHYDB" api --data-directory "$OUTPUT_DIR"

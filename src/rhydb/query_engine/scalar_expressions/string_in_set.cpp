@@ -10,7 +10,7 @@
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/filter/operators/string_in_set.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
-#include "rhydb/query_engine/scalar_expressions/equals.h"
+#include "rhydb/query_engine/scalar_expressions/comparison.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/query_engine/scalar_expressions/or.h"
@@ -41,12 +41,12 @@ std::unique_ptr<ScalarExpression> StringInSet::rewrite(
    const storage::Table& table,
    AmbiguityMode /*mode*/
 ) const {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.schema->getColumn(column.name).has_value(),
       "The database does not contain the column '{}'",
       column.name
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.columns.string_columns.contains(column.name) ||
          table.columns.dictionary_encoded_columns.contains(column.name),
       "The column '{}' is not of type string",
@@ -58,13 +58,15 @@ std::unique_ptr<ScalarExpression> StringInSet::rewrite(
       return std::make_unique<StringInSet>(column, values);
    }
 
-   // We want to improve DictionaryEncodedColumn by using our Indexes directly -> one Equals per
-   // value
+   // We want to improve DictionaryEncodedColumn by using our Indexes directly -> one equality
+   // comparison per value, each of which compiles to a single dictionary index lookup
    std::vector<std::unique_ptr<ScalarExpression>> string_equal_expressions;
    string_equal_expressions.reserve(values.size());
    for (const auto& value : values) {
-      string_equal_expressions.emplace_back(std::make_unique<Equals>(
-         std::make_unique<FieldRef>(column), std::make_unique<StringLiteral>(value)
+      string_equal_expressions.emplace_back(std::make_unique<Comparison>(
+         std::make_unique<FieldRef>(column),
+         std::make_unique<StringLiteral>(value),
+         filter::operators::Comparator::EQUALS
       ));
    }
    return std::make_unique<Or>(std::move(string_equal_expressions));
@@ -72,7 +74,7 @@ std::unique_ptr<ScalarExpression> StringInSet::rewrite(
 
 std::unique_ptr<filter::operators::Operator> StringInSet::compile(const storage::Table& table
 ) const {
-   SILO_ASSERT(table.columns.string_columns.contains(column.name));
+   RHYDB_ASSERT(table.columns.string_columns.contains(column.name));
    const auto& string_column = table.columns.string_columns.at(column.name);
    return std::make_unique<filter::operators::Selection>(
       std::make_unique<filter::operators::StringInSet<StringColumn>>(

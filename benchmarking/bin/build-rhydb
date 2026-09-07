@@ -18,6 +18,6 @@ case "$BUILD" in
         exit 1
 esac
 
-# `ln` works, too, currently (the SILO build does not overwrite the
+# `ln` works, too, currently (the RhyDB build does not overwrite the
 # original file in place), but it's dicey, so better use 'cp'
 cp build/"$BUILD"/rhydb{,_"$COMMIT_ID"}

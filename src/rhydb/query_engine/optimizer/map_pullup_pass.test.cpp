@@ -17,7 +17,7 @@
 #include "rhydb/query_engine/operators/table_scan_node.h"
 #include "rhydb/query_engine/order_by_field.h"
 #include "rhydb/query_engine/scalar_expressions/at.h"
-#include "rhydb/query_engine/scalar_expressions/equals.h"
+#include "rhydb/query_engine/scalar_expressions/comparison.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/query_engine/scalar_expressions/zstd_decompress_scalar.h"
@@ -29,6 +29,7 @@ using rhydb::query_engine::optimizer::MapPullupPass;
 namespace operators = rhydb::query_engine::operators;
 namespace scalar_expressions = rhydb::query_engine::scalar_expressions;
 
+using rhydb::query_engine::filter::operators::Comparator;
 using rhydb::schema::ColumnIdentifier;
 using rhydb::schema::ColumnType;
 
@@ -254,8 +255,8 @@ TEST(MapPullupPass, mergesAtOverDecompressIntoOneMap) {
 }
 
 // --- The merge safely declines when an upper expression references a lower-produced column through
-// a construct it cannot rewrite (here an Equals predicate): inlining would be needed to avoid a
-// dangling reference, and since the merge cannot inline into an Equals, both maps are left in
+// a construct it cannot rewrite (here a Comparison predicate): inlining would be needed to avoid a
+// dangling reference, and since the merge cannot inline into a Comparison, both maps are left in
 // place. ---
 
 TEST(MapPullupPass, doesNotMergeWhenUpperReferencesProducedColumnUnsubstitutably) {
@@ -275,17 +276,18 @@ TEST(MapPullupPass, doesNotMergeWhenUpperReferencesProducedColumnUnsubstitutably
       std::move(lower_assignments)
    );
 
-   // `flag := (seq = "AAAA")` reads the lower-produced `seq` through an Equals the merge cannot
+   // `flag := (seq = "AAAA")` reads the lower-produced `seq` through a Comparison the merge cannot
    // rewrite, so it must decline rather than leave a reference to a column the merged map no longer
    // produces.
    std::vector<operators::MapNode::Assignment> upper_assignments;
    upper_assignments.push_back(
       {.output_column = {.name = "flag", .type = ColumnType::BOOL},
-       .expression = std::make_unique<scalar_expressions::Equals>(
+       .expression = std::make_unique<scalar_expressions::Comparison>(
           std::make_unique<scalar_expressions::FieldRef>(
              ColumnIdentifier{.name = "seq", .type = ColumnType::STRING}
           ),
-          std::make_unique<scalar_expressions::StringLiteral>("AAAA")
+          std::make_unique<scalar_expressions::StringLiteral>("AAAA"),
+          Comparator::EQUALS
        )}
    );
    auto upper_map =

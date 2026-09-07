@@ -196,7 +196,7 @@ class ColumnValueExtractor {
          return "string";
       } else {
          static_assert(!std::is_same_v<T, T>, "Unhandled value_type in valueTypeName");
-         SILO_UNREACHABLE();
+         RHYDB_UNREACHABLE();
       }
    }
 

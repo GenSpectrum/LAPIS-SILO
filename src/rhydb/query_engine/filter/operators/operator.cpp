@@ -63,7 +63,7 @@ std::unique_ptr<Operator> Operator::negate(std::unique_ptr<Operator>&& some_oper
          return BitmapProducer::negate(std::unique_ptr<BitmapProducer>(bitmap_producer));
       }
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 }  // namespace rhydb::query_engine::filter::operators

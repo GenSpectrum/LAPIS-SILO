@@ -20,7 +20,7 @@ class BlockedRange {
    BlockedRange(size_t begin, size_t end)
        : begin_(begin),
          end_(end) {
-      SILO_ASSERT_LE(begin, end);
+      RHYDB_ASSERT_LE(begin, end);
    }
    [[nodiscard]] size_t begin() const { return begin_; }
    [[nodiscard]] size_t end() const { return end_; }

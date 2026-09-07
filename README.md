@@ -2,8 +2,8 @@
 
 High-performance analytical database for sequence alignment data
 
-RhyDB was formerly named SILO. The rename is still in progress: environment variables still use the `SILO_` prefix, and
-the repository is still `GenSpectrum/LAPIS-SILO`. Documentation refers to those by their actual names.
+RhyDB was formerly named SILO. The rename is still in progress: the repository is still `GenSpectrum/LAPIS-SILO`.
+Documentation refers to those by their actual names.
 
 For information on how to build, test, and contribute to RhyDB, see [Contributing](documentation/developer/contributing.md).
 
@@ -76,8 +76,8 @@ snake_case (`database_config.yaml`, `preprocessing_config.yaml`, `runtime_config
 overridden using the options `--database-config=X`, `--preprocessing-config=X`, and `--runtime-config=X`.
 
 Preprocessing and Runtime configurations contain default values for all fields and are thus only optional. Their
-parameters can also be provided as command-line arguments in snake_case and as environment variables prefixed with SILO_
-in capital SNAKE_CASE. (e.g. SILO_INPUT_DIRECTORY).
+parameters can also be provided as command-line arguments in snake_case and as environment variables prefixed with RHYDB_
+in capital SNAKE_CASE. (e.g. RHYDB_INPUT_DIRECTORY).
 
 The precendence is `CLI argument > Environment Variable > Configuration File > Default Value`
 

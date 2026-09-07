@@ -53,7 +53,7 @@ void ZstdDecompressor::decompress(
          fmt::format("Error '{}' in dependency when decompressing using zstd", error_name)
       );
    }
-   SILO_ASSERT(uncompressed_size == size_or_error_code);
+   RHYDB_ASSERT(uncompressed_size == size_or_error_code);
 }
 
 }  // namespace rhydb

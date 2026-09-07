@@ -30,3 +30,15 @@ TEST(DataVersion, shouldConstructWithDefaultVersion) {
       EXPECT_EQ(timestamp->value, "");
    }
 }
+
+// Data versions have a resolution of one second, but each update has to produce a version of its
+// own: it names the directory the state is saved under, and readers use it to tell data apart.
+TEST(DataVersion, shouldMineAVersionThatIsNewerThanThePreviousOne) {
+   auto previous = DataVersion::mineDataVersion();
+   for (size_t update = 0; update < 5; ++update) {
+      const auto next = DataVersion::mineDataVersionAfter(previous);
+      EXPECT_GT(next, previous);
+      EXPECT_EQ(next.getTimestamp().value.size(), 10UL);
+      previous = next;
+   }
+}

@@ -59,12 +59,12 @@ using filter::operators::RangeSelection;
 using filter::operators::Selection;
 
 std::unique_ptr<Operator> DateBetween::compile(const storage::Table& table) const {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.schema->getColumn(column.name).has_value(),
       "The database does not contain the column '{}'",
       column.name
    );
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.columns.date32_columns.contains(column.name),
       "The column '{}' is not of type date",
       column.name
@@ -102,7 +102,7 @@ std::vector<RangeSelection::Range> DateBetween::computeRangesOfSortedColumn(
    // binary search within every chunk's value buffer and emit one range per chunk, shifted by the
    // chunk's global row offset.
    const auto& value_buffer = date_column.getValueBuffer();
-   SILO_ASSERT(value_buffer.numChunks() <= UINT16_MAX);
+   RHYDB_ASSERT(value_buffer.numChunks() <= UINT16_MAX);
    for (size_t chunk_idx = 0; chunk_idx < value_buffer.numChunks(); ++chunk_idx) {
       const auto& chunk = value_buffer.chunk(chunk_idx);
       const auto* begin = chunk.data();

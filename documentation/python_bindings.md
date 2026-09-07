@@ -25,8 +25,8 @@ The bindings depend on `pyarrow` and `pyroaring`, which are installed automatica
 ```python
 from rhydb import Database
 
-# Load a preprocessed database state from a silo-directory
-db = Database("path/to/silo-directory")
+# Load a preprocessed database state from a data directory
+db = Database("path/to/data-directory")
 
 # Run a SaneQL query; results come back as a pyarrow.Table
 table = db.query("default.filter(region = 'Europe').project({primaryKey, age})")
@@ -45,11 +45,11 @@ db.update_column("default", "age", "0", filter_expression="age = 4")
 **`Database(file_name=None)`**
 Creates an empty database, or loads an existing one when `file_name` is given.
 
-`file_name` is a **silo-directory**: the directory that holds one or more versioned database states (see [Data Directories](data_directories.md)). The most recent compatible state is loaded automatically.
+`file_name` is a **data directory**: the directory that holds one or more versioned database states (see [Data Directories](data_directories.md)). The most recent compatible state is loaded automatically.
 
 ```python
 empty = Database()                       # in-memory, no tables
-loaded = Database("path/to/silo-dir")    # loads the most recent state
+loaded = Database("path/to/rhydb-dir")    # loads the most recent state
 ```
 
 Raises `FileNotFoundError` if the path does not exist, and `RuntimeError` if no valid state can be loaded (for example, an incompatible serialization version).
@@ -57,7 +57,7 @@ Raises `FileNotFoundError` if the path does not exist, and `RuntimeError` if no 
 `Database` is also a context manager:
 
 ```python
-with Database("path/to/silo-dir") as db:
+with Database("path/to/rhydb-dir") as db:
     result = db.query("default")
 ```
 
@@ -139,7 +139,7 @@ Assigns a single `value` to `column_name` for every row matched by `filter_expre
 Scalar value columns (int32, int64, float, date, bool) and string columns (plain, indexed, and zstd-compressed) can be updated. Two kinds of string column are rejected because their auxiliary indexes have no in-place update support: columns backed by a **phylogenetic tree** (e.g. the primary key when it is a phylo field) and columns backed by a **lineage index**. Sequence columns are also rejected.
 
 ```python
-db = Database("path/to/silo-dir")
+db = Database("path/to/rhydb-dir")
 
 # Set every row's age to 0
 db.update_column("default", "age", "0")
@@ -168,8 +168,8 @@ Writes the current database state into `save_directory` as a new versioned state
 
 ```python
 db.update_column("default", "age", "0")
-db.save_checkpoint("out/silo-dir")
-reloaded = Database("out/silo-dir")
+db.save_checkpoint("out/rhydb-dir")
+reloaded = Database("out/rhydb-dir")
 ```
 
 ## Error Handling
@@ -192,7 +192,7 @@ except ValueError as e:
 ```python
 from rhydb import Database
 
-with Database("path/to/silo-dir") as db:
+with Database("path/to/rhydb-dir") as db:
     # Count the rows we are about to change
     before = len(db.get_filtered_bitmap("default", "age = 4"))
 
@@ -206,5 +206,5 @@ with Database("path/to/silo-dir") as db:
     assert cleared >= before
 
     # Persist the edited database as a new state
-    db.save_checkpoint("out/silo-dir")
+    db.save_checkpoint("out/rhydb-dir")
 ```

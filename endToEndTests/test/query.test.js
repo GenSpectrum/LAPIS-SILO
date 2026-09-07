@@ -41,7 +41,7 @@ function arrowTableToObjects(table) {
         obj[field.name] = null;
       } else if (DataType.isDate(field.type)) {
         // Arrow JS reads Date32 columns as epoch-millisecond numbers (UTC midnight);
-        // In ndjson, SILO emits date columns as YYYY-MM-DD strings, so normalize to match.
+        // In ndjson, RhyDB emits date columns as YYYY-MM-DD strings, so normalize to match.
         obj[field.name] = new Date(value).toISOString().slice(0, 10);
       } else if (typeof value === 'bigint') {
         obj[field.name] = Number(value);

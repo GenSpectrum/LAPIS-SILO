@@ -24,9 +24,9 @@ void HorizontalCoverageIndex::insertCoverage(RowId row_id, const Coverage& cover
       batch_max_end.emplace_back(0);
    }
    // For now, coverage needs to be inserted in ascending order
-   SILO_ASSERT_EQ(starts.size(), ends.size());
-   SILO_ASSERT(row_id.chunk_id == starts.size() - 1);
-   SILO_ASSERT_EQ(row_id.row_in_chunk, starts.at(row_id.chunk_id).size());
+   RHYDB_ASSERT_EQ(starts.size(), ends.size());
+   RHYDB_ASSERT(row_id.chunk_id == starts.size() - 1);
+   RHYDB_ASSERT_EQ(row_id.row_in_chunk, starts.at(row_id.chunk_id).size());
 
    starts.at(row_id.chunk_id).push_back(coverage.start);
    ends.at(row_id.chunk_id).push_back(coverage.end);
@@ -63,14 +63,14 @@ std::vector<uint64_t> HorizontalCoverageIndex::computeCoverageCardinalities(size
       for (size_t row_in_chunk = 0; row_in_chunk < chunk_starts.size(); ++row_in_chunk) {
          const uint32_t start = chunk_starts[row_in_chunk];
          const uint32_t end = chunk_ends[row_in_chunk];
-         SILO_ASSERT_LE(end, genome_length);
+         RHYDB_ASSERT_LE(end, genome_length);
          coverage_changes[start] += 1;
          coverage_changes[end] -= 1;
       }
    }
    for (const auto& [_row_id, missing_positions] : horizontal_bitmaps) {
       for (const uint32_t position_idx : missing_positions) {
-         SILO_ASSERT_LT(position_idx, genome_length);
+         RHYDB_ASSERT_LT(position_idx, genome_length);
          coverage_changes[position_idx] -= 1;
          coverage_changes[position_idx + 1] += 1;
       }
@@ -80,7 +80,7 @@ std::vector<uint64_t> HorizontalCoverageIndex::computeCoverageCardinalities(size
    uint64_t cardinality = 0;
    for (size_t position_idx = 0; position_idx < genome_length; ++position_idx) {
       cardinality += coverage_changes[position_idx];
-      SILO_ASSERT_GE(cardinality, 0UL);
+      RHYDB_ASSERT_GE(cardinality, 0UL);
       cardinalities[position_idx] = static_cast<uint32_t>(cardinality);
    }
    return cardinalities;

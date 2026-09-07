@@ -45,7 +45,7 @@ std::unique_ptr<ScalarExpression> FloatBetween::rewrite(
 
 std::unique_ptr<filter::operators::Operator> FloatBetween::compile(const storage::Table& table
 ) const {
-   CHECK_SILO_QUERY(
+   CHECK_RHYDB_QUERY(
       table.columns.float_columns.contains(column.name),
       "The database does not contain the float column '{}'",
       column.name

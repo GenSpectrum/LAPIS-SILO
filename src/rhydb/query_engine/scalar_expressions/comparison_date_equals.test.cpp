@@ -113,16 +113,16 @@ const QueryTestScenario SORTED_DATE_NULL_REJECTED = {
    .name = "SORTED_DATE_NULL_REJECTED",
    .query = createDateEqualsNullQuery("sorted_date"),
    .expected_error_message =
-      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
-      "column reference, or a scalar function call at 1:30"
+      "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
+      "a column reference, or a scalar function call at 1:30"
 };
 
 const QueryTestScenario UNSORTED_DATE_NULL_REJECTED = {
    .name = "UNSORTED_DATE_NULL_REJECTED",
    .query = createDateEqualsNullQuery("unsorted_date"),
    .expected_error_message =
-      "the value in an equality must be a literal value (int, float, string, bool, or date), a "
-      "column reference, or a scalar function call at 1:32"
+      "the right side of a comparison must be a literal value (int, float, string, bool, or date), "
+      "a column reference, or a scalar function call at 1:32"
 };
 
 const QueryTestScenario DATE_EQUALS_NO_MATCH = {
@@ -149,7 +149,8 @@ const QueryTestScenario DATE_EQUALS_WRONG_VALUE_TYPE = {
 const QueryTestScenario DATE_EQUALS_COLUMN_NOT_IN_DB = {
    .name = "DATE_EQUALS_COLUMN_NOT_IN_DB",
    .query = "default.filter(something_not_in_database = '2020-01-01'::date)",
-   .expected_error_message = "The database does not contain the column 'something_not_in_database'"
+   .expected_error_message =
+      "the left side of a comparison references unknown column 'something_not_in_database' at 1:16"
 };
 
 const QueryTestScenario DATE_EQUALS_WRONG_COLUMN_TYPE = {

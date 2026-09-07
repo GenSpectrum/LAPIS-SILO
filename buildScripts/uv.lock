@@ -498,7 +498,7 @@ wheels = [
 ]
 
 [[package]]
-name = "silo-build-tools"
+name = "rhydb-build-tools"
 version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
