@@ -42,7 +42,7 @@ class GermanStringPage {
    [[nodiscard]] bool full() const { return n() == MAX_STRINGS_PER_PAGE; }
 
    [[nodiscard]] size_t insert(const RhyDBString& rhydb_string) const {
-      SILO_ASSERT(full() == false);
+      RHYDB_ASSERT(full() == false);
       // We need to silence a false-positive warning, where the linter does not realise that
       // the placement-new in the next expression needs a writeable pointer
       // NOLINTNEXTLINE(misc-const-correctness)
@@ -53,7 +53,7 @@ class GermanStringPage {
    }
 
    [[nodiscard]] const RhyDBString& get(const Idx& row_id) const {
-      SILO_ASSERT(row_id < n());
+      RHYDB_ASSERT(row_id < n());
       uint8_t* start_of_string_struct =
          page.buffer + sizeof(Header) + (row_id * sizeof(RhyDBString));
       return *reinterpret_cast<RhyDBString*>(start_of_string_struct);

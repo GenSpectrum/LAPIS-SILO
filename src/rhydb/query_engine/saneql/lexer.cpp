@@ -32,7 +32,7 @@ char Lexer::peekNext() const {
 }
 
 char Lexer::advance() {
-   SILO_ASSERT(!isAtEnd());
+   RHYDB_ASSERT(!isAtEnd());
    const char current = input[position];
    position++;
    if (current == '\n') {
@@ -69,7 +69,7 @@ Token Lexer::makeToken(TokenType type, TokenValue value, SourceLocation loc) {
 
 Token Lexer::readString() {
    const SourceLocation start = current_location;
-   SILO_ASSERT(peek() == '\'');
+   RHYDB_ASSERT(peek() == '\'');
    advance();
 
    std::string result;
@@ -93,7 +93,7 @@ Token Lexer::readString() {
 Token Lexer::readQuotedIdentifier() {
    const SourceLocation start = current_location;
 
-   SILO_ASSERT(peek() == '"');
+   RHYDB_ASSERT(peek() == '"');
    advance();
 
    std::string result;

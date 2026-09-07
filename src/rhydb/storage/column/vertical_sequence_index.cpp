@@ -22,7 +22,7 @@ void VerticalSequenceIndex<SymbolType>::addSymbolsToPositions(
       const std::vector<std::pair<uint16_t, std::vector<uint16_t>>> ids_in_batches =
          splitIdsIntoBatches(ids_per_symbol.at(symbol));
       for (const auto& [upper_bits, lower_bits_vector] : ids_in_batches) {
-         SILO_ASSERT_GT(lower_bits_vector.size(), 0ULL);
+         RHYDB_ASSERT_GT(lower_bits_vector.size(), 0ULL);
 
          const SequenceDiffKey key{
             .position = position_idx, .v_index = upper_bits, .symbol = symbol
@@ -68,7 +68,7 @@ SymbolMap<SymbolType, uint32_t> VerticalSequenceIndex<SymbolType>::computeSymbol
 
    for (auto it = start; it != end; ++it) {
       const auto& [sequence_diff_key, sequence_diff] = *it;
-      SILO_ASSERT(sequence_diff_key.symbol != current_local_reference_symbol);
+      RHYDB_ASSERT(sequence_diff_key.symbol != current_local_reference_symbol);
       symbol_counts[sequence_diff_key.symbol] += sequence_diff.getCardinality();
       symbol_counts[current_local_reference_symbol] -= sequence_diff.getCardinality();
    }
@@ -137,7 +137,7 @@ std::optional<typename SymbolType::Symbol> VerticalSequenceIndex<SymbolType>::ad
    );
 
    const auto& roaring_array = old_reference_bitmap.roaring.high_low_container;
-   SILO_ASSERT_LT(roaring_array.size, UINT16_MAX);
+   RHYDB_ASSERT_LT(roaring_array.size, UINT16_MAX);
    auto num_containers = static_cast<uint16_t>(roaring_array.size);
    for (uint16_t container_idx = 0; container_idx < num_containers; ++container_idx) {
       const uint8_t typecode = roaring_array.typecodes[container_idx];
@@ -189,7 +189,7 @@ roaring::Roaring VerticalSequenceIndex<SymbolType>::getMatchingContainersAsBitma
 
    for (auto it = start; it != end; ++it) {
       const auto& [sequence_diff_key, sequence_diff] = *it;
-      SILO_ASSERT(!sequence_diff.empty());
+      RHYDB_ASSERT(!sequence_diff.empty());
 
       // Only consider when the symbol is in the requested set
       if (std::find(symbols.begin(), symbols.end(), sequence_diff_key.symbol) == symbols.end()) {
@@ -214,7 +214,7 @@ std::vector<std::pair<uint16_t, rhydb::roaring_util::RoaringContainerView>> Vert
    std::vector<std::pair<uint16_t, roaring_util::RoaringContainerView>> result;
    for (auto it = start; it != end; ++it) {
       const auto& [sequence_diff_key, sequence_diff] = *it;
-      SILO_ASSERT(!sequence_diff.empty());
+      RHYDB_ASSERT(!sequence_diff.empty());
 
       if (std::find(symbols.begin(), symbols.end(), sequence_diff_key.symbol) == symbols.end()) {
          continue;
@@ -233,7 +233,7 @@ void VerticalSequenceIndex<SymbolType>::overwriteSymbolsInSequences(
    std::vector<std::string>& sequences,
    const roaring::Roaring& row_ids
 ) const {
-   SILO_ASSERT_EQ(sequences.size(), row_ids.cardinality());
+   RHYDB_ASSERT_EQ(sequences.size(), row_ids.cardinality());
    if (row_ids.roaring.high_low_container.size == 0) {
       return;
    }
@@ -254,7 +254,7 @@ void VerticalSequenceIndex<SymbolType>::overwriteSymbolsInSequences(
          row_ids.roaring.high_low_container.typecodes[idx]
       );
       auto key = row_ids.roaring.high_low_container.keys[idx];
-      SILO_ASSERT(key <= max_v_index);
+      RHYDB_ASSERT(key <= max_v_index);
       sequences_by_v_index.at(key) = current_sequences_pointer;
       sequences_by_v_index_sizes.at(key) = cardinality;
       roaring_containers_by_v_index.at(key) = row_ids.roaring.high_low_container.containers[idx];
@@ -279,7 +279,7 @@ void VerticalSequenceIndex<SymbolType>::overwriteSymbolsInSequences(
 
       // Ranks are ordered, back() = largest rank -> should be a valid size for the current sequence
       // slice
-      SILO_ASSERT(
+      RHYDB_ASSERT(
          ranks_in_reconstructed_sequences.empty() ||
          ranks_in_reconstructed_sequences.back() <= sequences_by_v_index_sizes.at(v_index)
       );

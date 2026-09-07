@@ -26,7 +26,7 @@ TEST(ZstdCompressedStringColumn, insertValuesAndGetThemBack) {
          builder.insertNull();
       }
    }
-   SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
+   RHYDB_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
 
    ASSERT_EQ(under_test.numChunks(), 1);
    ASSERT_EQ(under_test.chunkSize(0), values_to_add.size());
@@ -49,7 +49,7 @@ void appendChunk(
          builder.insertNull();
       }
    }
-   SILO_ASSERT(column.appendChunk(builder.finalize()).has_value());
+   RHYDB_ASSERT(column.appendChunk(builder.finalize()).has_value());
 }
 }  // namespace
 

@@ -19,8 +19,8 @@ ZstdDecompressScalar::ZstdDecompressScalar(
 )
     : input(std::move(input)),
       dictionary_string(std::move(dictionary_string)) {
-   SILO_ASSERT(this->input != nullptr);
-   SILO_ASSERT(!this->dictionary_string.empty());
+   RHYDB_ASSERT(this->input != nullptr);
+   RHYDB_ASSERT(!this->dictionary_string.empty());
 }
 
 std::unique_ptr<ScalarExpression> ZstdDecompressScalar::clone() const {
@@ -46,7 +46,7 @@ std::unique_ptr<filter::operators::Operator> ZstdDecompressScalar::compile(
    const storage::Table& /*table*/
 ) const {
    // ZstdDecompressScalar is a scalar expression, not a filter predicate.
-   SILO_UNIMPLEMENTED();
+   RHYDB_UNIMPLEMENTED();
 }
 
 }  // namespace rhydb::query_engine::scalar_expressions

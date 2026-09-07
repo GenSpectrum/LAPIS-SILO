@@ -30,7 +30,7 @@ ConfigValueType ConfigValue::getValueType() const {
    if (std::holds_alternative<std::vector<std::string>>(value)) {
       return ConfigValueType::LIST;
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 std::string ConfigValue::toString() const {

@@ -13,7 +13,7 @@ TEST(FloatColumn, doesNotErrorOnValidInputs) {
    FloatColumn::Builder builder;
    builder.insert(0.1);
    builder.insertNull();
-   SILO_ASSERT(column.appendChunk(builder.finalize()).has_value());
+   RHYDB_ASSERT(column.appendChunk(builder.finalize()).has_value());
    ASSERT_EQ(column.numChunks(), 1);
    ASSERT_EQ(column.chunkSize(0), 2);
    ASSERT_FALSE(column.isNull(RowId(0, 0)));

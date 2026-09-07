@@ -63,10 +63,10 @@ class GermanString {
 
   public:
    GermanString(length_type length, std::string_view prefix, suffix_id_type suffix_offset) {
-      SILO_ASSERT(length > SHORT_STRING_SIZE);
-      SILO_ASSERT(prefix.size() == PREFIX_LENGTH);
-      SILO_ASSERT(PREFIX_START + PREFIX_LENGTH <= data.size());
-      SILO_ASSERT(SUFFIX_ID_START + sizeof(suffix_id_type) <= data.size());
+      RHYDB_ASSERT(length > SHORT_STRING_SIZE);
+      RHYDB_ASSERT(prefix.size() == PREFIX_LENGTH);
+      RHYDB_ASSERT(PREFIX_START + PREFIX_LENGTH <= data.size());
+      RHYDB_ASSERT(SUFFIX_ID_START + sizeof(suffix_id_type) <= data.size());
       *reinterpret_cast<length_type*>(data.data()) = length;
       std::memcpy(data.data() + PREFIX_START, prefix.data(), prefix.size());
       *reinterpret_cast<suffix_id_type*>(data.data() + SUFFIX_ID_START) = suffix_offset;
@@ -74,7 +74,7 @@ class GermanString {
 
    explicit GermanString(std::string_view short_string) {
       const length_type short_string_length = short_string.size();
-      SILO_ASSERT(short_string_length <= SHORT_STRING_SIZE);
+      RHYDB_ASSERT(short_string_length <= SHORT_STRING_SIZE);
       *reinterpret_cast<length_type*>(data.data()) = short_string_length;
       std::memcpy(data.data() + PREFIX_START, short_string.data(), short_string.size());
    }

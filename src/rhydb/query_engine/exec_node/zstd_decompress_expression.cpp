@@ -56,7 +56,7 @@ struct BinaryDecompressKernel {
          return arrow::Status::Invalid("Expected scalar input of type binary as second argument");
       }
       const auto* input_dict = static_cast<const arrow::BinaryScalar*>(input.values[1].scalar);
-      SILO_ASSERT(input_dict);
+      RHYDB_ASSERT(input_dict);
       auto dictionary = std::make_shared<rhydb::ZstdDDictionary>(input_dict->view());
       rhydb::ZstdDecompressor decompressor{dictionary};
 

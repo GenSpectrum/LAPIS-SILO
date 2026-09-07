@@ -93,7 +93,7 @@ Comparator flipComparator(Comparator comparator) {
       case Comparator::NOT_EQUALS:
          return comparator;
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 /// Lexicographic evaluation of `actual <op> literal` for the dictionary fast path.
@@ -112,7 +112,7 @@ bool matchesComparator(std::string_view actual, Comparator comparator, std::stri
       case Comparator::HIGHER_OR_EQUALS:
          return actual >= literal;
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 template <typename ColumnType, typename ColumnMap>
@@ -175,7 +175,7 @@ std::unique_ptr<Operator> compileStringComparison(
 ) {
    if (table.columns.string_columns.contains(column_name)) {
       // Equality on non-indexed string columns is always converted to StringInSet
-      SILO_ASSERT(comparator != Comparator::EQUALS);
+      RHYDB_ASSERT(comparator != Comparator::EQUALS);
       const auto& string_column = table.columns.string_columns.at(column_name);
       return std::make_unique<Selection>(
          std::make_unique<CompareToValueSelection<StringColumn>>(

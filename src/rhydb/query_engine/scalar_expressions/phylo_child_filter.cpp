@@ -75,7 +75,7 @@ std::unique_ptr<filter::operators::Operator> PhyloChildFilter::compile(const sto
       column.name
    );
 
-   SILO_ASSERT(table.columns.string_columns.contains(column.name));
+   RHYDB_ASSERT(table.columns.string_columns.contains(column.name));
    const auto& string_column = table.columns.string_columns.at(column.name);
    return createMatchingBitmap(string_column, internal_node, table.row_layout);
 }

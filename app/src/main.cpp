@@ -83,7 +83,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
    }
 
    setupLogger();
-   SILO_ASSERT(arrow::compute::Initialize().ok());
+   RHYDB_ASSERT(arrow::compute::Initialize().ok());
 
    ExecutionMode mode;
    if (args.empty()) {
@@ -174,7 +174,7 @@ int mainWhichMayThrowExceptions(int argc, char** argv) {
             rhydb::config::getConfig<rhydb::config::RuntimeConfig>(args, env_allow_list)
          );
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 }  // namespace

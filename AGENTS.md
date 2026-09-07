@@ -66,7 +66,7 @@ Use `using my::Type` (only in `.cpp` files) deliberately for all `rhydb::...` ty
 
 ### Error handling
 - `std::expected<T, Error>` for recoverable errors.
-- `SILO_ASSERT()` for debug assertions.
+- `RHYDB_ASSERT()` for debug assertions.
 - Arrow functions: use `ARROW_ASSIGN_OR_RAISE` / `ARROW_RETURN_NOT_OK` macros.
 - `CHECK_RHYDB_QUERY(condition, fmt, args...)` for query validation errors shown to users.
 - Exceptions only for preprocessing/initialization.

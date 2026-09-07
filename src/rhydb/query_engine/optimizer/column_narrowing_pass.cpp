@@ -62,7 +62,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::AggregateNode
    if (child_required.empty()) {
       // COUNT(*) with no group-by: still need one column to drive the row stream.
       auto child_schema = node.child->getOutputSchema();
-      SILO_ASSERT(!child_schema.empty());
+      RHYDB_ASSERT(!child_schema.empty());
       required = RequiredColumns{child_schema.front()};
    } else {
       required = std::move(child_required);
@@ -152,7 +152,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
       // Even when all output columns are produced by assignments, the child must
       // emit at least one field so that row identity is preserved.
       auto child_schema = node.child->getOutputSchema();
-      SILO_ASSERT(!child_schema.empty());
+      RHYDB_ASSERT(!child_schema.empty());
       child_required.push_back(child_schema.front());
    }
    required = std::move(child_required);

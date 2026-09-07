@@ -89,9 +89,9 @@ arrow::Result<arrow::acero::ExecNode*> addRandomizeColumn(
             }
 
             const auto& input_batch = maybe_input_batch.value();
-            SILO_ASSERT(!input_batch.values.empty());
+            RHYDB_ASSERT(!input_batch.values.empty());
             auto rows_in_batch = input_batch.values.at(0).length();
-            SILO_ASSERT_NE(rows_in_batch, arrow::Datum::kUnknownLength);
+            RHYDB_ASSERT_NE(rows_in_batch, arrow::Datum::kUnknownLength);
 
             arrow::UInt64Builder randomize_column_builder;
             for (int64_t i = 0; i < rows_in_batch; ++i) {

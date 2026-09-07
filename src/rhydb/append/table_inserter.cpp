@@ -217,7 +217,7 @@ TableInserter::ClusterBuffer& TableInserter::chooseBuffer(
       };
       return *best;
    }
-   SILO_ASSERT(free_slot != nullptr);
+   RHYDB_ASSERT(free_slot != nullptr);
    free_slot->range = std::make_pair(row_start, row_end);
    return *free_slot;
 }

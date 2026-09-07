@@ -21,7 +21,7 @@ TYPED_TEST(NumericColumnTest, doesNotErrorOnValidInputs) {
    typename TypeParam::Builder builder;
    builder.insert(123);
    builder.insertNull();
-   SILO_ASSERT(column.appendChunk(builder.finalize()).has_value());
+   RHYDB_ASSERT(column.appendChunk(builder.finalize()).has_value());
    ASSERT_EQ(column.numChunks(), 1);
    ASSERT_EQ(column.chunkSize(0), 2);
    ASSERT_FALSE(column.isNull(RowId(0, 0)));
@@ -38,12 +38,12 @@ TYPED_TEST(NumericColumnTest, updateAssignsScalarValueAcrossChunks) {
    chunk0.insert(10);
    chunk0.insertNull();  // (0, 1)
    chunk0.insert(30);
-   SILO_ASSERT(column.appendChunk(chunk0.finalize()).has_value());
+   RHYDB_ASSERT(column.appendChunk(chunk0.finalize()).has_value());
 
    typename TypeParam::Builder chunk1;
    chunk1.insert(40);
    chunk1.insert(50);
-   SILO_ASSERT(column.appendChunk(chunk1.finalize()).has_value());
+   RHYDB_ASSERT(column.appendChunk(chunk1.finalize()).has_value());
 
    ASSERT_EQ(column.numChunks(), 2);
 
@@ -84,7 +84,7 @@ TEST(Int64Column, storesValuesBeyondInt32Range) {
    builder.insert(large_positive);
    builder.insert(large_negative);
    builder.insertNull();
-   SILO_ASSERT(column.appendChunk(builder.finalize()).has_value());
+   RHYDB_ASSERT(column.appendChunk(builder.finalize()).has_value());
    ASSERT_EQ(column.getValue(RowId(0, 0)), large_positive);
    ASSERT_EQ(column.getValue(RowId(0, 1)), large_negative);
    ASSERT_TRUE(column.isNull(RowId(0, 2)));
@@ -98,7 +98,7 @@ TEST(Int64Column, updateAssignsValueBeyondInt32Range) {
    Int64Column::Builder chunk0;
    chunk0.insert(10);
    chunk0.insertNull();  // (0, 1)
-   SILO_ASSERT(column.appendChunk(chunk0.finalize()).has_value());
+   RHYDB_ASSERT(column.appendChunk(chunk0.finalize()).has_value());
 
    const int64_t large_value = 9'000'000'000LL;  // > INT32_MAX
    roaring::Roaring row_ids;

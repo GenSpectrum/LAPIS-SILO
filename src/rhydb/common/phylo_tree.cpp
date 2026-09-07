@@ -40,7 +40,7 @@ void PhyloTree::save(Archive& archive, const unsigned int /*version*/) const {
 
    for (const auto& [node_id, node] : nodes) {
       auto* called_node = node.get();
-      SILO_ASSERT(called_node != nullptr);
+      RHYDB_ASSERT(called_node != nullptr);
       archive << *called_node;
    }
 }
@@ -479,7 +479,7 @@ MRCAResponse PhyloTree::getMRCA(const std::unordered_set<std::string>& node_labe
    getSetOfAncestorsAtDepth(nodes_to_group, set_at_min_depth, min_depth);
 
    while (set_at_min_depth.size() > 1) {
-      SILO_ASSERT(min_depth > 0);
+      RHYDB_ASSERT(min_depth > 0);
       min_depth--;
       std::set<TreeNodeId> next_set_at_min_depth;
       getSetOfAncestorsAtDepth(nodes_to_group, next_set_at_min_depth, min_depth);
@@ -492,7 +492,7 @@ MRCAResponse PhyloTree::getMRCA(const std::unordered_set<std::string>& node_labe
    }
 
    const TreeNodeId& mrca_node_id = *set_at_min_depth.begin();
-   SILO_ASSERT(nodes.contains(mrca_node_id));
+   RHYDB_ASSERT(nodes.contains(mrca_node_id));
    const std::shared_ptr<TreeNode> mrca_node = nodes.find(mrca_node_id)->second;
 
    response.mrca_node_id = mrca_node->node_id;
@@ -557,7 +557,7 @@ NewickFragment PhyloTree::partialNewickString(
    NewickFragment response;
 
    auto node_it = nodes.find(ancestor);
-   SILO_ASSERT(node_it != nodes.end());
+   RHYDB_ASSERT(node_it != nodes.end());
    std::vector<NewickFragment> responses;
    responses.reserve(node_it->second->children.size());
    if (node_it->second->isLeaf()) {
@@ -621,13 +621,13 @@ NewickResponse PhyloTree::toNewickString(
 
    // The MRCA will be the root of the subtree that contains all nodes in the filter.
    MRCAResponse mrca = getMRCA(filter_in_tree);
-   SILO_ASSERT(mrca.mrca_node_id.has_value());
+   RHYDB_ASSERT(mrca.mrca_node_id.has_value());
    auto mrca_node = nodes.find(mrca.mrca_node_id.value());
-   SILO_ASSERT(mrca_node != nodes.end());
+   RHYDB_ASSERT(mrca_node != nodes.end());
 
    NewickFragment newick_string =
       partialNewickString(filter_in_tree, mrca_node->first, contract_unary_nodes);
-   SILO_ASSERT(newick_string.fragment.has_value());
+   RHYDB_ASSERT(newick_string.fragment.has_value());
    response.newick_string = newick_string.fragment.value() + ";";
    return response;
 }

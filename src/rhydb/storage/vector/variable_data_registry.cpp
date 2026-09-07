@@ -13,7 +13,7 @@ VariableDataRegistry::Identifier VariableDataRegistry::insert(std::string_view d
    *reinterpret_cast<size_t*>(variable_data_pages.back().buffer + offset) = data.length();
    const size_t page_id = variable_data_pages.size() - 1;
    if (page_id > UINT32_MAX) {
-      SILO_PANIC("Maximum number of variable string data reached. Aborting.");
+      RHYDB_PANIC("Maximum number of variable string data reached. Aborting.");
    }
    VariableDataRegistry::Identifier identifier{
       .page_id = static_cast<uint32_t>(page_id), .offset = offset
@@ -28,7 +28,7 @@ VariableDataRegistry::Identifier VariableDataRegistry::insert(std::string_view d
    std::string_view remaining_data = data;
    while (true) {
       const size_t space_for_next_data_piece = buffer::RHYDB_PAGE_SIZE - offset;
-      SILO_ASSERT(space_for_next_data_piece > 0);
+      RHYDB_ASSERT(space_for_next_data_piece > 0);
       if (space_for_next_data_piece >= remaining_data.length()) {
          std::memcpy(
             variable_data_pages.back().buffer + offset,

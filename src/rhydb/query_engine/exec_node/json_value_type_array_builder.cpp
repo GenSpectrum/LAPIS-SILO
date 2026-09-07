@@ -16,7 +16,7 @@ JsonValueTypeArrayBuilder::JsonValueTypeArrayBuilder(const std::shared_ptr<arrow
    } else if (type == arrow::boolean()) {
       builder = arrow::BooleanBuilder{};
    } else {
-      SILO_PANIC("Invalid type found: ", type->ToString());
+      RHYDB_PANIC("Invalid type found: ", type->ToString());
    }
 }
 
@@ -53,7 +53,7 @@ arrow::Status JsonValueTypeArrayBuilder::insert(
                                     std::is_same_v<B, arrow::BooleanBuilder>) {
                   ARROW_RETURN_NOT_OK(builder.Append(val));
                } else {
-                  SILO_PANIC("Type mismatch between value and builder");
+                  RHYDB_PANIC("Type mismatch between value and builder");
                }
                return arrow::Status::OK();
             },

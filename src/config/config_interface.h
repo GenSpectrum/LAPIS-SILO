@@ -42,7 +42,7 @@ concept Config = requires(
    /// Overwrite the fields of an instance of the target type; done
    /// that way so that multiple kinds of config sources can shadow
    /// each other's values by application in sequence. Does not throw
-   /// exceptions, except overwriteFrom can call SILO_PANIC when there
+   /// exceptions, except overwriteFrom can call RHYDB_PANIC when there
    /// is an inconsistency (bug) between ConfigSpecification and
    /// overwriteFrom implementation.
    { config.overwriteFrom(config_source) } -> std::same_as<void>;

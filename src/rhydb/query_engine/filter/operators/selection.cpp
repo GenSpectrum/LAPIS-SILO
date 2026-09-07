@@ -93,7 +93,7 @@ Type Selection::type() const {
 
 CopyOnWriteBitmap Selection::evaluate() const {
    EVOBENCH_SCOPE("Selection", "evaluate");
-   SILO_ASSERT(!predicates.empty());
+   RHYDB_ASSERT(!predicates.empty());
 
    // Build the candidate rows that already satisfy the most selective predicate. Predicates are
    // sorted most-selective-first at construction
@@ -165,7 +165,7 @@ bool strongOrderingMatchesComparator(std::strong_ordering strong_ordering, Compa
       return comparator == Comparator::HIGHER || comparator == Comparator::HIGHER_OR_EQUALS ||
              comparator == Comparator::NOT_EQUALS;
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 }  // namespace

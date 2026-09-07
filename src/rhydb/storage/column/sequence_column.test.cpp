@@ -30,7 +30,7 @@ void appendSequence(
    );
    builder.insert(sequence, offset, insertions);
    auto result = column.appendChunk(builder.finalize());
-   SILO_ASSERT(result.has_value());
+   RHYDB_ASSERT(result.has_value());
 }
 }  // namespace
 
@@ -173,7 +173,7 @@ TEST(SequenceColumn, adaptsLocalReferenceWhenMajorityOfCoveredRowsDiffers) {
       builder.insert("ACNT", 0, std::vector<std::string>{});  // N -> uncovered at position 2
       builder.insert("ACNT", 0, std::vector<std::string>{});  // N -> uncovered at position 2
       builder.insert("ACGT", 0, std::vector<std::string>{});  // G (== reference) at position 2
-      SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
+      RHYDB_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
    }
 
    under_test.finalize();
@@ -203,7 +203,7 @@ TEST(SequenceColumn, canFinalizeTwice) {
       builder.insert("AAGT", 0, std::vector<std::string>{});
       builder.insert("AAGT", 0, std::vector<std::string>{});
       builder.insert("ACGT", 0, std::vector<std::string>{});
-      SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
+      RHYDB_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
    }
 
    under_test.finalize();
@@ -229,7 +229,7 @@ TEST(SequenceColumn, canFinalizeTwice) {
       builder.insert("ACGT", 0, std::vector<std::string>{});
       builder.insert("ACGT", 0, std::vector<std::string>{});
       builder.insert("ACGT", 0, std::vector<std::string>{});
-      SILO_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
+      RHYDB_ASSERT(under_test.appendChunk(builder.finalize()).has_value());
    }
 
    under_test.finalize();

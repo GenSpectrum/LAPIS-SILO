@@ -111,7 +111,7 @@ std::unique_ptr<ScalarExpression> buildManyNestedStringEquals(
    const std::string& column,
    const std::vector<std::string>& values
 ) {
-   SILO_ASSERT(values.size() >= 2);
+   RHYDB_ASSERT(values.size() >= 2);
    ScalarExpressionVector children;
    children.push_back(makeStringEquals(column, values.at(0)));
    children.push_back(makeStringEquals(column, values.at(1)));

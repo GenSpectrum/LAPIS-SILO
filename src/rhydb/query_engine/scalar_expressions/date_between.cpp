@@ -102,7 +102,7 @@ std::vector<RangeSelection::Range> DateBetween::computeRangesOfSortedColumn(
    // binary search within every chunk's value buffer and emit one range per chunk, shifted by the
    // chunk's global row offset.
    const auto& value_buffer = date_column.getValueBuffer();
-   SILO_ASSERT(value_buffer.numChunks() <= UINT16_MAX);
+   RHYDB_ASSERT(value_buffer.numChunks() <= UINT16_MAX);
    for (size_t chunk_idx = 0; chunk_idx < value_buffer.numChunks(); ++chunk_idx) {
       const auto& chunk = value_buffer.chunk(chunk_idx);
       const auto* begin = chunk.data();

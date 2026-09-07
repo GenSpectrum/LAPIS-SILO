@@ -18,7 +18,7 @@ namespace {
 /// Literals are scalar values, not filter predicates. Only the boolean literal
 /// has a meaningful compilation into a filter operator.
 [[noreturn]] std::unique_ptr<filter::operators::Operator> compileNonBooleanLiteral() {
-   SILO_UNIMPLEMENTED();
+   RHYDB_UNIMPLEMENTED();
 }
 }  // namespace
 

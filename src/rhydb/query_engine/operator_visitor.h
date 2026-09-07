@@ -94,7 +94,7 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
       case NodeKind::TRANSITIVE_CLOSURE:
          return std::forward<Func>(func)(static_cast<TransitiveClosureNode&>(node));
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 }  // namespace rhydb::query_engine::operators

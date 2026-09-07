@@ -43,18 +43,18 @@ void nullCapableSetenv(const char* name, const char* value, int overwrite) {
 
 // NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
 TEST(panic, assertEqPanicModes) {
-   SILO_ASSERT_EQ(1 + 1, 2);
+   RHYDB_ASSERT_EQ(1 + 1, 2);
 
    const char* old_env = getenv("RHYDB_PANIC");
    setenv("RHYDB_PANIC", "", 1);
    try {
-      SILO_ASSERT_EQ(1 + 1, 3);
+      RHYDB_ASSERT_EQ(1 + 1, 3);
    } catch (const std::exception& ex) {
       assertMsg(ex.what(), "ASSERT_EQ failure: 1 + 1 == 3: 2 == 3");
    };
 
    setenv("RHYDB_PANIC", "abort", 1);
-   ASSERT_DEATH(SILO_ASSERT_EQ(1 + 1, 3), "ASSERT_EQ failure: 1 \\+ 1 == 3: 2 == 3");
+   ASSERT_DEATH(RHYDB_ASSERT_EQ(1 + 1, 3), "ASSERT_EQ failure: 1 \\+ 1 == 3: 2 == 3");
 
    // revert it back
    nullCapableSetenv("RHYDB_PANIC", old_env, 1);
@@ -63,49 +63,49 @@ TEST(panic, assertEqPanicModes) {
 // NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
 TEST(panic, debugAssertBehavesAsPerCompilationMode) {
    // should never complain
-   SILO_DEBUG_ASSERT(1 + 1 == 2);
+   RHYDB_DEBUG_ASSERT(1 + 1 == 2);
 
-   // Check that SILO_DEBUG_ASSERT is active if SILO_DEBUG_ASSERTIONS==1, off
+   // Check that RHYDB_DEBUG_ASSERT is active if RHYDB_DEBUG_ASSERTIONS==1, off
    // otherwise; each of those branches is only tested when compiling
    // the unit tests in debug or release mode, respectively.
 
-#if SILO_DEBUG_ASSERTIONS
+#if RHYDB_DEBUG_ASSERTIONS
 
    const char* old_env = getenv("RHYDB_PANIC");
    setenv("RHYDB_PANIC", "", 1);
    try {
-      SILO_DEBUG_ASSERT(1 + 1 == 3);
+      RHYDB_DEBUG_ASSERT(1 + 1 == 3);
    } catch (const std::exception& ex) {
       assertMsg(ex.what(), "DEBUG_ASSERT failure: 1 + 1 == 3");
    };
    nullCapableSetenv("RHYDB_PANIC", old_env, 1);
 
 #else
-   // check that SILO_DEBUG_ASSERT is disabled
-   SILO_DEBUG_ASSERT(1 + 1 == 3);
+   // check that RHYDB_DEBUG_ASSERT is disabled
+   RHYDB_DEBUG_ASSERT(1 + 1 == 3);
 #endif
 }
 
 // NOLINTNEXTLINE(readability-identifier-naming,readability-function-cognitive-complexity)
 TEST(panic, debugAssertGeWorks) {
-   // stand-in for all the SILO_DEBUG_ASSERT_* variants
+   // stand-in for all the RHYDB_DEBUG_ASSERT_* variants
 
-   SILO_DEBUG_ASSERT_GE(1 + 5, 6);
-   SILO_DEBUG_ASSERT_GE(1 + 5, 5);
+   RHYDB_DEBUG_ASSERT_GE(1 + 5, 6);
+   RHYDB_DEBUG_ASSERT_GE(1 + 5, 5);
 
-#if SILO_DEBUG_ASSERTIONS
+#if RHYDB_DEBUG_ASSERTIONS
 
    const char* old_env = getenv("RHYDB_PANIC");
    setenv("RHYDB_PANIC", "", 1);
    try {
-      SILO_DEBUG_ASSERT_GE(1 + 5, 7);
+      RHYDB_DEBUG_ASSERT_GE(1 + 5, 7);
    } catch (const std::exception& ex) {
       assertMsg(ex.what(), "DEBUG_ASSERT_GE failure: 1 + 5 >= 7: 6 >= 7");
    };
    nullCapableSetenv("RHYDB_PANIC", old_env, 1);
 
 #else
-   // check that SILO_DEBUG_ASSERT is disabled
-   SILO_DEBUG_ASSERT_GE(1 + 5, 7);
+   // check that RHYDB_DEBUG_ASSERT is disabled
+   RHYDB_DEBUG_ASSERT_GE(1 + 5, 7);
 #endif
 }

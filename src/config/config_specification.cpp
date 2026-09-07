@@ -155,7 +155,7 @@ ConfigValue ConfigAttributeSpecification::parseValueFromString(std::string value
          case ConfigValueType::LIST:
             throw ConfigException("List values can currently no be specified as strings.");
       }
-      SILO_UNREACHABLE();
+      RHYDB_UNREACHABLE();
    } catch (boost::bad_lexical_cast&) {
       throw ConfigException(
          fmt::format("cannot parse '{}' as {}", value_string, configValueTypeToString(type))

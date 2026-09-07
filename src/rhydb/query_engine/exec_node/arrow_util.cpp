@@ -22,7 +22,7 @@ std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column
       case schema::ColumnType::ZSTD_COMPRESSED_STRING:
          return arrow::binary();
    }
-   SILO_UNREACHABLE();
+   RHYDB_UNREACHABLE();
 }
 
 std::shared_ptr<arrow::Schema> columnsToArrowSchema(
