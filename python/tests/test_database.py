@@ -18,7 +18,7 @@ INPUT_FILE = os.path.join(TEST_DATA_DIR, 'input_file.ndjson')
 # through the Python table-creation API, so loading this state is how the Python tests exercise
 # a real scalar update.
 SERIALIZED_STATE_DIR = os.path.join(
-    os.path.dirname(__file__), '..', '..', 'testBaseData', 'siloSerializedState'
+    os.path.dirname(__file__), '..', '..', 'testBaseData', 'rhydbSerializedState'
 )
 
 

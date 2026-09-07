@@ -72,7 +72,7 @@ std::shared_ptr<rhydb::Database> buildTestDatabase() {
 TEST(DatabaseTest, shouldSaveAndReloadDatabaseWithoutErrors) {
    auto first_database = buildTestDatabase();
 
-   const std::filesystem::path directory = "testBaseData/siloSerializedState";
+   const std::filesystem::path directory = "testBaseData/rhydbSerializedState";
 
    const rhydb::DataVersion::Timestamp data_version_timestamp =
       first_database->getDataVersionTimestamp();
@@ -102,7 +102,7 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
    // If this load fails, the serialization version likely needs to be increased
    // Run `make bump-serialization-version`
    auto database = rhydb::Database::loadDatabaseState(
-      rhydb::RhyDBDirectory{"testBaseData/siloSerializedState"}.getMostRecentDataDirectory().value()
+      rhydb::RhyDBDirectory{"testBaseData/rhydbSerializedState"}.getMostRecentDataDirectory().value()
    );
 
    const auto database_info = database.getDatabaseInfo();

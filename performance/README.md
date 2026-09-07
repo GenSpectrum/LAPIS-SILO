@@ -1,6 +1,6 @@
 This folder contains self-contained tests (all with their own respective main() function).
 
-All .cpp-files in this folder are targets of the cmake project and can be configured, made, and executed from the home repo after building SILO, e.g.:
+All .cpp-files in this folder are targets of the cmake project and can be configured, made, and executed from the home repo after building RhyDB, e.g.:
 ```shell
 make build/Release/rhydb
 

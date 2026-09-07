@@ -1,10 +1,10 @@
 # Legacy NDJSON Transformer
 
-A command-line utility for transforming legacy NDJSON format genomic data into the format expected by SILO.
+A command-line utility for transforming legacy NDJSON format genomic data into the format expected by RhyDB.
 
 ## Overview
 
-This Rust tool transforms NDJSON (Newline Delimited JSON) files from the legacy format to the current SILO-compatible format. It processes genomic sequence data including aligned/unaligned nucleotide sequences, amino acid sequences, and their associated insertions.
+This Rust tool transforms NDJSON (Newline Delimited JSON) files from the legacy format to the current RhyDB-compatible format. It processes genomic sequence data including aligned/unaligned nucleotide sequences, amino acid sequences, and their associated insertions.
 
 ## Input Format
 
@@ -36,7 +36,7 @@ The tool expects NDJSON input with the following structure:
 
 ## Output Format
 
-The tool transforms the data into SILO's expected format:
+The tool transforms the data into RhyDB's expected format:
 
 ```json
 {

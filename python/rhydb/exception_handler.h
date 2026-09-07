@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include "rhydb/query_engine/illegal_query_exception.h"
 
-inline void handle_silo_exception() {
+inline void handle_rhydb_exception() {
     try {
         throw;  // re-throw current exception
     } catch (const rhydb::query_engine::IllegalQueryException& e) {
