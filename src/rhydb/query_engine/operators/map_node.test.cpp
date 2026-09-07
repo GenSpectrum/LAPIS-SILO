@@ -122,6 +122,15 @@ const QueryTestScenario MAP_AT_SCENARIO = {
    )
 };
 
+// The square-bracket notation `col[i]` is shorthand for `col.at(i)`
+const QueryTestScenario MAP_AT_BRACKET_SCENARIO = {
+   .name = "MAP_AT_BRACKET",
+   .query = "default.map({second := primaryKey[4]}).project({primaryKey, second})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"second", "0"}}, {{"primaryKey", "id_1"}, {"second", "1"}}}
+   )
+};
+
 // When the position is past the end of the string, `at` yields an empty string
 // rather than failing. id_0's str_value "short" has only 5 characters, so at(8) is
 // out of bounds and produces ""; id_1's "longlonglong" has a character at 8 ("g").
@@ -366,6 +375,7 @@ QUERY_TEST(
       MAP_INT64_SCENARIO,
       MAP_FIELD_REF_SCENARIO,
       MAP_AT_SCENARIO,
+      MAP_AT_BRACKET_SCENARIO,
       MAP_AT_OUT_OF_BOUNDS_SCENARIO,
       MAP_AT_SEQUENCE_FIRST_SCENARIO,
       MAP_AT_SEQUENCE_INNER_SCENARIO,

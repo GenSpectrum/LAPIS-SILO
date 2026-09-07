@@ -664,6 +664,26 @@ TEST(SaneQLParser, parsesChainedBracketIndex) {
    EXPECT_EQ(expr->toString(), "at(at(a, 1), 2)");
 }
 
+TEST(SaneQLParser, throwsOnEmptyBracket) {
+   EXPECT_THAT(
+      []() {
+         Parser parser("a[]");
+         (void)parser.parse();
+      },
+      ThrowsMessage<ParseException>(::testing::HasSubstr("Unexpected token RightBracket"))
+   );
+}
+
+TEST(SaneQLParser, throwsOnMultipleIndices) {
+   EXPECT_THAT(
+      []() {
+         Parser parser("a[3, 4]");
+         (void)parser.parse();
+      },
+      ThrowsMessage<ParseException>(::testing::HasSubstr("Expected RightBracket but got Comma"))
+   );
+}
+
 TEST(SaneQLParser, parsesBracketIndexOnMethodCall) {
    // Bracket indexing chains with method calls and other postfix ops
    Parser parser("a.b()[0]");
