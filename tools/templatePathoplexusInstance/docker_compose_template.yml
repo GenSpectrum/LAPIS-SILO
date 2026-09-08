@@ -3,7 +3,7 @@ services:
     image: ghcr.io/genspectrum/lapis:${LAPIS_TAG}
     ports:
       - "8090:8080"
-    command: --silo.url=http://silo:8081
+    command: --silo.url=http://rhydb:8081
     volumes:
       - type: bind
         source: ./database_config.yaml
@@ -12,7 +12,7 @@ services:
         source: ./reference_genomes.json
         target: /workspace/reference_genomes.json
 
-  silo:
+  rhydb:
     image: ghcr.io/genspectrum/lapis-silo:${SILO_TAG}
     ports:
       - "8091:8081"
@@ -20,10 +20,10 @@ services:
     volumes:
       - ./output:/data
     depends_on:
-      siloPreprocessing:
+      rhydbPreprocessing:
         condition: service_completed_successfully
 
-  siloPreprocessing:
+  rhydbPreprocessing:
     image: ghcr.io/genspectrum/lapis-silo:${SILO_TAG}
     command: preprocessing
     volumes:
