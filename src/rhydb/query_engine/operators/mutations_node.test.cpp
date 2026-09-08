@@ -77,6 +77,19 @@ const QueryTestScenario MUTATIONS_MIN_PROPORTION_EXCLUDES_ALL = {
    .expected_query_result = nlohmann::json::array(),
 };
 
+// Regression for #1530: orderBy on an empty mutations result must return empty, not crash.
+const QueryTestScenario MUTATIONS_EMPTY_ORDER_BY_PROPORTION = {
+   .name = "MUTATIONS_EMPTY_ORDER_BY_PROPORTION",
+   .query = "default.mutations(minProportion:=0.6).orderBy({proportion})",
+   .expected_query_result = nlohmann::json::array(),
+};
+
+const QueryTestScenario MUTATIONS_EMPTY_ORDER_BY_PROPORTION_WITH_LIMIT = {
+   .name = "MUTATIONS_EMPTY_ORDER_BY_PROPORTION_WITH_LIMIT",
+   .query = "default.mutations(minProportion:=0.6).orderBy({proportion}).limit(5)",
+   .expected_query_result = nlohmann::json::array(),
+};
+
 const QueryTestScenario MUTATIONS_SEQUENCE_NAMES_SELECTS = {
    .name = "MUTATIONS_SEQUENCE_NAMES_SELECTS",
    .query =
@@ -194,6 +207,8 @@ QUERY_TEST(
       MUTATIONS_ALL_FIELDS,
       MUTATIONS_MIN_PROPORTION_KEEPS_SUBSET,
       MUTATIONS_MIN_PROPORTION_EXCLUDES_ALL,
+      MUTATIONS_EMPTY_ORDER_BY_PROPORTION,
+      MUTATIONS_EMPTY_ORDER_BY_PROPORTION_WITH_LIMIT,
       MUTATIONS_SEQUENCE_NAMES_SELECTS,
       MUTATIONS_WITH_INPUT_FILTER,
       MUTATIONS_FIELDS_NARROWED,
