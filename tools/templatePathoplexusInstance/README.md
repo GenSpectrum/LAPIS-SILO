@@ -22,9 +22,9 @@ cd ../../localTestData/ppxData/<ORGANISM>
 To run RhyDB and LAPIS in a docker container you can run:
 
 ```bash
-SILO_TAG=latest LAPIS_TAG=main docker compose -f docker_compose.yml up
+RHYDB_TAG=latest LAPIS_TAG=main docker compose -f docker_compose.yml up
 ```
-If you only want to run RhyDB locally and have LAPIS in a container you can update the docker compose LAPIS instance to use `command: "--silo.url=http://host.docker.internal:${SILO_PORT}"`.
+If you only want to run RhyDB locally and have LAPIS in a container you can update the docker compose LAPIS instance to use `command: "--silo.url=http://host.docker.internal:${RHYDB_PORT}"`.
 
 ### Testing
 
