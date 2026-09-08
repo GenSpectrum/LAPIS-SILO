@@ -151,6 +151,28 @@ TEST(SaneQLLexer, tokenizesPunctuation) {
    EXPECT_EQ(tokens[7].type, TokenType::COLON_EQUALS);
 }
 
+TEST(SaneQLLexer, tokenizesBrackets) {
+   Lexer lexer("[ ]");
+   auto tokens = lexer.tokenizeAll();
+   ASSERT_EQ(tokens.size(), 3);
+   EXPECT_EQ(tokens[0].type, TokenType::LEFT_BRACKET);
+   EXPECT_EQ(tokens[1].type, TokenType::RIGHT_BRACKET);
+   EXPECT_EQ(tokens[2].type, TokenType::END_OF_FILE);
+}
+
+TEST(SaneQLLexer, tokenizesBracketIndexing) {
+   Lexer lexer("a[3]");
+   auto tokens = lexer.tokenizeAll();
+   ASSERT_EQ(tokens.size(), 5);
+   EXPECT_EQ(tokens[0].type, TokenType::IDENTIFIER);
+   EXPECT_EQ(tokens[0].getStringValue(), "a");
+   EXPECT_EQ(tokens[1].type, TokenType::LEFT_BRACKET);
+   EXPECT_EQ(tokens[2].type, TokenType::INT_LITERAL);
+   EXPECT_EQ(tokens[2].getIntValue(), 3);
+   EXPECT_EQ(tokens[3].type, TokenType::RIGHT_BRACKET);
+   EXPECT_EQ(tokens[4].type, TokenType::END_OF_FILE);
+}
+
 TEST(SaneQLLexer, tokenizesMethodCallChain) {
    Lexer lexer("default.filter(country = 'USA').groupBy({count:=count()})");
    auto tokens = lexer.tokenizeAll();
