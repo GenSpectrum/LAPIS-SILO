@@ -56,6 +56,14 @@ const QueryTestScenario PROJECTOUT_MULTIPLE_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
+const QueryTestScenario PROJECTOUT_OVER_GROUP_BY_SCENARIO = {
+   .name = "PROJECTOUT_OVER_GROUP_BY",
+   .query =
+      "default.groupBy({count := count()}, {country}).orderBy({country}).projectout({count})",
+   .expected_query_result =
+      nlohmann::json({{{"country", "Germany"}}, {{"country", "Switzerland"}}})
+};
+
 const QueryTestScenario PROJECTOUT_UNKNOWN_COLUMN_SCENARIO = {
    .name = "PROJECTOUT_UNKNOWN_COLUMN",
    .query = "default.projectout({doesNotExist})",
@@ -72,6 +80,7 @@ QUERY_TEST(
       PROJECTOUT_SET_SCENARIO,
       PROJECTOUT_SINGLE_SCENARIO,
       PROJECTOUT_MULTIPLE_SCENARIO,
+      PROJECTOUT_OVER_GROUP_BY_SCENARIO,
       PROJECTOUT_UNKNOWN_COLUMN_SCENARIO
    )
 );
