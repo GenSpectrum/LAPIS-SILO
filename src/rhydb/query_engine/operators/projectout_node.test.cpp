@@ -34,7 +34,6 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
-// Removes a single column given as a set; all others are kept in their original order.
 const QueryTestScenario PROJECTOUT_SET_SCENARIO = {
    .name = "PROJECTOUT_SET",
    .query = "default.projectout({age})",
@@ -44,7 +43,6 @@ const QueryTestScenario PROJECTOUT_SET_SCENARIO = {
    )
 };
 
-// A single column name may be given without braces.
 const QueryTestScenario PROJECTOUT_SINGLE_SCENARIO = {
    .name = "PROJECTOUT_SINGLE",
    .query = "default.projectout(country)",
@@ -52,14 +50,12 @@ const QueryTestScenario PROJECTOUT_SINGLE_SCENARIO = {
       nlohmann::json({{{"primaryKey", "id_0"}, {"age", 5}}, {{"primaryKey", "id_1"}, {"age", 7}}})
 };
 
-// Multiple columns can be removed at once.
 const QueryTestScenario PROJECTOUT_MULTIPLE_SCENARIO = {
    .name = "PROJECTOUT_MULTIPLE",
    .query = "default.projectout({country, age})",
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
-// Removing a column that does not exist is rejected.
 const QueryTestScenario PROJECTOUT_UNKNOWN_COLUMN_SCENARIO = {
    .name = "PROJECTOUT_UNKNOWN_COLUMN",
    .query = "default.projectout({doesNotExist})",
