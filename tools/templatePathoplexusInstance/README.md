@@ -24,7 +24,7 @@ To run RhyDB and LAPIS in a docker container you can run:
 ```bash
 RHYDB_TAG=latest LAPIS_TAG=main docker compose -f docker_compose.yml up
 ```
-If you only want to run RhyDB locally and have LAPIS in a container you can update the docker compose LAPIS instance to use `command: "--silo.url=http://host.docker.internal:${RHYDB_PORT}"`.
+If you only want to run RhyDB locally and have LAPIS in a container you can update the docker compose LAPIS instance to use `command: "--silo.url=http://host.docker.internal:8091"`.
 
 ### Testing
 
@@ -54,5 +54,5 @@ To test thread-related issues it makes sense to limit the number of requests tha
 
 ### Earlier RhyDB/LAPIS versions
 
-To use a version of RhyDB older than v0.9.0 use the `database_config.old.yaml` instead of the `database_config.yaml`, for versions older than v0.8 additionally use `get-released-data.ndjson.zst` instead of `get-released-data.modified.ndjson.zst`.
+To use a version of RhyDB older than v0.9.0 use the `database_config.old.yaml` instead of the `database_config.yaml`, for versions older than v0.8 additionally use `get-released-data.ndjson.zst` instead of `get-released-data.transformed.ndjson.zst`.
 
