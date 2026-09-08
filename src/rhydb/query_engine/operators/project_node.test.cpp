@@ -34,26 +34,32 @@ const QueryTestData TEST_DATA{
    .reference_genomes = REFERENCE_GENOMES
 };
 
+const QueryTestScenario PROJECT_EMPTY_SCENARIO = {
+   .name = "PROJECT_EMPTY",
+   .query = "default.project({})",
+   .expected_query_result = nlohmann::json::array(),
+};
+
 const QueryTestScenario PROJECTOUT_SET_SCENARIO = {
    .name = "PROJECTOUT_SET",
    .query = "default.projectout({age})",
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "id_0"}, {"country", "Switzerland"}},
        {{"primaryKey", "id_1"}, {"country", "Germany"}}}
-   )
+   ),
 };
 
 const QueryTestScenario PROJECTOUT_SINGLE_SCENARIO = {
    .name = "PROJECTOUT_SINGLE",
    .query = "default.projectout(country)",
    .expected_query_result =
-      nlohmann::json({{{"primaryKey", "id_0"}, {"age", 5}}, {{"primaryKey", "id_1"}, {"age", 7}}})
+      nlohmann::json({{{"primaryKey", "id_0"}, {"age", 5}}, {{"primaryKey", "id_1"}, {"age", 7}}}),
 };
 
 const QueryTestScenario PROJECTOUT_MULTIPLE_SCENARIO = {
    .name = "PROJECTOUT_MULTIPLE",
    .query = "default.projectout({country, age})",
-   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}}),
 };
 
 const QueryTestScenario PROJECTOUT_OVER_GROUP_BY_SCENARIO = {
@@ -61,14 +67,20 @@ const QueryTestScenario PROJECTOUT_OVER_GROUP_BY_SCENARIO = {
    .query =
       "default.groupBy({count := count()}, {country}).orderBy({country}).projectout({count})",
    .expected_query_result =
-      nlohmann::json({{{"country", "Germany"}}, {{"country", "Switzerland"}}})
+      nlohmann::json({{{"country", "Germany"}}, {{"country", "Switzerland"}}}),
+};
+
+const QueryTestScenario PROJECTOUT_ALL_SCENARIO = {
+   .name = "PROJECTOUT_ALL",
+   .query = "default.projectout({primaryKey, country, age})",
+   .expected_query_result = nlohmann::json::array(),
 };
 
 const QueryTestScenario PROJECTOUT_UNKNOWN_COLUMN_SCENARIO = {
    .name = "PROJECTOUT_UNKNOWN_COLUMN",
    .query = "default.projectout({doesNotExist})",
    .expected_error_message =
-      "projectout field 'doesNotExist' is not present in the input's output schema"
+      "projectout field 'doesNotExist' is not present in the input's output schema",
 };
 
 }  // namespace
@@ -77,10 +89,12 @@ QUERY_TEST(
    ProjectoutTest,
    TEST_DATA,
    ::testing::Values(
+      PROJECT_EMPTY_SCENARIO,
       PROJECTOUT_SET_SCENARIO,
       PROJECTOUT_SINGLE_SCENARIO,
       PROJECTOUT_MULTIPLE_SCENARIO,
       PROJECTOUT_OVER_GROUP_BY_SCENARIO,
+      PROJECTOUT_ALL_SCENARIO,
       PROJECTOUT_UNKNOWN_COLUMN_SCENARIO
    )
 );
