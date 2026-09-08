@@ -102,7 +102,8 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
    // If this load fails, the serialization version likely needs to be increased
    // Run `make bump-serialization-version`
    auto database = rhydb::Database::loadDatabaseState(
-      rhydb::RhyDBDirectory{"testBaseData/rhydbSerializedState"}.getMostRecentDataDirectory().value()
+      rhydb::RhyDBDirectory{"testBaseData/rhydbSerializedState"}.getMostRecentDataDirectory().value(
+      )
    );
 
    const auto database_info = database.getDatabaseInfo();
