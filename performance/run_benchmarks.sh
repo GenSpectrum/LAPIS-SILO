@@ -25,6 +25,7 @@ benchmarks=(
   nof_sequence_filter
   sequence_column_insert
   co_occurrence_benchmark
+  real_data_mutations_benchmark
 )
 
 failed=()
