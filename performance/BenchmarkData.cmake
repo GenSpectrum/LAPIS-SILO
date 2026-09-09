@@ -1,44 +1,79 @@
 # Declarative registry of benchmark input datasets.
 #
-# Each dataset is a file materialized under localTestData/performance/ from a declared source. It is
-# produced by the build system (the `benchmark_data` target) only when it is missing or when its
-# definition here changes, so data provenance (URLs, checksums) lives in the build definition rather
-# than in C++, and change detection comes for free.
+# Each dataset is a file materialized under localTestData/performance/ from a declared source:
 #
-#   benchmark_dataset(<output-file-name>
-#       DOWNLOAD <url> SHA256 <hex>   # fetch a fixed public artifact and verify its checksum
-#   )
+#   benchmark_dataset(<file-name> GENERATE)                    # written by the generate_test_data tool
+#   benchmark_dataset(<file-name> DOWNLOAD <url> SHA256 <hex>) # fetched and checksum-verified
 #
-# A future GENERATE kind will produce the synthetic datasets via the generate_test_data tool (they
-# still live in that tool for now); it would add an OUTPUT that DEPENDS on the generator binary so
-# each synthetic dataset regenerates only when the generator changes.
+if(CMAKE_SCRIPT_MODE_FILE)
+    # Idempotent download of one dataset, run at build time: a file that is already there
+    # with the expected hash is left alone, so re-building `benchmark_data` does not re-download.
+    if(EXISTS "${DEST}")
+        file(SHA256 "${DEST}" actual_hash)
+        if(actual_hash STREQUAL "${SHA256}")
+            message(STATUS "benchmark dataset already present and verified: ${DEST}")
+            return()
+        endif()
+    endif()
+    # Download and move to guard against interrupted downloads
+    message(STATUS "downloading benchmark dataset from ${URL}")
+    get_filename_component(dest_dir "${DEST}" DIRECTORY)
+    file(MAKE_DIRECTORY "${dest_dir}")
+    file(DOWNLOAD "${URL}" "${DEST}.part" EXPECTED_HASH SHA256=${SHA256} SHOW_PROGRESS)
+    file(RENAME "${DEST}.part" "${DEST}")
+    return()
+endif()
 
 set(BENCHMARK_DATA_DIR "${CMAKE_SOURCE_DIR}/localTestData/performance")
-set(_BENCHMARK_DATA_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}")
+set(_BENCHMARK_DATA_CMAKE_FILE "${CMAKE_CURRENT_LIST_FILE}")
+
+# Dataset generation dependencies to retrigger on changes
+set(_generator_inputs
+    "${CMAKE_CURRENT_LIST_DIR}/generate_test_data.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/sequence_generator.h"
+    "${CMAKE_SOURCE_DIR}/testBaseData/exampleDataset/reference_genomes.json"
+)
+set_property(DIRECTORY "${CMAKE_SOURCE_DIR}" APPEND
+    PROPERTY CMAKE_CONFIGURE_DEPENDS ${_generator_inputs})
+foreach(input IN LISTS _generator_inputs)
+    file(SHA256 "${input}" hash)
+    string(APPEND _BENCHMARK_GENERATOR_DEFINITION "${input} ${hash}\n")
+endforeach()
+
+# Produce one dataset at a time
+set_property(GLOBAL APPEND PROPERTY JOB_POOLS benchmark_data=1)
 
 function(benchmark_dataset name)
-    cmake_parse_arguments(ARG "" "DOWNLOAD;SHA256" "" ${ARGN})
-    if(NOT ARG_DOWNLOAD OR NOT ARG_SHA256)
-        message(FATAL_ERROR "benchmark_dataset(${name}): requires DOWNLOAD <url> and SHA256 <hex>")
-    endif()
+    cmake_parse_arguments(ARG "GENERATE" "DOWNLOAD;SHA256" "" ${ARGN})
 
     set(out "${BENCHMARK_DATA_DIR}/${name}")
-    set(fetch "${_BENCHMARK_DATA_CMAKE_DIR}/ci/fetch_dataset.cmake")
+    if(ARG_GENERATE AND NOT ARG_DOWNLOAD)
+        set(definition "${_BENCHMARK_GENERATOR_DEFINITION}")
+        set(command "$<TARGET_FILE:generate_test_data>" "${name}")
+        set(verb "generating")
+    elseif(ARG_DOWNLOAD AND ARG_SHA256 AND NOT ARG_GENERATE)
+        set(definition "${ARG_DOWNLOAD} ${ARG_SHA256}")
+        set(command "${CMAKE_COMMAND}" "-DURL=${ARG_DOWNLOAD}" "-DSHA256=${ARG_SHA256}"
+                    "-DDEST=${out}" -P "${_BENCHMARK_DATA_CMAKE_FILE}")
+        set(verb "fetching")
+    else()
+        message(FATAL_ERROR
+            "benchmark_dataset(${name}): pass either GENERATE or DOWNLOAD <url> with SHA256 <hex>")
+    endif()
 
-    # The definition (url + sha) written to a stamp. file(CONFIGURE) rewrites it -- advancing its
-    # timestamp -- only when the content changes, so the download below re-runs only when the url or
-    # sha actually change (or when `out` is missing). An unchanged definition is a no-op.
+    # The dataset's definition, written to a stamp. file(CONFIGURE) rewrites it -- advancing its
+    # timestamp -- only when the content changes, so the command below re-runs only when the
+    # definition actually changed (or when `out` is missing). An unchanged definition is a no-op.
     set(def "${CMAKE_BINARY_DIR}/benchmark_data/${name}.def")
-    file(CONFIGURE OUTPUT "${def}" CONTENT "${ARG_DOWNLOAD}\n${ARG_SHA256}\n")
+    file(CONFIGURE OUTPUT "${def}" CONTENT "${definition}\n")
 
-    # Download at build time via CMake's own verified download (file(DOWNLOAD ... EXPECTED_HASH ...));
-    # no curl/sha256sum/bash dependency.
     add_custom_command(
         OUTPUT "${out}"
-        COMMAND "${CMAKE_COMMAND}" "-DURL=${ARG_DOWNLOAD}" "-DSHA256=${ARG_SHA256}" "-DDEST=${out}"
-                -P "${fetch}"
-        DEPENDS "${def}" "${fetch}"
-        COMMENT "benchmark data: fetching ${name}"
+        COMMAND ${command}
+        DEPENDS "${def}"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        JOB_POOL benchmark_data
+        COMMENT "benchmark data: ${verb} ${name}"
         VERBATIM
     )
     set_property(GLOBAL APPEND PROPERTY BENCHMARK_DATASETS "${out}")

@@ -1,17 +1,24 @@
-This folder contains self-contained tests (all with their own respective main() function).
+This folder holds the performance benchmarks. They are GTest tests in a single `rhydb_benchmark`
+binary, since they take minutes and read multi-gigabyte inputs, they are not part of `make test`.
 
-All .cpp-files in this folder are targets of the cmake project and can be configured, made, and executed from the home repo after building RhyDB, e.g.:
+Build and run all of them (preparing their input data first if needed):
+
 ```shell
-make build/Release/rhydb
-
-cmake --build build/Release --target performance/mutation_benchmark
-
-./build/Release/performance/mutation_benchmark
+make benchmarks
 ```
 
-These binaries will provide some text output on the performance and can be profiled independently.
+Or build once and pick a scope, which is also how to profile a single benchmark:
 
-They are not unit tests as they can take more extensive time to execute.
+```shell
+cmake --build build/Release --target rhydb_benchmark
+
+./build/Release/performance/rhydb_benchmark --gtest_list_tests
+./build/Release/performance/rhydb_benchmark --gtest_filter='Mutations*'
+```
+
+Each benchmark prints its own timings and GTest reports its wall time; a benchmark that throws (for
+instance because its dataset is missing) is reported as a failed test without stopping the others,
+and the binary exits non-zero.
 
 ## Test data
 
@@ -22,24 +29,26 @@ its dataset back from there. Prepare the data once before running any benchmark:
 make generateTestData
 ```
 
-This does two things: it runs `generate_test_data` to generate the synthetic datasets (several
-gigabytes of NDJSON) locally, and it builds the `benchmark_data` CMake target to download the one
-real-data slice used by `real_data_mutations_benchmark`. That slice is declared in
-`performance/CMakeLists.txt` via `benchmark_dataset()` (URL + sha256), so the download is defined in
-the build, not in C++, and is change-detected: it is fetched only when missing or when the declaration
-changes, and skipped otherwise. Re-run `make generateTestData` when the generators in
-`sequence_generator.h` change. If a benchmark is run before its data exists, it fails with a message
-pointing back to `make generateTestData`. The synthetic dataset paths
-are the `*_NDJSON_PATH` constants in `sequence_generator.h`.
+Every dataset is declared in `performance/CMakeLists.txt`, and `make generateTestData` builds the
+`benchmark_data` CMake target that materializes them:
 
-To build and run every benchmark in one step (generating the data first if needed), use:
+```cmake
+benchmark_dataset(short_reads_5m.ndjson GENERATE)
 
-```shell
-make benchmarks
+benchmark_dataset(wasap_mutation_coverage.ndjson.zst
+    DOWNLOAD <url>
+    SHA256   <hex>)
 ```
 
-This runs `performance/run_benchmarks.sh`, which executes each benchmark in sequence, continues past
-any that fail, and reports which ones exited non-zero.
+`GENERATE` datasets are written locally by the `generate_test_data` tool (several gigabytes of
+NDJSON), which maps each file name to its writer; the `DOWNLOAD` one is fetched and
+checksum-verified. So what data exists and where it comes from is defined in the build rather than in
+C++, and it is change-detected: a dataset is produced only when it is missing, when its declaration
+changes, or -- for the generated ones -- when `generate_test_data.cpp`, `sequence_generator.h`, or
+the reference genome they are built from changes. Re-running `make generateTestData` when nothing
+changed does nothing. If a benchmark is run before its data exists, it fails with a message pointing
+back to `make generateTestData`. Benchmarks address a dataset by the same file name the build
+declares (the `*_NDJSON` constants in `sequence_generator.h`) and open it with `openTestDataInput()`.
 
 ## Clustered ingestion (`clustered_ingestion_benchmark`)
 
@@ -81,5 +90,5 @@ benchmark_dataset(wasap_mutation_coverage.ndjson.zst
     SHA256   <hex>)
 ```
 
-`make generateTestData` builds the `benchmark_data` target, which invokes
-`performance/ci/fetch_dataset.cmake` through CMake's script mode.
+`make generateTestData` builds the `benchmark_data` target, which fetches it through CMake's script
+mode (the download runs `performance/BenchmarkData.cmake` as a script).

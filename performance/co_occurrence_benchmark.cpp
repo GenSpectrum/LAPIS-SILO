@@ -15,6 +15,7 @@
 
 #include <arrow/compute/api.h>
 #include <fmt/format.h>
+#include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
@@ -65,7 +66,7 @@ schema:
       )
    );
 
-   auto ndjson = openTestDataInput(CO_OCCURRENCE_NDJSON_PATH);
+   auto ndjson = openTestDataInput(CO_OCCURRENCE_NDJSON);
    database->appendData(rhydb::schema::TableName::getDefault(), ndjson);
    return database;
 }
@@ -108,16 +109,7 @@ size_t planAndExecute(
    return rows;
 }
 
-}  // namespace
-
-int main() {
-   changeCwdToTestFolder();
-   // Register Arrow's compute kernels (e.g. utf8_slice_codeunits, used by the `at` scalar function).
-   if (!arrow::compute::Initialize().ok()) {
-      SPDLOG_ERROR("Failed to initialize Arrow compute");
-      return 1;
-   }
-
+void run() {
    const auto query_options = rhydb::config::RuntimeConfig::withDefaults().query_options;
 
    const std::string reference = makeCoOccurrenceReference();
@@ -160,6 +152,10 @@ int main() {
       sum_ms / ITERATIONS,
       min_ms
    );
+}
 
-   return 0;
+}  // namespace
+
+TEST(CoOccurrence, groupByOverSyntheticSequences) {
+   run();
 }

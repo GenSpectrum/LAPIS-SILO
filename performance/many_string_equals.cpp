@@ -8,6 +8,8 @@
 
 #include <fmt/format.h>
 
+#include <gtest/gtest.h>
+
 #include "sequence_generator.h"
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/initialize/initializer.h"
@@ -86,7 +88,7 @@ schema:
 
 /// Create a database from the generated accession/country records on disk
 std::shared_ptr<Database> setupTestDatabase() {
-   auto input_buffer = openTestDataInput(STRING_EQUALS_NDJSON_PATH);
+   auto input_buffer = openTestDataInput(STRING_EQUALS_NDJSON);
    auto database = initializeDatabase();
    database->appendData(rhydb::schema::TableName::getDefault(), input_buffer);
 
@@ -202,10 +204,7 @@ BenchmarkResult runBenchmark(
    };
 }
 
-}  // namespace
-
-int main() {
-   changeCwdToTestFolder();
+void run() {
    SPDLOG_INFO("=== StringInSet vs Many StringEquals Performance Benchmark ===");
    SPDLOG_INFO("");
 
@@ -343,5 +342,10 @@ int main() {
    }
 
    SPDLOG_INFO("=== Benchmark Complete ===");
-   return 0;
+}
+
+}  // namespace
+
+TEST(ManyStringEquals, stringInSetVersusOrChain) {
+   run();
 }

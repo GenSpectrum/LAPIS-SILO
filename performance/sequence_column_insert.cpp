@@ -3,6 +3,7 @@
 #include <exception>
 #include <string>
 
+#include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
@@ -21,12 +22,11 @@ double toMs(std::chrono::steady_clock::time_point start, std::chrono::steady_clo
 // column-group builder -> sequence column), measuring the end-to-end append time. The dataset is
 // generated once by `make generateTestData` (writeNRunSequenceNdjson).
 void run() {
-   changeCwdToTestFolder();
    const std::string reference = readReferenceFromFile();
    SPDLOG_INFO("reference length {}", reference.size());
 
    auto database = initializeDatabaseWithFullSequenceSchema(reference);
-   auto input = openTestDataInput(SEQUENCE_COLUMN_NDJSON_PATH);
+   auto input = openTestDataInput(SEQUENCE_COLUMN_NDJSON);
 
    const auto start = std::chrono::steady_clock::now();
    database->appendData(rhydb::schema::TableName::getDefault(), input);
@@ -38,11 +38,6 @@ void run() {
 
 }  // namespace
 
-int main() {
-   try {
-      run();
-   } catch (const std::exception& e) {
-      SPDLOG_ERROR(e.what());
-      return EXIT_FAILURE;
-   }
+TEST(SequenceColumnInsert, appendSequencesWithNRuns) {
+   run();
 }
