@@ -37,7 +37,7 @@ const QueryTestData TEST_DATA{
 const QueryTestScenario PROJECT_EMPTY_SCENARIO = {
    .name = "PROJECT_EMPTY",
    .query = "default.project({})",
-   .expected_query_result = nlohmann::json::array(),
+   .expected_error_message = "project must keep at least one column",
 };
 
 const QueryTestScenario PROJECTOUT_SET_SCENARIO = {
@@ -72,7 +72,7 @@ const QueryTestScenario PROJECTOUT_OVER_GROUP_BY_SCENARIO = {
 const QueryTestScenario PROJECTOUT_ALL_SCENARIO = {
    .name = "PROJECTOUT_ALL",
    .query = "default.projectout({primaryKey, country, age})",
-   .expected_query_result = nlohmann::json::array(),
+   .expected_error_message = "projectout must leave at least one column in the output",
 };
 
 const QueryTestScenario PROJECTOUT_UNKNOWN_COLUMN_SCENARIO = {

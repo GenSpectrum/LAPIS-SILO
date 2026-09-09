@@ -1081,6 +1081,7 @@ operators::QueryNodePtr handleProject(
       );
       fields.emplace_back(name, found->type);
    }
+   CHECK_RHYDB_QUERY(!fields.empty(), "project must keep at least one column");
    return std::make_unique<operators::ProjectNode>(std::move(child), std::move(fields));
 }
 
@@ -1113,6 +1114,7 @@ operators::QueryNodePtr handleProjectout(
          fields.push_back(col);
       }
    }
+   CHECK_RHYDB_QUERY(!fields.empty(), "projectout must leave at least one column in the output");
    return std::make_unique<operators::ProjectNode>(std::move(child), std::move(fields));
 }
 
