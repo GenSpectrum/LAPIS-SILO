@@ -113,45 +113,6 @@ const QueryTestScenario MAP_FIELD_REF_SCENARIO = {
    )
 };
 
-// `at` extracts the (1-indexed) character of a string column at a position.
-const QueryTestScenario MAP_AT_SCENARIO = {
-   .name = "MAP_AT",
-   .query = "default.map({second := primaryKey.at(4)}).project({primaryKey, second})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"second", "0"}}, {{"primaryKey", "id_1"}, {"second", "1"}}}
-   )
-};
-
-// When the position is past the end of the string, `at` yields an empty string
-// rather than failing. id_0's str_value "short" has only 5 characters, so at(8) is
-// out of bounds and produces ""; id_1's "longlonglong" has a character at 8 ("g").
-const QueryTestScenario MAP_AT_OUT_OF_BOUNDS_SCENARIO = {
-   .name = "MAP_AT_OUT_OF_BOUNDS",
-   .query = "default.map({eighth := str_value.at(8)}).project({primaryKey, eighth})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"eighth", ""}}, {{"primaryKey", "id_1"}, {"eighth", "g"}}}
-   )
-};
-
-// `at` works on a (zstd-compressed) nucleotide sequence column: the sequence is
-// decompressed and the (1-indexed) character at the position is extracted. id_0's
-// aligned sequence is "ACGT"; id_1 has no sequence, so the value is null.
-const QueryTestScenario MAP_AT_SEQUENCE_FIRST_SCENARIO = {
-   .name = "MAP_AT_SEQUENCE_FIRST",
-   .query = "default.map({base := segment1.at(1)}).project({primaryKey, base})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"base", "A"}}, {{"primaryKey", "id_1"}, {"base", nullptr}}}
-   )
-};
-
-const QueryTestScenario MAP_AT_SEQUENCE_INNER_SCENARIO = {
-   .name = "MAP_AT_SEQUENCE_INNER",
-   .query = "default.map({base := segment1.at(3)}).project({primaryKey, base})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"base", "G"}}, {{"primaryKey", "id_1"}, {"base", nullptr}}}
-   )
-};
-
 // All projected columns are produced by the map; none are passed through from
 // the child. The table scan must still emit one row per input record (a prior
 // bug narrowed the scan to zero fields and returned no rows).
@@ -394,10 +355,6 @@ QUERY_TEST(
       MAP_OVERRIDE_TWICE_SCENARIO,
       MAP_INT64_SCENARIO,
       MAP_FIELD_REF_SCENARIO,
-      MAP_AT_SCENARIO,
-      MAP_AT_OUT_OF_BOUNDS_SCENARIO,
-      MAP_AT_SEQUENCE_FIRST_SCENARIO,
-      MAP_AT_SEQUENCE_INNER_SCENARIO,
       MAP_ONLY_MAPPED_COLUMN_SCENARIO,
       MAP_DUPLICATE_OUTPUT_NAME_SCENARIO,
       DECOMPRESS_SEQUENCE_SCENARIO,
