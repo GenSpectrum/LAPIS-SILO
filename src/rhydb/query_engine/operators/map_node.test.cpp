@@ -321,6 +321,34 @@ const QueryTestScenario FILTER_OR_ABOVE_MAP_SCENARIO = {
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
+const QueryTestScenario FILTER_NOT_EQUALS_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_NOT_EQUALS_ABOVE_MAP",
+   .query = "default.map({tag := int_value}).filter(tag <> 1).project({primaryKey, tag})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_1"}, {"tag", 2}}})
+};
+
+const QueryTestScenario FILTER_LESS_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_LESS_ABOVE_MAP",
+   .query = "default.map({tag := int_value}).filter(tag < 2).project({primaryKey, tag})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}, {"tag", 1}}})
+};
+
+// A comparison against a date literal on a map-produced date column, executed as an Arrow filter
+// above the map.
+const QueryTestScenario FILTER_DATE_LITERAL_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_DATE_LITERAL_ABOVE_MAP",
+   .query = "default.map({d := date}).filter(d > '2023-06-01'::date).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_1"}}})
+};
+
+const QueryTestScenario FILTER_NESTED_AND_IN_OR_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_NESTED_AND_IN_OR_ABOVE_MAP",
+   .query =
+      "default.map({tag := int_value})"
+      ".filter((tag >= 2 && tag <= 2) || tag = 1).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
+};
+
 // Negation is deliberately rejected in filters on subexpressions until the native null-semantics
 // inconsistency (issue #1525) is resolved.
 const QueryTestScenario FILTER_NEGATION_ABOVE_MAP_REJECTED_SCENARIO = {
@@ -375,6 +403,10 @@ QUERY_TEST(
       FILTER_COMPARISON_ABOVE_MAP_SCENARIO,
       FILTER_AND_RANGE_ABOVE_MAP_SCENARIO,
       FILTER_OR_ABOVE_MAP_SCENARIO,
+      FILTER_NOT_EQUALS_ABOVE_MAP_SCENARIO,
+      FILTER_LESS_ABOVE_MAP_SCENARIO,
+      FILTER_DATE_LITERAL_ABOVE_MAP_SCENARIO,
+      FILTER_NESTED_AND_IN_OR_ABOVE_MAP_SCENARIO,
       FILTER_NEGATION_ABOVE_MAP_REJECTED_SCENARIO,
       MAP_ISO_WEEK_SCENARIO
    )

@@ -7,7 +7,6 @@
 
 #include <arrow/compute/api.h>
 
-#include "rhydb/common/panic.h"
 #include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/filter/operators/index_scan.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
