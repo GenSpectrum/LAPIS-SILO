@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.14.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.14.2...v0.14.3) (2026-09-09)
+
+
+### Features
+
+* add `a[i]` square-bracket notation ([#1524](https://github.com/GenSpectrum/LAPIS-SILO/issues/1524)) ([c99129c](https://github.com/GenSpectrum/LAPIS-SILO/commit/c99129c07c355d7b995c5ff62e68b50953d7b2ba))
+
+
+### Bug Fixes
+
+* **rhydb:** implement custom arrow::acero node for selectK ([#1544](https://github.com/GenSpectrum/LAPIS-SILO/issues/1544)) ([b545e1f](https://github.com/GenSpectrum/LAPIS-SILO/commit/b545e1fd7338e56bb3de0d5a3c9283578e620787))
+
 ## [0.14.2](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.14.1...v0.14.2) (2026-09-04)
 
 
