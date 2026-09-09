@@ -214,15 +214,16 @@ const QueryTestScenario SCHEMA_EXTRA_ARG_ERROR_SCENARIO = {
    .expected_error_message = "schema() received too many positional arguments"
 };
 
-// schema() is a source operator: there is no underlying data source above it for a
-// predicate to be pushed into, so filter() cannot be realized on its output. The query
-// is rejected at planning time rather than silently returning the unfiltered schema.
-const QueryTestScenario FILTER_AFTER_SCHEMA_ERROR_SCENARIO = {
-   .name = "FILTER_AFTER_SCHEMA_ERROR",
+const QueryTestScenario FILTER_AFTER_SCHEMA_SCENARIO = {
+   .name = "FILTER_AFTER_SCHEMA",
    .query = "default.schema().filter(type='STRING')",
-   .expected_error_message =
-      "filter() cannot be applied to the output of schema(); schema() is a source operator "
-      "and its result cannot be filtered. Apply filter() before schema() instead."
+   .expected_query_result = nlohmann::json(
+      {{{"fieldName", "country"}, {"type", "STRING"}},
+       {{"fieldName", "gene1"}, {"type", "STRING"}},
+       {{"fieldName", "primaryKey"}, {"type", "STRING"}},
+       {{"fieldName", "segment1"}, {"type", "STRING"}},
+       {{"fieldName", "unaligned_segment1"}, {"type", "STRING"}},}
+   ),
 };
 
 // schema() must validate its child the same way it would be validated without the trailing
@@ -276,7 +277,7 @@ QUERY_TEST(
       SCHEMA_OF_SCHEMA_SCENARIO,
       SCHEMA_IGNORES_DATA_SCENARIO,
       SCHEMA_EXTRA_ARG_ERROR_SCENARIO,
-      FILTER_AFTER_SCHEMA_ERROR_SCENARIO,
+      FILTER_AFTER_SCHEMA_SCENARIO,
       SCHEMA_PROPAGATES_BAD_SEQUENCE_ERROR_SCENARIO,
       SCHEMA_PROPAGATES_NON_SCAN_ERROR_SCENARIO,
       SCHEMA_AFTER_FILTERED_MUTATIONS_SCENARIO

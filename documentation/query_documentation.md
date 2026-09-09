@@ -488,8 +488,6 @@ so operators such as `project`, `map`, `orderBy` and `limit` can be chained afte
 When a sequence column is read into a pipeline it is decompressed to a string before `schema()` observes it,
 so nucleotide and amino acid sequences cannot be distinguished from ordinary strings at this point.
 
-**Limitation:** `filter(...)` cannot be applied to `schema()`. `schema()` is a pipeline breaker that produces a new result relation, and filtering its output is not supported; apply the filter before `schema()` instead.
-
 ### `transitiveClosure(input, from, to [, includeVertices:=bool])`
 
 Computes the transitive closure of a directed relation. The `input` is any relation-producing
