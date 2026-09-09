@@ -153,12 +153,7 @@ const QueryTestScenario MUTATIONS_INVALID_FIELD = {
 };
 
 // ---- filtering the OUTPUT of mutations() (regression tests for #1372) ----
-//
-// Previously a filter above mutations() was pushed into the input scan and failed with "database
-// does not contain the column 'proportion'". mutations() is now a pushdown barrier, so a filter
-// above it is retained and runs as an Arrow filter over its output columns.
 
-// A filter on a mutations() output column (proportion) that keeps only the high-proportion row.
 const QueryTestScenario FILTER_MUTATIONS_OUTPUT_PROPORTION_KEEP = {
    .name = "FILTER_MUTATIONS_OUTPUT_PROPORTION_KEEP",
    .query = "default.mutations(minProportion:=0.0).filter(proportion > 0.4)",
@@ -168,16 +163,12 @@ const QueryTestScenario FILTER_MUTATIONS_OUTPUT_PROPORTION_KEEP = {
    ])")
 };
 
-// The same output filter with a threshold above every row's proportion yields an empty result
-// (rather than an error) - proving the predicate really runs over the output.
 const QueryTestScenario FILTER_MUTATIONS_OUTPUT_PROPORTION_DROP = {
    .name = "FILTER_MUTATIONS_OUTPUT_PROPORTION_DROP",
    .query = "default.mutations(minProportion:=0.0).filter(proportion > 0.6)",
    .expected_query_result = nlohmann::json::array()
 };
 
-// A compound filter over an integer (count) and a string (sequenceName) output column, exercising
-// boolean combination above the mutations barrier.
 const QueryTestScenario FILTER_MUTATIONS_OUTPUT_COUNT_AND_SEQUENCE = {
    .name = "FILTER_MUTATIONS_OUTPUT_COUNT_AND_SEQUENCE",
    .query = "default.mutations(minProportion:=0.0).filter(count = 1 && sequenceName = 'segment2')",
