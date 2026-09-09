@@ -81,7 +81,8 @@ std::optional<RhyDBDataSource> RhyDBDirectory::getMostRecentDataDirectory() cons
          return entry;
       }
       SPDLOG_WARN(
-         "The database output {} is incompatible with the current SILO serialization version '{}'.",
+         "The database output {} is incompatible with the current RhyDB serialization version "
+         "'{}'.",
          entry.data_version.toString(),
          rhydb::DataVersion::CURRENT_RHYDB_SERIALIZATION_VERSION.value
       );
