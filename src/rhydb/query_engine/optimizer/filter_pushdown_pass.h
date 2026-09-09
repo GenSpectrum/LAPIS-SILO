@@ -1,5 +1,7 @@
 #pragma once
 
+#include <concepts>
+
 #include "rhydb/query_engine/operators/query_node.h"
 #include "rhydb/query_engine/optimizer/pipeline_pass_base.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
@@ -12,16 +14,6 @@ class OrderByNode;
 class TableScanNode;
 class UnionAllNode;
 class JoinNode;
-class SchemaNode;
-class FetchNode;
-class OrderByWithLimitNode;
-class AggregateNode;
-template <typename SymbolType>
-class UnresolvedMutationsNode;
-template <typename SymbolType>
-class UnresolvedInsertionsNode;
-class UnresolvedPhyloSubtreeNode;
-class UnresolvedMostRecentCommonAncestorNode;
 class TransitiveClosureNode;
 }  // namespace rhydb::query_engine::operators
 
@@ -39,6 +31,11 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    /// can be pushed independently.
    void addFilter(std::unique_ptr<scalar_expressions::ScalarExpression> filter);
 
+   /// Barrier body shared by every barrier handler: processes `child` with a fresh pass so filters
+   /// inside the child subtree are pushed down, without letting filters from above the barrier leak
+   /// into it.
+   static void barrier(operators::QueryNodePtr& child);
+
   public:
    /// Visits `node`, then wraps any filters it left pending into a FilterNode above it. This is
    /// what makes "break pushdown" the default.
@@ -55,26 +52,21 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    operators::QueryNodePtr operator()(operators::FilterNode& node);
    operators::QueryNodePtr operator()(operators::MapNode& node);
    operators::QueryNodePtr operator()(operators::UnionAllNode& node);
-   operators::QueryNodePtr operator()(operators::SchemaNode& node);
+   operators::QueryNodePtr operator()(operators::JoinNode& node);
    operators::QueryNodePtr operator()(operators::TransitiveClosureNode& node);
 
-   // Barriers: push filters inside their own child subtree down with a fresh pass; filters from
-   // above are retained by `propagateToNode`.
-   operators::QueryNodePtr operator()(operators::JoinNode& node);
-   operators::QueryNodePtr operator()(operators::FetchNode& node);
-   operators::QueryNodePtr operator()(operators::OrderByWithLimitNode& node);
-   operators::QueryNodePtr operator()(operators::AggregateNode& node);
-   template <typename SymbolType>
-   operators::QueryNodePtr operator()(operators::UnresolvedMutationsNode<SymbolType>& node);
-   template <typename SymbolType>
-   operators::QueryNodePtr operator()(operators::UnresolvedInsertionsNode<SymbolType>& node);
-   operators::QueryNodePtr operator()(operators::UnresolvedPhyloSubtreeNode& node);
-   operators::QueryNodePtr operator()(operators::UnresolvedMostRecentCommonAncestorNode& node);
-
-   // Fail-closed default: any other node is a barrier. Leaf/source nodes reach here with
-   // no pending filters and are left untouched.
+   // Fail-closed default. A node with no explicit handler and a single `QueryNodePtr child` is a
+   // barrier: the filter above it is retained by `propagateToNode`, while its child subtree is
+   // pushed into with a fresh pass. Any other (childless/leaf, or resolved) node is
+   // left untouched.
    template <typename T>
-   operators::QueryNodePtr operator()(T& /*node*/) {
+   // NOLINTNEXTLINE(misc-no-recursion)
+   operators::QueryNodePtr operator()(T& node) {
+      if constexpr (requires {
+                       { node.child } -> std::same_as<operators::QueryNodePtr&>;
+                    }) {
+         barrier(node.child);
+      }
       return nullptr;
    }
 };

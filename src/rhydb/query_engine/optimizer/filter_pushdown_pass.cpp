@@ -154,10 +154,13 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::TableScanNode&
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::SchemaNode& node) {
+void FilterPushdownPass::barrier(operators::QueryNodePtr& child) {
+   // A fresh pass keeps the child subtree's own filters from mixing with the filters above the
+   // barrier: the latter stay in this pass's `current_filters` (retained above the barrier by
+   // propagateToNode), while filters inside the child are pushed down (e.g. into the table scan, as
+   // NodeResolutionPass requires beneath mutations()/insertions()).
    FilterPushdownPass child_pass;
-   child_pass.propagateToNode(node.child);
-   return nullptr;
+   child_pass.propagateToNode(child);
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -170,10 +173,7 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::TransitiveClos
       "filter() cannot be applied to the output of transitiveClosure(); transitiveClosure() is "
       "a source operator and its result cannot be filtered. Apply filter() to its input instead."
    );
-   // Push filters down within the child subtree using a fresh pass so nothing leaks across the
-   // materialization boundary (e.g. `relation.filter(...).transitiveClosure(...)`).
-   FilterPushdownPass child_pass;
-   child_pass.propagateToNode(node.child);
+   barrier(node.child);
    return nullptr;
 }
 
@@ -188,92 +188,12 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::JoinNode& node
    // propagateToNode (realized as an Arrow filter over the join output).
    //
    // The child subtrees may still contain FilterNodes of their own (e.g.
-   // `join(default.filter(...), ...)`); push those down within each input using fresh passes so no
-   // state leaks between the two branches or with the filters left above the join.
-   FilterPushdownPass left_pass;
-   FilterPushdownPass right_pass;
-   left_pass.propagateToNode(node.left);
-   right_pass.propagateToNode(node.right);
+   // `join(default.filter(...), ...)`); each input is a barrier of its own so no state leaks
+   // between the two branches or with the filters left above the join.
+   barrier(node.left);
+   barrier(node.right);
    return nullptr;
 }
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::FetchNode& node) {
-   // A FetchNode (limit/offset) changes which rows survive, so a filter above it must not be pushed
-   // below it: `default.limit(1).filter(...)` must filter the single limited row, not pre-filter
-   // the input and then limit.
-   FilterPushdownPass child_pass;
-   child_pass.propagateToNode(node.child);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::OrderByWithLimitNode& node) {
-   // Like FetchNode, this keeps only the top `offset + limit` rows, so pushing a filter below it
-   // would change the result set.
-   FilterPushdownPass child_pass;
-   child_pass.propagateToNode(node.child);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::AggregateNode& node) {
-   // An aggregate produces a new schema (group-by keys and aggregate outputs such as `count`).
-   FilterPushdownPass child_pass;
-   child_pass.propagateToNode(node.child);
-   return nullptr;
-}
-
-// mutations()/insertions() and the phylo source operators produce a NEW result schema.
-template <typename SymbolType>
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::UnresolvedMutationsNode<SymbolType>& node
-) {
-   FilterPushdownPass child_pass;
-   child_pass.propagateToNode(node.child);
-   return nullptr;
-}
-
-template <typename SymbolType>
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::UnresolvedInsertionsNode<SymbolType>& node
-) {
-   FilterPushdownPass child_pass;
-   child_pass.propagateToNode(node.child);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnresolvedPhyloSubtreeNode& node
-) {
-   FilterPushdownPass child_pass;
-   child_pass.propagateToNode(node.child);
-   return nullptr;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::UnresolvedMostRecentCommonAncestorNode& node
-) {
-   FilterPushdownPass child_pass;
-   child_pass.propagateToNode(node.child);
-   return nullptr;
-}
-
-template operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::UnresolvedMutationsNode<Nucleotide>& node
-);
-template operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::UnresolvedMutationsNode<AminoAcid>& node
-);
-template operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::UnresolvedInsertionsNode<Nucleotide>& node
-);
-template operators::QueryNodePtr FilterPushdownPass::operator()(
-   operators::UnresolvedInsertionsNode<AminoAcid>& node
-);
 
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::UnionAllNode& node) {

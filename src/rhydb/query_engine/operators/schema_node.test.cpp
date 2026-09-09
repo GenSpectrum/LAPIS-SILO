@@ -217,13 +217,13 @@ const QueryTestScenario SCHEMA_EXTRA_ARG_ERROR_SCENARIO = {
 const QueryTestScenario FILTER_AFTER_SCHEMA_SCENARIO = {
    .name = "FILTER_AFTER_SCHEMA",
    .query = "default.schema().filter(type='STRING')",
-   .expected_query_result = nlohmann::json(
-      {{{"fieldName", "country"}, {"type", "STRING"}},
-       {{"fieldName", "gene1"}, {"type", "STRING"}},
-       {{"fieldName", "primaryKey"}, {"type", "STRING"}},
-       {{"fieldName", "segment1"}, {"type", "STRING"}},
-       {{"fieldName", "unaligned_segment1"}, {"type", "STRING"}},}
-   ),
+   .expected_query_result = nlohmann::json({
+      {{"fieldName", "country"}, {"type", "STRING"}},
+      {{"fieldName", "gene1"}, {"type", "STRING"}},
+      {{"fieldName", "primaryKey"}, {"type", "STRING"}},
+      {{"fieldName", "segment1"}, {"type", "STRING"}},
+      {{"fieldName", "unaligned_segment1"}, {"type", "STRING"}},
+   }),
 };
 
 // schema() must validate its child the same way it would be validated without the trailing
