@@ -165,7 +165,7 @@ const QueryTestScenario MUTATIONS_INVALID_FIELD = {
       "mutationFrom, mutationTo, position, sequenceName, proportion, coverage, count."
 };
 
-// ---- filtering the OUTPUT of mutations() (regression tests for #1372) ----
+// ---- filtering the OUTPUT of mutations() ----
 
 const QueryTestScenario FILTER_MUTATIONS_OUTPUT_PROPORTION_KEEP = {
    .name = "FILTER_MUTATIONS_OUTPUT_PROPORTION_KEEP",
