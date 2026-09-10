@@ -518,8 +518,7 @@ tables()
 {"tableName": "myTable"}
 ```
 
-`tables()` produces an ordinary relation, so operators such as `project`, `map`, `orderBy` and
-`limit` can be chained after it.
+`tables()` produces an ordinary relation, so operators such as `filter` and `limit` can be chained after it.
 
 ### `transitiveClosure(input, from, to [, includeVertices:=bool])`
 
