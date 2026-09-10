@@ -347,6 +347,26 @@ int64_t countInTableWhere(
 }
 }  // namespace
 
+TEST(DatabaseTablesQueryTest, listsAllTablesSortedByName) {
+   rhydb::Database database;
+   database.createTable(TableName{"source"}, makeValueColumnSchema());
+   database.createTable(TableName{"archive"}, makeValueColumnSchema());
+   database.createTable(TableName{"backup"}, makeValueColumnSchema());
+
+   auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
+      "tables()", database.tables, rhydb::config::QueryOptions{}, "tables_query"
+   );
+
+   ASSERT_EQ(
+      rhydb::test::executeQueryToJsonArray(query_plan),
+      nlohmann::json::array({
+         {{"tableName", "archive"}},
+         {{"tableName", "backup"}},
+         {{"tableName", "source"}},
+      })
+   );
+}
+
 TEST(DatabaseInsertQueryTest, copiesFilteredRowsFromOneTableIntoAnother) {
    rhydb::Database database;
    database.createTable(TableName{"source"}, makeValueColumnSchema());
