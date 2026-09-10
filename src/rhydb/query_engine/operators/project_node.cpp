@@ -5,11 +5,15 @@
 #include <arrow/compute/api.h>
 #include <nlohmann/json.hpp>
 
+#include "rhydb/query_engine/illegal_query_exception.h"
+
 namespace rhydb::query_engine::operators {
 
 ProjectNode::ProjectNode(QueryNodePtr child, std::vector<schema::ColumnIdentifier> fields)
     : child(std::move(child)),
-      fields(std::move(fields)) {}
+      fields(std::move(fields)) {
+   CHECK_RHYDB_QUERY(!this->fields.empty(), "a projection must keep at least one column");
+}
 
 std::vector<schema::ColumnIdentifier> ProjectNode::getOutputSchema() const {
    return fields;
