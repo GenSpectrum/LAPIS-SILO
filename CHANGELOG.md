@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.14.3...v0.14.4) (2026-09-10)
+
+
+### Features
+
+* **query_engine:** add `projectout()` function to query language ([#1550](https://github.com/GenSpectrum/LAPIS-SILO/issues/1550)) ([964fe38](https://github.com/GenSpectrum/LAPIS-SILO/commit/964fe384cba095cd76f8d6c695af2f31e7a8cb52))
+
 ## [0.14.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.14.2...v0.14.3) (2026-09-09)
 
 
