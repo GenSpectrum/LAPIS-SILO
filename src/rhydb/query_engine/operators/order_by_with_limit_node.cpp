@@ -8,15 +8,12 @@
 #include <vector>
 
 #include <arrow/acero/exec_plan.h>
-#include <arrow/acero/options.h>
 #include <arrow/compute/api.h>
 #include <arrow/compute/ordering.h>
-#include <arrow/type.h>
-#include <arrow/util/async_generator_fwd.h>
 #include <nlohmann/json.hpp>
 
 #include "rhydb/common/panic.h"
-#include "rhydb/query_engine/exec_node/arrow_util.h"
+#include "rhydb/query_engine/exec_node/select_k.h"
 #include "rhydb/query_engine/operators/order_by_randomize.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/table.h"
@@ -40,6 +37,37 @@ std::vector<schema::ColumnIdentifier> OrderByWithLimitNode::getOutputSchema() co
    return child->getOutputSchema();
 }
 
+namespace {
+
+std::vector<arrow::compute::SortKey> buildSortKeys(
+   const std::vector<OrderByField>& fields,
+   bool has_randomize_seed
+) {
+   using arrow::compute::NullPlacement;
+   using arrow::compute::SortOrder;
+
+   // Build the sort keys exactly as OrderByNode does, so a rewritten query orders identically to
+   // the `order_by | limit` it replaces. Nulls sort as the smallest element.
+   std::vector<arrow::compute::SortKey> sort_keys;
+   sort_keys.reserve(fields.size() + (has_randomize_seed ? 1 : 0));
+   for (const auto& order_by_field : fields) {
+      const auto sort_order =
+         order_by_field.ascending ? SortOrder::Ascending : SortOrder::Descending;
+      const auto null_placement =
+         order_by_field.ascending ? NullPlacement::AtStart : NullPlacement::AtEnd;
+      sort_keys.emplace_back(order_by_field.field.name, sort_order, null_placement);
+   }
+   // A randomize seed adds the per-row random hash as the lowest-priority (tie-breaking) sort key,
+   // matching OrderByNode; with no explicit fields it becomes the sole key, yielding a random
+   // order.
+   if (has_randomize_seed) {
+      sort_keys.emplace_back(RANDOMIZE_HASH_FIELD_NAME);
+   }
+   return sort_keys;
+}
+
+}  // namespace
+
 arrow::Result<arrow::acero::ExecNode*> OrderByWithLimitNode::addToExecPlan(
    arrow::acero::ExecPlan& plan,
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
@@ -51,85 +79,17 @@ arrow::Result<arrow::acero::ExecNode*> OrderByWithLimitNode::addToExecPlan(
 
    ARROW_ASSIGN_OR_RAISE(auto* top_node, child->addToExecPlan(plan, tables, query_options));
 
-   using arrow::compute::NullPlacement;
-   using arrow::compute::SortOrder;
-
-   // Build the sort keys exactly as OrderByNode does, so a rewritten query orders identically to
-   // the `order_by | limit` it replaces. Nulls sort as the smallest element.
-   std::vector<arrow::compute::SortKey> sort_keys;
-   sort_keys.reserve(fields.size() + (randomize_seed.has_value() ? 1 : 0));
-   for (const auto& order_by_field : fields) {
-      const auto sort_order =
-         order_by_field.ascending ? SortOrder::Ascending : SortOrder::Descending;
-      const auto null_placement =
-         order_by_field.ascending ? NullPlacement::AtStart : NullPlacement::AtEnd;
-      sort_keys.emplace_back(order_by_field.field.name, sort_order, null_placement);
-   }
-   // A randomize seed adds the per-row random hash as the lowest-priority (tie-breaking) sort key,
-   // matching OrderByNode; with no explicit fields it becomes the sole key, yielding a random
-   // order.
-   if (randomize_seed.has_value()) {
-      sort_keys.emplace_back(RANDOMIZE_HASH_FIELD_NAME);
-   }
-
-   // select_k returns the `k` smallest rows in sorted order. To honor an offset we select the whole
-   // window that starts at row 0 and covers up to `offset + limit`, then skip the offset below.
-   const int64_t select_k = static_cast<int64_t>(offset.value_or(0)) + static_cast<int64_t>(limit);
-
-   const arrow::Ordering ordering{sort_keys};
+   const arrow::Ordering ordering{buildSortKeys(fields, randomize_seed.has_value())};
 
    if (randomize_seed.has_value()) {
       ARROW_ASSIGN_OR_RAISE(top_node, addRandomizeColumn(plan, top_node, randomize_seed.value()));
    }
 
-   arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> generator;
+   // The top-k stage preserves its input columns, so when randomizing its output still carries the
+   // random-hash column; `removeRandomizeColumn` projects it back out afterwards.
    ARROW_ASSIGN_OR_RAISE(
-      top_node,
-      arrow::acero::MakeExecNode(
-         "select_k_sink",
-         &plan,
-         {top_node},
-         arrow::acero::SelectKSinkNodeOptions{
-            arrow::compute::SelectKOptions{select_k, sort_keys}, &generator
-         }
-      )
+      top_node, exec_node::addSelectKNode(plan, top_node, ordering, offset.value_or(0), limit)
    );
-   top_node->SetLabel("order by with limit");
-
-   // The batches produced by select_k still carry the random-hash column (when randomizing), so the
-   // re-source schema must include it; `removeRandomizeColumn` projects it back out afterwards.
-   auto output_fields = exec_node::columnsToArrowSchema(getOutputSchema())->fields();
-   if (randomize_seed.has_value()) {
-      output_fields.emplace_back(
-         std::make_shared<arrow::Field>(RANDOMIZE_HASH_FIELD_NAME, arrow::uint64())
-      );
-   }
-   ARROW_ASSIGN_OR_RAISE(
-      top_node,
-      arrow::acero::MakeExecNode(
-         "source",
-         &plan,
-         {},
-         arrow::acero::SourceNodeOptions{
-            arrow::schema(output_fields), std::move(generator), ordering
-         }
-      )
-   );
-
-   // select_k already caps the output at the window size; only a non-zero offset still needs a
-   // fetch to skip the leading rows. The fetch runs before the random-hash column is projected out,
-   // while the stream still carries the ordering the fetch requires.
-   if (offset.value_or(0) > 0) {
-      ARROW_ASSIGN_OR_RAISE(
-         top_node,
-         arrow::acero::MakeExecNode(
-            std::string{arrow::acero::FetchNodeOptions::kName},
-            &plan,
-            {top_node},
-            arrow::acero::FetchNodeOptions(offset.value(), limit)
-         )
-      );
-   }
 
    if (randomize_seed.has_value()) {
       ARROW_ASSIGN_OR_RAISE(top_node, removeRandomizeColumn(plan, top_node));

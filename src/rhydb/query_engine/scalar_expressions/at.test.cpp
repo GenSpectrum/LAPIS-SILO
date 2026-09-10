@@ -52,6 +52,15 @@ const QueryTestScenario AT_STRING_SCENARIO = {
    )
 };
 
+// The square-bracket notation `col[i]` is shorthand for `col.at(i)`.
+const QueryTestScenario AT_BRACKET_SCENARIO = {
+   .name = "AT_BRACKET",
+   .query = "default.map({second := primaryKey[4]}).project({primaryKey, second})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"second", "0"}}, {{"primaryKey", "id_1"}, {"second", "1"}}}
+   ),
+};
+
 const QueryTestScenario AT_STRING_OUT_OF_BOUNDS_SCENARIO = {
    .name = "AT_STRING_OUT_OF_BOUNDS",
    .query = "default.map({eighth := str_value.at(8)}).project({primaryKey, eighth})",
@@ -102,6 +111,7 @@ QUERY_TEST(
    TEST_DATA,
    ::testing::Values(
       AT_STRING_SCENARIO,
+      AT_BRACKET_SCENARIO,
       AT_STRING_OUT_OF_BOUNDS_SCENARIO,
       AT_SEQUENCE_FIRST_SCENARIO,
       AT_SEQUENCE_INNER_SCENARIO,

@@ -17,4 +17,4 @@ This:
 4. Builds the test binary.
 5. Runs the save/reload test to produce a new serialized state directory.
 
-After it finishes, `git add` the new directory under `testBaseData/siloSerializedState/` and commit.
+After it finishes, `git add` the new directory under `testBaseData/rhydbSerializedState/` and commit.

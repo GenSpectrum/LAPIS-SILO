@@ -1,6 +1,6 @@
 This folder contains self-contained tests (all with their own respective main() function).
 
-All .cpp-files in this folder are targets of the cmake project and can be configured, made, and executed from the home repo after building SILO, e.g.:
+All .cpp-files in this folder are targets of the cmake project and can be configured, made, and executed from the home repo after building RhyDB, e.g.:
 ```shell
 make build/Release/rhydb
 
@@ -15,19 +15,22 @@ They are not unit tests as they can take more extensive time to execute.
 
 ## Test data
 
-The benchmarks no longer generate their input data on every run. Instead, a single tool
-(`generate_test_data`) produces all datasets once and writes them to disk under
-`localTestData/performance/` (gitignored); each benchmark reads its dataset back from there. Generate
-the data once before running any benchmark:
+Benchmark datasets are produced under `localTestData/performance/` (gitignored); each benchmark reads
+its dataset back from there. Prepare the data once before running any benchmark:
 
 ```shell
 make generateTestData
 ```
 
-This writes several gigabytes of NDJSON. Re-run it only when the generators in `sequence_generator.h`
-change. If a benchmark is run before the data exists, it fails with a message pointing back to
-`make generateTestData`. The dataset paths are defined as the `*_NDJSON_PATH` constants in
-`sequence_generator.h`.
+This does two things: it runs `generate_test_data` to generate the synthetic datasets (several
+gigabytes of NDJSON) locally, and it builds the `benchmark_data` CMake target to download the one
+real-data slice used by `real_data_mutations_benchmark`. That slice is declared in
+`performance/CMakeLists.txt` via `benchmark_dataset()` (URL + sha256), so the download is defined in
+the build, not in C++, and is change-detected: it is fetched only when missing or when the declaration
+changes, and skipped otherwise. Re-run `make generateTestData` when the generators in
+`sequence_generator.h` change. If a benchmark is run before its data exists, it fails with a message
+pointing back to `make generateTestData`. The synthetic dataset paths
+are the `*_NDJSON_PATH` constants in `sequence_generator.h`.
 
 To build and run every benchmark in one step (generating the data first if needed), use:
 
@@ -58,3 +61,25 @@ each:
 The point is that (3) recovers the query performance of (1) from the same scattered input as (2). It
 prints a summary of ingestion and query time per scenario; no environment variables or rebuilds are
 needed to switch between them.
+
+## Mutation-coverage query (`real_data_mutations_benchmark`)
+
+`real_data_mutations_benchmark` times a co-occurrence `groupBy` over the ~141 real SARS-CoV-2 mutation
+positions in `performance/mutations.csv`. It exercises the coverage-scan / per-chunk bitmap-aggregation
+path over **short reads with partial coverage** (each read covers a small genome window, so most
+grouped positions are not-covered for any given read) — the path that whole-genome-sequence datasets
+do not stress.
+
+It runs against real wastewater short-read data: a fixed slice of 5 whole samples (~11.3M reads,
+in RhyDB ingest format) from the GenSpectrum W-ASAP dataset — the RhyDB instance behind
+`db.wasap.genspectrum.org`. The slice is hosted publicly on Hetzner Object Storage and declared in
+`performance/CMakeLists.txt`:
+
+```cmake
+benchmark_dataset(wasap_mutation_coverage.ndjson.zst
+    DOWNLOAD <url>
+    SHA256   <hex>)
+```
+
+`make generateTestData` builds the `benchmark_data` target, which invokes
+`performance/ci/fetch_dataset.cmake` through CMake's script mode.

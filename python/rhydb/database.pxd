@@ -5,7 +5,7 @@ from libcpp.optional cimport optional
 from libc.stdint cimport uint64_t, uint32_t
 
 cdef extern from "exception_handler.h":
-    void handle_silo_exception()
+    void handleRhyDBException()
 
 cdef extern from "roaring/roaring.hh" namespace "roaring":
     cdef cppclass Roaring:
@@ -24,10 +24,10 @@ cdef extern from "rhydb/database.h" namespace "rhydb":
         void printAllData(string table_name) except +
         string getNucleotideReferenceSequence(string table_name, string sequence_name) except +
         string getAminoAcidReferenceSequence(string table_name, string sequence_name) except +
-        Roaring getFilteredBitmap(string table_name, string filter) except +handle_silo_exception
-        void updateColumn(string table_name, string column_name, string value, string filter_expression) except +handle_silo_exception
+        Roaring getFilteredBitmap(string table_name, string filter) except +handleRhyDBException
+        void updateColumn(string table_name, string column_name, string value, string filter_expression) except +handleRhyDBException
         void saveDatabaseState(string save_directory) except +
-        string executeQueryAsArrowIpc(string query_string) except +handle_silo_exception
+        string executeQueryAsArrowIpc(string query_string) except +handleRhyDBException
         string getTablesAsArrowIpc() except +
 
         @staticmethod

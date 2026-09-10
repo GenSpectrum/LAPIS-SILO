@@ -17,8 +17,8 @@ namespace rhydb::query_engine::operators {
 /// Sorts output rows by the specified fields and keeps only the `offset + limit` smallest of them.
 ///
 /// This is the combined equivalent of an `OrderByNode` directly below a `FetchNode`: instead of
-/// sorting the entire input and then discarding all but a small window, it uses Arrow's `select_k`
-/// (top-k) implementation, which only ever keeps the `offset + limit` best rows seen so far. The
+/// sorting the entire input and then discarding all but a small window, it runs a heap-based
+/// select-k stage (see `addSelectKNode`) that selects the `offset + limit` best rows. The
 /// `SelectKRewritePass` rewrites `Fetch(OrderBy(...))` into this node.
 ///
 /// Like `OrderByNode`, a `randomize_seed` orders rows by a per-row random hash (as an extra,

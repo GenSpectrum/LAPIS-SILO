@@ -52,6 +52,10 @@ std::string tokenTypeToString(TokenType type) {
          return "LeftBrace";
       case TokenType::RIGHT_BRACE:
          return "RightBrace";
+      case TokenType::LEFT_BRACKET:
+         return "LeftBracket";
+      case TokenType::RIGHT_BRACKET:
+         return "RightBracket";
       case TokenType::COMMA:
          return "Comma";
       case TokenType::END_OF_FILE:
