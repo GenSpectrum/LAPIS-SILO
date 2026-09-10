@@ -40,6 +40,7 @@ enum class NodeKind : uint8_t {
    UNION_ALL,
    JOIN,
    SCHEMA,
+   TABLES_LIST,
    BITMAP_AGGREGATION,
    TRANSITIVE_CLOSURE,
 };

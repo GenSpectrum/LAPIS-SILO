@@ -19,6 +19,7 @@
 #include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/schema_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
+#include "rhydb/query_engine/operators/tables_node.h"
 #include "rhydb/query_engine/operators/transitive_closure_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
 #include "rhydb/query_engine/operators/unresolved_insertions_node.h"
@@ -89,6 +90,8 @@ decltype(auto) visit(QueryNode& node, Func&& func) {
          return std::forward<Func>(func)(static_cast<JoinNode&>(node));
       case NodeKind::SCHEMA:
          return std::forward<Func>(func)(static_cast<SchemaNode&>(node));
+      case NodeKind::TABLES_LIST:
+         return std::forward<Func>(func)(static_cast<TablesNode&>(node));
       case NodeKind::BITMAP_AGGREGATION:
          return std::forward<Func>(func)(static_cast<BitmapAggregationNode&>(node));
       case NodeKind::TRANSITIVE_CLOSURE:
