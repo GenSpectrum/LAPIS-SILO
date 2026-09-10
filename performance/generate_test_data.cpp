@@ -1,89 +1,95 @@
+#include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <exception>
-#include <fstream>
-#include <string>
+#include <ostream>
+#include <ranges>
+#include <string_view>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
 
-// Standalone generator for the datasets consumed by the performance benchmarks. Generating this
-// data (tree-evolution models, millions of rows) is the expensive part of each benchmark, so it is
-// produced once here with fixed parameters, written to disk under localTestData/performance/, and
-// read back by the benchmarks instead of being regenerated on every run. Run with
-// `make generateTestData`.
+// Writes one synthetic benchmark dataset with fixed parameters, named by its file name:
+//
+//   generate_test_data short_reads_5m.ndjson
+//
+// Every dataset declared GENERATE in performance/CMakeLists.txt needs an entry in DATASETS below;
+// the `benchmark_data` target invokes this tool once per dataset. Use `make generateTestData`.
 
 namespace {
 
-void writeDataset(std::string_view path, const auto& generate) {
-   auto out = openTestDataOutput(path);
-   generate(out);
-   out.flush();
-   if (!out) {
-      throw std::runtime_error(fmt::format("Failed while writing {}", path));
-   }
-   SPDLOG_INFO("Wrote {}", path);
+struct Dataset {
+   std::string_view name;
+   void (*write)(std::ostream&);
+};
+
+// Read on first use, so a dataset that does not need the reference does not pay for reading it.
+const std::string& reference() {
+   static const std::string reference = [] {
+      std::string read = readReferenceFromFile();
+      SPDLOG_INFO("Read reference sequence of length {}", read.size());
+      return read;
+   }();
+   return reference;
 }
 
-void run() {
-   changeCwdToTestFolder();
-   const std::string reference = readReferenceFromFile();
-   SPDLOG_INFO("Read reference sequence of length {}", reference.size());
-
+constexpr auto DATASETS = std::to_array<Dataset>({
    // Short reads: 100k for nof_sequence_filter, 5M shared by many_short_read_filters and the large
    // nof_sequence_filter case.
-   writeDataset(SHORT_READ_SMALL_NDJSON_PATH, [&](std::ostream& out) {
-      writeShortReadNdjson(out, reference, DEFAULT_FULL_SEQ_COUNT);
-   });
-   writeDataset(SHORT_READ_LARGE_NDJSON_PATH, [&](std::ostream& out) {
-      writeShortReadNdjson(out, reference, DEFAULT_READ_COUNT);
-   });
-
+   {SHORT_READ_SMALL_NDJSON,
+    [](std::ostream& out) { writeShortReadNdjson(out, reference(), DEFAULT_FULL_SEQ_COUNT); }},
+   {SHORT_READ_LARGE_NDJSON,
+    [](std::ostream& out) { writeShortReadNdjson(out, reference(), DEFAULT_READ_COUNT); }},
    // Amplicon-coverage short reads for many_short_read_filters, emitted both amplicon-sorted and
    // randomly shuffled. The two files hold the same reads, so ingesting either builds the same
    // database; only their on-disk order (and hence the coverage layout ingestion sees) differs.
-   writeDataset(SHORT_READ_AMPLICON_SORTED_NDJSON_PATH, [&](std::ostream& out) {
-      writeAmpliconShortReadNdjson(out, reference, /*shuffle=*/false);
-   });
-   writeDataset(SHORT_READ_AMPLICON_SHUFFLED_NDJSON_PATH, [&](std::ostream& out) {
-      writeAmpliconShortReadNdjson(out, reference, /*shuffle=*/true);
-   });
-
-   // Full-length sequences for nof_sequence_filter.
-   writeDataset(FULL_SEQUENCE_NDJSON_PATH, [&](std::ostream& out) {
-      writeFullSequenceNdjson(out, reference);
-   });
-
-   // Full-length sequences with N runs for sequence_column_insert.
-   writeDataset(SEQUENCE_COLUMN_NDJSON_PATH, [&](std::ostream& out) {
-      writeNRunSequenceNdjson(out, reference);
-   });
-
+   {SHORT_READ_AMPLICON_SORTED_NDJSON,
+    [](std::ostream& out) { writeAmpliconShortReadNdjson(out, reference(), /*shuffle=*/false); }},
+   {SHORT_READ_AMPLICON_SHUFFLED_NDJSON,
+    [](std::ostream& out) { writeAmpliconShortReadNdjson(out, reference(), /*shuffle=*/true); }},
+   // Full-length sequences for nof_sequence_filter, and the same with N runs for
+   // sequence_column_insert.
+   {FULL_SEQUENCE_NDJSON, [](std::ostream& out) { writeFullSequenceNdjson(out, reference()); }},
+   {SEQUENCE_COLUMN_NDJSON, [](std::ostream& out) { writeNRunSequenceNdjson(out, reference()); }},
    // Synthetic short reads for mutation_benchmark (uses its own repeated ACGT reference).
-   writeDataset(MUTATION_READS_NDJSON_PATH, [](std::ostream& out) {
-      writeMutationBenchmarkNdjson(out);
-   });
-
+   {MUTATION_READS_NDJSON, [](std::ostream& out) { writeMutationBenchmarkNdjson(out); }},
    // Accession/country records for many_string_equals.
-   writeDataset(STRING_EQUALS_NDJSON_PATH, [](std::ostream& out) {
-      writeStringEqualsNdjson(out);
-   });
-
+   {STRING_EQUALS_NDJSON, [](std::ostream& out) { writeStringEqualsNdjson(out); }},
    // Random sequences for co_occurrence_benchmark (uses its own short random reference).
-   const std::string co_occurrence_reference = makeCoOccurrenceReference();
-   writeDataset(CO_OCCURRENCE_NDJSON_PATH, [&](std::ostream& out) {
-      writeCoOccurrenceNdjson(out, co_occurrence_reference);
-   });
+   {CO_OCCURRENCE_NDJSON,
+    [](std::ostream& out) { writeCoOccurrenceNdjson(out, makeCoOccurrenceReference()); }},
+});
 
-   SPDLOG_INFO("All benchmark datasets written.");
+void writeDataset(std::string_view name) {
+   const auto dataset = std::ranges::find(DATASETS, name, &Dataset::name);
+   if (dataset == DATASETS.end()) {
+      throw std::runtime_error(fmt::format(
+         "Unknown benchmark dataset '{}'. Known datasets: {}",
+         name,
+         fmt::join(std::views::transform(DATASETS, &Dataset::name), ", ")
+      ));
+   }
+   auto out = openTestDataOutput(name);
+   dataset->write(out);
+   out.flush();
+   if (!out) {
+      throw std::runtime_error(fmt::format("Failed while writing {}", name));
+   }
+   SPDLOG_INFO("Wrote {}", benchmarkDataPath(name).string());
 }
 
 }  // namespace
 
-int main() {
+int main(int argc, char** argv) {
    try {
-      run();
+      if (argc != 2) {
+         throw std::runtime_error("Usage: generate_test_data <dataset-file-name>");
+      }
+      changeCwdToTestFolder();
+      writeDataset(argv[1]);
    } catch (const std::exception& e) {
       SPDLOG_ERROR(e.what());
       return EXIT_FAILURE;

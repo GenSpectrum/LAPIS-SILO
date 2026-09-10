@@ -10,6 +10,7 @@
 
 #include <arrow/compute/initialize.h>
 #include <fmt/format.h>
+#include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
@@ -72,7 +73,8 @@ BenchmarkResult runBenchmark(
 // sequence).  This exercises the single-pass NOf optimisation at large scale.
 std::string buildMutationProfileQuery(const std::string& query_sequence, uint32_t distance) {
    return fmt::format(
-      "default.filter(nucleotideMutationProfile(distance:={}, sequenceName:='main', querySequence:='{}'))"
+      "default.filter(nucleotideMutationProfile(distance:={}, sequenceName:='main', "
+      "querySequence:='{}'))"
       ".groupBy({{count:=count()}})",
       distance,
       query_sequence
@@ -137,9 +139,6 @@ void runMutationProfileBenchmarks(
 }
 
 void run() {
-   changeCwdToTestFolder();
-   RHYDB_ASSERT(arrow::compute::Initialize().ok());
-
    const std::string reference = readReferenceFromFile();
    SPDLOG_INFO("Reference genome length: {}", reference.size());
    SPDLOG_INFO("");
@@ -155,9 +154,9 @@ void run() {
    );
    SPDLOG_INFO("");
 
-   const auto short_read_db = loadShortReadDatabase(reference, SHORT_READ_SMALL_NDJSON_PATH);
-   const auto short_read_db_large = loadShortReadDatabase(reference, SHORT_READ_LARGE_NDJSON_PATH);
-   const auto full_seq_db = loadFullSequenceDatabase(reference, FULL_SEQUENCE_NDJSON_PATH);
+   const auto short_read_db = loadShortReadDatabase(reference, SHORT_READ_SMALL_NDJSON);
+   const auto short_read_db_large = loadShortReadDatabase(reference, SHORT_READ_LARGE_NDJSON);
+   const auto full_seq_db = loadFullSequenceDatabase(reference, FULL_SEQUENCE_NDJSON);
 
    // distance=0 tests the "almost nothing matches" extreme (exact profile match).
    // Large distances test the "almost everything matches" extreme.
@@ -182,11 +181,6 @@ void run() {
 
 }  // namespace
 
-int main() {
-   try {
-      run();
-   } catch (const std::exception& e) {
-      SPDLOG_ERROR(e.what());
-      return EXIT_FAILURE;
-   }
+TEST(NOfSequenceFilter, distancesAndMutationProfiles) {
+   run();
 }
