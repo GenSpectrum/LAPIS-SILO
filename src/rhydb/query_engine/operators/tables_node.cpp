@@ -15,16 +15,22 @@
 
 namespace rhydb::query_engine::operators {
 
-std::vector<schema::ColumnIdentifier> TablesNode::getOutputSchema() const {
+using config::QueryOptions;
+using schema::ColumnIdentifier;
+using schema::ColumnType;
+using schema::TableName;
+using storage::Table;
+
+std::vector<ColumnIdentifier> TablesNode::getOutputSchema() const {
    return {
-      {.name = std::string{TABLE_NAME_COLUMN}, .type = schema::ColumnType::STRING},
+      {.name = std::string{TABLE_NAME_COLUMN}, .type = ColumnType::STRING},
    };
 }
 
 arrow::Result<arrow::acero::ExecNode*> TablesNode::addToExecPlan(
    arrow::acero::ExecPlan& plan,
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
-   const config::QueryOptions& /*query_options*/
+   const std::map<TableName, std::shared_ptr<Table>>& tables,
+   const QueryOptions& /*query_options*/
 ) const {
    arrow::StringBuilder table_name_builder{};
    for (const auto& [table_name, _] : tables) {
