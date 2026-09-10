@@ -26,6 +26,7 @@
 #include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/schema_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
+#include "rhydb/query_engine/operators/tables_node.h"
 #include "rhydb/query_engine/operators/transitive_closure_node.h"
 #include "rhydb/query_engine/operators/union_all_node.h"
 #include "rhydb/query_engine/operators/unresolved_insertions_node.h"
@@ -1041,6 +1042,14 @@ operators::QueryNodePtr handleSchema(
    return std::make_unique<operators::SchemaNode>(std::move(child));
 }
 
+operators::QueryNodePtr handleTables(
+   const BoundArguments& /*args*/,
+   const Tables& /*tables*/,
+   const ChildConverter& /*convert_child*/
+) {
+   return std::make_unique<operators::TablesNode>();
+}
+
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr handleGroupBy(
    const BoundArguments& args,
@@ -1634,6 +1643,8 @@ FunctionRegistry::FunctionRegistry() {
    registerFunction("filter", {{pos("input"), pos("predicate")}}, handleFilter);
 
    registerFunction("schema", {{pos("input")}}, handleSchema);
+
+   registerFunction("tables", {{}}, handleTables);
 
    registerFunction(
       "groupBy", {{pos("input"), pos("aggregates"), pos("columns", false)}}, handleGroupBy

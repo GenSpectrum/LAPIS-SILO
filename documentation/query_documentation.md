@@ -499,6 +499,28 @@ so operators such as `project`, `map`, `orderBy` and `limit` can be chained afte
 When a sequence column is read into a pipeline it is decompressed to a string before `schema()` observes it,
 so nucleotide and amino acid sequences cannot be distinguished from ordinary strings at this point.
 
+### `tables()`
+
+Lists all tables in the database. It takes no arguments and is called as a top-level function
+(not chained onto a table).
+
+```
+tables()
+```
+
+**Output:** one row per table, with a single column:
+
+| Field       | Type   | Description        |
+|-------------|--------|--------------------|
+| `tableName` | string | Name of the table  |
+
+```json
+{"tableName": "myTable"}
+```
+
+`tables()` produces an ordinary relation, so operators such as `project`, `map`, `orderBy` and
+`limit` can be chained after it.
+
 ### `transitiveClosure(input, from, to [, includeVertices:=bool])`
 
 Computes the transitive closure of a directed relation. The `input` is any relation-producing
