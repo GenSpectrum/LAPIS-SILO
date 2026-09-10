@@ -1,5 +1,13 @@
+#include <map>
+#include <memory>
+
+#include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include "rhydb/database.h"
+#include "rhydb/query_engine/planner.h"
+#include "rhydb/schema/database_schema.h"
+#include "rhydb/storage/column/string_column.h"
 #include "rhydb/test/query_fixture.test.h"
 
 namespace {
@@ -68,3 +76,54 @@ QUERY_TEST(
    TEST_DATA,
    ::testing::Values(TABLES_SCENARIO, TABLES_SCHEMA_SCENARIO, TABLES_EXTRA_ARG_ERROR_SCENARIO)
 );
+
+namespace {
+using rhydb::Database;
+using rhydb::config::QueryOptions;
+using rhydb::query_engine::Planner;
+using rhydb::schema::ColumnIdentifier;
+using rhydb::schema::ColumnType;
+using rhydb::schema::TableName;
+using rhydb::schema::TableSchema;
+using rhydb::storage::column::ColumnMetadata;
+using rhydb::storage::column::StringColumnMetadata;
+
+std::shared_ptr<TableSchema> makeMinimalSchema() {
+   const ColumnIdentifier key{.name = "key", .type = ColumnType::STRING};
+   std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
+      {key, std::make_shared<StringColumnMetadata>(key.name)},
+   };
+   return std::make_shared<TableSchema>(std::move(column_metadata), key);
+}
+}  // namespace
+
+TEST(TablesNodeMultiTableTest, listsAndFiltersMultipleTables) {
+   Database database;
+   database.createTable(TableName{"source"}, makeMinimalSchema());
+   database.createTable(TableName{"archive"}, makeMinimalSchema());
+   database.createTable(TableName{"backup"}, makeMinimalSchema());
+
+   auto query_plan =
+      Planner::planSaneqlQuery("tables()", database.tables, QueryOptions{}, "tables_query");
+   ASSERT_EQ(
+      rhydb::test::executeQueryToJsonArray(query_plan),
+      nlohmann::json::array({
+         {{"tableName", "archive"}},
+         {{"tableName", "backup"}},
+         {{"tableName", "source"}},
+      })
+   );
+
+   auto filtered_plan = Planner::planSaneqlQuery(
+      "tables().filter(tableName='backup')",
+      database.tables,
+      QueryOptions{},
+      "filtered_tables_query"
+   );
+   ASSERT_EQ(
+      rhydb::test::executeQueryToJsonArray(filtered_plan),
+      nlohmann::json::array({
+         {{"tableName", "backup"}},
+      })
+   );
+}
