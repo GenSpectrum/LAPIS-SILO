@@ -74,9 +74,6 @@ ${RHYDB_RELEASE_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src -ty
 ${RHYDB_RELEASE_APP_TEST_EXECUTABLE}: build/Release/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_app_test
 
-# Prepare the datasets consumed by the performance benchmarks, as declared via benchmark_dataset() in
-# performance/CMakeLists.txt. The `benchmark_data` target does its own change detection, so this is a
-# no-op once the data is there and only re-produces what actually changed.
 .PHONY: generateTestData
 generateTestData: build/Release/build.ninja
 	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target benchmark_data

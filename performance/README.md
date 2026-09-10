@@ -1,3 +1,5 @@
+# Performance Benchmarks
+
 This folder holds the performance benchmarks. They are GTest tests in a single `rhydb_benchmark`
 binary, since they take minutes and read multi-gigabyte inputs, they are not part of `make test`.
 
@@ -45,8 +47,8 @@ NDJSON), which maps each file name to its writer; the `DOWNLOAD` one is fetched 
 checksum-verified. So what data exists and where it comes from is defined in the build rather than in
 C++, and it is change-detected: a dataset is produced only when it is missing, when its declaration
 changes, or -- for the generated ones -- when `generate_test_data.cpp`, `sequence_generator.h`, or
-the reference genome they are built from changes. Re-running `make generateTestData` when nothing
-changed does nothing. If a benchmark is run before its data exists, it fails with a message pointing
+the reference genome they are built from changes. Re-running `make generateTestData` does nothing when nothing 
+changed. If a benchmark is run before its data exists, it fails with a message pointing
 back to `make generateTestData`. Benchmarks address a dataset by the same file name the build
 declares (the `*_NDJSON` constants in `sequence_generator.h`) and open it with `openTestDataInput()`.
 

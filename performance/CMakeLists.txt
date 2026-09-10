@@ -1,11 +1,8 @@
-# GTest is found at the top level only when BUILD_UNIT_TESTS is on; the benchmarks need it either way.
 find_package(GTest REQUIRED)
 if (NOT GTest_LIBRARIES)
     set(GTest_LIBRARIES gtest gmock)
 endif ()
 
-# All benchmarks are one gtest executable
-# -> only gtest filters are used for defining which benchmark to run
 file(GLOB BENCHMARK_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
 list(REMOVE_ITEM BENCHMARK_SOURCES "${CMAKE_CURRENT_LIST_DIR}/generate_test_data.cpp")
 

@@ -54,10 +54,8 @@ inline std::string readReferenceFromFile() {
 
 // --- Test-data files ---
 //
-// Datasets are declared in performance/CMakeLists.txt and produced once under BENCHMARK_DATA_DIR by
-// the `benchmark_data` target (`make generateTestData`); a benchmark reads its dataset back rather
-// than regenerating it on every run, addressing it by the file name the build declares. The
-// directory is gitignored and relative to the repository root (see changeCwdToTestFolder).
+// A benchmark reads its dataset back rather, than regenerating it on every run,
+// addressing it by the file name the build declares.
 
 constexpr std::string_view BENCHMARK_DATA_DIR = "localTestData/performance";
 
