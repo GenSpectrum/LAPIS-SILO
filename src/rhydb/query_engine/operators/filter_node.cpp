@@ -1,7 +1,10 @@
 #include "rhydb/query_engine/operators/filter_node.h"
 
-#include <stdexcept>
+#include <utility>
 
+#include <arrow/acero/exec_plan.h>
+#include <arrow/acero/options.h>
+#include <arrow/compute/expression.h>
 #include <nlohmann/json.hpp>
 
 namespace rhydb::query_engine::operators {
@@ -18,13 +21,14 @@ std::vector<schema::ColumnIdentifier> FilterNode::getOutputSchema() const {
 }
 
 arrow::Result<arrow::acero::ExecNode*> FilterNode::addToExecPlan(
-   arrow::acero::ExecPlan& /*plan*/,
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
-   const config::QueryOptions& /*query_options*/
+   arrow::acero::ExecPlan& plan,
+   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
+   const config::QueryOptions& query_options
 ) const {
-   throw std::runtime_error(
-      "FilterNode must be eliminated during pushdown before query plan generation"
-   );
+   ARROW_ASSIGN_OR_RAISE(auto* child_node, child->addToExecPlan(plan, tables, query_options));
+   ARROW_ASSIGN_OR_RAISE(auto filter_expression, filter->toArrowExpression());
+   const arrow::acero::FilterNodeOptions options{std::move(filter_expression)};
+   return arrow::acero::MakeExecNode("filter", &plan, {child_node}, options);
 }
 
 nlohmann::json FilterNode::toJson() const {

@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include <arrow/compute/api.h>
 #include <fmt/format.h>
 
 #include "rhydb/query_engine/filter/operators/empty.h"
@@ -22,6 +23,10 @@ std::string IsNull::toString() const {
 
 std::vector<schema::ColumnIdentifier> IsNull::freeIUs() const {
    return {column};
+}
+
+arrow::Result<arrow::compute::Expression> IsNull::toArrowExpression() const {
+   return arrow::compute::is_null(arrow::compute::field_ref(column.name));
 }
 
 std::unique_ptr<ScalarExpression> IsNull::rewrite(

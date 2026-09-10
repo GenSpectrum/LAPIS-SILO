@@ -34,11 +34,17 @@ class And : public ScalarExpression {
       return std::make_unique<And>(std::move(cloned));
    }
 
+   /// Moves the conjuncts out of this And, leaving it empty. Used by the optimizer to split a
+   /// top-level conjunction so each conjunct can be pushed independently.
+   [[nodiscard]] ScalarExpressionVector takeChildren() { return std::move(children); }
+
    [[nodiscard]] std::string toString() const override;
    static constexpr Kind KIND = Kind::AND;
    [[nodiscard]] Kind kind() const override { return KIND; }
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> freeIUs() const override;
+
+   [[nodiscard]] arrow::Result<arrow::compute::Expression> toArrowExpression() const override;
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> rewrite(
       const storage::Table& table,

@@ -217,9 +217,10 @@ const QueryTestScenario JOIN_RIGHT_ANTI_SCENARIO = {
       nlohmann::json({{{"pk", "id_1"}, {"ctry", "DE"}}, {{"pk", "id_3"}, {"ctry", "DE"}}})
 };
 
-// A filter above the join cannot be pushed into a single join input safely (which input a
-// predicate belongs to is not derivable, and outer-join / column-less cases are not
-// semantics-preserving), so it is rejected. Apply the filter to a join input instead.
+// A filter above the join is not pushed into a single join input (which input a predicate belongs
+// to is not derivable, and outer-join / column-less cases are not semantics-preserving). Instead it
+// is left above the join and realized as an Arrow filter over the join output, so `country='CH'`
+// keeps only the CH rows.
 const QueryTestScenario JOIN_DOWNSTREAM_FILTER_SCENARIO = {
    .name = "JOIN_DOWNSTREAM_FILTER",
    .query = R"(join(
@@ -227,9 +228,10 @@ const QueryTestScenario JOIN_DOWNSTREAM_FILTER_SCENARIO = {
       default.map({pk := primaryKey, ctry := country}).project({pk, ctry}),
       primaryKey = pk
    ).filter(country='CH').orderBy({asc(primaryKey)}))",
-   .expected_error_message =
-      "filter() cannot be applied to the output of join(); a filter above a join cannot be "
-      "pushed into a join input safely. Apply the filter to one of the join inputs instead."
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"country", "CH"}, {"pk", "id_0"}, {"ctry", "CH"}},
+       {{"primaryKey", "id_2"}, {"country", "CH"}, {"pk", "id_2"}, {"ctry", "CH"}}}
+   )
 };
 
 // GroupBy applied to the join result.
