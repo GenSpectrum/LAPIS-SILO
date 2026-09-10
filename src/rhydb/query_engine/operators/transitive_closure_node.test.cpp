@@ -172,11 +172,11 @@ const QueryTestScenario FILTER_ON_OUTPUT_SCENARIO = {
    .query =
       "pango_lineage_indexed.transitiveClosure('parent', 'lineage')"
       ".filter(from = 'BASE.1').orderBy({from, to})",
-   .expected_query_result = nlohmann::json(
-      {{{"from", "BASE.1"}, {"to", "CHILD"}},
-       {{"from", "BASE.1"}, {"to", "CHILD.2"}},
-       {{"from", "BASE.1"}, {"to", "GRANDCHILD"}},}
-   ),
+   .expected_query_result = nlohmann::json({
+      {{"from", "BASE.1"}, {"to", "CHILD"}},
+      {{"from", "BASE.1"}, {"to", "CHILD.2"}},
+      {{"from", "BASE.1"}, {"to", "GRANDCHILD"}},
+   }),
 };
 
 // The closure is emitted in `materialization_cutoff + 1`-sized batches; with a cutoff of 0 every
