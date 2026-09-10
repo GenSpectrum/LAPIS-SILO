@@ -164,6 +164,21 @@ const QueryTestScenario SUBQUERY_INPUT_SCENARIO = {
    )
 };
 
+// A filter on the closure OUTPUT cannot be pushed into the source operator, so it is retained above
+// transitiveClosure() and runs as an Arrow filter over the emitted {from, to} pairs (#1372). Keeps
+// only the pairs reachable from BASE.1.
+const QueryTestScenario FILTER_ON_OUTPUT_SCENARIO = {
+   .name = "FILTER_ON_OUTPUT_SCENARIO",
+   .query =
+      "pango_lineage_indexed.transitiveClosure('parent', 'lineage')"
+      ".filter(from = 'BASE.1').orderBy({from, to})",
+   .expected_query_result = nlohmann::json(
+      {{{"from", "BASE.1"}, {"to", "CHILD"}},
+       {{"from", "BASE.1"}, {"to", "CHILD.2"}},
+       {{"from", "BASE.1"}, {"to", "GRANDCHILD"}},}
+   ),
+};
+
 // The closure is emitted in `materialization_cutoff + 1`-sized batches; with a cutoff of 0 every
 // pair ends up in a batch of its own, which exercises the streaming path across several batches.
 const QueryTestScenario TRANSITIVE_CLOSURE_ONE_PAIR_PER_BATCH_SCENARIO = {
@@ -409,6 +424,7 @@ QUERY_TEST(
       TRANSITIVE_CLOSURE_ONE_PAIR_PER_BATCH_SCENARIO,
       COUNT_LINEAGE_INCLUDING_SUBLINEAGES_SCENARIO,
       SUBQUERY_INPUT_SCENARIO,
+      FILTER_ON_OUTPUT_SCENARIO,
       UNKNOWN_COLUMN_SCENARIO,
       NON_STRING_COLUMN_SCENARIO
    )

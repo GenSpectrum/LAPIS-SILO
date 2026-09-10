@@ -7,7 +7,6 @@
 
 #include "rhydb/common/aa_symbols.h"
 #include "rhydb/common/nucleotide_symbols.h"
-#include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/operator_visitor.h"
 #include "rhydb/query_engine/operators/aggregate_node.h"
 #include "rhydb/query_engine/operators/fetch_node.h"
@@ -161,20 +160,6 @@ void FilterPushdownPass::barrier(operators::QueryNodePtr& child) {
    // NodeResolutionPass requires beneath mutations()/insertions()).
    FilterPushdownPass child_pass;
    child_pass.propagateToNode(child);
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr FilterPushdownPass::operator()(operators::TransitiveClosureNode& node) {
-   // transitiveClosure() re-materializes its child into a fresh from/to relation; it is a
-   // source operator with no place to push a predicate into. A filter() applied to its output
-   // therefore cannot be realized -> reject the query.
-   CHECK_RHYDB_QUERY(
-      current_filters.empty(),
-      "filter() cannot be applied to the output of transitiveClosure(); transitiveClosure() is "
-      "a source operator and its result cannot be filtered. Apply filter() to its input instead."
-   );
-   barrier(node.child);
-   return nullptr;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)

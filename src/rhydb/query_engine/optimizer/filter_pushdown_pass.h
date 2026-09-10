@@ -14,7 +14,6 @@ class OrderByNode;
 class TableScanNode;
 class UnionAllNode;
 class JoinNode;
-class TransitiveClosureNode;
 }  // namespace rhydb::query_engine::operators
 
 namespace rhydb::query_engine::optimizer {
@@ -53,7 +52,6 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    operators::QueryNodePtr operator()(operators::MapNode& node);
    operators::QueryNodePtr operator()(operators::UnionAllNode& node);
    operators::QueryNodePtr operator()(operators::JoinNode& node);
-   operators::QueryNodePtr operator()(operators::TransitiveClosureNode& node);
 
    // Fail-closed default. A node with no explicit handler and a single `QueryNodePtr child` is a
    // barrier: the filter above it is retained by `propagateToNode`, while its child subtree is

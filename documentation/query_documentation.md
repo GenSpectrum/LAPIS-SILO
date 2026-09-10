@@ -531,8 +531,6 @@ dictionary-encoded and cannot be used as the join key directly).
 **Restrictions:**
 
 - `from` and `to` must be `STRING` columns of the input.
-- `filter(...)` cannot be applied to the output of `transitiveClosure()`; it is a source
-  operator with nowhere to push a predicate. Filter the input instead.
 
 **Output:** the reachable `{from, to}` pairs. The order of rows is not guaranteed; use
 `orderBy(...)` for a deterministic order.
