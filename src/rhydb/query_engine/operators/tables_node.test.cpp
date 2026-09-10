@@ -1,5 +1,6 @@
 #include <map>
 #include <memory>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
@@ -126,4 +127,12 @@ TEST(TablesNodeMultiTableTest, listsAndFiltersMultipleTables) {
          {{"tableName", "backup"}},
       })
    );
+}
+
+TEST(TablesNodeMultiTableTest, listsNoTablesForEmptyDatabase) {
+   Database database;
+
+   auto query_plan =
+      Planner::planSaneqlQuery("tables()", database.tables, QueryOptions{}, "empty_tables_query");
+   ASSERT_EQ(rhydb::test::executeQueryToJsonArray(query_plan), nlohmann::json::array());
 }
