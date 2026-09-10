@@ -60,6 +60,8 @@ std::string_view nodeKindToString(NodeKind kind) {
          return "Join";
       case NodeKind::SCHEMA:
          return "Schema";
+      case NodeKind::TABLES_LIST:
+         return "TablesList";
       case NodeKind::BITMAP_AGGREGATION:
          return "BitmapAggregation";
       case NodeKind::TRANSITIVE_CLOSURE:
