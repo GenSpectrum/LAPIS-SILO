@@ -1084,6 +1084,38 @@ operators::QueryNodePtr handleProject(
    return std::make_unique<operators::ProjectNode>(std::move(child), std::move(fields));
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
+operators::QueryNodePtr handleProjectout(
+   const BoundArguments& args,
+   const Tables& tables,
+   const ChildConverter& convert_child
+) {
+   const auto& field_argument = args.at("fields");
+   const std::vector<std::string> remove_names =
+      holds_alternative<ast::Identifier>(field_argument.value)
+         ? std::vector{extractIdentifierName(field_argument)}
+         : extractSetOfIdentifiers(field_argument);
+   auto child = convert_child(args.at("input"), tables);
+   auto child_schema = child->getOutputSchema();
+   for (const auto& name : remove_names) {
+      auto found =
+         std::ranges::find_if(child_schema, [&](const auto& col) { return col.name == name; });
+      CHECK_RHYDB_QUERY(
+         found != child_schema.end(),
+         "projectout field '{}' is not present in the input's output schema",
+         name
+      );
+   }
+   const std::unordered_set<std::string> remove_set(remove_names.begin(), remove_names.end());
+   std::vector<schema::ColumnIdentifier> fields;
+   for (const auto& col : child_schema) {
+      if (!remove_set.contains(col.name)) {
+         fields.push_back(col);
+      }
+   }
+   return std::make_unique<operators::ProjectNode>(std::move(child), std::move(fields));
+}
+
 namespace {
 
 using operators::MapNode;
@@ -1608,6 +1640,8 @@ FunctionRegistry::FunctionRegistry() {
    );
 
    registerFunction("project", {{pos("input"), pos("fields")}}, handleProject);
+
+   registerFunction("projectout", {{pos("input"), pos("fields")}}, handleProjectout);
 
    registerFunction("map", {{pos("input"), pos("expressions")}}, handleMap);
 
