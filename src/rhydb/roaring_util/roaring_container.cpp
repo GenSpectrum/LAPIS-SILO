@@ -1,5 +1,9 @@
 #include "rhydb/roaring_util/roaring_container.h"
 
+#include <type_traits>
+#include <utility>
+#include <variant>
+
 #include "rhydb/common/panic.h"
 
 namespace rhydb::roaring_util {
@@ -122,6 +126,71 @@ RoaringContainer& RoaringContainer::operator|=(RoaringContainerView addend) {
    typecode = new_typecode;
    cardinality =
       static_cast<uint32_t>(roaring::internal::container_get_cardinality(container, typecode));
+   return *this;
+}
+
+namespace {
+// Deep-copies the copy-on-write state: a borrowing state re-borrows the same container (cheap), an
+// owning state is cloned into an independent container.
+std::variant<RoaringContainerView, RoaringContainer> cloneCowState(
+   const std::variant<RoaringContainerView, RoaringContainer>& source
+) {
+   return std::visit(
+      [](const auto& held) -> std::variant<RoaringContainerView, RoaringContainer> {
+         using Held = std::decay_t<decltype(held)>;
+         if constexpr (std::is_same_v<Held, RoaringContainerView>) {
+            return held;
+         } else {
+            return RoaringContainer::clonedFrom(held.rawContainer(), held.getTypecode());
+         }
+      },
+      source
+   );
+}
+}  // namespace
+
+CopyOnWriteContainer::CopyOnWriteContainer(const CopyOnWriteContainer& other)
+    : container(cloneCowState(other.container)) {}
+
+CopyOnWriteContainer& CopyOnWriteContainer::operator=(const CopyOnWriteContainer& other) {
+   if (this != &other) {
+      container = cloneCowState(other.container);
+   }
+   return *this;
+}
+
+RoaringContainerView CopyOnWriteContainer::emptyView() {
+   static const RoaringContainer empty = RoaringContainer::withCapacity(1);
+   return RoaringContainerView{empty};
+}
+
+RoaringContainer& CopyOnWriteContainer::materializeOwned() {
+   if (std::holds_alternative<RoaringContainerView>(container)) {
+      container = std::get<RoaringContainerView>(container).toOwning();
+   }
+   return std::get<RoaringContainer>(container);
+}
+
+CopyOnWriteContainer& CopyOnWriteContainer::operator|=(RoaringContainerView addend) {
+   if (addend.empty()) {
+      return *this;  // union with the empty set changes nothing
+   }
+   materializeOwned() |= addend;
+   return *this;
+}
+
+CopyOnWriteContainer& CopyOnWriteContainer::operator-=(RoaringContainerView subtrahend) {
+   if (subtrahend.empty()) {
+      return *this;  // removing the empty set changes nothing
+   }
+   RoaringContainer& owned = materializeOwned();
+   owned = RoaringContainerView{owned} - subtrahend;
+   return *this;
+}
+
+CopyOnWriteContainer& CopyOnWriteContainer::operator&=(RoaringContainerView other) {
+   RoaringContainer& owned = materializeOwned();
+   owned = RoaringContainerView{owned} & other;
    return *this;
 }
 

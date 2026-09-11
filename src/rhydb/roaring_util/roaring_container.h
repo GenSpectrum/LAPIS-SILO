@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <variant>
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/string.hpp>
@@ -267,5 +268,61 @@ class RoaringContainerView {
 [[nodiscard]] RoaringContainer operator&(RoaringContainerView lhs, RoaringContainerView rhs);
 [[nodiscard]] RoaringContainer operator-(RoaringContainerView lhs, RoaringContainerView rhs);
 [[nodiscard]] RoaringContainer operator|(RoaringContainerView lhs, RoaringContainerView rhs);
+
+/// A single roaring container that is either a non-owning view into a container owned elsewhere or
+/// a privately-owned copy
+/// the first mutating operation (`|=`, `-=`, `&=`) clones a borrowed container
+class CopyOnWriteContainer {
+   std::variant<RoaringContainerView, RoaringContainer> container;
+
+   /// Replaces a borrowed view with a private owning copy (a no-op if already owning) and returns
+   /// it for in-place mutation.
+   RoaringContainer& materializeOwned();
+
+   static RoaringContainerView emptyView();
+
+  public:
+   /// An empty container backed by a shared empty container; the first mutation materializes an
+   /// owning copy.
+   CopyOnWriteContainer()
+       : container(emptyView()) {}
+
+   /// Borrows an externally owned container. It must outlive this object, or at least outlive the
+   /// first mutation (which clones it).
+   explicit CopyOnWriteContainer(RoaringContainerView view)
+       : container(view) {}
+
+   /// Takes ownership of an already-owning container.
+   explicit CopyOnWriteContainer(RoaringContainer&& owned)
+       : container(std::move(owned)) {}
+
+   CopyOnWriteContainer(CopyOnWriteContainer&&) noexcept = default;
+   CopyOnWriteContainer& operator=(CopyOnWriteContainer&&) noexcept = default;
+   CopyOnWriteContainer(const CopyOnWriteContainer& other);
+   CopyOnWriteContainer& operator=(const CopyOnWriteContainer& other);
+   ~CopyOnWriteContainer() = default;
+
+   [[nodiscard]] RoaringContainerView view() const {
+      return std::visit([](const auto& held) { return RoaringContainerView{held}; }, container);
+   }
+
+   [[nodiscard]] uint32_t getCardinality() const { return view().getCardinality(); }
+
+   [[nodiscard]] bool empty() const { return view().empty(); }
+
+   [[nodiscard]] RoaringContainerView::ConstIterator begin() const { return view().begin(); }
+   [[nodiscard]] static RoaringContainerView::ConstIterator end() {
+      return RoaringContainerView::end();
+   }
+
+   /// An independent owning copy of the current content.
+   [[nodiscard]] RoaringContainer toOwning() const { return view().toOwning(); }
+
+   /// Copy-on-write set operations: clone a borrowed container into a private copy on first write,
+   /// then apply the operation. The borrowed source is never modified.
+   CopyOnWriteContainer& operator|=(RoaringContainerView addend);
+   CopyOnWriteContainer& operator-=(RoaringContainerView subtrahend);
+   CopyOnWriteContainer& operator&=(RoaringContainerView other);
+};
 
 }  // namespace rhydb::roaring_util
