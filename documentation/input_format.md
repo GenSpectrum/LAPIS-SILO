@@ -64,6 +64,43 @@ schema:
 - `treatUnknownLineagesAsNull`: Treats unknown lineage values as null when adding them to the lineage index
 - `isPhyloTreeField`: Mark this column as a phyloTreeField, which enables the phylogenetic queries. See [phylogenetic_queries.md](phylogenetic_queries.md)
 
+**Schema Options**:
+- `instanceName`: Name of the database instance
+- `metadata`: The list of metadata fields described above
+- `primaryKey`: Selects the metadata field that uniquely identifies a record. The key must be present, but its value may be null — see below
+
+#### `primaryKey`
+
+The `primaryKey` key is **required to be present**, but its value may be null.
+
+```yaml
+schema:
+  instanceName: my_database
+  metadata:
+    - name: primaryKey
+      type: string
+  primaryKey: primaryKey     # a declared primary key
+```
+
+To build a table **without** a primary key, set the value to YAML null. All three standard YAML spellings of null are accepted and mean the same thing:
+
+```yaml
+  primaryKey: null           # or
+  primaryKey: ~              # or
+  primaryKey:                # empty value
+```
+
+The key itself may not be left out — a `schema:` block with no `primaryKey` key at all is a config error, not a table without a primary key. Quoting the value (`primaryKey: 'null'`) selects a metadata field literally named `null`, rather than declaring no primary key.
+
+When a primary key **is** declared:
+- it must name a field that exists in `metadata`, and that field must be of type `string`
+- preprocessing validates that its values are unique across all records, and aborts with an error on a duplicate
+
+When the primary key is **null**:
+- the uniqueness validation is skipped entirely, so duplicate records are accepted and preserved as separate rows. Nothing else identifies a record, so there is no way to address a single row
+- queries that look a record up by its primary key are rejected with an error. In particular, `nucleotideMutationProfile(sequenceId:=...)` and `aminoAcidMutationProfile(sequenceId:=...)` fail; use their `querySequence:=` or `mutations:=` forms instead
+- everything else — filtering, aggregation, projection, and sequence queries — is unaffected
+
 ### reference_genomes.json
 
 Defines reference sequences for alignment:
@@ -326,5 +363,5 @@ schema:
 | Invalid insertion format | Malformed insertion string | Error with details |
 | Invalid base64 in `sequenceCompressed` | Illegal characters or wrong padding | Error with details |
 | Invalid ZSTD data in `sequenceCompressed` | Wrong dictionary or corrupt bytes | Error with details |
-| Duplicate primary key | Same primary key appears twice | Error at validation |
+| Duplicate primary key | Same primary key appears twice | Error at validation. Only checked when `primaryKey` is declared; skipped when it is null |
 | Unknown field | Field in JSON not in schema | Warning, ignored |

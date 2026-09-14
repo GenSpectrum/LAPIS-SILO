@@ -118,15 +118,17 @@ struct ColumnIdentifier {
 class TableSchema {
   public:
    std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
-   ColumnIdentifier primary_key;
+   std::optional<ColumnIdentifier> primary_key;
 
    TableSchema(
       std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata,
-      ColumnIdentifier primary_key
+      std::optional<ColumnIdentifier> primary_key
    )
        : column_metadata(std::move(column_metadata)),
          primary_key(std::move(primary_key)) {
-      RHYDB_ASSERT(this->column_metadata.contains(this->primary_key));
+      RHYDB_ASSERT(
+         !this->primary_key.has_value() || this->column_metadata.contains(*this->primary_key)
+      );
    }
 
    [[nodiscard]] std::optional<ColumnIdentifier> getColumn(std::string_view name) const;

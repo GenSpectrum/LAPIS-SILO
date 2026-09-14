@@ -789,6 +789,43 @@ child_2:
    }
 };
 
+// A schema with `primaryKey: ~` declares no primary key, so the uniqueness validation that
+// DUPLICATE_PRIMARY_KEY exercises is skipped and duplicate records are preserved as separate rows.
+const Scenario<Success> NO_PRIMARY_KEY_ALLOWS_DUPLICATES = {
+   .test_name = "NO_PRIMARY_KEY_ALLOWS_DUPLICATES",
+   .input_data =
+      []() {
+         std::vector<nlohmann::json> result;
+         result.emplace_back(nlohmann::json::parse(R"({"accessionVersion": "id_1"})"));
+         result.emplace_back(nlohmann::json::parse(R"({"accessionVersion": "id_1"})"));
+         result.emplace_back(nlohmann::json::parse(R"({"accessionVersion": "id_2"})"));
+         result.emplace_back(nlohmann::json::parse(R"({"accessionVersion": "id_2"})"));
+         return result;
+      },
+   .database_config =
+      R"(
+schema:
+  instanceName: "Test"
+  metadata:
+    - name: "accessionVersion"
+      type: "string"
+  primaryKey: ~
+)",
+   .reference_genomes = R"(
+{
+  "nucleotideSequences": [],
+  "genes": []
+})",
+   .assertion{
+      .expected_sequence_count = 4,
+      .query = "default.groupBy({count:=count()},{accessionVersion}).orderBy({accessionVersion})",
+      .expected_query_result = nlohmann::json::parse(R"([
+         {"count": 2, "accessionVersion": "id_1"},
+         {"count": 2, "accessionVersion": "id_2"}
+      ])")
+   }
+};
+
 class PreprocessorTestFixture : public ::testing::TestWithParam<Scenario<Success>> {};
 
 const auto TEST_CASES = ::testing::Values(
@@ -803,7 +840,8 @@ const auto TEST_CASES = ::testing::Values(
    DIVERSE_SEQUENCE_NAMES_NDJSON,
    PREVENT_LATE_AUTO_CASTING,
    TWO_LINEAGE_SYSTEMS,
-   DATE_COLUMN_VALID_DATES
+   DATE_COLUMN_VALID_DATES,
+   NO_PRIMARY_KEY_ALLOWS_DUPLICATES
 );
 
 INSTANTIATE_TEST_SUITE_P(PreprocessorTest, PreprocessorTestFixture, TEST_CASES, printTestName<Success>);
