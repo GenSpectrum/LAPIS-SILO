@@ -6,17 +6,18 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include "rhydb/common/lineage_tree.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
 #include "rhydb/schema/database_schema.h"
 
 namespace rhydb::query_engine::scalar_expressions {
 
-/// `lineage(column, value, ...)`. The lineage hierarchy lives in a lineage relation table, which
-/// `lineage_definition` names, so a column without an in-memory lineage index is resolved in
+/// `lineage(column, value, ...)`, before it knows the lineage hierarchy. The hierarchy lives in a
+/// lineage relation table, which `lineage_definition` names, so this expression is resolved in
 /// `rewrite()` - where the filtered table, and through it the definition, is available - into the
 /// primitives that do the matching: an IsNull, an equality, or a StringInSet over the lineage and
-/// its sublineages. A column that does carry the index keeps being compiled against it.
+/// its sublineages. `compile()` is therefore never reached.
 class LineageFilter : public ScalarExpression {
    schema::ColumnIdentifier column;
    std::optional<std::string> lineage;
@@ -48,11 +49,6 @@ class LineageFilter : public ScalarExpression {
 
    [[nodiscard]] std::unique_ptr<filter::operators::Operator> compile(const storage::Table& table
    ) const override;
-
-  private:
-   [[nodiscard]] std::optional<const roaring::Roaring*> getBitmapForValue(
-      const rhydb::storage::column::DictionaryEncodedColumn& lineage_column
-   ) const;
 };
 
 }  // namespace rhydb::query_engine::scalar_expressions

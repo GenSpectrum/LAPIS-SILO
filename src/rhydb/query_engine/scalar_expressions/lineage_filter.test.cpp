@@ -63,24 +63,6 @@ schema:
   primaryKey: "primaryKey"
 )";
 
-// Same column, but materialized as a relation table with no COLUMN_METADATA index. lineage(...)
-// must then resolve sublineages by a semijoin against the relation table's transitive closure and
-// produce results identical to the index-backed path above.
-const auto DATABASE_CONFIG_TABLE_MODE =
-   R"(
-schema:
-  instanceName: "dummy name"
-  metadata:
-    - name: "primaryKey"
-      type: "string"
-    - name: "pango_lineage"
-      type: "string"
-      generateIndex: true
-      generateLineageIndex: test_lineage_index
-      lineageIndexType: table
-  primaryKey: "primaryKey"
-)";
-
 const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "A"}},
    {{"gene1", "*"}},
@@ -107,13 +89,6 @@ ISOLATED:
 const QueryTestData TEST_DATA{
    .ndjson_input_data = DATA,
    .database_config = DATABASE_CONFIG,
-   .reference_genomes = REFERENCE_GENOMES,
-   .lineage_trees = {{"test_lineage_index", LINEAGE_TREE}}
-};
-
-const QueryTestData TEST_DATA_TABLE_MODE{
-   .ndjson_input_data = DATA,
-   .database_config = DATABASE_CONFIG_TABLE_MODE,
    .reference_genomes = REFERENCE_GENOMES,
    .lineage_trees = {{"test_lineage_index", LINEAGE_TREE}}
 };
@@ -228,25 +203,6 @@ const QueryTestScenario ISOLATED_LINEAGE_SELF = {
 QUERY_TEST(
    LineageFilterTest,
    TEST_DATA,
-   ::testing::Values(
-      LINEAGE_FILTER_SCENARIO,
-      LINEAGE_FILTER_INCLUDING_SUBLINEAGES_SCENARIO,
-      LINEAGE_FILTER_NULL_SCENARIO,
-      LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO,
-      FILTER_INCLUDING_RECOMBINANTS,
-      FILTER_INCLUDING_CONTAINED_RECOMBINANTS,
-      DOES_NOT_FILTER_NON_INCLUDED_RECOMBINANTS,
-      EXPLICIT_DO_NOT_FOLLOW,
-      RECOMBINANT_SELF_DO_NOT_FOLLOW,
-      ISOLATED_LINEAGE_SELF
-   )
-)
-
-// The exact same scenarios, but the column has no COLUMN_METADATA lineage index: lineage(...)
-// resolves against the relation table via a transitive-closure semijoin. Results must be identical.
-QUERY_TEST(
-   LineageFilterRelationalTest,
-   TEST_DATA_TABLE_MODE,
    ::testing::Values(
       LINEAGE_FILTER_SCENARIO,
       LINEAGE_FILTER_INCLUDING_SUBLINEAGES_SCENARIO,

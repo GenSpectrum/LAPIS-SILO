@@ -142,7 +142,7 @@ using rhydb::ReferenceGenomes;
 using rhydb::test::QueryTestData;
 using rhydb::test::QueryTestScenario;
 
-// A column with `lineageIndexType: table` gets a companion relation table named after the column.
+// A column with a lineage definition gets a companion relation table named after the column.
 const auto DATABASE_CONFIG =
    R"(
 schema:
@@ -154,7 +154,6 @@ schema:
       type: "string"
       generateIndex: true
       generateLineageIndex: test_lineage_index
-      lineageIndexType: "table"
     - name: "other_lin"
       type: "string"
       generateIndex: true

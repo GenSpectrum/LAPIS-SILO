@@ -17,17 +17,9 @@ namespace rhydb_app {
 
 namespace {
 
-/// The lineage definition file of `column_name`, wherever the column's lineage tree lives: on the
-/// column itself (`lineageIndexType` 'columnMetadata' or 'both'), or with the lineage relation
-/// table preprocessing built from it ('table').
+/// The lineage definition file `column_name`'s values belong to, kept with the lineage relation
+/// table that preprocessing built from it.
 std::string getLineageDefinition(const rhydb::Database& database, const std::string& column_name) {
-   const auto& table = database.tables.at(rhydb::schema::TableName::getDefault());
-   auto* metadata =
-      table->schema->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>(column_name)
-         .value();
-   if (metadata->lineage_tree.has_value()) {
-      return metadata->lineage_tree.value().file;
-   }
    const auto relation_table = database.tables.find(rhydb::schema::TableName{column_name});
    if (relation_table != database.tables.end() &&
        relation_table->second->schema->lineage_definition_file.has_value()) {

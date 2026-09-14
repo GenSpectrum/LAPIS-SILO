@@ -96,16 +96,10 @@ E:
 ## Lineage Relation Tables
 
 A lineage definition is attached to a metadata column via `generateLineageIndex` in the database
-config. The `lineageIndexType` option of that column controls how it is made available:
-
-- `columnMetadata` (default): the lineage tree lives in the column's metadata and is used by the
-  `lineage(...)` filter, documented in [query_documentation.md](query_documentation.md).
-- `table`: preprocessing materializes the tree as a separate table, and the column carries no
-  lineage tree — `lineage(...)` is not available on it.
-- `both`: both of the above.
-
-For `table` and `both`, the materialized table is named after the column, so a column
-`pango_lineage` yields a table `pango_lineage` that is queried like any other table:
+config. Preprocessing materializes the definition as a table, which is where the `lineage(...)`
+filter, documented in [query_documentation.md](query_documentation.md), reads the hierarchy from.
+The table is named after the column, so a column `pango_lineage` yields a table `pango_lineage`
+that is queried like any other table:
 
 ```
 pango_lineage
