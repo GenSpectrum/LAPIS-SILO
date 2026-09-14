@@ -44,8 +44,6 @@ void FilterPushdownPass::propagateToNode(operators::QueryNodePtr& node) {
    if (auto replacement = operators::visit(*node, *this)) {
       node = std::move(replacement);
    }
-   // Fail-closed default: whatever filters the node did not push into its child or consume itself
-   // are retained ABOVE it as a FilterNode (an Arrow filter).
    if (!current_filters.empty()) {
       auto remaining_filter = std::make_unique<And>(std::move(current_filters));
       current_filters.clear();
@@ -75,14 +73,12 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::FilterNode& no
    return child;
 }
 
-// Filter-transparent: a project neither changes the row set nor the values of the columns
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::ProjectNode& node) {
    propagateToNode(node.child);
    return nullptr;
 }
 
-// Filter-transparent: ordering does not change which rows exist
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::OrderByNode& node) {
    if (node.randomize_seed.has_value()) {

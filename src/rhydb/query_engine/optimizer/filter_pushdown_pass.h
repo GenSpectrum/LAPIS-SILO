@@ -19,10 +19,6 @@ class JoinNode;
 namespace rhydb::query_engine::optimizer {
 
 /// Pushes filters as deep into the plan as is semantics-preserving.
-///
-/// Fail-closed: a node breaks pushdown unless it opts in. `propagateToNode` retains any filter a
-/// node did not push down or consume as a FilterNode above it, so an unclassified (or future) node
-/// can never silently let a filter through.
 class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    std::vector<std::unique_ptr<scalar_expressions::ScalarExpression>> current_filters;
 
