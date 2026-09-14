@@ -16,6 +16,7 @@ set(BENCHMARK_NAMES
     sequence_column_insert
     co_occurrence_benchmark
     real_data_mutations_benchmark
+    lineage_filter_benchmark
 )
 foreach(bench ${BENCHMARK_NAMES})
     add_benchmark(${bench})
