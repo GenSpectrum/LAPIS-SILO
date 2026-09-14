@@ -85,7 +85,11 @@ operators::QueryNodePtr FilterPushdownPass::operator()(operators::ProjectNode& n
 // Filter-transparent: ordering does not change which rows exist
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr FilterPushdownPass::operator()(operators::OrderByNode& node) {
-   propagateToNode(node.child);
+   if (node.randomize_seed.has_value()) {
+      barrier(node.child);
+   } else {
+      propagateToNode(node.child);
+   }
    return nullptr;
 }
 
