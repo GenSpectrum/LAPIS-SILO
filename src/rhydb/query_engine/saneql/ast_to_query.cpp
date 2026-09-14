@@ -15,8 +15,10 @@
 #include "rhydb/common/aa_symbols.h"
 #include "rhydb/common/lineage_tree.h"
 #include "rhydb/common/nucleotide_symbols.h"
+#include "rhydb/initialize/lineage_relation_table.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
+#include "rhydb/query_engine/lineage_relation_descendants.h"
 #include "rhydb/query_engine/operators/aggregate_node.h"
 #include "rhydb/query_engine/operators/fetch_node.h"
 #include "rhydb/query_engine/operators/filter_node.h"
@@ -62,6 +64,7 @@
 #include "rhydb/query_engine/scalar_expressions/symbol_equals.h"
 #include "rhydb/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 #include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/dictionary_encoded_column.h"
 #include "rhydb/storage/column/sequence_column.h"
 #include "rhydb/storage/column/zstd_compressed_string_column.h"
 
@@ -348,40 +351,48 @@ ScalarExpressionPtr handleIsNotNull(
    );
 }
 
-ScalarExpressionPtr handleLineage(
-   const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
-) {
-   auto column_name = extractIdentifierName(args.at("column"));
-   // The lineage system to resolve against - the relation table holding its edges - defaults to
-   // the column's own name, which is where preprocessing puts it. Naming it explicitly lets
-   // several columns share one definition, and lets a column be filtered against a definition
-   // other than its own.
-   std::string lineage_definition = column_name;
+/// The parsed arguments of a `lineage(...)` call. `sublineage_mode` is present iff
+/// `includeSublineages:=true` was requested; its value is the recombinant-following mode
+/// (`DO_NOT_FOLLOW` by default, overridden by `recombinantFollowingMode`).
+///
+/// `lineage_definition` names the lineage system to resolve against - the relation table holding
+/// its edges - and defaults to the column's own name, which is where preprocessing puts it. Naming
+/// it explicitly lets several columns share one definition, and lets a column be filtered against a
+/// definition other than its own.
+struct LineageCallArguments {
+   std::string column;
+   std::optional<std::string> lineage;
+   std::optional<common::RecombinantEdgeFollowingMode> sublineage_mode;
+   std::string lineage_definition;
+};
+
+LineageCallArguments parseLineageCallArguments(const BoundArguments& args) {
+   LineageCallArguments result;
+   result.column = extractIdentifierName(args.at("column"));
+   result.lineage_definition = result.column;
    if (const auto* expr = args.get("lineageDefinition")) {
-      lineage_definition = extractIdentifierName(*expr);
+      result.lineage_definition = extractIdentifierName(*expr);
    }
    const auto& value_expr = args.at("value");
-   std::optional<std::string> lineage_value;
    if (!isNullLiteral(value_expr)) {
-      lineage_value = extractStringLiteral(value_expr);
+      result.lineage = extractStringLiteral(value_expr);
    }
    bool include_sublineages = false;
    if (const auto* expr = args.get("includeSublineages")) {
       include_sublineages = extractBoolLiteral(*expr);
    }
-   std::optional<common::RecombinantEdgeFollowingMode> sublineage_mode;
    if (include_sublineages) {
-      sublineage_mode = common::RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
+      result.sublineage_mode = common::RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
    }
    auto recombinant_mode = args.getOptionalString("recombinantFollowingMode");
    if (recombinant_mode.has_value()) {
       if (recombinant_mode.value() == "alwaysFollow") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW;
+         result.sublineage_mode = common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW;
       } else if (recombinant_mode.value() == "followIfFullyContainedInClade") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE;
+         result.sublineage_mode =
+            common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE;
       } else if (recombinant_mode.value() == "doNotFollow") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
+         result.sublineage_mode = common::RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
       } else {
          throw IllegalQueryException(
             "invalid recombinantFollowingMode: '{}'. Valid values are: alwaysFollow, "
@@ -390,11 +401,19 @@ ScalarExpressionPtr handleLineage(
          );
       }
    }
+   return result;
+}
+
+ScalarExpressionPtr handleLineage(
+   const BoundArguments& args,
+   const std::vector<schema::ColumnIdentifier>& schema
+) {
+   auto parsed = parseLineageCallArguments(args);
    return std::make_unique<scalar_expressions::LineageFilter>(
-      resolveColumn(column_name, schema),
-      lineage_value,
-      sublineage_mode,
-      std::move(lineage_definition)
+      resolveColumn(parsed.column, schema),
+      parsed.lineage,
+      parsed.sublineage_mode,
+      std::move(parsed.lineage_definition)
    );
 }
 

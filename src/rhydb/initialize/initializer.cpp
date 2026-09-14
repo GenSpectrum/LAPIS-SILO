@@ -73,11 +73,11 @@ void Initializer::createTableInDatabase(
    );
    database.createTable(std::move(table_name), std::move(table_schema));
 
-   // Materialize a companion lineage relation table for every column configured with
-   // `lineageIndexType` 'table' or 'both'. The tree name is resolved against the loaded lineage
-   // definitions the same way the column's in-memory index is.
+   // Materialize a companion lineage relation table, plus an alias table when the definition
+   // declares aliases, for every column with a lineage definition. This is where `lineage(...)`
+   // reads the hierarchy from; the column itself stays a plain dictionary.
    for (const auto& config_metadata : database_config.schema.metadata) {
-      if (!config_metadata.generatesLineageTable()) {
+      if (!config_metadata.generate_lineage_index.has_value()) {
          continue;
       }
       auto lineage_tree =
@@ -240,31 +240,13 @@ void ColumnMetadataInitializer::operator()<storage::column::DictionaryEncodedCol
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& /*reference_genomes*/,
-   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
+   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
-   if (config_metadata.generatesLineageColumnIndex()) {
-      auto lineage_tree_name = config_metadata.generate_lineage_index.value();
-      auto lineage_tree = Initializer::findLineageTreeForName(lineage_trees, lineage_tree_name);
-      if (not lineage_tree.has_value()) {
-         auto keys =
-            lineage_trees | std::views::keys |
-            std::views::transform([](const std::filesystem::path& path) { return path.string(); });
-         throw InitializeException(
-            "Column '{}' has lineage tree '{}' configured, but did not find corresponding lineage "
-            "tree in the provided lineageDefinitionFilenames: {}",
-            config_metadata.name,
-            config_metadata.generate_lineage_index.value(),
-            fmt::join(keys, ",")
-         );
-      }
-      metadata = std::make_shared<storage::column::DictionaryEncodedColumn::Metadata>(
-         config_metadata.name, lineage_tree.value(), config_metadata.treat_unknown_lineages_as_null
-      );
-   } else {
-      metadata =
-         std::make_shared<storage::column::DictionaryEncodedColumn::Metadata>(config_metadata.name);
-   }
+   // A lineage definition on this column materializes as its own relation table (see
+   // createLineageRelationTable); the column itself is a plain dictionary either way.
+   metadata =
+      std::make_shared<storage::column::DictionaryEncodedColumn::Metadata>(config_metadata.name);
 }
 
 template <>

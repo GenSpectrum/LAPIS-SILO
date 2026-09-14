@@ -16,9 +16,9 @@ tableName
 
 The table holding the sequences and their metadata is named `default`.
 
-Additional tables exist if the database config declares columns with `lineageIndexType: table` or
-`both`: each such column gets a companion table named after the column, holding the edges of its
-lineage tree, plus a `<column>_aliases` table when the definition declares aliases. These are queried like any other table — see
+Additional tables exist for columns with a lineage definition: each gets a companion table named
+after the column, holding the edges of its lineage tree, plus a `<column>_aliases` table when the
+definition declares aliases. These are queried like any other table — see
 [lineage_definitions.md](lineage_definitions.md#lineage-relation-tables) for their schema.
 
 ### Tabular data model
@@ -514,8 +514,8 @@ With `includeVertices:=true` (default `false`), the reflexive pair `(v, v)` is a
 emitted for every vertex `v` that appears in the relation, yielding the *reflexive*-transitive
 closure.
 
-A typical input is a **lineage relation table**. When a column is configured with
-`lineageIndexType: table` (or `both`), preprocessing materializes a companion table (named after
+A typical input is a **lineage relation table**. For a column with a lineage definition,
+preprocessing materializes a companion table (named after
 that column) with one row per direct edge, holding the child lineage in a `lineage` column and
 its direct parent in a `parent` column (null for roots). Its closure pairs every lineage with
 each of its descendants:
@@ -685,10 +685,9 @@ primary_key.like('key_[0-9]+')
 
 ### `lineage(column, value [, includeSublineages:=bool] [, recombinantFollowingMode:=string] [, lineageDefinition:=symbol])`
 
-True if the lineage column matches `value`. The column must have `generateLineageIndex` set in the
-schema. Under `lineageIndexType: columnMetadata` (the default) or `both` the filter resolves
-through the precomputed bitmap index on the column; under `table` it reads the lineage and its
-sublineages from the column's lineage relation table.
+True if the lineage column matches `value`. The lineage and its sublineages are read from the
+lineage relation table that preprocessing built for the definition named by `lineageDefinition`,
+which defaults to a definition named after the column itself.
 
 `includeSublineages` (default `false`) also matches sublineages of `value`. `value` may be `null` to match NULL rows.
 
@@ -709,7 +708,6 @@ pango_lineage.lineage('B.1.1.7', includeSublineages:=true)
 pango_lineage.lineage('XBB', includeSublineages:=true, recombinantFollowingMode:='alwaysFollow')
 nextclade_lineage.lineage('B.1.1.7', includeSublineages:=true, lineageDefinition:=pango_lineage)
 ```
-
 
 ### `phyloDescendantOf(column, node)`
 

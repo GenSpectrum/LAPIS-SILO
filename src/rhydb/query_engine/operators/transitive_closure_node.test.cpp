@@ -45,11 +45,10 @@ const std::vector<nlohmann::json> DATA = {
 //   * `pango_lineage` is a plain STRING column (no index) that carries each sequence's lineage.
 //     transitiveClosure emits STRING from/to columns, and join() requires matching column
 //     types, so the value we join the closure against must itself be STRING.
-//   * `pango_lineage_indexed` has `generateLineageIndex` + `lineageIndexType: table`, which
-//     materializes the companion `pango_lineage_indexed` relation table (columns
-//     `lineage`/`parent`) whose closure we compute. A lineage-indexed column is necessarily
-//     dictionary-encoded (generateIndex is required), which is why it cannot double as the
-//     STRING join key.
+//   * `pango_lineage_indexed` has `generateLineageIndex`, which materializes the companion
+//     `pango_lineage_indexed` relation table (columns `lineage`/`parent`) whose closure we
+//     compute. A lineage column is necessarily dictionary-encoded (generateIndex is required),
+//     which is why it cannot double as the STRING join key.
 const auto DATABASE_CONFIG =
    R"(
 schema:
@@ -63,7 +62,6 @@ schema:
       type: "string"
       generateIndex: true
       generateLineageIndex: test_lineage_index
-      lineageIndexType: table
   primaryKey: "primaryKey"
 )";
 
@@ -403,10 +401,10 @@ nlohmann::json createDataWithSingleLineageColumn(
    };
 }
 
-// A single lineage column with `lineageIndexType: both`, i.e. the realistic shape of a lineage
-// config: there is no plain STRING copy of the lineage to join against, since a lineage-indexed
-// column is necessarily dictionary-encoded. The closure emits STRING columns and join() compares
-// join keys by the arrow type both sides materialize, so the two still join.
+// A single lineage column, i.e. the realistic shape of a lineage config: there is no plain STRING
+// copy of the lineage to join against, since a lineage column is necessarily dictionary-encoded.
+// The closure emits STRING columns and join() compares join keys by the arrow type both sides
+// materialize, so the two still join.
 const auto SINGLE_LINEAGE_COLUMN_DATABASE_CONFIG =
    R"(
 schema:
@@ -418,7 +416,6 @@ schema:
       type: "string"
       generateIndex: true
       generateLineageIndex: test_lineage_index
-      lineageIndexType: both
   primaryKey: "primaryKey"
 )";
 
