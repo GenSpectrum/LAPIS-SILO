@@ -18,7 +18,7 @@ The table holding the sequences and their metadata is named `default`.
 
 Additional tables exist if the database config declares columns with `lineageIndexType: table` or
 `both`: each such column gets a companion table named after the column, holding the edges of its
-lineage tree. These are queried like any other table — see
+lineage tree, plus a `<column>_aliases` table when the definition declares aliases. These are queried like any other table — see
 [lineage_definitions.md](lineage_definitions.md#lineage-relation-tables) for their schema.
 
 ### Tabular data model
@@ -683,12 +683,12 @@ division.like('Basel.*')
 primary_key.like('key_[0-9]+')
 ```
 
-### `lineage(column, value [, includeSublineages:=bool] [, recombinantFollowingMode:=string])`
+### `lineage(column, value [, includeSublineages:=bool] [, recombinantFollowingMode:=string] [, lineageDefinition:=symbol])`
 
 True if the lineage column matches `value`. The column must have `generateLineageIndex` set in the
-schema, with a `lineageIndexType` of `columnMetadata` (the default) or `both` — with
-`lineageIndexType: table` the lineage tree is not attached to the column and this filter is
-unavailable on it.
+schema. Under `lineageIndexType: columnMetadata` (the default) or `both` the filter resolves
+through the precomputed bitmap index on the column; under `table` it reads the lineage and its
+sublineages from the column's lineage relation table.
 
 `includeSublineages` (default `false`) also matches sublineages of `value`. `value` may be `null` to match NULL rows.
 
@@ -697,11 +697,19 @@ unavailable on it.
 - `"alwaysFollow"` — include recombinants with at least one parent in the searched clade
 - `"followIfFullyContainedInClade"` — include recombinants only if all parents are in the clade
 
+`lineageDefinition` names the lineage system to resolve against — the relation table holding its
+edges — and defaults to the column's own name, which is where preprocessing puts it. Naming it
+lets several columns share one definition, and lets a column be filtered against a definition other
+than its own. A column with no definition of its own can only be filtered hierarchically by naming
+one.
+
 ```
 pango_lineage.lineage('B.1.1.7')
 pango_lineage.lineage('B.1.1.7', includeSublineages:=true)
 pango_lineage.lineage('XBB', includeSublineages:=true, recombinantFollowingMode:='alwaysFollow')
+nextclade_lineage.lineage('B.1.1.7', includeSublineages:=true, lineageDefinition:=pango_lineage)
 ```
+
 
 ### `phyloDescendantOf(column, node)`
 

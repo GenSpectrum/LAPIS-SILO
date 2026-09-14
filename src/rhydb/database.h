@@ -37,6 +37,12 @@ class Database {
       std::shared_ptr<schema::TableSchema> table_schema
    );
 
+   /// Recomputes every table's `lineage_definitions`: each lineage relation table in the database
+   /// is a definition, named after itself, paired with its alias table when one exists. Called
+   /// after the set of tables changes; the links are between tables, so they are rebuilt rather
+   /// than serialized.
+   void linkLineageDefinitions();
+
    void appendData(
       const schema::TableName& table_name,
       std::istream& input_stream,

@@ -48,5 +48,11 @@ class Initializer {
       const common::LineageTreeAndIdMap& lineage_tree,
       Database& database
    );
+
+   static void createLineageAliasTable(
+      std::string_view column_name,
+      const common::LineageTreeAndIdMap& lineage_tree,
+      Database& database
+   );
 };
 }  // namespace rhydb::initialize

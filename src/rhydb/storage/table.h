@@ -12,6 +12,16 @@
 namespace rhydb::storage {
 
 class ColumnGroupBuilder;
+class Table;
+
+/// The tables describing one lineage system: the relation table holding its parent->child edges,
+/// and the alias table mapping alternative names onto canonical lineages (absent when the
+/// definition declares none). Both are owned by the Database; a definition outlives every query
+/// that reads it.
+struct LineageDefinition {
+   const Table* relation = nullptr;
+   const Table* aliases = nullptr;
+};
 
 class Table {
   public:
@@ -19,6 +29,11 @@ class Table {
    std::shared_ptr<schema::TableSchema> schema;
    ColumnGroup columns;
    uint32_t sequence_count = 0;
+   /// The lineage definitions a query over this table can resolve `lineage(...)` against, by the
+   /// name the query uses for them (the relation table's name). Kept here so that a filter, which
+   /// only ever sees the table it filters, can reach the tree describing one of its columns.
+   /// Linked by the owning Database whenever a table is created or loaded; not serialized.
+   std::map<std::string, LineageDefinition> lineage_definitions;
    /// The shared per-chunk row layout of this table partition: every column is appended to in
    /// lockstep, so this single layout is the source of truth for iterating the partition's rows by
    /// `RowId`. `sequence_count == row_layout.numRows()`.

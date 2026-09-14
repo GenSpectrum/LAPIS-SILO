@@ -353,6 +353,14 @@ ScalarExpressionPtr handleLineage(
    const std::vector<schema::ColumnIdentifier>& schema
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
+   // The lineage system to resolve against - the relation table holding its edges - defaults to
+   // the column's own name, which is where preprocessing puts it. Naming it explicitly lets
+   // several columns share one definition, and lets a column be filtered against a definition
+   // other than its own.
+   std::string lineage_definition = column_name;
+   if (const auto* expr = args.get("lineageDefinition")) {
+      lineage_definition = extractIdentifierName(*expr);
+   }
    const auto& value_expr = args.at("value");
    std::optional<std::string> lineage_value;
    if (!isNullLiteral(value_expr)) {
@@ -383,7 +391,10 @@ ScalarExpressionPtr handleLineage(
       }
    }
    return std::make_unique<scalar_expressions::LineageFilter>(
-      resolveColumn(column_name, schema), lineage_value, sublineage_mode
+      resolveColumn(column_name, schema),
+      lineage_value,
+      sublineage_mode,
+      std::move(lineage_definition)
    );
 }
 
@@ -1734,7 +1745,8 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
       {{pos("column"),
         pos("value"),
         named("includeSublineages", false),
-        named("recombinantFollowingMode", false)}},
+        named("recombinantFollowingMode", false),
+        named("lineageDefinition", false)}},
       handleLineage
    );
 

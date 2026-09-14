@@ -35,12 +35,18 @@ nlohmann::json createDataWithLineageNullValue(const std::string& primaryKey) {
       {"gene1", nullptr}
    };
 }
+// A lineage with no parents and no children. It never appears as an edge endpoint, so the
+// transitive closure omits it entirely; the relational filter must still match it via the
+// self-membership branch.
+const std::string ISOLATED_LINEAGE = "ISOLATED";
+
 const std::vector<nlohmann::json> DATA = {
    createDataWithLineageValue("id_0", SOME_BASE_LINEAGE),
    createDataWithLineageValue("id_1", SOME_BASE_LINEAGE),
    createDataWithLineageValue("id_2", SOME_SUBLINEAGE),
    createDataWithLineageNullValue("id_3"),
-   createDataWithLineageValue("id_4", RECOMBINANT_LINEAGE)
+   createDataWithLineageValue("id_4", RECOMBINANT_LINEAGE),
+   createDataWithLineageValue("id_5", ISOLATED_LINEAGE)
 };
 
 const auto DATABASE_CONFIG =
@@ -54,6 +60,24 @@ schema:
       type: "string"
       generateIndex: true
       generateLineageIndex: test_lineage_index
+  primaryKey: "primaryKey"
+)";
+
+// Same column, but materialized as a relation table with no COLUMN_METADATA index. lineage(...)
+// must then resolve sublineages by a semijoin against the relation table's transitive closure and
+// produce results identical to the index-backed path above.
+const auto DATABASE_CONFIG_TABLE_MODE =
+   R"(
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+    - name: "pango_lineage"
+      type: "string"
+      generateIndex: true
+      generateLineageIndex: test_lineage_index
+      lineageIndexType: table
   primaryKey: "primaryKey"
 )";
 
@@ -76,11 +100,20 @@ RECOMBINANT:
   parents:
   - CHILD
   - CHILD.2
+ISOLATED:
+  parents: []
 )"));
 
 const QueryTestData TEST_DATA{
    .ndjson_input_data = DATA,
    .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES,
+   .lineage_trees = {{"test_lineage_index", LINEAGE_TREE}}
+};
+
+const QueryTestData TEST_DATA_TABLE_MODE{
+   .ndjson_input_data = DATA,
+   .database_config = DATABASE_CONFIG_TABLE_MODE,
    .reference_genomes = REFERENCE_GENOMES,
    .lineage_trees = {{"test_lineage_index", LINEAGE_TREE}}
 };
@@ -168,6 +201,28 @@ const QueryTestScenario EXPLICIT_DO_NOT_FOLLOW = {
 )")
 };
 
+// A recombinant lineage under doNotFollow is reachable from no ancestor edge, so it only matches
+// itself. Exercises the self-membership branch for a vertex that has no incoming closure edge.
+const QueryTestScenario RECOMBINANT_SELF_DO_NOT_FOLLOW = {
+   .name = "RECOMBINANT_SELF_DO_NOT_FOLLOW",
+   .query =
+      "default.filter(pango_lineage.lineage('RECOMBINANT', includeSublineages:=true, "
+      "recombinantFollowingMode:='doNotFollow')).project({pango_lineage, primaryKey})",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"pango_lineage":"RECOMBINANT","primaryKey":"id_4"}]
+)")
+};
+
+const QueryTestScenario ISOLATED_LINEAGE_SELF = {
+   .name = "ISOLATED_LINEAGE_SELF",
+   .query =
+      "default.filter(pango_lineage.lineage('ISOLATED', "
+      "includeSublineages:=true)).project({pango_lineage, primaryKey})",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"pango_lineage":"ISOLATED","primaryKey":"id_5"}]
+)")
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -181,6 +236,27 @@ QUERY_TEST(
       FILTER_INCLUDING_RECOMBINANTS,
       FILTER_INCLUDING_CONTAINED_RECOMBINANTS,
       DOES_NOT_FILTER_NON_INCLUDED_RECOMBINANTS,
-      EXPLICIT_DO_NOT_FOLLOW
+      EXPLICIT_DO_NOT_FOLLOW,
+      RECOMBINANT_SELF_DO_NOT_FOLLOW,
+      ISOLATED_LINEAGE_SELF
+   )
+)
+
+// The exact same scenarios, but the column has no COLUMN_METADATA lineage index: lineage(...)
+// resolves against the relation table via a transitive-closure semijoin. Results must be identical.
+QUERY_TEST(
+   LineageFilterRelationalTest,
+   TEST_DATA_TABLE_MODE,
+   ::testing::Values(
+      LINEAGE_FILTER_SCENARIO,
+      LINEAGE_FILTER_INCLUDING_SUBLINEAGES_SCENARIO,
+      LINEAGE_FILTER_NULL_SCENARIO,
+      LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO,
+      FILTER_INCLUDING_RECOMBINANTS,
+      FILTER_INCLUDING_CONTAINED_RECOMBINANTS,
+      DOES_NOT_FILTER_NON_INCLUDED_RECOMBINANTS,
+      EXPLICIT_DO_NOT_FOLLOW,
+      RECOMBINANT_SELF_DO_NOT_FOLLOW,
+      ISOLATED_LINEAGE_SELF
    )
 )

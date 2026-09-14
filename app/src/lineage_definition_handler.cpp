@@ -15,6 +15,29 @@
 
 namespace rhydb_app {
 
+namespace {
+
+/// The lineage definition file of `column_name`, wherever the column's lineage tree lives: on the
+/// column itself (`lineageIndexType` 'columnMetadata' or 'both'), or with the lineage relation
+/// table preprocessing built from it ('table').
+std::string getLineageDefinition(const rhydb::Database& database, const std::string& column_name) {
+   const auto& table = database.tables.at(rhydb::schema::TableName::getDefault());
+   auto* metadata =
+      table->schema->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>(column_name)
+         .value();
+   if (metadata->lineage_tree.has_value()) {
+      return metadata->lineage_tree.value().file;
+   }
+   const auto relation_table = database.tables.find(rhydb::schema::TableName{column_name});
+   if (relation_table != database.tables.end() &&
+       relation_table->second->schema->lineage_definition_file.has_value()) {
+      return relation_table->second->schema->lineage_definition_file.value();
+   }
+   throw BadRequest("The column {} does not have a lineageIndex defined.", column_name);
+}
+
+}  // namespace
+
 LineageDefinitionHandler::LineageDefinitionHandler(
    std::shared_ptr<ActiveDatabase> database_handle,
    std::string column_name
@@ -44,14 +67,11 @@ void LineageDefinitionHandler::get(
    if (column_identifier.value().type != rhydb::schema::ColumnType::DICTIONARY_ENCODED) {
       throw BadRequest("The column {} is not of type dictionary-encoded string.", column_name);
    }
-   auto* metadata =
-      table->second->schema
-         ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>(column_name)
-         .value();
-   if (!metadata->lineage_tree.has_value()) {
-      throw BadRequest("The column {} does not have a lineageIndex defined.", column_name);
-   }
-   const std::string lineage_definition_yaml = metadata->lineage_tree.value().file;
+
+   // Resolved before the response is sent: sending commits the 200, after which a BadRequest
+   // could no longer set the status.
+   const std::string lineage_definition_yaml = getLineageDefinition(*database, column_name);
+
    response.setContentType("application/yaml");
    std::ostream& out_stream = response.send();
    out_stream << lineage_definition_yaml;

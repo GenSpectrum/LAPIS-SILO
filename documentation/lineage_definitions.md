@@ -135,4 +135,25 @@ pango_lineage
 - **Derived from the definition, not the data.** The rows come from the lineage definition file, so
   every canonical lineage appears whether or not any sequence carries it.
 - **Aliases are not rows.** An alias resolves to its canonical lineage; only canonical lineage names
-  appear in `lineage` and `parent`.
+  appear in `lineage` and `parent`. The aliases themselves live in a companion table — see below.
+
+## Lineage Alias Tables
+
+When the lineage definition declares aliases, a second table named `<column>_aliases` holds them,
+so that the relation table keeps holding canonical lineages only. A column `pango_lineage` whose
+definition declares aliases therefore yields a table `pango_lineage_aliases`:
+
+```
+pango_lineage_aliases
+  .filter(lineage = 'XBB.1.5')
+```
+
+### Schema
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `alias` | string | Primary key. The alternative name |
+| `lineage` | string | The canonical lineage the alias stands for; a `lineage` of the relation table |
+
+A definition that declares no aliases produces no such table. `lineage(...)` resolves a queried
+name through this table before matching, so a lineage can be queried by any of its aliases.
