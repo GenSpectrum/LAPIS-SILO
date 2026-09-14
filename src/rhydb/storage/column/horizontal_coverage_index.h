@@ -10,6 +10,7 @@
 #include <roaring/roaring.hh>
 
 #include "rhydb/roaring_util/bitmap_builder.h"
+#include "rhydb/roaring_util/roaring_container.h"
 #include "rhydb/storage/column/row_id.h"
 
 namespace rhydb {
@@ -59,6 +60,31 @@ class HorizontalCoverageIndex {
       };
    }
 
+   /// The rows of a single 2^16 chunk that cover `position` (i.e. `position` lies in the row's
+   /// `[start, end)` and is not one of the row's in-region N positions). This is the single-chunk
+   /// analogue of `getCoverageBitmapForPositions`, kept so the bitmap-aggregation node can compute
+   /// per-symbol groups one filter chunk at a time and skip chunks the filter does not touch. Uses
+   /// the same envelope fast paths (skip a chunk that cannot cover the position; bulk-add a chunk
+   /// that fully covers it) as the batch method. Every matching row lives in the one 2^16 chunk, so
+   /// the result is a single roaring container returned directly (empty if no row covers the
+   /// position), sparing the caller a `roaring::Roaring` wrapper.
+   [[nodiscard]] roaring_util::RoaringContainer coveredRowsInChunk(
+      uint32_t position,
+      uint16_t chunk_id
+   ) const;
+
+   /// True if no row in `chunk_id` covers `position` -- the position lies outside the chunk's
+   /// covered envelope (`[batch_min_start, batch_max_end)`), so every row is missing there. O(1);
+   /// lets a caller skip building the (empty) covered set for such a chunk.
+   [[nodiscard]] bool noRowCoversPositionInChunk(uint32_t position, uint16_t chunk_id) const;
+
+   /// True if *every* row in `chunk_id` covers `position` with no in-region N there. It combines
+   /// the covered-range intersection envelope (`[batch_max_start, batch_min_end)`, O(1)) with a
+   /// scan of the chunk's in-region-N rows for one carrying an N at `position`. When this holds and
+   /// no mutation is recorded at the position, every row carries the reference symbol, so the
+   /// caller can treat the whole chunk as one group without materializing the covered set.
+   [[nodiscard]] bool positionCoveredByWholeChunk(uint32_t position, uint16_t chunk_id) const;
+
    template <size_t BatchSize>
    [[nodiscard]] std::array<roaring::Roaring, BatchSize> getCoverageBitmapForPositions(
       uint32_t position
@@ -67,7 +93,10 @@ class HorizontalCoverageIndex {
       const uint32_t range_end = position + BatchSize;
 
       using roaring_util::BitmapBuilderByRange;
-      std::array<BitmapBuilderByRange, BatchSize> result_builders;
+      // Rows of partially-covered chunks are added one at a time (coalesced into ranges by the
+      // builder); fully-covered chunks are bulk-added to `result` directly with `addRange`.
+      std::array<BitmapBuilderByRange, BatchSize> partial_builders;
+      std::array<roaring::Roaring, BatchSize> result;
 
       for (size_t chunk_id = 0; chunk_id < starts.size(); ++chunk_id) {
          if (batch_max_end.at(chunk_id) <= range_start ||
@@ -77,20 +106,31 @@ class HorizontalCoverageIndex {
          const uint32_t base_row_id = static_cast<uint32_t>(chunk_id) << 16;
          const auto& chunk_starts = starts[chunk_id];
          const auto& chunk_ends = ends[chunk_id];
+
+         // Fast path: if the whole batch range lies within the chunk's intersection envelope
+         // `[batch_max_start, batch_min_end)`, every row in the chunk covers every position of the
+         // batch, so add the entire chunk to each position in one range operation.
+         if (batch_max_start.at(chunk_id) <= range_start &&
+             range_end <= batch_min_end.at(chunk_id)) {
+            for (auto& bitmap : result) {
+               bitmap.addRange(base_row_id, base_row_id + chunk_starts.size());
+            }
+            continue;
+         }
+
          for (size_t row_in_chunk = 0; row_in_chunk < chunk_starts.size(); ++row_in_chunk) {
             const uint32_t row_id = base_row_id | static_cast<uint32_t>(row_in_chunk);
             for (uint32_t pos = std::max(range_start, chunk_starts[row_in_chunk]);
                  pos < std::min(range_end, chunk_ends[row_in_chunk]);
                  ++pos) {
-               result_builders[pos - range_start].add(row_id);
+               partial_builders[pos - range_start].add(row_id);
             }
          }
       }
 
-      std::array<roaring::Roaring, BatchSize> result;
-      std::ranges::transform(result_builders, result.begin(), [](BitmapBuilderByRange& builder) {
-         return std::move(builder).getBitmap();
-      });
+      for (size_t i = 0; i < BatchSize; ++i) {
+         result[i] |= std::move(partial_builders[i]).getBitmap();
+      }
 
       roaring::Roaring range_bitmap;
       range_bitmap.addRange(range_start, range_end);
