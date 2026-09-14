@@ -1,13 +1,19 @@
 #include "rhydb/initialize/lineage_relation_table.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "rhydb/common/types.h"
 
 namespace rhydb::initialize {
+
+std::string lineageAliasTableName(std::string_view definition_name) {
+   return std::string{definition_name} + "_aliases";
+}
 
 std::vector<LineageRelationRow> buildLineageRelationRows(
    const common::LineageTreeAndIdMap& lineage_tree_and_id_map
@@ -54,6 +60,27 @@ std::vector<LineageRelationRow> buildLineageRelationRows(
          );
       }
    }
+   return rows;
+}
+
+std::vector<LineageAliasRow> buildLineageAliasRows(
+   const common::LineageTreeAndIdMap& lineage_tree_and_id_map
+) {
+   const auto& names = lineage_tree_and_id_map.lineage_id_lookup_map;
+   const auto& alias_mapping = lineage_tree_and_id_map.lineage_tree.getAliasMapping();
+
+   std::vector<LineageAliasRow> rows;
+   rows.reserve(alias_mapping.size());
+   for (const auto& [alias_id, lineage_id] : alias_mapping) {
+      rows.push_back(
+         {.alias = std::string{names.getValue(alias_id)},
+          .lineage = std::string{names.getValue(lineage_id)}}
+      );
+   }
+   // alias_mapping is unordered; sort so the table is built identically on every run.
+   std::ranges::sort(rows, [](const auto& left, const auto& right) {
+      return left.alias < right.alias;
+   });
    return rows;
 }
 

@@ -80,6 +80,12 @@ class LineageTree {
       return recombinant_clade_ancestors;
    }
 
+   /// For every alias, the canonical lineage it stands for. Aliases are ids of their own, outside
+   /// the range of `child_to_parent_relation`, and carry no edges themselves.
+   [[nodiscard]] const std::unordered_map<Idx, Idx>& getAliasMapping() const {
+      return alias_mapping;
+   }
+
    static std::unordered_map<Idx, std::optional<Idx>> computeRecombinantCladeAncestors(
       const std::vector<std::vector<Idx>>& child_to_parent_relation
    );

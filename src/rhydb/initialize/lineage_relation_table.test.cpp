@@ -14,7 +14,9 @@
 #include "rhydb/test/query_fixture.test.h"
 
 using rhydb::common::LineageTreeAndIdMap;
+using rhydb::initialize::buildLineageAliasRows;
 using rhydb::initialize::buildLineageRelationRows;
+using rhydb::initialize::LineageAliasRow;
 using rhydb::initialize::LineageRelationRow;
 using rhydb::preprocessing::LineageDefinitionFile;
 using ::testing::UnorderedElementsAreArray;
@@ -94,6 +96,47 @@ XBB:
    );
 }
 
+TEST(LineageRelationTable, aliasRowsMapEachAliasToItsCanonicalLineage) {
+   auto tree = LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(
+      R"(
+BASE:
+  aliases:
+  - B
+CHILD:
+  aliases:
+  - C1
+  - C2
+  parents:
+    - BASE
+)"
+   ));
+
+   EXPECT_THAT(
+      buildLineageAliasRows(tree),
+      UnorderedElementsAreArray(
+         {LineageAliasRow{.alias = "B", .lineage = "BASE"},
+          LineageAliasRow{.alias = "C1", .lineage = "CHILD"},
+          LineageAliasRow{.alias = "C2", .lineage = "CHILD"}}
+      )
+   );
+   // The aliases stay out of the edges: they are names, not lineages.
+   EXPECT_THAT(
+      buildLineageRelationRows(tree),
+      UnorderedElementsAreArray({edge("BASE", std::nullopt), edge("CHILD", "BASE")})
+   );
+}
+
+TEST(LineageRelationTable, aliasRowsAreEmptyWithoutAliases) {
+   auto tree = LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(
+      R"(
+BASE:
+  parents: []
+)"
+   ));
+
+   EXPECT_TRUE(buildLineageAliasRows(tree).empty());
+}
+
 namespace {
 using rhydb::ReferenceGenomes;
 using rhydb::test::QueryTestData;
@@ -112,6 +155,9 @@ schema:
       generateIndex: true
       generateLineageIndex: test_lineage_index
       lineageIndexType: "table"
+    - name: "other_lin"
+      type: "string"
+      generateIndex: true
   primaryKey: "primaryKey"
 )";
 
@@ -125,6 +171,8 @@ const auto QUERYABLE_LINEAGE_TREE =
 BASE:
   parents: []
 CHILD:
+  aliases:
+    - KID
   parents:
     - BASE
 )"));
@@ -132,6 +180,7 @@ CHILD:
 nlohmann::json createDataWithLineageValue(const std::string& primary_key, std::string value) {
    return {
       {"primaryKey", primary_key},
+      {"other_lin", value},
       {"lin", std::move(value)},
       {"segment1", nullptr},
       {"unaligned_segment1", nullptr},
@@ -174,6 +223,52 @@ const QueryTestScenario RELATION_TABLE_ROW_SHAPE = {
 )")
 };
 
+// The aliases live in their own companion table, named after the column.
+const QueryTestScenario ALIAS_TABLE_IS_QUERYABLE = {
+   .name = "ALIAS_TABLE_IS_QUERYABLE",
+   .query = "lin_aliases.project({alias, lineage})",
+   .expected_query_result = nlohmann::json::parse(R"([{"alias":"KID","lineage":"CHILD"}])")
+};
+
+// A lineage may be queried by any of its aliases, with and without sublineages.
+const QueryTestScenario ALIAS_RESOLVES_IN_LINEAGE_FILTER = {
+   .name = "ALIAS_RESOLVES_IN_LINEAGE_FILTER",
+   .query = "default.filter(lin.lineage('KID')).groupBy({count:=count()})",
+   .expected_query_result = nlohmann::json::parse(R"([{"count":1}])")
+};
+
+const QueryTestScenario ALIAS_RESOLVES_WITH_SUBLINEAGES = {
+   .name = "ALIAS_RESOLVES_WITH_SUBLINEAGES",
+   .query =
+      "default.filter(lin.lineage('KID', includeSublineages:=true)).groupBy({count:=count()})",
+   .expected_query_result = nlohmann::json::parse(R"([{"count":1}])")
+};
+
+// `lineageDefinition` names the lineage system to resolve against. `other_lin` has no definition
+// of its own, so filtering it hierarchically is only possible by naming one.
+const QueryTestScenario LINEAGE_DEFINITION_NAMES_THE_SYSTEM_TO_RESOLVE_AGAINST = {
+   .name = "LINEAGE_DEFINITION_NAMES_THE_SYSTEM_TO_RESOLVE_AGAINST",
+   .query =
+      "default.filter(other_lin.lineage('BASE', includeSublineages:=true, lineageDefinition:=lin))"
+      ".groupBy({count:=count()})",
+   .expected_query_result = nlohmann::json::parse(R"([{"count":2}])")
+};
+
+// Aliases resolve through the named definition too.
+const QueryTestScenario LINEAGE_DEFINITION_RESOLVES_ALIASES = {
+   .name = "LINEAGE_DEFINITION_RESOLVES_ALIASES",
+   .query =
+      "default.filter(other_lin.lineage('KID', lineageDefinition:=lin)).groupBy({count:=count()})",
+   .expected_query_result = nlohmann::json::parse(R"([{"count":1}])")
+};
+
+const QueryTestScenario LINEAGE_DEFINITION_THAT_IS_NOT_ONE = {
+   .name = "LINEAGE_DEFINITION_THAT_IS_NOT_ONE",
+   .query =
+      "default.filter(lin.lineage('BASE', includeSublineages:=true, lineageDefinition:=default))",
+   .expected_error_message = "'default' is not a lineage definition of this database."
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -182,6 +277,12 @@ QUERY_TEST(
    ::testing::Values(
       RELATION_TABLE_CONTAINS_ONLY_DIRECT_EDGES,
       RELATION_TABLE_PARENT_IS_QUERYABLE,
-      RELATION_TABLE_ROW_SHAPE
+      RELATION_TABLE_ROW_SHAPE,
+      ALIAS_TABLE_IS_QUERYABLE,
+      ALIAS_RESOLVES_IN_LINEAGE_FILTER,
+      ALIAS_RESOLVES_WITH_SUBLINEAGES,
+      LINEAGE_DEFINITION_NAMES_THE_SYSTEM_TO_RESOLVE_AGAINST,
+      LINEAGE_DEFINITION_RESOLVES_ALIASES,
+      LINEAGE_DEFINITION_THAT_IS_NOT_ONE
    )
 )

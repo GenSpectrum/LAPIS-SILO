@@ -71,6 +71,7 @@ class ColumnMetadataLoaderByType {
 template <class Archive>
 void TableSchema::save(Archive& archive, const unsigned int /*version*/) const {
    archive & primary_key;
+   archive & lineage_definition_file;
 
    std::vector<ColumnIdentifier> column_identifiers;
    column_identifiers.reserve(column_metadata.size());
@@ -89,6 +90,7 @@ void TableSchema::save(Archive& archive, const unsigned int /*version*/) const {
 template <class Archive>
 void TableSchema::load(Archive& archive, const unsigned int /*version*/) {
    archive & primary_key;
+   archive & lineage_definition_file;
 
    std::vector<ColumnIdentifier> column_identifiers;
    archive & column_identifiers;

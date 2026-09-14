@@ -25,6 +25,7 @@
 #include "rhydb/common/rhydb_directory.h"
 #include "rhydb/common/version.h"
 #include "rhydb/database_info.h"
+#include "rhydb/initialize/lineage_relation_table.h"
 #include "rhydb/persistence/exception.h"
 #include "rhydb/query_engine/command/write_command.h"
 #include "rhydb/query_engine/exec_node/arrow_ipc_sink.h"
@@ -82,6 +83,7 @@ Database::Database(schema::DatabaseSchema database_schema)
    for (const auto& [table_name, table_schema] : schema.tables) {
       tables.emplace(table_name, std::make_shared<storage::Table>(table_name, table_schema));
    }
+   linkLineageDefinitions();
 }
 
 void Database::createTable(
@@ -90,6 +92,29 @@ void Database::createTable(
 ) {
    tables.emplace(table_name, std::make_shared<storage::Table>(table_name, table_schema));
    schema.tables.emplace(std::move(table_name), std::move(table_schema));
+   linkLineageDefinitions();
+}
+
+void Database::linkLineageDefinitions() {
+   std::map<std::string, storage::LineageDefinition> definitions;
+   for (const auto& [table_name, table] : tables) {
+      // A lineage relation table is the one that was built from a lineage definition file.
+      if (!table->schema->lineage_definition_file.has_value()) {
+         continue;
+      }
+      const auto aliases =
+         tables.find(schema::TableName{initialize::lineageAliasTableName(table_name.getName())});
+      definitions.emplace(
+         table_name.getName(),
+         storage::LineageDefinition{
+            .relation = table.get(),
+            .aliases = aliases == tables.end() ? nullptr : aliases->second.get()
+         }
+      );
+   }
+   for (const auto& [table_name, table] : tables) {
+      table->lineage_definitions = definitions;
+   }
 }
 
 void Database::appendData(
