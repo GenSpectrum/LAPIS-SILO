@@ -184,6 +184,59 @@ const QueryTestScenario TRANSITIVE_CLOSURE_ONE_PAIR_PER_BATCH_SCENARIO = {
    .query_options = rhydb::config::QueryOptions{.materialization_cutoff = 0}
 };
 
+// `startingFrom` restricts the sources: only the descendants of the named vertices are searched
+// for and emitted, instead of the pairs of every vertex in the relation.
+const QueryTestScenario STARTING_FROM_SCENARIO = {
+   .name = "STARTING_FROM_SCENARIO",
+   .query =
+      "pango_lineage_indexed.transitiveClosure('parent', 'lineage', startingFrom:={'CHILD'})"
+      ".orderBy({from, to})",
+   .expected_query_result = nlohmann::json({{{"from", "CHILD"}, {"to", "GRANDCHILD"}}})
+};
+
+// includeVertices still adds the reflexive pair, but only for the requested sources.
+const QueryTestScenario STARTING_FROM_INCLUDE_VERTICES_SCENARIO = {
+   .name = "STARTING_FROM_INCLUDE_VERTICES_SCENARIO",
+   .query =
+      "pango_lineage_indexed.transitiveClosure('parent', 'lineage', includeVertices:=true, "
+      "startingFrom:={'CHILD', 'CHILD.2'}).orderBy({from, to})",
+   .expected_query_result = nlohmann::json(
+      {{{"from", "CHILD"}, {"to", "CHILD"}},
+       {{"from", "CHILD"}, {"to", "GRANDCHILD"}},
+       {{"from", "CHILD.2"}, {"to", "CHILD.2"}}}
+   )
+};
+
+// A requested vertex that does not occur in the relation contributes nothing, not even a
+// reflexive pair.
+const QueryTestScenario STARTING_FROM_UNKNOWN_VERTEX_SCENARIO = {
+   .name = "STARTING_FROM_UNKNOWN_VERTEX_SCENARIO",
+   .query =
+      "pango_lineage_indexed.transitiveClosure('parent', 'lineage', includeVertices:=true, "
+      "startingFrom:={'NOT_A_LINEAGE'}).orderBy({from, to})",
+   .expected_query_result = nlohmann::json::array()
+};
+
+// The motivating use case narrowed to one lineage: count it together with all of its sublineages
+// without computing the closure of the whole tree.
+//   CHILD: id_1, id_2, id_4 -> 3
+const QueryTestScenario COUNT_ONE_LINEAGE_INCLUDING_SUBLINEAGES_SCENARIO = {
+   .name = "COUNT_ONE_LINEAGE_INCLUDING_SUBLINEAGES_SCENARIO",
+   .query =
+      "pango_lineage_indexed.transitiveClosure('parent', 'lineage', includeVertices:=true, "
+      "startingFrom:={'CHILD'})"
+      ".join(default, to = pango_lineage)"
+      ".groupBy({count := count()}, {from})"
+      ".orderBy({from})",
+   .expected_query_result = nlohmann::json({{{"from", "CHILD"}, {"count", 3}}})
+};
+
+const QueryTestScenario STARTING_FROM_NOT_A_SET_SCENARIO = {
+   .name = "STARTING_FROM_NOT_A_SET_SCENARIO",
+   .query = "pango_lineage_indexed.transitiveClosure('parent', 'lineage', startingFrom:='CHILD')",
+   .expected_error_message = "expected set literal at 1:76"
+};
+
 const QueryTestScenario UNKNOWN_COLUMN_SCENARIO = {
    .name = "UNKNOWN_COLUMN_SCENARIO",
    .query = "pango_lineage_indexed.transitiveClosure('parent', 'does_not_exist')",
@@ -409,6 +462,11 @@ QUERY_TEST(
       TRANSITIVE_CLOSURE_ONE_PAIR_PER_BATCH_SCENARIO,
       COUNT_LINEAGE_INCLUDING_SUBLINEAGES_SCENARIO,
       SUBQUERY_INPUT_SCENARIO,
+      STARTING_FROM_SCENARIO,
+      STARTING_FROM_INCLUDE_VERTICES_SCENARIO,
+      STARTING_FROM_UNKNOWN_VERTEX_SCENARIO,
+      COUNT_ONE_LINEAGE_INCLUDING_SUBLINEAGES_SCENARIO,
+      STARTING_FROM_NOT_A_SET_SCENARIO,
       UNKNOWN_COLUMN_SCENARIO,
       NON_STRING_COLUMN_SCENARIO
    )
