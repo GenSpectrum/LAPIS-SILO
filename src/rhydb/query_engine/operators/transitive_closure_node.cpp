@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -28,10 +29,13 @@ namespace rhydb::query_engine::operators {
 namespace {
 
 /// The interned directed relation: `vertex_names[i]` is the name of vertex `i`, and
-/// `adjacency[i]` holds the vertices directly reachable from `i` via a single edge.
+/// `adjacency[i]` holds the vertices directly reachable from `i` via a single edge. `sources` are
+/// the vertices to search from, in emission order - every vertex when the closure is unrestricted,
+/// and the resolved `starting_from` vertices otherwise.
 struct Relation {
    std::vector<std::string> vertex_names;
    std::vector<std::vector<uint32_t>> adjacency;
+   std::vector<uint32_t> sources;
 };
 
 /// Validates that `column_name` is a STRING column of the input and returns its position, which
@@ -75,10 +79,15 @@ arrow::Result<std::shared_ptr<arrow::StringArray>> asStringArray(const arrow::Da
 /// the given column indices. Edges with a null endpoint are skipped. Only the interned form is
 /// retained: the endpoint strings are interned as the batches are scanned, so each distinct
 /// vertex name is held once instead of once per edge.
+///
+/// `starting_from` names the vertices to search from; they are resolved here, while the interning
+/// map is still around, and vertices that do not occur in the relation are dropped. Without it
+/// every vertex is a source.
 arrow::Result<Relation> buildRelation(
    const std::vector<std::optional<arrow::ExecBatch>>& batches,
    uint32_t from_index,
-   uint32_t to_index
+   uint32_t to_index,
+   const std::optional<std::vector<std::string>>& starting_from
 ) {
    std::vector<std::string> vertex_names;
    std::vector<std::vector<uint32_t>> adjacency;
@@ -114,7 +123,25 @@ arrow::Result<Relation> buildRelation(
       }
    }
 
-   return Relation{.vertex_names = std::move(vertex_names), .adjacency = std::move(adjacency)};
+   std::vector<uint32_t> sources;
+   if (starting_from.has_value()) {
+      sources.reserve(starting_from->size());
+      for (const auto& name : starting_from.value()) {
+         const auto found = vertex_ids.find(name);
+         if (found != vertex_ids.end()) {
+            sources.push_back(found->second);
+         }
+      }
+   } else {
+      sources.resize(vertex_names.size());
+      std::iota(sources.begin(), sources.end(), 0U);
+   }
+
+   return Relation{
+      .vertex_names = std::move(vertex_names),
+      .adjacency = std::move(adjacency),
+      .sources = std::move(sources)
+   };
 }
 
 /// Emits the transitive closure of a relation in batches
@@ -124,15 +151,14 @@ class ClosureProducer {
        : relation(std::move(relation)),
          include_vertices(include_vertices),
          batch_size(batch_size),
-         reached(this->relation.vertex_names.size(), false) {}
+         visited(this->relation.vertex_names.size(), 0) {}
 
    /// Returns the next batch of reachable pairs, or `std::nullopt` once the closure is exhausted.
    /// The order of the pairs is unspecified beyond being grouped by source vertex; callers that
    /// need an order sort the result downstream.
    arrow::Result<std::optional<arrow::ExecBatch>> nextBatch() {
-      const auto num_vertices = static_cast<uint32_t>(relation.vertex_names.size());
-      while (buffer.size() - buffer_offset < batch_size && next_source < num_vertices) {
-         bufferPairsOfSource(next_source++);
+      while (buffer.size() - buffer_offset < batch_size && next_source < relation.sources.size()) {
+         bufferPairsOfSource(relation.sources[next_source++]);
       }
       if (buffer_offset == buffer.size()) {
          return std::nullopt;
@@ -149,34 +175,32 @@ class ClosureProducer {
 
   private:
    /// Appends every pair `(source, destination)` with `destination` reachable from `source` to the
-   /// buffer, by searching the graph from `source`.
+   /// buffer, by searching the graph from `source`. Each destination is buffered as it is first
+   /// discovered, so the work is proportional to the part of the graph `source` actually reaches
+   /// rather than to the total number of vertices.
    void bufferPairsOfSource(uint32_t source) {
-      reached.assign(reached.size(), false);
+      ++visit_generation;
       frontier.clear();
-      for (const uint32_t successor : relation.adjacency[source]) {
-         if (!reached[successor]) {
-            reached[successor] = true;
-            frontier.push_back(successor);
+      const auto discover = [&](uint32_t vertex) {
+         if (visited[vertex] == visit_generation) {
+            return;
          }
+         visited[vertex] = visit_generation;
+         frontier.push_back(vertex);
+         buffer.emplace_back(source, vertex);
+      };
+      for (const uint32_t successor : relation.adjacency[source]) {
+         discover(successor);
       }
       while (!frontier.empty()) {
          const uint32_t current = frontier.back();
          frontier.pop_back();
          for (const uint32_t successor : relation.adjacency[current]) {
-            if (!reached[successor]) {
-               reached[successor] = true;
-               frontier.push_back(successor);
-            }
-         }
-      }
-      const auto num_vertices = static_cast<uint32_t>(reached.size());
-      for (uint32_t destination = 0; destination < num_vertices; ++destination) {
-         if (reached[destination]) {
-            buffer.emplace_back(source, destination);
+            discover(successor);
          }
       }
       // Add the reflexive pair unless the vertex already reaches itself through a cycle.
-      if (include_vertices && !reached[source]) {
+      if (include_vertices && visited[source] != visit_generation) {
          buffer.emplace_back(source, source);
       }
    }
@@ -202,12 +226,16 @@ class ClosureProducer {
    bool include_vertices;
    size_t batch_size;
    /// Scratch state of a single-source search, kept across sources to avoid reallocating it.
-   std::vector<bool> reached;
+   /// `visited[v]` holds the generation of the search that last reached `v`, which lets a new
+   /// search start without clearing the whole vector.
+   std::vector<uint64_t> visited;
+   uint64_t visit_generation = 0;
    std::vector<uint32_t> frontier;
    /// The pairs found but not yet emitted, as `(source, destination)` vertex ids.
    std::vector<std::pair<uint32_t, uint32_t>> buffer;
    size_t buffer_offset = 0;
-   uint32_t next_source = 0;
+   /// Index into `relation.sources` of the next vertex to search from.
+   size_t next_source = 0;
 };
 
 }  // namespace
@@ -216,12 +244,14 @@ TransitiveClosureNode::TransitiveClosureNode(
    QueryNodePtr child,
    std::string from_column,
    std::string to_column,
-   bool include_vertices
+   bool include_vertices,
+   std::optional<std::vector<std::string>> starting_from
 )
     : child(std::move(child)),
       from_column(std::move(from_column)),
       to_column(std::move(to_column)),
-      include_vertices(include_vertices) {}
+      include_vertices(include_vertices),
+      starting_from(std::move(starting_from)) {}
 
 std::vector<schema::ColumnIdentifier> TransitiveClosureNode::getOutputSchema() const {
    return {
@@ -255,6 +285,7 @@ arrow::Result<arrow::acero::ExecNode*> TransitiveClosureNode::addToExecPlan(
    // `materialization_cutoff` is the batch-size-minus-one
    const size_t batch_size = query_options.materialization_cutoff + 1;
    const bool include_vertices_copy = include_vertices;
+   const auto starting_from_copy = starting_from;
    // The first call builds the relation from the child's batches and hands it to the producer,
    // which then streams the closure one batch at a time as the downstream pulls.
    const auto closure = std::make_shared<std::optional<ClosureProducer>>();
@@ -265,6 +296,7 @@ arrow::Result<arrow::acero::ExecNode*> TransitiveClosureNode::addToExecPlan(
        from_index,
        to_index,
        include_vertices_copy,
+       starting_from_copy,
        batch_size]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (closure->has_value()) {
          return arrow::Future<std::optional<arrow::ExecBatch>>::MakeFinished(
@@ -273,11 +305,12 @@ arrow::Result<arrow::acero::ExecNode*> TransitiveClosureNode::addToExecPlan(
       }
       return arrow::CollectAsyncGenerator(child_generator)
          .Then(
-            [closure, from_index, to_index, include_vertices_copy, batch_size](
+            [closure, from_index, to_index, include_vertices_copy, starting_from_copy, batch_size](
                const std::vector<std::optional<arrow::ExecBatch>>& batches
             ) -> arrow::Result<std::optional<arrow::ExecBatch>> {
                ARROW_ASSIGN_OR_RAISE(
-                  Relation relation, buildRelation(batches, from_index, to_index)
+                  Relation relation,
+                  buildRelation(batches, from_index, to_index, starting_from_copy)
                );
                closure->emplace(std::move(relation), include_vertices_copy, batch_size);
                return closure->value().nextBatch();
@@ -294,13 +327,17 @@ arrow::Result<arrow::acero::ExecNode*> TransitiveClosureNode::addToExecPlan(
 }
 
 nlohmann::json TransitiveClosureNode::toJson() const {
-   return {
+   nlohmann::json json{
       {"type", nodeKindToString(kind())},
       {"child", child->toJson()},
       {"from", from_column},
       {"to", to_column},
       {"includeVertices", include_vertices},
    };
+   if (starting_from.has_value()) {
+      json["startingFrom"] = starting_from.value();
+   }
+   return json;
 }
 
 }  // namespace rhydb::query_engine::operators
