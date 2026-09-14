@@ -43,9 +43,15 @@ set(_generator_inputs
 )
 set_property(DIRECTORY "${CMAKE_SOURCE_DIR}" APPEND
     PROPERTY CMAKE_CONFIGURE_DEPENDS ${_generator_inputs})
+# Hash each input into the generation stamp. A missing input must not abort configure: the linter
+# containers don't mount testBaseData. The <absent> placeholder keeps the stamp meaningful.
 foreach(input IN LISTS _generator_inputs)
-    file(SHA256 "${input}" hash)
-    string(APPEND _BENCHMARK_GENERATOR_DEFINITION "${input} ${hash}\n")
+    if(EXISTS "${input}")
+        file(SHA256 "${input}" hash)
+        string(APPEND _BENCHMARK_GENERATOR_DEFINITION "${input} ${hash}\n")
+    else()
+        string(APPEND _BENCHMARK_GENERATOR_DEFINITION "${input} <absent>\n")
+    endif()
 endforeach()
 
 # Produce one dataset at a time
