@@ -89,10 +89,10 @@ bool YAML::convert<rhydb::config::DatabaseSchema>::decode(
    rhydb::config::DatabaseSchema& schema
 ) {
    schema.instance_name = node["instanceName"].as<std::string>();
-   if (node["primaryKey"].IsDefined() && !node["primaryKey"].IsNull()) {
-      schema.primary_key = node["primaryKey"].as<std::string>();
-   } else {
+   if (node["primaryKey"].IsNull()) {
       schema.primary_key = std::nullopt;
+   } else {
+      schema.primary_key = node["primaryKey"].as<std::string>();
    }
 
    if (!node["metadata"].IsSequence()) {
@@ -112,6 +112,8 @@ YAML::Node YAML::convert<rhydb::config::DatabaseSchema>::encode(
    node["instanceName"] = schema.instance_name;
    if (schema.primary_key.has_value()) {
       node["primaryKey"] = schema.primary_key.value();
+   } else {
+      node["primaryKey"] = Node{};
    }
    node["metadata"] = schema.metadata;
    return node;
