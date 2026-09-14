@@ -16,6 +16,7 @@
 #include "rhydb/query_engine/operators/filter_node.h"
 #include "rhydb/query_engine/operators/join_node.h"
 #include "rhydb/query_engine/operators/map_node.h"
+#include "rhydb/query_engine/operators/order_by_node.h"
 #include "rhydb/query_engine/operators/order_by_with_limit_node.h"
 #include "rhydb/query_engine/operators/project_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
@@ -344,6 +345,50 @@ TEST(FilterPushdownPass, pushesFilterThroughProjectAndMapIntoTableScan) {
    ASSERT_EQ(map->child->kind(), operators::NodeKind::TABLE_SCAN);
    auto* table_scan = dynamic_cast<operators::TableScanNode*>(map->child.get());
    EXPECT_EQ(table_scan->filter->toString(), "And(true & false & true)");
+}
+
+// --- FilterNode(OrderByNode(...)) ---
+
+// A deterministic orderBy sorts by column values (stable on the input's relative order, which
+// filtering preserves), so a filter above it is pushed down into the scan.
+TEST(FilterPushdownPass, pushesFilterThroughDeterministicOrderByIntoTableScan) {
+   std::vector<rhydb::query_engine::OrderByField> fields;
+   fields.push_back(
+      {.field = {.name = "primaryKey", .type = rhydb::schema::ColumnType::STRING}, .ascending = true
+      }
+   );
+   auto order_by = std::make_unique<operators::OrderByNode>(
+      makeFilteredScan(false), std::move(fields), std::nullopt
+   );
+   auto filter_node =
+      std::make_unique<operators::FilterNode>(std::move(order_by), makeDummyFilter());
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::ORDER_BY);
+   auto* order = dynamic_cast<operators::OrderByNode*>(result.get());
+   ASSERT_EQ(order->child->kind(), operators::NodeKind::TABLE_SCAN);
+   auto* table_scan = dynamic_cast<operators::TableScanNode*>(order->child.get());
+   EXPECT_EQ(table_scan->filter->toString(), "And(true & false & true)");
+}
+
+// A randomized orderBy derives its sort keys from input ordinals, so a filter above it must be
+// retained above it - pushing it below would reindex the surviving rows and change the order.
+TEST(FilterPushdownPass, retainsFilterAboveRandomizedOrderBy) {
+   auto order_by = std::make_unique<operators::OrderByNode>(
+      makeScan(), std::vector<rhydb::query_engine::OrderByField>{}, std::optional<uint32_t>{0}
+   );
+   auto filter_node =
+      std::make_unique<operators::FilterNode>(std::move(order_by), makeDummyFilter());
+
+   auto result = FilterPushdownPass::run(std::move(filter_node));
+
+   ASSERT_EQ(result->kind(), operators::NodeKind::FILTER);
+   auto* filter = dynamic_cast<operators::FilterNode*>(result.get());
+   EXPECT_EQ(filter->filter->toString(), "And(true)");
+   ASSERT_EQ(filter->child->kind(), operators::NodeKind::ORDER_BY);
+   auto* order = dynamic_cast<operators::OrderByNode*>(filter->child.get());
+   ASSERT_EQ(order->child->kind(), operators::NodeKind::TABLE_SCAN);
 }
 
 // --- FilterNode(UnionAllNode(FilterNode(TableScanNode), FilterNode(TableScanNode))) ---
