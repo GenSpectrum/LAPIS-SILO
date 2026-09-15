@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include <arrow/compute/api.h>
+
 #include "rhydb/common/string_utils.h"
 #include "rhydb/query_engine/filter/operators/complement.h"
 #include "rhydb/query_engine/filter/operators/empty.h"
@@ -39,6 +41,16 @@ std::vector<schema::ColumnIdentifier> Or::freeIUs() const {
       }
    }
    return result;
+}
+
+arrow::Result<arrow::compute::Expression> Or::toArrowExpression() const {
+   std::vector<arrow::compute::Expression> child_expressions;
+   child_expressions.reserve(children.size());
+   for (const auto& child : children) {
+      ARROW_ASSIGN_OR_RAISE(auto child_expression, child->toArrowExpression());
+      child_expressions.push_back(std::move(child_expression));
+   }
+   return arrow::compute::or_(child_expressions);
 }
 
 std::vector<const ScalarExpression*> Or::collectChildren(const ScalarExpressionVector& children) {

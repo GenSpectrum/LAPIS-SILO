@@ -14,7 +14,13 @@
 namespace rhydb::query_engine::operators {
 
 /// Applies a filter expression to its child's output.
-/// Must be eliminated during pushdown before query plan generation.
+///
+/// The optimizer's FilterPushdownPass pushes predicates down into a table scan (and other sources)
+/// wherever possible, so most FilterNodes are eliminated before plan generation. A FilterNode that
+/// survives - e.g. a predicate on a column produced by a map() - is realized as an Arrow "filter"
+/// exec node over the child's materialized output. Its filter expression must therefore have an
+/// Arrow translation (see ScalarExpression::toArrowExpression); bitmap-only predicates such as
+/// hasMutation() have none and can only be executed when pushed into a source.
 class FilterNode final : public QueryNode {
   public:
    QueryNodePtr child;

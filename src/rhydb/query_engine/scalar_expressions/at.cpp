@@ -1,10 +1,12 @@
 #include "rhydb/query_engine/scalar_expressions/at.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include <arrow/compute/api.h>
 #include <fmt/format.h>
 
 #include "rhydb/common/panic.h"
@@ -24,6 +26,18 @@ std::string At::toString() const {
 
 std::vector<schema::ColumnIdentifier> At::freeIUs() const {
    return input->freeIUs();
+}
+
+arrow::Result<arrow::compute::Expression> At::toArrowExpression() const {
+   // `at` is 1-indexed; utf8_slice_codeunits takes a 0-indexed, half-open
+   // [start, stop) range of code units, so extract the single character at
+   // position-1.
+   const int64_t start = static_cast<int64_t>(position) - 1;
+   const auto stop = static_cast<int64_t>(position);
+   ARROW_ASSIGN_OR_RAISE(auto input_expression, input->toArrowExpression());
+   return arrow::compute::call(
+      "utf8_slice_codeunits", {input_expression}, arrow::compute::SliceOptions(start, stop)
+   );
 }
 
 std::unique_ptr<ScalarExpression> At::rewrite(const storage::Table& table, AmbiguityMode mode)

@@ -101,6 +101,24 @@ const QueryTestScenario LIMIT_LARGER_THAN_INPUT_SCENARIO = {
    )
 };
 
+// A filter applied to the *output* of a limit must run after the limit, not be pushed below it.
+const QueryTestScenario FILTER_ABOVE_LIMIT_SCENARIO = {
+   .name = "FILTER_ABOVE_LIMIT_NOT_PUSHED_BELOW",
+   .query =
+      "default.project({primaryKey, int_value, date}).orderBy({int_value.asc(), "
+      "date.asc()}).limit(3).filter(int_value = 1)",
+   .expected_query_result =
+      nlohmann::json({{{"primaryKey", "id_2"}, {"int_value", 1}, {"date", nullptr}}})
+};
+
+// The same barrier for a plain FetchNode (a `limit` with no preceding `orderBy`, so no top-k
+// rewrite).
+const QueryTestScenario FILTER_ABOVE_PLAIN_LIMIT_SCENARIO = {
+   .name = "FILTER_ABOVE_PLAIN_LIMIT_NOT_PUSHED_BELOW",
+   .query = "default.project({primaryKey, int_value}).limit(3).filter(int_value = 1)",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_2"}, {"int_value", 1}}})
+};
+
 // Same query with multiple batches
 const QueryTestScenario MULTI_BATCH_SCENARIO = {
    .name = "ORDER_BY_WITH_LIMIT_MULTI_BATCH",
@@ -134,6 +152,8 @@ QUERY_TEST(
       ASC_LIMIT_SCENARIO,
       DESC_LIMIT_SCENARIO,
       LIMIT_LARGER_THAN_INPUT_SCENARIO,
+      FILTER_ABOVE_LIMIT_SCENARIO,
+      FILTER_ABOVE_PLAIN_LIMIT_SCENARIO,
       MULTI_BATCH_SCENARIO,
       EMPTY_INPUT_SCENARIO
    )

@@ -145,6 +145,24 @@ const QueryTestScenario INDEXED_COLUMN_SINGLE = {
    ])")
 };
 
+// A filter on an aggregate output column (`count`) must run above the groupBy, not be pushed into
+// the scan where `count` does not exist.
+const QueryTestScenario FILTER_ON_AGGREGATE_COUNT = {
+   .name = "FILTER_ON_AGGREGATE_COUNT",
+   .query = "default.groupBy({count:=count()}, {region}).filter(count > 1)",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"region": "Europe", "count": 3}
+   ])"),
+};
+
+const QueryTestScenario FILTER_NOT_BY_COUNT_ON_AGGREGATE = {
+   .name = "FILTER_NOT_BY_COUNT_ON_AGGREGATE",
+   .query = "default.groupBy({count:=count()}, {region}).filter(region = 'Europe')",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"region": "Europe", "count": 3}
+   ])"),
+};
+
 // A sequence position and an indexed column grouped together in one node. Depth-first over the
 // nucleotide symbols at segment1[1] (A, C, N), with the region value groups sorted within each.
 //   A -> Europe x2   (the two ATGCN rows)
@@ -292,7 +310,9 @@ QUERY_TEST(
       LIMIT_ON_UNORDERED_AGGREGATION,
       CO_OCCURRENCE_VIA_MAP_POSITION_OUT_OF_RANGE,
       INDEXED_COLUMN_SINGLE,
-      MIXED_SEQUENCE_AND_INDEXED_COLUMN
+      MIXED_SEQUENCE_AND_INDEXED_COLUMN,
+      FILTER_ON_AGGREGATE_COUNT,
+      FILTER_NOT_BY_COUNT_ON_AGGREGATE
    )
 );
 
