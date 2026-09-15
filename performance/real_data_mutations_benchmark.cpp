@@ -2,8 +2,8 @@
 // performance/mutations.csv, run against real wastewater short-read data.
 //
 // This is the benchmark for the HorizontalCoverageIndex coverage-scan optimization. That
-// win only appears on *short reads with partial coverage*: each read covers a small genome window, so
-// most of the 141 grouped positions are "not covered" for any given read, and the per-2^16-chunk
+// win only appears on *short reads with partial coverage*: each read covers a small genome window,
+// so most of the 141 grouped positions are "not covered" for any given read, and the per-2^16-chunk
 // coverage envelopes let the query skip the chunks that cannot cover a queried position.
 //
 // The input is a fixed slice of a few whole samples from the GenSpectrum W-ASAP wastewater dataset
@@ -27,6 +27,7 @@
 
 #include <arrow/compute/api.h>
 #include <fmt/format.h>
+#include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
@@ -48,11 +49,6 @@ using rhydb::config::QueryOptions;
 using rhydb::query_engine::Planner;
 
 constexpr int ITERATIONS = 5;
-
-// Materialized by the `benchmark_data` build target (see performance/CMakeLists.txt); a `.zst` that
-// InputStreamWrapper decompresses on the fly. Relative to the repo root (changeCwdToTestFolder).
-constexpr std::string_view DATASET_PATH =
-   "localTestData/performance/wasap_mutation_coverage.ndjson.zst";
 
 // Every maximal run of digits in mutations.csv is a 1-based position (e.g. "C21T" -> 21).
 std::vector<uint32_t> readMutationPositions(const std::string& path) {
@@ -128,18 +124,22 @@ schema:
 // reads in the same 2^16 chunk, giving the tight per-chunk coverage envelopes the query relies on.
 Database ingest() {
    Database database = makeEmptyDatabase();
-   if (!std::filesystem::exists(DATASET_PATH)) {
+   const auto dataset = benchmarkDataPath(WASAP_MUTATION_COVERAGE_ZST);
+   if (!std::filesystem::exists(dataset)) {
       throw std::runtime_error(fmt::format(
-         "Could not find {}. Prepare benchmark data first with `make generateTestData`.", DATASET_PATH
+         "Could not find {}. Prepare benchmark data first with `make generateTestData`.",
+         dataset.string()
       ));
    }
-   const rhydb::InputStreamWrapper input{std::filesystem::path{std::string{DATASET_PATH}}};
+   const rhydb::InputStreamWrapper input{dataset};
 
    const auto start = std::chrono::high_resolution_clock::now();
    database.appendData(rhydb::schema::TableName::getDefault(), input.getInputStream());
    const auto end = std::chrono::high_resolution_clock::now();
    SPDLOG_INFO(
-      "Ingested {} in {:.2f} s", DATASET_PATH, std::chrono::duration<double>(end - start).count()
+      "Ingested {} in {:.2f} s",
+      dataset.string(),
+      std::chrono::duration<double>(end - start).count()
    );
    return database;
 }
@@ -166,15 +166,7 @@ size_t planAndExecute(
    return rows;
 }
 
-}  // namespace
-
-int main() {
-   changeCwdToTestFolder();
-   if (!arrow::compute::Initialize().ok()) {
-      SPDLOG_ERROR("Failed to initialize Arrow compute");
-      return 1;
-   }
-
+void run() {
    const auto query_options = rhydb::config::RuntimeConfig::withDefaults().query_options;
 
    const auto positions = readMutationPositions("performance/mutations.csv");
@@ -203,6 +195,10 @@ int main() {
       sum_ms / ITERATIONS,
       min_ms
    );
+}
 
-   return 0;
+}  // namespace
+
+TEST(RealDataMutations, coverageGroupByOverWastewaterReads) {
+   run();
 }

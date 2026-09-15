@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <arrow/compute/initialize.h>
+#include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 #include <fmt/format.h>
 
@@ -154,17 +155,14 @@ struct ScenarioResult {
 };
 
 void run() {
-   changeCwdToTestFolder();
-   RHYDB_ASSERT(arrow::compute::Initialize().ok());
-
    const std::string reference = readReferenceFromFile();
    SPDLOG_INFO("Read reference sequence of length {}", reference.size());
 
    const std::array<Scenario, 3> scenarios{{
-      {"amplicon-sorted, ingestion clustering off", SHORT_READ_AMPLICON_SORTED_NDJSON_PATH, {}},
-      {"amplicon-shuffled, ingestion clustering off", SHORT_READ_AMPLICON_SHUFFLED_NDJSON_PATH, {}},
+      {"amplicon-sorted, ingestion clustering off", SHORT_READ_AMPLICON_SORTED_NDJSON, {}},
+      {"amplicon-shuffled, ingestion clustering off", SHORT_READ_AMPLICON_SHUFFLED_NDJSON, {}},
       {"amplicon-shuffled, 128-way clustered ingestion",
-       SHORT_READ_AMPLICON_SHUFFLED_NDJSON_PATH,
+       SHORT_READ_AMPLICON_SHUFFLED_NDJSON,
        clusteredOptions()},
    }};
 
@@ -193,11 +191,6 @@ void run() {
 
 }  // namespace
 
-int main() {
-   try {
-      run();
-   } catch (const std::exception& e) {
-      SPDLOG_ERROR(e.what());
-      return EXIT_FAILURE;
-   }
+TEST(ClusteredIngestion, ampliconLayoutsWithAndWithoutClustering) {
+   run();
 }

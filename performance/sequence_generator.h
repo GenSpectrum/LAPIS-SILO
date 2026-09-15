@@ -23,15 +23,12 @@
 #include "rhydb/initialize/initializer.h"
 #include "rhydb/storage/reference_genomes.h"
 
-// Header-only utilities shared between performance benchmarks.
-// All definitions live inside an anonymous namespace so that each benchmark
-// translation unit gets its own copy without ODR conflicts.
-
-namespace {
+// Header-only utilities shared between the performance benchmarks, which are all translation units
+// of the same rhydb_benchmark binary, so the definitions here are inline.
 
 // --- Filesystem helpers ---
 
-void changeCwdToTestFolder() {
+inline void changeCwdToTestFolder() {
    size_t search_depth = 4;
    std::filesystem::path candidate = std::filesystem::current_path();
    for (size_t i = 0; i < search_depth; ++i, candidate = candidate / "..") {
@@ -46,7 +43,7 @@ void changeCwdToTestFolder() {
    ));
 }
 
-std::string readReferenceFromFile() {
+inline std::string readReferenceFromFile() {
    auto reference_genomes =
       rhydb::ReferenceGenomes::readFromFile("testBaseData/exampleDataset/reference_genomes.json");
    if (reference_genomes.raw_nucleotide_sequences.empty()) {
@@ -57,52 +54,51 @@ std::string readReferenceFromFile() {
 
 // --- Test-data files ---
 //
-// The datasets consumed by the benchmarks are generated once by the `generate_test_data` tool
-// (`make generateTestData`) and written to disk under localTestData/performance/. Each benchmark
-// reads its dataset back instead of regenerating it on every run. All paths are relative to the
-// repository root (see changeCwdToTestFolder) and localTestData/ is gitignored.
+// A benchmark reads its dataset back rather, than regenerating it on every run,
+// addressing it by the file name the build declares.
 
-constexpr std::string_view SHORT_READ_SMALL_NDJSON_PATH =
-   "localTestData/performance/short_reads_100k.ndjson";
-constexpr std::string_view SHORT_READ_LARGE_NDJSON_PATH =
-   "localTestData/performance/short_reads_5m.ndjson";
+constexpr std::string_view BENCHMARK_DATA_DIR = "localTestData/performance";
+
+constexpr std::string_view SHORT_READ_SMALL_NDJSON = "short_reads_100k.ndjson";
+constexpr std::string_view SHORT_READ_LARGE_NDJSON = "short_reads_5m.ndjson";
 // Amplicon-coverage short reads for many_short_read_filters: the same set of reads in emission
 // (amplicon-sorted) order and in a random order. Comparing ingestion of the two, with and without
 // clustered buffering, is what that benchmark measures.
-constexpr std::string_view SHORT_READ_AMPLICON_SORTED_NDJSON_PATH =
-   "localTestData/performance/short_reads_amplicon_sorted_5m.ndjson";
-constexpr std::string_view SHORT_READ_AMPLICON_SHUFFLED_NDJSON_PATH =
-   "localTestData/performance/short_reads_amplicon_shuffled_5m.ndjson";
-constexpr std::string_view FULL_SEQUENCE_NDJSON_PATH =
-   "localTestData/performance/full_sequences_100k.ndjson";
-constexpr std::string_view MUTATION_READS_NDJSON_PATH =
-   "localTestData/performance/mutation_reads.ndjson";
-constexpr std::string_view STRING_EQUALS_NDJSON_PATH =
-   "localTestData/performance/string_equals_records.ndjson";
-constexpr std::string_view CO_OCCURRENCE_NDJSON_PATH =
-   "localTestData/performance/co_occurrence_sequences.ndjson";
-constexpr std::string_view SEQUENCE_COLUMN_NDJSON_PATH =
-   "localTestData/performance/sequence_column_sequences.ndjson";
+constexpr std::string_view SHORT_READ_AMPLICON_SORTED_NDJSON =
+   "short_reads_amplicon_sorted_5m.ndjson";
+constexpr std::string_view SHORT_READ_AMPLICON_SHUFFLED_NDJSON =
+   "short_reads_amplicon_shuffled_5m.ndjson";
+constexpr std::string_view FULL_SEQUENCE_NDJSON = "full_sequences_100k.ndjson";
+constexpr std::string_view SEQUENCE_COLUMN_NDJSON = "sequence_column_sequences.ndjson";
+constexpr std::string_view MUTATION_READS_NDJSON = "mutation_reads.ndjson";
+constexpr std::string_view STRING_EQUALS_NDJSON = "string_equals_records.ndjson";
+constexpr std::string_view CO_OCCURRENCE_NDJSON = "co_occurrence_sequences.ndjson";
+// The one downloaded dataset: a `.zst` that InputStreamWrapper decompresses on the fly.
+constexpr std::string_view WASAP_MUTATION_COVERAGE_ZST = "wasap_mutation_coverage.ndjson.zst";
 
-// Open a dataset file for writing, creating parent directories as needed.
-std::ofstream openTestDataOutput(std::string_view path) {
-   const std::filesystem::path out_path{path};
-   if (out_path.has_parent_path()) {
-      std::filesystem::create_directories(out_path.parent_path());
-   }
+inline std::filesystem::path benchmarkDataPath(std::string_view dataset) {
+   return std::filesystem::path{BENCHMARK_DATA_DIR} / dataset;
+}
+
+// Open a dataset for writing, creating the data directory as needed.
+inline std::ofstream openTestDataOutput(std::string_view dataset) {
+   const std::filesystem::path out_path = benchmarkDataPath(dataset);
+   std::filesystem::create_directories(out_path.parent_path());
    std::ofstream out{out_path, std::ios::binary | std::ios::trunc};
    if (!out) {
-      throw std::runtime_error(fmt::format("Could not open {} for writing", path));
+      throw std::runtime_error(fmt::format("Could not open {} for writing", out_path.string()));
    }
    return out;
 }
 
-// Open a dataset file for reading, with a hint to run the generator if it is missing.
-std::ifstream openTestDataInput(std::string_view path) {
-   std::ifstream in{std::string{path}, std::ios::binary};
+// Open a dataset for reading, with a hint to run the generator if it is missing.
+inline std::ifstream openTestDataInput(std::string_view dataset) {
+   const std::filesystem::path in_path = benchmarkDataPath(dataset);
+   std::ifstream in{in_path, std::ios::binary};
    if (!in) {
       throw std::runtime_error(fmt::format(
-         "Could not open {}. Generate benchmark data first with `make generateTestData`.", path
+         "Could not open {}. Prepare benchmark data first with `make generateTestData`.",
+         in_path.string()
       ));
    }
    return in;
@@ -191,7 +187,8 @@ constexpr size_t DEFAULT_READ_LENGTH = 200;
 // Real amplicon / targeted-panel sequencing produces reads from a fixed set of primer-defined
 // windows, not uniformly across the genome. Modeling that yields concrete coverage classes: every
 // read of a given amplicon shares the same covered range. This is the coverage structure clustered
-// ingestion is designed for, so the amplicon datasets are generated with this many coverage classes.
+// ingestion is designed for, so the amplicon datasets are generated with this many coverage
+// classes.
 constexpr size_t DEFAULT_NUM_AMPLICONS = 100;
 
 struct ShortRead {
@@ -207,8 +204,8 @@ class ShortReadGenerator {
    size_t count;
    size_t read_length;
    size_t num_positions;
-   // Engaged => amplicon mode: reads are drawn only from these fixed window start offsets instead of
-   // tiling every position uniformly. Empty => uniform whole-genome tiling.
+   // Engaged => amplicon mode: reads are drawn only from these fixed window start offsets instead
+   // of tiling every position uniformly. Empty => uniform whole-genome tiling.
    std::vector<size_t> amplicon_starts;
 
   public:
@@ -267,7 +264,8 @@ class ShortReadGenerator {
          const size_t max_start = reference.size() - read_length;
          amplicon_starts.reserve(num_amplicons);
          for (size_t i = 0; i < num_amplicons; ++i) {
-            amplicon_starts.push_back(num_amplicons == 1 ? 0 : (i * max_start) / (num_amplicons - 1)
+            amplicon_starts.push_back(
+               num_amplicons == 1 ? 0 : (i * max_start) / (num_amplicons - 1)
             );
          }
          SPDLOG_INFO(
@@ -306,7 +304,7 @@ class ShortReadGenerator {
 // The generators stream directly to an ostream rather than returning a buffer, so datasets of any
 // size can be written to disk without being held in memory.
 
-void writeShortReadNdjson(
+inline void writeShortReadNdjson(
    std::ostream& out,
    const std::string& reference,
    size_t count = DEFAULT_READ_COUNT,
@@ -314,22 +312,23 @@ void writeShortReadNdjson(
 ) {
    ShortReadGenerator generator(reference, count, read_length);
    for (const auto& read : generator) {
-      out << fmt::format(
-                R"({{"readId":"read_{}","samplingDate":"2024-01-01","locationName":"generated","main":{{"insertions":[],"offset":{},"sequence":"{}"}}}})",
-                read.id,
-                read.offset,
-                read.sequence
-             )
-          << "\n";
+      out
+         << fmt::format(
+               R"({{"readId":"read_{}","samplingDate":"2024-01-01","locationName":"generated","main":{{"insertions":[],"offset":{},"sequence":"{}"}}}})",
+               read.id,
+               read.offset,
+               read.sequence
+            )
+         << "\n";
    }
 }
 
-// Writes amplicon-coverage short reads (see DEFAULT_NUM_AMPLICONS). With shuffle=false the reads are
-// emitted in amplicon-sorted order, so ingestion sees coverage windows contiguously; with
+// Writes amplicon-coverage short reads (see DEFAULT_NUM_AMPLICONS). With shuffle=false the reads
+// are emitted in amplicon-sorted order, so ingestion sees coverage windows contiguously; with
 // shuffle=true the exact same reads are emitted in a random order, scattering every amplicon across
 // all ingestion chunks. The two orderings share the same seed, so the shuffled file is a true
 // permutation of the sorted one and the databases they build are identical.
-void writeAmpliconShortReadNdjson(
+inline void writeAmpliconShortReadNdjson(
    std::ostream& out,
    const std::string& reference,
    bool shuffle,
@@ -366,7 +365,7 @@ void writeAmpliconShortReadNdjson(
 
 constexpr size_t DEFAULT_FULL_SEQ_COUNT = 100'000;
 
-void writeFullSequenceNdjson(
+inline void writeFullSequenceNdjson(
    std::ostream& out,
    const std::string& reference,
    size_t count = DEFAULT_FULL_SEQ_COUNT
@@ -389,7 +388,7 @@ constexpr size_t SEQUENCE_COLUMN_SEQUENCE_COUNT = 100'000;
 
 // Full-length evolved sequences with realistic-ish N runs at both ends plus a few internal
 // stretches, emitted as full-sequence NDJSON so the benchmark can ingest them through appendData.
-void writeNRunSequenceNdjson(std::ostream& out, const std::string& reference) {
+inline void writeNRunSequenceNdjson(std::ostream& out, const std::string& reference) {
    SequenceTreeGenerator tree_gen(reference, 42, 0.001, 0.1, 12, 3);
    auto evolved = tree_gen.generateEvolvedSequences();
    SPDLOG_INFO("generated {} distinct evolved sequences", evolved.size());
@@ -422,7 +421,9 @@ void writeNRunSequenceNdjson(std::ostream& out, const std::string& reference) {
             sequence[j] = 'N';
          }
       }
-      out << fmt::format(R"({{"key":"{}","main":{{"sequence":"{}","insertions":[]}}}})", i, sequence)
+      out << fmt::format(
+                R"({{"key":"{}","main":{{"sequence":"{}","insertions":[]}}}})", i, sequence
+             )
           << "\n";
    }
 }
@@ -431,7 +432,7 @@ void writeNRunSequenceNdjson(std::ostream& out, const std::string& reference) {
 
 constexpr size_t MUTATION_REFERENCE_REPEATS = 1000;  // "ACGT" repeated -> 4000nt reference
 
-std::string buildMutationBenchmarkReference() {
+inline std::string buildMutationBenchmarkReference() {
    std::string reference;
    reference.reserve(4 * MUTATION_REFERENCE_REPEATS);
    for (size_t i = 0; i < MUTATION_REFERENCE_REPEATS; ++i) {
@@ -442,7 +443,7 @@ std::string buildMutationBenchmarkReference() {
 
 // Fixed distribution of 3.2M short (4nt) reads across a handful of offsets, matching the original
 // inline generation (running key, sequence always "ACGT").
-void writeMutationBenchmarkNdjson(std::ostream& out) {
+inline void writeMutationBenchmarkNdjson(std::ostream& out) {
    size_t current_id = 0;
    const auto emitBatches = [&](size_t batches, size_t offset) {
       for (size_t batch = 0; batch < batches; ++batch) {
@@ -471,7 +472,7 @@ constexpr size_t STRING_EQUALS_RECORD_COUNT = 100'000;
 constexpr std::array<std::string_view, 6> STRING_EQUALS_COUNTRIES =
    {"USA", "Germany", "France", "UK", "China", "Japan"};
 
-void writeStringEqualsNdjson(std::ostream& out) {
+inline void writeStringEqualsNdjson(std::ostream& out) {
    for (size_t i = 0; i < STRING_EQUALS_RECORD_COUNT; ++i) {
       out << fmt::format(
                 R"({{"accession":"ACC{:06}","country":"{}"}})",
@@ -488,7 +489,7 @@ constexpr size_t CO_OCCURRENCE_REFERENCE_LENGTH = 100;
 constexpr size_t CO_OCCURRENCE_NUM_SEQUENCES = 2'000'000;
 constexpr double CO_OCCURRENCE_MUTATION_RATE = 0.1;
 
-std::string makeCoOccurrenceReference() {
+inline std::string makeCoOccurrenceReference() {
    constexpr std::array<char, 4> bases{'A', 'C', 'G', 'T'};
    std::mt19937 rng{42};
    std::uniform_int_distribution<size_t> base_dist(0, bases.size() - 1);
@@ -499,7 +500,7 @@ std::string makeCoOccurrenceReference() {
    return reference;
 }
 
-void writeCoOccurrenceNdjson(std::ostream& out, const std::string& reference) {
+inline void writeCoOccurrenceNdjson(std::ostream& out, const std::string& reference) {
    constexpr std::array<char, 4> bases{'A', 'C', 'G', 'T'};
    std::mt19937 rng{1234};
    std::uniform_int_distribution<size_t> base_dist(0, bases.size() - 1);
@@ -527,7 +528,8 @@ void writeCoOccurrenceNdjson(std::ostream& out, const std::string& reference) {
 
 // --- Database initializers ---
 
-std::shared_ptr<rhydb::Database> initializeDatabaseWithShortReadSchema(const std::string& reference
+inline std::shared_ptr<rhydb::Database> initializeDatabaseWithShortReadSchema(
+   const std::string& reference
 ) {
    auto database_config = rhydb::config::DatabaseConfig::getValidatedConfig(R"(
 schema:
@@ -556,7 +558,7 @@ schema:
    return database;
 }
 
-std::shared_ptr<rhydb::Database> initializeDatabaseWithFullSequenceSchema(
+inline std::shared_ptr<rhydb::Database> initializeDatabaseWithFullSequenceSchema(
    const std::string& reference
 ) {
    auto database_config = rhydb::config::DatabaseConfig::getValidatedConfig(R"(
@@ -581,5 +583,3 @@ schema:
    );
    return database;
 }
-
-}  // namespace

@@ -1,36 +1,36 @@
-function(add_benchmark BENCH_NAME)
-    add_executable(${BENCH_NAME} ${BENCH_NAME}.cpp)
-    target_link_libraries(${BENCH_NAME} rhydblib)
-    target_include_directories(${BENCH_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/performance)
-endfunction(add_benchmark)
+find_package(GTest REQUIRED)
+if (NOT GTest_LIBRARIES)
+    set(GTest_LIBRARIES gtest gmock)
+endif ()
 
-# Tool that generates all benchmark input data.
-add_benchmark(generate_test_data)
+file(GLOB BENCHMARK_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/*.cpp")
+list(REMOVE_ITEM BENCHMARK_SOURCES "${CMAKE_CURRENT_LIST_DIR}/generate_test_data.cpp")
 
-set(BENCHMARK_NAMES
-    mutation_benchmark
-    many_string_equals
-    many_short_read_filters
-    clustered_ingestion_benchmark
-    nof_sequence_filter
-    sequence_column_insert
-    co_occurrence_benchmark
-    real_data_mutations_benchmark
-)
-foreach(bench ${BENCHMARK_NAMES})
-    add_benchmark(${bench})
-endforeach()
+add_executable(rhydb_benchmark ${BENCHMARK_SOURCES})
+target_link_libraries(rhydb_benchmark PRIVATE ${GTest_LIBRARIES} rhydblib)
+target_include_directories(rhydb_benchmark PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
-# Aggregate target that just builds every benchmark. Running them is done by
-# performance/run_benchmarks.sh, invoked from the `benchmarks` Makefile target.
-add_custom_target(build_benchmarks)
-add_dependencies(build_benchmarks ${BENCHMARK_NAMES})
+# executable for generating synthetic test data
+add_executable(generate_test_data generate_test_data.cpp)
+target_link_libraries(generate_test_data PRIVATE rhydblib)
+target_include_directories(generate_test_data PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
-# Benchmark input datasets, declared here rather than fetched from C++. The `benchmark_data` target
-# materializes them under localTestData/performance/ with build-system change detection (re-fetched
-# only when missing or when the declaration below changes). `make generateTestData` builds it.
+# Benchmark input datasets, declared here rather than fetched or generated from C++, and materialized
+# by the `benchmark_data` target (`make generateTestData`). See BenchmarkData.cmake.
 include(${CMAKE_CURRENT_LIST_DIR}/BenchmarkData.cmake)
 
+# Synthetic datasets, written by the generate_test_data tool.
+benchmark_dataset(short_reads_100k.ndjson GENERATE)
+benchmark_dataset(short_reads_5m.ndjson GENERATE)
+benchmark_dataset(short_reads_amplicon_sorted_5m.ndjson GENERATE)
+benchmark_dataset(short_reads_amplicon_shuffled_5m.ndjson GENERATE)
+benchmark_dataset(full_sequences_100k.ndjson GENERATE)
+benchmark_dataset(sequence_column_sequences.ndjson GENERATE)
+benchmark_dataset(mutation_reads.ndjson GENERATE)
+benchmark_dataset(string_equals_records.ndjson GENERATE)
+benchmark_dataset(co_occurrence_sequences.ndjson GENERATE)
+
+# Real-data slice for real_data_mutations_benchmark.
 benchmark_dataset(wasap_mutation_coverage.ndjson.zst
     DOWNLOAD https://fsn1.your-objectstorage.com/silo-benchmarking/real_data_mutations_benchmark/wasap-mutation-coverage-5samples.ndjson.zst
     SHA256   51f4a3a8b3ca75e0da17b48175e0ef87b49ebf1e20f25604c64228c577d6e111)

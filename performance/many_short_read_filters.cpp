@@ -5,6 +5,7 @@
 #include <sstream>
 
 #include <arrow/compute/initialize.h>
+#include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
 #include "sequence_generator.h"
@@ -30,8 +31,8 @@ TestDatabaseResult setupTestDatabase() {
    SPDLOG_INFO("Read reference sequence of length {}", reference.size());
    const size_t ref_length = reference.size();
 
-   auto input_file = openTestDataInput(SHORT_READ_LARGE_NDJSON_PATH);
-   SPDLOG_INFO("Reading short read NDJSON data from {}", SHORT_READ_LARGE_NDJSON_PATH);
+   auto input_file = openTestDataInput(SHORT_READ_LARGE_NDJSON);
+   SPDLOG_INFO("Reading short read NDJSON data from {}", SHORT_READ_LARGE_NDJSON);
 
    auto database = initializeDatabaseWithShortReadSchema(reference);
    database->appendData(rhydb::schema::TableName::getDefault(), input_file);
@@ -106,8 +107,6 @@ void executeAllQueries(
 }
 
 void run() {
-   changeCwdToTestFolder();
-   RHYDB_ASSERT(arrow::compute::Initialize().ok());
    SPDLOG_INFO("Building database for benchmark:");
 
    auto [database, reference_length] = setupTestDatabase();
@@ -122,11 +121,6 @@ void run() {
 
 }  // namespace
 
-int main() {
-   try {
-      run();
-   } catch (std::exception& e) {
-      SPDLOG_ERROR(e.what());
-      return EXIT_FAILURE;
-   }
+TEST(ManyShortReadFilters, fullQuerySetOverFiveMillionReads) {
+   run();
 }

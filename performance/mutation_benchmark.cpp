@@ -4,6 +4,8 @@
 #include <string>
 #include <utility>
 
+#include <gtest/gtest.h>
+
 #include "sequence_generator.h"
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/initialize/initializer.h"
@@ -44,7 +46,7 @@ schema:
 std::shared_ptr<Database> setupTestDatabase() {
    const std::string reference = buildMutationBenchmarkReference();
 
-   auto input_buffer = openTestDataInput(MUTATION_READS_NDJSON_PATH);
+   auto input_buffer = openTestDataInput(MUTATION_READS_NDJSON);
 
    auto database = initializeDatabaseWithSingleReference(reference);
 
@@ -101,10 +103,7 @@ void executeMutationsAlmostAllQuery(const std::shared_ptr<Database>& database) {
    query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/3);
    printClipped(result.str());
 }
-}  // namespace
-
-int main() {
-   changeCwdToTestFolder();
+void run() {
    SPDLOG_INFO("Starting micro benchmark:");
 
    auto start0 = std::chrono::high_resolution_clock::now();
@@ -130,4 +129,10 @@ int main() {
       duration2 / 1000,
       duration2 % 1000
    );
+}
+
+}  // namespace
+
+TEST(Mutations, allAndAlmostAllQueries) {
+   run();
 }
