@@ -206,7 +206,7 @@ code. Clang-tidy can not detect filenames. We decided to use snake_case for file
 
 ### Formatting
 
-We use clang-format as a code formatter. To run locally install [clang-format](https://github.com/llvm/llvm-project/releases/tag/llvmorg-17.0.6), update your PATH variables and run
+We use clang-format as a code formatter. To run locally install [clang-format](https://github.com/llvm/llvm-project/releases/), update your PATH variables and run
 
 ```bash
 find src -iname '*.h' -o -iname '*.cpp' | xargs clang-format -i
