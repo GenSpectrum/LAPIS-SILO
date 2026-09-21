@@ -10,6 +10,7 @@
 #include <roaring/roaring.hh>
 
 #include "rhydb/common/aa_symbols.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/nucleotide_symbols.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
@@ -98,8 +99,9 @@ std::vector<typename SymbolType::Symbol> reconstructSequenceAtRow(
    const storage::column::SequenceColumn<SymbolType>& sequence_column,
    RowId row_id
 ) {
-   roaring::Roaring single_row;
-   single_row.add(row_id.toGlobal());
+   roaring::Roaring single_row_ids;
+   single_row_ids.add(row_id.toGlobal());
+   const Bitmap single_row{std::move(single_row_ids)};
 
    std::vector<std::string> sequences = {sequence_column.local_reference_sequence_string};
    sequence_column.vertical_sequence_index.overwriteSymbolsInSequences(sequences, single_row);

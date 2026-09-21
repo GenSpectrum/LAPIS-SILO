@@ -34,7 +34,7 @@ class ExecBatchBuilder {
       return result;
    }
 
-   arrow::Status appendEntries(const storage::Table& table, const roaring::Roaring& row_ids);
+   arrow::Status appendEntries(const storage::Table& table, const Bitmap& row_ids);
 
    arrow::Result<arrow::ExecBatch> finishBatch();
 };

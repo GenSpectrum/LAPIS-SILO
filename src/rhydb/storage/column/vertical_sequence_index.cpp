@@ -231,35 +231,34 @@ using rhydb::roaring_util::roaringSubsetRanks;
 template <typename SymbolType>
 void VerticalSequenceIndex<SymbolType>::overwriteSymbolsInSequences(
    std::vector<std::string>& sequences,
-   const roaring::Roaring& row_ids
+   const Bitmap& row_ids
 ) const {
    RHYDB_ASSERT_EQ(sequences.size(), row_ids.cardinality());
-   if (row_ids.roaring.high_low_container.size == 0) {
+   if (row_ids.isEmpty()) {
       return;
    }
-   const size_t max_v_index =
-      row_ids.roaring.high_low_container.keys[row_ids.roaring.high_low_container.size - 1];
+   // The blocks come in ascending key order, so the last one carries the largest v_index.
+   size_t max_v_index = 0;
+   for (const auto& [key, view] : row_ids) {
+      max_v_index = key;
+   }
 
    // Construct the slicesarrays that correspond to individual roaring containers = v_index
    std::vector<std::string*> sequences_by_v_index(max_v_index + 1);
    std::vector<size_t> sequences_by_v_index_sizes(max_v_index + 1);
-   std::vector<roaring::internal::container_t*> roaring_containers_by_v_index(max_v_index + 1);
+   std::vector<const roaring::internal::container_t*> roaring_containers_by_v_index(
+      max_v_index + 1
+   );
    std::vector<uint8_t> roaring_typecodes_by_v_index(max_v_index + 1);
    std::string* current_sequences_pointer = sequences.data();
 
-   const size_t num_containers = row_ids.roaring.high_low_container.size;
-   for (size_t idx = 0; idx < num_containers; ++idx) {
-      auto cardinality = roaring::internal::container_get_cardinality(
-         row_ids.roaring.high_low_container.containers[idx],
-         row_ids.roaring.high_low_container.typecodes[idx]
-      );
-      auto key = row_ids.roaring.high_low_container.keys[idx];
+   for (const auto& [key, view] : row_ids) {
       RHYDB_ASSERT(key <= max_v_index);
       sequences_by_v_index.at(key) = current_sequences_pointer;
-      sequences_by_v_index_sizes.at(key) = cardinality;
-      roaring_containers_by_v_index.at(key) = row_ids.roaring.high_low_container.containers[idx];
-      roaring_typecodes_by_v_index.at(key) = row_ids.roaring.high_low_container.typecodes[idx];
-      current_sequences_pointer += cardinality;
+      sequences_by_v_index_sizes.at(key) = view.getCardinality();
+      roaring_containers_by_v_index.at(key) = view.rawContainer();
+      roaring_typecodes_by_v_index.at(key) = view.getTypecode();
+      current_sequences_pointer += view.getCardinality();
    }
 
    for (const auto& [sequence_diff_key, sequence_diff] : vertical_bitmaps) {
