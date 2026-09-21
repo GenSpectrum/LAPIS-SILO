@@ -165,6 +165,32 @@ const QueryTestScenario MUTATIONS_INVALID_FIELD = {
       "mutationFrom, mutationTo, position, sequenceName, proportion, coverage, count."
 };
 
+// ---- filtering the OUTPUT of mutations() ----
+
+const QueryTestScenario FILTER_MUTATIONS_OUTPUT_PROPORTION_KEEP = {
+   .name = "FILTER_MUTATIONS_OUTPUT_PROPORTION_KEEP",
+   .query = "default.mutations(minProportion:=0.0).filter(proportion > 0.4)",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"mutationFrom":"A","mutationTo":"C","sequenceName":"segment1","position":1,
+       "proportion":0.5,"coverage":4,"count":2}
+   ])")
+};
+
+const QueryTestScenario FILTER_MUTATIONS_OUTPUT_PROPORTION_DROP = {
+   .name = "FILTER_MUTATIONS_OUTPUT_PROPORTION_DROP",
+   .query = "default.mutations(minProportion:=0.0).filter(proportion > 0.6)",
+   .expected_query_result = nlohmann::json::array()
+};
+
+const QueryTestScenario FILTER_MUTATIONS_OUTPUT_COUNT_AND_SEQUENCE = {
+   .name = "FILTER_MUTATIONS_OUTPUT_COUNT_AND_SEQUENCE",
+   .query = "default.mutations(minProportion:=0.0).filter(count = 1 && sequenceName = 'segment2')",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"mutationFrom":"G","mutationTo":"T","sequenceName":"segment2","position":1,
+       "proportion":0.2,"coverage":5,"count":1}
+   ])")
+};
+
 // ---- amino acid aminoAcidMutations() ----
 
 const QueryTestScenario AA_MUTATIONS_ALL_FIELDS = {
@@ -218,6 +244,16 @@ QUERY_TEST(
       MUTATIONS_UNKNOWN_SEQUENCE_NAME,
       MUTATIONS_WRONG_TYPE_SEQUENCE_NAME,
       MUTATIONS_INVALID_FIELD
+   )
+);
+
+QUERY_TEST(
+   MutationsOutputFilter,
+   TEST_DATA,
+   ::testing::Values(
+      FILTER_MUTATIONS_OUTPUT_PROPORTION_KEEP,
+      FILTER_MUTATIONS_OUTPUT_PROPORTION_DROP,
+      FILTER_MUTATIONS_OUTPUT_COUNT_AND_SEQUENCE
    )
 );
 

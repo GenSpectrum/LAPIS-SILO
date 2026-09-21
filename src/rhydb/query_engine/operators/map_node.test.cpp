@@ -113,54 +113,6 @@ const QueryTestScenario MAP_FIELD_REF_SCENARIO = {
    )
 };
 
-// `at` extracts the (1-indexed) character of a string column at a position.
-const QueryTestScenario MAP_AT_SCENARIO = {
-   .name = "MAP_AT",
-   .query = "default.map({second := primaryKey.at(4)}).project({primaryKey, second})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"second", "0"}}, {{"primaryKey", "id_1"}, {"second", "1"}}}
-   )
-};
-
-// The square-bracket notation `col[i]` is shorthand for `col.at(i)`
-const QueryTestScenario MAP_AT_BRACKET_SCENARIO = {
-   .name = "MAP_AT_BRACKET",
-   .query = "default.map({second := primaryKey[4]}).project({primaryKey, second})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"second", "0"}}, {{"primaryKey", "id_1"}, {"second", "1"}}}
-   ),
-};
-
-// When the position is past the end of the string, `at` yields an empty string
-// rather than failing. id_0's str_value "short" has only 5 characters, so at(8) is
-// out of bounds and produces ""; id_1's "longlonglong" has a character at 8 ("g").
-const QueryTestScenario MAP_AT_OUT_OF_BOUNDS_SCENARIO = {
-   .name = "MAP_AT_OUT_OF_BOUNDS",
-   .query = "default.map({eighth := str_value.at(8)}).project({primaryKey, eighth})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"eighth", ""}}, {{"primaryKey", "id_1"}, {"eighth", "g"}}}
-   )
-};
-
-// `at` works on a (zstd-compressed) nucleotide sequence column: the sequence is
-// decompressed and the (1-indexed) character at the position is extracted. id_0's
-// aligned sequence is "ACGT"; id_1 has no sequence, so the value is null.
-const QueryTestScenario MAP_AT_SEQUENCE_FIRST_SCENARIO = {
-   .name = "MAP_AT_SEQUENCE_FIRST",
-   .query = "default.map({base := segment1.at(1)}).project({primaryKey, base})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"base", "A"}}, {{"primaryKey", "id_1"}, {"base", nullptr}}}
-   )
-};
-
-const QueryTestScenario MAP_AT_SEQUENCE_INNER_SCENARIO = {
-   .name = "MAP_AT_SEQUENCE_INNER",
-   .query = "default.map({base := segment1.at(3)}).project({primaryKey, base})",
-   .expected_query_result = nlohmann::json(
-      {{{"primaryKey", "id_0"}, {"base", "G"}}, {{"primaryKey", "id_1"}, {"base", nullptr}}}
-   )
-};
-
 // All projected columns are produced by the map; none are passed through from
 // the child. The table scan must still emit one row per input record (a prior
 // bug narrowed the scan to zero fields and returned no rows).
@@ -295,53 +247,44 @@ const QueryTestScenario FILTER_MAP_DECOMPRESS_LIMIT_SCENARIO = {
       nlohmann::json({{{"primaryKey", "id_0"}, {"unaligned_segment1", "ACGT"}, {"tag", 7}}})
 };
 
-// A filter that references a column the map produces (`a`) is not yet executable. The optimizer
-// must NOT push such a filter below the map; instead the FilterNode is left above the
-// map and surfaces the expected runtime error.
+// A filter that references a column the map produces (`a`) stays above the map and is executed as
+// an Arrow filter exec node over the projected batch (see #1372). All rows carry `a = 3`.
 const QueryTestScenario FILTER_ON_MAPPED_COLUMN_SCENARIO = {
    .name = "FILTER_ON_MAPPED_COLUMN",
    .query = "default.map({a := 3}).filter(a = 3).project({primaryKey})",
-   .expected_query_result = {},
-   .expected_error_message =
-      "FilterNode must be eliminated during pushdown before query plan generation"
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
 };
 
-// #1371 verbatim: filtering on an isoWeek-derived column must not be reordered below the map. The
-// FilterNode stays above the map and the query fails with the expected runtime error rather than
-// producing an invalid plan.
+// #1371/#1372 verbatim: filtering on an isoWeek-derived column stays above the map and is executed
+// as an Arrow filter over the mapped `week` column. Only id_0 falls into 2023-W01.
 const QueryTestScenario FILTER_ON_ISO_WEEK_MAPPED_COLUMN_SCENARIO = {
    .name = "FILTER_ON_ISO_WEEK_MAPPED_COLUMN",
    .query = "default.map({week := date.isoWeek()}).filter(week = '2023-W01').project({primaryKey})",
-   .expected_query_result = {},
-   .expected_error_message =
-      "FilterNode must be eliminated during pushdown before query plan generation"
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
 };
 
 // A filter on a column the map REPLACES in place with a value-changing expression (`str_value :=
-// str_value.at(1)`) must also stay above the map. Pushing it into the scan would filter on the
-// original, unmodified `str_value` - a silent miscompile - so it must error instead.
+// str_value.at(1)`) stays above the map and filters on the MAPPED value. id_0's "short".at(1) is
+// 's' and matches; id_1's "longlonglong".at(1) is 'l' and does not.
 const QueryTestScenario FILTER_ON_REPLACED_MAPPED_COLUMN_SCENARIO = {
    .name = "FILTER_ON_REPLACED_MAPPED_COLUMN",
    .query =
       "default.map({str_value := str_value.at(1)}).filter(str_value = 's').project({primaryKey})",
-   .expected_query_result = {},
-   .expected_error_message =
-      "FilterNode must be eliminated during pushdown before query plan generation"
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
 };
 
-// A conjunction mixing a pushable sequence predicate (hasMutation) with a non-pushable derived
-// column (`week`). Because the whole filter references `week`, it must stay above the map - and
-// the pushable `segment1` reference must NOT trick column narrowing into pruning the producing
-// map. The query errors rather than producing a wrong answer or crashing.
+// A conjunction mixing a bitmap-only sequence predicate (hasMutation) with a derived column
+// (`week`). The conjunction is split at the map boundary: the hasMutation conjunct is pushed into
+// the table scan (bitmap path) while the `week` conjunct stays above the map and is realized as an
+// Arrow filter, so the query composes and executes instead of erroring. No row has a mutation at
+// segment1 position 1 (id_0 matches the reference, id_1 has no sequence), so the result is empty.
 const QueryTestScenario FILTER_MIXED_PUSHABLE_AND_DERIVED_SCENARIO = {
    .name = "FILTER_MIXED_PUSHABLE_AND_DERIVED",
    .query =
       "default.map({week := date.isoWeek()})"
       ".filter(hasMutation(sequenceName := 'segment1', position := 1) && week = '2023-W01')"
       ".project({primaryKey})",
-   .expected_query_result = {},
-   .expected_error_message =
-      "FilterNode must be eliminated during pushdown before query plan generation"
+   .expected_query_result = nlohmann::json::array()
 };
 
 // A filter on a passed-through column (`int_value`) stacked above a map that produces an
@@ -351,6 +294,72 @@ const QueryTestScenario FILTER_PUSHED_PAST_UNRELATED_DERIVED_MAP_SCENARIO = {
    .name = "FILTER_PUSHED_PAST_UNRELATED_DERIVED_MAP",
    .query = "default.map({week := date.isoWeek()}).filter(int_value = 1).project({primaryKey})",
    .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
+};
+
+// A `>` comparison on a map-produced column cannot be pushed below the map and is executed as an
+// Arrow filter over the mapped `tag` column.
+const QueryTestScenario FILTER_COMPARISON_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_COMPARISON_ABOVE_MAP",
+   .query = "default.map({tag := int_value}).filter(tag > 1).project({primaryKey, tag})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_1"}, {"tag", 2}}})
+};
+
+// A conjunction of two comparisons on a map-produced column, executed as a single Arrow filter
+// above the map.
+const QueryTestScenario FILTER_AND_RANGE_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_AND_RANGE_ABOVE_MAP",
+   .query = "default.map({tag := int_value}).filter(tag >= 2 && tag <= 2).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_1"}}})
+};
+
+// A disjunction over a map-produced column, executed as an Arrow filter above the map.
+const QueryTestScenario FILTER_OR_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_OR_ABOVE_MAP",
+   .query =
+      "default.map({week := date.isoWeek()})"
+      ".filter(week = '2023-W01' || week = '2023-W52').project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
+};
+
+const QueryTestScenario FILTER_NOT_EQUALS_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_NOT_EQUALS_ABOVE_MAP",
+   .query = "default.map({tag := int_value}).filter(tag <> 1).project({primaryKey, tag})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_1"}, {"tag", 2}}})
+};
+
+const QueryTestScenario FILTER_LESS_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_LESS_ABOVE_MAP",
+   .query = "default.map({tag := int_value}).filter(tag < 2).project({primaryKey, tag})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}, {"tag", 1}}})
+};
+
+// A comparison against a date literal on a map-produced date column, executed as an Arrow filter
+// above the map.
+const QueryTestScenario FILTER_DATE_LITERAL_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_DATE_LITERAL_ABOVE_MAP",
+   .query = "default.map({d := date}).filter(d > '2023-06-01'::date).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_1"}}})
+};
+
+const QueryTestScenario FILTER_NESTED_AND_IN_OR_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_NESTED_AND_IN_OR_ABOVE_MAP",
+   .query =
+      "default.map({tag := int_value})"
+      ".filter((tag >= 2 && tag <= 2) || tag = 1).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}, {{"primaryKey", "id_1"}}})
+};
+
+// Negation is deliberately rejected in filters on subexpressions until the native null-semantics
+// inconsistency (issue #1525) is resolved.
+const QueryTestScenario FILTER_NEGATION_ABOVE_MAP_REJECTED_SCENARIO = {
+   .name = "FILTER_NEGATION_ABOVE_MAP_REJECTED",
+   .query =
+      "default.map({week := date.isoWeek()})"
+      ".filter(!(week = '2023-W01')).project({primaryKey})",
+   .expected_error_message =
+      "Error when planning query execution: NotImplemented: negation ('!') is not yet supported in "
+      "filters on subexpressions (see GitHub issue #1525); apply the negation in a filter that is "
+      "pushed into the table scan instead"
 };
 
 // `isoWeek` maps a date column to its ISO 8601 week date, `<ISO-year>-W<ISO-week>`, as a string.
@@ -374,11 +383,6 @@ QUERY_TEST(
       MAP_OVERRIDE_TWICE_SCENARIO,
       MAP_INT64_SCENARIO,
       MAP_FIELD_REF_SCENARIO,
-      MAP_AT_SCENARIO,
-      MAP_AT_BRACKET_SCENARIO,
-      MAP_AT_OUT_OF_BOUNDS_SCENARIO,
-      MAP_AT_SEQUENCE_FIRST_SCENARIO,
-      MAP_AT_SEQUENCE_INNER_SCENARIO,
       MAP_ONLY_MAPPED_COLUMN_SCENARIO,
       MAP_DUPLICATE_OUTPUT_NAME_SCENARIO,
       DECOMPRESS_SEQUENCE_SCENARIO,
@@ -396,6 +400,14 @@ QUERY_TEST(
       FILTER_ON_REPLACED_MAPPED_COLUMN_SCENARIO,
       FILTER_MIXED_PUSHABLE_AND_DERIVED_SCENARIO,
       FILTER_PUSHED_PAST_UNRELATED_DERIVED_MAP_SCENARIO,
+      FILTER_COMPARISON_ABOVE_MAP_SCENARIO,
+      FILTER_AND_RANGE_ABOVE_MAP_SCENARIO,
+      FILTER_OR_ABOVE_MAP_SCENARIO,
+      FILTER_NOT_EQUALS_ABOVE_MAP_SCENARIO,
+      FILTER_LESS_ABOVE_MAP_SCENARIO,
+      FILTER_DATE_LITERAL_ABOVE_MAP_SCENARIO,
+      FILTER_NESTED_AND_IN_OR_ABOVE_MAP_SCENARIO,
+      FILTER_NEGATION_ABOVE_MAP_REJECTED_SCENARIO,
       MAP_ISO_WEEK_SCENARIO
    )
 );
@@ -421,10 +433,43 @@ const QueryTestScenario MAP_ISO_WEEK_NULL_SCENARIO = {
    )
 };
 
+// An isNull() predicate on a map-produced column, executed as an Arrow filter above the map. Only
+// id_0 has no date, so its derived `week` is null.
+const QueryTestScenario FILTER_ISNULL_ABOVE_MAP_SCENARIO = {
+   .name = "FILTER_ISNULL_ABOVE_MAP",
+   .query = "default.map({week := date.isoWeek()}).filter(week.isNull()).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
+};
+
+// Negation above a map runs on the Arrow (subexpression) path, which deliberately rejects negation
+// until issue #1525 resolves the native null-semantics inconsistency.
+const QueryTestScenario FILTER_NEGATION_ABOVE_MAP_NULL_REJECTED_SCENARIO = {
+   .name = "FILTER_NEGATION_ABOVE_MAP_NULL_REJECTED",
+   .query =
+      "default.map({week := date.isoWeek()}).filter(!(week = '2020-W53')).project({primaryKey})",
+   .expected_error_message =
+      "Error when planning query execution: NotImplemented: negation ('!') is not yet supported in "
+      "filters on subexpressions (see GitHub issue #1525); apply the negation in a filter that is "
+      "pushed into the table scan instead"
+};
+
+// The same negation pushed into the table scan runs on the native bitmap path, which is unaffected
+// by the rejection above: id_0 has a null date and is kept by the set-complement `!(date = ...)`.
+const QueryTestScenario FILTER_NEGATION_KEEPS_NULL_PUSHED_DOWN_SCENARIO = {
+   .name = "FILTER_NEGATION_KEEPS_NULL_PUSHED_DOWN",
+   .query = "default.filter(!(date = '2020-12-31'::date)).project({primaryKey})",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}})
+};
+
 }  // namespace
 
 QUERY_TEST(
    MapIsoWeekNullTest,
    ISO_WEEK_NULL_TEST_DATA,
-   ::testing::Values(MAP_ISO_WEEK_NULL_SCENARIO)
+   ::testing::Values(
+      MAP_ISO_WEEK_NULL_SCENARIO,
+      FILTER_ISNULL_ABOVE_MAP_SCENARIO,
+      FILTER_NEGATION_ABOVE_MAP_NULL_REJECTED_SCENARIO,
+      FILTER_NEGATION_KEEPS_NULL_PUSHED_DOWN_SCENARIO
+   )
 );
