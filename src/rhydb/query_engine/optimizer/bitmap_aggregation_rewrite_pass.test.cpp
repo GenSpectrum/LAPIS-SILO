@@ -216,7 +216,7 @@ TEST(BitmapAggregationRewritePass, declinesMapFieldRefOverNonStringColumn) {
 
 // A general scalar expression the map computes -- here `date.isoWeek()` -- is grouped through the
 // bitmap engine via the scalar-expression path: the grouper evaluates it per row and buckets by the
-// resulting (int) value.
+// resulting value.
 TEST(BitmapAggregationRewritePass, rewritesMapIsoWeekExpression) {
    auto node = makeGroupByCount(makeMapWithIsoWeek(makeScan(), "week", DATE_COLUMN), {"week"});
 

@@ -692,7 +692,8 @@ void aggregateChunk(
 ) {
    const size_t last_dimension = groups_by_dimension.size() - 1;
 
-   if (const size_t* whole_chunk_label = std::get_if<size_t>(groups_by_dimension[depth])) {
+   if (const size_t* whole_chunk_label =
+          std::get_if<SingletonKeyGroup>(groups_by_dimension[depth])) {
       // Every row of the running intersection carries this one label; nothing to intersect.
       chosen_indices[depth] = *whole_chunk_label;
       if (depth == last_dimension) {
@@ -739,13 +740,9 @@ void aggregateChunk(
    }
 }
 
-/// Computes the co-occurrence counts one 2^16 chunk at a time. It enumerates the filter's
-/// containers and, for each (necessarily non-empty) chunk, builds every dimension's groups for just
-/// that chunk
-/// -- handing out `RoaringContainerView`s into the columns' stored containers wherever possible --
-/// then intersects them recursively against the filter chunk. A combination spans chunks, so the
-/// surviving cardinalities are summed across them. Only non-empty combinations are visited, so this
-/// scales with the number of matching rows rather than the Cartesian product of the dimensions.
+/// Computes the aggregation groups counts one 2^16 chunk at a time. It does so by enumerating all
+/// combination of the per-key groups. The combination's cardinalities are computed efficiently
+/// using bitmap intersection
 std::vector<GroupCombination> computeCombinations(
    const std::vector<std::unique_ptr<KeyGroups>>& groupers,
    const Bitmap& filter_bitmap

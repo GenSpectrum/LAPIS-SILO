@@ -115,7 +115,7 @@ bool cpuHasAvx512() {
 }
 #endif
 
-/// This method can computes a `bitset` that shows which rows in the index could cover `position`.
+/// This method can compute a `bitset` that shows which rows in the index could cover `position`.
 /// Sets bit `row` of `bitset` for every row where `starts[row] <= position < ends[row]`, returning
 /// the number of such rows. `bitset` must be a zeroed 2^16-bit (1024-word) buffer.
 uint32_t coverageScan(
