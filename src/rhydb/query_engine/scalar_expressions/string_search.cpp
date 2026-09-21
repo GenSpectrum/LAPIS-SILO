@@ -42,7 +42,7 @@ std::unique_ptr<filter::operators::Operator> createMatchingBitmap(
             result_bitmap.add(row_id.toGlobal());
          }
       }
-      return CopyOnWriteBitmap(std::move(result_bitmap));
+      return Bitmap(std::move(result_bitmap));
    };
    return std::make_unique<filter::operators::BitmapProducer>(
       std::move(producer), std::move(row_layout)

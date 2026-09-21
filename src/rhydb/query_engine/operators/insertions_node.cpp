@@ -16,8 +16,8 @@
 #include <nlohmann/json.hpp>
 
 #include "rhydb/common/aa_symbols.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/nucleotide_symbols.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/exec_node/schema_output_builder.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
@@ -55,7 +55,7 @@ template <typename SymbolType>
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Status addAggregatedInsertionsToInsertionCounts(
    const std::string& sequence_name,
-   const CopyOnWriteBitmap& bitmap_filter,
+   const Bitmap& bitmap_filter,
    const storage::Table& table,
    exec_node::SchemaOutputBuilder& output_builder
 ) {

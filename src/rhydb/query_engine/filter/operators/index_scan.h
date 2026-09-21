@@ -6,7 +6,7 @@
 
 #include <roaring/roaring.hh>
 
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/storage/column/row_layout.h"
 
@@ -22,15 +22,15 @@ class IndexScan : public Operator {
 
   private:
    std::optional<std::unique_ptr<scalar_expressions::ScalarExpression>> logical_equivalent;
-   CopyOnWriteBitmap bitmap;
+   Bitmap bitmap;
    storage::column::RowLayout row_layout;
 
   public:
-   explicit IndexScan(CopyOnWriteBitmap bitmap, storage::column::RowLayout row_layout);
+   explicit IndexScan(Bitmap bitmap, storage::column::RowLayout row_layout);
 
    explicit IndexScan(
       std::unique_ptr<query_engine::scalar_expressions::ScalarExpression>&& logical_equivalent,
-      CopyOnWriteBitmap bitmap,
+      Bitmap bitmap,
       storage::column::RowLayout row_layout
    );
 
@@ -38,7 +38,7 @@ class IndexScan : public Operator {
 
    [[nodiscard]] Type type() const override;
 
-   [[nodiscard]] CopyOnWriteBitmap evaluate() const override;
+   [[nodiscard]] Bitmap evaluate() const override;
 
    [[nodiscard]] std::string toString() const override;
 

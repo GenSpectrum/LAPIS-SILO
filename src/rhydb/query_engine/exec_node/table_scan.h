@@ -10,8 +10,8 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json_fwd.hpp>
 
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/batched_bitmap_reader.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/storage/table.h"
 
@@ -42,7 +42,7 @@ class ExecBatchBuilder {
 class TableScanGenerator {
    ExecBatchBuilder exec_batch_builder;
 
-   CopyOnWriteBitmap bitmap_filter;
+   Bitmap bitmap_filter;
 
    std::optional<BatchedBitmapReader> current_bitmap_reader;
 
@@ -51,7 +51,7 @@ class TableScanGenerator {
   public:
    TableScanGenerator(
       const std::vector<rhydb::schema::ColumnIdentifier>& columns,
-      CopyOnWriteBitmap bitmap_filter_,
+      Bitmap bitmap_filter_,
       std::shared_ptr<const storage::Table> table,
       size_t batch_size_cutoff
    )
@@ -99,7 +99,7 @@ class TableScanGenerator {
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    arrow::acero::ExecPlan* plan,
    const std::vector<rhydb::schema::ColumnIdentifier>& columns,
-   CopyOnWriteBitmap bitmap_filter_,
+   Bitmap bitmap_filter_,
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 );

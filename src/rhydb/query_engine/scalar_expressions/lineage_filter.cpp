@@ -94,9 +94,7 @@ std::unique_ptr<filter::operators::Operator> LineageFilter::compile(const storag
    if (bitmap == std::nullopt) {
       return std::make_unique<filter::operators::Empty>(table.row_layout);
    }
-   return std::make_unique<filter::operators::IndexScan>(
-      CopyOnWriteBitmap{bitmap.value()}, table.row_layout
-   );
+   return std::make_unique<filter::operators::IndexScan>(Bitmap{bitmap.value()}, table.row_layout);
 }
 
 }  // namespace rhydb::query_engine::scalar_expressions

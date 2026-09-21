@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/storage/column/row_layout.h"
 
@@ -12,20 +12,17 @@ namespace rhydb::query_engine::filter::operators {
 
 class BitmapProducer : public Operator {
   private:
-   std::function<CopyOnWriteBitmap()> producer;
+   std::function<Bitmap()> producer;
    storage::column::RowLayout row_layout;
 
   public:
-   explicit BitmapProducer(
-      std::function<CopyOnWriteBitmap()> producer,
-      storage::column::RowLayout row_layout
-   );
+   explicit BitmapProducer(std::function<Bitmap()> producer, storage::column::RowLayout row_layout);
 
    ~BitmapProducer() noexcept override;
 
    [[nodiscard]] Type type() const override;
 
-   [[nodiscard]] CopyOnWriteBitmap evaluate() const override;
+   [[nodiscard]] Bitmap evaluate() const override;
 
    [[nodiscard]] std::string toString() const override;
 

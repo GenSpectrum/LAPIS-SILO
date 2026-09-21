@@ -14,9 +14,9 @@
 
 #include "evobench/evobench.hpp"
 #include "rhydb/common/aa_symbols.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/nucleotide_symbols.h"
 #include "rhydb/common/symbol_map.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/exec_node/schema_output_builder.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
@@ -207,7 +207,7 @@ __attribute__((noinline)) void accumulateFinalCounts(
 template <typename SymbolType>
 void addMutationCountsForMixedBitmaps(
    const storage::column::SequenceColumn<SymbolType>& sequence_column,
-   const CopyOnWriteBitmap& bitmap_filter,
+   const Bitmap& bitmap_filter,
    SymbolMap<SymbolType, std::vector<uint32_t>>& count_of_mutations_per_position
 ) {
    auto local_reference = sequence_column.getLocalReference();
@@ -270,7 +270,7 @@ void addMutationCountsForFullBitmaps(
 template <typename SymbolType>
 SymbolMap<SymbolType, std::vector<uint32_t>> calculateMutationsPerPosition(
    const storage::column::SequenceColumn<SymbolType>& sequence_column,
-   const CopyOnWriteBitmap& bitmap_filter,
+   const Bitmap& bitmap_filter,
    uint64_t sequence_count_in_column
 ) {
    const size_t sequence_length = sequence_column.metadata->reference_sequence.size();
@@ -295,7 +295,7 @@ arrow::Status addMutationsToOutput(
    const std::string& sequence_name,
    const storage::column::SequenceColumn<SymbolType>& sequence_column,
    double min_proportion,
-   const CopyOnWriteBitmap& bitmap_filter,
+   const Bitmap& bitmap_filter,
    uint64_t sequence_count_in_column,
    exec_node::SchemaOutputBuilder& output_builder
 ) {

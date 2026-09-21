@@ -231,7 +231,7 @@ arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBa
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    arrow::acero::ExecPlan* plan,
    const std::vector<rhydb::schema::ColumnIdentifier>& columns,
-   CopyOnWriteBitmap bitmap_filter_,
+   Bitmap bitmap_filter_,
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 ) {

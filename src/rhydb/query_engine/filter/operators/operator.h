@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 
 namespace rhydb::query_engine::filter::operators {
 
@@ -29,7 +29,7 @@ class Operator {
 
    [[nodiscard]] virtual Type type() const = 0;
 
-   [[nodiscard]] virtual CopyOnWriteBitmap evaluate() const = 0;
+   [[nodiscard]] virtual Bitmap evaluate() const = 0;
 
    [[nodiscard]] virtual std::string toString() const = 0;
 

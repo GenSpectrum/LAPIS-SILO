@@ -7,8 +7,8 @@
 #include <roaring/roaring.hh>
 
 #include "evobench/evobench.hpp"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/string_utils.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/filter/operators/complement.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/query_compilation_exception.h"
@@ -61,7 +61,7 @@ Type Threshold::type() const {
    return THRESHOLD;
 }
 
-CopyOnWriteBitmap Threshold::evaluate() const {
+Bitmap Threshold::evaluate() const {
    EVOBENCH_SCOPE("Threshold", "evaluate");
    uint32_t dp_table_size;
    if (this->match_exactly) {
@@ -132,9 +132,9 @@ CopyOnWriteBitmap Threshold::evaluate() const {
       // Because exact, we remove all that have too many
       bitmaps[number_of_matchers - 1] -= bitmaps[number_of_matchers];
 
-      return CopyOnWriteBitmap(std::move(bitmaps[number_of_matchers - 1]));
+      return Bitmap(std::move(bitmaps[number_of_matchers - 1]));
    }
-   return CopyOnWriteBitmap(std::move(bitmaps.back()));
+   return Bitmap(std::move(bitmaps.back()));
 }
 
 std::unique_ptr<Operator> Threshold::negate(std::unique_ptr<Threshold>&& threshold) {

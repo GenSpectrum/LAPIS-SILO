@@ -9,8 +9,8 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "evobench/evobench.hpp"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/panic.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/filter/operators/complement.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 
@@ -51,7 +51,7 @@ Type RangeSelection::type() const {
    return RANGE_SELECTION;
 }
 
-CopyOnWriteBitmap RangeSelection::evaluate() const {
+Bitmap RangeSelection::evaluate() const {
    EVOBENCH_SCOPE("RangeSelection", "evaluate");
    roaring::Roaring result_bitmap;
    for (const auto& [start, end] : ranges) {
@@ -83,7 +83,7 @@ CopyOnWriteBitmap RangeSelection::evaluate() const {
          }
       }
    }
-   return CopyOnWriteBitmap{std::move(result_bitmap)};
+   return Bitmap{std::move(result_bitmap)};
 }
 
 std::unique_ptr<Operator> RangeSelection::negate(std::unique_ptr<RangeSelection>&& range_selection

@@ -5,21 +5,21 @@
 
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 
-using rhydb::query_engine::CopyOnWriteBitmap;
+using rhydb::Bitmap;
 using rhydb::query_engine::filter::operators::IndexScan;
 using rhydb::query_engine::scalar_expressions::BoolLiteral;
 using rhydb::storage::column::RowLayout;
 
 TEST(OperatorIndexScan, evaluateShouldReturnCorrectValues) {
    const roaring::Roaring test_bitmap(roaring::Roaring({1, 3}));
-   const IndexScan under_test(CopyOnWriteBitmap{&test_bitmap}, RowLayout::of(5));
+   const IndexScan under_test(Bitmap{&test_bitmap}, RowLayout::of(5));
    ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({1, 3}));
 }
 
 TEST(OperatorIndexScan, correctTypeInfo) {
    const roaring::Roaring test_bitmap({1, 2, 3});
 
-   const IndexScan under_test(CopyOnWriteBitmap{&test_bitmap}, RowLayout::of(5));
+   const IndexScan under_test(Bitmap{&test_bitmap}, RowLayout::of(5));
 
    ASSERT_EQ(under_test.type(), rhydb::query_engine::filter::operators::INDEX_SCAN);
 }
@@ -27,14 +27,14 @@ TEST(OperatorIndexScan, correctTypeInfo) {
 TEST(OperatorIndexScan, correctLogicalEquivalent) {
    const roaring::Roaring test_bitmap({1, 2, 3, 4, 5});
    const IndexScan under_test(
-      std::make_unique<BoolLiteral>(true), CopyOnWriteBitmap{&test_bitmap}, RowLayout::of(5)
+      std::make_unique<BoolLiteral>(true), Bitmap{&test_bitmap}, RowLayout::of(5)
    );
 
    ASSERT_EQ(under_test.toString(), "IndexScan(Logical Equivalent: true, Cardinality: 5)");
 
    const roaring::Roaring test_bitmap2({});
    const IndexScan under_test2(
-      std::make_unique<BoolLiteral>(false), CopyOnWriteBitmap{&test_bitmap}, RowLayout::of(5)
+      std::make_unique<BoolLiteral>(false), Bitmap{&test_bitmap}, RowLayout::of(5)
    );
 
    ASSERT_EQ(under_test2.toString(), "IndexScan(Logical Equivalent: false, Cardinality: 5)");

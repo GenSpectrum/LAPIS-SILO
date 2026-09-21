@@ -12,8 +12,8 @@
 #include <arrow/result.h>
 #include <nlohmann/json_fwd.hpp>
 
+#include "rhydb/common/bitmap.h"
 #include "rhydb/config/runtime_config.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/operators/query_node.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
 #include "rhydb/schema/database_schema.h"
@@ -29,7 +29,7 @@ namespace rhydb::query_engine::operators {
 /// work — are bounded by the filtered row set rather than the whole table. Together the groups are
 /// disjoint and cover every filtered row. The value is rendered as a string because the aggregation
 /// node emits every grouping column as STRING (a null group becomes a SQL null).
-using GroupBitmaps = std::vector<std::pair<std::optional<std::string>, CopyOnWriteBitmap>>;
+using GroupBitmaps = std::vector<std::pair<std::optional<std::string>, Bitmap>>;
 
 /// Groups rows by the symbol they carry at a fixed sequence position, e.g. `main.at(123)`.
 struct SequencePositionDimension {
@@ -47,10 +47,8 @@ struct SequencePositionDimension {
 
    /// Partition `filter_bitmap` into this dimension's disjoint, filter-bounded groups (see
    /// `GroupBitmaps`), reading the relevant column from `table`.
-   [[nodiscard]] GroupBitmaps buildGroups(
-      const storage::Table& table,
-      const CopyOnWriteBitmap& filter_bitmap
-   ) const;
+   [[nodiscard]] GroupBitmaps buildGroups(const storage::Table& table, const Bitmap& filter_bitmap)
+      const;
 
    /// The STRING output column this dimension contributes to the result schema.
    [[nodiscard]] schema::ColumnIdentifier outputColumn() const;
@@ -65,10 +63,8 @@ struct IndexedColumnDimension {
 
    IndexedColumnDimension(schema::ColumnIdentifier column, std::string output_name);
 
-   [[nodiscard]] GroupBitmaps buildGroups(
-      const storage::Table& table,
-      const CopyOnWriteBitmap& filter_bitmap
-   ) const;
+   [[nodiscard]] GroupBitmaps buildGroups(const storage::Table& table, const Bitmap& filter_bitmap)
+      const;
 
    [[nodiscard]] schema::ColumnIdentifier outputColumn() const;
 

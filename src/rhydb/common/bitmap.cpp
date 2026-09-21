@@ -1,4 +1,4 @@
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -11,12 +11,9 @@
 
 #include <roaring/roaring.hh>
 
-namespace rhydb::query_engine {
+namespace rhydb {
 
-using roaring_util::RoaringContainer;
-using roaring_util::RoaringContainerView;
-
-void CopyOnWriteBitmap::pushIfNonEmpty(
+void Bitmap::pushIfNonEmpty(
    std::vector<uint16_t>& out_keys,
    std::vector<Container>& out_containers,
    uint16_t key,
@@ -30,28 +27,32 @@ void CopyOnWriteBitmap::pushIfNonEmpty(
       return;
    }
    out_keys.push_back(key);
-   out_containers.emplace_back(RoaringContainer{container, cardinality, typecode});
+   out_containers.emplace_back(roaring_util::RoaringContainer{container, cardinality, typecode});
 }
 
-RoaringContainerView CopyOnWriteBitmap::viewOf(const Container& container) {
-   return std::visit([](const auto& held) { return RoaringContainerView{held}; }, container);
+roaring_util::RoaringContainerView Bitmap::viewOf(const Container& container) {
+   return std::visit(
+      [](const auto& held) { return roaring_util::RoaringContainerView{held}; }, container
+   );
 }
 
-CopyOnWriteBitmap::Container CopyOnWriteBitmap::copyContainer(const Container& container) {
+Bitmap::Container Bitmap::copyContainer(const Container& container) {
    return std::visit(
       [](const auto& held) -> Container {
          using Held = std::decay_t<decltype(held)>;
-         if constexpr (std::is_same_v<Held, RoaringContainerView>) {
+         if constexpr (std::is_same_v<Held, roaring_util::RoaringContainerView>) {
             return held;
          } else {
-            return RoaringContainer::clonedFrom(held.rawContainer(), held.getTypecode());
+            return roaring_util::RoaringContainer::clonedFrom(
+               held.rawContainer(), held.getTypecode()
+            );
          }
       },
       container
    );
 }
 
-CopyOnWriteBitmap::CopyOnWriteBitmap(const roaring::Roaring* bitmap) {
+Bitmap::Bitmap(const roaring::Roaring* bitmap) {
    const auto& roaring_array = bitmap->roaring.high_low_container;
    keys.reserve(roaring_array.size);
    containers.reserve(roaring_array.size);
@@ -60,13 +61,13 @@ CopyOnWriteBitmap::CopyOnWriteBitmap(const roaring::Roaring* bitmap) {
          roaring_array.containers[idx], roaring_array.typecodes[idx]
       ));
       keys.push_back(roaring_array.keys[idx]);
-      containers.emplace_back(RoaringContainerView{
+      containers.emplace_back(roaring_util::RoaringContainerView{
          roaring_array.containers[idx], cardinality, roaring_array.typecodes[idx]
       });
    }
 }
 
-CopyOnWriteBitmap::CopyOnWriteBitmap(roaring::Roaring&& bitmap) {
+Bitmap::Bitmap(roaring::Roaring&& bitmap) {
    auto& roaring_array = bitmap.roaring.high_low_container;
    keys.reserve(roaring_array.size);
    containers.reserve(roaring_array.size);
@@ -75,16 +76,16 @@ CopyOnWriteBitmap::CopyOnWriteBitmap(roaring::Roaring&& bitmap) {
          roaring_array.containers[idx], roaring_array.typecodes[idx]
       ));
       keys.push_back(roaring_array.keys[idx]);
-      containers.emplace_back(
-         RoaringContainer{roaring_array.containers[idx], cardinality, roaring_array.typecodes[idx]}
-      );
+      containers.emplace_back(roaring_util::RoaringContainer{
+         roaring_array.containers[idx], cardinality, roaring_array.typecodes[idx]
+      });
    }
    // The containers now belong to this object; drop the source's bookkeeping arrays without
    // freeing the containers they pointed at.
    roaring::internal::ra_clear_without_containers(&roaring_array);
 }
 
-CopyOnWriteBitmap::CopyOnWriteBitmap(const CopyOnWriteBitmap& other)
+Bitmap::Bitmap(const Bitmap& other)
     : keys(other.keys) {
    containers.reserve(other.containers.size());
    for (const auto& container : other.containers) {
@@ -92,7 +93,7 @@ CopyOnWriteBitmap::CopyOnWriteBitmap(const CopyOnWriteBitmap& other)
    }
 }
 
-CopyOnWriteBitmap& CopyOnWriteBitmap::operator=(const CopyOnWriteBitmap& other) {
+Bitmap& Bitmap::operator=(const Bitmap& other) {
    if (this != &other) {
       std::vector<Container> containers_copy;
       containers_copy.reserve(other.containers.size());
@@ -105,7 +106,7 @@ CopyOnWriteBitmap& CopyOnWriteBitmap::operator=(const CopyOnWriteBitmap& other) 
    return *this;
 }
 
-uint64_t CopyOnWriteBitmap::cardinality() const {
+uint64_t Bitmap::cardinality() const {
    uint64_t total = 0;
    for (const auto& container : containers) {
       total += viewOf(container).getCardinality();
@@ -113,11 +114,11 @@ uint64_t CopyOnWriteBitmap::cardinality() const {
    return total;
 }
 
-bool CopyOnWriteBitmap::isEmpty() const {
+bool Bitmap::isEmpty() const {
    return keys.empty();
 }
 
-uint64_t CopyOnWriteBitmap::andCardinality(const CopyOnWriteBitmap& other) const {
+uint64_t Bitmap::andCardinality(const Bitmap& other) const {
    uint64_t total = 0;
    size_t left = 0;
    size_t right = 0;
@@ -142,7 +143,7 @@ uint64_t CopyOnWriteBitmap::andCardinality(const CopyOnWriteBitmap& other) const
    return total;
 }
 
-CopyOnWriteBitmap& CopyOnWriteBitmap::operator&=(const CopyOnWriteBitmap& other) {
+Bitmap& Bitmap::operator&=(const Bitmap& other) {
    std::vector<uint16_t> result_keys;
    std::vector<Container> result_containers;
    size_t left = 0;
@@ -175,7 +176,7 @@ CopyOnWriteBitmap& CopyOnWriteBitmap::operator&=(const CopyOnWriteBitmap& other)
    return *this;
 }
 
-CopyOnWriteBitmap& CopyOnWriteBitmap::operator-=(const CopyOnWriteBitmap& other) {
+Bitmap& Bitmap::operator-=(const Bitmap& other) {
    std::vector<uint16_t> result_keys;
    std::vector<Container> result_containers;
    size_t left = 0;
@@ -210,7 +211,7 @@ CopyOnWriteBitmap& CopyOnWriteBitmap::operator-=(const CopyOnWriteBitmap& other)
    return *this;
 }
 
-CopyOnWriteBitmap& CopyOnWriteBitmap::operator|=(const CopyOnWriteBitmap& other) {
+Bitmap& Bitmap::operator|=(const Bitmap& other) {
    std::vector<uint16_t> result_keys;
    std::vector<Container> result_containers;
    size_t left = 0;
@@ -247,8 +248,8 @@ CopyOnWriteBitmap& CopyOnWriteBitmap::operator|=(const CopyOnWriteBitmap& other)
    return *this;
 }
 
-CopyOnWriteBitmap CopyOnWriteBitmap::operator&(const CopyOnWriteBitmap& other) const {
-   CopyOnWriteBitmap result;
+Bitmap Bitmap::operator&(const Bitmap& other) const {
+   Bitmap result;
    size_t left = 0;
    size_t right = 0;
    while (left < keys.size() && right < other.keys.size()) {
@@ -277,27 +278,27 @@ CopyOnWriteBitmap CopyOnWriteBitmap::operator&(const CopyOnWriteBitmap& other) c
    return result;
 }
 
-CopyOnWriteBitmap CopyOnWriteBitmap::operator-(const CopyOnWriteBitmap& other) const {
-   CopyOnWriteBitmap result = *this;
+Bitmap Bitmap::operator-(const Bitmap& other) const {
+   Bitmap result = *this;
    result -= other;
    return result;
 }
 
-CopyOnWriteBitmap CopyOnWriteBitmap::fastUnion(const std::vector<CopyOnWriteBitmap>& bitmaps) {
+Bitmap Bitmap::fastUnion(const std::vector<Bitmap>& bitmaps) {
    // TODO(#1490) implement with n-way min-heap
    if (bitmaps.empty()) {
-      return CopyOnWriteBitmap{};
+      return Bitmap{};
    }
-   std::span<const CopyOnWriteBitmap> bitmaps_span{bitmaps.data(), bitmaps.size()};
-   CopyOnWriteBitmap result = bitmaps_span.front();
+   std::span<const Bitmap> bitmaps_span{bitmaps.data(), bitmaps.size()};
+   Bitmap result = bitmaps_span.front();
    for (const auto& bitmap : bitmaps_span.subspan(1)) {
       result |= bitmap;
    }
    return result;
 }
 
-CopyOnWriteBitmap CopyOnWriteBitmap::fromContainerViews(
-   std::vector<std::pair<uint16_t, RoaringContainerView>> container_views
+Bitmap Bitmap::fromContainerViews(
+   std::vector<std::pair<uint16_t, roaring_util::RoaringContainerView>> container_views
 ) {
    std::erase_if(container_views, [](const auto& container_view) {
       return container_view.second.empty();
@@ -307,7 +308,7 @@ CopyOnWriteBitmap CopyOnWriteBitmap::fromContainerViews(
       return lhs.first < rhs.first;
    });
 
-   CopyOnWriteBitmap result;
+   Bitmap result;
    size_t idx = 0;
    while (idx < container_views.size()) {
       const uint16_t key = container_views[idx].first;
@@ -349,7 +350,7 @@ CopyOnWriteBitmap CopyOnWriteBitmap::fromContainerViews(
    return result;
 }
 
-roaring::Roaring CopyOnWriteBitmap::toRoaring() const {
+roaring::Roaring Bitmap::toRoaring() const {
    roaring::Roaring result;
    for (size_t idx = 0; idx < keys.size(); ++idx) {
       const auto container_view = viewOf(containers[idx]);
@@ -363,4 +364,4 @@ roaring::Roaring CopyOnWriteBitmap::toRoaring() const {
    return result;
 }
 
-}  // namespace rhydb::query_engine
+}  // namespace rhydb

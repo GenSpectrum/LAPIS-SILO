@@ -6,7 +6,7 @@
 #include "rhydb/query_engine/filter/operators/index_scan.h"
 #include "rhydb/query_engine/query_compilation_exception.h"
 
-using rhydb::query_engine::CopyOnWriteBitmap;
+using rhydb::Bitmap;
 using rhydb::query_engine::QueryCompilationException;
 using rhydb::query_engine::filter::operators::IndexScan;
 using rhydb::query_engine::filter::operators::Intersection;
@@ -21,7 +21,7 @@ OperatorVector generateTestInput(
    OperatorVector result;
 
    std::ranges::transform(bitmaps, std::back_inserter(result), [&](const auto& bitmap) {
-      return std::make_unique<IndexScan>(CopyOnWriteBitmap{&bitmap}, row_layout);
+      return std::make_unique<IndexScan>(Bitmap{&bitmap}, row_layout);
    });
    return result;
 }

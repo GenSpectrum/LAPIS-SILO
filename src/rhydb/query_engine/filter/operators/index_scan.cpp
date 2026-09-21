@@ -6,20 +6,20 @@
 #include <roaring/roaring.hh>
 
 #include "evobench/evobench.hpp"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/filter/operators/complement.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
 
 namespace rhydb::query_engine::filter::operators {
 
-IndexScan::IndexScan(CopyOnWriteBitmap bitmap, storage::column::RowLayout row_layout)
+IndexScan::IndexScan(Bitmap bitmap, storage::column::RowLayout row_layout)
     : bitmap(std::move(bitmap)),
       row_layout(std::move(row_layout)) {}
 
 IndexScan::IndexScan(
    std::unique_ptr<scalar_expressions::ScalarExpression>&& logical_equivalent,
-   CopyOnWriteBitmap bitmap,
+   Bitmap bitmap,
    storage::column::RowLayout row_layout
 )
     : logical_equivalent(std::move(logical_equivalent)),
@@ -40,7 +40,7 @@ Type IndexScan::type() const {
    return INDEX_SCAN;
 }
 
-CopyOnWriteBitmap IndexScan::evaluate() const {
+Bitmap IndexScan::evaluate() const {
    EVOBENCH_SCOPE("IndexScan", "evaluate");
    return bitmap;
 }

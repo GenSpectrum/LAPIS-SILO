@@ -7,8 +7,8 @@
 #include <spdlog/spdlog.h>
 
 #include "evobench/evobench.hpp"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/string_utils.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/filter/operators/complement.h"
 #include "rhydb/query_engine/filter/operators/full.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
@@ -79,14 +79,14 @@ Type Intersection::type() const {
    return INTERSECTION;
 }
 
-CopyOnWriteBitmap Intersection::evaluate() const {
+Bitmap Intersection::evaluate() const {
    EVOBENCH_SCOPE("Intersection", "evaluate");
-   std::vector<CopyOnWriteBitmap> children_bm;
+   std::vector<Bitmap> children_bm;
    children_bm.reserve(children.size());
    std::ranges::transform(children, std::back_inserter(children_bm), [&](const auto& child) {
       return child->evaluate();
    });
-   std::vector<CopyOnWriteBitmap> negated_children_bm;
+   std::vector<Bitmap> negated_children_bm;
    negated_children_bm.reserve(negated_children.size());
    std::ranges::transform(
       negated_children,
@@ -94,16 +94,13 @@ CopyOnWriteBitmap Intersection::evaluate() const {
       [&](const auto& child) { return child->evaluate(); }
    );
    // Sort ascending, such that intermediate results are kept small
-   std::ranges::sort(
-      children_bm,
-      [](const CopyOnWriteBitmap& expression1, const CopyOnWriteBitmap& expression2) {
-         return expression1.cardinality() < expression2.cardinality();
-      }
-   );
+   std::ranges::sort(children_bm, [](const Bitmap& expression1, const Bitmap& expression2) {
+      return expression1.cardinality() < expression2.cardinality();
+   });
    // Sort negated children descending by size
    std::ranges::sort(
       negated_children_bm,
-      [](const CopyOnWriteBitmap& expression_result1, const CopyOnWriteBitmap& expression_result2) {
+      [](const Bitmap& expression_result1, const Bitmap& expression_result2) {
          return expression_result1.cardinality() > expression_result2.cardinality();
       }
    );
@@ -111,13 +108,13 @@ CopyOnWriteBitmap Intersection::evaluate() const {
    // children_bm > 0 as asserted in constructor
    if (children_bm.size() == 1) {
       // negated_children_bm cannot be empty because of size assertion in constructor
-      CopyOnWriteBitmap result = std::move(children_bm[0]);
+      Bitmap result = std::move(children_bm[0]);
       for (auto& neg_bm : negated_children_bm) {
          result -= neg_bm;
       }
       return result;
    }
-   CopyOnWriteBitmap result = std::move(children_bm[0]);
+   Bitmap result = std::move(children_bm[0]);
    result &= children_bm[1];
    for (uint32_t i = 2; i < children_bm.size(); i++) {
       result &= children_bm[i];

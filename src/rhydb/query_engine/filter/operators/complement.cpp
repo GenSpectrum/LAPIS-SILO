@@ -6,7 +6,7 @@
 #include <roaring/roaring.hh>
 
 #include "evobench/evobench.hpp"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/filter/operators/intersection.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 
@@ -48,11 +48,11 @@ Type Complement::type() const {
    return COMPLEMENT;
 }
 
-CopyOnWriteBitmap Complement::evaluate() const {
+Bitmap Complement::evaluate() const {
    EVOBENCH_SCOPE("Complement", "evaluate");
    roaring::Roaring result = child->evaluate().toRoaring();
    row_layout.complementInPlace(result);
-   return CopyOnWriteBitmap{std::move(result)};
+   return Bitmap{std::move(result)};
 }
 
 std::unique_ptr<Operator> Complement::negate(std::unique_ptr<Complement>&& complement) {

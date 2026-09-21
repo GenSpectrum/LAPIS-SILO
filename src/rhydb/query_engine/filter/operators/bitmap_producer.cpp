@@ -3,14 +3,14 @@
 #include <utility>
 
 #include "evobench/evobench.hpp"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/filter/operators/complement.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 
 namespace rhydb::query_engine::filter::operators {
 
 BitmapProducer::BitmapProducer(
-   std::function<CopyOnWriteBitmap()> producer,
+   std::function<Bitmap()> producer,
    storage::column::RowLayout row_layout
 )
     : producer(std::move(producer)),
@@ -26,7 +26,7 @@ Type BitmapProducer::type() const {
    return BITMAP_PRODUCER;
 }
 
-CopyOnWriteBitmap BitmapProducer::evaluate() const {
+Bitmap BitmapProducer::evaluate() const {
    EVOBENCH_SCOPE("BitmapProducer", "evaluate");
    return producer();
 }
