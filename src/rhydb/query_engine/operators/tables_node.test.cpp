@@ -130,7 +130,7 @@ TEST(TablesNodeMultiTableTest, listsAndFiltersMultipleTables) {
 }
 
 TEST(TablesNodeMultiTableTest, listsNoTablesForEmptyDatabase) {
-   Database database;
+   const Database database;
 
    auto query_plan =
       Planner::planSaneqlQuery("tables()", database.tables, QueryOptions{}, "empty_tables_query");
