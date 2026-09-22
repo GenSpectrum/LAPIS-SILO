@@ -771,6 +771,7 @@ TEST_F(HorizontalCoverageIndexTest, CoveredRowsInChunkWholeChunkFastPath) {
    EXPECT_FALSE(index->noRowCoversPositionInChunk(15, 0));
 
    std::vector<uint16_t> expected(ROWS);
+   // NOLINTNEXTLINE(modernize-use-ranges)
    std::iota(expected.begin(), expected.end(), uint16_t{0});
    EXPECT_EQ(rowsIn(index->coveredRowsInChunk(15, 0)), expected);
 
