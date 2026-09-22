@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -411,6 +412,111 @@ const QueryTestScenario ALL_ROWS_MISSING_AT_POSITION = {
    ])")
 };
 
+// ---------------------------------------------------------------------------
+// One grouping key per remaining groupable scalar type
+//
+// The bitmap aggregation node instantiates a separate ValueTraits per output type -- key
+// extraction, bucketing and the typed value array. Only the string and date ones were reached by a
+// test; these cover int32, int64, float and bool. A map field reference over a non-indexed column
+// is the only shape that gets a numeric or boolean expression to that path (`at` and `isoWeek`
+// both yield strings), so each scenario groups on one directly.
+// ---------------------------------------------------------------------------
+
+nlohmann::json createRowWithScalarTypes(
+   std::optional<int32_t> age,
+   std::optional<int64_t> reads,
+   std::optional<double> coverage,
+   std::optional<bool> passed
+) {
+   random_generator generator;
+   const auto primary_key = generator();
+   return {
+      {"primaryKey", "id_" + to_string(primary_key)},
+      {"age", age.has_value() ? nlohmann::json(*age) : nlohmann::json()},
+      {"reads", reads.has_value() ? nlohmann::json(*reads) : nlohmann::json()},
+      {"coverage", coverage.has_value() ? nlohmann::json(*coverage) : nlohmann::json()},
+      {"passed", passed.has_value() ? nlohmann::json(*passed) : nlohmann::json()},
+      {"unaligned_segment1", {}},
+      {"segment1", {{"sequence", "ATGCN"}, {"insertions", nlohmann::json::array()}}},
+      {"gene1", {{"sequence", "M*"}, {"insertions", nlohmann::json::array()}}}
+   };
+}
+
+const auto SCALAR_TYPE_DATABASE_CONFIG =
+   R"(
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+    - name: "age"
+      type: "int"
+    - name: "reads"
+      type: "int64"
+    - name: "coverage"
+      type: "float"
+    - name: "passed"
+      type: "boolean"
+  primaryKey: "primaryKey"
+)";
+
+// Two rows share a value, one differs and one is null in every column, so each scenario sees a
+// duplicate group, a singleton group and the null group. `reads` exceeds int32 so it genuinely
+// needs the int64 traits, and the float values are exactly representable so there is no formatting
+// ambiguity in the expected output.
+const QueryTestData SCALAR_TYPE_TEST_DATA{
+   .ndjson_input_data =
+      {createRowWithScalarTypes(30, 1000000000000, 1.5, true),
+       createRowWithScalarTypes(30, 1000000000000, 1.5, false),
+       createRowWithScalarTypes(41, 2000000000000, 2.5, true),
+       createRowWithScalarTypes(std::nullopt, std::nullopt, std::nullopt, std::nullopt)},
+   .database_config = SCALAR_TYPE_DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES
+};
+
+// Groups come out in ascending value order with the null group last, so the expected rows are
+// written that way throughout.
+const QueryTestScenario GROUP_BY_MAPPED_INT32_COLUMN = {
+   .name = "GROUP_BY_MAPPED_INT32_COLUMN",
+   .query = "default.map({a := age}).groupBy({count:=count()}, {a})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"a": 30, "count": 2},
+      {"a": 41, "count": 1},
+      {"a": null, "count": 1}
+   ])")
+};
+
+const QueryTestScenario GROUP_BY_MAPPED_INT64_COLUMN = {
+   .name = "GROUP_BY_MAPPED_INT64_COLUMN",
+   .query = "default.map({r := reads}).groupBy({count:=count()}, {r})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"r": 1000000000000, "count": 2},
+      {"r": 2000000000000, "count": 1},
+      {"r": null, "count": 1}
+   ])")
+};
+
+const QueryTestScenario GROUP_BY_MAPPED_FLOAT_COLUMN = {
+   .name = "GROUP_BY_MAPPED_FLOAT_COLUMN",
+   .query = "default.map({c := coverage}).groupBy({count:=count()}, {c})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"c": 1.5, "count": 2},
+      {"c": 2.5, "count": 1},
+      {"c": null, "count": 1}
+   ])")
+};
+
+// false sorts before true, so the two boolean groups come out in that order.
+const QueryTestScenario GROUP_BY_MAPPED_BOOL_COLUMN = {
+   .name = "GROUP_BY_MAPPED_BOOL_COLUMN",
+   .query = "default.map({p := passed}).groupBy({count:=count()}, {p})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"p": false, "count": 1},
+      {"p": true, "count": 2},
+      {"p": null, "count": 1}
+   ])")
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -432,6 +538,17 @@ QUERY_TEST(
       MIXED_SEQUENCE_AND_FIELD_COLUMN,
       MAP_ISO_WEEK_EXPRESSION,
       MIXED_SEQUENCE_AND_ISO_WEEK
+   )
+);
+
+QUERY_TEST(
+   BitmapAggregationScalarTypes,
+   SCALAR_TYPE_TEST_DATA,
+   ::testing::Values(
+      GROUP_BY_MAPPED_INT32_COLUMN,
+      GROUP_BY_MAPPED_INT64_COLUMN,
+      GROUP_BY_MAPPED_FLOAT_COLUMN,
+      GROUP_BY_MAPPED_BOOL_COLUMN
    )
 );
 
