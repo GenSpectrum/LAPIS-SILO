@@ -9,6 +9,7 @@
 #include <boost/serialization/map.hpp>
 #include <roaring/roaring.hh>
 
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/symbol_map.h"
 #include "rhydb/roaring_util/roaring_container.h"
 
@@ -99,10 +100,8 @@ class VerticalSequenceIndex {
       const std::vector<typename SymbolType::Symbol>& symbols
    ) const;
 
-   void overwriteSymbolsInSequences(
-      std::vector<std::string>& sequences,
-      const roaring::Roaring& row_ids
-   ) const;
+   void overwriteSymbolsInSequences(std::vector<std::string>& sequences, const Bitmap& row_ids)
+      const;
 
   private:
    friend class boost::serialization::access;

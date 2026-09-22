@@ -9,6 +9,7 @@
 #include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
+#include "rhydb/common/bitmap.h"
 #include "rhydb/roaring_util/bitmap_builder.h"
 #include "rhydb/storage/column/row_id.h"
 
@@ -104,10 +105,8 @@ class HorizontalCoverageIndex {
    }
 
    template <typename SymbolType>
-   void overwriteCoverageInSequence(
-      std::vector<std::string>& sequences,
-      const roaring::Roaring& row_ids
-   ) const;
+   void overwriteCoverageInSequence(std::vector<std::string>& sequences, const Bitmap& row_ids)
+      const;
 
   private:
    friend class boost::serialization::access;

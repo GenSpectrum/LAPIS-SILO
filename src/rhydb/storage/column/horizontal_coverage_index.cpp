@@ -89,41 +89,45 @@ std::vector<uint64_t> HorizontalCoverageIndex::computeCoverageCardinalities(size
 template <typename SymbolType>
 void HorizontalCoverageIndex::overwriteCoverageInSequence(
    std::vector<std::string>& sequences,
-   const roaring::Roaring& row_ids
+   const Bitmap& row_ids
 ) const {
    uint32_t id_in_reconstructed_sequences = 0;
-   for (const uint32_t row_id : row_ids) {
-      const auto [start, end] = coverageRange(row_id);
-      const size_t sequence_size = sequences.at(id_in_reconstructed_sequences).size();
+   for (const auto& [chunk_key, view] : row_ids) {
+      const uint32_t base = static_cast<uint32_t>(chunk_key) << 16U;
+      for (const uint16_t low_bits : view) {
+         const uint32_t row_id = base | low_bits;
+         const auto [start, end] = coverageRange(row_id);
+         const size_t sequence_size = sequences.at(id_in_reconstructed_sequences).size();
 
-      for (uint32_t position_idx = 0; position_idx < start; position_idx++) {
-         sequences.at(id_in_reconstructed_sequences).at(position_idx) =
-            SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
-      }
-      for (uint32_t position_idx = end; position_idx < sequence_size; position_idx++) {
-         sequences.at(id_in_reconstructed_sequences).at(position_idx) =
-            SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
-      }
-
-      auto iter = horizontal_bitmaps.find(row_id);
-      if (iter != horizontal_bitmaps.end()) {
-         const roaring::Roaring& n_bitmap = iter->second;
-         for (const uint32_t position_idx : n_bitmap) {
+         for (uint32_t position_idx = 0; position_idx < start; position_idx++) {
             sequences.at(id_in_reconstructed_sequences).at(position_idx) =
                SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
          }
+         for (uint32_t position_idx = end; position_idx < sequence_size; position_idx++) {
+            sequences.at(id_in_reconstructed_sequences).at(position_idx) =
+               SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
+         }
+
+         auto iter = horizontal_bitmaps.find(row_id);
+         if (iter != horizontal_bitmaps.end()) {
+            const roaring::Roaring& n_bitmap = iter->second;
+            for (const uint32_t position_idx : n_bitmap) {
+               sequences.at(id_in_reconstructed_sequences).at(position_idx) =
+                  SymbolType::symbolToChar(SymbolType::SYMBOL_MISSING);
+            }
+         }
+         id_in_reconstructed_sequences++;
       }
-      id_in_reconstructed_sequences++;
    }
 }
 
 template void HorizontalCoverageIndex::overwriteCoverageInSequence<Nucleotide>(
    std::vector<std::string>& sequences,
-   const roaring::Roaring& row_ids
+   const Bitmap& row_ids
 ) const;
 template void HorizontalCoverageIndex::overwriteCoverageInSequence<AminoAcid>(
    std::vector<std::string>& sequences,
-   const roaring::Roaring& row_ids
+   const Bitmap& row_ids
 ) const;
 
 }  // namespace rhydb::storage::column

@@ -10,6 +10,7 @@
 #include "rhydb/common/nucleotide_symbols.h"
 
 using rhydb::AminoAcid;
+using rhydb::Bitmap;
 using rhydb::Nucleotide;
 using rhydb::SymbolMap;
 using rhydb::storage::column::VerticalSequenceIndex;
@@ -38,7 +39,7 @@ TEST_F(VerticalSequenceIndexTest, AddAndRetrieveSinglePosition) {
       row_ids.add(row_id);
    }
 
-   index.overwriteSymbolsInSequences(sequences, row_ids);
+   index.overwriteSymbolsInSequences(sequences, Bitmap{&row_ids});
 
    EXPECT_EQ(sequences[0], "A");
    EXPECT_EQ(sequences[1], "C");
@@ -48,7 +49,7 @@ TEST_F(VerticalSequenceIndexTest, AddAndRetrieveSinglePosition) {
 }
 
 TEST_F(VerticalSequenceIndexTest, AddMultiplePositions) {
-   size_t num_seqs = 3;
+   const size_t num_seqs = 3;
 
    // Position 0
    SymbolMap<Nucleotide, std::vector<uint32_t>> pos0;
@@ -73,7 +74,7 @@ TEST_F(VerticalSequenceIndexTest, AddMultiplePositions) {
       row_ids.add(row_id);
    }
 
-   index.overwriteSymbolsInSequences(sequences, row_ids);
+   index.overwriteSymbolsInSequences(sequences, Bitmap{&row_ids});
 
    EXPECT_EQ(sequences[0], "ACT");
    EXPECT_EQ(sequences[1], "AGT");
@@ -95,7 +96,7 @@ TEST_F(VerticalSequenceIndexTest, SelectiveRowRetrieval) {
    row_ids.add(1);
    row_ids.add(3);
 
-   index.overwriteSymbolsInSequences(sequences, row_ids);
+   index.overwriteSymbolsInSequences(sequences, Bitmap{&row_ids});
 
    EXPECT_EQ(sequences[0], "AC");
    EXPECT_EQ(sequences[1], "AC");
@@ -111,7 +112,7 @@ TEST_F(VerticalSequenceIndexTest, OverwriteExistingSequences) {
    row_ids.add(0);
    row_ids.add(1);
 
-   index.overwriteSymbolsInSequences(sequences, row_ids);
+   index.overwriteSymbolsInSequences(sequences, Bitmap{&row_ids});
 
    EXPECT_EQ(sequences[0], "GXX");
    EXPECT_EQ(sequences[1], "GYY");
@@ -119,7 +120,7 @@ TEST_F(VerticalSequenceIndexTest, OverwriteExistingSequences) {
 
 // Edge cases
 TEST_F(VerticalSequenceIndexTest, EmptySymbolMap) {
-   SymbolMap<Nucleotide, std::vector<uint32_t>> empty_map;
+   const SymbolMap<Nucleotide, std::vector<uint32_t>> empty_map;
 
    EXPECT_NO_THROW(index.addSymbolsToPositions(0, empty_map));
 
@@ -129,7 +130,7 @@ TEST_F(VerticalSequenceIndexTest, EmptySymbolMap) {
       row_ids.add(row_id);
    }
 
-   index.overwriteSymbolsInSequences(sequences, row_ids);
+   index.overwriteSymbolsInSequences(sequences, Bitmap{&row_ids});
 
    for (const auto& seq : sequences) {
       EXPECT_EQ(seq, "C");
@@ -142,9 +143,9 @@ TEST_F(VerticalSequenceIndexTest, EmptyRowIds) {
    index.addSymbolsToPositions(0, ids);
 
    std::vector<std::string> no_sequences;
-   roaring::Roaring empty_row_ids;
+   const roaring::Roaring empty_row_ids;
 
-   index.overwriteSymbolsInSequences(no_sequences, empty_row_ids);
+   index.overwriteSymbolsInSequences(no_sequences, Bitmap{&empty_row_ids});
 
    ASSERT_TRUE(no_sequences.empty());
 }
@@ -162,7 +163,7 @@ TEST_F(VerticalSequenceIndexTest, SingleSequence) {
    roaring::Roaring row_ids;
    row_ids.add(0);
 
-   index.overwriteSymbolsInSequences(sequences, row_ids);
+   index.overwriteSymbolsInSequences(sequences, Bitmap{&row_ids});
 
    EXPECT_EQ(sequences[0], "AT");
 }
@@ -188,7 +189,7 @@ TEST_F(VerticalSequenceIndexTest, LargeNumberOfSequences) {
       row_ids.add(row_id);
    }
 
-   index.overwriteSymbolsInSequences(sequences, row_ids);
+   index.overwriteSymbolsInSequences(sequences, Bitmap{&row_ids});
 
    EXPECT_EQ(sequences.at(0), "AG");
 
@@ -216,7 +217,7 @@ TEST_F(VerticalSequenceIndexTest, NonContiguousPositions) {
    roaring::Roaring row_ids;
    row_ids.add(0);
 
-   index.overwriteSymbolsInSequences(sequences, row_ids);
+   index.overwriteSymbolsInSequences(sequences, Bitmap{&row_ids});
 
    EXPECT_EQ(sequences[0], "A1234C6789G");
 }
@@ -233,7 +234,7 @@ TEST_F(VerticalSequenceIndexTest, AllDifferentNucleotideSymbols) {
    roaring::Roaring row_ids;
    row_ids.addRange(0, Nucleotide::COUNT);
 
-   index.overwriteSymbolsInSequences(sequences, row_ids);
+   index.overwriteSymbolsInSequences(sequences, Bitmap{&row_ids});
 
    row_id = 0;
    for (const auto& symbol : Nucleotide::SYMBOLS) {
@@ -255,7 +256,7 @@ TEST(AminoAcidVerticalSequenceIndexTest, AllDifferentAminoAcidSymbols) {
    roaring::Roaring row_ids;
    row_ids.addRange(0, AminoAcid::COUNT);
 
-   index.overwriteSymbolsInSequences(sequences, row_ids);
+   index.overwriteSymbolsInSequences(sequences, Bitmap{&row_ids});
 
    row_id = 0;
    for (const auto& symbol : AminoAcid::SYMBOLS) {
@@ -282,7 +283,7 @@ TEST_F(VerticalSequenceIndexTest, SparseRowSelection) {
       row_ids.add(row_id);
    }
 
-   index.overwriteSymbolsInSequences(sequences, row_ids);
+   index.overwriteSymbolsInSequences(sequences, Bitmap{&row_ids});
 
    for (uint32_t row_id = 0; row_id < 100; row_id++) {
       if (row_id % 2 == 0) {
@@ -305,11 +306,11 @@ TEST_F(VerticalSequenceIndexTest, OutOfBoundsRowIds) {
    row_ids.add(1000);  // Out of bounds
 
    // Should handle gracefully without crash
-   EXPECT_NO_THROW(index.overwriteSymbolsInSequences(sequences, row_ids));
+   EXPECT_NO_THROW(index.overwriteSymbolsInSequences(sequences, Bitmap{&row_ids}));
 }
 
 TEST_F(VerticalSequenceIndexTest, referenceAdaptsSingleSymbol) {
-   uint32_t position = 0;
+   const uint32_t position = 0;
 
    // 1 sequence: [A]
    // Reference is C -> should be changed to A
@@ -335,7 +336,7 @@ TEST_F(VerticalSequenceIndexTest, referenceAdaptsSingleSymbol) {
 }
 
 TEST_F(VerticalSequenceIndexTest, referenceAdaptsSingleSymbolWhenSomeSymbolsAreMissing) {
-   uint32_t position = 0;
+   const uint32_t position = 0;
 
    // 3 sequences: [A, N, N]
    // Reference is C -> should be changed to A
@@ -357,7 +358,7 @@ TEST_F(VerticalSequenceIndexTest, referenceAdaptsSingleSymbolWhenSomeSymbolsAreM
 }
 
 TEST_F(VerticalSequenceIndexTest, referenceDoesNotAdaptSingleSymbol) {
-   uint32_t position = 0;
+   const uint32_t position = 0;
 
    // 2 sequences: [A, implicit C]
    // Reference is C -> should not be changed
@@ -371,7 +372,7 @@ TEST_F(VerticalSequenceIndexTest, referenceDoesNotAdaptSingleSymbol) {
 }
 
 TEST_F(VerticalSequenceIndexTest, referenceDoesNotAdaptSingleSymbolWhenSomeSymbolsAreMissing) {
-   uint32_t position = 0;
+   const uint32_t position = 0;
 
    // 7 sequences: [A, N, implicit T, N, implicit T, implicit T, A]
    // Reference is T -> should not be changed
@@ -386,7 +387,7 @@ TEST_F(VerticalSequenceIndexTest, referenceDoesNotAdaptSingleSymbolWhenSomeSymbo
 }
 
 TEST_F(VerticalSequenceIndexTest, adaptsAndFlipsCorrectly) {
-   uint32_t position = 0;
+   const uint32_t position = 0;
 
    // 7 sequences: [A, N, implicit T, N, A, implicit T, A]
    // Reference is T -> should not be changed
@@ -410,7 +411,7 @@ TEST_F(VerticalSequenceIndexTest, adaptsAndFlipsCorrectly) {
 }
 
 TEST_F(VerticalSequenceIndexTest, adaptsAndFlipsCorrectlyWithManySymbols) {
-   uint32_t position = 0;
+   const uint32_t position = 0;
 
    // 10 sequences: [A, N, implicit T, N, A, -, -, -, implicit T, A]
    // Reference is T -> should not be changed
