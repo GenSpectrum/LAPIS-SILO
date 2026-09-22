@@ -1,5 +1,6 @@
 #include "rhydb/config/database_config.h"
 
+#include <fmt/format.h>
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
@@ -39,6 +40,36 @@ schema:
    ASSERT_TRUE(config.schema.primary_key == "testPrimaryKey");
    ASSERT_TRUE(config.schema.metadata[0].name == "metadata1");
    ASSERT_TRUE(config.schema.metadata.size() == 3);
+}
+
+TEST(DatabaseConfig, shouldBuildDatabaseConfigWithoutPrimaryKeyWhenKeyIsOmitted) {
+   const DatabaseConfig config = DatabaseConfig::getValidatedConfig(
+      R"(
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "metadata1"
+      type: "string"
+)"
+   );
+   ASSERT_FALSE(config.schema.primary_key.has_value());
+}
+
+TEST(DatabaseConfig, shouldBuildDatabaseConfigWithoutPrimaryKeyWhenValueIsNull) {
+   for (const auto* const primary_key_line : {"primaryKey: null", "primaryKey: ~", "primaryKey:"}) {
+      const DatabaseConfig config = DatabaseConfig::getValidatedConfig(fmt::format(
+         R"(
+schema:
+  instanceName: "testInstanceName"
+  metadata:
+    - name: "metadata1"
+      type: "string"
+  {}
+)",
+         primary_key_line
+      ));
+      ASSERT_FALSE(config.schema.primary_key.has_value()) << primary_key_line;
+   }
 }
 
 namespace {
