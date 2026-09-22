@@ -145,7 +145,7 @@ roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
    }
 
    // No row in this chunk can cover the position.
-   if (batch_max_end.at(chunk_id) <= position || batch_min_start.at(chunk_id) > position) {
+   if (noRowCoversPositionInChunk(position, chunk_id)) {
       return roaring_util::RoaringContainer::withCapacity(1);
    }
 
@@ -156,7 +156,7 @@ roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
    // Fast path: if the position lies within the chunk's intersection envelope
    // `[batch_max_start, batch_min_end)`, every row in the chunk covers it, so add the whole chunk
    // in one range operation.
-   if (batch_max_start.at(chunk_id) <= position && position < batch_min_end.at(chunk_id)) {
+   if (positionCoveredByWholeChunk(position, chunk_id)) {
       result.addRange(base_row_id, base_row_id + chunk_starts.size());
    } else {
       // Vectorized scan: build the covered rows straight into a roaring bitset container (SIMD sets
@@ -194,9 +194,8 @@ roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
    // algebra on the covered set stays cheap.
    result.runOptimize();
 
-   // Every row added above lies in `chunk_id`, so `result` holds at most this one 2^16 container.
-   // Steal it out of the roaring array (no clone) and hand it back on its own; an empty result
-   // becomes an empty container.
+   // This is constructed such that `result` holds at most this one 2^16 container.
+   // Steal it out of the roaring array (no clone) and hand it back on its own.
    auto& roaring_array = result.roaring.high_low_container;
    if (roaring_array.size == 0) {
       return roaring_util::RoaringContainer::withCapacity(1);

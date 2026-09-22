@@ -581,7 +581,7 @@ TEST(CopyOnWriteContainer, defaultDifferenceAndIntersectionAreSafe) {
 
 TEST(CopyOnWriteContainer, distinctDefaultsShareTheEmptyContainerButOwnIndependentlyOnWrite) {
    CopyOnWriteContainer first;
-   CopyOnWriteContainer second;
+   const CopyOnWriteContainer second;
 
    // Both defaults borrow the same shared empty container.
    EXPECT_EQ(first.view().rawContainer(), second.view().rawContainer());
@@ -622,7 +622,7 @@ TEST(CopyOnWriteContainer, copyOfBorrowingReborrowsSameContainer) {
 }
 
 TEST(CopyOnWriteContainer, copyOfOwningDeepCopiesAndIsIndependent) {
-   CopyOnWriteContainer owned{makeContainer({1, 2})};
+   const CopyOnWriteContainer owned{makeContainer({1, 2})};
    CopyOnWriteContainer copy = owned;
 
    // Mutating the copy must not affect the original owning container.

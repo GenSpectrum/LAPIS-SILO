@@ -105,17 +105,8 @@ class KeyGroups {
    [[nodiscard]] virtual arrow::Result<std::shared_ptr<arrow::Array>> keyValues() const = 0;
 };
 
-/// Groups the rows by the symbol they carry at a fixed sequence position, straight from the
-/// column's vertical mutation index and horizontal coverage index. Plain mutation groups are handed
-/// out as zero-copy views into the vertical index's stored containers; only the reference, missing
-/// and null groups -- which are defined by set arithmetic against the coverage and the filter --
-/// are computed per chunk. The reference / missing (no coverage) / null handling mirrors
-/// `SymbolInSet` exactly so the grouping matches the generic `at()`/groupBy path:
-///   * a plain mutation symbol -> the rows carrying that mutation at the position,
-///   * the local reference symbol -> the covered rows carrying no other mutation,
-///   * the missing symbol -> the not-covered rows (plus any explicit missing mutation), minus
-///   nulls,
-///   * a null sequence -> its own null group (it carries no symbol at any position).
+/// Groups the rows by the symbol they carry at a fixed sequence position
+/// Introduced as a speed-up when `<seq>.at(<position>)` was detected as group key expression
 template <typename SymbolType>
 class SequencePositionGrouper : public KeyGroups {
    static constexpr size_t SYMBOL_COUNT = SymbolType::SYMBOLS.size();
@@ -666,7 +657,7 @@ std::unique_ptr<KeyGroups> makeGrouper(
          break;
       default:
          // The rewrite pass only routes groupable scalar output types here; anything else is a bug.
-         throw rhydb::query_engine::IllegalQueryException(
+         throw IllegalQueryException(
             "bitmap aggregation cannot group on the expression's output type"
          );
    }
@@ -692,10 +683,9 @@ void aggregateChunk(
 ) {
    const size_t last_dimension = groups_by_dimension.size() - 1;
 
-   if (const size_t* whole_chunk_label =
-          std::get_if<SingletonKeyGroup>(groups_by_dimension[depth])) {
+   if (const size_t* group_index = std::get_if<SingletonKeyGroup>(groups_by_dimension[depth])) {
       // Every row of the running intersection carries this one label; nothing to intersect.
-      chosen_indices[depth] = *whole_chunk_label;
+      chosen_indices[depth] = *group_index;
       if (depth == last_dimension) {
          const auto count = static_cast<uint64_t>(
             roaring::internal::container_get_cardinality(current, current_typecode)
@@ -791,14 +781,7 @@ std::vector<GroupCombination> computeCombinations(
    return combinations;
 }
 
-/// Materializes the combinations for `combinations[begin, end)` into a single ExecBatch: one column
-/// per dimension (holding that dimension's group value, or null) plus the int64 count column. Each
-/// dimension's output column is gathered by `Take`-ing its value array (`values_per_dimension[i]`,
-/// element = group value) at the combinations' group indices, so the output column has the value
-/// array's type -- utf8 for the string dimensions, int64 for a numeric column, etc.
-// The cognitive-complexity count comes entirely from the ARROW_RETURN_NOT_OK/ARROW_ASSIGN_OR_RAISE
-// error-check macros, not from real branching; the logic is a straight-line gather loop.
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+/// Materializes one chunk of this operator's output: the group keys and aggregation output (count)
 arrow::Result<arrow::ExecBatch> buildBatch(
    const std::vector<GroupCombination>& combinations,
    const std::vector<std::shared_ptr<arrow::Array>>& values_per_dimension,
