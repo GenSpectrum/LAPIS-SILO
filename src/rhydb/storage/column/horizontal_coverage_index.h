@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <map>
 #include <utility>
@@ -13,6 +14,13 @@
 #include "rhydb/roaring_util/bitmap_builder.h"
 #include "rhydb/roaring_util/roaring_container.h"
 #include "rhydb/storage/column/row_id.h"
+
+// AVX-512 is x86-only; the project also targets Apple-Silicon macOS and wasm, where
+// <immintrin.h>, the `target` attribute and `__builtin_cpu_supports` do not exist. The guard lives
+// here rather than in the .cpp so that tests can see which implementations this build contains.
+#if defined(__x86_64__) || defined(_M_X64)
+#define RHYDB_HAS_X86_SIMD 1
+#endif
 
 namespace rhydb {
 class Coverage;
@@ -161,5 +169,41 @@ class HorizontalCoverageIndex {
       archive & batch_max_end;
    }
 };
+
+/// The `coverageScan` implementations the index picks between at runtime. Production code calls
+/// `coverageScan`, which dispatches on `cpuHasAvx512()`; these are declared so a test can run both
+/// over the same input and assert they agree. Without that, the hand-written AVX-512 kernel is
+/// only ever exercised on hardware that happens to support it, and never compared against
+/// anything.
+namespace detail {
+
+/// Sets bit `row` of `bitset` for every row where `starts[row] <= position < ends[row]`, returning
+/// the number of such rows. `bitset` must be a zeroed 1024-word (2^16-bit) buffer, and `starts`
+/// and `ends` must each hold `num_rows` entries.
+uint32_t coverageScanScalar(
+   const uint32_t* starts,
+   const uint32_t* ends,
+   size_t num_rows,
+   uint32_t position,
+   uint64_t* bitset
+);
+
+/// Whether the running CPU has the AVX-512 subsets `coverageScanAvx512` needs. Always false where
+/// this build has no x86 SIMD path at all.
+bool cpuHasAvx512();
+
+#ifdef RHYDB_HAS_X86_SIMD
+/// Same contract as `coverageScanScalar`, 16 rows per iteration. Calling this requires
+/// `cpuHasAvx512()`; it faults on a CPU without those subsets.
+uint32_t coverageScanAvx512(
+   const uint32_t* starts,
+   const uint32_t* ends,
+   size_t num_rows,
+   uint32_t position,
+   uint64_t* bitset
+);
+#endif
+
+}  // namespace detail
 
 }  // namespace rhydb::storage::column

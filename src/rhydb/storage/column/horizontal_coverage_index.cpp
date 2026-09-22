@@ -10,9 +10,9 @@
 // AVX-512 is x86-only; the project also targets Apple-Silicon macOS and wasm, where <immintrin.h>,
 // the `target` attribute and `__builtin_cpu_supports` do not exist. Everything AVX-512 lives behind
 // this guard, with a scalar fallback used everywhere else.
-#if defined(__x86_64__) || defined(_M_X64)
+// RHYDB_HAS_X86_SIMD is defined by horizontal_coverage_index.h, which the tests also see.
+#ifdef RHYDB_HAS_X86_SIMD
 #include <immintrin.h>
-#define SILO_HAS_X86_SIMD 1
 #endif
 
 #include "rhydb/common/aa_symbols.h"
@@ -57,7 +57,7 @@ void HorizontalCoverageIndex::insertCoverage(RowId row_id, const Coverage& cover
    }
 }
 
-namespace {
+namespace detail {
 
 // non-simd implementation of "coverageScan"
 uint32_t coverageScanScalar(
@@ -77,7 +77,7 @@ uint32_t coverageScanScalar(
    return cardinality;
 }
 
-#ifdef SILO_HAS_X86_SIMD
+#ifdef RHYDB_HAS_X86_SIMD
 /// AVX-512 version: 16 rows per iteration. Each 16-bit compare mask lands inside one 64-bit
 /// bitset word (row indices step by 16, so the bit offset is one of 0/16/32/48)
 __attribute__((target("avx512f,avx512bw"))) uint32_t coverageScanAvx512(
@@ -108,12 +108,21 @@ __attribute__((target("avx512f,avx512bw"))) uint32_t coverageScanAvx512(
    return cardinality;
 }
 
+#endif
+
 bool cpuHasAvx512() {
+#ifdef RHYDB_HAS_X86_SIMD
    static const bool supported =
       __builtin_cpu_supports("avx512f") && __builtin_cpu_supports("avx512bw");
    return supported;
-}
+#else
+   return false;
 #endif
+}
+
+}  // namespace detail
+
+namespace {
 
 /// This method can compute a `bitset` that shows which rows in the index could cover `position`.
 /// Sets bit `row` of `bitset` for every row where `starts[row] <= position < ends[row]`, returning
@@ -125,12 +134,12 @@ uint32_t coverageScan(
    uint32_t position,
    uint64_t* bitset
 ) {
-#ifdef SILO_HAS_X86_SIMD
-   if (cpuHasAvx512()) {
-      return coverageScanAvx512(starts, ends, num_rows, position, bitset);
+#ifdef RHYDB_HAS_X86_SIMD
+   if (detail::cpuHasAvx512()) {
+      return detail::coverageScanAvx512(starts, ends, num_rows, position, bitset);
    }
 #endif
-   return coverageScanScalar(starts, ends, num_rows, position, bitset);
+   return detail::coverageScanScalar(starts, ends, num_rows, position, bitset);
 }
 
 }  // namespace
