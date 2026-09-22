@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/storage/column/row_layout.h"
 
@@ -31,7 +31,7 @@ class Union : public Operator {
 
    [[nodiscard]] Type type() const override;
 
-   [[nodiscard]] CopyOnWriteBitmap evaluate() const override;
+   [[nodiscard]] Bitmap evaluate() const override;
 
    static std::unique_ptr<Operator> negate(std::unique_ptr<Union>&& union_operator);
 };

@@ -47,7 +47,7 @@ std::unique_ptr<filter::operators::Operator> createMatchingBitmap(
    return std::make_unique<filter::operators::BitmapProducer>(
       [&string_column, internal_tree_node]() {
          roaring::Roaring result_bitmap = string_column.getDescendants(internal_tree_node.value());
-         return CopyOnWriteBitmap(std::move(result_bitmap));
+         return Bitmap(std::move(result_bitmap));
       },
       std::move(row_layout)
    );

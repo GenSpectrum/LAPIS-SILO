@@ -4,7 +4,7 @@
 #include <utility>
 
 #include "evobench/evobench.hpp"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/filter/operators/empty.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 
@@ -23,9 +23,9 @@ Type Full::type() const {
    return FULL;
 }
 
-CopyOnWriteBitmap Full::evaluate() const {
+Bitmap Full::evaluate() const {
    EVOBENCH_SCOPE("Full", "evaluate");
-   return CopyOnWriteBitmap{row_layout.fullBitmap()};
+   return Bitmap{row_layout.fullBitmap()};
 }
 
 std::unique_ptr<Operator> Full::negate(std::unique_ptr<Full>&& full) {

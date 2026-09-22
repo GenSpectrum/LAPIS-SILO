@@ -17,8 +17,8 @@
 #include <roaring/roaring.hh>
 
 #include "rhydb/common/aa_symbols.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/nucleotide_symbols.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
 #include "rhydb/query_engine/scalar_expressions/symbol_in_set.h"
@@ -54,14 +54,14 @@ GroupBitmaps buildSymbolBitmaps(
    const storage::column::SequenceColumn<SymbolType>& column,
    uint32_t position_idx,
    const storage::column::RowLayout& row_layout,
-   const CopyOnWriteBitmap& filter_bitmap
+   const Bitmap& filter_bitmap
 ) {
    GroupBitmaps result;
    for (const auto symbol : SymbolType::SYMBOLS) {
       auto compiled = scalar_expressions::compileSymbolInSet<SymbolType>(
          column, position_idx, std::vector<typename SymbolType::Symbol>{symbol}, row_layout
       );
-      CopyOnWriteBitmap bitmap = compiled->evaluate();
+      Bitmap bitmap = compiled->evaluate();
       // Restrict each group to the filtered set: the returned bitmaps and every downstream
       // intersection then scale with the filter rather than the whole table, and symbols that no
       // filtered sequence carries drop out (fewer partition branches).
@@ -76,7 +76,7 @@ GroupBitmaps buildSymbolBitmaps(
    // `at()`/groupBy path emits a null key for such rows. Appended last so the depth-first output
    // order stays deterministic with the null group after every symbol.
 
-   CopyOnWriteBitmap intersection = filter_bitmap & CopyOnWriteBitmap{&column.null_bitmap};
+   Bitmap intersection = filter_bitmap & Bitmap{&column.null_bitmap};
    if (!intersection.isEmpty()) {
       result.emplace_back(std::nullopt, intersection.toRoaring());
    }
@@ -89,7 +89,7 @@ GroupBitmaps buildSymbolBitmaps(
 /// bitmaps and their indices, so it is agnostic to the kind of each dimension.
 // NOLINTNEXTLINE(misc-no-recursion)
 void partition(
-   const CopyOnWriteBitmap& current,
+   const Bitmap& current,
    size_t depth,
    const std::vector<GroupBitmaps>& group_bitmaps_per_dimension,
    std::vector<size_t>& accumulated_indices,
@@ -103,7 +103,7 @@ void partition(
    }
    const auto& dimension = group_bitmaps_per_dimension[depth];
    for (size_t group_index = 0; group_index < dimension.size(); ++group_index) {
-      CopyOnWriteBitmap intersection = current & dimension[group_index].second;
+      Bitmap intersection = current & dimension[group_index].second;
       if (intersection.isEmpty()) {
          continue;
       }
@@ -120,7 +120,7 @@ void partition(
 /// non-empty combinations are visited (their number is bounded by the count of matching rows), so
 /// this scales to many dimensions without the exponential blow-up of a full Cartesian product.
 std::vector<GroupCombination> computeCombinations(
-   const CopyOnWriteBitmap& filter_bitmap,
+   const Bitmap& filter_bitmap,
    const std::vector<GroupBitmaps>& group_bitmaps_per_dimension
 ) {
    std::vector<GroupCombination> combinations;
@@ -188,7 +188,7 @@ SequencePositionDimension::SequencePositionDimension(
 
 GroupBitmaps SequencePositionDimension::buildGroups(
    const storage::Table& table,
-   const CopyOnWriteBitmap& filter_bitmap
+   const Bitmap& filter_bitmap
 ) const {
    if (is_nucleotide) {
       const auto& sequence_column = table.columns.getColumns<Nucleotide::Column>().at(column.name);
@@ -225,7 +225,7 @@ IndexedColumnDimension::IndexedColumnDimension(
 
 GroupBitmaps IndexedColumnDimension::buildGroups(
    const storage::Table& table,
-   const CopyOnWriteBitmap& filter_bitmap
+   const Bitmap& filter_bitmap
 ) const {
    const auto& indexed_column =
       table.columns.getColumns<storage::column::DictionaryEncodedColumn>().at(column.name);
@@ -234,7 +234,7 @@ GroupBitmaps IndexedColumnDimension::buildGroups(
    // (its dictionary entry's bitmap does not contain it), so the null group below stays disjoint
    // from the value groups and no row is double-counted.
    for (const auto& [value_id, value_bitmap] : indexed_column.getIndexedValues()) {
-      CopyOnWriteBitmap group = filter_bitmap & CopyOnWriteBitmap{&value_bitmap};
+      Bitmap group = filter_bitmap & Bitmap{&value_bitmap};
       if (group.isEmpty()) {
          continue;
       }
@@ -245,7 +245,7 @@ GroupBitmaps IndexedColumnDimension::buildGroups(
    std::ranges::sort(result, [](const auto& lhs, const auto& rhs) {
       return lhs.first < rhs.first;
    });
-   CopyOnWriteBitmap null_group = CopyOnWriteBitmap{&indexed_column.null_bitmap} & filter_bitmap;
+   Bitmap null_group = Bitmap{&indexed_column.null_bitmap} & filter_bitmap;
    if (!null_group.isEmpty()) {
       result.emplace_back(std::nullopt, std::move(null_group));
    }

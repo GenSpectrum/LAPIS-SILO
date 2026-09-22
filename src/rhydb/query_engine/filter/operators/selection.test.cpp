@@ -3,11 +3,11 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/filter/operators/bitmap_producer.h"
 #include "rhydb/storage/column/int_column.h"
 
-using rhydb::query_engine::CopyOnWriteBitmap;
+using rhydb::Bitmap;
 using rhydb::query_engine::filter::operators::BitmapProducer;
 using rhydb::query_engine::filter::operators::Comparator;
 using rhydb::query_engine::filter::operators::CompareToValueSelection;
@@ -205,9 +205,8 @@ TEST(OperatorSelection, multiplePredicatesWithLargeChildReturnCorrectValues) {
    // Child cardinality (75) exceeds numRows / 10 == 10, so the large-child branch primes candidates
    // from the most-selective predicate.
    const roaring::Roaring child_bitmap = rangeBitmap(5, 80);
-   std::unique_ptr<Operator> child = std::make_unique<BitmapProducer>(
-      [&]() { return CopyOnWriteBitmap(&child_bitmap); }, row_layout
-   );
+   std::unique_ptr<Operator> child =
+      std::make_unique<BitmapProducer>([&]() { return Bitmap(&child_bitmap); }, row_layout);
 
    const Selection under_test(std::move(child), makeRangePredicates(test_column), row_layout);
 
@@ -222,9 +221,8 @@ TEST(OperatorSelection, multiplePredicatesWithSmallChildReturnCorrectValues) {
    // Child cardinality (5) is <= numRows / 10 == 10, so the small-child branch matches every child
    // row against all predicates. Rows 5 and 60 and 99 fail the [10, 50) range.
    const roaring::Roaring child_bitmap({5, 15, 45, 60, 99});
-   std::unique_ptr<Operator> child = std::make_unique<BitmapProducer>(
-      [&]() { return CopyOnWriteBitmap(&child_bitmap); }, row_layout
-   );
+   std::unique_ptr<Operator> child =
+      std::make_unique<BitmapProducer>([&]() { return Bitmap(&child_bitmap); }, row_layout);
 
    const Selection under_test(std::move(child), makeRangePredicates(test_column), row_layout);
 

@@ -3,7 +3,7 @@
 #include <string>
 #include <utility>
 
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/filter/operators/full.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 
@@ -22,7 +22,7 @@ Type Empty::type() const {
    return EMPTY;
 }
 
-CopyOnWriteBitmap Empty::evaluate() const {
+Bitmap Empty::evaluate() const {
    return {};
 }
 

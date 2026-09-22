@@ -14,8 +14,8 @@
 #include <fmt/format.h>
 #include <roaring/roaring.hh>
 
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/panic.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/filter/operators/empty.h"
 #include "rhydb/query_engine/filter/operators/index_scan.h"
 #include "rhydb/query_engine/filter/operators/intersection.h"
@@ -156,13 +156,13 @@ std::unique_ptr<Operator> compileDictionaryInequality(
 
    OperatorVector excluded;
    if (!dictionary_column.null_bitmap.isEmpty()) {
-      excluded.push_back(std::make_unique<IndexScan>(
-         CopyOnWriteBitmap{&dictionary_column.null_bitmap}, table.row_layout
-      ));
+      excluded.push_back(
+         std::make_unique<IndexScan>(Bitmap{&dictionary_column.null_bitmap}, table.row_layout)
+      );
    }
    if (literal_bitmap != std::nullopt) {
       excluded.push_back(
-         std::make_unique<IndexScan>(CopyOnWriteBitmap{literal_bitmap.value()}, table.row_layout)
+         std::make_unique<IndexScan>(Bitmap{literal_bitmap.value()}, table.row_layout)
       );
    }
    return Intersection::ofComplements(std::move(excluded), table.row_layout);
@@ -199,7 +199,7 @@ std::unique_ptr<Operator> compileStringComparison(
       if (bitmap == std::nullopt || bitmap.value()->isEmpty()) {
          return std::make_unique<Empty>(table.row_layout);
       }
-      return std::make_unique<IndexScan>(CopyOnWriteBitmap{bitmap.value()}, table.row_layout);
+      return std::make_unique<IndexScan>(Bitmap{bitmap.value()}, table.row_layout);
    }
 
    if (comparator == Comparator::NOT_EQUALS) {
@@ -218,7 +218,7 @@ std::unique_ptr<Operator> compileStringComparison(
    if (unioned.isEmpty()) {
       return std::make_unique<Empty>(table.row_layout);
    }
-   return std::make_unique<IndexScan>(CopyOnWriteBitmap{std::move(unioned)}, table.row_layout);
+   return std::make_unique<IndexScan>(Bitmap{std::move(unioned)}, table.row_layout);
 }
 
 /// Boolean columns keep a bitmap per truth value, so (in)equality is a plain index
@@ -247,7 +247,7 @@ std::unique_ptr<Operator> compileBoolComparison(
    // comparison operators.
    const bool select_true_bitmap = (comparator == Comparator::EQUALS) == value;
    return std::make_unique<IndexScan>(
-      CopyOnWriteBitmap{select_true_bitmap ? &bool_column.true_bitmap : &bool_column.false_bitmap},
+      Bitmap{select_true_bitmap ? &bool_column.true_bitmap : &bool_column.false_bitmap},
       table.row_layout
    );
 }

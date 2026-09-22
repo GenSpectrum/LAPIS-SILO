@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "rhydb/common/aa_symbols.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/nucleotide_symbols.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/filter/operators/bitmap_producer.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
@@ -70,7 +70,7 @@ std::unique_ptr<filter::operators::Operator> InsertionContains<SymbolType>::comp
       [&]() {
          try {
             auto search_result = sequence_store.insertion_index.search(position_idx, value);
-            return CopyOnWriteBitmap(std::move(*search_result));
+            return Bitmap(std::move(*search_result));
          } catch (const storage::InsertionFormatException& exception) {
             throw IllegalQueryException(
                "The field 'value' in the InsertionContains expression does not contain a valid "

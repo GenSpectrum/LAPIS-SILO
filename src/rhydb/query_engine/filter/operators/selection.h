@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/column/column.h"
@@ -208,7 +208,7 @@ class Selection : public Operator {
 
    [[nodiscard]] Type type() const override;
 
-   [[nodiscard]] CopyOnWriteBitmap evaluate() const override;
+   [[nodiscard]] Bitmap evaluate() const override;
 
    [[nodiscard]] std::string toString() const override;
 

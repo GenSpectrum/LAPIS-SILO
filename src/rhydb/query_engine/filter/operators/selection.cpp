@@ -13,9 +13,9 @@
 #include <roaring/roaring.hh>
 
 #include "evobench/evobench.hpp"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/german_string.h"
 #include "rhydb/common/panic.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/filter/operators/complement.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/roaring_util/roaring_container.h"
@@ -91,15 +91,15 @@ Type Selection::type() const {
    return SELECTION;
 }
 
-CopyOnWriteBitmap Selection::evaluate() const {
+Bitmap Selection::evaluate() const {
    EVOBENCH_SCOPE("Selection", "evaluate");
    RHYDB_ASSERT(!predicates.empty());
 
    // Build the candidate rows that already satisfy the most selective predicate. Predicates are
    // sorted most-selective-first at construction
-   CopyOnWriteBitmap candidates;
+   Bitmap candidates;
    if (child_operator.has_value()) {
-      CopyOnWriteBitmap child_bitmap = (*child_operator)->evaluate();
+      Bitmap child_bitmap = (*child_operator)->evaluate();
       // For a small child, matching each of its rows against every predicate is cheaper than
       // materializing the first predicate over the whole partition.
       if (child_bitmap.cardinality() <= row_layout.numRows() / 10) {
@@ -114,17 +114,17 @@ CopyOnWriteBitmap Selection::evaluate() const {
                }
             }
          }
-         return CopyOnWriteBitmap{std::move(result)};
+         return Bitmap{std::move(result)};
       }
       candidates = std::move(child_bitmap);
-      candidates &= CopyOnWriteBitmap{predicates.front()->makeBitmap(row_layout)};
+      candidates &= Bitmap{predicates.front()->makeBitmap(row_layout)};
    } else {
-      candidates = CopyOnWriteBitmap{predicates.front()->makeBitmap(row_layout)};
+      candidates = Bitmap{predicates.front()->makeBitmap(row_layout)};
    }
 
    // `candidates` already satisfies predicates.front(); apply the remaining predicates row by row.
    if (predicates.size() == 1) {
-      return CopyOnWriteBitmap{std::move(candidates)};
+      return Bitmap{std::move(candidates)};
    }
    const auto remaining_predicates =
       std::ranges::subrange(predicates.begin() + 1, predicates.end());
@@ -137,7 +137,7 @@ CopyOnWriteBitmap Selection::evaluate() const {
          }
       }
    }
-   return CopyOnWriteBitmap{std::move(result)};
+   return Bitmap{std::move(result)};
 }
 
 std::unique_ptr<Operator> Selection::negate(std::unique_ptr<Selection>&& selection) {

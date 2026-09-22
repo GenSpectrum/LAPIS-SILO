@@ -7,7 +7,7 @@
 
 #include <arrow/compute/api.h>
 
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/filter/operators/index_scan.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
@@ -45,7 +45,7 @@ std::unique_ptr<filter::operators::Operator> FieldRef::compile(const storage::Ta
    );
    const auto& bool_column = table.columns.bool_columns.at(column.name);
    return std::make_unique<filter::operators::IndexScan>(
-      CopyOnWriteBitmap{&bool_column.true_bitmap}, table.row_layout
+      Bitmap{&bool_column.true_bitmap}, table.row_layout
    );
 }
 

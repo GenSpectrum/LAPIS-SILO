@@ -5,7 +5,7 @@
 
 #include "rhydb/query_engine/filter/operators/index_scan.h"
 
-using rhydb::query_engine::CopyOnWriteBitmap;
+using rhydb::Bitmap;
 using rhydb::query_engine::filter::operators::Complement;
 using rhydb::query_engine::filter::operators::IndexScan;
 using rhydb::storage::column::RowLayout;
@@ -15,7 +15,7 @@ TEST(OperatorComplement, evaluateShouldReturnCorrectValues) {
    const auto row_layout = RowLayout::of(5);
 
    const Complement under_test(
-      std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout
+      std::make_unique<IndexScan>(Bitmap{&test_bitmap}, row_layout), row_layout
    );
    ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({0, 4}));
 }
@@ -25,7 +25,7 @@ TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenEmptyInput) {
    const auto row_layout = RowLayout::of(3);
 
    const Complement under_test(
-      std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout
+      std::make_unique<IndexScan>(Bitmap{&test_bitmap}, row_layout), row_layout
    );
    ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({0, 1, 2}));
 }
@@ -35,7 +35,7 @@ TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenEmptyDatabase) {
    const auto row_layout = RowLayout::of();
 
    const Complement under_test(
-      std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout
+      std::make_unique<IndexScan>(Bitmap{&test_bitmap}, row_layout), row_layout
    );
    ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({}));
 }
@@ -45,7 +45,7 @@ TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenFullInput) {
    const auto row_layout = RowLayout::of(4);
 
    const Complement under_test(
-      std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout
+      std::make_unique<IndexScan>(Bitmap{&test_bitmap}, row_layout), row_layout
    );
    ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({}));
 }
@@ -55,7 +55,7 @@ TEST(OperatorComplement, evaluateShouldReturnCorrectValuesWhenSingleInput) {
    const auto row_layout = RowLayout::of(5);
 
    const Complement under_test(
-      std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout
+      std::make_unique<IndexScan>(Bitmap{&test_bitmap}, row_layout), row_layout
    );
    ASSERT_EQ(under_test.evaluate().toRoaring(), roaring::Roaring({0, 2, 3, 4}));
 }
@@ -65,7 +65,7 @@ TEST(OperatorComplement, correctTypeInfo) {
    const auto row_layout = RowLayout::of(5);
 
    const Complement under_test(
-      std::make_unique<IndexScan>(CopyOnWriteBitmap{&test_bitmap}, row_layout), row_layout
+      std::make_unique<IndexScan>(Bitmap{&test_bitmap}, row_layout), row_layout
    );
 
    ASSERT_EQ(under_test.type(), rhydb::query_engine::filter::operators::COMPLEMENT);

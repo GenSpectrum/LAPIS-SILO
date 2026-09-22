@@ -14,8 +14,8 @@
 #include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/phylo_tree.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/exec_node/schema_output_builder.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
@@ -34,7 +34,7 @@ struct NodeValuesResult {
 NodeValuesResult getNodeValuesFromTable(
    const rhydb::storage::Table& table,
    const std::string& column_name,
-   rhydb::query_engine::CopyOnWriteBitmap& bitmap_filter
+   rhydb::Bitmap& bitmap_filter
 ) {
    const roaring::Roaring filter_bitmap = bitmap_filter.toRoaring();
    const size_t num_rows = filter_bitmap.cardinality();

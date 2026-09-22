@@ -7,8 +7,8 @@
 #include <roaring/roaring.hh>
 
 #include "evobench/evobench.hpp"
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/string_utils.h"
-#include "rhydb/query_engine/copy_on_write_bitmap.h"
 #include "rhydb/query_engine/filter/operators/complement.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
 
@@ -31,14 +31,14 @@ Type Union::type() const {
    return UNION;
 }
 
-CopyOnWriteBitmap Union::evaluate() const {
+Bitmap Union::evaluate() const {
    EVOBENCH_SCOPE("Union", "evaluate");
-   std::vector<CopyOnWriteBitmap> child_res;
+   std::vector<Bitmap> child_res;
    child_res.reserve(children.size());
    for (const auto& child : children) {
       child_res.push_back(child->evaluate());
    }
-   return CopyOnWriteBitmap::fastUnion(child_res);
+   return Bitmap::fastUnion(child_res);
 }
 
 std::unique_ptr<Operator> Union::negate(std::unique_ptr<Union>&& union_operator) {
