@@ -1565,9 +1565,22 @@ operators::QueryNodePtr handleTransitiveClosure(
    if (const auto* expr = args.get("includeVertices")) {
       include_vertices = extractBoolLiteral(*expr);
    }
+   std::optional<std::vector<std::string>> starting_from;
+   if (const auto* expr = args.get("startingFrom")) {
+      const auto& set = extractSetLiteral(*expr);
+      starting_from.emplace();
+      starting_from->reserve(set.elements.size());
+      for (const auto& element : set.elements) {
+         starting_from->push_back(extractStringLiteral(*element));
+      }
+   }
 
    return std::make_unique<operators::TransitiveClosureNode>(
-      std::move(child), std::move(from_column), std::move(to_column), include_vertices
+      std::move(child),
+      std::move(from_column),
+      std::move(to_column),
+      include_vertices,
+      std::move(starting_from)
    );
 }
 
@@ -1705,7 +1718,11 @@ FunctionRegistry::FunctionRegistry() {
 
    registerFunction(
       "transitiveClosure",
-      {{pos("input"), pos("from"), pos("to"), named("includeVertices", false)}},
+      {{pos("input"),
+        pos("from"),
+        pos("to"),
+        named("includeVertices", false),
+        named("startingFrom", false)}},
       handleTransitiveClosure
    );
 }

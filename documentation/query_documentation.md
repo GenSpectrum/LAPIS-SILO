@@ -520,10 +520,10 @@ tables()
 
 `tables()` produces an ordinary relation, so operators such as `filter` and `limit` can be chained after it.
 
-### `transitiveClosure(input, from, to [, includeVertices:=bool])`
+### `transitiveClosure(input, from, to [, includeVertices:=bool] [, startingFrom:={...}])`
 
 Computes the transitive closure of a directed relation. The `input` is any relation-producing
-pipeline whose rows describe edges: each row contributes an edge from the value in its `from`
+expression whose rows describe edges: each row contributes an edge from the value in its `from`
 column to the value in its `to` column (`from` and `to` name string columns of the input, and
 rows with a null vertex are ignored). The result is a two-column relation with columns named
 `from` and `to`, holding one row for every ordered pair `(a, b)` where `b` is reachable from
@@ -560,9 +560,24 @@ Here `lineage_column` is a `STRING` column of `default` holding each sequence's 
 the joined-against column must itself be `STRING` (a lineage column configured with an index is
 dictionary-encoded and cannot be used as the join key directly).
 
+**Starting from selected vertices.** `startingFrom` restricts the closure to the given source
+vertices: only pairs whose `from` is one of them are emitted, and only the part of the graph those
+vertices reach is ever walked. Asking for the descendants of one lineage therefore costs one search
+instead of one per vertex in the relation:
+
+```
+pango_lineage.transitiveClosure('parent', 'lineage', includeVertices:=true, startingFrom:={'B.1.1.7'})
+  .join(default, to = lineage_column)
+  .groupBy({count := count()}, {from})
+```
+
+A vertex named in `startingFrom` that does not occur in the relation contributes no rows, not even
+its reflexive pair.
+
 **Restrictions:**
 
 - `from` and `to` must be `STRING` columns of the input.
+- `startingFrom` must be a set literal of string literals, e.g. `{'A', 'B'}`.
 
 **Output:** the reachable `{from, to}` pairs. The order of rows is not guaranteed; use
 `orderBy(...)` for a deterministic order.

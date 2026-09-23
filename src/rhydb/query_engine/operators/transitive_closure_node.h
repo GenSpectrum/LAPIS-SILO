@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -27,6 +28,12 @@ namespace rhydb::query_engine::operators {
 /// is what lets a lineage be counted together with all of its sublineages: joining the
 /// closure's `to` column against a data table's lineage column and grouping by `from` sums, for
 /// each lineage, all of its descendants and — thanks to the reflexive pair — itself.
+///
+/// `starting_from`, when set, restricts the sources: only pairs whose `from` is one of the given
+/// vertices are emitted, and only the edges reachable from those vertices are ever walked. This
+/// turns the O(V * (V + E)) all-sources closure into an O(k * (V + E)) search over the k requested
+/// sources, which is what a query asking for the descendants of one node needs. Requested vertices
+/// that do not occur in the relation contribute no rows, not even a reflexive pair.
 class TransitiveClosureNode final : public QueryNode {
   public:
    static constexpr std::string_view FROM_COLUMN = "from";
@@ -36,12 +43,14 @@ class TransitiveClosureNode final : public QueryNode {
    std::string from_column;
    std::string to_column;
    bool include_vertices;
+   std::optional<std::vector<std::string>> starting_from;
 
    TransitiveClosureNode(
       QueryNodePtr child,
       std::string from_column,
       std::string to_column,
-      bool include_vertices
+      bool include_vertices,
+      std::optional<std::vector<std::string>> starting_from = std::nullopt
    );
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override;
