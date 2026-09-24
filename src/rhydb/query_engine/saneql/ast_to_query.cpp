@@ -100,7 +100,8 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertScalarFunctionCall(
    const ast::FunctionCall& call,
    const SourceLocation& location,
    const std::vector<schema::ColumnIdentifier>& schema,
-   std::string_view error_context
+   std::string_view error_context,
+   const Tables& tables
 ) {
    const auto* entry = ScalarFunctionRegistry::instance().findFunction(call.function_name);
    CHECK_RHYDB_QUERY(
@@ -114,7 +115,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertScalarFunctionCall(
    auto bound = bindArguments(
       call.function_name, entry->signature, call.positional_arguments, call.named_arguments
    );
-   auto expression = entry->handler(bound, schema);
+   auto expression = entry->handler(bound, schema, tables);
    // Validate that every referenced column actually exists, mirroring the check for
    // a bare column reference.
    for (const auto& referenced : expression->freeIUs()) {
@@ -142,7 +143,8 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertScalarFunctionCall(
 std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
    const ast::Expression& ast,
    const std::vector<schema::ColumnIdentifier>& schema,
-   std::string_view error_context
+   std::string_view error_context,
+   const Tables& tables
 ) {
    const auto& [value, location] = ast;
 
@@ -184,7 +186,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
    }
    if (std::holds_alternative<ast::FunctionCall>(value)) {
       return convertScalarFunctionCall(
-         std::get<ast::FunctionCall>(value), location, schema, error_context
+         std::get<ast::FunctionCall>(value), location, schema, error_context, tables
       );
    }
    if (isDateExpression(ast)) {
@@ -222,19 +224,20 @@ Comparator toComparator(BinaryOp binary_op) {
 
 ScalarExpressionPtr convertBinaryExprToFilter(
    const ast::BinaryExpr& bin_expr,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& tables
 ) {
    switch (bin_expr.op) {
       case BinaryOp::AND: {
          scalar_expressions::ScalarExpressionVector children;
-         children.push_back(convertToFilter(*bin_expr.left, schema));
-         children.push_back(convertToFilter(*bin_expr.right, schema));
+         children.push_back(convertToFilter(*bin_expr.left, schema, tables));
+         children.push_back(convertToFilter(*bin_expr.right, schema, tables));
          return std::make_unique<scalar_expressions::And>(std::move(children));
       }
       case BinaryOp::OR: {
          scalar_expressions::ScalarExpressionVector children;
-         children.push_back(convertToFilter(*bin_expr.left, schema));
-         children.push_back(convertToFilter(*bin_expr.right, schema));
+         children.push_back(convertToFilter(*bin_expr.left, schema, tables));
+         children.push_back(convertToFilter(*bin_expr.right, schema, tables));
          return std::make_unique<scalar_expressions::Or>(std::move(children));
       }
       case BinaryOp::EQUALS:
@@ -244,8 +247,10 @@ ScalarExpressionPtr convertBinaryExprToFilter(
       case BinaryOp::GREATER_THAN:
       case BinaryOp::GREATER_EQUAL: {
          const Comparator comparator = toComparator(bin_expr.op);
-         auto left = convertToScalar(*bin_expr.left, schema, "the left side of a comparison");
-         auto right = convertToScalar(*bin_expr.right, schema, "the right side of a comparison");
+         auto left =
+            convertToScalar(*bin_expr.left, schema, "the left side of a comparison", tables);
+         auto right =
+            convertToScalar(*bin_expr.right, schema, "the right side of a comparison", tables);
          return std::make_unique<scalar_expressions::Comparison>(
             std::move(left), std::move(right), comparator
          );
@@ -260,7 +265,8 @@ ScalarExpressionPtr convertBinaryExprToFilter(
 
 ScalarExpressionPtr handleBetween(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
    const auto& from_expr = args.at("from");
@@ -309,7 +315,8 @@ ScalarExpressionPtr handleBetween(
 
 ScalarExpressionPtr handleIn(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
    const auto& set_expr = args.at("values");
@@ -331,7 +338,8 @@ ScalarExpressionPtr handleIn(
 
 ScalarExpressionPtr handleIsNull(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    return std::make_unique<scalar_expressions::IsNull>(
       resolveColumn(extractIdentifierName(args.at("column")), schema)
@@ -340,7 +348,8 @@ ScalarExpressionPtr handleIsNull(
 
 ScalarExpressionPtr handleIsNotNull(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    return std::make_unique<scalar_expressions::Negation>(
       std::make_unique<scalar_expressions::IsNull>(
@@ -351,7 +360,8 @@ ScalarExpressionPtr handleIsNotNull(
 
 ScalarExpressionPtr handleLineage(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
    const auto& value_expr = args.at("value");
@@ -390,7 +400,8 @@ ScalarExpressionPtr handleLineage(
 
 ScalarExpressionPtr handlePhyloDescendantOf(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    return std::make_unique<scalar_expressions::PhyloChildFilter>(
       resolveColumn(extractIdentifierName(args.at("column")), schema),
@@ -400,7 +411,8 @@ ScalarExpressionPtr handlePhyloDescendantOf(
 
 ScalarExpressionPtr handleLike(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
    auto pattern = extractStringLiteral(args.at("pattern"));
@@ -419,7 +431,8 @@ ScalarExpressionPtr handleLike(
 template <typename SymbolType>
 ScalarExpressionPtr handleSymbolEquals(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_RHYDB_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
@@ -448,7 +461,8 @@ ScalarExpressionPtr handleSymbolEquals(
 template <typename SymbolType>
 ScalarExpressionPtr handleHasMutation(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_RHYDB_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
@@ -462,7 +476,8 @@ ScalarExpressionPtr handleHasMutation(
 template <typename SymbolType>
 ScalarExpressionPtr handleInsertionContains(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    auto position = extractUint32Literal(args.at("position"));
    auto value = extractStringLiteral(args.at("value"));
@@ -479,7 +494,8 @@ ScalarExpressionPtr handleInsertionContains(
 
 ScalarExpressionPtr handleAt(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    auto input_column = extractIdentifierName(args.at("input"));
    const uint32_t position = extractUint32Literal(args.at("position"));
@@ -501,7 +517,8 @@ ScalarExpressionPtr handleAt(
 
 ScalarExpressionPtr handleIsoWeek(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    auto input_column = extractIdentifierName(args.at("input"));
    const auto found =
@@ -524,23 +541,30 @@ ScalarExpressionPtr handleIsoWeek(
 // NOLINTNEXTLINE(misc-no-recursion)
 ScalarExpressionPtr handleExact(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& tables
 ) {
-   return std::make_unique<scalar_expressions::Exact>(convertToFilter(args.at("child"), schema));
+   return std::make_unique<scalar_expressions::Exact>(
+      convertToFilter(args.at("child"), schema, tables)
+   );
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
 ScalarExpressionPtr handleMaybe(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& tables
 ) {
-   return std::make_unique<scalar_expressions::Maybe>(convertToFilter(args.at("child"), schema));
+   return std::make_unique<scalar_expressions::Maybe>(
+      convertToFilter(args.at("child"), schema, tables)
+   );
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
 ScalarExpressionPtr handleNOf(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& tables
 ) {
    const int32_t number_of_matchers = extractInt32Literal(args.at("count"));
    bool match_exactly = false;
@@ -550,7 +574,7 @@ ScalarExpressionPtr handleNOf(
    const auto& children_set = extractSetLiteral(args.at("children"));
    scalar_expressions::ScalarExpressionVector children;
    for (const auto& child_expr : children_set.elements) {
-      children.push_back(convertToFilter(*child_expr, schema));
+      children.push_back(convertToFilter(*child_expr, schema, tables));
    }
    return std::make_unique<scalar_expressions::NOf>(
       std::move(children), number_of_matchers, match_exactly
@@ -632,7 +656,8 @@ std::vector<typename scalar_expressions::MutationProfile<SymbolType>::Mutation> 
 template <typename SymbolType>
 ScalarExpressionPtr handleMutationProfile(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& /*tables*/
 ) {
    const uint32_t distance = extractUint32Literal(args.at("distance"));
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
@@ -697,14 +722,15 @@ ScalarExpressionPtr convertIdentifierToFilter(
 ScalarExpressionPtr convertFunctionCallToFilter(
    const ast::FunctionCall& node,
    const ast::Expression& ast,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& tables
 ) {
    const auto* entry = ScalarFunctionRegistry::instance().findFunction(node.function_name);
    CHECK_RHYDB_QUERY(entry != nullptr, "unknown scalar function '{}'", node.function_name);
    auto bound = bindArguments(
       node.function_name, entry->signature, node.positional_arguments, node.named_arguments
    );
-   auto expression = entry->handler(bound, schema);
+   auto expression = entry->handler(bound, schema, tables);
    // The registry also holds value-producing scalar functions (e.g. `at`), which are not filter
    // predicates. Reject them here rather than letting a non-boolean expression reach compile().
    CHECK_RHYDB_QUERY(
@@ -722,24 +748,25 @@ ScalarExpressionPtr convertFunctionCallToFilter(
 
 std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
    const ast::Expression& ast,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& tables
 ) {
    return std::visit(
       [&](const auto& node) -> ScalarExpressionPtr {
          using T = std::decay_t<decltype(node)>;
 
          if constexpr (std::is_same_v<T, ast::BinaryExpr>) {
-            return convertBinaryExprToFilter(node, schema);
+            return convertBinaryExprToFilter(node, schema, tables);
          } else if constexpr (std::is_same_v<T, ast::UnaryNotExpr>) {
             return std::make_unique<scalar_expressions::Negation>(
-               convertToFilter(*node.operand, schema)
+               convertToFilter(*node.operand, schema, tables)
             );
          } else if constexpr (std::is_same_v<T, ast::BoolLiteral>) {
             return std::make_unique<scalar_expressions::BoolLiteral>(node.value);
          } else if constexpr (std::is_same_v<T, ast::Identifier>) {
             return convertIdentifierToFilter(node, ast, schema);
          } else if constexpr (std::is_same_v<T, ast::FunctionCall>) {
-            return convertFunctionCallToFilter(node, ast, schema);
+            return convertFunctionCallToFilter(node, ast, schema, tables);
          } else {
             throw IllegalQueryException(
                "unsupported expression type in filter context at {}:{}",
@@ -1028,7 +1055,7 @@ operators::QueryNodePtr handleFilter(
    const ChildConverter& convert_child
 ) {
    auto child = convert_child(args.at("input"), tables);
-   auto filter_expr = convertToFilter(args.at("predicate"), child->getOutputSchema());
+   auto filter_expr = convertToFilter(args.at("predicate"), child->getOutputSchema(), tables);
    return std::make_unique<operators::FilterNode>(std::move(child), std::move(filter_expr));
 }
 
@@ -1134,10 +1161,12 @@ using operators::MapNode;
 /// type is taken from that expression.
 MapNode::Assignment parseMapAssignment(
    const ast::RecordField& field,
-   const std::vector<schema::ColumnIdentifier>& child_schema
+   const std::vector<schema::ColumnIdentifier>& child_schema,
+   const Tables& tables
 ) {
-   auto expression =
-      convertToScalar(*field.value, child_schema, fmt::format("map() field '{}'", field.name));
+   auto expression = convertToScalar(
+      *field.value, child_schema, fmt::format("map() field '{}'", field.name), tables
+   );
    return {
       .output_column = {.name = field.name, .type = expression->type()},
       .expression = std::move(expression)
@@ -1172,7 +1201,7 @@ operators::QueryNodePtr handleMap(
          "map() assigns the output column '{}' more than once",
          field.name
       );
-      assignments.push_back(parseMapAssignment(field, child_schema));
+      assignments.push_back(parseMapAssignment(field, child_schema, tables));
    }
 
    return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
