@@ -774,8 +774,11 @@ std::vector<GroupCombination> computeCombinations(
 
    std::vector<GroupCombination> combinations;
    combinations.reserve(counts.size());
-   for (const auto& [indices, count] : counts) {
-      combinations.push_back(GroupCombination{.group_indices = indices, .count = count});
+   while (!counts.empty()) {
+      auto node = counts.extract(counts.begin());
+      combinations.push_back(
+         GroupCombination{.group_indices = std::move(node.key()), .count = node.mapped()}
+      );
    }
    // Restore the ascending group-index-tuple order the unordered_map does not keep.
    std::ranges::sort(combinations, std::less{}, &GroupCombination::group_indices);
