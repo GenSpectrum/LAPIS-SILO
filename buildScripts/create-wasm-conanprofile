@@ -15,10 +15,10 @@ esac
 
 mkdir -p "${BUILD_DIR}"
 
-# For MEMORY64, the flag must reach the compile step
+# For wasm64, the flag must reach the compile step
 EXTRA_FLAGS='"-pthread"'
 if [ "${WASM_ARCH}" = "wasm64" ]; then
-   EXTRA_FLAGS='"-pthread", "-sMEMORY64=1"'
+   EXTRA_FLAGS='"-pthread", "--target=wasm64"'
 fi
 
 # The Emscripten CMake toolchain file teaches CMake about the Emscripten
