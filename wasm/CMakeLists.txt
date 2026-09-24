@@ -17,11 +17,23 @@ set_target_properties(rhydb_wasm PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BI
 # the only link step, so -fexceptions/-pthread are repeated here as link options.
 target_link_libraries(rhydb_wasm PRIVATE rhydblib)
 
+# 64-bit WebAssembly (MEMORY64). RHYDB_WASM_MEMORY64 is declared in the root
+# CMakeLists.txt and, when ON, compiles rhydblib with -sMEMORY64=1. The final
+# link must use the same ABI, so mirror the flag here. -sALLOW_MEMORY_GROWTH=1
+# stays enabled in both variants; MEMORY64 raises the addressable ceiling above
+# the 32-bit ~4 GB limit.
+if(RHYDB_WASM_MEMORY64)
+    set(RHYDB_WASM_MEMORY64_LINK_OPTION -sMEMORY64=1)
+else()
+    set(RHYDB_WASM_MEMORY64_LINK_OPTION)
+endif()
+
 target_link_options(rhydb_wasm
     PRIVATE
     -pthread
     -fexceptions
     -lembind
+    ${RHYDB_WASM_MEMORY64_LINK_OPTION}
     -sALLOW_MEMORY_GROWTH=1
     -sEXIT_RUNTIME=0
     -sEXPORT_ES6=1
