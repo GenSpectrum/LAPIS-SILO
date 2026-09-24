@@ -248,6 +248,23 @@ const QueryTestScenario MIXED_SEQUENCE_AND_FIELD_COLUMN = {
    ])")
 };
 
+// A scalar-expression key under a filter: the grouper evaluates `country` only over the filtered
+// rows, so the Asia row (ROW_NN, Japan) must not leak into any group.
+//   A -> France x1 (ROW_AT2), Germany x1 (ROW_AT)
+//   C -> Germany x1 (ROW_CA)
+const QueryTestScenario MIXED_SEQUENCE_AND_FIELD_COLUMN_WITH_FILTER = {
+   .name = "MIXED_SEQUENCE_AND_FIELD_COLUMN_WITH_FILTER",
+   .query =
+      "default.filter(region = 'Europe')"
+      ".map({s1 := segment1.at(1), c := country})"
+      ".groupBy({count:=count()}, {s1, c})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"s1": "A", "c": "France", "count": 1},
+      {"s1": "A", "c": "Germany", "count": 1},
+      {"s1": "C", "c": "Germany", "count": 1}
+   ])")
+};
+
 // A general map-computed scalar expression, `date.isoWeek()`, as the only grouping key: like
 // MAP_FIELD_REF_PLAIN_STRING_COLUMN this is left to the generic Arrow aggregation (hence the
 // orderBy); MIXED_SEQUENCE_AND_ISO_WEEK covers it in the bitmap engine. The result is the ISO
@@ -290,10 +307,11 @@ const QueryTestScenario MIXED_SEQUENCE_AND_ISO_WEEK = {
 // behaviour. segment1 reference is "ATGCN", gene1 reference is "M*".
 //   NULL_ROW_A/B: segment1 = "ATGCN", gene1 = "M*"  (x2)
 //   NULL_ROW_NO_NUC: segment1 absent, gene1 = "M*"
-//   NULL_ROW_NO_AA:  segment1 = "CATTT", gene1 absent
+//   NULL_ROW_NO_AA:  segment1 = "CATTT", gene1 absent, region absent
 nlohmann::json createDataWithOptionalSequences(
    const std::optional<std::string>& nucleotideSequence,
-   const std::optional<std::string>& aminoAcidSequence
+   const std::optional<std::string>& aminoAcidSequence,
+   const std::optional<std::string>& region = "Europe"
 ) {
    random_generator generator;
    const auto primary_key = generator();
@@ -305,7 +323,7 @@ nlohmann::json createDataWithOptionalSequences(
    };
    return {
       {"primaryKey", "id_" + to_string(primary_key)},
-      {"region", "Europe"},
+      {"region", region.has_value() ? nlohmann::json(*region) : nlohmann::json()},
       {"country", "Germany"},
       {"date", "2021-01-04"},
       {"unaligned_segment1", {}},
@@ -317,7 +335,8 @@ nlohmann::json createDataWithOptionalSequences(
 const nlohmann::json NULL_ROW_A = createDataWithOptionalSequences("ATGCN", "M*");
 const nlohmann::json NULL_ROW_B = createDataWithOptionalSequences("ATGCN", "M*");
 const nlohmann::json NULL_ROW_NO_NUC = createDataWithOptionalSequences(std::nullopt, "M*");
-const nlohmann::json NULL_ROW_NO_AA = createDataWithOptionalSequences("CATTT", std::nullopt);
+const nlohmann::json NULL_ROW_NO_AA =
+   createDataWithOptionalSequences("CATTT", std::nullopt, std::nullopt);
 
 const QueryTestData NULL_TEST_DATA{
    .ndjson_input_data = {NULL_ROW_A, NULL_ROW_B, NULL_ROW_NO_NUC, NULL_ROW_NO_AA},
@@ -377,6 +396,17 @@ const QueryTestScenario CO_OCCURRENCE_NULL_MIXED_POSITIONS = {
       {"s1": "A", "aa": "M", "count": 2},
       {"s1": "C", "aa": null, "count": 1},
       {"s1": null, "aa": "M", "count": 1}
+   ])")
+};
+
+// The indexed `region` column is Europe for three rows and null for NULL_ROW_NO_AA. The null rows
+// form a trailing group after every value group, emitted as a null key.
+const QueryTestScenario INDEXED_COLUMN_NULL_GROUP = {
+   .name = "INDEXED_COLUMN_NULL_GROUP",
+   .query = "default.groupBy({count:=count()}, {region})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"region": "Europe", "count": 3},
+      {"region": null, "count": 1}
    ])")
 };
 
@@ -565,6 +595,7 @@ QUERY_TEST(
       MAP_FIELD_REF_INDEXED_COLUMN,
       MAP_FIELD_REF_PLAIN_STRING_COLUMN,
       MIXED_SEQUENCE_AND_FIELD_COLUMN,
+      MIXED_SEQUENCE_AND_FIELD_COLUMN_WITH_FILTER,
       MAP_ISO_WEEK_EXPRESSION,
       MIXED_SEQUENCE_AND_ISO_WEEK
    )
@@ -589,7 +620,8 @@ QUERY_TEST(
       CO_OCCURRENCE_NULL_AMINO_ACID,
       CO_OCCURRENCE_NULL_REFERENCE_IS_MISSING,
       CO_OCCURRENCE_NULL_MIXED_POSITIONS,
-      CO_OCCURRENCE_NULL_CHUNKED_OUTPUT
+      CO_OCCURRENCE_NULL_CHUNKED_OUTPUT,
+      INDEXED_COLUMN_NULL_GROUP
    )
 );
 
