@@ -46,7 +46,11 @@ ${WASM_DEPENDENCIES_FLAG}: conanfile.py conanprofile build/wasm/conanprofile-ems
 build/wasm64/conanprofile-emscripten:
 	WASM_ARCH=wasm64 buildScripts/create-wasm-conanprofile
 
-${WASM64_DEPENDENCIES_FLAG}: conanfile.py conanprofile build/wasm64/conanprofile-emscripten
+# The wasm and wasm64 Conan installs write to the same shared cache (~/.conan2).
+# Running them concurrently (e.g. `make -j wasm-test`) can corrupt it, so the
+# wasm64 install is ordered after the wasm one via an order-only prerequisite
+# (|).
+${WASM64_DEPENDENCIES_FLAG}: conanfile.py conanprofile build/wasm64/conanprofile-emscripten | ${WASM_DEPENDENCIES_FLAG}
 	WASM_ARCH=wasm64 buildScripts/install-wasm-dependencies
 	touch ${WASM64_DEPENDENCIES_FLAG}
 

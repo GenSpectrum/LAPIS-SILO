@@ -15,7 +15,10 @@ esac
 
 mkdir -p "${BUILD_DIR}"
 
-# For wasm64, the flag must reach the compile step
+# For wasm64, the flag must reach the compile step: Emscripten's CMake toolchain
+# scans the compiler flags for "--target=wasm64" and only then sets
+# CMAKE_SIZEOF_VOID_P=8, so dependency configure steps detect 64-bit pointers.
+# Link-only placement would leave dependencies mis-detected as 32-bit.
 EXTRA_FLAGS='"-pthread"'
 if [ "${WASM_ARCH}" = "wasm64" ]; then
    EXTRA_FLAGS='"-pthread", "--target=wasm64"'
