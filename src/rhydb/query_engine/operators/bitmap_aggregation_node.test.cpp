@@ -140,6 +140,17 @@ const QueryTestScenario LIMIT_ON_UNORDERED_AGGREGATION = {
    ])")
 };
 
+// The reference at segment1[5] is N, i.e. the local reference symbol is itself the missing symbol.
+// The rows carry N, N, N, T there: the N group is every filtered row minus the explicit T mutation.
+const QueryTestScenario CO_OCCURRENCE_VIA_MAP_REFERENCE_IS_MISSING = {
+   .name = "CO_OCCURRENCE_VIA_MAP_REFERENCE_IS_MISSING",
+   .query = "default.map({s5 := segment1.at(5)}).groupBy({count:=count()}, {s5})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"s5": "T", "count": 1},
+      {"s5": "N", "count": 3}
+   ])")
+};
+
 // The reference is only 5 symbols long, so position 6 is out of range. The rewritten bitmap
 // aggregation node reports this when it builds the per-symbol bitmaps.
 const QueryTestScenario CO_OCCURRENCE_VIA_MAP_POSITION_OUT_OF_RANGE = {
@@ -322,6 +333,19 @@ const QueryTestScenario CO_OCCURRENCE_NULL_TWO_NUCLEOTIDE_POSITIONS = {
       {"s1": "A", "s2": "T", "count": 2},
       {"s1": "C", "s2": "A", "count": 1},
       {"s1": null, "s2": null, "count": 1}
+   ])")
+};
+
+// segment1[5] has the missing symbol N as its reference: the two full rows carry N, the row without
+// an amino acid sequence carries T, and the row without a nucleotide sequence must land in the null
+// group rather than the (reference) N group.
+const QueryTestScenario CO_OCCURRENCE_NULL_REFERENCE_IS_MISSING = {
+   .name = "CO_OCCURRENCE_NULL_REFERENCE_IS_MISSING",
+   .query = "default.map({s5 := segment1.at(5)}).groupBy({count:=count()}, {s5})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"s5": "T", "count": 1},
+      {"s5": "N", "count": 2},
+      {"s5": null, "count": 1}
    ])")
 };
 
@@ -528,6 +552,7 @@ QUERY_TEST(
       CO_OCCURRENCE_VIA_MAP_AMINO_ACID,
       CO_OCCURRENCE_VIA_MAP_NON_SEQUENCE_STRING_AT,
       LIMIT_ON_UNORDERED_AGGREGATION,
+      CO_OCCURRENCE_VIA_MAP_REFERENCE_IS_MISSING,
       CO_OCCURRENCE_VIA_MAP_POSITION_OUT_OF_RANGE,
       INDEXED_COLUMN_SINGLE,
       MIXED_SEQUENCE_AND_INDEXED_COLUMN,
@@ -558,6 +583,7 @@ QUERY_TEST(
    ::testing::Values(
       CO_OCCURRENCE_NULL_TWO_NUCLEOTIDE_POSITIONS,
       CO_OCCURRENCE_NULL_AMINO_ACID,
+      CO_OCCURRENCE_NULL_REFERENCE_IS_MISSING,
       CO_OCCURRENCE_NULL_MIXED_POSITIONS,
       CO_OCCURRENCE_NULL_CHUNKED_OUTPUT
    )
