@@ -11,6 +11,10 @@
 
 namespace rhydb::initialize {
 
+/// The name of the table holding the reference genomes, one row per nucleotide and amino acid
+/// sequence.
+inline constexpr std::string_view REFERENCE_GENOMES_TABLE_NAME = "reference_genomes";
+
 class Initializer {
   public:
    static void createTableInDatabase(
@@ -43,6 +47,11 @@ class Initializer {
    );
 
   private:
+   static void createReferenceGenomesTable(
+      const ReferenceGenomes& reference_genomes,
+      Database& database
+   );
+
    static void createLineageRelationTable(
       std::string_view column_name,
       const common::LineageTreeAndIdMap& lineage_tree,
