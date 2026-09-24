@@ -183,19 +183,19 @@ roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
             &result.roaring.high_low_container, chunk_id, bitset, BITSET_CONTAINER_TYPE
          );
       }
-   }
 
-   // Remove this chunk's in-region N positions: a row whose covered range includes `position` but
-   // records an N there is not covered at `position` (it belongs to the missing symbol instead).
-   const auto chunk_rows_begin = horizontal_bitmaps.lower_bound(base_row_id);
-   const uint64_t chunk_end_key = static_cast<uint64_t>(base_row_id) + chunk_starts.size();
-   const auto chunk_rows_end =
-      chunk_end_key > UINT32_MAX
-         ? horizontal_bitmaps.end()
-         : horizontal_bitmaps.lower_bound(static_cast<uint32_t>(chunk_end_key));
-   for (auto iter = chunk_rows_begin; iter != chunk_rows_end; ++iter) {
-      if (iter->second.contains(position)) {
-         result.remove(iter->first);
+      // Remove this chunk's in-region N positions: a row whose covered range includes `position` but
+      // records an N there is not covered at `position` (it belongs to the missing symbol instead).
+      const auto chunk_rows_begin = horizontal_bitmaps.lower_bound(base_row_id);
+      const uint64_t chunk_end_key = static_cast<uint64_t>(base_row_id) + num_rows;
+      const auto chunk_rows_end =
+         chunk_end_key > UINT32_MAX
+            ? horizontal_bitmaps.end()
+            : horizontal_bitmaps.lower_bound(static_cast<uint32_t>(chunk_end_key));
+      for (auto iter = chunk_rows_begin; iter != chunk_rows_end; ++iter) {
+         if (iter->second.contains(position)) {
+            result.remove(iter->first);
+         }
       }
    }
 
