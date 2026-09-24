@@ -116,6 +116,8 @@ wasm: ${RHYDB_WASM_EXECUTABLE}
 # Chrome/Firefox and Node 24+; Safari does not yet support it).
 .PHONY: wasm64
 wasm64: ${RHYDB_WASM64_EXECUTABLE}
+	mkdir -p ${RHYDB_WASM_DIST_DIR}/wasm64
+	cp build/wasm64/rhydb_wasm.js build/wasm64/rhydb_wasm.wasm build/wasm64/rhydb_wasm.d.ts ${RHYDB_WASM_DIST_DIR}/wasm64/
 
 .PHONY: wasm-test
 wasm-test: wasm wasm64
