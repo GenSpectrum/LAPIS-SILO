@@ -134,9 +134,10 @@ class SequencePositionGrouper : public KeyGroups {
          position_idx(position_idx) {
       CHECK_RHYDB_QUERY(
          position_idx < column.metadata->reference_sequence.size(),
-         "SymbolInSet<{}> position is out of bounds {} > {}",
-         SymbolType::SYMBOL_NAME,
+         "{}.at({}) is out of bounds: the {} sequence has length {}",
+         column.metadata->column_name,
          position_idx + 1,
+         SymbolType::SYMBOL_NAME_LOWER_CASE,
          column.metadata->reference_sequence.size()
       );
       reference_symbol = column.getLocalReferencePosition(position_idx);

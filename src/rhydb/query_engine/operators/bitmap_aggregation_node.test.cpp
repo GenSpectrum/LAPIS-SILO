@@ -145,7 +145,7 @@ const QueryTestScenario LIMIT_ON_UNORDERED_AGGREGATION = {
 const QueryTestScenario CO_OCCURRENCE_VIA_MAP_POSITION_OUT_OF_RANGE = {
    .name = "CO_OCCURRENCE_VIA_MAP_POSITION_OUT_OF_RANGE",
    .query = "default.map({s := segment1.at(6)}).groupBy({count:=count()}, {s})",
-   .expected_error_message = "SymbolInSet<Nucleotide> position is out of bounds 6 > 5"
+   .expected_error_message = "segment1.at(6) is out of bounds: the nucleotide sequence has length 5"
 };
 
 // Grouping directly on an indexed string column is now routed through the bitmap engine too: the
