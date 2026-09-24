@@ -21,6 +21,9 @@ Additional tables exist if the database config declares columns with `lineageInd
 lineage tree. These are queried like any other table — see
 [lineage_definitions.md](lineage_definitions.md#lineage-relation-tables) for their schema.
 
+A `reference_genomes` table holds the reference sequences from `reference_genomes.json`, one row
+per sequence — see [input_format.md](input_format.md#reference_genomesjson) for its schema.
+
 ### Tabular data model
 
 Every operator takes a table as input and produces a table as output. Internally these tables are Apache Arrow record batches; externally they are streamed as NDJSON or Arrow IPC. The **response schema** — which fields are returned and their types — is always the output schema of the **last operator** in the pipeline.

@@ -90,6 +90,20 @@ Defines reference sequences for alignment:
 }
 ```
 
+Preprocessing also materializes these sequences as a table named `reference_genomes`, which is
+queried like any other table:
+
+```
+reference_genomes
+  .filter(type = 'nucleotide')
+```
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `name` | string | The sequence name. A nucleotide and an amino acid sequence may share a name, so only `name` and `type` together identify a row; the table therefore has no primary key |
+| `type` | string | `nucleotide` or `amino_acid` |
+| `sequence` | string | The reference sequence |
+
 ## Column Types and Value Semantics
 
 Each field in the NDJSON must correspond to a metadata field defined in `database_config.yaml`. 

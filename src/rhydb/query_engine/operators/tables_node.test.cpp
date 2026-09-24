@@ -55,7 +55,8 @@ const QueryTestData TEST_DATA{
 const QueryTestScenario TABLES_SCENARIO = {
    .name = "TABLES",
    .query = "tables()",
-   .expected_query_result = nlohmann::json({{{"tableName", "default"}}}),
+   .expected_query_result =
+      nlohmann::json({{{"tableName", "default"}}, {{"tableName", "reference_genomes"}}}),
 };
 
 const QueryTestScenario TABLES_SCHEMA_SCENARIO = {
