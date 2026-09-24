@@ -71,8 +71,8 @@ struct ScalarExpressionDimension {
 };
 
 /// One grouping dimension of a `BitmapAggregationNode`: a rule for partitioning a filtered row-set
-/// into disjoint, value-keyed groups directly from roaring bitmaps, plus the STRING output column
-/// it contributes. A variant over the supported kinds lets a single query group on a mix of them;
+/// into disjoint, value-keyed groups directly from roaring bitmaps, plus the output column it
+/// contributes. A variant over the supported kinds lets a single query group on a mix of them;
 /// add an alternative to support another kind. Every alternative offers `outputColumn` and
 /// `toJson` (so a generic `std::visit` dispatches over them) and a `makeGrouper` overload in the
 /// implementation file that resolves it against the table into a per-chunk grouping strategy.
