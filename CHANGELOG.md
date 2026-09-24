@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.14.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.14.3...v0.14.4) (2026-09-24)
+
+
+### Features
+
+* **preprocessing:** create a reference_genomes table on creation ([#1573](https://github.com/GenSpectrum/LAPIS-SILO/issues/1573)) ([ae84149](https://github.com/GenSpectrum/LAPIS-SILO/commit/ae8414971294d34d8ca69489f14e84dba65cec56))
+* **query_engine:** add `projectout()` function to query language ([#1550](https://github.com/GenSpectrum/LAPIS-SILO/issues/1550)) ([964fe38](https://github.com/GenSpectrum/LAPIS-SILO/commit/964fe384cba095cd76f8d6c695af2f31e7a8cb52))
+* **query_engine:** add `tables()` function to list all tables ([#1555](https://github.com/GenSpectrum/LAPIS-SILO/issues/1555)) ([9e38dda](https://github.com/GenSpectrum/LAPIS-SILO/commit/9e38dda869db662c56b9f643a21784b81f08d837))
+* **query_engine:** add startingFrom to transitiveClosure() ([#1563](https://github.com/GenSpectrum/LAPIS-SILO/issues/1563)) ([7451f52](https://github.com/GenSpectrum/LAPIS-SILO/commit/7451f52153925c5c3a58829a0bce6728e7fc226f))
+* **query_engine:** allow filters on subexpressions ([#1506](https://github.com/GenSpectrum/LAPIS-SILO/issues/1506)) ([851231b](https://github.com/GenSpectrum/LAPIS-SILO/commit/851231bd45349dcf73f320c0a55902b5678380cc))
+* **query_engine:** implement more efficient bitmap-aggregation ([#1556](https://github.com/GenSpectrum/LAPIS-SILO/issues/1556)) ([4df8211](https://github.com/GenSpectrum/LAPIS-SILO/commit/4df8211532b104c9fe0dde81db7fcec381f1e807))
+* **rhydb:** make primaryKey of tables optional ([#1545](https://github.com/GenSpectrum/LAPIS-SILO/issues/1545)) ([22936c9](https://github.com/GenSpectrum/LAPIS-SILO/commit/22936c9a899b6943be9dde45c4888cf229be4569))
+
 ## [0.14.3](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.14.2...v0.14.3) (2026-09-09)
 
 
