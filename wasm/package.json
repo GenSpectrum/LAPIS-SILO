@@ -18,6 +18,7 @@
       "default": "./dist/wasm64/rhydb_wasm.js"
     },
     "./rhydb_wasm.wasm": "./dist/rhydb_wasm.wasm",
+    "./wasm64/rhydb_wasm.wasm": "./dist/wasm64/rhydb_wasm.wasm",
     "./package.json": "./package.json"
   },
   "files": [
