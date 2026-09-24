@@ -471,8 +471,10 @@ TEST(AstToQueryGroupBy, aggregateDefNotFunctionCallThrows) {
 TEST(AstToQueryGroupBy, unknownAggregateFunctionThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&]() { (void)parseAndConvertToQueryTree("default.groupBy({n:=sum()})", tables); },
-      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("unknown aggregate function 'sum'"))
+      [&]() { (void)parseAndConvertToQueryTree("default.groupBy({n:=avg()})", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("unknown aggregate function 'avg'. Valid functions: count, sum")
+      )
    );
 }
 
