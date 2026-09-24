@@ -9,13 +9,18 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, test } from "node:test";
 
-import createRhydbModule32 from "../../build/wasm/rhydb_wasm.js";
-import createRhydbModule64 from "../../build/wasm64/rhydb_wasm.js";
+import createRhydbModule32 from "../dist/rhydb_wasm.js";
+import createRhydbModule64 from "../dist/wasm64/rhydb_wasm.js";
 
-type CreateModule = typeof createRhydbModule32;
-type MainModule = Awaited<ReturnType<CreateModule>>;
+type CreateModule32 = typeof createRhydbModule32;
+type MainModule32 = Awaited<ReturnType<CreateModule32>>;
 
-const variants: { label: string; create: CreateModule }[] = [
+type CreateModule64 = typeof createRhydbModule64;
+type MainModule64 = Awaited<ReturnType<CreateModule64>>;
+
+type MainModule = MainModule32 | MainModule64;
+
+const variants: { label: string; create: CreateModule32 | CreateModule64 }[] = [
     { label: "wasm32", create: createRhydbModule32 },
     { label: "wasm64", create: createRhydbModule64 },
 ];
