@@ -69,8 +69,14 @@ build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
 build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) CMakeLists.txt wasm/CMakeLists.txt
 	emcmake cmake -G Ninja -S . -B build/wasm -D CMAKE_BUILD_TYPE=Release -D BUILD_UNIT_TESTS=OFF
 
+# --target=wasm64 must be in the initial C/C++ flags (not only in target compile
+# options) so it is present while CMake configures: Emscripten's toolchain reads
+# CMAKE_C_FLAGS to set CMAKE_SIZEOF_VOID_P=8 and the wasm64 library architecture.
+# Without it, configure-time checks and find_package would assume a 32-bit ABI
+# even though the actual compile/link is 64-bit. This mirrors the flag placement
+# in the wasm64 Conan profile (see buildScripts/create-wasm-conanprofile).
 build/wasm64/build.ninja: ${WASM64_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) CMakeLists.txt wasm/CMakeLists.txt
-	emcmake cmake -G Ninja -S . -B build/wasm64 -D CMAKE_BUILD_TYPE=Release -D BUILD_UNIT_TESTS=OFF -D RHYDB_WASM_MEMORY64=ON
+	emcmake cmake -G Ninja -S . -B build/wasm64 -D CMAKE_BUILD_TYPE=Release -D BUILD_UNIT_TESTS=OFF -D RHYDB_WASM_MEMORY64=ON -D CMAKE_C_FLAGS=--target=wasm64 -D CMAKE_CXX_FLAGS=--target=wasm64
 
 ${RHYDB_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb

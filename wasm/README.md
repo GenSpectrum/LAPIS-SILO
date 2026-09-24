@@ -25,12 +25,13 @@ Browser queries use a smaller materialization cutoff than native RhyDB to keep i
 
 RhyDB ships two WebAssembly builds:
 
-- **32-bit (default)**: the standard build. Works in all WebAssembly runtimes, but linear
-  memory is capped at ~4 GB.
-- **64-bit (wasm64 / MEMORY64)**: raises the memory ceiling above 4 GB so larger datasets fit in
-  the browser. It is larger and somewhat slower, and requires a memory64-capable runtime (recent
-  Chrome/Firefox and Node 24+; Safari does not yet support it). Use it only when you need more than
-  4 GB.
+- **32-bit (default)**: the standard build. Works in all WebAssembly runtimes. Its memory is
+  capped at 2 GiB (Emscripten's default `MAXIMUM_MEMORY`; the 32-bit address space cannot exceed
+  4 GiB in any case).
+- **64-bit (wasm64 / MEMORY64)**: raises the memory ceiling to 16 GiB so larger datasets fit in the
+  browser. It is larger and somewhat slower, and requires a memory64-capable runtime (recent
+  Chrome/Firefox and Node 24+; Safari does not yet support it). Use it when a dataset needs more
+  than the 32-bit build's 2 GiB.
 
 The 64-bit build is opt-in; the default remains 32-bit.
 

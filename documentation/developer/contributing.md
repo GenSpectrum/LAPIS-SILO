@@ -66,8 +66,8 @@ RhyDB can be compiled to WebAssembly to run preprocessing and SaneQL queries in 
 From the repository root:
 
 ```shell
-make wasm     # 32-bit build
-make wasm64   # 64-bit (wasm64) build, for datasets larger than the 32-bit ~4 GB memory limit
+make wasm     # 32-bit build (memory capped at 2 GiB)
+make wasm64   # 64-bit (wasm64) build, for datasets larger than the 32-bit 2 GiB memory limit
 ```
 
 ### Test
