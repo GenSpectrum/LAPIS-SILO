@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "rhydb/query_engine/operators/aggregate_node.h"
@@ -264,6 +265,10 @@ std::optional<operators::GroupingDimension> resolveDimension(
    return std::nullopt;
 }
 
+bool isBitmapBacked(const operators::GroupingDimension& dimension) {
+   return !std::holds_alternative<operators::ScalarExpressionDimension>(dimension);
+}
+
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -289,6 +294,11 @@ operators::QueryNodePtr BitmapAggregationRewritePass::operator()(operators::Aggr
          return nullptr;
       }
       dimensions.push_back(std::move(dimension.value()));
+   }
+
+   // don't apply optimization if no group-by dimension is bitmap-backed
+   if (std::ranges::none_of(dimensions, isBitmapBacked)) {
+      return nullptr;
    }
 
    return std::make_unique<operators::BitmapAggregationNode>(
