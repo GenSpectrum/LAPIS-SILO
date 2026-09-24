@@ -217,13 +217,14 @@ const QueryTestScenario MAP_FIELD_REF_INDEXED_COLUMN = {
    ])")
 };
 
-// A bare field reference produced by the map over a *plain, non-indexed* string column. With no
-// inverted index to reuse, this falls to the generic scalar-expression path, which evaluates the
-// `country` field reference per row and buckets by value. Value groups come out in sorted order
-// (France, Germany, Japan). Country carries Germany x2, France x1, Japan x1.
+// A bare field reference produced by the map over a *plain, non-indexed* string column, as the only
+// grouping key. With no existing bitmap to reuse the rewrite declines and the generic Arrow
+// aggregation handles it (its group order is unspecified, hence the orderBy); grouping it next to a
+// bitmap-backed key goes through the bitmap engine instead (MIXED_SEQUENCE_AND_FIELD_COLUMN).
+// Country carries Germany x2, France x1, Japan x1.
 const QueryTestScenario MAP_FIELD_REF_PLAIN_STRING_COLUMN = {
    .name = "MAP_FIELD_REF_PLAIN_STRING_COLUMN",
-   .query = "default.map({c := country}).groupBy({count:=count()}, {c})",
+   .query = "default.map({c := country}).groupBy({count:=count()}, {c}).orderBy({c.asc()})",
    .expected_query_result = nlohmann::json::parse(R"([
       {"c": "France", "count": 1},
       {"c": "Germany", "count": 2},
@@ -247,14 +248,16 @@ const QueryTestScenario MIXED_SEQUENCE_AND_FIELD_COLUMN = {
    ])")
 };
 
-// A general map-computed scalar expression: `date.isoWeek()`. The grouper evaluates it per row and
-// buckets by the resulting ISO week-date string (`<ISO-year>-W<ISO-week>`). The output column keeps
-// the expression's STRING type, and the zero-padded week means the lexicographic group order is
-// also chronological (W01, W02, W10).
+// A general map-computed scalar expression, `date.isoWeek()`, as the only grouping key: like
+// MAP_FIELD_REF_PLAIN_STRING_COLUMN this is left to the generic Arrow aggregation (hence the
+// orderBy); MIXED_SEQUENCE_AND_ISO_WEEK covers it in the bitmap engine. The result is the ISO
+// week-date string (`<ISO-year>-W<ISO-week>`), whose zero-padded week sorts chronologically.
 //   isoWeek: 2021-W01 (ROW_AT), 2021-W10 (ROW_AT2), 2021-W02 (ROW_NN), 2021-W02 (ROW_CA)
 const QueryTestScenario MAP_ISO_WEEK_EXPRESSION = {
    .name = "MAP_ISO_WEEK_EXPRESSION",
-   .query = "default.map({week := date.isoWeek()}).groupBy({count:=count()}, {week})",
+   .query =
+      "default.map({week := date.isoWeek()}).groupBy({count:=count()}, {week})"
+      ".orderBy({asc(week)})",
    .expected_query_result = nlohmann::json::parse(R"([
       {"week": "2021-W01", "count": 1},
       {"week": "2021-W02", "count": 2},
@@ -443,7 +446,8 @@ const QueryTestScenario ALL_ROWS_MISSING_AT_POSITION = {
 // extraction, bucketing and the typed value array. Only the string and date ones were reached by a
 // test; these cover int32, int64, float and bool. A map field reference over a non-indexed column
 // is the only shape that gets a numeric or boolean expression to that path (`at` and `isoWeek`
-// both yield strings), so each scenario groups on one directly.
+// both yield strings). A scalar-only grouping is left to Arrow, so each scenario pairs it with the
+// bitmap-backed `s := segment1.at(1)`, which is A for every row.
 // ---------------------------------------------------------------------------
 
 nlohmann::json createRowWithScalarTypes(
@@ -502,42 +506,42 @@ const QueryTestData SCALAR_TYPE_TEST_DATA{
 // written that way throughout.
 const QueryTestScenario GROUP_BY_MAPPED_INT32_COLUMN = {
    .name = "GROUP_BY_MAPPED_INT32_COLUMN",
-   .query = "default.map({a := age}).groupBy({count:=count()}, {a})",
+   .query = "default.map({s := segment1.at(1), a := age}).groupBy({count:=count()}, {s, a})",
    .expected_query_result = nlohmann::json::parse(R"([
-      {"a": 30, "count": 2},
-      {"a": 41, "count": 1},
-      {"a": null, "count": 1}
+      {"s": "A", "a": 30, "count": 2},
+      {"s": "A", "a": 41, "count": 1},
+      {"s": "A", "a": null, "count": 1}
    ])")
 };
 
 const QueryTestScenario GROUP_BY_MAPPED_INT64_COLUMN = {
    .name = "GROUP_BY_MAPPED_INT64_COLUMN",
-   .query = "default.map({r := reads}).groupBy({count:=count()}, {r})",
+   .query = "default.map({s := segment1.at(1), r := reads}).groupBy({count:=count()}, {s, r})",
    .expected_query_result = nlohmann::json::parse(R"([
-      {"r": 1000000000000, "count": 2},
-      {"r": 2000000000000, "count": 1},
-      {"r": null, "count": 1}
+      {"s": "A", "r": 1000000000000, "count": 2},
+      {"s": "A", "r": 2000000000000, "count": 1},
+      {"s": "A", "r": null, "count": 1}
    ])")
 };
 
 const QueryTestScenario GROUP_BY_MAPPED_FLOAT_COLUMN = {
    .name = "GROUP_BY_MAPPED_FLOAT_COLUMN",
-   .query = "default.map({c := coverage}).groupBy({count:=count()}, {c})",
+   .query = "default.map({s := segment1.at(1), c := coverage}).groupBy({count:=count()}, {s, c})",
    .expected_query_result = nlohmann::json::parse(R"([
-      {"c": 1.5, "count": 2},
-      {"c": 2.5, "count": 1},
-      {"c": null, "count": 1}
+      {"s": "A", "c": 1.5, "count": 2},
+      {"s": "A", "c": 2.5, "count": 1},
+      {"s": "A", "c": null, "count": 1}
    ])")
 };
 
 // false sorts before true, so the two boolean groups come out in that order.
 const QueryTestScenario GROUP_BY_MAPPED_BOOL_COLUMN = {
    .name = "GROUP_BY_MAPPED_BOOL_COLUMN",
-   .query = "default.map({p := passed}).groupBy({count:=count()}, {p})",
+   .query = "default.map({s := segment1.at(1), p := passed}).groupBy({count:=count()}, {s, p})",
    .expected_query_result = nlohmann::json::parse(R"([
-      {"p": false, "count": 1},
-      {"p": true, "count": 2},
-      {"p": null, "count": 1}
+      {"s": "A", "p": false, "count": 1},
+      {"s": "A", "p": true, "count": 2},
+      {"s": "A", "p": null, "count": 1}
    ])")
 };
 
