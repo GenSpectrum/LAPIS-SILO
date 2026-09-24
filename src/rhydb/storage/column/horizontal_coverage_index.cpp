@@ -148,76 +148,47 @@ roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
    uint32_t position,
    uint16_t chunk_id
 ) const {
-   roaring::Roaring result;
-   if (chunk_id >= starts.size()) {
-      return roaring_util::RoaringContainer::withCapacity(1);
-   }
-
    // No row in this chunk can cover the position.
    if (noRowCoversPositionInChunk(position, chunk_id)) {
       return roaring_util::RoaringContainer::withCapacity(1);
    }
 
-   const uint32_t base_row_id = static_cast<uint32_t>(chunk_id) << 16U;
    const auto& chunk_starts = starts[chunk_id];
-   const auto& chunk_ends = ends[chunk_id];
+   const auto num_rows = static_cast<uint32_t>(chunk_starts.size());
 
    // Fast path: if the position lies within the chunk's intersection envelope
-   // `[batch_max_start, batch_min_end)`, every row in the chunk covers it, so add the whole chunk
-   // in one range operation.
+   // `[batch_max_start, batch_min_end)`, every row in the chunk covers it.
    if (positionCoveredByWholeChunk(position, chunk_id)) {
-      result.addRange(base_row_id, base_row_id + chunk_starts.size());
-   } else {
-      // Vectorized scan: build the covered rows straight into a roaring bitset container (SIMD sets
-      // 16 bits per instruction), then let the whole roaring compact it below. The container is
-      // keyed by `chunk_id` and holds exactly the low 16 bits (row-in-chunk).
-      const size_t num_rows = chunk_starts.size();
-      auto* bitset = roaring::internal::bitset_container_create();
-      const uint32_t cardinality =
-         coverageScan(chunk_starts.data(), chunk_ends.data(), num_rows, position, bitset->words);
-      if (cardinality == 0) {
-         roaring::internal::bitset_container_free(bitset);
-      } else {
-         bitset->cardinality = static_cast<int32_t>(cardinality);
-         roaring::internal::ra_append(
-            &result.roaring.high_low_container, chunk_id, bitset, BITSET_CONTAINER_TYPE
-         );
-      }
+      return {
+         roaring::internal::run_container_create_range(0, num_rows), num_rows, RUN_CONTAINER_TYPE
+      };
+   }
 
-      // Remove this chunk's in-region N positions: a row whose covered range includes `position` but
-      // records an N there is not covered at `position` (it belongs to the missing symbol instead).
-      const auto chunk_rows_begin = horizontal_bitmaps.lower_bound(base_row_id);
-      const uint64_t chunk_end_key = static_cast<uint64_t>(base_row_id) + num_rows;
-      const auto chunk_rows_end =
-         chunk_end_key > UINT32_MAX
-            ? horizontal_bitmaps.end()
-            : horizontal_bitmaps.lower_bound(static_cast<uint32_t>(chunk_end_key));
-      for (auto iter = chunk_rows_begin; iter != chunk_rows_end; ++iter) {
-         if (iter->second.contains(position)) {
-            result.remove(iter->first);
-         }
+   auto* bitset = roaring::internal::bitset_container_create();
+   bitset->cardinality = static_cast<int32_t>(
+      coverageScan(chunk_starts.data(), ends[chunk_id].data(), num_rows, position, bitset->words)
+   );
+
+   // Remove this chunk's in-region N positions: a row whose covered range includes `position` but
+   // records an N there is not covered at `position` (it belongs to the missing symbol instead).
+   const uint32_t base_row_id = static_cast<uint32_t>(chunk_id) << 16U;
+   const uint64_t chunk_end_key = static_cast<uint64_t>(base_row_id) + num_rows;
+   const auto chunk_rows_begin = horizontal_bitmaps.lower_bound(base_row_id);
+   const auto chunk_rows_end =
+      chunk_end_key > UINT32_MAX
+         ? horizontal_bitmaps.end()
+         : horizontal_bitmaps.lower_bound(static_cast<uint32_t>(chunk_end_key));
+   for (auto iter = chunk_rows_begin; iter != chunk_rows_end; ++iter) {
+      if (iter->second.contains(position)) {
+         roaring::internal::bitset_container_remove(bitset, static_cast<uint16_t>(iter->first));
       }
    }
 
-   // The scan builds a dense bitset container; compact it (to a run/array) so the downstream set
-   // algebra on the covered set stays cheap.
-   result.runOptimize();
-
-   // This is constructed such that `result` holds at most this one 2^16 container.
-   // Steal it out of the roaring array (no clone) and hand it back on its own.
-   auto& roaring_array = result.roaring.high_low_container;
-   if (roaring_array.size == 0) {
-      return roaring_util::RoaringContainer::withCapacity(1);
-   }
-   RHYDB_ASSERT_EQ(roaring_array.size, 1);
-   const auto cardinality = static_cast<uint32_t>(roaring::internal::container_get_cardinality(
-      roaring_array.containers[0], roaring_array.typecodes[0]
-   ));
-   roaring_util::RoaringContainer container{
-      roaring_array.containers[0], cardinality, roaring_array.typecodes[0]
+   roaring_util::RoaringContainer result{
+      bitset, static_cast<uint32_t>(bitset->cardinality), BITSET_CONTAINER_TYPE
    };
-   roaring::internal::ra_clear_without_containers(&roaring_array);
-   return container;
+   result.runOptimizeAndShrink();
+   return result;
 }
 
 bool HorizontalCoverageIndex::noRowCoversPositionInChunk(uint32_t position, uint16_t chunk_id)
