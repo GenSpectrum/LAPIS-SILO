@@ -16,6 +16,7 @@
 #include "rhydb/roaring_util/bitmap_builder.h"
 
 using rhydb::roaring_util::BitmapBuilderByContainer;
+using rhydb::roaring_util::CopyOnWriteContainer;
 using rhydb::roaring_util::RoaringContainer;
 using rhydb::roaring_util::RoaringContainerView;
 
@@ -487,4 +488,169 @@ TEST(RoaringContainerSetAlgebra, orAssignAccumulatesRepeatedly) {
    }
 
    EXPECT_EQ(toRoaring(accumulator), expected);
+}
+
+TEST(CopyOnWriteContainer, borrowsWithoutCopying) {
+   auto owner = makeContainer({3, 7, 9});
+   const CopyOnWriteContainer cow{RoaringContainerView{owner}};
+
+   // While only reading, it is a zero-copy view: same underlying container, same cardinality.
+   EXPECT_EQ(cow.getCardinality(), 3);
+   EXPECT_FALSE(cow.empty());
+   EXPECT_EQ(cow.view().rawContainer(), owner.rawContainer());
+}
+
+TEST(CopyOnWriteContainer, unionClonesOnWriteAndLeavesSourceUnchanged) {
+   auto owner = makeContainer({1, 2, 3});
+   const auto* borrowed = owner.rawContainer();
+   CopyOnWriteContainer cow{RoaringContainerView{owner}};
+   const auto addend = makeContainer({4});
+
+   cow |= RoaringContainerView{addend};
+
+   // The copy-on-write produced a private owning copy: the borrowed source is untouched ...
+   EXPECT_EQ(toRoaring(owner), (roaring::Roaring{1, 2, 3}));
+   EXPECT_EQ(owner.rawContainer(), borrowed);
+   // ... and the container now owns a different container holding the union.
+   EXPECT_NE(cow.view().rawContainer(), borrowed);
+   EXPECT_EQ(toRoaring(cow.toOwning()), (roaring::Roaring{1, 2, 3, 4}));
+}
+
+TEST(CopyOnWriteContainer, differenceClonesOnWriteAndLeavesSourceUnchanged) {
+   auto owner = makeContainer({1, 2, 3});
+   CopyOnWriteContainer cow{RoaringContainerView{owner}};
+
+   cow -= RoaringContainerView{makeContainer({2})};
+
+   EXPECT_EQ(toRoaring(owner), (roaring::Roaring{1, 2, 3}));
+   EXPECT_EQ(toRoaring(cow.toOwning()), (roaring::Roaring{1, 3}));
+}
+
+TEST(CopyOnWriteContainer, intersectionClonesOnWriteAndLeavesSourceUnchanged) {
+   auto owner = makeContainer({1, 2, 3});
+   CopyOnWriteContainer cow{RoaringContainerView{owner}};
+
+   cow &= RoaringContainerView{makeContainer({2, 3, 4})};
+
+   EXPECT_EQ(toRoaring(owner), (roaring::Roaring{1, 2, 3}));
+   EXPECT_EQ(toRoaring(cow.toOwning()), (roaring::Roaring{2, 3}));
+}
+
+TEST(CopyOnWriteContainer, defaultIsEmptyAndUnionTakesAddend) {
+   CopyOnWriteContainer cow;
+   EXPECT_TRUE(cow.empty());
+
+   cow |= RoaringContainerView{makeContainer({5, 6})};
+
+   EXPECT_EQ(toRoaring(cow.toOwning()), (roaring::Roaring{5, 6}));
+}
+
+TEST(CopyOnWriteContainer, defaultViewsAProperlyConstructedEmptyContainer) {
+   const CopyOnWriteContainer cow;
+
+   // The default borrows a real, properly-constructed empty container -- not a null handle -- so
+   // reads are all well-defined.
+   EXPECT_TRUE(cow.empty());
+   EXPECT_EQ(cow.getCardinality(), 0);
+   EXPECT_NE(cow.view().rawContainer(), nullptr);
+   EXPECT_EQ(cow.begin(), cow.end());  // iterates as an empty range
+}
+
+TEST(CopyOnWriteContainer, defaultToOwningIsAValidEmptyContainer) {
+   const CopyOnWriteContainer cow;
+
+   // toOwning on the default clones the shared empty container into an independent, valid empty one
+   // (a real allocation, safe to mutate afterwards) rather than dereferencing a null handle.
+   RoaringContainer owned = cow.toOwning();
+   EXPECT_TRUE(owned.empty());
+   EXPECT_NE(owned.rawContainer(), nullptr);
+   owned.add(5);
+   EXPECT_EQ(toRoaring(owned), roaring::Roaring{5});
+}
+
+TEST(CopyOnWriteContainer, defaultDifferenceAndIntersectionAreSafe) {
+   CopyOnWriteContainer cow;
+
+   cow -= RoaringContainerView{makeContainer({1, 2})};  // empty - x stays empty
+   EXPECT_TRUE(cow.empty());
+
+   cow &= RoaringContainerView{makeContainer({1, 2})};  // empty & x stays empty
+   EXPECT_TRUE(cow.empty());
+   EXPECT_NE(cow.toOwning().rawContainer(), nullptr);
+}
+
+TEST(CopyOnWriteContainer, distinctDefaultsShareTheEmptyContainerButOwnIndependentlyOnWrite) {
+   CopyOnWriteContainer first;
+   const CopyOnWriteContainer second;
+
+   // Both defaults borrow the same shared empty container.
+   EXPECT_EQ(first.view().rawContainer(), second.view().rawContainer());
+
+   // Writing to one copy-on-writes into its own container, leaving the other (and the shared empty)
+   // untouched.
+   first |= RoaringContainerView{makeContainer({7})};
+   EXPECT_EQ(toRoaring(first.toOwning()), roaring::Roaring{7});
+   EXPECT_TRUE(second.empty());
+   EXPECT_NE(first.view().rawContainer(), second.view().rawContainer());
+}
+
+TEST(CopyOnWriteContainer, unionWithEmptyIsANoOp) {
+   CopyOnWriteContainer cow{makeContainer({1, 2})};
+   const auto empty = makeContainer({});
+
+   cow |= RoaringContainerView{empty};
+
+   EXPECT_EQ(toRoaring(cow.toOwning()), (roaring::Roaring{1, 2}));
+}
+
+TEST(CopyOnWriteContainer, takesOwnershipAndMutatesInPlace) {
+   CopyOnWriteContainer cow{makeContainer({1, 2})};
+
+   cow |= RoaringContainerView{makeContainer({2, 3})};
+
+   EXPECT_EQ(toRoaring(cow.toOwning()), (roaring::Roaring{1, 2, 3}));
+}
+
+TEST(CopyOnWriteContainer, copyOfBorrowingReborrowsSameContainer) {
+   auto owner = makeContainer({1, 2});
+   const CopyOnWriteContainer cow{RoaringContainerView{owner}};
+
+   const CopyOnWriteContainer copy = cow;  // NOLINT(performance-unnecessary-copy-initialization)
+
+   // A borrowing copy re-borrows the same underlying container rather than cloning it.
+   EXPECT_EQ(copy.view().rawContainer(), owner.rawContainer());
+}
+
+TEST(CopyOnWriteContainer, copyOfOwningDeepCopiesAndIsIndependent) {
+   const CopyOnWriteContainer owned{makeContainer({1, 2})};
+   CopyOnWriteContainer copy = owned;
+
+   // Mutating the copy must not affect the original owning container.
+   copy |= RoaringContainerView{makeContainer({3})};
+
+   EXPECT_EQ(toRoaring(owned.toOwning()), (roaring::Roaring{1, 2}));
+   EXPECT_EQ(toRoaring(copy.toOwning()), (roaring::Roaring{1, 2, 3}));
+   EXPECT_NE(owned.view().rawContainer(), copy.view().rawContainer());
+}
+
+TEST(CopyOnWriteContainer, toOwningDeepCopiesTheBorrowedContainer) {
+   auto owner = makeContainer({1, 2});
+   const CopyOnWriteContainer cow{RoaringContainerView{owner}};
+
+   RoaringContainer owned = cow.toOwning();
+   owned.add(3);
+
+   // The extracted container is independent of the borrowed source.
+   EXPECT_EQ(toRoaring(owner), (roaring::Roaring{1, 2}));
+   EXPECT_EQ(toRoaring(owned), (roaring::Roaring{1, 2, 3}));
+}
+
+TEST(CopyOnWriteContainer, iteratesCurrentContentAscending) {
+   const CopyOnWriteContainer cow{makeContainer({9, 3, 7})};
+
+   std::vector<uint16_t> values;
+   for (const uint16_t value : cow) {
+      values.push_back(value);
+   }
+   EXPECT_EQ(values, (std::vector<uint16_t>{3, 7, 9}));
 }

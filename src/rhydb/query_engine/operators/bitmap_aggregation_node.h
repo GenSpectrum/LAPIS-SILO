@@ -12,24 +12,13 @@
 #include <arrow/result.h>
 #include <nlohmann/json_fwd.hpp>
 
-#include "rhydb/common/bitmap.h"
 #include "rhydb/config/runtime_config.h"
 #include "rhydb/query_engine/operators/query_node.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
 #include "rhydb/schema/database_schema.h"
-#include "rhydb/storage/column/sequence_column.h"
 #include "rhydb/storage/table.h"
 
 namespace rhydb::query_engine::operators {
-
-/// The partition of a filtered row-set produced by one grouping dimension: one bitmap per distinct
-/// value that actually occurs, keyed by that value's string rendering, plus one final bitmap for
-/// the rows that carry no value in this dimension (a null group, keyed by `std::nullopt`). Every
-/// group is already intersected with the query filter, so the bitmaps — and hence all downstream
-/// work — are bounded by the filtered row set rather than the whole table. Together the groups are
-/// disjoint and cover every filtered row. The value is rendered as a string because the aggregation
-/// node emits every grouping column as STRING (a null group becomes a SQL null).
-using GroupBitmaps = std::vector<std::pair<std::optional<std::string>, Bitmap>>;
 
 /// Groups rows by the symbol they carry at a fixed sequence position, e.g. `main.at(123)`.
 struct SequencePositionDimension {
@@ -45,11 +34,6 @@ struct SequencePositionDimension {
       std::string output_name
    );
 
-   /// Partition `filter_bitmap` into this dimension's disjoint, filter-bounded groups (see
-   /// `GroupBitmaps`), reading the relevant column from `table`.
-   [[nodiscard]] GroupBitmaps buildGroups(const storage::Table& table, const Bitmap& filter_bitmap)
-      const;
-
    /// The STRING output column this dimension contributes to the result schema.
    [[nodiscard]] schema::ColumnIdentifier outputColumn() const;
 
@@ -63,8 +47,23 @@ struct IndexedColumnDimension {
 
    IndexedColumnDimension(schema::ColumnIdentifier column, std::string output_name);
 
-   [[nodiscard]] GroupBitmaps buildGroups(const storage::Table& table, const Bitmap& filter_bitmap)
-      const;
+   [[nodiscard]] schema::ColumnIdentifier outputColumn() const;
+
+   [[nodiscard]] nlohmann::json toJson() const;
+};
+
+/// Groups rows by the value of an arbitrary scalar expression a `map()` assignment computes, e.g.
+/// `map({week := date.isoWeek()})`
+struct ScalarExpressionDimension {
+   std::unique_ptr<scalar_expressions::ScalarExpression> expression;
+   schema::ColumnType output_type;
+   std::string output_name;
+
+   ScalarExpressionDimension(
+      std::unique_ptr<scalar_expressions::ScalarExpression> expression,
+      schema::ColumnType output_type,
+      std::string output_name
+   );
 
    [[nodiscard]] schema::ColumnIdentifier outputColumn() const;
 
@@ -72,11 +71,13 @@ struct IndexedColumnDimension {
 };
 
 /// One grouping dimension of a `BitmapAggregationNode`: a rule for partitioning a filtered row-set
-/// into disjoint, value-keyed groups directly from roaring bitmaps, plus the STRING output column
-/// it contributes. A variant over the supported kinds lets a single query group on a mix of them;
-/// add an alternative to support another kind. Every alternative offers `buildGroups`,
-/// `outputColumn` and `toJson`, so a generic `std::visit` dispatches over them.
-using GroupingDimension = std::variant<SequencePositionDimension, IndexedColumnDimension>;
+/// into disjoint, value-keyed groups directly from roaring bitmaps, plus the output column it
+/// contributes. A variant over the supported kinds lets a single query group on a mix of them;
+/// add an alternative to support another kind. Every alternative offers `outputColumn` and
+/// `toJson` (so a generic `std::visit` dispatches over them) and a `makeGrouper` overload in the
+/// implementation file that resolves it against the table into a per-chunk grouping strategy.
+using GroupingDimension =
+   std::variant<SequencePositionDimension, IndexedColumnDimension, ScalarExpressionDimension>;
 
 /// Resolved bitmap-aggregation operator. Groups the rows matched by `filter` by a set of
 /// `GroupingDimension`s, emitting one row per observed combination of values together with the

@@ -1,8 +1,13 @@
 #include "rhydb/storage/column/horizontal_coverage_index.h"
 
+#include <cstdint>
 #include <memory>
+#include <numeric>
+#include <random>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -51,9 +56,37 @@ class HorizontalCoverageIndexTest : public ::testing::Test {
       );
    }
 
+   // Like insertRange, but the row also records in-region N positions, which coverage treats as
+   // not covered even though they fall inside [start, end).
+   void insertRangeWithMissing(
+      uint16_t chunk_id,
+      uint16_t row_in_chunk,
+      uint32_t start,
+      uint32_t end,
+      std::vector<uint32_t> missing_positions
+   ) {
+      index->insertCoverage(
+         RowId{.chunk_id = chunk_id, .row_in_chunk = row_in_chunk},
+         Coverage{.start = start, .end = end, .missing_positions = std::move(missing_positions)}
+      );
+   }
+
    std::unique_ptr<HorizontalCoverageIndex> index;
    uint32_t current_global_row_id = 0;
 };
+
+namespace {
+
+/// The rows a `coveredRowsInChunk` result holds, as row-in-chunk indices.
+std::vector<uint16_t> rowsIn(const roaring_util::RoaringContainer& container) {
+   std::vector<uint16_t> rows;
+   for (const uint16_t row : roaring_util::RoaringContainerView{container}) {
+      rows.push_back(row);
+   }
+   return rows;
+}
+
+}  // namespace
 
 TEST_F(HorizontalCoverageIndexTest, InsertMultipleNullSequences) {
    EXPECT_NO_THROW({
@@ -567,6 +600,275 @@ TEST_F(HorizontalCoverageIndexTest, PerBatchAggregatesFromSequenceCoverage) {
    EXPECT_EQ(index->batch_max_start, (std::vector<uint32_t>{22}));
    EXPECT_EQ(index->batch_min_end, (std::vector<uint32_t>{0}));
    EXPECT_EQ(index->batch_max_end, (std::vector<uint32_t>{26}));
+}
+
+// ---------------------------------------------------------------------------
+// coverageScan: the scalar and AVX-512 implementations must agree
+// ---------------------------------------------------------------------------
+
+namespace {
+
+constexpr size_t BITSET_WORDS = 1024;  // 2^16 bits, one per row of a chunk
+
+struct ScanInput {
+   std::vector<uint32_t> starts;
+   std::vector<uint32_t> ends;
+};
+
+/// Row ranges covering the cases the kernels have to get right: ordinary ranges, empty ones
+/// (`start == end`), inverted ones (`start > end`), ranges touching 0 and the end of the genome,
+/// and full-width ranges.
+ScanInput randomScanInput(size_t num_rows, uint32_t genome_length, std::mt19937& random) {
+   std::uniform_int_distribution<uint32_t> position_distribution(0, genome_length);
+   std::uniform_int_distribution<int> shape_distribution(0, 9);
+   ScanInput input;
+   input.starts.reserve(num_rows);
+   input.ends.reserve(num_rows);
+   for (size_t row = 0; row < num_rows; ++row) {
+      uint32_t start = position_distribution(random);
+      uint32_t end = position_distribution(random);
+      switch (shape_distribution(random)) {
+         case 0:
+            start = 0;
+            end = genome_length;
+            break;
+         case 1:
+            end = start;  // empty
+            break;
+         case 2:
+            std::swap(start, end);  // possibly inverted
+            break;
+         case 3:
+            start = 0;
+            break;
+         case 4:
+            end = genome_length;
+            break;
+         default:
+            if (start > end) {
+               std::swap(start, end);
+            }
+      }
+      input.starts.push_back(start);
+      input.ends.push_back(end);
+   }
+   return input;
+}
+
+/// The specification, written out directly: bit `row` iff `starts[row] <= position < ends[row]`.
+std::pair<std::vector<uint64_t>, uint32_t> referenceScan(
+   const ScanInput& input,
+   size_t num_rows,
+   uint32_t position
+) {
+   std::vector<uint64_t> bitset(BITSET_WORDS, 0);
+   uint32_t cardinality = 0;
+   for (size_t row = 0; row < num_rows; ++row) {
+      if (input.starts[row] <= position && position < input.ends[row]) {
+         bitset[row / 64] |= uint64_t{1} << (row % 64);
+         ++cardinality;
+      }
+   }
+   return {std::move(bitset), cardinality};
+}
+
+// Row counts around the AVX-512 kernel's 16-row stride and the bitset's 64-row word: the tail loop
+// and each of the four in-word bit offsets (0/16/32/48) have to be hit.
+const std::vector<size_t> ROW_COUNTS =
+   {0, 1, 15, 16, 17, 31, 32, 33, 48, 63, 64, 65, 79, 128, 1000, 4096};
+
+}  // namespace
+
+// Runs everywhere, and pins down the bit packing (`row / 64`, `row % 64`) that the AVX-512 kernel
+// then has to reproduce with a shifted 16-bit mask.
+TEST(CoverageScan, scalarMatchesSpecification) {
+   std::mt19937 random{20260922};
+   constexpr uint32_t GENOME_LENGTH = 512;
+
+   for (const size_t num_rows : ROW_COUNTS) {
+      const ScanInput input = randomScanInput(num_rows, GENOME_LENGTH, random);
+      for (const uint32_t position :
+           {0U, 1U, GENOME_LENGTH / 2, GENOME_LENGTH - 1, GENOME_LENGTH}) {
+         auto [expected_bitset, expected_cardinality] = referenceScan(input, num_rows, position);
+
+         std::vector<uint64_t> bitset(BITSET_WORDS, 0);
+         const uint32_t cardinality = detail::coverageScanScalar(
+            input.starts.data(), input.ends.data(), num_rows, position, bitset.data()
+         );
+
+         EXPECT_EQ(cardinality, expected_cardinality)
+            << "num_rows=" << num_rows << " position=" << position;
+         EXPECT_EQ(bitset, expected_bitset) << "num_rows=" << num_rows << " position=" << position;
+      }
+   }
+}
+
+// The AVX-512 kernel can only be run where the CPU supports it, so on a dev machine without
+// AVX-512 (e.g. Apple Silicon) this reports as skipped and asserts nothing. It is the only thing
+// that checks that kernel, so it is worth making sure it actually runs somewhere: the skip message
+// names the reason, and `RHYDB_HAS_X86_SIMD` tells you whether the build even contains the kernel.
+TEST(CoverageScan, avx512MatchesScalar) {
+#ifndef RHYDB_HAS_X86_SIMD
+   GTEST_SKIP() << "this build has no x86 SIMD path, so there is no AVX-512 kernel to compare";
+#else
+   if (!detail::cpuHasAvx512()) {
+      GTEST_SKIP() << "CPU lacks avx512f/avx512bw, so coverageScanAvx512 cannot be executed here";
+   }
+
+   std::mt19937 random{20260922};
+   constexpr uint32_t GENOME_LENGTH = 512;
+
+   for (const size_t num_rows : ROW_COUNTS) {
+      const ScanInput input = randomScanInput(num_rows, GENOME_LENGTH, random);
+      // Sweep every position, not a handful: a mask or shift bug may only show up for particular
+      // row/position combinations, and this is cheap.
+      for (uint32_t position = 0; position <= GENOME_LENGTH; ++position) {
+         std::vector<uint64_t> scalar_bitset(BITSET_WORDS, 0);
+         const uint32_t scalar_cardinality = detail::coverageScanScalar(
+            input.starts.data(), input.ends.data(), num_rows, position, scalar_bitset.data()
+         );
+
+         std::vector<uint64_t> avx512_bitset(BITSET_WORDS, 0);
+         const uint32_t avx512_cardinality = detail::coverageScanAvx512(
+            input.starts.data(), input.ends.data(), num_rows, position, avx512_bitset.data()
+         );
+
+         ASSERT_EQ(avx512_cardinality, scalar_cardinality)
+            << "num_rows=" << num_rows << " position=" << position;
+         ASSERT_EQ(avx512_bitset, scalar_bitset)
+            << "num_rows=" << num_rows << " position=" << position;
+      }
+   }
+#endif
+}
+
+// ---------------------------------------------------------------------------
+// coveredRowsInChunk / noRowCoversPositionInChunk / positionCoveredByWholeChunk
+//
+// These are only reached indirectly through query tests, where a bug shows up as an opaque wrong
+// count. The cases below pin each branch down directly: the two O(1) envelope fast paths, the
+// scan, in-region-N removal, and the empty results (which take two different routes).
+// ---------------------------------------------------------------------------
+
+TEST_F(HorizontalCoverageIndexTest, CoveredRowsInChunkOutOfRangeChunkIdIsEmpty) {
+   insertRange(0, 0, 0, 50);
+
+   EXPECT_TRUE(rowsIn(index->coveredRowsInChunk(10, 1)).empty());
+   EXPECT_TRUE(rowsIn(index->coveredRowsInChunk(10, 999)).empty());
+   // Nothing can cover a position in a chunk that does not exist ...
+   EXPECT_TRUE(index->noRowCoversPositionInChunk(10, 1));
+   // ... and "every row covers it" is false rather than vacuously true.
+   EXPECT_FALSE(index->positionCoveredByWholeChunk(10, 1));
+}
+
+TEST_F(HorizontalCoverageIndexTest, CoveredRowsInChunkWholeChunkFastPath) {
+   constexpr uint16_t ROWS = 20;
+   for (uint16_t row = 0; row < ROWS; ++row) {
+      insertRange(0, row, 10, 20);
+   }
+
+   EXPECT_TRUE(index->positionCoveredByWholeChunk(15, 0));
+   EXPECT_FALSE(index->noRowCoversPositionInChunk(15, 0));
+
+   std::vector<uint16_t> expected(ROWS);
+   // NOLINTNEXTLINE(modernize-use-ranges)
+   std::iota(expected.begin(), expected.end(), uint16_t{0});
+   EXPECT_EQ(rowsIn(index->coveredRowsInChunk(15, 0)), expected);
+
+   // The envelope is half-open: the start is covered, the end is not.
+   EXPECT_TRUE(index->positionCoveredByWholeChunk(10, 0));
+   EXPECT_FALSE(index->positionCoveredByWholeChunk(20, 0));
+}
+
+TEST_F(HorizontalCoverageIndexTest, CoveredRowsInChunkPartialCoverageAcrossSimdStride) {
+   // 100 rows so the scan runs its 16-row stride several times and still has a 4-row tail.
+   constexpr uint16_t ROWS = 100;
+   for (uint16_t row = 0; row < ROWS; ++row) {
+      const bool even = row % 2 == 0;
+      insertRange(0, row, even ? 0 : 40, even ? 30 : 60);
+   }
+
+   // Neither fast path applies: the position is inside the covered envelope but outside the
+   // intersection envelope, so this goes through the scan.
+   EXPECT_FALSE(index->noRowCoversPositionInChunk(15, 0));
+   EXPECT_FALSE(index->positionCoveredByWholeChunk(15, 0));
+
+   std::vector<uint16_t> expected;
+   for (uint16_t row = 0; row < ROWS; row += 2) {
+      expected.push_back(row);
+   }
+   EXPECT_EQ(rowsIn(index->coveredRowsInChunk(15, 0)), expected);
+}
+
+TEST_F(HorizontalCoverageIndexTest, CoveredRowsInChunkExcludesRowsWithInRegionN) {
+   for (uint16_t row = 0; row < 5; ++row) {
+      if (row == 2) {
+         insertRangeWithMissing(0, row, 0, 50, {20});
+      } else {
+         insertRange(0, row, 0, 50);
+      }
+   }
+
+   // Row 2 carries an N at 20, so it is missing there rather than covered -- even though 20 lies
+   // inside its [0, 50) range and every row's range covers it.
+   EXPECT_EQ(rowsIn(index->coveredRowsInChunk(20, 0)), (std::vector<uint16_t>{0, 1, 3, 4}));
+   EXPECT_FALSE(index->positionCoveredByWholeChunk(20, 0));
+
+   // One position over, nothing is missing and the whole-chunk fast path applies again.
+   EXPECT_TRUE(index->positionCoveredByWholeChunk(21, 0));
+   EXPECT_EQ(rowsIn(index->coveredRowsInChunk(21, 0)), (std::vector<uint16_t>{0, 1, 2, 3, 4}));
+}
+
+TEST_F(HorizontalCoverageIndexTest, CoveredRowsInChunkEmptyWhenPositionOutsideEnvelope) {
+   for (uint16_t row = 0; row < 8; ++row) {
+      insertRange(0, row, 10, 20);
+   }
+
+   // Past every row's end, and before every row's start: both are the O(1) rejection.
+   EXPECT_TRUE(index->noRowCoversPositionInChunk(20, 0));
+   EXPECT_TRUE(index->noRowCoversPositionInChunk(5, 0));
+   EXPECT_TRUE(rowsIn(index->coveredRowsInChunk(20, 0)).empty());
+   EXPECT_TRUE(rowsIn(index->coveredRowsInChunk(5, 0)).empty());
+}
+
+TEST_F(HorizontalCoverageIndexTest, CoveredRowsInChunkEmptyWhenEnvelopeAdmitsButNoRowCovers) {
+   // A gap between the two rows' ranges: 15 is inside the chunk's covered envelope [0, 30), so the
+   // O(1) rejection does not fire, but the scan still finds nothing. This is the other way a result
+   // comes back empty, and the one that has to free the bitset it speculatively allocated.
+   insertRange(0, 0, 0, 10);
+   insertRange(0, 1, 20, 30);
+
+   EXPECT_FALSE(index->noRowCoversPositionInChunk(15, 0));
+   EXPECT_FALSE(index->positionCoveredByWholeChunk(15, 0));
+   EXPECT_TRUE(rowsIn(index->coveredRowsInChunk(15, 0)).empty());
+}
+
+TEST_F(HorizontalCoverageIndexTest, CoveredRowsInChunkReturnsRowInChunkIndices) {
+   // Chunks must be filled in order, so chunk 0 exists before chunk 1.
+   for (uint16_t row = 0; row < 3; ++row) {
+      insertRange(0, row, 0, 5);
+   }
+   for (uint16_t row = 0; row < 4; ++row) {
+      insertRange(1, row, 0, 50);
+   }
+
+   // The result is one container for this chunk alone, so it holds row-in-chunk indices, not the
+   // global row ids (which for chunk 1 start at 65536).
+   EXPECT_EQ(rowsIn(index->coveredRowsInChunk(10, 1)), (std::vector<uint16_t>{0, 1, 2, 3}));
+   // Chunk 0's rows end at 5, so the same position matches nothing there.
+   EXPECT_TRUE(rowsIn(index->coveredRowsInChunk(10, 0)).empty());
+}
+
+TEST_F(HorizontalCoverageIndexTest, PositionCoveredByWholeChunkIsFalseWithANullRow) {
+   insertRange(0, 0, 0, 50);
+   insertRange(0, 1, 0, 50);
+   index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 2});
+
+   // A null row has range [0, 0), which drags the intersection envelope's end to 0, so no position
+   // is covered by the whole chunk.
+   EXPECT_FALSE(index->positionCoveredByWholeChunk(10, 0));
+   // The other two rows still cover it.
+   EXPECT_EQ(rowsIn(index->coveredRowsInChunk(10, 0)), (std::vector<uint16_t>{0, 1}));
 }
 
 }  // namespace rhydb::storage::column
