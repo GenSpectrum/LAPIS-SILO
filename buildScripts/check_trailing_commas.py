@@ -309,7 +309,7 @@ def check_file(path: Path) -> list[str]:
 def changed_lines_for_file(diff_base: str, path: Path) -> set[int]:
    changed_lines: set[int] = set()
    diff_commands = [
-      (["git", "diff", "--unified=0", "--no-color", f"{diff_base}...HEAD", "--", str(path)], False),
+      (["git", "diff", "--unified=0", "--no-color", diff_base, "--", str(path)], False),
       (["git", "diff", "--cached", "--unified=0", "--no-color", "--", str(path)], True),
       (["git", "diff", "--unified=0", "--no-color", "--", str(path)], True),
    ]

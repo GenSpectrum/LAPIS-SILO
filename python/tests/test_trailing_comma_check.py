@@ -192,7 +192,7 @@ def test_ignores_braces_inside_string_literals(tmp_path: Path) -> None:
    result = run_check(
       tmp_path,
       r'''
-      const char* raw = R"({ not an initializer })";
+      const char* raw = R"tag({ not an initializer })tag";
       const char* normal = "{ still not an initializer }";
 
       struct Config {
