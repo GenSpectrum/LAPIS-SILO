@@ -22,6 +22,7 @@ TYPE_KEYWORDS = {"class", "struct", "union", "enum", "namespace"}
 INITIALIZER_CLOSE_FOLLOWERS = {";", ",", ")", "]"}
 EXPRESSION_CUES = {"=", "return", "co_return", ",", "(", "[", "{", "?", "throw"}
 STATEMENT_BOUNDARIES = {";", "{", "}"}
+RAW_STRING_PREFIXES = ("u8R\"", "uR\"", "UR\"", "LR\"", "R\"")
 
 
 @dataclass(frozen=True)
@@ -111,14 +112,15 @@ def tokenize(source: str) -> list[Token]:
          if i < length:
             advance(2)
          continue
-      if source.startswith("R\"", i):
+      raw_prefix = next((prefix for prefix in RAW_STRING_PREFIXES if source.startswith(prefix, i)), None)
+      if raw_prefix is not None:
          raw_start_line, raw_start_column, raw_start_index = line, column, i
-         delimiter_end = source.find("(", i + 2)
+         delimiter_end = source.find("(", i + len(raw_prefix))
          if delimiter_end == -1:
-            add_token("R", raw_start_line, raw_start_column, raw_start_index)
+            add_token(raw_prefix[:-1], raw_start_line, raw_start_column, raw_start_index)
             advance()
             continue
-         raw_delimiter = source[i + 2 : delimiter_end]
+         raw_delimiter = source[i + len(raw_prefix) : delimiter_end]
          closing = f"){raw_delimiter}\""
          advance(delimiter_end - i + 1)
          while i < length and not source.startswith(closing, i):
@@ -307,8 +309,8 @@ def check_file(path: Path) -> list[str]:
    return check_file_lines(path, None)
 
 
-def changed_lines_for_file(diff_base: str, path: Path) -> set[int]:
-   if has_staged_changes(path):
+def changed_lines_for_file(diff_base: str, path: Path, has_staged_snapshot: bool) -> set[int]:
+   if has_staged_snapshot:
       return staged_changed_lines_for_file(diff_base, path)
    return working_tree_changed_lines_for_file(diff_base, path)
 
@@ -395,10 +397,11 @@ def main() -> int:
       changed_lines = None
       source_override = None
       if args.diff_base is not None:
-         changed_lines = changed_lines_for_file(args.diff_base, file_path)
+         has_staged_snapshot = has_staged_changes(file_path)
+         changed_lines = changed_lines_for_file(args.diff_base, file_path, has_staged_snapshot)
          if not changed_lines:
             continue
-         if has_staged_changes(file_path):
+         if has_staged_snapshot:
             source_override = read_staged_file(file_path)
       messages.extend(check_file_lines(file_path, changed_lines, source_override))
    if messages:

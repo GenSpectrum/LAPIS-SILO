@@ -189,7 +189,7 @@ def test_ignores_braces_inside_string_literals(tmp_path: Path) -> None:
    result = run_check(
       tmp_path,
       r'''
-      const char* raw = R"tag({ not an initializer })tag";
+      const char* raw = u8R"tag({ not an initializer })tag";
       const char* normal = "{ still not an initializer }";
 
       struct Config {
@@ -236,13 +236,39 @@ def test_accepts_numeric_literals_inside_initializer(tmp_path: Path) -> None:
       """
       struct Config {
          double first;
+         float second;
+         double third;
+         unsigned fourth;
+         int fifth;
+      };
+
+      Config config{
+         .first = 1e-3,
+         .second = 1.0f,
+         .third = 0x1.fp+3,
+         .fourth = 0xFFu,
+         .fifth = 1'000,
+      };
+      """,
+   )
+
+   assert result.returncode == 0
+   assert result.stderr == ""
+
+
+def test_accepts_signed_exponent_literals_inside_initializer(tmp_path: Path) -> None:
+   result = run_check(
+      tmp_path,
+      """
+      struct Config {
+         double first;
          unsigned second;
          int third;
       };
 
       Config config{
-         .first = 1e-3,
-         .second = 0xFFu,
+         .first = 2e+4,
+         .second = 0x10u,
          .third = 1'000,
       };
       """,
