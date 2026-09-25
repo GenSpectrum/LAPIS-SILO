@@ -262,3 +262,77 @@ def test_reports_missing_path_explicitly(tmp_path: Path) -> None:
 
    assert result.returncode == 2
    assert "path does not exist" in result.stderr
+
+
+def test_reports_unsupported_explicit_file_extension(tmp_path: Path) -> None:
+   text_file = tmp_path / "note.txt"
+   text_file.write_text("not c++")
+   result = subprocess.run(
+      [sys.executable, str(CHECK_SCRIPT), str(text_file)],
+      capture_output=True,
+      text=True,
+      check=False,
+   )
+
+   assert result.returncode == 2
+   assert "unsupported file extension" in result.stderr
+
+
+def test_diff_base_prefers_staged_snapshot_over_unstaged_edits(tmp_path: Path) -> None:
+   cpp_file = initialize_git_repo(
+      tmp_path,
+      """
+      struct Config {
+         int first;
+         int second;
+      };
+
+      Config config{
+         .first = 1,
+         .second = 2,
+      };
+      """,
+   )
+
+   cpp_file.write_text(
+      textwrap.dedent(
+         """
+         struct Config {
+            int first;
+            int second;
+         };
+
+         Config config{
+            .first = 3,
+            .second = 2,
+         };
+         """
+      )
+   )
+   subprocess.run(["git", "add", "sample.cpp"], cwd=tmp_path, check=True)
+
+   cpp_file.write_text(
+      textwrap.dedent(
+         """
+         struct Config {
+            int first;
+            int second;
+         };
+
+         Config config{
+            .first = 1,
+            .second = 2
+         };
+         """
+      )
+   )
+   result = subprocess.run(
+      [sys.executable, str(CHECK_SCRIPT), "--diff-base", "HEAD", "sample.cpp"],
+      cwd=tmp_path,
+      capture_output=True,
+      text=True,
+      check=False,
+   )
+
+   assert result.returncode == 0
+   assert result.stderr == ""

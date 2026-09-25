@@ -42,11 +42,12 @@ def find_cpp_files(paths: list[str]) -> list[Path]:
       if not path.exists():
          raise FileNotFoundError(f"path does not exist: {path}")
       if path.is_file():
-         if path.suffix in CPP_EXTENSIONS:
-            resolved = path.resolve()
-            if resolved not in seen:
-               seen.add(resolved)
-               collected.append(path)
+         if path.suffix not in CPP_EXTENSIONS:
+            raise ValueError(f"unsupported file extension: {path}")
+         resolved = path.resolve()
+         if resolved not in seen:
+            seen.add(resolved)
+            collected.append(path)
          continue
       for candidate in path.rglob("*"):
          if candidate.is_file() and candidate.suffix in CPP_EXTENSIONS:
@@ -255,7 +256,7 @@ def is_initializer_open(tokens: list[Token], open_index: int, close_index: int) 
 
    statement_tokens = tokens[statement_start_index(tokens, open_index) : open_index]
    statement_token_texts = {token.text for token in statement_tokens}
-   if statement_token_texts.intersection(TYPE_KEYWORDS | {"template"}):
+   if statement_token_texts.intersection(TYPE_KEYWORDS):
       return False
    if ")" in statement_token_texts and not statement_token_texts.intersection(EXPRESSION_CUES):
       return False
@@ -307,6 +308,12 @@ def check_file(path: Path) -> list[str]:
 
 
 def changed_lines_for_file(diff_base: str, path: Path) -> set[int]:
+   if has_staged_changes(path):
+      return staged_changed_lines_for_file(diff_base, path)
+   return working_tree_changed_lines_for_file(diff_base, path)
+
+
+def working_tree_changed_lines_for_file(diff_base: str, path: Path) -> set[int]:
    result = subprocess.run(
       ["git", "diff", "--unified=0", "--no-color", diff_base, "--", str(path)],
       capture_output=True,
@@ -316,9 +323,42 @@ def changed_lines_for_file(diff_base: str, path: Path) -> set[int]:
    return parse_changed_lines(result.stdout)
 
 
-def check_file_lines(path: Path, changed_lines: set[int] | None) -> list[str]:
+def staged_changed_lines_for_file(diff_base: str, path: Path) -> set[int]:
+   result = subprocess.run(
+      ["git", "diff", "--cached", "--unified=0", "--no-color", diff_base, "--", str(path)],
+      capture_output=True,
+      text=True,
+      check=True,
+   )
+   return parse_changed_lines(result.stdout)
+
+
+def has_staged_changes(path: Path) -> bool:
+   result = subprocess.run(
+      ["git", "diff", "--cached", "--name-only", "--", str(path)],
+      capture_output=True,
+      text=True,
+      check=True,
+   )
+   return bool(result.stdout.strip())
+
+
+def read_staged_file(path: Path) -> str:
+   result = subprocess.run(
+      ["git", "show", f":{path.as_posix()}"],
+      capture_output=True,
+      check=True,
+   )
+   return result.stdout.decode("utf-8")
+
+
+def check_file_lines(
+   path: Path,
+   changed_lines: set[int] | None,
+   source_override: str | None = None,
+) -> list[str]:
    try:
-      source = path.read_text(encoding="utf-8")
+      source = source_override if source_override is not None else path.read_text(encoding="utf-8")
    except UnicodeDecodeError:
       return [f"{path}:1:1: could not decode file as UTF-8"]
    messages = []
@@ -344,7 +384,7 @@ def main() -> int:
 
    try:
       files = find_cpp_files(args.paths)
-   except (FileNotFoundError, subprocess.CalledProcessError) as error:
+   except (FileNotFoundError, ValueError, subprocess.CalledProcessError) as error:
       if isinstance(error, subprocess.CalledProcessError) and error.stderr:
          print(error.stderr.strip(), file=sys.stderr)
       else:
@@ -353,11 +393,14 @@ def main() -> int:
    messages: list[str] = []
    for file_path in files:
       changed_lines = None
+      source_override = None
       if args.diff_base is not None:
          changed_lines = changed_lines_for_file(args.diff_base, file_path)
          if not changed_lines:
             continue
-      messages.extend(check_file_lines(file_path, changed_lines))
+         if has_staged_changes(file_path):
+            source_override = read_staged_file(file_path)
+      messages.extend(check_file_lines(file_path, changed_lines, source_override))
    if messages:
       print("\n".join(messages), file=sys.stderr)
       return 1
