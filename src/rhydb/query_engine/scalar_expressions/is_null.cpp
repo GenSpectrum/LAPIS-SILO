@@ -49,7 +49,7 @@ std::unique_ptr<filter::operators::Operator> IsNull::compile(const storage::Tabl
       const auto& value_column = table.columns.getColumns<Column>().at(column.name);
       return std::make_unique<filter::operators::IndexScan>(
          Bitmap{&value_column.null_bitmap}, table.row_layout
-      );
+      );,
    });
 }
 

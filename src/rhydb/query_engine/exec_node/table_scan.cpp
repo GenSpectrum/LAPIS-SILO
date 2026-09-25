@@ -188,7 +188,7 @@ ExecBatchBuilder::ExecBatchBuilder(std::vector<rhydb::schema::ColumnIdentifier> 
     : output_fields(std::move(output_fields_)) {
    for (const auto& [name, type] : output_fields) {
       storage::column::visit(type, [&]<storage::column::Column Column>() {
-         array_builders[type].emplace(name, std::make_shared<ArrowBuilder<Column>>());
+         array_builders[type].emplace(name, std::make_shared<ArrowBuilder<Column>>());,
       });
    }
 }
@@ -212,7 +212,7 @@ arrow::Result<arrow::ExecBatch> ExecBatchBuilder::finishBatch() {
             auto array, getColumnTypeArrayBuilders<Column>().at(field.name)->Finish()
          );
          data.push_back(array);
-         return arrow::Status::OK();
+         return arrow::Status::OK();,
       });
       ARROW_RETURN_NOT_OK(status);
    }
@@ -247,7 +247,7 @@ arrow::Result<arrow::acero::ExecNode*> makeTableScan(
       columns, std::move(bitmap_filter_), std::move(table), batch_size_cutoff
    );
    const arrow::acero::SourceNodeOptions source_node_options{
-      exec_node::columnsToArrowSchema(columns), generator, arrow::Ordering::Implicit()
+      exec_node::columnsToArrowSchema(columns), generator, arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", plan, {}, source_node_options);
 }

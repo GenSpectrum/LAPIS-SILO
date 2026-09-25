@@ -45,7 +45,7 @@ std::string ConfigValue::toString() const {
             return fmt::format("{}", fmt::join(value, ","));
          } else {
             return fmt::format("{}", value);
-         }
+         },
       },
       value
    );

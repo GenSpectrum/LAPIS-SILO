@@ -184,7 +184,7 @@ class SelectK : public arrow::acero::ExecNode {
             [this, batch = std::move(next), index]() -> arrow::Status {
                arrow::ExecBatch exec_batch(*batch);
                exec_batch.index = index;
-               return output_->InputReceived(this, std::move(exec_batch));
+               return output_->InputReceived(this, std::move(exec_batch));,
             },
             "SelectK::ProcessBatch"
          );

@@ -57,7 +57,7 @@ arrow::Result<arrow::acero::ExecNode*> CountFilterNode::addToExecPlan(
       ARROW_ASSIGN_OR_RAISE(
          const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make({datum})
       );
-      return arrow::Future{result};
+      return arrow::Future{result};,
    };
 
    const std::vector<schema::ColumnIdentifier> output_schema = getOutputSchema();
@@ -65,7 +65,7 @@ arrow::Result<arrow::acero::ExecNode*> CountFilterNode::addToExecPlan(
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(output_schema),
       std::move(producer),
-      arrow::Ordering::Implicit()
+      arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", &plan, {}, options);
 }

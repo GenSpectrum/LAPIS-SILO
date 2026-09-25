@@ -140,7 +140,7 @@ arrow::Result<Relation> buildRelation(
    return Relation{
       .vertex_names = std::move(vertex_names),
       .adjacency = std::move(adjacency),
-      .sources = std::move(sources)
+      .sources = std::move(sources),
    };
 }
 
@@ -313,15 +313,15 @@ arrow::Result<arrow::acero::ExecNode*> TransitiveClosureNode::addToExecPlan(
                   buildRelation(batches, from_index, to_index, starting_from_copy)
                );
                closure->emplace(std::move(relation), include_vertices_copy, batch_size);
-               return closure->value().nextBatch();
+               return closure->value().nextBatch();,
             }
-         );
+         );,
    };
 
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(getOutputSchema()),
       std::move(producer),
-      arrow::Ordering::Implicit()
+      arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", &plan, {}, options);
 }

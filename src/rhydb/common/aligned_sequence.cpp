@@ -38,7 +38,7 @@ extractCoverageAndMutationsFromSequence(
       if (!symbol.has_value()) {
          return std::unexpected{fmt::format(
             "illegal character '{}' at position {} in the input sequence", character, position_idx
-         )};
+         ),};
       }
       if (symbol == SymbolType::SYMBOL_MISSING) {
          coverage.missing_positions.push_back(position_idx);
@@ -47,7 +47,7 @@ extractCoverageAndMutationsFromSequence(
          // input, or 'U' against a reference 'T'), which is not a mutation.
          mutations.mutations.emplace_back(position_idx, symbol.value());
       }
-      return {};
+      return {};,
    };
 
    size_t char_in_sequence = 0;

@@ -18,7 +18,7 @@ PhyloChildFilter::PhyloChildFilter(schema::ColumnIdentifier column, std::string 
       internal_node(std::move(internal_node)) {}
 
 std::string PhyloChildFilter::toString() const {
-   return fmt::format("column {} phylo_child_of {}", column.name, internal_node);
+   return fmt::format("column {} phylo_child_of {}", column.name, internal_node);,
 };
 
 std::vector<schema::ColumnIdentifier> PhyloChildFilter::freeIUs() const {

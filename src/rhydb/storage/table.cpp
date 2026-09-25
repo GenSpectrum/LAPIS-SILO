@@ -55,7 +55,7 @@ Table::Table(schema::TableName table_name, std::shared_ptr<schema::TableSchema> 
                              ) {
       ColumnType column(table_schema.getColumnMetadata<ColumnType>(column_identifier.name).value());
       column_group.metadata.emplace_back(column_identifier);
-      column_group.getColumns<ColumnType>().emplace(column_identifier.name, std::move(column));
+      column_group.getColumns<ColumnType>().emplace(column_identifier.name, std::move(column));,
    };
    for (const auto& col : this->schema->getColumnIdentifiers()) {
       column::visit(col.type, column_initializer, columns, col, *this->schema);
@@ -67,7 +67,7 @@ nlohmann::json Table::logTable() const {
       {"name", table_name.getName()},
       {"primaryKey",
        schema->primary_key.has_value() ? nlohmann::json(schema->primary_key->name)
-                                       : nlohmann::json(nullptr)}
+                                       : nlohmann::json(nullptr),},
    };
 }
 

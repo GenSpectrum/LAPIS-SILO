@@ -58,7 +58,7 @@ void parallelFor(
                           } catch (...) {
                              return {std::current_exception()};
                           }
-                          return {};
+                          return {};,
                        }
                     )
                     .ValueOrDie();

@@ -149,13 +149,13 @@ arrow::Result<arrow::acero::ExecNode*> InsertionsNode<SymbolType>::addToExecPlan
       ARROW_ASSIGN_OR_RAISE(
          const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
       );
-      return arrow::Future{result};
+      return arrow::Future{result};,
    };
 
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(output_fields),
       std::move(producer),
-      arrow::Ordering::Implicit()
+      arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", &plan, {}, options);
 }
