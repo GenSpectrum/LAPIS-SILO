@@ -789,8 +789,36 @@ operators::AggregateFunction parseAggregateFunctionName(const std::string& funct
    if (function_name == "count") {
       return operators::AggregateFunction::COUNT;
    }
+   if (function_name == "sum") {
+      return operators::AggregateFunction::SUM;
+   }
    throw IllegalQueryException(
-      "unknown aggregate function '{}'. Valid functions: count", function_name
+      "unknown aggregate function '{}'. Valid functions: count, sum", function_name
+   );
+}
+
+bool isNumericColumnType(schema::ColumnType type) {
+   return type == schema::ColumnType::INT32 || type == schema::ColumnType::INT64 ||
+          type == schema::ColumnType::FLOAT;
+}
+
+/// Checks the arguments of `sum(column)`: exactly one source column, which must be numeric
+void validateSumArguments(
+   const ast::RecordField& field,
+   const ast::FunctionCall& func,
+   const std::optional<schema::ColumnIdentifier>& source_column
+) {
+   CHECK_RHYDB_QUERY(
+      func.positional_arguments.size() == 1 && func.named_arguments.empty(),
+      "aggregate '{}': sum expects exactly one column argument, e.g. sum(age)",
+      field.name
+   );
+   CHECK_RHYDB_QUERY(
+      isNumericColumnType(source_column->type),
+      "aggregate '{}': sum requires a numeric (int, int64 or float) column, but '{}' has type {}",
+      field.name,
+      source_column->name,
+      schema::columnTypeToString(source_column->type)
    );
 }
 
@@ -822,6 +850,9 @@ operators::AggregateDefinition parseAggregateDefinition(
          source_column_name
       );
       source_column = *found;
+   }
+   if (agg_func == operators::AggregateFunction::SUM) {
+      validateSumArguments(field, func, source_column);
    }
    return {
       .output_name = field.name, .function = agg_func, .source_column = std::move(source_column)

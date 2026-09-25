@@ -120,12 +120,18 @@ A boolean column can be used directly as a predicate: `default.filter(isHuman)` 
 
 Aggregates rows, producing counts or other aggregate values. `aggregates` is a record literal; `columns` is an optional set of column names to group by.
 
-Currently supported aggregate function: `count()`.
+Currently supported aggregate functions:
+
+| Function | Result |
+|----------|--------|
+| `count()` | The number of rows in the group (an `int64`). |
+| `sum(column)` | The sum of a numeric column over the rows in the group. Sums of `int` and `int64` columns are `int64`, sums of `float` columns are `float`. Null values are skipped; a group with no non-null value (or no rows at all, when there are no groupBy columns) sums to null. |
 
 ```
 default.groupBy(aggregates:={count:=count()})
 default.groupBy(aggregates:={count:=count()}, columns:={pango_lineage})
 default.groupBy({count:=count()}, {country, pango_lineage})
+default.groupBy({count:=count(), total_age:=sum(age)}, {country})
 ```
 
 **Output:** one row per group, containing the named aggregation fields and the groupBy columns. Rows where a groupBy column is null form their own group with a null value for that column.
