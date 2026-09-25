@@ -339,7 +339,7 @@ ScalarExpressionPtr buildValueSetPredicate(
 ScalarExpressionPtr handleIn(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const Tables& tables
 ) {
    const schema::ColumnIdentifier column =
       resolveColumn(extractIdentifierName(args.at("column")), schema);
@@ -354,7 +354,7 @@ ScalarExpressionPtr handleIn(
    // Values may be of any column type.
    std::vector<ScalarExpressionPtr> value_literals;
    for (const auto& elem : std::get<ast::SetLiteral>(values_expr.value).elements) {
-      value_literals.push_back(convertToScalar(*elem, schema, "in() value"));
+      value_literals.push_back(convertToScalar(*elem, schema, "in() value", tables));
    }
    return buildValueSetPredicate(column, std::move(value_literals));
 }
