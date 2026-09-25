@@ -311,15 +311,16 @@ def changed_lines_for_file(diff_base: str, path: Path) -> set[int]:
       ["git", "diff", "--unified=0", "--no-color", diff_base, "--", str(path)],
       capture_output=True,
       text=True,
-      check=False,
+      check=True,
    )
-   if result.returncode != 0:
-      return set()
    return parse_changed_lines(result.stdout)
 
 
 def check_file_lines(path: Path, changed_lines: set[int] | None) -> list[str]:
-   source = path.read_text(encoding="utf-8")
+   try:
+      source = path.read_text(encoding="utf-8")
+   except UnicodeDecodeError:
+      return [f"{path}:1:1: could not decode file as UTF-8"]
    messages = []
    for start_line, end_line, line, column in find_violations(source):
       if changed_lines is not None and changed_lines.isdisjoint(range(start_line, end_line + 1)):
@@ -343,8 +344,11 @@ def main() -> int:
 
    try:
       files = find_cpp_files(args.paths)
-   except FileNotFoundError as error:
-      print(error, file=sys.stderr)
+   except (FileNotFoundError, subprocess.CalledProcessError) as error:
+      if isinstance(error, subprocess.CalledProcessError) and error.stderr:
+         print(error.stderr.strip(), file=sys.stderr)
+      else:
+         print(error, file=sys.stderr)
       return 2
    messages: list[str] = []
    for file_path in files:

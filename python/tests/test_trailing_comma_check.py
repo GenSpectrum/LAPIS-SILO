@@ -10,6 +10,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CHECK_SCRIPT = REPO_ROOT / "buildScripts" / "check_trailing_commas.py"
 
 
+def initialize_git_repo(tmp_path: Path, source: str) -> Path:
+   cpp_file = tmp_path / "sample.cpp"
+   cpp_file.write_text(textwrap.dedent(source))
+   subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True, text=True)
+   subprocess.run(["git", "config", "user.name", "Test User"], cwd=tmp_path, check=True)
+   subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True)
+   subprocess.run(["git", "add", "sample.cpp"], cwd=tmp_path, check=True)
+   subprocess.run(["git", "commit", "-m", "base"], cwd=tmp_path, check=True, capture_output=True, text=True)
+   return cpp_file
+
+
 def run_check(tmp_path: Path, source: str) -> subprocess.CompletedProcess[str]:
    cpp_file = tmp_path / "sample.cpp"
    cpp_file.write_text(textwrap.dedent(source))
@@ -62,27 +73,20 @@ def test_accepts_multiline_initializer_with_trailing_comma(tmp_path: Path) -> No
 
 
 def test_diff_base_checks_only_changed_lines_with_relative_path(tmp_path: Path) -> None:
-   cpp_file = tmp_path / "sample.cpp"
-   cpp_file.write_text(
-      textwrap.dedent(
-         """
-         struct Config {
-            int first;
-            int second;
-         };
+   cpp_file = initialize_git_repo(
+      tmp_path,
+      """
+      struct Config {
+         int first;
+         int second;
+      };
 
-         Config config{
-            .first = 1,
-            .second = 2,
-         };
-         """
-      )
+      Config config{
+         .first = 1,
+         .second = 2,
+      };
+      """,
    )
-   subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True, text=True)
-   subprocess.run(["git", "config", "user.name", "Test User"], cwd=tmp_path, check=True)
-   subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True)
-   subprocess.run(["git", "add", "sample.cpp"], cwd=tmp_path, check=True)
-   subprocess.run(["git", "commit", "-m", "base"], cwd=tmp_path, check=True, capture_output=True, text=True)
 
    cpp_file.write_text(
       textwrap.dedent(
@@ -112,27 +116,20 @@ def test_diff_base_checks_only_changed_lines_with_relative_path(tmp_path: Path) 
 
 
 def test_diff_base_checks_staged_only_changes(tmp_path: Path) -> None:
-   cpp_file = tmp_path / "sample.cpp"
-   cpp_file.write_text(
-      textwrap.dedent(
-         """
-         struct Config {
-            int first;
-            int second;
-         };
+   cpp_file = initialize_git_repo(
+      tmp_path,
+      """
+      struct Config {
+         int first;
+         int second;
+      };
 
-         Config config{
-            .first = 1,
-            .second = 2,
-         };
-         """
-      )
+      Config config{
+         .first = 1,
+         .second = 2,
+      };
+      """,
    )
-   subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True, text=True)
-   subprocess.run(["git", "config", "user.name", "Test User"], cwd=tmp_path, check=True)
-   subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True)
-   subprocess.run(["git", "add", "sample.cpp"], cwd=tmp_path, check=True)
-   subprocess.run(["git", "commit", "-m", "base"], cwd=tmp_path, check=True, capture_output=True, text=True)
 
    cpp_file.write_text(
       textwrap.dedent(
@@ -231,6 +228,28 @@ def test_reports_missing_trailing_comma_in_returned_initializer(tmp_path: Path) 
 
    assert result.returncode == 1
    assert "multi-line braced initializer should end with a trailing comma" in result.stderr
+
+
+def test_accepts_numeric_literals_inside_initializer(tmp_path: Path) -> None:
+   result = run_check(
+      tmp_path,
+      """
+      struct Config {
+         double first;
+         unsigned second;
+         int third;
+      };
+
+      Config config{
+         .first = 1e-3,
+         .second = 0xFFu,
+         .third = 1'000,
+      };
+      """,
+   )
+
+   assert result.returncode == 0
+   assert result.stderr == ""
 
 
 def test_reports_missing_path_explicitly(tmp_path: Path) -> None:
