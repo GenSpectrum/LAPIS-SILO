@@ -57,7 +57,7 @@ schema:
 const QueryTestData TEST_DATA{
    .ndjson_input_data = DATA,
    .database_config = DATABASE_CONFIG,
-   .reference_genomes = ReferenceGenomes{{}, {}}
+   .reference_genomes = ReferenceGenomes{{}, {}},
 };
 
 const QueryTestScenario SUM_WITHOUT_GROUPS = {

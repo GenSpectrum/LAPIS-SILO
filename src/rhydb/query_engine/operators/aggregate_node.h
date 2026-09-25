@@ -14,7 +14,7 @@
 
 namespace rhydb::query_engine::operators {
 
-// TODO(#1231) extend with avg, max, min and expose sum in the query language
+// TODO(#1231) extend with avg, max, min
 enum class AggregateFunction : uint8_t { COUNT, SUM };
 
 std::string_view displayName(AggregateFunction aggregate);
