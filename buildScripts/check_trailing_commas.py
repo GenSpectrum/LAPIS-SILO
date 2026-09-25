@@ -1,0 +1,341 @@
+#!/usr/bin/env python3
+
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass, replace
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+CPP_EXTENSIONS = {".cpp", ".h", ".hpp"}
+DEFAULT_PATHS = ("src", "app/src", "wasm/src")
+BLOCK_KEYWORDS = {"if", "for", "while", "switch", "catch", "else", "do", "try"}
+TYPE_KEYWORDS = {"class", "struct", "union", "enum", "namespace"}
+INITIALIZER_CLOSE_FOLLOWERS = {";", ",", ")", "]"}
+EXPRESSION_CUES = {"=", "return", "co_return", ",", "(", "[", "{", "?", "throw"}
+STATEMENT_BOUNDARIES = {";", "{", "}"}
+
+
+@dataclass(frozen=True)
+class Token:
+   text: str
+   line: int
+   column: int
+   index: int
+   pair_index: int | None = None
+
+
+def find_cpp_files(paths: list[str]) -> list[Path]:
+   collected: list[Path] = []
+   seen: set[Path] = set()
+   for raw_path in paths:
+      path = Path(raw_path)
+      if path.is_file():
+         if path.suffix in CPP_EXTENSIONS:
+            resolved = path.resolve()
+            if resolved not in seen:
+               seen.add(resolved)
+               collected.append(path)
+         continue
+      if not path.exists():
+         continue
+      for candidate in path.rglob("*"):
+         if candidate.is_file() and candidate.suffix in CPP_EXTENSIONS:
+            resolved = candidate.resolve()
+            if resolved not in seen:
+               seen.add(resolved)
+               collected.append(candidate)
+   return sorted(collected)
+
+
+def tokenize(source: str) -> list[Token]:
+   tokens: list[Token] = []
+   brace_stack: list[int] = []
+   paren_stack: list[int] = []
+   bracket_stack: list[int] = []
+   i = 0
+   line = 1
+   column = 1
+   length = len(source)
+
+   def advance(count: int = 1) -> None:
+      nonlocal i, line, column
+      for _ in range(count):
+         if source[i] == "\n":
+            line += 1
+            column = 1
+         else:
+            column += 1
+         i += 1
+
+   def add_token(text: str, start_line: int, start_column: int, start_index: int) -> None:
+      tokens.append(Token(text, start_line, start_column, start_index))
+
+   while i < length:
+      current = source[i]
+      if current.isspace():
+         advance()
+         continue
+      if source.startswith("//", i):
+         while i < length and source[i] != "\n":
+            advance()
+         continue
+      if source.startswith("/*", i):
+         advance(2)
+         while i < length and not source.startswith("*/", i):
+            advance()
+         if i < length:
+            advance(2)
+         continue
+      if current in {'"', "'"}:
+         delimiter = current
+         advance()
+         while i < length:
+            if source[i] == "\\":
+               advance(2)
+               continue
+            if source[i] == delimiter:
+               advance()
+               break
+            advance()
+         continue
+      if source.startswith("R\"", i):
+         raw_start_line, raw_start_column, raw_start_index = line, column, i
+         delimiter_end = source.find("(", i + 2)
+         if delimiter_end == -1:
+            add_token("R", raw_start_line, raw_start_column, raw_start_index)
+            advance()
+            continue
+         raw_delimiter = source[i + 2 : delimiter_end]
+         closing = f"){raw_delimiter}\""
+         while i < length and not source.startswith(closing, i):
+            advance()
+         if i < length:
+            advance(len(closing))
+         continue
+      start_line, start_column, start_index = line, column, i
+      three_char = source[i : i + 3]
+      two_char = source[i : i + 2]
+      if three_char in {"<=>", "..."}:
+         add_token(three_char, start_line, start_column, start_index)
+         advance(3)
+         continue
+      if two_char in {
+         "::",
+         "->",
+         "++",
+         "--",
+         "==",
+         "!=",
+         "<=",
+         ">=",
+         "&&",
+         "||",
+         "+=",
+         "-=",
+         "*=",
+         "/=",
+         "%=",
+         "&=",
+         "|=",
+         "^=",
+         "<<",
+         ">>",
+         "<<=",
+         ">>=",
+      }:
+         add_token(two_char, start_line, start_column, start_index)
+         advance(2)
+         continue
+      if current.isalpha() or current == "_":
+         end = i + 1
+         while end < length and (source[end].isalnum() or source[end] == "_"):
+            end += 1
+         text = source[i:end]
+         add_token(text, start_line, start_column, start_index)
+         advance(end - i)
+         continue
+      if current.isdigit():
+         end = i + 1
+         while end < length and (source[end].isalnum() or source[end] in "._'"):
+            end += 1
+         add_token(source[i:end], start_line, start_column, start_index)
+         advance(end - i)
+         continue
+      add_token(current, start_line, start_column, start_index)
+      advance()
+
+   updated_tokens = list(tokens)
+   for index, token in enumerate(tokens):
+      if token.text == "{":
+         brace_stack.append(index)
+      elif token.text == "}":
+         if brace_stack:
+            open_index = brace_stack.pop()
+            updated_tokens[open_index] = replace(updated_tokens[open_index], pair_index=index)
+            updated_tokens[index] = replace(updated_tokens[index], pair_index=open_index)
+      elif token.text == "(":
+         paren_stack.append(index)
+      elif token.text == ")":
+         if paren_stack:
+            open_index = paren_stack.pop()
+            updated_tokens[open_index] = replace(updated_tokens[open_index], pair_index=index)
+            updated_tokens[index] = replace(updated_tokens[index], pair_index=open_index)
+      elif token.text == "[":
+         bracket_stack.append(index)
+      elif token.text == "]":
+         if bracket_stack:
+            open_index = bracket_stack.pop()
+            updated_tokens[open_index] = replace(updated_tokens[open_index], pair_index=index)
+            updated_tokens[index] = replace(updated_tokens[index], pair_index=open_index)
+   return updated_tokens
+
+
+def previous_token(tokens: list[Token], index: int) -> Token | None:
+   return tokens[index - 1] if index > 0 else None
+
+
+def next_token(tokens: list[Token], index: int) -> Token | None:
+   return tokens[index + 1] if index + 1 < len(tokens) else None
+
+
+def statement_start_index(tokens: list[Token], open_index: int) -> int:
+   index = open_index - 1
+   while index >= 0 and tokens[index].text not in STATEMENT_BOUNDARIES:
+      index -= 1
+   return index + 1
+
+
+def is_statement_expression_context(tokens: list[Token], call_head_index: int) -> bool:
+   index = call_head_index - 1
+   while index >= 0 and tokens[index].text not in STATEMENT_BOUNDARIES:
+      if tokens[index].text in EXPRESSION_CUES:
+         return True
+      index -= 1
+   return False
+
+
+def is_initializer_open(tokens: list[Token], open_index: int, close_index: int) -> bool:
+   open_token = tokens[open_index]
+   close_token = tokens[close_index]
+   if open_token.line == close_token.line:
+      return False
+
+   before_open = previous_token(tokens, open_index)
+   after_close = next_token(tokens, close_index)
+   if before_open is None or after_close is None:
+      return False
+   if after_close.text not in INITIALIZER_CLOSE_FOLLOWERS:
+      return False
+
+   statement_tokens = tokens[statement_start_index(tokens, open_index) : open_index]
+   statement_token_texts = {token.text for token in statement_tokens}
+   if statement_token_texts.intersection(TYPE_KEYWORDS | {"template"}):
+      return False
+   if ")" in statement_token_texts and not statement_token_texts.intersection(EXPRESSION_CUES):
+      return False
+
+   if before_open.text in BLOCK_KEYWORDS or before_open.text == "]":
+      return False
+   if before_open.text in TYPE_KEYWORDS:
+      return False
+
+   before_before_open = tokens[open_index - 2] if open_index >= 2 else None
+   if before_before_open is not None:
+      if before_before_open.text in TYPE_KEYWORDS and before_open.text.isidentifier():
+         return False
+
+   if before_open.text == ")":
+      if before_open.pair_index is None:
+         return False
+      call_open = tokens[before_open.pair_index]
+      call_head = previous_token(tokens, before_open.pair_index)
+      if call_head is None:
+         return False
+      if call_head.text in BLOCK_KEYWORDS:
+         return False
+      if call_head.text == "]":
+         return False
+      return is_statement_expression_context(tokens, before_open.pair_index)
+
+   return True
+
+
+def find_violations(source: str) -> list[tuple[int, int]]:
+   tokens = tokenize(source)
+   violations: list[tuple[int, int]] = []
+   for index, token in enumerate(tokens):
+      if token.text != "{" or token.pair_index is None:
+         continue
+      close_index = token.pair_index
+      if not is_initializer_open(tokens, index, close_index):
+         continue
+      last_inner_token = previous_token(tokens, close_index)
+      if last_inner_token is None or last_inner_token.text == ",":
+         continue
+      violations.append((last_inner_token.line, last_inner_token.column))
+   return violations
+
+
+def check_file(path: Path) -> list[str]:
+   return check_file_lines(path, None)
+
+
+def changed_lines_for_file(diff_base: str, path: Path) -> set[int]:
+   result = subprocess.run(
+      ["git", "diff", "--unified=0", "--no-color", diff_base, "--", str(path)],
+      capture_output=True,
+      text=True,
+      check=True,
+   )
+   changed_lines: set[int] = set()
+   for line in result.stdout.splitlines():
+      match = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", line)
+      if match is None:
+         continue
+      start = int(match.group(1))
+      count = int(match.group(2) or "1")
+      for changed_line in range(start, start + count):
+         changed_lines.add(changed_line)
+   return changed_lines
+
+
+def check_file_lines(path: Path, changed_lines: set[int] | None) -> list[str]:
+   source = path.read_text(encoding="utf-8")
+   messages = []
+   for line, column in find_violations(source):
+      if changed_lines is not None and line not in changed_lines:
+         continue
+      messages.append(
+         f"{path}:{line}:{column}: multi-line braced initializer should end with a trailing comma"
+      )
+   return messages
+
+
+def main() -> int:
+   parser = argparse.ArgumentParser(
+      description="Check that multi-line braced initializers end with a trailing comma.",
+   )
+   parser.add_argument("--diff-base")
+   parser.add_argument("paths", nargs="*", default=list(DEFAULT_PATHS))
+   args = parser.parse_args()
+
+   files = find_cpp_files(args.paths)
+   messages: list[str] = []
+   for file_path in files:
+      changed_lines = None
+      if args.diff_base is not None:
+         changed_lines = changed_lines_for_file(args.diff_base, file_path)
+         if not changed_lines:
+            continue
+      messages.extend(check_file_lines(file_path, changed_lines))
+   if messages:
+      print("\n".join(messages), file=sys.stderr)
+      return 1
+   return 0
+
+
+if __name__ == "__main__":
+   raise SystemExit(main())
