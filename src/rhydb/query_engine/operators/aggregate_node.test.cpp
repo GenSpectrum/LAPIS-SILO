@@ -163,6 +163,23 @@ const QueryTestScenario SUM_OF_UNKNOWN_COLUMN = {
    .expected_error_message = "source column weight is not present in the input's output schema"
 };
 
+const QueryTestScenario COUNT_STAR_WITH_CUSTOM_NAME = {
+   .name = "COUNT_STAR_WITH_CUSTOM_NAME",
+   .query = "default.groupBy({n := count()})",
+   .expected_query_result = nlohmann::json::parse(R"([{"n": 6}])")
+};
+
+const QueryTestScenario COUNT_PER_GROUP_WITH_CUSTOM_NAME = {
+   .name = "COUNT_PER_GROUP_WITH_CUSTOM_NAME",
+   .query = "default.groupBy({n := count()}, {country}).orderBy({country})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"country": null, "n": 1},
+      {"country": "France", "n": 1},
+      {"country": "Germany", "n": 2},
+      {"country": "Switzerland", "n": 2}
+   ])")
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -182,4 +199,10 @@ QUERY_TEST(
       SUM_OF_TWO_COLUMNS,
       SUM_OF_UNKNOWN_COLUMN
    )
+);
+
+QUERY_TEST(
+   AggregateCount,
+   TEST_DATA,
+   ::testing::Values(COUNT_STAR_WITH_CUSTOM_NAME, COUNT_PER_GROUP_WITH_CUSTOM_NAME)
 );
