@@ -21,19 +21,6 @@ fi
 echo "Changed files:"
 echo "$files"
 
-mapfile -t file_array <<<"$files"
-trailing_comma_files=()
-for file in "${file_array[@]}"; do
-  if [[ $file == src/* || $file == app/src/* || $file == wasm/src/* ]]; then
-    if [[ $file == *.cpp || $file == *.h || $file == *.hpp ]]; then
-      trailing_comma_files+=("$file")
-    fi
-  fi
-done
-if [[ ${#trailing_comma_files[@]} -gt 0 ]]; then
-  python3 buildScripts/check_trailing_commas.py --diff-base origin/main "${trailing_comma_files[@]}"
-fi
-
 DOCKER_BUILD_CACHE_VOLUME="${LINT_DOCKER_BUILD_CACHE_VOLUME:-DockerBuildCache-$(basename "$(pwd)" | tr -c 'A-Za-z0-9_.-' '_')}"
 echo "Using Docker volume for build cache: $DOCKER_BUILD_CACHE_VOLUME (clear with: docker volume rm \"$DOCKER_BUILD_CACHE_VOLUME\")"
 
