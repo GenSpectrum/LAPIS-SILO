@@ -50,6 +50,19 @@ def find_cpp_files(paths: list[str]) -> list[Path]:
    return sorted(collected)
 
 
+def parse_changed_lines(diff_output: str) -> set[int]:
+   changed_lines: set[int] = set()
+   for line in diff_output.splitlines():
+      match = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", line)
+      if match is None:
+         continue
+      start = int(match.group(1))
+      count = int(match.group(2) or "1")
+      for changed_line in range(start, start + count):
+         changed_lines.add(changed_line)
+   return changed_lines
+
+
 def tokenize(source: str) -> list[Token]:
    tokens: list[Token] = []
    brace_stack: list[int] = []
@@ -118,7 +131,7 @@ def tokenize(source: str) -> list[Token]:
       start_line, start_column, start_index = line, column, i
       three_char = source[i : i + 3]
       two_char = source[i : i + 2]
-      if three_char in {"<=>", "..."}:
+      if three_char in {"<=>", "...", "<<=", ">>="}:
          add_token(three_char, start_line, start_column, start_index)
          advance(3)
          continue
@@ -284,21 +297,15 @@ def check_file(path: Path) -> list[str]:
 
 
 def changed_lines_for_file(diff_base: str, path: Path) -> set[int]:
-   result = subprocess.run(
-      ["git", "diff", "--unified=0", "--no-color", diff_base, "--", str(path)],
-      capture_output=True,
-      text=True,
-      check=True,
-   )
    changed_lines: set[int] = set()
-   for line in result.stdout.splitlines():
-      match = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", line)
-      if match is None:
-         continue
-      start = int(match.group(1))
-      count = int(match.group(2) or "1")
-      for changed_line in range(start, start + count):
-         changed_lines.add(changed_line)
+   diff_commands = [
+      ["git", "diff", "--unified=0", "--no-color", f"{diff_base}...HEAD", "--", str(path)],
+      ["git", "diff", "--cached", "--unified=0", "--no-color", "--", str(path)],
+      ["git", "diff", "--unified=0", "--no-color", "--", str(path)],
+   ]
+   for command in diff_commands:
+      result = subprocess.run(command, capture_output=True, text=True, check=True)
+      changed_lines.update(parse_changed_lines(result.stdout))
    return changed_lines
 
 

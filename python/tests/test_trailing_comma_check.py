@@ -111,6 +111,57 @@ def test_diff_base_checks_only_changed_lines_with_relative_path(tmp_path: Path) 
    assert "sample.cpp:9:14" in result.stderr
 
 
+def test_diff_base_checks_staged_only_changes(tmp_path: Path) -> None:
+   cpp_file = tmp_path / "sample.cpp"
+   cpp_file.write_text(
+      textwrap.dedent(
+         """
+         struct Config {
+            int first;
+            int second;
+         };
+
+         Config config{
+            .first = 1,
+            .second = 2,
+         };
+         """
+      )
+   )
+   subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True, text=True)
+   subprocess.run(["git", "config", "user.name", "Test User"], cwd=tmp_path, check=True)
+   subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True)
+   subprocess.run(["git", "add", "sample.cpp"], cwd=tmp_path, check=True)
+   subprocess.run(["git", "commit", "-m", "base"], cwd=tmp_path, check=True, capture_output=True, text=True)
+
+   cpp_file.write_text(
+      textwrap.dedent(
+         """
+         struct Config {
+            int first;
+            int second;
+         };
+
+         Config config{
+            .first = 1,
+            .second = 2
+         };
+         """
+      )
+   )
+   subprocess.run(["git", "add", "sample.cpp"], cwd=tmp_path, check=True)
+   result = subprocess.run(
+      [sys.executable, str(CHECK_SCRIPT), "--diff-base", "HEAD", "sample.cpp"],
+      cwd=tmp_path,
+      capture_output=True,
+      text=True,
+      check=False,
+   )
+
+   assert result.returncode == 1
+   assert "sample.cpp:9:14" in result.stderr
+
+
 def test_ignores_non_initializer_braces(tmp_path: Path) -> None:
    result = run_check(
       tmp_path,
