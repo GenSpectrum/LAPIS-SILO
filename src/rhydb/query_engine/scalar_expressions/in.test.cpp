@@ -14,18 +14,21 @@ nlohmann::json createData(
    const std::string& country,
    const std::string& region,
    int32_t year,
-   double score
+   double score,
+   const std::string& date
 ) {
    return {
       {"primaryKey", primary_key},
       {"country", country},
       {"region", region},
       {"year", year},
-      {"score", score}
+      {"score", score},
+      {"date", date}
    };
 }
 
-// `country` is dictionary-encoded, `region` a plain string, `year` an int, `score` a float.
+// `country` is dictionary-encoded, `region` a plain string, `year` an int, `score` a float, `date`
+// a date.
 const auto DATABASE_CONFIG =
    R"(
 schema:
@@ -42,6 +45,8 @@ schema:
      type: "int"
    - name: "score"
      type: "float"
+   - name: "date"
+     type: "date"
   primaryKey: "primaryKey"
 )";
 
@@ -50,11 +55,11 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{{}, {}};
 const QueryTestData TEST_DATA{
    .ndjson_input_data =
       {
-         createData("id_0", "Germany", "Europe", 2020, 1e-7),
-         createData("id_1", "France", "Europe", 2021, 2e-7),
-         createData("id_2", "Japan", "Asia", 2022, 3e-7),
-         createData("id_3", "Germany", "Europe", 2020, 0.5),
-         createData("id_4", "Brazil", "SouthAmerica", 2023, 1.0),
+         createData("id_0", "Germany", "Europe", 2020, 1e-7, "2020-01-01"),
+         createData("id_1", "France", "Europe", 2021, 2e-7, "2021-06-01"),
+         createData("id_2", "Japan", "Asia", 2022, 3e-7, "2022-03-15"),
+         createData("id_3", "Germany", "Europe", 2020, 0.5, "2020-01-01"),
+         createData("id_4", "Brazil", "SouthAmerica", 2023, 1.0, "2023-12-31"),
       },
    .database_config = DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES
@@ -82,6 +87,14 @@ const QueryTestScenario IN_SET_LITERAL_FLOAT_COLUMN = {
    .query = "default.filter(score.in({0.0000002, 0.5})).project({primaryKey})",
    .expected_query_result =
       nlohmann::json::parse(R"([{"primaryKey":"id_1"},{"primaryKey":"id_3"}])")
+};
+
+const QueryTestScenario IN_SET_LITERAL_DATE_COLUMN = {
+   .name = "IN_SET_LITERAL_DATE_COLUMN",
+   .query =
+      "default.filter(date.in({'2021-06-01'::date, '2023-12-31'::date})).project({primaryKey})",
+   .expected_query_result =
+      nlohmann::json::parse(R"([{"primaryKey":"id_1"},{"primaryKey":"id_4"}])")
 };
 
 const QueryTestScenario IN_DUPLICATE_VALUES = {
@@ -163,6 +176,7 @@ QUERY_TEST(
       IN_SET_LITERAL_STRING,
       IN_SET_LITERAL_INT_COLUMN,
       IN_SET_LITERAL_FLOAT_COLUMN,
+      IN_SET_LITERAL_DATE_COLUMN,
       IN_DUPLICATE_VALUES,
       IN_NEGATED_INT_COLUMN,
       IN_MIXED_TYPES,
