@@ -96,7 +96,8 @@ using ScalarExpressionPtr = std::unique_ptr<scalar_expressions::ScalarExpression
 
 using ScalarFunctionHandler = std::function<ScalarExpressionPtr(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const Tables& tables
 )>;
 
 class ScalarFunctionRegistry {

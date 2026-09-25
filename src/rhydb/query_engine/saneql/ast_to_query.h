@@ -29,10 +29,12 @@ operators::QueryNodePtr convertExpression(
 
 /// Converts a saneql expression into a boolean filter predicate. `schema` lists the
 /// columns available where the predicate appears (the input table or child node's
-/// output), used to resolve referenced columns to their full {name, type}.
+/// output), used to resolve referenced columns to their full {name, type}. `tables` gives
+/// predicates access to the other tables of the database.
 std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
    const ast::Expression& ast,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables
 );
 
 }  // namespace rhydb::query_engine::saneql

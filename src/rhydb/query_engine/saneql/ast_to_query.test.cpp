@@ -29,7 +29,7 @@ auto parseFilter(
    std::string_view query,
    const std::vector<rhydb::schema::ColumnIdentifier>& schema = {}
 ) {
-   return convertToFilter(*Parser(query).parse(), schema);
+   return convertToFilter(*Parser(query).parse(), schema, {});
 }
 
 // Schema exposing a nucleotide sequence column, so that the sequence leaf expressions can
@@ -441,7 +441,7 @@ TEST(AstToQueryBinaryExpr, unhandledBinaryOpThrows) {
       {}
    );
    EXPECT_THAT(
-      [&]() { (void)convertToFilter(*expr, {}); },
+      [&]() { (void)convertToFilter(*expr, {}, {}); },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("unhandled binary operator"))
    );
 }
