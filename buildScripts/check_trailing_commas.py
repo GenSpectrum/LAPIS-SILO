@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""Check trailing commas in multi-line C++ braced initializers.
+
+This helper intentionally uses a lightweight tokenizer plus a few statement-level heuristics instead
+of full C++ parsing. It is meant to cover the initializer forms used in this repository while
+avoiding normal blocks such as class, namespace, and function bodies.
+"""
 
 from __future__ import annotations
 
@@ -28,18 +34,19 @@ class Token:
 
 
 def find_cpp_files(paths: list[str]) -> list[Path]:
+   """Expand file and directory arguments into the C++ files that should be checked."""
    collected: list[Path] = []
    seen: set[Path] = set()
    for raw_path in paths:
       path = Path(raw_path)
+      if not path.exists():
+         raise FileNotFoundError(f"path does not exist: {path}")
       if path.is_file():
          if path.suffix in CPP_EXTENSIONS:
             resolved = path.resolve()
             if resolved not in seen:
                seen.add(resolved)
                collected.append(path)
-         continue
-      if not path.exists():
          continue
       for candidate in path.rglob("*"):
          if candidate.is_file() and candidate.suffix in CPP_EXTENSIONS:
@@ -64,6 +71,7 @@ def parse_changed_lines(diff_output: str) -> set[int]:
 
 
 def tokenize(source: str) -> list[Token]:
+   """Tokenize source while skipping comments and string literals."""
    tokens: list[Token] = []
    brace_stack: list[int] = []
    paren_stack: list[int] = []
@@ -102,6 +110,21 @@ def tokenize(source: str) -> list[Token]:
          if i < length:
             advance(2)
          continue
+      if source.startswith("R\"", i):
+         raw_start_line, raw_start_column, raw_start_index = line, column, i
+         delimiter_end = source.find("(", i + 2)
+         if delimiter_end == -1:
+            add_token("R", raw_start_line, raw_start_column, raw_start_index)
+            advance()
+            continue
+         raw_delimiter = source[i + 2 : delimiter_end]
+         closing = f"){raw_delimiter}\""
+         advance(delimiter_end - i + 1)
+         while i < length and not source.startswith(closing, i):
+            advance()
+         if i < length:
+            advance(len(closing))
+         continue
       if current in {'"', "'"}:
          delimiter = current
          advance()
@@ -113,20 +136,6 @@ def tokenize(source: str) -> list[Token]:
                advance()
                break
             advance()
-         continue
-      if source.startswith("R\"", i):
-         raw_start_line, raw_start_column, raw_start_index = line, column, i
-         delimiter_end = source.find("(", i + 2)
-         if delimiter_end == -1:
-            add_token("R", raw_start_line, raw_start_column, raw_start_index)
-            advance()
-            continue
-         raw_delimiter = source[i + 2 : delimiter_end]
-         closing = f"){raw_delimiter}\""
-         while i < length and not source.startswith(closing, i):
-            advance()
-         if i < length:
-            advance(len(closing))
          continue
       start_line, start_column, start_index = line, column, i
       three_char = source[i : i + 3]
@@ -231,6 +240,7 @@ def is_statement_expression_context(tokens: list[Token], call_head_index: int) -
 
 
 def is_initializer_open(tokens: list[Token], open_index: int, close_index: int) -> bool:
+   """Best-effort detection of braced initializer contexts that should require a trailing comma."""
    open_token = tokens[open_index]
    close_token = tokens[close_index]
    if open_token.line == close_token.line:
@@ -276,9 +286,9 @@ def is_initializer_open(tokens: list[Token], open_index: int, close_index: int) 
    return True
 
 
-def find_violations(source: str) -> list[tuple[int, int]]:
+def find_violations(source: str) -> list[tuple[int, int, int, int]]:
    tokens = tokenize(source)
-   violations: list[tuple[int, int]] = []
+   violations: list[tuple[int, int, int, int]] = []
    for index, token in enumerate(tokens):
       if token.text != "{" or token.pair_index is None:
          continue
@@ -288,7 +298,7 @@ def find_violations(source: str) -> list[tuple[int, int]]:
       last_inner_token = previous_token(tokens, close_index)
       if last_inner_token is None or last_inner_token.text == ",":
          continue
-      violations.append((last_inner_token.line, last_inner_token.column))
+      violations.append((token.line, tokens[close_index].line, last_inner_token.line, last_inner_token.column))
    return violations
 
 
@@ -299,12 +309,21 @@ def check_file(path: Path) -> list[str]:
 def changed_lines_for_file(diff_base: str, path: Path) -> set[int]:
    changed_lines: set[int] = set()
    diff_commands = [
-      ["git", "diff", "--unified=0", "--no-color", f"{diff_base}...HEAD", "--", str(path)],
-      ["git", "diff", "--cached", "--unified=0", "--no-color", "--", str(path)],
-      ["git", "diff", "--unified=0", "--no-color", "--", str(path)],
+      (["git", "diff", "--unified=0", "--no-color", f"{diff_base}...HEAD", "--", str(path)], False),
+      (["git", "diff", "--cached", "--unified=0", "--no-color", "--", str(path)], True),
+      (["git", "diff", "--unified=0", "--no-color", "--", str(path)], True),
    ]
-   for command in diff_commands:
-      result = subprocess.run(command, capture_output=True, text=True, check=True)
+   for command, required in diff_commands:
+      result = subprocess.run(command, capture_output=True, text=True, check=False)
+      if result.returncode != 0:
+         if required:
+            raise subprocess.CalledProcessError(
+               result.returncode,
+               command,
+               output=result.stdout,
+               stderr=result.stderr,
+            )
+         continue
       changed_lines.update(parse_changed_lines(result.stdout))
    return changed_lines
 
@@ -312,8 +331,8 @@ def changed_lines_for_file(diff_base: str, path: Path) -> set[int]:
 def check_file_lines(path: Path, changed_lines: set[int] | None) -> list[str]:
    source = path.read_text(encoding="utf-8")
    messages = []
-   for line, column in find_violations(source):
-      if changed_lines is not None and line not in changed_lines:
+   for start_line, end_line, line, column in find_violations(source):
+      if changed_lines is not None and changed_lines.isdisjoint(range(start_line, end_line + 1)):
          continue
       messages.append(
          f"{path}:{line}:{column}: multi-line braced initializer should end with a trailing comma"
@@ -329,7 +348,11 @@ def main() -> int:
    parser.add_argument("paths", nargs="*", default=list(DEFAULT_PATHS))
    args = parser.parse_args()
 
-   files = find_cpp_files(args.paths)
+   try:
+      files = find_cpp_files(args.paths)
+   except FileNotFoundError as error:
+      print(error, file=sys.stderr)
+      return 2
    messages: list[str] = []
    for file_path in files:
       changed_lines = None

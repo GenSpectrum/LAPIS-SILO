@@ -186,3 +186,60 @@ def test_ignores_non_initializer_braces(tmp_path: Path) -> None:
 
    assert result.returncode == 0
    assert result.stderr == ""
+
+
+def test_ignores_braces_inside_string_literals(tmp_path: Path) -> None:
+   result = run_check(
+      tmp_path,
+      r'''
+      const char* raw = R"({ not an initializer })";
+      const char* normal = "{ still not an initializer }";
+
+      struct Config {
+         int first;
+         int second;
+      };
+
+      Config config{
+         .first = 1,
+         .second = 2,
+      };
+      ''',
+   )
+
+   assert result.returncode == 0
+   assert result.stderr == ""
+
+
+def test_reports_missing_trailing_comma_in_returned_initializer(tmp_path: Path) -> None:
+   result = run_check(
+      tmp_path,
+      """
+      struct Config {
+         int first;
+         int second;
+      };
+
+      Config makeConfig() {
+         return Config{
+            .first = 1,
+            .second = 2
+         };
+      }
+      """,
+   )
+
+   assert result.returncode == 1
+   assert "multi-line braced initializer should end with a trailing comma" in result.stderr
+
+
+def test_reports_missing_path_explicitly(tmp_path: Path) -> None:
+   result = subprocess.run(
+      [sys.executable, str(CHECK_SCRIPT), str(tmp_path / "missing.cpp")],
+      capture_output=True,
+      text=True,
+      check=False,
+   )
+
+   assert result.returncode == 2
+   assert "path does not exist" in result.stderr
