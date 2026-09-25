@@ -83,7 +83,7 @@ def tokenize(source: str) -> list[Token]:
 
    def advance(count: int = 1) -> None:
       nonlocal i, line, column
-      for _ in range(count):
+      for _ in range(min(count, length - i)):
          if source[i] == "\n":
             line += 1
             column = 1
@@ -307,25 +307,15 @@ def check_file(path: Path) -> list[str]:
 
 
 def changed_lines_for_file(diff_base: str, path: Path) -> set[int]:
-   changed_lines: set[int] = set()
-   diff_commands = [
-      (["git", "diff", "--unified=0", "--no-color", diff_base, "--", str(path)], False),
-      (["git", "diff", "--cached", "--unified=0", "--no-color", "--", str(path)], True),
-      (["git", "diff", "--unified=0", "--no-color", "--", str(path)], True),
-   ]
-   for command, required in diff_commands:
-      result = subprocess.run(command, capture_output=True, text=True, check=False)
-      if result.returncode != 0:
-         if required:
-            raise subprocess.CalledProcessError(
-               result.returncode,
-               command,
-               output=result.stdout,
-               stderr=result.stderr,
-            )
-         continue
-      changed_lines.update(parse_changed_lines(result.stdout))
-   return changed_lines
+   result = subprocess.run(
+      ["git", "diff", "--unified=0", "--no-color", diff_base, "--", str(path)],
+      capture_output=True,
+      text=True,
+      check=False,
+   )
+   if result.returncode != 0:
+      return set()
+   return parse_changed_lines(result.stdout)
 
 
 def check_file_lines(path: Path, changed_lines: set[int] | None) -> list[str]:
@@ -344,7 +334,10 @@ def main() -> int:
    parser = argparse.ArgumentParser(
       description="Check that multi-line braced initializers end with a trailing comma.",
    )
-   parser.add_argument("--diff-base")
+   parser.add_argument(
+      "--diff-base",
+      help="Only report violations in lines changed relative to the given git revision.",
+   )
    parser.add_argument("paths", nargs="*", default=list(DEFAULT_PATHS))
    args = parser.parse_args()
 
