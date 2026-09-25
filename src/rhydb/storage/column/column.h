@@ -38,7 +38,7 @@ concept Column = requires(T column) {
    { T::TYPE } -> std::convertible_to<schema::ColumnType>;
 
    // The logical type of the values this column holds (e.g. STRING, INT32, NUCLEOTIDE_SEQUENCE).
-   { column.type() } -> std::convertible_to<schema::ValueType>;,
+   { column.type() } -> std::convertible_to<schema::ValueType>;
 };
 
 }  // namespace rhydb::storage::column

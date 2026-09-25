@@ -92,7 +92,7 @@ TEST_F(HorizontalCoverageIndexTest, InsertMultipleNullSequences) {
    EXPECT_NO_THROW({
       index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 0});
       index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 1});
-      index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 2});,
+      index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 2});
    });
 }
 
@@ -133,7 +133,7 @@ TEST_F(HorizontalCoverageIndexTest, InsertMultipleSequences) {
    EXPECT_NO_THROW({
       insertSequenceCoverage("ACGT", 0);
       insertSequenceCoverage("TGCA", 5);
-      insertSequenceCoverage("AAAA", 10);,
+      insertSequenceCoverage("AAAA", 10);
    });
 }
 

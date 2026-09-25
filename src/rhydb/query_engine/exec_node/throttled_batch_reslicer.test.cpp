@@ -61,7 +61,7 @@ class ThrottledBatchReslicerTest : public ::testing::Test {
          }
          auto result = **iter;
          ++(*iter);
-         return result;,
+         return result;
       };
    }
 };
@@ -73,7 +73,7 @@ TEST_F(ThrottledBatchReslicerTest, ConstructorValidation) {
    EXPECT_NO_THROW({
       ThrottledBatchReslicer reslicer(
          generator, 100, std::chrono::milliseconds(10), mock_backpressure_monitor.get()
-      );,
+      );
    });
 
    // batch_size = 0 should trigger assertion
@@ -332,7 +332,7 @@ TEST_F(ThrottledBatchReslicerTest, DataIntegrity) {
 TEST_F(ThrottledBatchReslicerTest, ExceptionHandling) {
    // Create a generator that throws an exception
    auto throwing_generator = []() -> arrow::Future<std::optional<ExecBatch>> {
-      throw std::runtime_error("Test exception");,
+      throw std::runtime_error("Test exception");
    };
 
    ThrottledBatchReslicer reslicer(

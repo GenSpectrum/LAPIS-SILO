@@ -115,7 +115,7 @@ void yamlToPaths(
          auto debug_string_parents = ({
             std::vector<std::string> result;
             std::ranges::transform(parents_vector, std::back_inserter(result), joinCamelCase);
-            boost::join(result, ".");,
+            boost::join(result, ".");
          });
          throw rhydb::config::ConfigException(
             fmt::format("{}: found invalid key: {}", debug_context, debug_string_parents)

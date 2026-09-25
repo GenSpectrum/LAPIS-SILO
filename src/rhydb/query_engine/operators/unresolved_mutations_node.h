@@ -37,7 +37,7 @@ class UnresolvedMutationsNode final : public QueryNode {
       using MN = MutationsNode<SymbolType>;
       const bool include_all = fields.empty();
       auto has = [&](std::string_view name) -> bool {
-         return include_all || std::ranges::find(fields, name) != fields.end();,
+         return include_all || std::ranges::find(fields, name) != fields.end();
       };
       std::vector<schema::ColumnIdentifier> output_fields;
       if (has(MN::MUTATION_FROM_FIELD_NAME)) {

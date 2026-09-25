@@ -331,13 +331,13 @@ arrow::Status addMutationsToOutput(
                ARROW_RETURN_NOT_OK(output_builder.addValueIfContainedInOutput(
                   MutationsNode<SymbolType>::MUTATION_FROM_FIELD_NAME,
                   [&]() -> OutputValue {
-                     return {std::string(1, SymbolType::symbolToChar(symbol_in_reference_genome))};,
+                     return {std::string(1, SymbolType::symbolToChar(symbol_in_reference_genome))};
                   }
                ));
                ARROW_RETURN_NOT_OK(output_builder.addValueIfContainedInOutput(
                   MutationsNode<SymbolType>::MUTATION_TO_FIELD_NAME,
                   [&]() -> OutputValue {
-                     return {std::string(1, SymbolType::symbolToChar(symbol))};,
+                     return {std::string(1, SymbolType::symbolToChar(symbol))};
                   }
                ));
                ARROW_RETURN_NOT_OK(output_builder.addValueIfContainedInOutput(
@@ -418,7 +418,7 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
       ARROW_ASSIGN_OR_RAISE(
          const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
       );
-      return arrow::Future{result};,
+      return arrow::Future{result};
    };
 
    const arrow::acero::SourceNodeOptions options{

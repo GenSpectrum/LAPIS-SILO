@@ -54,7 +54,8 @@ NodeValuesResult getNodeValuesFromTable(
       }
    }
    return NodeValuesResult{
-      .node_values = std::move(all_tree_node_ids), .missing_node_count = num_empty,
+      .node_values = std::move(all_tree_node_ids),
+      .missing_node_count = num_empty,
    };
 }
 
@@ -169,7 +170,7 @@ arrow::Result<arrow::acero::ExecNode*> MostRecentCommonAncestorNode::addToExecPl
       ARROW_ASSIGN_OR_RAISE(
          const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
       );
-      return arrow::Future{result};,
+      return arrow::Future{result};
    };
 
    const arrow::acero::SourceNodeOptions options{

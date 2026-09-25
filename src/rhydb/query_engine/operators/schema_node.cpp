@@ -65,7 +65,7 @@ arrow::Result<arrow::acero::ExecNode*> SchemaNode::addToExecPlan(
 
       ARROW_ASSIGN_OR_RAISE(const arrow::ExecBatch batch, buildSchemaBatch(input_schema));
       const std::optional<arrow::ExecBatch> result = batch;
-      return arrow::Future{result};,
+      return arrow::Future{result};
    };
 
    const arrow::acero::SourceNodeOptions options{

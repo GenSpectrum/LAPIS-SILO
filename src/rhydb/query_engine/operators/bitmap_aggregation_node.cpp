@@ -267,7 +267,7 @@ class SequencePositionGrouper : public KeyGroups {
             // ... and carrying no other mutation.
             group = CopyOnWriteContainer{
                RoaringContainerView{covered_in_filter} -
-               mutations.except_reference_and_missing.view(),
+                  mutations.except_reference_and_missing.view(),
             };
          }
          if (!group.empty()) {
@@ -985,7 +985,7 @@ arrow::Result<arrow::acero::ExecNode*> BitmapAggregationNode::addToExecPlan(
       begin = end;
       return arrow::Future<std::optional<arrow::ExecBatch>>::MakeFinished(batch.Map(
          [](arrow::ExecBatch value) { return std::optional<arrow::ExecBatch>{std::move(value)}; }
-      ));,
+      ));
    };
 
    const arrow::acero::SourceNodeOptions options{

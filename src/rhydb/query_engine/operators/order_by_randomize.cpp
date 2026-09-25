@@ -105,9 +105,9 @@ arrow::Result<arrow::acero::ExecNode*> addRandomizeColumn(
             auto output_columns = input_batch.values;
             output_columns.emplace_back(randomize_column);
             auto output_batch = arrow::ExecBatch::Make(output_columns);
-            return output_batch;,
+            return output_batch;
          }
-      );,
+      );
    };
    ARROW_ASSIGN_OR_RAISE(
       top_node,

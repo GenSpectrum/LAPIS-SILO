@@ -48,7 +48,7 @@ concept Config = requires(
    { config.overwriteFrom(config_source) } -> std::same_as<void>;
 
    /// Validation / Sanity checks about the values of this config
-   { config.validate() } -> std::same_as<void>;,
+   { config.validate() } -> std::same_as<void>;
 };
 
 std::optional<std::filesystem::path> getConfigFilePath(
@@ -84,10 +84,12 @@ std::variant<C, int32_t> getConfig(
          return 0;
       }
       if (!cmd_source.positional_arguments.empty()) {
-         throw rhydb::config::ConfigException{fmt::format(
-            "RhyDB does not expect positional arguments, found {}",
-            nlohmann::json{cmd_source.positional_arguments}.dump()
-         ),};
+         throw rhydb::config::ConfigException{
+            fmt::format(
+               "RhyDB does not expect positional arguments, found {}",
+               nlohmann::json{cmd_source.positional_arguments}.dump()
+            ),
+         };
       }
 
       auto env_source =

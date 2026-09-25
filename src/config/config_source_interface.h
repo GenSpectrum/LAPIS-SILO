@@ -12,7 +12,7 @@ concept ConfigSource = requires(const T& obj, const ConfigSpecification& spec) {
    /// specified for the desired config type, parses their
    /// representation, and returns a VerifiedConfigAttributes object ready
    /// for retrieval of the values.
-   { obj.verify(spec) } -> std::same_as<typename T::VerifiedType>;,
+   { obj.verify(spec) } -> std::same_as<typename T::VerifiedType>;
 };
 
 }  // namespace rhydb::config

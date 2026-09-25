@@ -26,7 +26,7 @@ arrow::Future<std::optional<arrow::compute::ExecBatch>> ThrottledBatchReslicer::
                current_batch = std::move(input_batch);
                offset = 0;
                remaining = current_batch.value().length;
-               return deliverSlicedBatch();,
+               return deliverSlicedBatch();
             }
          );
       }

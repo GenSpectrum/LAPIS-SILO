@@ -86,10 +86,11 @@ class TableScanGenerator {
             future.MarkFinished(std::move(result));
          } catch (const std::exception& exception) {
             future.MarkFinished(arrow::Status::ExecutionError(exception.what()));
-         },
+         }
+         ,
       }).detach();
 #endif
-      return future;,
+      return future;
    };
 
   private:

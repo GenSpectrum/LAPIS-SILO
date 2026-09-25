@@ -156,7 +156,8 @@ const QueryTestScenario CO_OCCURRENCE_VIA_MAP_REFERENCE_IS_MISSING = {
 const QueryTestScenario CO_OCCURRENCE_VIA_MAP_POSITION_OUT_OF_RANGE = {
    .name = "CO_OCCURRENCE_VIA_MAP_POSITION_OUT_OF_RANGE",
    .query = "default.map({s := segment1.at(6)}).groupBy({count:=count()}, {s})",
-   .expected_error_message = "segment1.at(6) is out of bounds: the nucleotide sequence has length 5",
+   .expected_error_message =
+      "segment1.at(6) is out of bounds: the nucleotide sequence has length 5",
 };
 
 // Grouping directly on an indexed string column is now routed through the bitmap engine too: the
@@ -319,7 +320,7 @@ nlohmann::json createDataWithOptionalSequences(
       if (sequence.has_value()) {
          return {{"sequence", sequence.value()}, {"insertions", nlohmann::json::array()}};
       }
-      return nullptr;,
+      return nullptr;
    };
    return {
       {"primaryKey", "id_" + to_string(primary_key)},
@@ -524,10 +525,12 @@ schema:
 // ambiguity in the expected output.
 const QueryTestData SCALAR_TYPE_TEST_DATA{
    .ndjson_input_data =
-      {createRowWithScalarTypes(30, 1000000000000, 1.5, true),
-       createRowWithScalarTypes(30, 1000000000000, 1.5, false),
-       createRowWithScalarTypes(41, 2000000000000, 2.5, true),
-       createRowWithScalarTypes(std::nullopt, std::nullopt, std::nullopt, std::nullopt),},
+      {
+         createRowWithScalarTypes(30, 1000000000000, 1.5, true),
+         createRowWithScalarTypes(30, 1000000000000, 1.5, false),
+         createRowWithScalarTypes(41, 2000000000000, 2.5, true),
+         createRowWithScalarTypes(std::nullopt, std::nullopt, std::nullopt, std::nullopt),
+      },
    .database_config = SCALAR_TYPE_DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES,
 };

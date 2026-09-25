@@ -57,7 +57,7 @@ class FilterPushdownPass : public PipelinePassBase<FilterPushdownPass> {
    // NOLINTNEXTLINE(misc-no-recursion)
    operators::QueryNodePtr operator()(T& node) {
       if constexpr (requires {
-                       { node.child } -> std::same_as<operators::QueryNodePtr&>;,
+                       { node.child } -> std::same_as<operators::QueryNodePtr&>;
                     }) {
          barrier(node.child);
       }

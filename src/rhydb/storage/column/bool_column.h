@@ -52,7 +52,7 @@ class BoolColumn {
       const auto count_in_block = [&](const roaring::Roaring& bitmap) -> uint64_t {
          const uint64_t up_to_last = bitmap.rank(last);
          const uint64_t before_base = base == 0 ? 0 : bitmap.rank(static_cast<uint32_t>(base - 1));
-         return up_to_last - before_base;,
+         return up_to_last - before_base;
       };
       return static_cast<uint32_t>(
          count_in_block(true_bitmap) + count_in_block(false_bitmap) + count_in_block(null_bitmap)

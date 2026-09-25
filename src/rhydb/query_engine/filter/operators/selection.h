@@ -37,7 +37,7 @@ class Predicate {
             result.add(row_id.toGlobal());
          }
       }
-      return result;,
+      return result;
    };
    [[nodiscard]] virtual double estimateSelectivity(uint32_t /*row_count*/) const { return 0.5; }
    [[nodiscard]] virtual std::unique_ptr<Predicate> copy() const = 0;
