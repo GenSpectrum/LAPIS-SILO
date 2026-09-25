@@ -58,7 +58,6 @@
 #include "rhydb/query_engine/scalar_expressions/or.h"
 #include "rhydb/query_engine/scalar_expressions/phylo_child_filter.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
-#include "rhydb/query_engine/scalar_expressions/string_in_set.h"
 #include "rhydb/query_engine/scalar_expressions/string_search.h"
 #include "rhydb/query_engine/scalar_expressions/symbol_equals.h"
 #include "rhydb/query_engine/scalar_expressions/zstd_decompress_scalar.h"
@@ -313,27 +312,51 @@ ScalarExpressionPtr handleBetween(
    );
 }
 
+/// `column = v1 || column = v2 || ...`, or `false` for no values. A bitmap union on indexed
+/// columns.
+ScalarExpressionPtr buildValueSetPredicate(
+   const schema::ColumnIdentifier& column,
+   std::vector<ScalarExpressionPtr> value_literals
+) {
+   if (value_literals.empty()) {
+      return std::make_unique<scalar_expressions::BoolLiteral>(false);
+   }
+   scalar_expressions::ScalarExpressionVector comparisons;
+   comparisons.reserve(value_literals.size());
+   for (auto& literal : value_literals) {
+      comparisons.push_back(std::make_unique<scalar_expressions::Comparison>(
+         std::make_unique<scalar_expressions::FieldRef>(column),
+         std::move(literal),
+         Comparator::EQUALS
+      ));
+   }
+   if (comparisons.size() == 1) {
+      return std::move(comparisons.front());
+   }
+   return std::make_unique<scalar_expressions::Or>(std::move(comparisons));
+}
+
 ScalarExpressionPtr handleIn(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const Tables& tables
 ) {
-   auto column_name = extractIdentifierName(args.at("column"));
-   const auto& set_expr = args.at("values");
+   const schema::ColumnIdentifier column =
+      resolveColumn(extractIdentifierName(args.at("column")), schema);
+   const auto& values_expr = args.at("values");
+
    CHECK_RHYDB_QUERY(
-      std::holds_alternative<ast::SetLiteral>(set_expr.value),
+      std::holds_alternative<ast::SetLiteral>(values_expr.value),
       "in() expects a set literal argument at {}:{}",
-      set_expr.location.line,
-      set_expr.location.column
+      values_expr.location.line,
+      values_expr.location.column
    );
-   const auto& set = std::get<ast::SetLiteral>(set_expr.value);
-   std::unordered_set<std::string> values;
-   for (const auto& elem : set.elements) {
-      values.insert(extractStringLiteral(*elem));
+   // Values may be of any column type.
+   std::vector<ScalarExpressionPtr> value_literals;
+   for (const auto& elem : std::get<ast::SetLiteral>(values_expr.value).elements) {
+      value_literals.push_back(convertToScalar(*elem, schema, "in() value", tables));
    }
-   return std::make_unique<scalar_expressions::StringInSet>(
-      resolveColumn(column_name, schema), std::move(values)
-   );
+   return buildValueSetPredicate(column, std::move(value_literals));
 }
 
 ScalarExpressionPtr handleIsNull(
