@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.14.5](https://github.com/RhyOrg/RhyDB/compare/v0.14.4...v0.14.5) (2026-09-26)
+
+
+### Features
+
+* **query_engine:** accept set literals of any scalar type in in() ([#1579](https://github.com/RhyOrg/RhyDB/issues/1579)) ([970ce71](https://github.com/RhyOrg/RhyDB/commit/970ce717ddd96e15b40d60a6a516984506f8ce87))
+* **query_engine:** add `sum` aggregation function ([#1584](https://github.com/RhyOrg/RhyDB/issues/1584)) ([3c4473c](https://github.com/RhyOrg/RhyDB/commit/3c4473ca9b720e188bed6c1f13f9b8ca120ae6d2))
+
+
+### Bug Fixes
+
+* **query_engine:** don't hardcode the "count(*)" result column name to `count` ([#1590](https://github.com/RhyOrg/RhyDB/issues/1590)) ([e3455d8](https://github.com/RhyOrg/RhyDB/commit/e3455d87d317a4bb3eb8d3aa0084bcc8a826bf9c))
+
 ## [0.14.4](https://github.com/GenSpectrum/LAPIS-SILO/compare/v0.14.3...v0.14.4) (2026-09-24)
 
 
