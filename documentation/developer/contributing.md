@@ -155,11 +155,11 @@ End-to-end tests are located in `/endToEndTests`. Those tests are used to verify
 queries. To execute the tests on a `RHYDB_IMAGE`:
 
 - `cd endToEndTests`
-- `RHYDB_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-preprocessing-from-ndjson.yml up`
-- `RHYDB_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml up -d --wait`
+- `RHYDB_IMAGE=ghcr.io/rhyorg/rhydb docker compose -f docker-compose-for-tests-preprocessing-from-ndjson.yml up`
+- `RHYDB_IMAGE=ghcr.io/rhyorg/rhydb docker compose -f docker-compose-for-tests-api.yml up -d --wait`
 - `npm install`
 - `RHYDB_URL=localhost:8080 npm run test`
-- `RHYDB_IMAGE=ghcr.io/genspectrum/lapis-silo docker compose -f docker-compose-for-tests-api.yml down`
+- `RHYDB_IMAGE=ghcr.io/rhyorg/rhydb docker compose -f docker-compose-for-tests-api.yml down`
 
 ## Local Debugging
 

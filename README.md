@@ -96,7 +96,7 @@ docker run \
   -v your/input/directory:/preprocessing/input \
   -v your/preprocessing/output:/preprocessing/output \
   -v your/preprocessing_config.yaml:/app/preprocessing_config.yaml \
-  ghcr.io/genspectrum/lapis-silo preprocessing
+  ghcr.io/rhyorg/rhydb preprocessing
 ```
 
 Both config files can also be provided in custom locations:
@@ -118,7 +118,7 @@ After preprocessing the data, the api can be started with the following command:
 docker run \
   -p 8081:8081 \
   -v your/preprocessing/output:/data \
-  ghcr.io/genspectrum/lapis-silo api
+  ghcr.io/rhyorg/rhydb api
 ```
 
 The directory where RhyDB expects the preprocessing output can be overwritten via
