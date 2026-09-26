@@ -25,8 +25,10 @@ class Database {
   private:
    DataVersion data_version_ = DataVersion::mineDataVersion();
 
+   void createMissingBuiltinTables();
+
   public:
-   Database() = default;
+   Database();
 
    explicit Database(schema::DatabaseSchema database_schema);
 

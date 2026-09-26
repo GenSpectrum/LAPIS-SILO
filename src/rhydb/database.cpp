@@ -37,6 +37,7 @@
 #include "rhydb/query_engine/saneql/parser.h"
 #include "rhydb/query_engine/scalar_column_update.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
+#include "rhydb/schema/builtin_tables.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/column/sequence_column.h"
 #include "rhydb/storage/column/string_column.h"
@@ -77,10 +78,23 @@ std::string symbolVectorToString(const std::vector<typename SymbolType::Symbol>&
 
 namespace rhydb {
 
+Database::Database() {
+   createMissingBuiltinTables();
+}
+
 Database::Database(schema::DatabaseSchema database_schema)
     : schema(std::move(database_schema)) {
    for (const auto& [table_name, table_schema] : schema.tables) {
       tables.emplace(table_name, std::make_shared<storage::Table>(table_name, table_schema));
+   }
+   createMissingBuiltinTables();
+}
+
+void Database::createMissingBuiltinTables() {
+   for (auto& [table_name, table_schema] : schema::getBuiltinTableSchemas()) {
+      if (!tables.contains(table_name)) {
+         createTable(table_name, std::move(table_schema));
+      }
    }
 }
 
