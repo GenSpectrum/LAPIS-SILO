@@ -180,6 +180,15 @@ const QueryTestScenario COUNT_PER_GROUP_WITH_CUSTOM_NAME = {
    ])")
 };
 
+// count(<column>) is not yet implemented. Without grouping keys this used to be silently rewritten
+// into a full count(*) (returning the wrong result); it must surface the same error the grouped
+// case already gives.
+const QueryTestScenario COUNT_OF_COLUMN_WITHOUT_GROUPS = {
+   .name = "COUNT_OF_COLUMN_WITHOUT_GROUPS",
+   .query = "default.groupBy({n := count(country)})",
+   .expected_error_message = "count(<column_ref>) not yet implemented"
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -204,5 +213,9 @@ QUERY_TEST(
 QUERY_TEST(
    AggregateCount,
    TEST_DATA,
-   ::testing::Values(COUNT_STAR_WITH_CUSTOM_NAME, COUNT_PER_GROUP_WITH_CUSTOM_NAME)
+   ::testing::Values(
+      COUNT_STAR_WITH_CUSTOM_NAME,
+      COUNT_PER_GROUP_WITH_CUSTOM_NAME,
+      COUNT_OF_COLUMN_WITHOUT_GROUPS
+   )
 );
