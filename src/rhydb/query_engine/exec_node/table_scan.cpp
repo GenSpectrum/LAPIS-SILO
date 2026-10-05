@@ -228,6 +228,10 @@ arrow::Result<arrow::ExecBatch> ExecBatchBuilder::finishBatch(int64_t length) {
 
 arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBatch() {
    EVOBENCH_SCOPE("TableScanGenerator", "produceNextBatch");
+   if (!filter_computed) {
+      current_bitmap_reader = BatchedBitmapReader{compute_filter().toRoaring(), batch_size_cutoff};
+      filter_computed = true;
+   }
    while (current_bitmap_reader.has_value()) {
       auto row_ids = current_bitmap_reader.value().nextBatch();
       if (row_ids.has_value()) {
@@ -246,12 +250,12 @@ arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBa
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    arrow::acero::ExecPlan* plan,
    const std::vector<rhydb::schema::ColumnIdentifier>& columns,
-   Bitmap bitmap_filter_,
+   std::function<Bitmap()> compute_filter,
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 ) {
    const exec_node::TableScanGenerator generator(
-      columns, std::move(bitmap_filter_), std::move(table), batch_size_cutoff
+      columns, std::move(compute_filter), std::move(table), batch_size_cutoff
    );
    const arrow::acero::SourceNodeOptions source_node_options{
       exec_node::columnsToArrowSchema(columns),

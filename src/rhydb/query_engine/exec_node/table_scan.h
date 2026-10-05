@@ -1,3 +1,4 @@
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -42,7 +43,13 @@ class ExecBatchBuilder {
 class TableScanGenerator {
    ExecBatchBuilder exec_batch_builder;
 
-   Bitmap bitmap_filter;
+   // Evaluated on the first batch, so that the filter is computed during the execution of the
+   // plan and not while the plan is built
+   std::function<Bitmap()> compute_filter;
+
+   size_t batch_size_cutoff;
+
+   bool filter_computed = false;
 
    std::optional<BatchedBitmapReader> current_bitmap_reader;
 
@@ -51,15 +58,14 @@ class TableScanGenerator {
   public:
    TableScanGenerator(
       const std::vector<rhydb::schema::ColumnIdentifier>& columns,
-      Bitmap bitmap_filter_,
+      std::function<Bitmap()> compute_filter,
       std::shared_ptr<const storage::Table> table,
       size_t batch_size_cutoff
    )
        : exec_batch_builder(columns),
-         bitmap_filter(std::move(bitmap_filter_)),
-         table(std::move(table)) {
-      current_bitmap_reader = BatchedBitmapReader{bitmap_filter.toRoaring(), batch_size_cutoff};
-   }
+         compute_filter(std::move(compute_filter)),
+         batch_size_cutoff(batch_size_cutoff),
+         table(std::move(table)) {}
 
    arrow::Future<std::optional<arrow::ExecBatch>> operator()() {
       SPDLOG_TRACE("TableScanGenerator::operator()");
@@ -99,7 +105,7 @@ class TableScanGenerator {
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    arrow::acero::ExecPlan* plan,
    const std::vector<rhydb::schema::ColumnIdentifier>& columns,
-   Bitmap bitmap_filter_,
+   std::function<Bitmap()> compute_filter,
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 );
