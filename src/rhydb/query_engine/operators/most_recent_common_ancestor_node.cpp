@@ -17,6 +17,7 @@
 #include "rhydb/common/bitmap.h"
 #include "rhydb/common/phylo_tree.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
+#include "rhydb/query_engine/exec_node/background_first_pull.h"
 #include "rhydb/query_engine/exec_node/schema_output_builder.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
@@ -92,7 +93,7 @@ arrow::Result<arrow::acero::ExecNode*> MostRecentCommonAncestorNode::addToExecPl
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto bitmap_filter = compileFilter(filter, table)->evaluate();
+   auto compiled_filter = compileFilter(filter, table);
 
    CHECK_RHYDB_QUERY(
       table->schema->getColumn(column_name).has_value(),
@@ -126,7 +127,7 @@ arrow::Result<arrow::acero::ExecNode*> MostRecentCommonAncestorNode::addToExecPl
       [table_handle,
        column_name_copy,
        output_fields,
-       bitmap_filter = std::move(bitmap_filter),
+       compiled_filter,
        &phylo_tree,
        already_produced = false] mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
@@ -134,6 +135,8 @@ arrow::Result<arrow::acero::ExecNode*> MostRecentCommonAncestorNode::addToExecPl
          return arrow::Future{result};
       }
       already_produced = true;
+
+      Bitmap bitmap_filter = compiled_filter->evaluate();
 
       exec_node::SchemaOutputBuilder output_builder{output_fields};
 
@@ -175,7 +178,7 @@ arrow::Result<arrow::acero::ExecNode*> MostRecentCommonAncestorNode::addToExecPl
 
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(output_fields),
-      std::move(producer),
+      exec_node::pullFirstBatchInBackground(std::move(producer)),
       arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", &plan, {}, options);

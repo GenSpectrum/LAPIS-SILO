@@ -18,6 +18,7 @@
 #include "rhydb/common/nucleotide_symbols.h"
 #include "rhydb/common/symbol_map.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
+#include "rhydb/query_engine/exec_node/background_first_pull.h"
 #include "rhydb/query_engine/exec_node/schema_output_builder.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
 #include "rhydb/schema/database_schema.h"
@@ -374,7 +375,7 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto bitmap_filter = compileFilter(filter, table)->evaluate();
+   auto compiled_filter = compileFilter(filter, table);
 
    auto table_handle = table;
    auto output_fields = getOutputSchema();
@@ -385,7 +386,7 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
       [table_handle,
        given_min_proportion,
        output_fields,
-       bitmap_filter = std::move(bitmap_filter),
+       compiled_filter,
        sequence_column_identifiers,
        already_produced = false] mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
@@ -393,6 +394,8 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
          return arrow::Future{result};
       }
       already_produced = true;
+
+      const Bitmap bitmap_filter = compiled_filter->evaluate();
 
       exec_node::SchemaOutputBuilder output_builder(output_fields);
 
@@ -424,7 +427,7 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
 
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(output_fields),
-      std::move(producer),
+      exec_node::pullFirstBatchInBackground(std::move(producer)),
       arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", &plan, {}, options);
