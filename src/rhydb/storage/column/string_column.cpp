@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "rhydb/common/bidirectional_string_map.h"
+#include "rhydb/common/bitmap.h"
+#include "rhydb/common/panic.h"
 #include "rhydb/common/phylo_tree.h"
 #include "rhydb/common/tree_node_id.h"
 #include "rhydb/initialize/initialize_exception.h"
@@ -143,50 +145,65 @@ std::expected<void, std::string> StringColumn::appendChunk(const Buffer& buffer)
    return {};
 }
 
+template <typename ValueOf>
+void StringColumn::rebuildChunk(
+   uint16_t chunk_id,
+   roaring_util::RoaringContainerView rows,
+   const ValueOf& value_of
+) {
+   const uint32_t chunk_row_count = chunkSize(chunk_id);
+   StringColumnChunk rebuilt_chunk;
+   auto next_updated_row = rows.begin();
+   size_t index = 0;
+   for (uint32_t row_in_chunk = 0; row_in_chunk < chunk_row_count; ++row_in_chunk) {
+      const RowId row_id{
+         .chunk_id = chunk_id,
+         .row_in_chunk = static_cast<uint16_t>(row_in_chunk),
+      };
+      const uint32_t global_row_id = row_id.toGlobal();
+      if (next_updated_row != roaring_util::RoaringContainerView::end() &&
+          *next_updated_row == row_in_chunk) {
+         // Updated row: take its new value (or the null placeholder when clearing).
+         ++next_updated_row;
+         const std::optional<std::string>& value = value_of(index++);
+         if (value.has_value()) {
+            rebuilt_chunk.insert(*value);
+            null_bitmap.remove(global_row_id);
+         } else {
+            rebuilt_chunk.insertNull();
+            null_bitmap.add(global_row_id);
+         }
+      } else if (null_bitmap.contains(global_row_id)) {
+         // Untouched null row: reads from the old chunk are meaningless, keep it null.
+         rebuilt_chunk.insertNull();
+      } else {
+         // Untouched non-null row: copy its current value over from the old chunk.
+         rebuilt_chunk.insert(getValueString(row_id));
+      }
+   }
+   chunks.at(chunk_id) = std::move(rebuilt_chunk);
+}
+
 void StringColumn::update(
    const roaring::Roaring& row_ids,
    const std::optional<std::string>& value
 ) {
-   // Chunks are immutable once appended, so every chunk containing an updated row is rebuilt from
-   // scratch rather than mutated in place. First collect the chunk ids that are actually touched so
-   // untouched chunks are left alone.
-   std::unordered_set<uint16_t> touched_chunk_ids;
-   for (const uint32_t global_row_id : row_ids) {
-      touched_chunk_ids.insert(RowId::fromGlobal(global_row_id).chunk_id);
+   for (const auto& [chunk_id, rows] : Bitmap{&row_ids}) {
+      rebuildChunk(chunk_id, rows, [&](size_t /*index*/) -> const std::optional<std::string>& {
+         return value;
+      });
    }
+}
 
-   for (const uint16_t chunk_id : touched_chunk_ids) {
-      const uint32_t chunk_row_count = chunkSize(chunk_id);
-      StringColumnChunk rebuilt_chunk;
-      for (uint32_t row_in_chunk = 0; row_in_chunk < chunk_row_count; ++row_in_chunk) {
-         const RowId row_id{
-            .chunk_id = chunk_id,
-            .row_in_chunk = static_cast<uint16_t>(row_in_chunk),
-         };
-         const uint32_t global_row_id = row_id.toGlobal();
-         if (row_ids.contains(global_row_id)) {
-            // Updated row: take the new value (or the null placeholder when clearing).
-            if (value.has_value()) {
-               rebuilt_chunk.insert(*value);
-            } else {
-               rebuilt_chunk.insertNull();
-            }
-         } else if (null_bitmap.contains(global_row_id)) {
-            // Untouched null row: reads from the old chunk are meaningless, keep it null.
-            rebuilt_chunk.insertNull();
-         } else {
-            // Untouched non-null row: copy its current value over from the old chunk.
-            rebuilt_chunk.insert(getValueString(row_id));
-         }
-      }
-      chunks.at(chunk_id) = std::move(rebuilt_chunk);
-   }
-
-   if (value.has_value()) {
-      null_bitmap -= row_ids;
-   } else {
-      null_bitmap |= row_ids;
-   }
+void StringColumn::update(
+   uint16_t chunk_id,
+   roaring_util::RoaringContainerView rows,
+   const Buffer& new_values
+) {
+   RHYDB_ASSERT_EQ(new_values.size(), static_cast<size_t>(rows.getCardinality()));
+   rebuildChunk(chunk_id, rows, [&](size_t index) -> const std::optional<std::string>& {
+      return new_values[index];
+   });
 }
 
 bool StringColumn::isNull(RowId row_id) const {

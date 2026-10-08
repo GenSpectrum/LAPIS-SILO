@@ -1,8 +1,11 @@
 #include "rhydb/storage/column/date32_column.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <optional>
 
 #include "rhydb/common/date32.h"
+#include "rhydb/common/panic.h"
 #include "rhydb/storage/column/row_id.h"
 
 namespace rhydb::storage::column {
@@ -64,6 +67,71 @@ void Date32Column::update(const roaring::Roaring& row_ids, std::optional<common:
             is_sorted = false;
          }
          last_appended_value = date;
+      }
+   }
+}
+
+namespace {
+
+/// The last value stored before chunk `chunk_id`, skipping empty chunks.
+std::optional<common::Date32> lastValueBefore(
+   const ChunkedValueBuffer<common::Date32>& values,
+   size_t chunk_id
+) {
+   for (size_t previous = chunk_id; previous-- > 0;) {
+      if (!values.chunk(previous).empty()) {
+         return values.chunk(previous).back();
+      }
+   }
+   return std::nullopt;
+}
+
+/// The first value stored after chunk `chunk_id`, skipping empty chunks.
+std::optional<common::Date32> firstValueAfter(
+   const ChunkedValueBuffer<common::Date32>& values,
+   size_t chunk_id
+) {
+   for (size_t next = chunk_id + 1; next < values.numChunks(); ++next) {
+      if (!values.chunk(next).empty()) {
+         return values.chunk(next).front();
+      }
+   }
+   return std::nullopt;
+}
+
+}  // namespace
+
+void Date32Column::update(
+   uint16_t chunk_id,
+   roaring_util::RoaringContainerView rows,
+   const Buffer& new_values
+) {
+   RHYDB_ASSERT_EQ(new_values.size(), static_cast<size_t>(rows.getCardinality()));
+   bool assigned_null = false;
+   size_t index = 0;
+   for (const uint16_t row_in_chunk : rows) {
+      const RowId row_id{.chunk_id = chunk_id, .row_in_chunk = row_in_chunk};
+      const std::optional<common::Date32>& value = new_values[index++];
+      if (value.has_value()) {
+         null_bitmap.remove(row_id.toGlobal());
+      } else {
+         null_bitmap.add(row_id.toGlobal());
+         assigned_null = true;
+      }
+      values.setValue(row_id, value.value_or(0));
+   }
+
+   // A sorted column has no nulls and every other chunk is still sorted, so it stays sorted if the
+   // updated chunk is sorted in itself and against its neighbours.
+   if (is_sorted) {
+      const auto& chunk = values.chunk(chunk_id);
+      const auto previous = lastValueBefore(values, chunk_id);
+      const auto next = firstValueAfter(values, chunk_id);
+      is_sorted = !assigned_null && std::ranges::is_sorted(chunk) &&
+                  (chunk.empty() || !previous.has_value() || *previous <= chunk.front()) &&
+                  (chunk.empty() || !next.has_value() || chunk.back() <= *next);
+      if (is_sorted) {
+         last_appended_value = lastValueBefore(values, values.numChunks());
       }
    }
 }

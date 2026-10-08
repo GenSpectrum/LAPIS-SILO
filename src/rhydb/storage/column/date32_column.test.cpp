@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/date32.h"
 #include "rhydb/storage/column/row_id.h"
 
@@ -148,4 +149,42 @@ TEST(Date32Column, nullBitmapRowIdsAreOffsetAcrossChunks) {
       rhydb::common::date32ToString(under_test.getValue(RowId{.chunk_id = 2, .row_in_chunk = 0})),
       "2022-01-01"
    );
+}
+
+TEST(Date32Column, updateChunkKeepsTrackOfSortedness) {
+   rhydb::storage::column::ColumnMetadata column_metadata{"test_column"};
+   rhydb::storage::column::Date32Column under_test(&column_metadata);
+   RHYDB_ASSERT(under_test.appendChunk({10, 20, 30}).has_value());
+   RHYDB_ASSERT(under_test.appendChunk({40, 50}).has_value());
+   ASSERT_TRUE(under_test.isSorted());
+
+   auto update =
+      [&](const roaring::Roaring& rows, const std::vector<std::optional<int32_t>>& values) {
+         for (const auto& [chunk_id, chunk_rows] : rhydb::Bitmap{&rows}) {
+            under_test.update(chunk_id, chunk_rows, values);
+         }
+      };
+
+   // Still sorted within the chunk and against the next chunk's first value.
+   update(roaring::Roaring{RowId(0, 1).toGlobal(), RowId(0, 2).toGlobal()}, {25, 40});
+   EXPECT_TRUE(under_test.isSorted());
+   EXPECT_EQ(under_test.getValue(RowId(0, 2)), 40);
+
+   // Smaller than the previous chunk's last value.
+   update(roaring::Roaring{RowId(1, 0).toGlobal()}, {39});
+   EXPECT_FALSE(under_test.isSorted());
+}
+
+TEST(Date32Column, updateChunkWithNullMakesTheColumnUnsorted) {
+   rhydb::storage::column::ColumnMetadata column_metadata{"test_column"};
+   rhydb::storage::column::Date32Column under_test(&column_metadata);
+   RHYDB_ASSERT(under_test.appendChunk({10, 20, 30}).has_value());
+   ASSERT_TRUE(under_test.isSorted());
+
+   const roaring::Roaring rows{1};
+   for (const auto& [chunk_id, chunk_rows] : rhydb::Bitmap{&rows}) {
+      under_test.update(chunk_id, chunk_rows, {std::nullopt});
+   }
+   EXPECT_TRUE(under_test.isNull(RowId(0, 1)));
+   EXPECT_FALSE(under_test.isSorted());
 }

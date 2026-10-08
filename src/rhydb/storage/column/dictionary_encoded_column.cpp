@@ -144,6 +144,37 @@ void DictionaryEncodedColumn::update(
    }
 }
 
+void DictionaryEncodedColumn::update(
+   uint16_t chunk_id,
+   roaring_util::RoaringContainerView rows,
+   const Buffer& new_values
+) {
+   RHYDB_ASSERT(!lineage_index.has_value());
+   RHYDB_ASSERT_EQ(new_values.size(), static_cast<size_t>(rows.getCardinality()));
+
+   size_t index = 0;
+   for (const uint16_t row_in_chunk : rows) {
+      const RowId row_id{.chunk_id = chunk_id, .row_in_chunk = row_in_chunk};
+      const uint32_t global_row_id = row_id.toGlobal();
+      const std::optional<std::string>& value = new_values[index++];
+      // As in the single-value `update`: a null row stores the empty-string placeholder id and is
+      // absent from every match bitmap.
+      const Idx new_value_id = metadata->dictionary.getOrCreateId(value.value_or(""));
+      indexed_values.try_emplace(new_value_id);
+
+      if (!null_bitmap.contains(global_row_id)) {
+         indexed_values.at(value_ids.at(row_id)).remove(global_row_id);
+      }
+      value_ids.setValue(row_id, new_value_id);
+      if (value.has_value()) {
+         indexed_values.at(new_value_id).add(global_row_id);
+         null_bitmap.remove(global_row_id);
+      } else {
+         null_bitmap.add(global_row_id);
+      }
+   }
+}
+
 bool DictionaryEncodedColumn::isNull(RowId row_id) const {
    return null_bitmap.contains(row_id.toGlobal());
 }

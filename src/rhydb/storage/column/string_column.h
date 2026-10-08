@@ -18,6 +18,7 @@
 #include "rhydb/common/german_string.h"
 #include "rhydb/common/phylo_tree.h"
 #include "rhydb/common/tree_node_id.h"
+#include "rhydb/roaring_util/roaring_container.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/column/column.h"
 #include "rhydb/storage/column/column_metadata.h"
@@ -120,12 +121,29 @@ class StringColumn {
    /// move-only (its pages cannot be copied) and the deque never relocates already-appended chunks.
    std::deque<StringColumnChunk> chunks;
 
+   /// Chunks are immutable once appended, so an update rebuilds every chunk it touches: the `i`-th
+   /// row of `rows` gets `value_of(i)`, the other rows keep their values.
+   template <typename ValueOf>
+   void rebuildChunk(
+      uint16_t chunk_id,
+      roaring_util::RoaringContainerView rows,
+      const ValueOf& value_of
+   );
+
   public:
    explicit StringColumn(Metadata* metadata);
 
    std::expected<void, std::string> appendChunk(const Buffer& buffer);
 
    void update(const roaring::Roaring& row_ids, const std::optional<std::string>& value);
+
+   /// Assigns `new_values[i]` to the `i`-th row (in ascending order) of `rows` within the chunk
+   /// `chunk_id`; a `std::nullopt` value marks the row null. Rows not in `rows` are left untouched.
+   void update(
+      uint16_t chunk_id,
+      roaring_util::RoaringContainerView rows,
+      const Buffer& new_values
+   );
 
    [[nodiscard]] bool isNull(RowId row_id) const;
 

@@ -4,6 +4,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "rhydb/common/panic.h"
 #include "rhydb/storage/column/row_id.h"
 
 namespace rhydb::storage::column {
@@ -43,6 +44,31 @@ void BoolColumn::update(const roaring::Roaring& row_ids, std::optional<bool> val
       false_bitmap |= row_ids;
    } else {
       false_bitmap -= row_ids;
+   }
+}
+
+void BoolColumn::update(
+   uint16_t chunk_id,
+   roaring_util::RoaringContainerView rows,
+   const Buffer& new_values
+) {
+   RHYDB_ASSERT_EQ(new_values.size(), static_cast<size_t>(rows.getCardinality()));
+   size_t index = 0;
+   for (const uint16_t row_in_chunk : rows) {
+      const uint32_t global_row_id =
+         RowId{.chunk_id = chunk_id, .row_in_chunk = row_in_chunk}.toGlobal();
+      const std::optional<bool>& value = new_values[index++];
+      // Re-classify the row into exactly one of the three bitmaps
+      null_bitmap.remove(global_row_id);
+      true_bitmap.remove(global_row_id);
+      false_bitmap.remove(global_row_id);
+      if (!value.has_value()) {
+         null_bitmap.add(global_row_id);
+      } else if (*value) {
+         true_bitmap.add(global_row_id);
+      } else {
+         false_bitmap.add(global_row_id);
+      }
    }
 }
 }  // namespace rhydb::storage::column

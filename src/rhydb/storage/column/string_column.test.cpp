@@ -15,9 +15,12 @@
 #include <boost/serialization/vector.hpp>
 
 #include <gtest/gtest.h>
+
+#include "rhydb/common/bitmap.h"
 #include "rhydb/common/phylo_tree.h"
 #include "rhydb/common/tree_node_id.h"
 #include "rhydb/storage/column/row_id.h"
+#include "rhydb/storage/column/update_chunks.h"
 
 using rhydb::storage::column::RowId;
 using rhydb::storage::column::StringColumn;
@@ -262,6 +265,36 @@ TEST(StringColumn, updateRebuildsTouchedChunks) {
    under_test.update(to_null, "revived");
    EXPECT_FALSE(under_test.isNull(RowId(1, 0)));
    EXPECT_EQ(under_test.getValueString(RowId(1, 0)), "revived");
+}
+
+TEST(StringColumn, updateChunksAssignsEachRowItsOwnValue) {
+   StringColumnMetadata metadata{"string_column"};
+   StringColumn under_test(&metadata);
+
+   RHYDB_ASSERT(appendStringValues(under_test, {"a", "b", "c"}).has_value());
+   RHYDB_ASSERT(appendStringValues(under_test, {"d", "e"}).has_value());
+
+   // The values of each chunk are given for its updated rows, in ascending order.
+   const roaring::Roaring rows{
+      RowId(0, 0).toGlobal(), RowId(0, 2).toGlobal(), RowId(1, 1).toGlobal()
+   };
+   std::vector<std::pair<uint16_t, rhydb::roaring_util::RoaringContainerView>> chunks;
+   for (const auto& chunk : rhydb::Bitmap{&rows}) {
+      chunks.push_back(chunk);
+   }
+   rhydb::storage::column::updateChunks(
+      under_test,
+      chunks,
+      {{"first", std::nullopt}, {"a value that is long enough to not be stored inline"}}
+   );
+
+   EXPECT_EQ(under_test.getValueString(RowId(0, 0)), "first");
+   EXPECT_EQ(under_test.getValueString(RowId(0, 1)), "b");  // untouched
+   EXPECT_TRUE(under_test.isNull(RowId(0, 2)));
+   EXPECT_EQ(under_test.getValueString(RowId(1, 0)), "d");  // untouched
+   EXPECT_EQ(
+      under_test.getValueString(RowId(1, 1)), "a value that is long enough to not be stored inline"
+   );
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)

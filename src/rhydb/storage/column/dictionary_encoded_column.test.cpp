@@ -9,6 +9,8 @@
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
+#include "rhydb/common/bitmap.h"
+
 using rhydb::common::LineageTreeAndIdMap;
 using rhydb::common::RecombinantEdgeFollowingMode;
 using rhydb::preprocessing::LineageDefinitionFile;
@@ -129,6 +131,25 @@ TEST(DictionaryEncodedColumn, updateKeepsInvertedIndexConsistent) {
    under_test.update(roaring::Roaring({0}), "value 1");
    ASSERT_EQ(*under_test.filter("value 1").value(), roaring::Roaring({0, 4}));
    EXPECT_FALSE(under_test.isNull(RowId(0, 0)));
+}
+
+TEST(DictionaryEncodedColumn, updateChunkAssignsEachRowItsOwnValue) {
+   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   DictionaryEncodedColumn under_test{&column_metadata};
+
+   ASSERT_TRUE(appendValues(under_test, {"value 1", "value 2", "value 2", "value 3"}).has_value());
+
+   // The i-th updated row gets the i-th value; the inverted index follows every row to its value.
+   const roaring::Roaring rows{0, 1, 2};
+   for (const auto& [chunk_id, chunk_rows] : rhydb::Bitmap{&rows}) {
+      under_test.update(chunk_id, chunk_rows, {"value 3", std::nullopt, "value 4"});
+   }
+
+   ASSERT_EQ(*under_test.filter("value 1").value(), roaring::Roaring());
+   ASSERT_EQ(*under_test.filter("value 2").value(), roaring::Roaring());
+   ASSERT_EQ(*under_test.filter("value 3").value(), roaring::Roaring({0, 3}));
+   ASSERT_EQ(*under_test.filter("value 4").value(), roaring::Roaring({2}));
+   EXPECT_TRUE(under_test.isNull(RowId(0, 1)));
 }
 
 TEST(DictionaryEncodedColumn, addingLineageAndThenSublineageFiltersCorrectly) {
