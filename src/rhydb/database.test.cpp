@@ -346,6 +346,145 @@ TEST(DatabaseTest, updateColumnRejectsValuesThatDoNotFit) {
    EXPECT_EQ(countWhere(*database, "age = 4"), 2);
 }
 
+namespace {
+// Runs the SaneQL write statement `statement` and returns the number of rows it updated.
+size_t update(rhydb::Database& database, const std::string& statement) {
+   return rhydb::test::writeResultToJson(
+             database.executeWrite(statement, rhydb::config::QueryOptions{}, "update_query")
+   )
+      .at("updatedRows")
+      .get<size_t>();
+}
+}  // namespace
+
+TEST(DatabaseUpdateQueryTest, assignsValuesToTheRowsMatchingWhere) {
+   auto database = buildTestDatabase();
+
+   // Two rows (key1, key4) start with age 4; key3 has a null age.
+   ASSERT_EQ(countWhere(*database, "age = 4"), 2);
+
+   // Assign a scalar int to only the matching rows.
+   EXPECT_EQ(update(*database, "update(data, set := {age := 100}, where := age = 4)"), 2);
+   ASSERT_EQ(countWhere(*database, "age = 4"), 0);
+   ASSERT_EQ(countWhere(*database, "age = 100"), 2);
+
+   // `set` can be passed positionally, and the table as the receiver of a method call.
+   EXPECT_EQ(update(*database, "data.update({age := 7}, where := primaryKey = 'key3')"), 1);
+   ASSERT_EQ(countWhere(*database, "age = 7"), 1);
+
+   // A SaneQL `null` literal clears the matched rows back to null.
+   update(*database, "update(data, set := {age := null}, where := primaryKey = 'key3')");
+   ASSERT_EQ(countWhere(*database, "age = 7"), 0);
+   ASSERT_EQ(countWhere(*database, "age.isNull()"), 1);
+
+   // Without `where`, every row is updated.
+   EXPECT_EQ(update(*database, "update(data, set := {test_boolean_column := false})"), 5);
+   ASSERT_EQ(countWhere(*database, "test_boolean_column = false"), 5);
+
+   // A predicate that matches no rows updates nothing.
+   EXPECT_EQ(update(*database, "update(data, set := {age := 1}, where := age = 12345)"), 0);
+   ASSERT_EQ(countWhere(*database, "age = 1"), 0);
+}
+
+TEST(DatabaseUpdateQueryTest, assignsSeveralColumnsFromTheValuesBeforeTheUpdate) {
+   auto database = buildTestDatabase();
+   ASSERT_EQ(countWhere(*database, "division = 'Bern' && age = 4"), 1);
+
+   // The rows are selected before anything is assigned, so the predicate sees the old values even
+   // though it reads columns that are assigned.
+   EXPECT_EQ(
+      update(
+         *database,
+         "update(data, set := {age := 5, division := 'Basel'}, "
+         "where := division = 'Bern' && age = 4)"
+      ),
+      1
+   );
+   EXPECT_EQ(countWhere(*database, "division = 'Basel' && age = 5"), 1);
+   EXPECT_EQ(countWhere(*database, "division = 'Bern'"), 1);
+   EXPECT_EQ(countWhere(*database, "age = 4"), 1);
+}
+
+TEST(DatabaseUpdateQueryTest, computesValuesFromTheRowsColumns) {
+   auto database = buildTestDatabase();
+   const auto before = rowsByKey(*database, "division, country, age, qc_value");
+
+   // A value can be computed by a scalar function of the row's columns.
+   update(*database, "update(data, set := {region := at(country, 1)})");
+   // Values are computed per row from the table before the update, so two columns can be swapped.
+   update(*database, "update(data, set := {division := country, country := division})");
+   // An integer can be assigned to a float column.
+   update(*database, "update(data, set := {qc_value := age}, where := primaryKey <> 'key1')");
+
+   const auto after = rowsByKey(*database, "region, division, country, qc_value");
+   ASSERT_EQ(after.size(), before.size());
+   for (const auto& [key, row] : after) {
+      const auto& old_row = before.at(key);
+      EXPECT_EQ(row.at("division"), old_row.at("country")) << key;
+      EXPECT_EQ(row.at("country"), old_row.at("division")) << key;
+      if (key == "key1") {
+         EXPECT_EQ(row.at("qc_value"), old_row.at("qc_value")) << key;
+      } else if (old_row.at("age").is_null()) {
+         EXPECT_TRUE(row.at("qc_value").is_null()) << key;
+      } else {
+         EXPECT_EQ(row.at("qc_value").get<double>(), old_row.at("age").get<double>()) << key;
+      }
+      if (old_row.at("country").is_null()) {
+         EXPECT_TRUE(row.at("region").is_null()) << key;
+      } else {
+         EXPECT_EQ(
+            row.at("region").get<std::string>(),
+            old_row.at("country").get<std::string>().substr(0, 1)
+         ) << key;
+      }
+   }
+}
+
+TEST(DatabaseUpdateQueryTest, rejectsInvalidStatements) {
+   auto database = buildTestDatabase();
+
+   auto expect_rejected = [&](const std::string& statement, const std::string& message) {
+      EXPECT_THAT(
+         [&]() { update(*database, statement); },
+         ThrowsMessage<rhydb::query_engine::IllegalQueryException>(::testing::HasSubstr(message))
+      ) << statement;
+   };
+
+   expect_rejected(
+      "update(data, set := {age := 'not_a_number'})",
+      "has type 'STRING', which cannot be assigned to a column of type 'INT32'"
+   );
+   expect_rejected(
+      "update(data, set := {division := 5})",
+      "has type 'INT64', which cannot be assigned to a column of type 'DICTIONARY_ENCODED'"
+   );
+   expect_rejected("update(data, set := {age := qc_value})", "cannot be assigned");
+   expect_rejected("update(data, set := {main := 'ACGTACGT'})", "is not supported");
+   expect_rejected("update(data, set := {primaryKey := 'new_key'})", "phylogenetic tree");
+   expect_rejected("update(data, set := {does_not_exist := 1})", "does not contain a column");
+   expect_rejected("update(does_not_exist, set := {age := 1})", "not found in database");
+   expect_rejected("update(data, set := {age := 1, age := 2})", "more than once");
+   expect_rejected("update(data, set := age)", "expects `set` to be a record");
+   expect_rejected("update(data, set := {})", "expects `set` to be a record");
+   expect_rejected("update(data, where := age = 4)", "set");
+   expect_rejected("update(data, set := {age := 1}, where := unknown = 4)", "unknown");
+   // The predicate is only accepted by name, like SQL's WHERE clause.
+   expect_rejected("update(data, {age := 1}, age = 4)", "");
+
+   // An invalid assignment rejects the whole statement, so no other column is updated either.
+   ASSERT_EQ(countWhere(*database, "age = 1"), 0);
+   expect_rejected("update(data, set := {age := 1, division := 5})", "cannot be assigned");
+   EXPECT_EQ(countWhere(*database, "age = 1"), 0);
+
+   // A value that does not fit the column is only detected while computing it, but still before
+   // anything is written.
+   EXPECT_THAT(
+      [&]() { update(*database, "update(data, set := {qc_value := 1, age := 3000000000})"); },
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(::testing::HasSubstr("3000000000"))
+   );
+   EXPECT_EQ(countWhere(*database, "qc_value = 1.0"), 0);
+}
+
 using rhydb::Nucleotide;
 using rhydb::schema::ColumnIdentifier;
 using rhydb::schema::ColumnType;
