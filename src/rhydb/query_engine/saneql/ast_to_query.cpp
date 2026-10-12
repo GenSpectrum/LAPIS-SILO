@@ -36,6 +36,7 @@
 #include "rhydb/query_engine/order_by_field.h"
 #include "rhydb/query_engine/saneql/ast.h"
 #include "rhydb/query_engine/saneql/function_registry.h"
+#include "rhydb/query_engine/saneql/lineage_from_tables.h"
 #include "rhydb/query_engine/saneql/parser.h"
 #include "rhydb/query_engine/scalar_expressions/and.h"
 #include "rhydb/query_engine/scalar_expressions/at.h"
@@ -221,14 +222,6 @@ Comparator toComparator(BinaryOp binary_op) {
          throw IllegalQueryException("unexpected operator for comparison");
    }
 }
-
-// The context-aware filter conversion (defined below). The public convertToFilter (ast_to_query.h)
-// forwards to this without a child converter.
-std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
-   const ast::Expression& ast,
-   const std::vector<schema::ColumnIdentifier>& schema,
-   const ScalarConversionContext& context
-);
 
 ScalarExpressionPtr convertBinaryExprToFilter(
    const ast::BinaryExpr& bin_expr,
@@ -428,19 +421,15 @@ ScalarExpressionPtr handleLineage(
    }
    auto recombinant_mode = args.getOptionalString("recombinantFollowingMode");
    if (recombinant_mode.has_value()) {
-      if (recombinant_mode.value() == "alwaysFollow") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW;
-      } else if (recombinant_mode.value() == "followIfFullyContainedInClade") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE;
-      } else if (recombinant_mode.value() == "doNotFollow") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
-      } else {
-         throw IllegalQueryException(
-            "invalid recombinantFollowingMode: '{}'. Valid values are: alwaysFollow, "
-            "followIfFullyContainedInClade, doNotFollow",
-            recombinant_mode.value()
-         );
-      }
+      sublineage_mode = common::recombinantEdgeFollowingModeFromName(recombinant_mode.value());
+      CHECK_RHYDB_QUERY(
+         sublineage_mode.has_value(),
+         "invalid recombinantFollowingMode: '{}'. Valid values are: {}, {}, {}",
+         recombinant_mode.value(),
+         common::ALWAYS_FOLLOW_NAME,
+         common::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE_NAME,
+         common::DO_NOT_FOLLOW_NAME
+      );
    }
    return std::make_unique<scalar_expressions::LineageFilter>(
       resolveColumn(column_name, schema), lineage_value, sublineage_mode
@@ -805,8 +794,6 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
    return convertToFilter(ast, schema, ScalarConversionContext{.tables = &tables});
 }
 
-namespace {
-
 // NOLINTNEXTLINE(misc-no-recursion)
 std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
    const ast::Expression& ast,
@@ -840,8 +827,6 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
       ast.value
    );
 }
-
-}  // namespace
 
 // ========================================================================
 // Pipeline function handlers (registered in FunctionRegistry)
@@ -1955,6 +1940,21 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
          },
       },
       handleLineage
+   );
+
+   registerFunction(
+      "lineageFromTables",
+      {
+         {
+            pos("column"),
+            pos("value"),
+            pos("lineages"),
+            pos("aliases"),
+            pos("includeSublineages", false),
+            pos("recombinantFollowingMode", false),
+         },
+      },
+      handleLineageFromTables
    );
 
    registerFunction("phyloDescendantOf", {{pos("column"), pos("node")}}, handlePhyloDescendantOf);
