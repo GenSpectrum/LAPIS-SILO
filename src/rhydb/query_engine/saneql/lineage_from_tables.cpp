@@ -4,6 +4,7 @@
 
 #include <fmt/format.h>
 
+#include "rhydb/common/lineage_tree.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/saneql/ast.h"
 #include "rhydb/query_engine/saneql/ast_to_query.h"
@@ -25,7 +26,7 @@ std::string lineageEdgesQuery(
    const std::string& lineages,
    const std::string& aliases,
    bool include_sublineages,
-   const std::string& recombinant_following_mode
+   common::RecombinantEdgeFollowingMode recombinant_following_mode
 ) {
    std::string alias_edges = fmt::format(
       "{aliases}.map({{edge_from := lineage, edge_to := alias}}).project({{edge_from, edge_to}})"
@@ -40,9 +41,14 @@ std::string lineageEdgesQuery(
       "{}.filter({}).map({{edge_from := parent, edge_to := lineage}})"
       ".project({{edge_from, edge_to}})",
       lineages,
-      recombinant_following_mode == "alwaysFollow" ? "true" : "is_recombinant_edge = false"
+      recombinant_following_mode == common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW
+         ? "true"
+         : "is_recombinant_edge = false"
    );
-   if (recombinant_following_mode != "followIfFullyContainedInClade") {
+   if (
+      recombinant_following_mode !=
+      common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+   ) {
       return fmt::format("{}.unionall({})", parent_edges, alias_edges);
    }
    return fmt::format(
@@ -89,15 +95,19 @@ ScalarExpressionPtr handleLineageFromTables(
    if (const auto* expression = args.get("includeSublineages")) {
       include_sublineages = ast::extractBoolLiteral(*expression);
    }
-   const std::string recombinant_following_mode =
-      args.getOptionalString("recombinantFollowingMode").value_or("doNotFollow");
-   CHECK_RHYDB_QUERY(
-      recombinant_following_mode == "doNotFollow" || recombinant_following_mode == "alwaysFollow" ||
-         recombinant_following_mode == "followIfFullyContainedInClade",
-      "invalid recombinantFollowingMode: '{}'. Valid values are: alwaysFollow, "
-      "followIfFullyContainedInClade, doNotFollow",
-      recombinant_following_mode
-   );
+   auto recombinant_following_mode = common::RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
+   if (auto name = args.getOptionalString("recombinantFollowingMode")) {
+      const auto mode = common::recombinantEdgeFollowingModeFromName(name.value());
+      CHECK_RHYDB_QUERY(
+         mode.has_value(),
+         "invalid recombinantFollowingMode: '{}'. Valid values are: {}, {}, {}",
+         name.value(),
+         common::ALWAYS_FOLLOW_NAME,
+         common::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE_NAME,
+         common::DO_NOT_FOLLOW_NAME
+      );
+      recombinant_following_mode = mode.value();
+   }
 
    const std::string query = fmt::format(
       "{column} = {value} || {column}.in({edges}"

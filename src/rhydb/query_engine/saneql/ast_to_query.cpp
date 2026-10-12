@@ -421,19 +421,15 @@ ScalarExpressionPtr handleLineage(
    }
    auto recombinant_mode = args.getOptionalString("recombinantFollowingMode");
    if (recombinant_mode.has_value()) {
-      if (recombinant_mode.value() == "alwaysFollow") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW;
-      } else if (recombinant_mode.value() == "followIfFullyContainedInClade") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE;
-      } else if (recombinant_mode.value() == "doNotFollow") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
-      } else {
-         throw IllegalQueryException(
-            "invalid recombinantFollowingMode: '{}'. Valid values are: alwaysFollow, "
-            "followIfFullyContainedInClade, doNotFollow",
-            recombinant_mode.value()
-         );
-      }
+      sublineage_mode = common::recombinantEdgeFollowingModeFromName(recombinant_mode.value());
+      CHECK_RHYDB_QUERY(
+         sublineage_mode.has_value(),
+         "invalid recombinantFollowingMode: '{}'. Valid values are: {}, {}, {}",
+         recombinant_mode.value(),
+         common::ALWAYS_FOLLOW_NAME,
+         common::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE_NAME,
+         common::DO_NOT_FOLLOW_NAME
+      );
    }
    return std::make_unique<scalar_expressions::LineageFilter>(
       resolveColumn(column_name, schema), lineage_value, sublineage_mode
