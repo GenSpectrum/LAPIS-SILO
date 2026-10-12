@@ -712,13 +712,11 @@ the [Python bindings](python_bindings.md).
 
 ## Scalar Functions
 
-Most scalar functions are boolean predicates used inside `.filter(...)`.
-Functions that return a non-boolean value (like [`at`](#atcolumn-position) and [`isoWeek`](#isoweekcolumn))
-cannot be used as a filter predicate and are instead used as `map()` assignments.
+Scalar functions are evaluated once per row of their input and can be used wherever a scalar expression is expected.
 
 ### `at(column, position)`
 
-Extracts the single character of a string `column` at the 1-based `position`, returning it as a string. `position` must be greater than 0. If `position` is past the end of the value, the result is an empty string `""` (a `null` value yields `null`). This is not a boolean predicate, so it cannot be used in `.filter(...)`; use it inside [`map()`](#mapexpressions).
+Extracts the single character of a string or sequence `column` at the 1-based `position`, returning it as a string. `position` must be greater than 0. If `position` is past the end of the value, the result is an empty string `""` (a `null` value yields `null`).
 
 The square-bracket notation `column[position]` is shorthand for `column.at(position)`.
 
@@ -729,7 +727,7 @@ data.map({second_char := primary_key[2]})
 
 ### `isoWeek(column)`
 
-Maps a date `column` to its ISO 8601 week date, formatted as `<ISO-year>-W<ISO-week>` (e.g. `2026-W12`), as a string. The ISO week-numbering year is used, so it can differ from the calendar year around January (e.g. `2021-01-01` is `2020-W53`); the zero-padded week keeps the value chronologically sortable within a year. `column` must be a date column. A `null` date yields `null`. Use it inside [`map()`](#mapexpressions).
+Maps a date `column` to its ISO 8601 week date, formatted as `<ISO-year>-W<ISO-week>` (e.g. `2026-W12`), as a string. The ISO week-numbering year is used, so it can differ from the calendar year around January (e.g. `2021-01-01` is `2020-W53`); the zero-padded week keeps the value chronologically sortable within a year. `column` must be a date column. A `null` date yields `null`.
 
 ```
 data.map({week := date.isoWeek()})
