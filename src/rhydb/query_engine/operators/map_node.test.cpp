@@ -372,6 +372,35 @@ const QueryTestScenario MAP_ISO_WEEK_SCENARIO = {
    }),
 };
 
+// `at` and `isoWeek` take any scalar expression as input, not only a column.
+const QueryTestScenario MAP_AT_ON_STRING_LITERAL_SCENARIO = {
+   .name = "MAP_AT_ON_STRING_LITERAL",
+   .query = "data.map({c := 'abc'.at(2)}).project({primaryKey, c})",
+   .expected_query_result = nlohmann::json({
+      {{"primaryKey", "id_0"}, {"c", "b"}},
+      {{"primaryKey", "id_1"}, {"c", "b"}},
+   }),
+};
+
+// The last digit of the zero-padded week of 2023-W01 and 2023-W52.
+const QueryTestScenario MAP_AT_ON_ISO_WEEK_SCENARIO = {
+   .name = "MAP_AT_ON_ISO_WEEK",
+   .query = "data.map({c := date.isoWeek().at(8)}).project({primaryKey, c})",
+   .expected_query_result = nlohmann::json({
+      {{"primaryKey", "id_0"}, {"c", "1"}},
+      {{"primaryKey", "id_1"}, {"c", "2"}},
+   }),
+};
+
+const QueryTestScenario MAP_ISO_WEEK_ON_DATE_LITERAL_SCENARIO = {
+   .name = "MAP_ISO_WEEK_ON_DATE_LITERAL",
+   .query = "data.map({week := '2021-01-01'::date.isoWeek()}).project({primaryKey, week})",
+   .expected_query_result = nlohmann::json({
+      {{"primaryKey", "id_0"}, {"week", "2020-W53"}},
+      {{"primaryKey", "id_1"}, {"week", "2020-W53"}},
+   }),
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -408,7 +437,10 @@ QUERY_TEST(
       FILTER_DATE_LITERAL_ABOVE_MAP_SCENARIO,
       FILTER_NESTED_AND_IN_OR_ABOVE_MAP_SCENARIO,
       FILTER_NEGATION_ABOVE_MAP_REJECTED_SCENARIO,
-      MAP_ISO_WEEK_SCENARIO
+      MAP_ISO_WEEK_SCENARIO,
+      MAP_AT_ON_STRING_LITERAL_SCENARIO,
+      MAP_AT_ON_ISO_WEEK_SCENARIO,
+      MAP_ISO_WEEK_ON_DATE_LITERAL_SCENARIO
    )
 );
 
