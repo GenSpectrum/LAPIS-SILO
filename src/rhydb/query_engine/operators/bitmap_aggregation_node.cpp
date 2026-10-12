@@ -741,7 +741,7 @@ void aggregateChunk(
 }
 
 /// Computes the aggregation groups counts one 2^16 chunk at a time. It does so by enumerating all
-/// combination of the per-dimension groups. The combination's cardinalities are computed
+/// combinations of the per-dimension groups. Each combination's cardinalities are computed
 /// efficiently using bitmap intersection
 std::vector<GroupCombination> computeCombinations(
    const std::vector<std::unique_ptr<DimensionIndex>>& indexes,
