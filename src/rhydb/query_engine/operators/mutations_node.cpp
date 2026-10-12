@@ -374,7 +374,7 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto bitmap_filter = compileFilter(filter, table)->evaluate();
+   auto compiled_filter = compileFilter(filter, table);
 
    auto table_handle = table;
    auto output_fields = getOutputSchema();
@@ -385,7 +385,7 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
       [table_handle,
        given_min_proportion,
        output_fields,
-       bitmap_filter = std::move(bitmap_filter),
+       compiled_filter,
        sequence_column_identifiers,
        already_produced = false] mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
@@ -393,6 +393,8 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
          return arrow::Future{result};
       }
       already_produced = true;
+
+      const Bitmap bitmap_filter = compiled_filter->evaluate();
 
       exec_node::SchemaOutputBuilder output_builder(output_fields);
 
