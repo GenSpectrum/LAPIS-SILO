@@ -62,14 +62,9 @@ BoundArguments bindArguments(
 
 // --- Pipeline function registry ---
 
-using ChildConverter =
-   std::function<operators::QueryNodePtr(const ast::Expression&, const Tables&)>;
-
-using FunctionHandler = std::function<operators::QueryNodePtr(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-)>;
+/// A pipeline handler converts its relational arguments (e.g. its input) with convertExpression.
+using FunctionHandler =
+   std::function<operators::QueryNodePtr(const BoundArguments& args, const Tables& tables)>;
 
 class FunctionRegistry {
   public:
@@ -95,12 +90,10 @@ class FunctionRegistry {
 using ScalarExpressionPtr = std::unique_ptr<scalar_expressions::ScalarExpression>;
 
 /// Ambient state a scalar handler may need beyond its arguments and input schema: the database's
-/// tables, and, when scalar conversion happens inside a table-function handler, the converter for
-/// relational arguments (e.g. a subquery). `convert_child` is null outside a table-function handler
-/// (the public convertToFilter entry point). A scalar handler that needs neither ignores this.
+/// tables, against which relational arguments (e.g. a subquery) are converted. A scalar handler
+/// that needs none of it ignores this.
 struct ScalarConversionContext {
-   const Tables* tables = nullptr;
-   const ChildConverter* convert_child = nullptr;
+   const Tables& tables;
 };
 
 using ScalarFunctionHandler = std::function<ScalarExpressionPtr(

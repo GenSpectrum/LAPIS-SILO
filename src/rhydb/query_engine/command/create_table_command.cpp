@@ -24,6 +24,7 @@
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/planner.h"
 #include "rhydb/query_engine/query_plan.h"
+#include "rhydb/query_engine/saneql/ast_to_query.h"
 #include "rhydb/query_engine/saneql/function_registry.h"
 #include "rhydb/schema/builtin_tables.h"
 #include "rhydb/storage/column/column_metadata.h"
@@ -86,8 +87,7 @@ using saneql::ast::PositionalArgument;
 ColumnDefinition parseColumnDefinition(
    const std::string& column_name,
    const Expression& type_expression,
-   const saneql::Tables& tables,
-   const saneql::ChildConverter& convert_child
+   const saneql::Tables& tables
 ) {
    static const std::vector<PositionalArgument> no_positional;
    static const std::vector<NamedArgument> no_named;
@@ -153,7 +153,7 @@ ColumnDefinition parseColumnDefinition(
          .name = column_name,
          .type = ColumnType::ZSTD_COMPRESSED_STRING,
          .reference_name = std::nullopt,
-         .dictionary_query = convert_child(options.at(DICTIONARY_OPTION), tables),
+         .dictionary_query = saneql::convertExpression(options.at(DICTIONARY_OPTION), tables),
       };
    }
 
@@ -366,8 +366,7 @@ using saneql::ast::RecordLiteral;
 
 std::vector<ColumnDefinition> parseColumnDefinitions(
    const Expression& columns,
-   const saneql::Tables& tables,
-   const saneql::ChildConverter& convert_child
+   const saneql::Tables& tables
 ) {
    const auto* record = std::get_if<RecordLiteral>(&columns.value);
    CHECK_RHYDB_QUERY(
@@ -385,7 +384,7 @@ std::vector<ColumnDefinition> parseColumnDefinitions(
          "createTable(): the column '{}' is defined more than once",
          field.name
       );
-      result.push_back(parseColumnDefinition(field.name, *field.value, tables, convert_child));
+      result.push_back(parseColumnDefinition(field.name, *field.value, tables));
    }
    return result;
 }
@@ -418,11 +417,10 @@ void checkPrimaryKey(
 
 WriteCommandPtr buildCreateTable(
    const saneql::BoundArguments& args,
-   const saneql::Tables& tables,
-   const saneql::ChildConverter& convert_child
+   const saneql::Tables& tables
 ) {
    auto table_name = extractIdentifierName(args.at("table"));
-   auto columns = parseColumnDefinitions(args.at("columns"), tables, convert_child);
+   auto columns = parseColumnDefinitions(args.at("columns"), tables);
    std::optional<std::string> primary_key;
    if (const auto* primary_key_expr = args.get("primaryKey")) {
       primary_key = extractIdentifierName(*primary_key_expr);

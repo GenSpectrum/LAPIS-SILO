@@ -34,8 +34,7 @@ struct ColumnDefinition {
 /// `primaryKey` arguments.
 [[nodiscard]] WriteCommandPtr buildCreateTable(
    const saneql::BoundArguments& args,
-   const saneql::Tables& tables,
-   const saneql::ChildConverter& convert_child
+   const saneql::Tables& tables
 );
 
 /// `createTable(<table>, {<column> := <type>, ...}, primaryKey := <column>)`: creates a new, empty
