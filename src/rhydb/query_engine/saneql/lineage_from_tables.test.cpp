@@ -32,6 +32,8 @@ const std::vector<nlohmann::json> DATA = {
    createDataWithLineageValue("id_6", "ISOLATED"),
    createDataWithLineageValue("id_7", "WITH'QUOTE"),
    createDataWithLineageValue("id_8", nullptr),
+   createDataWithLineageValue("id_9", "ISOLATED_WITH_ALIAS"),
+   createDataWithLineageValue("id_10", "IWA"),
 };
 
 // With `lineageIndexType: table`, the lineage hierarchy is only available as the relation table
@@ -57,6 +59,8 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
 };
 
 // ISOLATED has no parents and no children, so it is no endpoint of an edge of the hierarchy.
+// ISOLATED_WITH_ALIAS has no parents and no children either, so its only edges are those to and
+// from its alias.
 const auto LINEAGE_TREE =
    LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
 BASE.1:
@@ -77,6 +81,10 @@ RECOMBINANT:
   - CHILD
   - CHILD.2
 ISOLATED:
+  parents: []
+ISOLATED_WITH_ALIAS:
+  aliases:
+  - IWA
   parents: []
 "WITH'QUOTE":
   parents: []
@@ -204,6 +212,28 @@ const QueryTestScenario ISOLATED_LINEAGE_MATCHES_ITSELF = {
 )"),
 };
 
+const QueryTestScenario ISOLATED_LINEAGE_MATCHES_ITS_ALIAS = {
+   .name = "ISOLATED_LINEAGE_MATCHES_ITS_ALIAS",
+   .query =
+      "data.filter(pango_lineage.lineageFromTables('ISOLATED_WITH_ALIAS', pango_lineage, "
+      "pango_lineage_aliases, includeSublineages:=true)).project({pango_lineage, primaryKey})",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"pango_lineage":"ISOLATED_WITH_ALIAS","primaryKey":"id_9"},
+{"pango_lineage":"IWA","primaryKey":"id_10"}]
+)"),
+};
+
+const QueryTestScenario ALIAS_OF_ISOLATED_LINEAGE_MATCHES_ITS_CANONICAL_LINEAGE = {
+   .name = "ALIAS_OF_ISOLATED_LINEAGE_MATCHES_ITS_CANONICAL_LINEAGE",
+   .query =
+      "data.filter(pango_lineage.lineageFromTables('IWA', pango_lineage, pango_lineage_aliases, "
+      "includeSublineages:=true)).project({pango_lineage, primaryKey})",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"pango_lineage":"ISOLATED_WITH_ALIAS","primaryKey":"id_9"},
+{"pango_lineage":"IWA","primaryKey":"id_10"}]
+)"),
+};
+
 const QueryTestScenario LINEAGE_CONTAINING_QUOTE = {
    .name = "LINEAGE_CONTAINING_QUOTE",
    .query =
@@ -273,6 +303,8 @@ QUERY_TEST(
       NOT_FULLY_CONTAINED_IN_CLADE,
       RECOMBINANT_MATCHES_ITSELF,
       ISOLATED_LINEAGE_MATCHES_ITSELF,
+      ISOLATED_LINEAGE_MATCHES_ITS_ALIAS,
+      ALIAS_OF_ISOLATED_LINEAGE_MATCHES_ITS_CANONICAL_LINEAGE,
       LINEAGE_CONTAINING_QUOTE,
       UNDER_AND,
       UNKNOWN_LINEAGE_MATCHES_NOTHING,
