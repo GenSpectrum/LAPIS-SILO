@@ -15,6 +15,21 @@
 
 namespace rhydb::common {
 
+std::optional<RecombinantEdgeFollowingMode> recombinantEdgeFollowingModeFromName(
+   std::string_view name
+) {
+   if (name == DO_NOT_FOLLOW_NAME) {
+      return RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
+   }
+   if (name == FOLLOW_IF_FULLY_CONTAINED_IN_CLADE_NAME) {
+      return RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE;
+   }
+   if (name == ALWAYS_FOLLOW_NAME) {
+      return RecombinantEdgeFollowingMode::ALWAYS_FOLLOW;
+   }
+   return std::nullopt;
+}
+
 namespace {
 
 std::string edgesToString(const std::vector<Idx>& ids, const BidirectionalStringMap& lookup) {

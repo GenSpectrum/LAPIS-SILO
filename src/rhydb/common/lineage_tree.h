@@ -1,7 +1,9 @@
 #pragma once
 
+#include <optional>
 #include <set>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -41,6 +43,17 @@ const std::vector<RecombinantEdgeFollowingMode> ALL_RECOMBINANT_EDGE_FOLLOWING_M
    RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE,
    RecombinantEdgeFollowingMode::ALWAYS_FOLLOW,
 };
+
+/// The names of the RecombinantEdgeFollowingMode values in the query language
+constexpr std::string_view DO_NOT_FOLLOW_NAME = "doNotFollow";
+constexpr std::string_view FOLLOW_IF_FULLY_CONTAINED_IN_CLADE_NAME =
+   "followIfFullyContainedInClade";
+constexpr std::string_view ALWAYS_FOLLOW_NAME = "alwaysFollow";
+
+/// Returns std::nullopt if `name` is not the name of a RecombinantEdgeFollowingMode
+std::optional<RecombinantEdgeFollowingMode> recombinantEdgeFollowingModeFromName(
+   std::string_view name
+);
 
 // The tree is allowed to be disconnected
 class LineageTree {
