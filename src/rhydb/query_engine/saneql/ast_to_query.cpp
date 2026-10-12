@@ -545,7 +545,14 @@ ScalarExpressionPtr handleAt(
    const std::vector<schema::ColumnIdentifier>& schema,
    const ScalarConversionContext& context
 ) {
-   auto input = convertToScalar(args.at("input"), schema, "at() input", context);
+   const auto& input_ast = args.at("input");
+   auto input = convertToScalar(input_ast, schema, "at() input", context);
+   CHECK_RHYDB_QUERY(
+      input->type() == schema::ColumnType::STRING,
+      "at(): the input {} must be a string, but is of type {}",
+      input_ast.toString(),
+      schema::columnTypeToString(input->type())
+   );
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_RHYDB_QUERY(
       position > 0, "at(): the field 'position' is 1-indexed. Value of 0 not allowed."
