@@ -539,50 +539,35 @@ ScalarExpressionPtr handleInsertionContains(
    );
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 ScalarExpressionPtr handleAt(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const ScalarConversionContext& /*context*/
+   const ScalarConversionContext& context
 ) {
-   auto input_column = extractIdentifierName(args.at("input"));
+   auto input = convertToScalar(args.at("input"), schema, "at() input", context);
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_RHYDB_QUERY(
       position > 0, "at(): the field 'position' is 1-indexed. Value of 0 not allowed."
    );
-   // Resolve the referenced column against the available schema so the At carries the
-   // column's actual {name, type}. If it is unknown the column is kept with a
-   // placeholder type; the caller reports the (contextual) unknown-column error.
-   const auto found =
-      std::ranges::find_if(schema, [&](const auto& col) { return col.name == input_column; });
-   CHECK_RHYDB_QUERY(
-      found != schema.end(), "at(): the field {} is not found in the current context", input_column
-   );
-   return std::make_unique<scalar_expressions::At>(
-      std::make_unique<scalar_expressions::FieldRef>(*found), position
-   );
+   return std::make_unique<scalar_expressions::At>(std::move(input), position);
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 ScalarExpressionPtr handleIsoWeek(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const ScalarConversionContext& /*context*/
+   const ScalarConversionContext& context
 ) {
-   auto input_column = extractIdentifierName(args.at("input"));
-   const auto found =
-      std::ranges::find_if(schema, [&](const auto& col) { return col.name == input_column; });
+   const auto& input_ast = args.at("input");
+   auto input = convertToScalar(input_ast, schema, "isoWeek() input", context);
    CHECK_RHYDB_QUERY(
-      found != schema.end(),
-      "isoWeek(): the field {} is not found in the current context",
-      input_column
+      input->type() == schema::ColumnType::DATE32,
+      "isoWeek(): the input {} must be a date, but is of type {}",
+      input_ast.toString(),
+      schema::columnTypeToString(input->type())
    );
-   CHECK_RHYDB_QUERY(
-      found->type == schema::ColumnType::DATE32,
-      "isoWeek(): the field {} must be a date column",
-      input_column
-   );
-   return std::make_unique<scalar_expressions::IsoWeek>(
-      std::make_unique<scalar_expressions::FieldRef>(*found)
-   );
+   return std::make_unique<scalar_expressions::IsoWeek>(std::move(input));
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)

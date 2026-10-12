@@ -633,12 +633,20 @@ TEST(AstToQueryMap, atResolvesToCharacterOfColumn) {
    EXPECT_NO_THROW((void)parseAndConvertToQueryTree("data.map({c := id.at(2)})", tables));
 }
 
+TEST(AstToQueryMap, atAcceptsAnyScalarInput) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_NO_THROW((void)parseAndConvertToQueryTree("data.map({c := 'abc'.at(2)})", tables));
+   EXPECT_NO_THROW(
+      (void)parseAndConvertToQueryTree("data.map({c := date.isoWeek().at(1)})", tables)
+   );
+}
+
 TEST(AstToQueryMap, atOnUnknownColumnThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
       [&tables]() { (void)parseAndConvertToQueryTree("data.map({c := nope.at(2)})", tables); },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("at(): the field nope is not found in the current context")
+         ::testing::HasSubstr("at() input references unknown column 'nope'")
       )
    );
 }
@@ -663,12 +671,19 @@ TEST(AstToQueryMap, isoWeekResolvesToWeekOfDateColumn) {
    EXPECT_EQ(found->type, rhydb::schema::ColumnType::STRING);
 }
 
+TEST(AstToQueryMap, isoWeekAcceptsDateLiteral) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_NO_THROW(
+      (void)parseAndConvertToQueryTree("data.map({w := '2026-03-17'::date.isoWeek()})", tables)
+   );
+}
+
 TEST(AstToQueryMap, isoWeekOnUnknownColumnThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
       [&tables]() { (void)parseAndConvertToQueryTree("data.map({w := nope.isoWeek()})", tables); },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("isoWeek(): the field nope is not found in the current context")
+         ::testing::HasSubstr("isoWeek() input references unknown column 'nope'")
       )
    );
 }
@@ -678,7 +693,7 @@ TEST(AstToQueryMap, isoWeekOnNonDateColumnThrows) {
    EXPECT_THAT(
       [&tables]() { (void)parseAndConvertToQueryTree("data.map({w := id.isoWeek()})", tables); },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("isoWeek(): the field id must be a date column")
+         ::testing::HasSubstr("isoWeek(): the input id must be a date, but is of type STRING")
       )
    );
 }
