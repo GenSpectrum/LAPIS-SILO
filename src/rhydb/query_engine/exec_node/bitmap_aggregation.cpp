@@ -27,6 +27,7 @@
 #include "rhydb/common/bitmap.h"
 #include "rhydb/common/panic.h"
 #include "rhydb/query_engine/exec_node/dimension_index.h"
+#include "rhydb/query_engine/operators/compute_filter.h"
 #include "rhydb/roaring_util/roaring_container.h"
 #include "rhydb/storage/table.h"
 
@@ -234,7 +235,7 @@ class BitmapAggregationGenerator {
   public:
    BitmapAggregationGenerator(
       std::shared_ptr<const storage::Table> table,
-      Bitmap filter,
+      std::shared_ptr<const operators::CompiledFilter> filter,
       std::vector<ResolvedGroupingDimension> dimensions,
       size_t batch_size
    )
@@ -255,17 +256,18 @@ class BitmapAggregationGenerator {
    }
 
   private:
-   /// Builds every dimension's index and counts all combinations. Afterward only the combinations
-   /// and the per-dimension value arrays are kept; the indexes and the filter are released.
+   /// Evaluates the filter, builds every dimension's index and counts all combinations. Afterward
+   /// only the combinations and the per-dimension value arrays are kept.
    arrow::Status aggregate() {
+      const Bitmap filter_bitmap = filter->evaluate();
       std::vector<std::unique_ptr<DimensionIndex>> indexes;
       indexes.reserve(dimensions.size());
       for (const auto& dimension : dimensions) {
-         ARROW_ASSIGN_OR_RAISE(auto index, buildDimensionIndex(dimension, *table, filter));
+         ARROW_ASSIGN_OR_RAISE(auto index, buildDimensionIndex(dimension, *table, filter_bitmap));
          indexes.push_back(std::move(index));
       }
 
-      combinations = computeCombinations(indexes, filter);
+      combinations = computeCombinations(indexes, filter_bitmap);
 
       // Element `group_index` of a dimension's value array is that group's typed value
       values_per_dimension.reserve(indexes.size());
@@ -273,7 +275,6 @@ class BitmapAggregationGenerator {
          ARROW_ASSIGN_OR_RAISE(auto values, index->values());
          values_per_dimension.push_back(std::move(values));
       }
-      filter = Bitmap{};
       return arrow::Status::OK();
    }
 
@@ -296,7 +297,7 @@ class BitmapAggregationGenerator {
    }
 
    std::shared_ptr<const storage::Table> table;
-   Bitmap filter;
+   std::shared_ptr<const operators::CompiledFilter> filter;
    std::vector<ResolvedGroupingDimension> dimensions;
    size_t batch_size;
 
@@ -311,13 +312,13 @@ class BitmapAggregationGenerator {
 arrow::Result<arrow::acero::ExecNode*> addBitmapAggregationNode(
    arrow::acero::ExecPlan& plan,
    std::shared_ptr<const storage::Table> table,
-   Bitmap filter,
+   std::shared_ptr<const operators::CompiledFilter> filter,
    std::vector<ResolvedGroupingDimension> dimensions,
    std::shared_ptr<arrow::Schema> output_schema,
    size_t batch_size
 ) {
    RHYDB_ASSERT_EQ(dimensions.size() + 1, static_cast<size_t>(output_schema->num_fields()));
-   // Shared, because the source node copies its generator, which would copy the filter bitmap
+   // Shared, because the source node copies its generator, which would copy its state
    auto generator = std::make_shared<BitmapAggregationGenerator>(
       std::move(table), std::move(filter), std::move(dimensions), batch_size
    );
