@@ -179,7 +179,7 @@ data.projectout(division)
 
 ### `map(expressions)`
 
-Adds columns to the table. `expressions` is a record of `name := value` assignments. Each value may be a literal (integers, floats, single-quoted strings, or booleans), a field reference, or a call to a non-boolean [scalar function](#scalar-functions) such as [`at`](#atcolumn-position).
+Adds columns to the table. `expressions` is a record of `name := value` assignments. Each value may be a literal (integers, floats, single-quoted strings, or booleans), a field reference, or a call to a non-boolean [scalar function](#scalar-functions) such as [`at`](#atinput-position).
 
 ```
 data.map({x := 3, label := 'cohort A', active := true, copy := country})
@@ -712,7 +712,7 @@ the [Python bindings](python_bindings.md).
 ## Scalar Functions
 
 Most scalar functions are boolean predicates used inside `.filter(...)`.
-Functions that return a non-boolean value (like [`at`](#atcolumn-position) and [`isoWeek`](#isoweekcolumn))
+Functions that return a non-boolean value (like [`at`](#atinput-position) and [`isoWeek`](#isoweekinput))
 cannot be used as a filter predicate and are instead used as `map()` assignments.
 
 ### `at(input, position)`
