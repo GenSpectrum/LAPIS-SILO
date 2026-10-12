@@ -197,8 +197,10 @@ class SequencePositionIndex : public DimensionIndex {
    }
 
    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-   [[nodiscard]] DimensionIndexChunk chunk(uint16_t chunk_id, RoaringContainerView filter_view)
-      const override {
+   [[nodiscard]] DimensionIndexChunk chunk(
+      uint16_t chunk_id,
+      RoaringContainerView filter_view
+   ) const override {
       const auto& coverage = column.horizontal_coverage_index;
       const bool chunk_has_mutations = mutations_by_chunk.contains(chunk_id);
 
@@ -346,8 +348,8 @@ class IndexedColumnIndex : public DimensionIndex {
       }
    }
 
-   [[nodiscard]] DimensionIndexChunk chunk(uint16_t chunk_id, RoaringContainerView /*filter_view*/)
-      const override {
+   [[nodiscard]] DimensionIndexChunk
+   chunk(uint16_t chunk_id, RoaringContainerView /*filter_view*/) const override {
       if (auto iter = groups_by_chunk.find(chunk_id); iter != groups_by_chunk.end()) {
          return iter->second;
       }
@@ -610,8 +612,8 @@ class ScalarExpressionIndex : public DimensionIndex {
    explicit ScalarExpressionIndex(ScalarGroupData data)
        : data(std::move(data)) {}
 
-   [[nodiscard]] DimensionIndexChunk chunk(uint16_t chunk_id, RoaringContainerView /*filter_view*/)
-      const override {
+   [[nodiscard]] DimensionIndexChunk
+   chunk(uint16_t chunk_id, RoaringContainerView /*filter_view*/) const override {
       if (auto iter = data.groups_by_chunk.find(chunk_id); iter != data.groups_by_chunk.end()) {
          return iter->second;
       }
@@ -695,8 +697,9 @@ void aggregateChunk(
 ) {
    const size_t last_dimension = groups_by_dimension.size() - 1;
 
-   if (const size_t* group_index =
-          std::get_if<SingletonValueDimension>(groups_by_dimension[depth])) {
+   if (
+      const size_t* group_index = std::get_if<SingletonValueDimension>(groups_by_dimension[depth])
+   ) {
       // Every row of the running intersection carries this one label; nothing to intersect.
       chosen_indices[depth] = *group_index;
       if (depth == last_dimension) {
@@ -958,9 +961,12 @@ arrow::Result<arrow::acero::ExecNode*> BitmapAggregationNode::addToExecPlan(
    std::vector<std::unique_ptr<DimensionIndex>> indexes;
    indexes.reserve(dimensions.size());
    for (const auto& dimension : dimensions) {
-      indexes.push_back(std::visit(
-         [&](const auto& dim) { return buildDimensionIndex(dim, *table, filter_bitmap); }, dimension
-      ));
+      indexes.push_back(
+         std::visit(
+            [&](const auto& dim) { return buildDimensionIndex(dim, *table, filter_bitmap); },
+            dimension
+         )
+      );
    }
 
    std::vector<GroupCombination> combinations = computeCombinations(indexes, filter_bitmap);
