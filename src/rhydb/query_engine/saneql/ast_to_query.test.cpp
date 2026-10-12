@@ -638,7 +638,8 @@ TEST(AstToQueryMap, atResolvesToCharacterOfColumn) {
 TEST(AstToQueryMap, atAcceptsAnyScalarInput) {
    auto tables = makeTablesWithDefault();
    EXPECT_NO_THROW((void)parseAndConvertToQueryTree("data.map({c := 'abc'.at(2)})", tables));
-   EXPECT_NO_THROW((void)parseAndConvertToQueryTree("data.map({c := date.isoWeek().at(1)})", tables)
+   EXPECT_NO_THROW(
+      (void)parseAndConvertToQueryTree("data.map({c := date.isoWeek().at(1)})", tables)
    );
 }
 
@@ -674,8 +675,9 @@ TEST(AstToQueryMap, isoWeekResolvesToWeekOfDateColumn) {
 
 TEST(AstToQueryMap, isoWeekAcceptsDateLiteral) {
    auto tables = makeTablesWithDefault();
-   EXPECT_NO_THROW((void
-   )parseAndConvertToQueryTree("data.map({w := '2026-03-17'::date.isoWeek()})", tables));
+   EXPECT_NO_THROW(
+      (void)parseAndConvertToQueryTree("data.map({w := '2026-03-17'::date.isoWeek()})", tables)
+   );
 }
 
 TEST(AstToQueryMap, isoWeekOnUnknownColumnThrows) {
