@@ -15,7 +15,8 @@ namespace rhydb::query_engine::scalar_expressions {
 /// query language offers (`=`, `<>`, `<`, `<=`, `>`, `>=`). One side is a column
 /// reference (FieldRef) and the other a literal value; compile() recognises this
 /// "column <op> constant" shape and lowers it to an efficient filter, dispatching
-/// on the literal's type.
+/// on the literal's type. `sequence.at(n) = 'X'` (and `<>`) on a sequence column is rewritten
+/// into the symbol filters `nucleotideEquals` / `aminoAcidEquals` use.
 ///
 /// `null` is not a comparable value and never matches.
 ///

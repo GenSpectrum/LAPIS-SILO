@@ -14,7 +14,9 @@
 #include <fmt/format.h>
 #include <roaring/roaring.hh>
 
+#include "rhydb/common/aa_symbols.h"
 #include "rhydb/common/bitmap.h"
+#include "rhydb/common/nucleotide_symbols.h"
 #include "rhydb/common/panic.h"
 #include "rhydb/query_engine/filter/operators/empty.h"
 #include "rhydb/query_engine/filter/operators/index_scan.h"
@@ -22,10 +24,15 @@
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/filter/operators/selection.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
+#include "rhydb/query_engine/scalar_expressions/and.h"
+#include "rhydb/query_engine/scalar_expressions/at.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
+#include "rhydb/query_engine/scalar_expressions/is_null.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
+#include "rhydb/query_engine/scalar_expressions/negation.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
 #include "rhydb/query_engine/scalar_expressions/string_in_set.h"
+#include "rhydb/query_engine/scalar_expressions/symbol_equals.h"
 #include "rhydb/storage/column/bool_column.h"
 #include "rhydb/storage/column/date32_column.h"
 #include "rhydb/storage/column/dictionary_encoded_column.h"
@@ -78,6 +85,119 @@ std::optional<ColumnAndValue> splitColumnAndValue(
       return ColumnAndValue{.column = right_field, .value = left, .column_on_right = true};
    }
    return std::nullopt;
+}
+
+/// `sequence.at(position) <op> literal`: the `.at()` side reads a single position of a sequence
+/// column and the other side is a string literal.
+struct SequencePositionAndLiteral {
+   ColumnIdentifier column;
+   uint32_t position;
+   const std::string* literal;
+};
+
+std::optional<SequencePositionAndLiteral> splitSequencePositionAndLiteral(
+   const Table& table,
+   const ScalarExpression* left,
+   const ScalarExpression* right
+) {
+   const auto* at_expression = dynCast<At>(left);
+   const auto* literal = dynCast<StringLiteral>(right);
+   if (at_expression == nullptr || literal == nullptr) {
+      at_expression = dynCast<At>(right);
+      literal = dynCast<StringLiteral>(left);
+   }
+   if (at_expression == nullptr || literal == nullptr) {
+      return std::nullopt;
+   }
+   const auto* field = dynCast<FieldRef>(at_expression->input.get());
+   if (field == nullptr) {
+      return std::nullopt;
+   }
+   // The FieldRef carries the type the column has in the query (sequences are read as strings),
+   // so whether it is a sequence column is decided by the table's schema.
+   auto table_column = table.schema->getColumn(field->column.name);
+   if (
+      !table_column.has_value() || (table_column->type != Nucleotide::COLUMN_TYPE &&
+                                    table_column->type != AminoAcid::COLUMN_TYPE)
+   ) {
+      return std::nullopt;
+   }
+   return SequencePositionAndLiteral{
+      .column = std::move(table_column.value()),
+      .position = at_expression->position,
+      .literal = &literal->value,
+   };
+}
+
+/// Rewrites `sequence.at(position) = 'X'` (or `<>`) into the symbol filters that `nucleotideEquals`
+/// / `aminoAcidEquals` use, so the predicate is answered from the sequence index instead of
+/// reconstructing every sequence. The result must match the Arrow evaluation of the comparison,
+/// which compares the decoded (upper-case) character: a null sequence never matches, and a literal
+/// that is not a decoded symbol character, as well as a position beyond the reference, never equals
+/// the extracted character.
+template <typename SymbolType>
+std::unique_ptr<ScalarExpression> rewriteSequencePositionComparison(
+   const Table& table,
+   const SequencePositionAndLiteral& split,
+   Comparator comparator,
+   ScalarExpression::AmbiguityMode mode
+) {
+   const auto& sequence_column = table.getColumn<typename SymbolType::Column>(split.column.name);
+   const uint32_t position_idx = split.position - 1;
+   const bool in_bounds = position_idx < sequence_column.metadata->reference_sequence.size();
+   const auto symbol =
+      split.literal->size() == 1 ? SymbolType::charToSymbol(split.literal->front()) : std::nullopt;
+   const bool is_decoded_symbol =
+      symbol.has_value() && SymbolType::symbolToChar(symbol.value()) == split.literal->front();
+
+   if (!in_bounds && split.literal->empty()) {
+      // Beyond the reference the extracted value is the empty string, which equals an empty
+      // literal; this corner case is left to the generic evaluation.
+      return nullptr;
+   }
+   if (!in_bounds || !is_decoded_symbol) {
+      // The extracted character can never equal the literal, so `=` matches nothing and `<>`
+      // matches every row that has a sequence.
+      if (comparator == Comparator::EQUALS) {
+         return std::make_unique<BoolLiteral>(false);
+      }
+      return std::make_unique<Negation>(std::make_unique<IsNull>(split.column));
+   }
+
+   auto symbol_equals = std::make_unique<SymbolEquals<SymbolType>>(
+      split.column, position_idx, SymbolOrDot<SymbolType>(symbol.value())
+   );
+   if (comparator == Comparator::EQUALS) {
+      return symbol_equals->rewrite(table, mode);
+   }
+
+   // `<>` is the negation of `=` restricted to rows that have a sequence: the Arrow evaluation
+   // yields null, not true, for a null sequence, whereas a Negation would include those rows.
+   ScalarExpressionVector children;
+   children.emplace_back(std::make_unique<Negation>(std::move(symbol_equals)));
+   children.emplace_back(std::make_unique<Negation>(std::make_unique<IsNull>(split.column)));
+   return And(std::move(children)).rewrite(table, mode);
+}
+
+/// Returns nullptr when the comparison is not a sequence-position comparison that can be rewritten.
+std::unique_ptr<ScalarExpression> tryRewriteSequencePositionComparison(
+   const Table& table,
+   const ScalarExpression* left,
+   const ScalarExpression* right,
+   Comparator comparator,
+   ScalarExpression::AmbiguityMode mode
+) {
+   if (comparator != Comparator::EQUALS && comparator != Comparator::NOT_EQUALS) {
+      return nullptr;
+   }
+   auto split = splitSequencePositionAndLiteral(table, left, right);
+   if (!split.has_value()) {
+      return nullptr;
+   }
+   if (split->column.type == Nucleotide::COLUMN_TYPE) {
+      return rewriteSequencePositionComparison<Nucleotide>(table, *split, comparator, mode);
+   }
+   return rewriteSequencePositionComparison<AminoAcid>(table, *split, comparator, mode);
 }
 
 Comparator flipComparator(Comparator comparator) {
@@ -324,8 +444,15 @@ arrow::Result<arrow::compute::Expression> Comparison::toArrowExpression() const 
 
 std::unique_ptr<ScalarExpression> Comparison::rewrite(
    const Table& table,
-   AmbiguityMode /*mode*/
+   AmbiguityMode mode
 ) const {
+   if (
+      auto rewritten =
+         tryRewriteSequencePositionComparison(table, left.get(), right.get(), comparator, mode)
+   ) {
+      return rewritten;
+   }
+
    // Only equality is rewritten. A non-indexed string column has no per-value index,
    // so `column = 'value'` becomes a (single-element) StringInSet, which knows how to
    // scan it and which Or can merge with sibling StringInSets over the same column.
