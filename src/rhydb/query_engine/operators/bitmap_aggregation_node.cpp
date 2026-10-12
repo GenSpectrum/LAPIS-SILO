@@ -216,7 +216,7 @@ arrow::Result<arrow::acero::ExecNode*> BitmapAggregationNode::addToExecPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& query_options
 ) const {
-   auto filter_bitmap = compileFilter(filter, table)->evaluate();
+   auto compiled_filter = compileFilter(filter, table);
 
    // Resolve each dimension against the table into the form the exec node groups by. This also
    // validates it (e.g. a sequence position out of range throws here), so invalid queries are
@@ -234,7 +234,7 @@ arrow::Result<arrow::acero::ExecNode*> BitmapAggregationNode::addToExecPlan(
    return exec_node::addBitmapAggregationNode(
       plan,
       table,
-      std::move(filter_bitmap),
+      [compiled_filter] { return compiled_filter->evaluate(); },
       std::move(resolved_dimensions),
       exec_node::columnsToArrowSchema(getOutputSchema()),
       query_options.materialization_cutoff + 1
