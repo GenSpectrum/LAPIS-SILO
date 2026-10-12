@@ -643,6 +643,21 @@ TEST(AstToQueryMap, atAcceptsAnyScalarInput) {
    );
 }
 
+TEST(AstToQueryMap, atAcceptsDictionaryEncodedColumn) {
+   auto tables = makeTablesWithDictionaryEncodedColumn();
+   EXPECT_NO_THROW((void)parseAndConvertToQueryTree("data.map({c := lineage.at(1)})", tables));
+}
+
+TEST(AstToQueryMap, atOnNonStringInputThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() { (void)parseAndConvertToQueryTree("data.map({c := date.at(1)})", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("at(): the input date must be a string, but is of type DATE32")
+      )
+   );
+}
+
 TEST(AstToQueryMap, atOnUnknownColumnThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(

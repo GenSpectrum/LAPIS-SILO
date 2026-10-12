@@ -539,7 +539,8 @@ ScalarExpressionPtr handleAt(
    const auto& input_ast = args.at("input");
    auto input = convertToScalar(input_ast, schema, "at() input", context);
    CHECK_RHYDB_QUERY(
-      input->type() == schema::ColumnType::STRING,
+      input->type() == schema::ColumnType::STRING ||
+         input->type() == schema::ColumnType::DICTIONARY_ENCODED,
       "at(): the input {} must be a string, but is of type {}",
       input_ast.toString(),
       schema::columnTypeToString(input->type())
