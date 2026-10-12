@@ -415,10 +415,7 @@ void checkPrimaryKey(
 
 }  // namespace
 
-WriteCommandPtr buildCreateTable(
-   const saneql::BoundArguments& args,
-   const saneql::Tables& tables
-) {
+WriteCommandPtr buildCreateTable(const saneql::BoundArguments& args, const saneql::Tables& tables) {
    auto table_name = extractIdentifierName(args.at("table"));
    auto columns = parseColumnDefinitions(args.at("columns"), tables);
    std::optional<std::string> primary_key;

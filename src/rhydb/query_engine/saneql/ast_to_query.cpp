@@ -1199,10 +1199,7 @@ operators::QueryNodePtr buildScanNode(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleFilter(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleFilter(const BoundArguments& args, const Tables& tables) {
    auto child = convertExpression(args.at("input"), tables);
    const ScalarConversionContext context{.tables = tables};
    auto filter_expr = convertToFilter(args.at("condition"), child->getOutputSchema(), context);
@@ -1210,10 +1207,7 @@ operators::QueryNodePtr handleFilter(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleSchema(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleSchema(const BoundArguments& args, const Tables& tables) {
    auto child = convertExpression(args.at("input"), tables);
    return std::make_unique<operators::SchemaNode>(std::move(child));
 }
@@ -1226,10 +1220,7 @@ operators::QueryNodePtr handleTables(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleGroupBy(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleGroupBy(const BoundArguments& args, const Tables& tables) {
    auto child = convertExpression(args.at("input"), tables);
    auto child_schema = child->getOutputSchema();
 
@@ -1241,10 +1232,7 @@ operators::QueryNodePtr handleGroupBy(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleProject(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleProject(const BoundArguments& args, const Tables& tables) {
    const auto& field_argument = args.at("expressions");
    const std::vector<std::string> field_names =
       holds_alternative<ast::Identifier>(field_argument.value)
@@ -1267,10 +1255,7 @@ operators::QueryNodePtr handleProject(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleProjectout(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleProjectout(const BoundArguments& args, const Tables& tables) {
    const auto& field_argument = args.at("remove");
    const std::vector<std::string> remove_names =
       holds_alternative<ast::Identifier>(field_argument.value)
@@ -1321,10 +1306,7 @@ MapNode::Assignment parseMapAssignment(
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleMap(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleMap(const BoundArguments& args, const Tables& tables) {
    const auto& expressions_argument = args.at("expressions");
    CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::RecordLiteral>(expressions_argument.value),
@@ -1358,10 +1340,7 @@ constexpr std::string_view AMINO_ACID_MUTATIONS_FUNCTION_NAME = "aminoAcidMutati
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleMutations(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleMutations(const BoundArguments& args, const Tables& tables) {
    auto child = convertExpression(args.at("input"), tables);
    std::vector<std::string> sequence_names;
    if (const auto* seq_expr = args.get("sequenceNames")) {
@@ -1392,10 +1371,7 @@ constexpr std::string_view AMINO_ACID_INSERTIONS_FUNCTION_NAME = "aminoAcidInser
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleInsertions(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleInsertions(const BoundArguments& args, const Tables& tables) {
    auto child = convertExpression(args.at("input"), tables);
    std::vector<std::string> sequence_names;
    if (const auto* seq_expr = args.get("sequenceNames")) {
@@ -1412,10 +1388,7 @@ operators::QueryNodePtr handleInsertions(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleRandomize(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleRandomize(const BoundArguments& args, const Tables& tables) {
    auto child = convertExpression(args.at("input"), tables);
    uint32_t seed;
    auto seed_arg = args.getOptionalUint32("seed");
@@ -1430,10 +1403,7 @@ operators::QueryNodePtr handleRandomize(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleLimit(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleLimit(const BoundArguments& args, const Tables& tables) {
    auto child = convertExpression(args.at("input"), tables);
    const uint32_t limit_val = extractUint32Literal(args.at("count"));
    CHECK_RHYDB_QUERY(limit_val > 0, "limit must be a positive number");
@@ -1442,20 +1412,14 @@ operators::QueryNodePtr handleLimit(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleOffset(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleOffset(const BoundArguments& args, const Tables& tables) {
    auto child = convertExpression(args.at("input"), tables);
    uint32_t offset_val = extractUint32Literal(args.at("count"));
    return std::make_unique<operators::FetchNode>(std::move(child), std::nullopt, offset_val);
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleOrderBy(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleOrderBy(const BoundArguments& args, const Tables& tables) {
    auto child = convertExpression(args.at("input"), tables);
    auto order_fields = parseOrderByFields(args.at("by"), child->getOutputSchema());
    return std::make_unique<operators::OrderByNode>(
@@ -1480,10 +1444,7 @@ operators::QueryNodePtr handleMostRecentCommonAncestor(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handlePhyloSubtree(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handlePhyloSubtree(const BoundArguments& args, const Tables& tables) {
    auto column_name = extractStringLiteral(args.at("column"));
    bool print_nodes_not_in_tree = false;
    bool contract_unary_nodes = true;
@@ -1655,10 +1616,7 @@ arrow::acero::JoinType parseJoinType(const BoundArguments& args) {
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleJoin(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleJoin(const BoundArguments& args, const Tables& tables) {
    auto left = convertExpression(args.at("left"), tables);
    auto right = convertExpression(args.at("right"), tables);
 
@@ -1695,10 +1653,7 @@ operators::QueryNodePtr handleJoin(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleUnionAll(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleUnionAll(const BoundArguments& args, const Tables& tables) {
    auto left = convertExpression(args.at("left"), tables);
    auto right = convertExpression(args.at("right"), tables);
 
@@ -1717,10 +1672,7 @@ operators::QueryNodePtr handleUnionAll(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleTransitiveClosure(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+operators::QueryNodePtr handleTransitiveClosure(const BoundArguments& args, const Tables& tables) {
    auto child = convertExpression(args.at("input"), tables);
    auto from_column = extractIdentifierName(args.at("from"));
    auto to_column = extractIdentifierName(args.at("to"));

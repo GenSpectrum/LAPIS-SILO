@@ -55,10 +55,8 @@ using WriteCommandPtr = std::unique_ptr<WriteCommand>;
 
 using Request = std::variant<operators::QueryNodePtr, WriteCommandPtr>;
 
-using WriteStatementHandler = std::function<WriteCommandPtr(
-   const saneql::BoundArguments& args,
-   const saneql::Tables& tables
-)>;
+using WriteStatementHandler =
+   std::function<WriteCommandPtr(const saneql::BoundArguments& args, const saneql::Tables& tables)>;
 
 class WriteStatementRegistry {
   public:

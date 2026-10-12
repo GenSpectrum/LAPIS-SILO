@@ -47,10 +47,7 @@ arrow::Status writeToSink(
 
 namespace {
 
-WriteCommandPtr buildInsertInto(
-   const BoundArguments& args,
-   const Tables& tables
-) {
+WriteCommandPtr buildInsertInto(const BoundArguments& args, const Tables& tables) {
    const std::string target_name = saneql::ast::extractIdentifierName(args.at("target"));
    auto target_table = schema::TableName(target_name);
    CHECK_RHYDB_QUERY(
