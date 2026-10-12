@@ -25,11 +25,13 @@ namespace ast = rhydb::query_engine::saneql::ast;
 
 namespace {
 
+using Tables = std::map<rhydb::schema::TableName, std::shared_ptr<rhydb::storage::Table>>;
+
 auto parseFilter(
    std::string_view query,
    const std::vector<rhydb::schema::ColumnIdentifier>& schema = {}
 ) {
-   return convertToFilter(*Parser(query).parse(), schema, {});
+   return convertToFilter(*Parser(query).parse(), schema, Tables{});
 }
 
 // Schema exposing a nucleotide sequence column, so that the sequence leaf expressions can
@@ -37,8 +39,6 @@ auto parseFilter(
 const std::vector<rhydb::schema::ColumnIdentifier> SEQUENCE_SCHEMA{
    {.name = "segment1", .type = rhydb::schema::ColumnType::NUCLEOTIDE_SEQUENCE},
 };
-
-using Tables = std::map<rhydb::schema::TableName, std::shared_ptr<rhydb::storage::Table>>;
 
 Tables makeTablesWithDefault() {
    using rhydb::schema::ColumnIdentifier;
@@ -88,10 +88,10 @@ TEST(AstToQuery, nullFromAndTo) {
       [&tables]() {
          (void)parseAndConvertToQueryTree("data.filter(id.between(null, null))", tables);
       },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("Could not infer type of between expression. From-value or to-value "
-                              "needs to be a typed non-null value, got from: 'null' to: 'null'")
-      )
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
+         "Could not infer type of between expression. From-value or to-value "
+         "needs to be a typed non-null value, got from: 'null' to: 'null'"
+      ))
    );
 }
 
@@ -441,7 +441,7 @@ TEST(AstToQueryBinaryExpr, unhandledBinaryOpThrows) {
       {}
    );
    EXPECT_THAT(
-      [&]() { (void)convertToFilter(*expr, {}, {}); },
+      [&]() { (void)convertToFilter(*expr, {}, Tables{}); },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("unhandled binary operator"))
    );
 }
@@ -484,8 +484,9 @@ TEST(AstToQueryGroupBy, fieldNotInSchemaThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
       [&tables]() {
-         (void
-         )parseAndConvertToQueryTree("data.group(by:={nonexistent}, aggs:={n:=count()})", tables);
+         (void)parseAndConvertToQueryTree(
+            "data.group(by:={nonexistent}, aggs:={n:=count()})", tables
+         );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
          "group field 'nonexistent' is not present in the input's output schema"
@@ -526,7 +527,8 @@ TEST(AstToQueryGroupBy, aggregatesInByPositionThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
       [&]() { (void)parseAndConvertToQueryTree("data.group({n:=count()}, {date})", tables); },
-      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("group by must be a set of columns")
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("group by must be a set of columns")
       )
    );
 }
@@ -774,8 +776,9 @@ TEST(AstToQueryOrderBy, ascWrongArgCountThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
       [&]() { (void)parseAndConvertToQueryTree("data.order(by:={asc()})", tables); },
-      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("asc() expects exactly one argument"
-      ))
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("asc() expects exactly one argument")
+      )
    );
 }
 

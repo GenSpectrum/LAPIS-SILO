@@ -36,6 +36,7 @@
 #include "rhydb/query_engine/order_by_field.h"
 #include "rhydb/query_engine/saneql/ast.h"
 #include "rhydb/query_engine/saneql/function_registry.h"
+#include "rhydb/query_engine/saneql/lineage_from_tables.h"
 #include "rhydb/query_engine/saneql/parser.h"
 #include "rhydb/query_engine/scalar_expressions/and.h"
 #include "rhydb/query_engine/scalar_expressions/at.h"
@@ -222,14 +223,6 @@ Comparator toComparator(BinaryOp binary_op) {
    }
 }
 
-// The context-aware filter conversion (defined below). The public convertToFilter (ast_to_query.h)
-// forwards to this without a child converter.
-std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
-   const ast::Expression& ast,
-   const std::vector<schema::ColumnIdentifier>& schema,
-   const ScalarConversionContext& context
-);
-
 ScalarExpressionPtr convertBinaryExprToFilter(
    const ast::BinaryExpr& bin_expr,
    const std::vector<schema::ColumnIdentifier>& schema,
@@ -333,11 +326,13 @@ ScalarExpressionPtr buildValueSetPredicate(
    scalar_expressions::ScalarExpressionVector comparisons;
    comparisons.reserve(value_literals.size());
    for (auto& literal : value_literals) {
-      comparisons.push_back(std::make_unique<scalar_expressions::Comparison>(
-         std::make_unique<scalar_expressions::FieldRef>(column),
-         std::move(literal),
-         Comparator::EQUALS
-      ));
+      comparisons.push_back(
+         std::make_unique<scalar_expressions::Comparison>(
+            std::make_unique<scalar_expressions::FieldRef>(column),
+            std::move(literal),
+            Comparator::EQUALS
+         )
+      );
    }
    if (comparisons.size() == 1) {
       return std::move(comparisons.front());
@@ -426,19 +421,15 @@ ScalarExpressionPtr handleLineage(
    }
    auto recombinant_mode = args.getOptionalString("recombinantFollowingMode");
    if (recombinant_mode.has_value()) {
-      if (recombinant_mode.value() == "alwaysFollow") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW;
-      } else if (recombinant_mode.value() == "followIfFullyContainedInClade") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE;
-      } else if (recombinant_mode.value() == "doNotFollow") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
-      } else {
-         throw IllegalQueryException(
-            "invalid recombinantFollowingMode: '{}'. Valid values are: alwaysFollow, "
-            "followIfFullyContainedInClade, doNotFollow",
-            recombinant_mode.value()
-         );
-      }
+      sublineage_mode = common::recombinantEdgeFollowingModeFromName(recombinant_mode.value());
+      CHECK_RHYDB_QUERY(
+         sublineage_mode.has_value(),
+         "invalid recombinantFollowingMode: '{}'. Valid values are: {}, {}, {}",
+         recombinant_mode.value(),
+         common::ALWAYS_FOLLOW_NAME,
+         common::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE_NAME,
+         common::DO_NOT_FOLLOW_NAME
+      );
    }
    return std::make_unique<scalar_expressions::LineageFilter>(
       resolveColumn(column_name, schema), lineage_value, sublineage_mode
@@ -795,8 +786,6 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
    return convertToFilter(ast, schema, ScalarConversionContext{.tables = &tables});
 }
 
-namespace {
-
 // NOLINTNEXTLINE(misc-no-recursion)
 std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
    const ast::Expression& ast,
@@ -830,8 +819,6 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
       ast.value
    );
 }
-
-}  // namespace
 
 // ========================================================================
 // Pipeline function handlers (registered in FunctionRegistry)
@@ -957,8 +944,9 @@ operators::AggregateDefinition parseAggregateDefinition(
    if (agg_func == operators::AggregateFunction::SUM) {
       validateSumArguments(field, func, source_column);
    }
-   if (agg_func == operators::AggregateFunction::MIN ||
-       agg_func == operators::AggregateFunction::MAX) {
+   if (
+      agg_func == operators::AggregateFunction::MIN || agg_func == operators::AggregateFunction::MAX
+   ) {
       validateMinMaxArguments(field, func, source_column);
    }
    return {
@@ -1741,13 +1729,24 @@ operators::QueryNodePtr handleTransitiveClosure(
    if (const auto* expr = args.get("includeVertices")) {
       include_vertices = extractBoolLiteral(*expr);
    }
-   std::optional<std::vector<std::string>> starting_from;
+   // The vertices to start from are constant scalar expressions: they are converted against no
+   // columns at all, so that a column reference is rejected.
+   std::optional<std::vector<ScalarExpressionPtr>> starting_from;
    if (const auto* expr = args.get("startingFrom")) {
       const auto& set = extractSetLiteral(*expr);
+      const ScalarConversionContext context{.tables = &tables, .convert_child = &convert_child};
       starting_from.emplace();
       starting_from->reserve(set.elements.size());
       for (const auto& element : set.elements) {
-         starting_from->push_back(extractStringLiteral(*element));
+         auto vertex = convertToScalar(*element, {}, "a startingFrom vertex", context);
+         CHECK_RHYDB_QUERY(
+            vertex->type() == schema::ColumnType::STRING,
+            "a startingFrom vertex must be a string, but {} is of type {} at {}",
+            element->toString(),
+            schema::columnTypeToString(vertex->type()),
+            element->location.toString()
+         );
+         starting_from->push_back(std::move(vertex));
       }
    }
 
@@ -1935,6 +1934,21 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
       handleLineage
    );
 
+   registerFunction(
+      "lineageFromTables",
+      {
+         {
+            pos("column"),
+            pos("value"),
+            pos("lineages"),
+            pos("aliases"),
+            pos("includeSublineages", false),
+            pos("recombinantFollowingMode", false),
+         },
+      },
+      handleLineageFromTables
+   );
+
    registerFunction("phyloDescendantOf", {{pos("column"), pos("node")}}, handlePhyloDescendantOf);
 
    registerFunction("like", {{pos("column"), pos("pattern")}}, handleLike);
@@ -1953,8 +1967,12 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
 
    auto insertion_contains_sig =
       FunctionSignature{{named("position"), named("value"), named("sequenceName")}};
-   registerFunction("insertionContains", insertion_contains_sig, handleInsertionContains<Nucleotide>);
-   registerFunction("aminoAcidInsertionContains", insertion_contains_sig, handleInsertionContains<AminoAcid>);
+   registerFunction(
+      "insertionContains", insertion_contains_sig, handleInsertionContains<Nucleotide>
+   );
+   registerFunction(
+      "aminoAcidInsertionContains", insertion_contains_sig, handleInsertionContains<AminoAcid>
+   );
 
    registerFunction("exact", {{pos("child")}}, handleExact);
    registerFunction("maybe", {{pos("child")}}, handleMaybe);
@@ -1972,8 +1990,12 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
          named("mutations", false),
       },
    };
-   registerFunction("nucleotideMutationProfile", mutation_profile_sig, handleMutationProfile<Nucleotide>);
-   registerFunction("aminoAcidMutationProfile", mutation_profile_sig, handleMutationProfile<AminoAcid>);
+   registerFunction(
+      "nucleotideMutationProfile", mutation_profile_sig, handleMutationProfile<Nucleotide>
+   );
+   registerFunction(
+      "aminoAcidMutationProfile", mutation_profile_sig, handleMutationProfile<AminoAcid>
+   );
 }
 
 ScalarFunctionRegistry& ScalarFunctionRegistry::instance() {

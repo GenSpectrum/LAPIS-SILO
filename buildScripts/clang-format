@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# Runs clang-format with all arguments passed through, refusing any version other than the one CI
+# uses, since formatting output differs between major versions.
+VERSION=23
+
+CLANG_FORMAT=$(command -v "clang-format-$VERSION" || command -v clang-format || true)
+
+if [[ -z "$CLANG_FORMAT" ]]; then
+  echo "error: clang-format not found in PATH, need version $VERSION" >&2
+  exit 1
+fi
+
+if ! "$CLANG_FORMAT" --version | grep -q "clang-format version ${VERSION}\."; then
+  echo "error: $CLANG_FORMAT is not clang-format $VERSION: $("$CLANG_FORMAT" --version)" >&2
+  exit 1
+fi
+
+exec "$CLANG_FORMAT" "$@"
