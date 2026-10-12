@@ -13,7 +13,6 @@ RHYDB_BENCHMARK_EXECUTABLE=./build/Release/performance/rhydb_benchmark
 RUNNING_RHYDB_FLAG=running_rhydb.flag
 DEPENDENCIES_FLAG=dependencies
 WASM_DEPENDENCIES_FLAG=build/wasm/dependencies
-CLANG_FORMAT=$(shell command -v clang-format-23 2>/dev/null || command -v clang-format 2>/dev/null || echo clang-format)
 CMAKE_BUILD_PARALLEL_LEVEL ?= 16
 # Docker image for lint-changes/lint-all; empty uses the scripts' default (:latest)
 LINT_DOCKER_IMAGE ?=
@@ -174,7 +173,7 @@ endToEndTests/node_modules: endToEndTests/package-lock.json
 
 .PHONY: format-cpp
 format-cpp:
-	find src performance app/src python wasm/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) -i
+	find src performance app/src python wasm/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs buildScripts/clang-format -i
 
 .PHONY: format-node
 format-node: endToEndTests/node_modules
@@ -186,7 +185,7 @@ format: format-cpp format-node
 
 .PHONY: check-format-cpp
 check-format-cpp:
-	find src performance app/src python wasm/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) --dry-run --Werror
+	find src performance app/src python wasm/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs buildScripts/clang-format --dry-run --Werror
 
 .PHONY: check-format-node
 check-format-node: endToEndTests/node_modules
