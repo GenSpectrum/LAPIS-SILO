@@ -1,18 +1,14 @@
 #include "rhydb/query_engine/operators/count_filter_node.h"
 
-#include <functional>
 #include <map>
 #include <memory>
-#include <optional>
 #include <vector>
 
 #include <arrow/acero/exec_plan.h>
-#include <arrow/acero/options.h>
-#include <arrow/builder.h>
 #include <nlohmann/json.hpp>
 
-#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
+#include "rhydb/query_engine/exec_node/count_filter.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/table.h"
@@ -34,45 +30,14 @@ std::vector<schema::ColumnIdentifier> CountFilterNode::getOutputSchema() const {
    return output_fields;
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 arrow::Result<arrow::acero::ExecNode*> CountFilterNode::addToExecPlan(
    arrow::acero::ExecPlan& plan,
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto compiled_filter = compileFilter(filter, table);
-
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [compiled_filter,
-       already_produced = false] mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
-      if (already_produced) {
-         const std::optional<arrow::ExecBatch> result = std::nullopt;
-         return arrow::Future{result};
-      }
-      already_produced = true;
-
-      const Bitmap filter_bitmap = compiled_filter->evaluate();
-
-      auto result_count = static_cast<int64_t>(filter_bitmap.cardinality());
-
-      arrow::Int64Builder result_builder{};
-      ARROW_RETURN_NOT_OK(result_builder.Append(result_count));
-      arrow::Datum datum;
-      ARROW_ASSIGN_OR_RAISE(datum, result_builder.Finish());
-      ARROW_ASSIGN_OR_RAISE(
-         const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make({datum})
-      );
-      return arrow::Future{result};
-   };
-
-   const std::vector<schema::ColumnIdentifier> output_schema = getOutputSchema();
-
-   const arrow::acero::SourceNodeOptions options{
-      exec_node::columnsToArrowSchema(output_schema),
-      std::move(producer),
-      arrow::Ordering::Implicit(),
-   };
-   return arrow::acero::MakeExecNode("source", &plan, {}, options);
+   return exec_node::addCountFilterNode(
+      plan, CompiledFilter{table, *filter}, exec_node::columnsToArrowSchema(getOutputSchema())
+   );
 }
 
 nlohmann::json CountFilterNode::toJson() const {
