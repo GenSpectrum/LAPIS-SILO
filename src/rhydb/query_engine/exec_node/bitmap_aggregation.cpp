@@ -79,8 +79,9 @@ void aggregateChunk(
 ) {
    const size_t last_dimension = groups_by_dimension.size() - 1;
 
-   if (const size_t* group_index =
-          std::get_if<SingletonValueDimension>(groups_by_dimension[depth])) {
+   if (
+      const size_t* group_index = std::get_if<SingletonValueDimension>(groups_by_dimension[depth])
+   ) {
       // Every row of the running intersection carries this one label; nothing to intersect.
       chosen_indices[depth] = *group_index;
       if (depth == last_dimension) {
@@ -129,7 +130,7 @@ void aggregateChunk(
 }
 
 /// Computes the aggregation groups counts one 2^16 chunk at a time. It does so by enumerating all
-/// combination of the per-dimension groups. The combination's cardinalities are computed
+/// combinations of the per-dimension groups. Each combination's cardinalities are computed
 /// efficiently using bitmap intersection
 std::vector<GroupCombination> computeCombinations(
    const std::vector<std::unique_ptr<DimensionIndex>>& indexes,

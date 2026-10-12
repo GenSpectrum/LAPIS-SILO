@@ -333,11 +333,13 @@ ScalarExpressionPtr buildValueSetPredicate(
    scalar_expressions::ScalarExpressionVector comparisons;
    comparisons.reserve(value_literals.size());
    for (auto& literal : value_literals) {
-      comparisons.push_back(std::make_unique<scalar_expressions::Comparison>(
-         std::make_unique<scalar_expressions::FieldRef>(column),
-         std::move(literal),
-         Comparator::EQUALS
-      ));
+      comparisons.push_back(
+         std::make_unique<scalar_expressions::Comparison>(
+            std::make_unique<scalar_expressions::FieldRef>(column),
+            std::move(literal),
+            Comparator::EQUALS
+         )
+      );
    }
    if (comparisons.size() == 1) {
       return std::move(comparisons.front());
@@ -965,8 +967,9 @@ operators::AggregateDefinition parseAggregateDefinition(
    if (agg_func == operators::AggregateFunction::SUM) {
       validateSumArguments(field, func, source_column);
    }
-   if (agg_func == operators::AggregateFunction::MIN ||
-       agg_func == operators::AggregateFunction::MAX) {
+   if (
+      agg_func == operators::AggregateFunction::MIN || agg_func == operators::AggregateFunction::MAX
+   ) {
       validateMinMaxArguments(field, func, source_column);
    }
    return {
@@ -1749,13 +1752,24 @@ operators::QueryNodePtr handleTransitiveClosure(
    if (const auto* expr = args.get("includeVertices")) {
       include_vertices = extractBoolLiteral(*expr);
    }
-   std::optional<std::vector<std::string>> starting_from;
+   // The vertices to start from are constant scalar expressions: they are converted against no
+   // columns at all, so that a column reference is rejected.
+   std::optional<std::vector<ScalarExpressionPtr>> starting_from;
    if (const auto* expr = args.get("startingFrom")) {
       const auto& set = extractSetLiteral(*expr);
+      const ScalarConversionContext context{.tables = &tables, .convert_child = &convert_child};
       starting_from.emplace();
       starting_from->reserve(set.elements.size());
       for (const auto& element : set.elements) {
-         starting_from->push_back(extractStringLiteral(*element));
+         auto vertex = convertToScalar(*element, {}, "a startingFrom vertex", context);
+         CHECK_RHYDB_QUERY(
+            vertex->type() == schema::ColumnType::STRING,
+            "a startingFrom vertex must be a string, but {} is of type {} at {}",
+            element->toString(),
+            schema::columnTypeToString(vertex->type()),
+            element->location.toString()
+         );
+         starting_from->push_back(std::move(vertex));
       }
    }
 
@@ -1961,8 +1975,12 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
 
    auto insertion_contains_sig =
       FunctionSignature{{named("position"), named("value"), named("sequenceName")}};
-   registerFunction("insertionContains", insertion_contains_sig, handleInsertionContains<Nucleotide>);
-   registerFunction("aminoAcidInsertionContains", insertion_contains_sig, handleInsertionContains<AminoAcid>);
+   registerFunction(
+      "insertionContains", insertion_contains_sig, handleInsertionContains<Nucleotide>
+   );
+   registerFunction(
+      "aminoAcidInsertionContains", insertion_contains_sig, handleInsertionContains<AminoAcid>
+   );
 
    registerFunction("exact", {{pos("child")}}, handleExact);
    registerFunction("maybe", {{pos("child")}}, handleMaybe);
@@ -1980,8 +1998,12 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
          named("mutations", false),
       },
    };
-   registerFunction("nucleotideMutationProfile", mutation_profile_sig, handleMutationProfile<Nucleotide>);
-   registerFunction("aminoAcidMutationProfile", mutation_profile_sig, handleMutationProfile<AminoAcid>);
+   registerFunction(
+      "nucleotideMutationProfile", mutation_profile_sig, handleMutationProfile<Nucleotide>
+   );
+   registerFunction(
+      "aminoAcidMutationProfile", mutation_profile_sig, handleMutationProfile<AminoAcid>
+   );
 }
 
 ScalarFunctionRegistry& ScalarFunctionRegistry::instance() {

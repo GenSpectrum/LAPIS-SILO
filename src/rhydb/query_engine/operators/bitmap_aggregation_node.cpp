@@ -199,7 +199,8 @@ std::vector<schema::ColumnIdentifier> BitmapAggregationNode::getOutputSchema() c
 nlohmann::json BitmapAggregationNode::toJson() const {
    nlohmann::json dimensions_json = nlohmann::json::array();
    for (const auto& dimension : dimensions) {
-      dimensions_json.push_back(std::visit([](const auto& dim) { return dim.toJson(); }, dimension)
+      dimensions_json.push_back(
+         std::visit([](const auto& dim) { return dim.toJson(); }, dimension)
       );
    }
    return {
