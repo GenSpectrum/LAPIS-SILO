@@ -36,8 +36,8 @@ const std::vector<nlohmann::json> DATA = {
    createDataWithLineageValue("id_10", "IWA"),
 };
 
-// With `lineageIndexType: table`, the lineage hierarchy is only available as the relation table
-// `pango_lineage` and the alias table `pango_lineage_aliases`.
+// The lineage hierarchy is available as the relation table `pango_lineage` and the alias table
+// `pango_lineage_aliases`.
 const auto DATABASE_CONFIG =
    R"(
 schema:
@@ -49,7 +49,6 @@ schema:
       type: "string"
       generateIndex: true
       generateLineageIndex: test_lineage_index
-      lineageIndexType: table
   primaryKey: "primaryKey"
 )";
 
@@ -258,7 +257,7 @@ const QueryTestScenario UNDER_AND = {
 };
 
 // lineageFromTables is a rewrite of the query, so a lineage that is not in the tables just matches
-// nothing, instead of being rejected like by lineage(...).
+// nothing.
 const QueryTestScenario UNKNOWN_LINEAGE_MATCHES_NOTHING = {
    .name = "UNKNOWN_LINEAGE_MATCHES_NOTHING",
    .query =
@@ -272,9 +271,9 @@ const QueryTestScenario NULL_LINEAGE = {
    .query =
       "data.filter(pango_lineage.lineageFromTables(null, pango_lineage, pango_lineage_aliases))"
       ".project({pango_lineage, primaryKey})",
-   .expected_error_message =
-      "lineageFromTables() does not accept null as the lineage; use isNull(\"pango_lineage\") "
-      "instead",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"pango_lineage":null,"primaryKey":"id_8"}]
+)"),
 };
 
 const QueryTestScenario INVALID_RECOMBINANT_FOLLOWING_MODE = {

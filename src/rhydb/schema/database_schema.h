@@ -4,6 +4,7 @@
 #include <map>
 #include <optional>
 #include <ranges>
+#include <string>
 #include <vector>
 
 #include <spdlog/spdlog.h>
@@ -119,6 +120,10 @@ class TableSchema {
   public:
    std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata;
    std::optional<ColumnIdentifier> primary_key;
+   /// For a lineage relation table, the lineage definition file it was built from, verbatim. The
+   /// table holds the tree's edges, but the file is what `/lineageDefinition` hands back, so it
+   /// travels with the table that owns the tree. Empty for every other table.
+   std::optional<std::string> lineage_definition_file;
 
    TableSchema(
       std::map<ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>> column_metadata,
