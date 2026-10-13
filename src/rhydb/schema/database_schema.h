@@ -153,7 +153,10 @@ class TableSchema {
       auto iter = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
          return metadata_pair.first.name == name;
       });
-      if (iter == column_metadata.end() || iter->first.type != ColumnType::TYPE) {
+      if (iter == column_metadata.end()) {
+         return std::nullopt;
+      }
+      if (iter->first.type != ColumnType::TYPE) {
          SPDLOG_INFO(
             "Mismatching type found: expected {} vs actual {}",
             columnTypeToString(ColumnType::TYPE),
