@@ -20,7 +20,7 @@ namespace {
 TableSchema schemaWithBoolColumn() {
    const ColumnIdentifier column{.name = "flag", .type = ColumnType::BOOL};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
-      {column, std::make_shared<ColumnMetadata>("flag")}
+      {column, std::make_shared<ColumnMetadata>("flag")},
    };
    return TableSchema{column_metadata, std::nullopt};
 }
