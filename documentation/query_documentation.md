@@ -725,6 +725,7 @@ The square-bracket notation `column[position]` is shorthand for `column.at(posit
 ```
 data.map({second_char := primary_key.at(2)})
 data.map({second_char := primary_key[2]})
+data.filter(main[100] = 'A')
 ```
 
 ### `isoWeek(column)`
