@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <exception>
 #include <memory>
 #include <optional>
 #include <string>
@@ -21,11 +20,11 @@
 #include <arrow/datum.h>
 #include <arrow/result.h>
 #include <arrow/status.h>
-#include <arrow/util/future.h>
 #include <roaring/roaring.hh>
 
 #include "rhydb/common/bitmap.h"
 #include "rhydb/common/panic.h"
+#include "rhydb/query_engine/exec_node/async_batch_producer.h"
 #include "rhydb/query_engine/exec_node/dimension_index.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
 #include "rhydb/roaring_util/roaring_container.h"
@@ -247,13 +246,7 @@ class BitmapAggregationGenerator {
    }
 
    // By arrow specification, this function will not be called re-entrantly
-   arrow::Future<std::optional<arrow::ExecBatch>> operator()() {
-      try {
-         return nextBatch();
-      } catch (const std::exception& exception) {
-         return arrow::Status::ExecutionError(exception.what());
-      }
-   }
+   arrow::Result<std::optional<arrow::ExecBatch>> operator()() { return nextBatch(); }
 
   private:
    /// Evaluates the filter, builds every dimension's index and counts all combinations. Afterward
@@ -318,13 +311,14 @@ arrow::Result<arrow::acero::ExecNode*> addBitmapAggregationNode(
    size_t batch_size
 ) {
    RHYDB_ASSERT_EQ(dimensions.size() + 1, static_cast<size_t>(output_schema->num_fields()));
-   // Shared, because the source node copies its generator, which would copy its state
-   auto generator = std::make_shared<BitmapAggregationGenerator>(
-      std::move(table), std::move(filter), std::move(dimensions), batch_size
-   );
    const arrow::acero::SourceNodeOptions options{
       std::move(output_schema),
-      [generator] { return (*generator)(); },
+      makeAsyncBatchGenerator(
+         plan,
+         BitmapAggregationGenerator{
+            std::move(table), std::move(filter), std::move(dimensions), batch_size
+         }
+      ),
       arrow::Ordering::Implicit(),
    };
    ARROW_ASSIGN_OR_RAISE(auto* node, arrow::acero::MakeExecNode("source", &plan, {}, options));

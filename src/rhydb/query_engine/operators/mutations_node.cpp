@@ -18,6 +18,7 @@
 #include "rhydb/common/nucleotide_symbols.h"
 #include "rhydb/common/symbol_map.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
+#include "rhydb/query_engine/exec_node/async_batch_producer.h"
 #include "rhydb/query_engine/exec_node/schema_output_builder.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
 #include "rhydb/schema/database_schema.h"
@@ -380,17 +381,16 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
    auto output_fields = getOutputSchema();
    auto sequence_column_identifiers = sequence_columns;
    const double given_min_proportion = min_proportion;
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
+   exec_node::BatchProducer producer =
       // NOLINTNEXTLINE(readability-function-cognitive-complexity)
       [table_handle,
        given_min_proportion,
        output_fields,
        compiled_filter,
        sequence_column_identifiers,
-       already_produced = false] mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+       already_produced = false] mutable -> arrow::Result<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
-         const std::optional<arrow::ExecBatch> result = std::nullopt;
-         return arrow::Future{result};
+         return std::nullopt;
       }
       already_produced = true;
 
@@ -421,12 +421,12 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
       ARROW_ASSIGN_OR_RAISE(
          const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
       );
-      return arrow::Future{result};
+      return result;
    };
 
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(output_fields),
-      std::move(producer),
+      exec_node::makeAsyncBatchGenerator(plan, std::move(producer)),
       arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", &plan, {}, options);

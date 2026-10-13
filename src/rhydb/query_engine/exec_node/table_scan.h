@@ -13,6 +13,7 @@
 #include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/batched_bitmap_reader.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
+#include "rhydb/query_engine/exec_node/async_batch_producer.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
 #include "rhydb/storage/table.h"
 
@@ -67,39 +68,8 @@ class TableScanGenerator {
          batch_size_cutoff(batch_size_cutoff),
          table(std::move(table)) {}
 
-   arrow::Future<std::optional<arrow::ExecBatch>> operator()() {
-      SPDLOG_TRACE("TableScanGenerator::operator()");
-      auto future = arrow::Future<std::optional<arrow::ExecBatch>>::Make();
-#ifdef __EMSCRIPTEN__
-      // In the browser build we produce the batch synchronously. Spawning a
-      // detached pthread per batch (as the native path does below) starves or
-      // deadlocks Emscripten's fixed pthread worker pool (PTHREAD_POOL_SIZE in
-      // wasm/CMakeLists.txt) on larger datasets. The arrow issues worked around
-      // below do not affect the browser build, which runs acero with a
-      // single-threaded executor.
-      try {
-         auto result = produceNextBatch();
-         future.MarkFinished(std::move(result));
-      } catch (const std::exception& exception) {
-         future.MarkFinished(arrow::Status::ExecutionError(exception.what()));
-      }
-#else
-      // We do this to guard against https://github.com/apache/arrow/issues/47641
-      // and https://github.com/apache/arrow/issues/47642
-      std::thread([future, this] mutable {
-         try {
-            auto result = produceNextBatch();
-            future.MarkFinished(std::move(result));
-         } catch (const std::exception& exception) {
-            future.MarkFinished(arrow::Status::ExecutionError(exception.what()));
-         }
-      }).detach();
-#endif
-      return future;
-   };
-
-  private:
-   arrow::Result<std::optional<arrow::ExecBatch>> produceNextBatch();
+   // By arrow specification, this function will not be called re-entrantly
+   arrow::Result<std::optional<arrow::ExecBatch>> operator()();
 };
 
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
