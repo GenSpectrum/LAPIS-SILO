@@ -322,11 +322,11 @@ Bitmap Bitmap::fastUnion(const std::vector<Bitmap>& bitmaps) {
          last_in_group = &bitmap.containers[cursor.position];
          group_views.push_back(viewOf(*last_in_group));
          if (cursor.position + 1 < bitmap.keys.size()) {
-            heap.push(
-               {.key = bitmap.keys[cursor.position + 1],
-                .bitmap = cursor.bitmap,
-                .position = cursor.position + 1}
-            );
+            heap.push({
+               .key = bitmap.keys[cursor.position + 1],
+               .bitmap = cursor.bitmap,
+               .position = cursor.position + 1,
+            });
          }
       }
 

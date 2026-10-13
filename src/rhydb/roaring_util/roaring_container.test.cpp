@@ -389,7 +389,8 @@ TEST(RoaringContainerSetAlgebra, fastUnionOfNoneOneOrTwoContainers) {
    EXPECT_EQ(toRoaring(rhydb::roaring_util::fastUnion(single)), (roaring::Roaring{1, 3}));
 
    const std::vector<RoaringContainerView> pair{
-      RoaringContainerView{first}, RoaringContainerView{second}
+      RoaringContainerView{first},
+      RoaringContainerView{second},
    };
    EXPECT_EQ(toRoaring(rhydb::roaring_util::fastUnion(pair)), (roaring::Roaring{1, 2, 3}));
 }
@@ -429,6 +430,7 @@ TEST(RoaringContainerSetAlgebra, fastUnionOfManyMixedContainers) {
 TEST(RoaringContainerSetAlgebra, fastUnionOfManySparseContainersStaysCompact) {
    // The bitset accumulator must be converted back to an array container for a sparse result.
    std::vector<RoaringContainer> containers;
+   containers.reserve(100);
    for (uint16_t value = 0; value < 100; ++value) {
       containers.push_back(makeContainer({static_cast<uint16_t>(value * 3)}));
    }
