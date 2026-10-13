@@ -307,6 +307,44 @@ const QueryTestScenario MIXED_SEQUENCE_AND_ISO_WEEK = {
    ])"),
 };
 
+// `group` also takes scalar expressions in `by` directly. They are computed by a map right below
+// the aggregate, so the result (and the bitmap rewrite) is the same as with an explicit map. The
+// output column is named after the expression's source text, keeping the `a[i]` sugar.
+const QueryTestScenario GROUP_BY_SEQUENCE_POSITION_EXPRESSIONS = {
+   .name = "GROUP_BY_SEQUENCE_POSITION_EXPRESSIONS",
+   .query = "data.group({segment1[1], segment1[2]}, {count:=count()})",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"segment1[1]": "A", "segment1[2]": "T", "count": 2},
+      {"segment1[1]": "C", "segment1[2]": "A", "count": 1},
+      {"segment1[1]": "N", "segment1[2]": "N", "count": 1}
+   ])"),
+};
+
+// Plain columns and expressions mixed in `by`, with the computed column referenced downstream as a
+// quoted identifier.
+const QueryTestScenario GROUP_BY_EXPRESSION_AND_COLUMN_WITH_FILTER_ORDER_LIMIT = {
+   .name = "GROUP_BY_EXPRESSION_AND_COLUMN_WITH_FILTER_ORDER_LIMIT",
+   .query =
+      "data.filter(region = 'Europe')"
+      ".group({region, segment1[1]}, {n := count()})"
+      ".order({n.desc(), \"segment1[1]\"})"
+      ".limit(1)",
+   .expected_query_result = nlohmann::json::parse(R"([
+      {"region": "Europe", "segment1[1]": "A", "n": 2}
+   ])"),
+};
+
+const QueryTestScenario GROUP_BY_ISO_WEEK_EXPRESSION = {
+   .name = "GROUP_BY_ISO_WEEK_EXPRESSION",
+   .query =
+      "data.group(by:={date.isoWeek()}, aggs:={count:=count()}).order(by:={\"isoWeek(date)\"})",
+   .expected_query_result = nlohmann::json::parse(R"json([
+      {"isoWeek(date)": "2021-W01", "count": 1},
+      {"isoWeek(date)": "2021-W02", "count": 2},
+      {"isoWeek(date)": "2021-W10", "count": 1}
+   ])json"),
+};
+
 // A sequence-less row carries no symbol at any position. The generic `at()`/group path emits a
 // null group key for such a row, so the rewritten bitmap aggregation node must do the same instead
 // of dropping the row or folding it into the missing symbol N/X. These scenarios pin that
@@ -635,7 +673,10 @@ QUERY_TEST(
       MIXED_SEQUENCE_AND_FIELD_COLUMN,
       MIXED_SEQUENCE_AND_FIELD_COLUMN_WITH_FILTER,
       MAP_ISO_WEEK_EXPRESSION,
-      MIXED_SEQUENCE_AND_ISO_WEEK
+      MIXED_SEQUENCE_AND_ISO_WEEK,
+      GROUP_BY_SEQUENCE_POSITION_EXPRESSIONS,
+      GROUP_BY_EXPRESSION_AND_COLUMN_WITH_FILTER_ORDER_LIMIT,
+      GROUP_BY_ISO_WEEK_EXPRESSION
    )
 );
 

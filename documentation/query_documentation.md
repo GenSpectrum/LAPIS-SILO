@@ -122,7 +122,7 @@ A boolean column can be used directly as a predicate: `data.filter(isHuman)` is 
 
 ### `group(by, aggs)`
 
-Aggregates rows, producing counts or other aggregate values. `by` is a set of column names to group by (`{}` aggregates all rows into a single group); `aggs` is a record literal of named aggregates.
+Aggregates rows, producing counts or other aggregate values. `by` is a set of expressions to group by (`{}` aggregates all rows into a single group); `aggs` is a record literal of named aggregates.
 
 Currently supported aggregate functions:
 
@@ -140,11 +140,13 @@ data.group(by:={country, pango_lineage}, aggs:={count:=count()})
 data.group(by:={country}, aggs:={count:=count(), total_age:=sum(age)})
 data.group(by:={country}, aggs:={count:=count(), with_age:=count(age)})
 data.group(by:={}, aggs:={youngest:=min(age), oldest:=max(age)})
+data.group(by:={S[10], S[11], S[12]}, aggs:={count:=count()})
+data.group(by:={country, date.isoWeek()}, aggs:={count:=count()})
 ```
 
 **Output:** one row per group, containing the named aggregation fields and the `by` columns. Rows where a `by` column is null form their own group with a null value for that column.
 
-```json
+```json lines
 {"count": 48, "pango_lineage": "B.1.1.7"}
 {"count": 1,  "pango_lineage": null}
 ```
@@ -502,7 +504,7 @@ data.mutations(minProportion:=0.1).schema()
 | `fieldName` | string | Name of the field                                                                                    |
 | `type`      | string | Type of the field (e.g. `STRING`, `INT32`, `INT64`, `DATE32`, `BOOL`, `FLOAT`, `DICTIONARY_ENCODED`) |
 
-```json
+```json lines
 {"fieldName": "age", "type": "INT32"}
 {"fieldName": "count", "type": "INT64"}
 ```
