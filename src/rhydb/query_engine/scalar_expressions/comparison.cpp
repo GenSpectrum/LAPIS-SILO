@@ -151,9 +151,10 @@ std::unique_ptr<ScalarExpression> rewriteSequencePositionComparison(
       symbol.has_value() && SymbolType::symbolToChar(symbol.value()) == split.literal->front();
 
    if (!in_bounds && split.literal->empty()) {
-      // Beyond the reference the extracted value is the empty string, which equals an empty
-      // literal; this corner case is left to the generic evaluation.
-      return nullptr;
+      if (comparator == Comparator::EQUALS) {
+         return std::make_unique<Negation>(std::make_unique<IsNull>(split.column));
+      }
+      return std::make_unique<BoolLiteral>(false);
    }
    if (!in_bounds || !is_decoded_symbol) {
       // The extracted character can never equal the literal, so `=` matches nothing and `<>`
