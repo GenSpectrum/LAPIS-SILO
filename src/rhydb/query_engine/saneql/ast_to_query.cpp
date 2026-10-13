@@ -912,7 +912,7 @@ void validateMinMaxArguments(
 }
 
 struct GroupByArgs {
-   std::vector<schema::ColumnIdentifier> group_by_fields;
+   std::vector<operators::MapNode::Assignment> group_by_fields;
    std::vector<operators::AggregateDefinition> aggregates;
 };
 
@@ -958,46 +958,78 @@ operators::AggregateDefinition parseAggregateDefinition(
    };
 }
 
-std::vector<schema::ColumnIdentifier> parseGroupByFields(
+/// The output column name of a group key: its source text, with the `a[i]` sugar kept instead of
+/// the desugared `at(a, i)`, so `S[10]` yields the column `S[10]` and a plain column keeps its
+/// name.
+// NOLINTNEXTLINE(misc-no-recursion)
+std::string groupByColumnName(const ast::Expression& expression) {
+   if (std::holds_alternative<ast::FunctionCall>(expression.value)) {
+      const auto& call = std::get<ast::FunctionCall>(expression.value);
+      if (
+         call.function_name == "at" && call.positional_arguments.size() == 2 &&
+         call.named_arguments.empty()
+      ) {
+         return fmt::format(
+            "{}[{}]",
+            groupByColumnName(*call.positional_arguments[0].value),
+            call.positional_arguments[1].value->toString()
+         );
+      }
+   }
+   return expression.toString();
+}
+
+/// Parses the `by` set: each element is a scalar expression (a plain column being the simplest),
+/// assigned to a column named after its source text (see groupByColumnName).
+std::vector<operators::MapNode::Assignment> parseGroupByFields(
    const ast::SetLiteral& set,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const ScalarConversionContext& context
 ) {
-   std::vector<schema::ColumnIdentifier> group_by_fields;
+   std::vector<operators::MapNode::Assignment> group_by_fields;
    for (const auto& elem : set.elements) {
-      auto group_by_name = extractIdentifierName(*elem);
-      auto found =
-         std::ranges::find_if(schema, [&](const auto& col) { return col.name == group_by_name; });
+      auto column_name = groupByColumnName(*elem);
       CHECK_RHYDB_QUERY(
-         found != schema.end(),
-         "group field '{}' is not present in the input's output schema",
-         group_by_name
+         std::ranges::none_of(
+            group_by_fields,
+            [&](const auto& field) { return field.output_column.name == column_name; }
+         ),
+         "group field '{}' is given more than once",
+         column_name
       );
-      group_by_fields.push_back(*found);
+      auto expression =
+         convertToScalar(*elem, schema, fmt::format("group field '{}'", column_name), context);
+      group_by_fields.push_back({
+         .output_column = {.name = column_name, .type = expression->type()},
+         .expression = std::move(expression),
+      });
    }
    return group_by_fields;
 }
 
 GroupByArgs parseGroupBySpecs(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& child_schema
+   const std::vector<schema::ColumnIdentifier>& child_schema,
+   const ScalarConversionContext& context
 ) {
    GroupByArgs result;
 
-   // Parse by — a SetLiteral like {pango_lineage, division}, or {} for a single global group
+   // Parse by — a SetLiteral like {pango_lineage, S[10]}, or {} for a single global group
    const auto& by_expr = args.at("by");
    CHECK_RHYDB_QUERY(
       !std::holds_alternative<ast::RecordLiteral>(by_expr.value),
-      "group by must be a set of columns like {{pango_lineage}} (or {{}} for no grouping), "
-      "aggregates go into aggs, e.g. group(by:={{}}, aggs:={{count:=count()}})"
+      "group by must be a set of scalar expressions like {pango_lineage, S[10]} "
+      "(or {} for no grouping), "
+      "aggregates go into aggs, e.g. group(by:={}, aggs:={count:=count()})"
    );
    const auto& set = extractSetLiteral(by_expr);
-   result.group_by_fields = parseGroupByFields(set, child_schema);
+   result.group_by_fields = parseGroupByFields(set, child_schema, context);
 
    // Parse aggs — a RecordLiteral like {count:=count()}
    const auto& agg_expr = args.at("aggs");
    CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::RecordLiteral>(agg_expr.value),
-      "group aggs must be a record literal like {{count:=count()}}"
+      "group aggs must be a record literal like {count:=count()}"
    );
    const auto& record = std::get<ast::RecordLiteral>(agg_expr.value);
    for (const auto& field : record.fields) {
@@ -1209,8 +1241,18 @@ operators::QueryNodePtr handleGroupBy(const BoundArguments& args, const Tables& 
    auto child = convertExpression(args.at("input"), tables);
    auto child_schema = child->getOutputSchema();
 
-   auto [group_by_fields, aggregates] = parseGroupBySpecs(args, child_schema);
+   const ScalarConversionContext context{.tables = tables};
+   auto [group_by_assignments, aggregates] = parseGroupBySpecs(args, child_schema, context);
 
+   std::vector<schema::ColumnIdentifier> group_by_fields;
+   group_by_fields.reserve(group_by_assignments.size());
+   for (const auto& assignment : group_by_assignments) {
+      group_by_fields.push_back(assignment.output_column);
+   }
+   if (!group_by_assignments.empty()) {
+      child =
+         std::make_unique<operators::MapNode>(std::move(child), std::move(group_by_assignments));
+   }
    return std::make_unique<operators::AggregateNode>(
       std::move(child), std::move(group_by_fields), std::move(aggregates)
    );
