@@ -267,6 +267,7 @@ TEST(StringColumn, updateRebuildsTouchedChunks) {
    EXPECT_EQ(under_test.getValueString(RowId(1, 0)), "revived");
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(StringColumn, updateChunksAssignsEachRowItsOwnValue) {
    StringColumnMetadata metadata{"string_column"};
    StringColumn under_test(&metadata);
@@ -276,7 +277,9 @@ TEST(StringColumn, updateChunksAssignsEachRowItsOwnValue) {
 
    // The values of each chunk are given for its updated rows, in ascending order.
    const roaring::Roaring rows{
-      RowId(0, 0).toGlobal(), RowId(0, 2).toGlobal(), RowId(1, 1).toGlobal()
+      RowId(0, 0).toGlobal(),
+      RowId(0, 2).toGlobal(),
+      RowId(1, 1).toGlobal(),
    };
    std::vector<std::pair<uint16_t, rhydb::roaring_util::RoaringContainerView>> chunks;
    for (const auto& chunk : rhydb::Bitmap{&rows}) {
