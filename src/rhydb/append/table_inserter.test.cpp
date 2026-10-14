@@ -45,7 +45,8 @@ constexpr std::string_view SEQ_COLUMN = "seq";
 std::shared_ptr<Table> makeTable(size_t genome_length) {
    const ColumnIdentifier pk_id{.name = std::string{PK_COLUMN}, .type = ColumnType::STRING};
    const ColumnIdentifier seq_id{
-      .name = std::string{SEQ_COLUMN}, .type = ColumnType::NUCLEOTIDE_SEQUENCE
+      .name = std::string{SEQ_COLUMN},
+      .type = ColumnType::NUCLEOTIDE_SEQUENCE,
    };
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata;
    column_metadata.emplace(pk_id, std::make_shared<StringColumnMetadata>(std::string{PK_COLUMN}));
@@ -90,23 +91,22 @@ ClusteredBufferingOptions clusteringOn(size_t num_buffers, double threshold_frac
       .enabled = true,
       .driver_column_name = std::string{SEQ_COLUMN},
       .num_buffers = num_buffers,
-      .span_growth_threshold_fraction = threshold_fraction
+      .span_growth_threshold_fraction = threshold_fraction,
    };
 }
 
 void appendRows(
    const std::shared_ptr<Table>& table,
    const std::string& ndjson,
-   ClusteredBufferingOptions options
+   const ClusteredBufferingOptions& options
 ) {
    std::stringstream input{ndjson};
    NdjsonLineReader reader{input};
-   appendDataToTable(table, reader, std::move(options));
+   appendDataToTable(table, reader, options);
 }
 
 const rhydb::storage::column::HorizontalCoverageIndex& coverageIndex(const Table& table) {
-   return table.columns.getColumns<SequenceColumn<Nucleotide>>()
-      .at(std::string{SEQ_COLUMN})
+   return table.getColumn<SequenceColumn<Nucleotide>>(std::string{SEQ_COLUMN})
       .horizontal_coverage_index;
 }
 
@@ -169,8 +169,7 @@ TEST(ClusteredBuffering, nullSequencesClusterSeparatelyFromDataRows) {
    // One chunk for the two data rows, one for the two null rows.
    EXPECT_EQ(table->row_layout.numChunks(), 2);
    const auto& index = coverageIndex(*table);
-   const auto& nuc_column =
-      table->columns.getColumns<SequenceColumn<Nucleotide>>().at(std::string{SEQ_COLUMN});
+   const auto& nuc_column = table->getColumn<SequenceColumn<Nucleotide>>(std::string{SEQ_COLUMN});
    EXPECT_EQ(nuc_column.null_bitmap.cardinality(), 2);
 
    // The data chunk's bounding range is exactly [0,25) — the null rows never widened it.
@@ -214,9 +213,9 @@ TEST(ClusteredBuffering, preservesAllRowsRegardlessOfChunkAssignment) {
    EXPECT_EQ(clustered->row_count, baseline->row_count);
 
    const auto& clustered_nuc =
-      clustered->columns.getColumns<SequenceColumn<Nucleotide>>().at(std::string{SEQ_COLUMN});
+      clustered->getColumn<SequenceColumn<Nucleotide>>(std::string{SEQ_COLUMN});
    const auto& baseline_nuc =
-      baseline->columns.getColumns<SequenceColumn<Nucleotide>>().at(std::string{SEQ_COLUMN});
+      baseline->getColumn<SequenceColumn<Nucleotide>>(std::string{SEQ_COLUMN});
    EXPECT_EQ(clustered_nuc.null_bitmap.cardinality(), baseline_nuc.null_bitmap.cardinality());
 
    // Clustering only reorders rows across chunks, so the multiset of covered ranges is invariant.

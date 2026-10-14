@@ -12,10 +12,9 @@
 
 #include <fmt/format.h>
 #include <gtest/gtest.h>
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
-#include "sequence_generator.h"
 #include "rhydb/common/lineage_tree.h"
 #include "rhydb/common/phylo_tree.h"
 #include "rhydb/config/database_config.h"
@@ -27,10 +26,13 @@
 #include "rhydb/query_engine/planner.h"
 #include "rhydb/query_engine/query_plan.h"
 #include "rhydb/storage/reference_genomes.h"
+#include "sequence_generator.h"
 
-// Measures `lineage(..., includeSublineages:=true)` as it is resolved today, over lineage targets of
-// varying descendant-set size and growing row counts. The column is configured the way a user would
-// configure it, so the numbers always describe whichever resolution strategy is the current default.
+// Measures `lineageFromTables(..., includeSublineages:=true)` over lineage targets of varying
+// descendant-set size and growing row counts. The column is configured with
+// `lineageIndexType: table`, so the numbers describe the resolution via the lineage relation and
+// alias tables (the transitive closure computed at query time), not the in-memory lineage index of
+// `lineage(...)`.
 
 namespace {
 
@@ -46,7 +48,8 @@ using rhydb::schema::TableName;
 
 const std::filesystem::path LINEAGE_DEFINITION_PATH =
    "testBaseData/exampleDataset/lineage_definition.yaml";
-// The `generateLineageIndex` value; must match the key of the lineage tree passed to the initializer.
+// The `generateLineageIndex` value; must match the key of the lineage tree passed to the
+// initializer.
 const std::string LINEAGE_TREE_NAME = "lineage_definition.yaml";
 
 std::string config() {
@@ -61,6 +64,7 @@ schema:
       type: string
       generateIndex: true
       generateLineageIndex: {}
+      lineageIndexType: table
   primaryKey: primaryKey
 )",
       LINEAGE_TREE_NAME
@@ -83,7 +87,8 @@ std::string generateNdjson(const std::vector<std::string>& names, size_t num_row
    std::string out;
    for (size_t i = 0; i < num_rows; ++i) {
       const nlohmann::json line{
-         {"primaryKey", fmt::format("id_{}", i)}, {"pango_lineage", names.at(dist(rng))}
+         {"primaryKey", fmt::format("id_{}", i)},
+         {"pango_lineage", names.at(dist(rng))},
       };
       out += line.dump();
       out += '\n';
@@ -101,6 +106,7 @@ std::shared_ptr<Database> buildDatabase(
       DatabaseConfig::getValidatedConfig(config()),
       ReferenceGenomes{{}, {}},
       lineage_trees,
+      // NOLINTNEXTLINE(readability-trailing-comma): false positive on empty brace, llvm#223646
       PhyloTree{},
       /*without_unaligned_sequences=*/true,
       *database
@@ -113,8 +119,9 @@ std::shared_ptr<Database> buildDatabase(
 
 std::string countQuery(const std::string& lineage, std::string_view recombinant_mode) {
    return fmt::format(
-      "default.filter(pango_lineage.lineage('{}', includeSublineages:=true, "
-      "recombinantFollowingMode:='{}')).groupBy({{count := count()}})",
+      "data.filter(pango_lineage.lineageFromTables('{}', pango_lineage, pango_lineage_aliases, "
+      "includeSublineages:=true, recombinantFollowingMode:='{}'))"
+      ".group(by:={{}}, aggs:={{count := count()}})",
       lineage,
       recombinant_mode
    );
@@ -139,17 +146,20 @@ struct Timing {
    double min_ms;
 };
 
-Timing timeQuery(const std::shared_ptr<Database>& database, const std::string& query, int iterations) {
+Timing timeQuery(
+   const std::shared_ptr<Database>& database,
+   const std::string& query,
+   int iterations
+) {
    double sum_ms = 0;
    double min_ms = std::numeric_limits<double>::max();
    for (int i = 0; i < iterations; ++i) {
       const auto start = std::chrono::high_resolution_clock::now();
       executeCount(database, query);
       const auto end = std::chrono::high_resolution_clock::now();
-      const double ms =
-         std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0;
-      sum_ms += ms;
-      min_ms = std::min(min_ms, ms);
+      const double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+      sum_ms += elapsed_ms;
+      min_ms = std::min(min_ms, elapsed_ms);
    }
    return {.avg_ms = sum_ms / iterations, .min_ms = min_ms};
 }
@@ -160,7 +170,7 @@ void run() {
    const auto lineage_tree =
       LineageTreeAndIdMap::fromLineageDefinitionFilePath(LINEAGE_DEFINITION_PATH);
    const std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees{
-      {LINEAGE_TREE_NAME, lineage_tree}
+      {LINEAGE_TREE_NAME, lineage_tree},
    };
    const std::vector<std::string> names = loadLineageNames();
    SPDLOG_INFO("Loaded {} lineages from {}", names.size(), LINEAGE_DEFINITION_PATH.string());
@@ -182,11 +192,10 @@ void run() {
 
       const auto start_build = std::chrono::high_resolution_clock::now();
       const auto database = buildDatabase(ndjson, lineage_trees);
-      const auto build_ms =
-         std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start_build
-         )
-            .count();
+      const auto build_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                               std::chrono::high_resolution_clock::now() - start_build
+      )
+                               .count();
 
       SPDLOG_INFO("build: {} ms", build_ms);
 

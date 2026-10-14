@@ -32,9 +32,7 @@ RangeSelection::~RangeSelection() noexcept = default;
 std::string RangeSelection::toString() const {
    std::vector<std::string> range_strings;
    std::ranges::transform(
-      ranges,
-      std::back_inserter(range_strings),
-      [](const RangeSelection::Range& range) {
+      ranges, std::back_inserter(range_strings), [](const RangeSelection::Range& range) {
          return fmt::format(
             "({},{})-({},{})",
             range.start.chunk_id,
@@ -86,7 +84,8 @@ Bitmap RangeSelection::evaluate() const {
    return Bitmap{std::move(result_bitmap)};
 }
 
-std::unique_ptr<Operator> RangeSelection::negate(std::unique_ptr<RangeSelection>&& range_selection
+std::unique_ptr<Operator> RangeSelection::negate(
+   std::unique_ptr<RangeSelection>&& range_selection
 ) {
    std::vector<Range> new_ranges;
    // Guard against empty case
@@ -103,7 +102,8 @@ std::unique_ptr<Operator> RangeSelection::negate(std::unique_ptr<RangeSelection>
       last_end = current.end;
    }
    const RowId ranges_end{
-      .chunk_id = static_cast<uint16_t>(range_selection->row_layout.numChunks()), .row_in_chunk = 0
+      .chunk_id = static_cast<uint16_t>(range_selection->row_layout.numChunks()),
+      .row_in_chunk = 0,
    };
    if (last_end != ranges_end) {
       new_ranges.emplace_back(last_end, ranges_end);

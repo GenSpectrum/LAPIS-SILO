@@ -27,7 +27,7 @@ class MutationProfile : public ScalarExpression {
   public:
    struct Mutation {
       uint32_t position_idx;  // 0-indexed
-      typename SymbolType::Symbol symbol;
+      SymbolType::Symbol symbol;
    };
 
    struct QuerySequenceInput {
@@ -82,7 +82,8 @@ class MutationProfile : public ScalarExpression {
       AmbiguityMode mode
    ) const override;
 
-   [[nodiscard]] std::unique_ptr<filter::operators::Operator> compile(const storage::Table& table
+   [[nodiscard]] std::unique_ptr<filter::operators::Operator> compile(
+      const storage::Table& table
    ) const override;
 };
 

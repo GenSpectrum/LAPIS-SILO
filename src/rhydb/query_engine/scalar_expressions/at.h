@@ -14,8 +14,9 @@ namespace rhydb::query_engine::scalar_expressions {
 /// A scalar expression that evaluates to the single character at a given 1-indexed position of the
 /// string its child expression evaluates to, e.g. `seq.at(3)`. The child is usually a `FieldRef` to
 /// a string column, but may be any string-valued expression (e.g. a `ZstdDecompressScalar` after a
-/// map merge). Its value is a string (the character), so it is not a filter predicate; compile() is
-/// unimplemented and it is only meaningful as a scalar expression (e.g. in a map() assignment).
+/// map merge). Its value is a string (the character), so it is not a filter predicate itself and
+/// compile() is unimplemented. Comparisons of a sequence position against a symbol are rewritten
+/// into sequence-index filters by `Comparison::rewrite`.
 class At : public ScalarExpression {
   public:
    std::unique_ptr<ScalarExpression> input;
@@ -44,7 +45,8 @@ class At : public ScalarExpression {
       return std::make_unique<At>(input->clone(), position);
    }
 
-   [[nodiscard]] std::unique_ptr<filter::operators::Operator> compile(const storage::Table& table
+   [[nodiscard]] std::unique_ptr<filter::operators::Operator> compile(
+      const storage::Table& table
    ) const override;
 };
 

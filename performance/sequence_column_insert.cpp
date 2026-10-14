@@ -6,16 +6,17 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include "sequence_generator.h"
 #include "rhydb/database.h"
 #include "rhydb/schema/database_schema.h"
-
-using rhydb::Database;
+#include "sequence_generator.h"
 
 namespace {
 
-double toMs(std::chrono::steady_clock::time_point start, std::chrono::steady_clock::time_point end) {
-   return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0;
+double toMs(
+   std::chrono::steady_clock::time_point start,
+   std::chrono::steady_clock::time_point end
+) {
+   return std::chrono::duration<double, std::milli>(end - start).count();
 }
 
 // Ingest full-length sequences with realistic N runs through the regular appendData path (NDJSON ->

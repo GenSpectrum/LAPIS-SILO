@@ -13,8 +13,9 @@ RHYDB_BENCHMARK_EXECUTABLE=./build/Release/performance/rhydb_benchmark
 RUNNING_RHYDB_FLAG=running_rhydb.flag
 DEPENDENCIES_FLAG=dependencies
 WASM_DEPENDENCIES_FLAG=build/wasm/dependencies
-CLANG_FORMAT=$(shell command -v clang-format-19 2>/dev/null || command -v clang-format 2>/dev/null || echo clang-format)
 CMAKE_BUILD_PARALLEL_LEVEL ?= 16
+# Docker image for lint-changes/lint-all; empty uses the scripts' default (:latest)
+LINT_DOCKER_IMAGE ?=
 # Route cmake through `env` so recipe lines survive an emsdk-activated PATH.
 # emsdk prepends a directory literally named `cmake` (its CMake module dir) to
 # PATH. GNU make execs recipe lines without shell metacharacters directly via
@@ -47,13 +48,22 @@ $(SRC_FILE_LIST): FORCE
 	@cmp -s $@ $@.tmp && rm $@.tmp || mv $@.tmp $@
 .PHONY: FORCE
 
-build/Debug/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
+# CMake files that affect a (re)configure.
+# A CMake-only edit Make would consider the executables up to date and skip the `cmake --build` step,
+# so Ninja would never run and the stale artifacts would be reused.
+#
+# $(wildcard ...) drops files that are absent from the current checkout. Some
+# build contexts only copy a subset of the tree into Docker containers.
+NATIVE_CMAKE_FILES=$(wildcard CMakeLists.txt src/CMakeLists.txt app/CMakeLists.txt performance/CMakeLists.txt performance/BenchmarkData.cmake python/CMakeLists.txt)
+WASM_CMAKE_FILES=$(wildcard CMakeLists.txt src/CMakeLists.txt wasm/CMakeLists.txt)
+
+build/Debug/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(NATIVE_CMAKE_FILES)
 	$(CMAKE) -G Ninja -B build/Debug -D CMAKE_BUILD_TYPE=Debug
 
-build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST)
+build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(NATIVE_CMAKE_FILES)
 	$(CMAKE) -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
 
-build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) CMakeLists.txt src/CMakeLists.txt wasm/CMakeLists.txt
+build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(WASM_CMAKE_FILES)
 	emcmake cmake -G Ninja -S . -B build/wasm -D CMAKE_BUILD_TYPE=Release -D BUILD_UNIT_TESTS=OFF
 
 ${RHYDB_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
@@ -83,9 +93,6 @@ benchmarks: generateTestData
 	$(CMAKE) --build build/Release --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_benchmark
 	${RHYDB_BENCHMARK_EXECUTABLE}
 
-# Only the compiled sources trigger a rebuild; wasm/CMakeLists.txt is already a
-# prerequisite of build/wasm/build.ninja. Non-source assets (wasm/example,
-# wasm/README.md, ...) intentionally do not force a rebuild of the binary.
 ${RHYDB_WASM_EXECUTABLE}: build/wasm/build.ninja $(shell find src wasm/src -type f)
 	# Emscripten's --emit-tsd (see wasm/CMakeLists.txt) invokes `tsc`; make the
 	# repo-local TypeScript (devDependency) discoverable on PATH for the link step.
@@ -166,7 +173,7 @@ endToEndTests/node_modules: endToEndTests/package-lock.json
 
 .PHONY: format-cpp
 format-cpp:
-	find src app/src wasm/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) -i
+	find src performance app/src python wasm/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs buildScripts/clang-format -i
 
 .PHONY: format-node
 format-node: endToEndTests/node_modules
@@ -178,7 +185,7 @@ format: format-cpp format-node
 
 .PHONY: check-format-cpp
 check-format-cpp:
-	find src app/src wasm/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs $(CLANG_FORMAT) --dry-run --Werror
+	find src performance app/src python wasm/src -iname '*.h' -o -iname '*.hpp' -o -iname '*.cpp' | xargs buildScripts/clang-format --dry-run --Werror
 
 .PHONY: check-format-node
 check-format-node: endToEndTests/node_modules
@@ -194,11 +201,11 @@ bump-serialization-version:
 
 .PHONY: lint-changes
 lint-changes:
-	buildScripts/lint-changes
+	buildScripts/lint-changes $(LINT_DOCKER_IMAGE)
 
 .PHONY: lint-all
 lint-all:
-	buildScripts/lint-all
+	buildScripts/lint-all $(LINT_DOCKER_IMAGE)
 
 .PHONY: clean-api
 clean-api:

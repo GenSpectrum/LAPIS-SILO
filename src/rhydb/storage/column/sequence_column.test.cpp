@@ -41,10 +41,10 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_noTwoParts) {
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
       [&]() { appendSequence(under_test, "A", 0, {"A"}); },
-      ThrowsMessage<InsertionFormatException>(
-         ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected two parts "
-                              "(position and non-empty insertion value), instead got: 'A'")
-      )
+      ThrowsMessage<InsertionFormatException>(::testing::HasSubstr(
+         "Failed to parse insertion due to invalid format. Expected two parts "
+         "(position and non-empty insertion value), instead got: 'A'"
+      ))
    );
 }
 
@@ -54,10 +54,10 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartNotANumber) {
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
       [&]() { appendSequence(under_test, "A", 0, {"A:G"}); },
-      ThrowsMessage<InsertionFormatException>(
-         ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected position "
-                              "that is parsable as an integer, instead got: 'A:G'")
-      )
+      ThrowsMessage<InsertionFormatException>(::testing::HasSubstr(
+         "Failed to parse insertion due to invalid format. Expected position "
+         "that is parsable as an integer, instead got: 'A:G'"
+      ))
    );
 }
 
@@ -94,10 +94,10 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_secondPartEmpty) {
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
       [&]() { appendSequence(under_test, "A", 0, {"0:"}); },
-      ThrowsMessage<InsertionFormatException>(
-         ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected two parts "
-                              "(position and non-empty insertion value), instead got: '0:'")
-      )
+      ThrowsMessage<InsertionFormatException>(::testing::HasSubstr(
+         "Failed to parse insertion due to invalid format. Expected two parts "
+         "(position and non-empty insertion value), instead got: '0:'"
+      ))
    );
 }
 
@@ -107,10 +107,10 @@ TEST(SequenceColumn, validErrorOnBadInsertionFormat_firstPartEmpty) {
    EXPECT_THAT(
       // NOLINTNEXTLINE(clang-diagnostic-error)
       [&]() { appendSequence(under_test, "A", 0, {":A"}); },
-      ThrowsMessage<InsertionFormatException>(
-         ::testing::HasSubstr("Failed to parse insertion due to invalid format. Expected position "
-                              "that is parsable as an integer, instead got: ':A'")
-      )
+      ThrowsMessage<InsertionFormatException>(::testing::HasSubstr(
+         "Failed to parse insertion due to invalid format. Expected position "
+         "that is parsable as an integer, instead got: ':A'"
+      ))
    );
 }
 
@@ -159,7 +159,7 @@ TEST(SequenceColumn, validInsertionAtPositionEqualToGenomeLength) {
 TEST(SequenceColumn, adaptsLocalReferenceWhenMajorityOfCoveredRowsDiffers) {
    SequenceColumnMetadata<Nucleotide> column_metadata{
       "test_column",
-      {Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T}
+      {Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T},
    };
    SequenceColumn<Nucleotide> under_test(&column_metadata);
 
@@ -183,7 +183,10 @@ TEST(SequenceColumn, adaptsLocalReferenceWhenMajorityOfCoveredRowsDiffers) {
    ASSERT_EQ(
       under_test.getLocalReference(),
       (std::vector<Nucleotide::Symbol>{
-         Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::T, Nucleotide::Symbol::T
+         Nucleotide::Symbol::A,
+         Nucleotide::Symbol::C,
+         Nucleotide::Symbol::T,
+         Nucleotide::Symbol::T,
       })
    );
 }
@@ -191,7 +194,7 @@ TEST(SequenceColumn, adaptsLocalReferenceWhenMajorityOfCoveredRowsDiffers) {
 TEST(SequenceColumn, canFinalizeTwice) {
    SequenceColumnMetadata<Nucleotide> column_metadata{
       "test_column",
-      {Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T}
+      {Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T},
    };
    SequenceColumn<Nucleotide> under_test(&column_metadata);
 
@@ -211,7 +214,10 @@ TEST(SequenceColumn, canFinalizeTwice) {
    ASSERT_EQ(
       under_test.getLocalReference(),
       (std::vector<Nucleotide::Symbol>{
-         Nucleotide::Symbol::A, Nucleotide::Symbol::A, Nucleotide::Symbol::G, Nucleotide::Symbol::T
+         Nucleotide::Symbol::A,
+         Nucleotide::Symbol::A,
+         Nucleotide::Symbol::G,
+         Nucleotide::Symbol::T,
       })
    );
 
@@ -242,7 +248,10 @@ TEST(SequenceColumn, canFinalizeTwice) {
    ASSERT_EQ(
       under_test.getLocalReference(),
       (std::vector<Nucleotide::Symbol>{
-         Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
+         Nucleotide::Symbol::A,
+         Nucleotide::Symbol::C,
+         Nucleotide::Symbol::G,
+         Nucleotide::Symbol::T,
       })
    );
 }

@@ -18,7 +18,7 @@
 namespace rhydb::query_engine::scalar_expressions {
 
 template <typename SymbolType>
-SymbolOrDot<SymbolType>::SymbolOrDot(typename SymbolType::Symbol symbol)
+SymbolOrDot<SymbolType>::SymbolOrDot(SymbolType::Symbol symbol)
     : value(symbol) {}
 
 template <typename SymbolType>
@@ -32,8 +32,8 @@ char SymbolOrDot<SymbolType>::asChar() const {
 }
 
 template <typename SymbolType>
-typename SymbolType::Symbol SymbolOrDot<SymbolType>::getSymbolOrReplaceDotWith(
-   typename SymbolType::Symbol replace_dot_with
+SymbolType::Symbol SymbolOrDot<SymbolType>::getSymbolOrReplaceDotWith(
+   SymbolType::Symbol replace_dot_with
 ) const {
    return value.value_or(replace_dot_with);
 }
@@ -68,8 +68,7 @@ std::unique_ptr<ScalarExpression> SymbolEquals<SymbolType>::rewrite(
 ) const {
    const auto valid_sequence_name = validateSequenceName<SymbolType>(column.name, *table.schema);
 
-   const auto& sequence_column =
-      table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
+   const auto& sequence_column = table.getColumn<typename SymbolType::Column>(valid_sequence_name);
 
    CHECK_RHYDB_QUERY(
       position_idx < sequence_column.metadata->reference_sequence.size(),
@@ -79,9 +78,9 @@ std::unique_ptr<ScalarExpression> SymbolEquals<SymbolType>::rewrite(
       sequence_column.metadata->reference_sequence.size()
    );
 
-   auto symbol =
-      value.getSymbolOrReplaceDotWith(sequence_column.metadata->reference_sequence.at(position_idx)
-      );
+   auto symbol = value.getSymbolOrReplaceDotWith(
+      sequence_column.metadata->reference_sequence.at(position_idx)
+   );
    if (mode == UPPER_BOUND) {
       auto symbols_to_match = SymbolType::AMBIGUITY_SYMBOLS.at(symbol);
       return std::make_unique<SymbolInSet<SymbolType>>(column, position_idx, symbols_to_match);

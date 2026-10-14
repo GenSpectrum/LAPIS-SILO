@@ -7,12 +7,12 @@
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/saneql/ast.h"
 #include "rhydb/query_engine/saneql/parser.h"
-#include "rhydb/storage/column_group.h"
+#include "rhydb/storage/table.h"
 
 namespace rhydb::query_engine {
 
 void assignScalarLiteralToColumn(
-   storage::ColumnGroup& columns,
+   storage::Table& table,
    const schema::ColumnIdentifier& column,
    const std::string& value,
    const roaring::Roaring& row_ids
@@ -27,42 +27,44 @@ void assignScalarLiteralToColumn(
 
    switch (column.type) {
       case schema::ColumnType::INT32:
-         columns.int32_columns.at(column.name)
+         table.getColumn<storage::column::Int32Column>(column.name)
             .update(
                row_ids, is_null ? std::nullopt : std::optional{ast::extractInt32Literal(*literal)}
             );
          return;
       case schema::ColumnType::INT64:
-         columns.int64_columns.at(column.name)
+         table.getColumn<storage::column::Int64Column>(column.name)
             .update(
                row_ids, is_null ? std::nullopt : std::optional{ast::extractInt64Literal(*literal)}
             );
          return;
       case schema::ColumnType::FLOAT:
-         columns.float_columns.at(column.name)
+         table.getColumn<storage::column::FloatColumn>(column.name)
             .update(
                row_ids,
                is_null ? std::nullopt : std::optional{ast::extractNumericAsFloatLiteral(*literal)}
             );
          return;
       case schema::ColumnType::DATE32:
-         columns.date32_columns.at(column.name)
+         table.getColumn<storage::column::Date32Column>(column.name)
             .update(row_ids, ast::extractOptionalDateValue(*literal));
          return;
       case schema::ColumnType::BOOL:
-         columns.bool_columns.at(column.name)
+         table.getColumn<storage::column::BoolColumn>(column.name)
             .update(
                row_ids, is_null ? std::nullopt : std::optional{ast::extractBoolLiteral(*literal)}
             );
          return;
       case schema::ColumnType::STRING: {
-         auto& string_column = columns.string_columns.at(column.name);
+         auto& string_column = table.getColumn<storage::column::StringColumn>(column.name);
          if (string_column.metadata->phylo_tree.has_value()) {
-            throw IllegalQueryException(fmt::format(
-               "Column '{}' is backed by a phylogenetic tree and cannot be updated, because it "
-               "would break the tree's row bindings",
-               column.name
-            ));
+            throw IllegalQueryException(
+               fmt::format(
+                  "Column '{}' is backed by a phylogenetic tree and cannot be updated, because it "
+                  "would break the tree's row bindings",
+                  column.name
+               )
+            );
          }
          string_column.update(
             row_ids, is_null ? std::nullopt : std::optional{ast::extractStringLiteral(*literal)}
@@ -70,11 +72,14 @@ void assignScalarLiteralToColumn(
          return;
       }
       case schema::ColumnType::DICTIONARY_ENCODED: {
-         auto& dictionary_encoded_column = columns.dictionary_encoded_columns.at(column.name);
+         auto& dictionary_encoded_column =
+            table.getColumn<storage::column::DictionaryEncodedColumn>(column.name);
          if (dictionary_encoded_column.getLineageIndex().has_value()) {
-            throw IllegalQueryException(fmt::format(
-               "Column '{}' is backed by a lineage index and cannot be updated", column.name
-            ));
+            throw IllegalQueryException(
+               fmt::format(
+                  "Column '{}' is backed by a lineage index and cannot be updated", column.name
+               )
+            );
          }
          dictionary_encoded_column.update(
             row_ids, is_null ? std::nullopt : std::optional{ast::extractStringLiteral(*literal)}
@@ -82,17 +87,19 @@ void assignScalarLiteralToColumn(
          return;
       }
       case schema::ColumnType::ZSTD_COMPRESSED_STRING:
-         columns.zstd_compressed_string_columns.at(column.name)
+         table.getColumn<storage::column::ZstdCompressedStringColumn>(column.name)
             .update(
                row_ids, is_null ? std::nullopt : std::optional{ast::extractStringLiteral(*literal)}
             );
          return;
       default:
-         throw IllegalQueryException(fmt::format(
-            "Updating columns of type '{}' is not supported (column '{}')",
-            schema::columnTypeToString(column.type),
-            column.name
-         ));
+         throw IllegalQueryException(
+            fmt::format(
+               "Updating columns of type '{}' is not supported (column '{}')",
+               schema::columnTypeToString(column.type),
+               column.name
+            )
+         );
    }
 }
 

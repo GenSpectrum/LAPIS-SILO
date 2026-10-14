@@ -66,15 +66,21 @@ referenceGenomeFilename: "reference_genomes.json"
                               .getYamlFields();
 
    const std::unordered_map<ConfigKeyPath, YAML::Node> expected_result{
-      {YamlFile::stringToConfigKeyPath("inputDirectory"),
-       YAML::Node{"./testBaseData/exampleDataset/"}},
+      {
+         YamlFile::stringToConfigKeyPath("inputDirectory"),
+         YAML::Node{"./testBaseData/exampleDataset/"},
+      },
       {YamlFile::stringToConfigKeyPath("outputDirectory"), YAML::Node{"./output/"}},
       {YamlFile::stringToConfigKeyPath("ndjsonInputFilename"), YAML::Node{"input_file.ndjson"}},
-      {YamlFile::stringToConfigKeyPath("lineageDefinitionFilenames"),
-       YAML::Node{"lineage_definition.yaml"}},
+      {
+         YamlFile::stringToConfigKeyPath("lineageDefinitionFilenames"),
+         YAML::Node{"lineage_definition.yaml"},
+      },
       {YamlFile::stringToConfigKeyPath("phyloTreeFilename"), YAML::Node{"phylogenetic_tree.yaml"}},
-      {YamlFile::stringToConfigKeyPath("referenceGenomeFilename"),
-       YAML::Node{"reference_genomes.json"}},
+      {
+         YamlFile::stringToConfigKeyPath("referenceGenomeFilename"),
+         YAML::Node{"reference_genomes.json"},
+      },
    };
 
    for (const auto& [key, value] : expected_result) {
@@ -127,9 +133,9 @@ X
 s:
 )");
       },
-      ThrowsMessage<std::runtime_error>(
-         ::testing::HasSubstr("string does not contain valid YAML: yaml-cpp: error at line 3, "
-                              "column 2: illegal map value")
-      )
+      ThrowsMessage<std::runtime_error>(::testing::HasSubstr(
+         "string does not contain valid YAML: yaml-cpp: error at line 3, "
+         "column 2: illegal map value"
+      ))
    );
 }

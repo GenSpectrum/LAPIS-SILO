@@ -28,10 +28,10 @@ arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable(
    std::vector<std::optional<std::string>> values,
    std::string_view dictionary_string
 ) {
-   std::shared_ptr<arrow::Schema> schema = arrow::schema(
-      {arrow::field("id", arrow::int32()),
-       arrow::field("some_zstd_compressed_column", arrow::binary())}
-   );
+   std::shared_ptr<arrow::Schema> schema = arrow::schema({
+      arrow::field("id", arrow::int32()),
+      arrow::field("some_zstd_compressed_column", arrow::binary()),
+   });
 
    auto dictionary = std::make_shared<rhydb::ZstdCDictionary>(dictionary_string, 3);
    rhydb::ZstdCompressor compressor{dictionary};
@@ -42,7 +42,8 @@ arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable(
    for (auto& value : values) {
       ARROW_RETURN_NOT_OK(id_builder.Append(id_column_value++));
       if (value.has_value()) {
-         ARROW_RETURN_NOT_OK(value_builder.Append(compressor.compress(value->data(), value->size()))
+         ARROW_RETURN_NOT_OK(
+            value_builder.Append(compressor.compress(value->data(), value->size()))
          );
       } else {
          ARROW_RETURN_NOT_OK(value_builder.AppendNull());
@@ -66,12 +67,12 @@ std::shared_ptr<arrow::Table> runValuesThroughProjection(
    auto* node =
       arrow::acero::MakeExecNode("table_source", arrow_plan.get(), {}, source_options).ValueOrDie();
 
-   arrow::acero::ProjectNodeOptions project_options(
-      {arrow::compute::field_ref("id"),
-       ZstdDecompressExpression::make(
-          arrow::compute::field_ref("some_zstd_compressed_column"), dictionary_string
-       )}
-   );
+   arrow::acero::ProjectNodeOptions project_options({
+      arrow::compute::field_ref("id"),
+      ZstdDecompressExpression::make(
+         arrow::compute::field_ref("some_zstd_compressed_column"), dictionary_string
+      ),
+   });
    node =
       arrow::acero::MakeExecNode("project", arrow_plan.get(), {node}, project_options).ValueOrDie();
 
@@ -99,13 +100,14 @@ void assertDecompressedStringArray(
          << "Decompressed array length does not match expected values size.";
 
       for (size_t i = 0; i < expected_values.size(); i++) {
-         if (string_array->IsNull(i)) {
+         const auto array_index = static_cast<int64_t>(i);
+         if (string_array->IsNull(array_index)) {
             ASSERT_FALSE(expected_values[i].has_value())
                << "Value at index " << i << " is null, but expected a value.";
          } else {
             ASSERT_TRUE(expected_values[i].has_value())
                << "Value at index " << i << " is not null, but expected null.";
-            ASSERT_EQ(string_array->Value(i), expected_values[i].value())
+            ASSERT_EQ(string_array->Value(array_index), expected_values[i].value())
                << "Decompressed value at index " << i << " does not match expected.";
          }
       }

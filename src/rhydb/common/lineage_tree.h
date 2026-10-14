@@ -1,7 +1,9 @@
 #pragma once
 
+#include <optional>
 #include <set>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -39,8 +41,19 @@ enum class RecombinantEdgeFollowingMode : uint8_t {
 const std::vector<RecombinantEdgeFollowingMode> ALL_RECOMBINANT_EDGE_FOLLOWING_MODES{
    RecombinantEdgeFollowingMode::DO_NOT_FOLLOW,
    RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE,
-   RecombinantEdgeFollowingMode::ALWAYS_FOLLOW
+   RecombinantEdgeFollowingMode::ALWAYS_FOLLOW,
 };
+
+/// The names of the RecombinantEdgeFollowingMode values in the query language
+constexpr std::string_view DO_NOT_FOLLOW_NAME = "doNotFollow";
+constexpr std::string_view FOLLOW_IF_FULLY_CONTAINED_IN_CLADE_NAME =
+   "followIfFullyContainedInClade";
+constexpr std::string_view ALWAYS_FOLLOW_NAME = "alwaysFollow";
+
+/// Returns std::nullopt if `name` is not the name of a RecombinantEdgeFollowingMode
+std::optional<RecombinantEdgeFollowingMode> recombinantEdgeFollowingModeFromName(
+   std::string_view name
+);
 
 // The tree is allowed to be disconnected
 class LineageTree {
@@ -75,8 +88,8 @@ class LineageTree {
    /// For every recombinant node (a node with more than one parent), the most-recent common
    /// ancestor of its parents (or `nullopt` when the parents share no common ancestor). Nodes that
    /// are not recombinant do not appear. Used by the `FOLLOW_IF_FULLY_CONTAINED_IN_CLADE` walk.
-   [[nodiscard]] const std::unordered_map<Idx, std::optional<Idx>>& getRecombinantCladeAncestors(
-   ) const {
+   [[nodiscard]] const std::unordered_map<Idx, std::optional<Idx>>&
+   getRecombinantCladeAncestors() const {
       return recombinant_clade_ancestors;
    }
 

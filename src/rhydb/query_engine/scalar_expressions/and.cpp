@@ -31,7 +31,7 @@ And::And(ScalarExpressionVector&& children)
 std::string And::toString() const {
    std::string res = "And(";
    res += joinWithLimit(children, " & ");
-   res += ")";
+   res += ')';
    return res;
 }
 
@@ -129,7 +129,8 @@ std::tuple<OperatorVector, OperatorVector, filter::operators::PredicateVector> A
          appendVectorToVector(intersection_child->children, non_negated_child_operators);
          appendVectorToVector(intersection_child->negated_children, negated_child_operators);
       } else if (child->type() == filter::operators::COMPLEMENT) {
-         negated_child_operators.emplace_back(filter::operators::Operator::negate(std::move(child))
+         negated_child_operators.emplace_back(
+            filter::operators::Operator::negate(std::move(child))
          );
       } else if (child->type() == filter::operators::SELECTION) {
          auto* selection_child = dynamic_cast<filter::operators::Selection*>(child.get());
@@ -156,12 +157,14 @@ std::tuple<OperatorVector, OperatorVector, filter::operators::PredicateVector> A
    return {
       std::move(non_negated_child_operators),
       std::move(negated_child_operators),
-      std::move(predicates)
+      std::move(predicates),
    };
 }
 
-std::unique_ptr<ScalarExpression> And::rewrite(const storage::Table& table, AmbiguityMode mode)
-   const {
+std::unique_ptr<ScalarExpression> And::rewrite(
+   const storage::Table& table,
+   AmbiguityMode mode
+) const {
    ScalarExpressionVector rewritten_children;
    rewritten_children.reserve(children.size());
    for (const auto& child : children) {

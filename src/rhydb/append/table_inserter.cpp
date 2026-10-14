@@ -32,8 +32,10 @@ schema::ColumnIdentifier resolveDriverColumn(
          "the clustering driver column '{}' does not exist in the table schema", *driver_column_name
       );
    }
-   if (column.value().type != schema::ColumnType::NUCLEOTIDE_SEQUENCE &&
-       column.value().type != schema::ColumnType::AMINO_ACID_SEQUENCE) {
+   if (
+      column.value().type != schema::ColumnType::NUCLEOTIDE_SEQUENCE &&
+      column.value().type != schema::ColumnType::AMINO_ACID_SEQUENCE
+   ) {
       throw AppendException(
          "the clustering driver column '{}' must be a nucleotide or amino-acid sequence column",
          *driver_column_name
@@ -44,12 +46,10 @@ schema::ColumnIdentifier resolveDriverColumn(
 
 size_t genomeLengthOf(const storage::Table& table, const schema::ColumnIdentifier& driver_column) {
    if (driver_column.type == schema::ColumnType::NUCLEOTIDE_SEQUENCE) {
-      return table.columns.getColumns<storage::column::SequenceColumn<Nucleotide>>()
-         .at(driver_column.name)
+      return table.getColumn<storage::column::SequenceColumn<Nucleotide>>(driver_column.name)
          .genome_length;
    }
-   return table.columns.getColumns<storage::column::SequenceColumn<AminoAcid>>()
-      .at(driver_column.name)
+   return table.getColumn<storage::column::SequenceColumn<AminoAcid>>(driver_column.name)
       .genome_length;
 }
 
@@ -74,7 +74,7 @@ std::expected<simdjson::ondemand::value, std::string> findFieldManual(
       );
       if (unescaped_key == column_identifier.name) {
          static std::once_flag warn_once;
-         std::call_once(warn_once, [&]() {
+         std::call_once(warn_once, [&] {
             SPDLOG_WARN(
                "The key '{}' which requires unescaping does not use the same unescaping in the "
                "current line ('{}') as in the first line of the ndjson file. This leads to worse "
@@ -103,7 +103,7 @@ std::expected<simdjson::ondemand::value, std::string> findFieldWithFallbacks(
    error = object.find_field_unordered(sniffed_field.escaped_key).get(column_value);
    if (!error) {
       static std::once_flag warn_once;
-      std::call_once(warn_once, [&]() {
+      std::call_once(warn_once, [&] {
          SPDLOG_WARN(
             "The key '{}' was ordered differently in the current line than in the first line of "
             "the file. "
@@ -150,7 +150,7 @@ std::expected<simdjson::ondemand::object, std::string> iterateToObject(
 
 TableInserter::TableInserter(
    std::shared_ptr<storage::Table> table,
-   ClusteredBufferingOptions options
+   const ClusteredBufferingOptions& options
 )
     : table(std::move(table)),
       driver_column(
@@ -158,11 +158,8 @@ TableInserter::TableInserter(
             ? std::optional{resolveDriverColumn(*this->table->schema, options.driver_column_name)}
             : std::nullopt
       ),
-      input_buffer{*this->table->schema, this->table->columns},
-      null_buffer{
-         storage::ColumnGroupBuilder{*this->table->schema, this->table->columns},
-         std::nullopt
-      } {
+      input_buffer{*this->table},
+      null_buffer{.builder = storage::TableChunkBuilder{*this->table}, .range = std::nullopt} {
    if (driver_column.has_value()) {
       const size_t genome_length = genomeLengthOf(*this->table, *driver_column);
       growth_threshold = static_cast<uint32_t>(
@@ -171,9 +168,12 @@ TableInserter::TableInserter(
       const size_t num_buffers = std::max<size_t>(1, options.num_buffers);
       output_buffers.reserve(num_buffers);
       for (size_t i = 0; i < num_buffers; ++i) {
-         output_buffers.push_back(ClusterBuffer{
-            storage::ColumnGroupBuilder{*this->table->schema, this->table->columns}, std::nullopt
-         });
+         output_buffers.push_back(
+            ClusterBuffer{
+               .builder = storage::TableChunkBuilder{*this->table},
+               .range = std::nullopt,
+            }
+         );
       }
    }
 }
@@ -226,7 +226,7 @@ std::expected<std::vector<TableInserter::SniffedField>, std::string> TableInsert
    simdjson::ondemand::document_reference ndjson_line
 ) const {
    std::vector<SniffedField> order_in_json_line;
-   auto columns_in_table = table->columns.metadata;
+   auto columns_in_table = table->schema->getColumnIdentifiers();
    ASSIGN_OR_RAISE(auto object, iterateToObject(ndjson_line));
    for (auto maybe_field : object) {
       ASSIGN_OR_RAISE_SIMDJSON(
@@ -257,9 +257,12 @@ std::expected<std::vector<TableInserter::SniffedField>, std::string> TableInsert
          );
          continue;
       }
-      order_in_json_line.push_back(SniffedField{
-         .column_identifier = *maybe_column_metadata, .escaped_key = std::string{raw_key_sv}
-      });
+      order_in_json_line.push_back(
+         SniffedField{
+            .column_identifier = *maybe_column_metadata,
+            .escaped_key = std::string{raw_key_sv},
+         }
+      );
    }
    for (const auto& column_metadata : columns_in_table) {
       const bool contained_in_sniffed_fields =
@@ -383,19 +386,22 @@ void NdjsonInsertStream::insertAll(NdjsonLineReader& input_data) {
       }
 
       line_count++;
-      if (line_count % 10000 == 0) {
+      if (line_count % 1'000'000 == 0) {
          SPDLOG_INFO("Processed {} json objects from the input file", line_count);
+      } else if (line_count % 10'000 == 0) {
+         SPDLOG_DEBUG("Processed {} json objects from the input file", line_count);
       }
    }
+   SPDLOG_INFO("Processed {} json objects from the input file", line_count);
 }
 
 TableInserter::Commit appendDataToTable(
    std::shared_ptr<storage::Table> table,
    NdjsonLineReader& input_data,
-   ClusteredBufferingOptions options
+   const ClusteredBufferingOptions& options
 ) {
    EVOBENCH_SCOPE("TableInserter", "appendDataToTable");
-   TableInserter table_inserter(std::move(table), std::move(options));
+   TableInserter table_inserter(std::move(table), options);
 
    NdjsonInsertStream insert_stream{table_inserter};
    insert_stream.insertAll(input_data);

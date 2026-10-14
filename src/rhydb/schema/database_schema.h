@@ -41,7 +41,7 @@ enum class ValueType : uint8_t {
    INT64,
    FLOAT,
    NUCLEOTIDE_SEQUENCE,
-   AMINO_ACID_SEQUENCE
+   AMINO_ACID_SEQUENCE,
 };
 
 constexpr std::string_view columnTypeToString(ColumnType type) {
@@ -153,7 +153,10 @@ class TableSchema {
       auto iter = std::ranges::find_if(column_metadata, [&name](const auto& metadata_pair) {
          return metadata_pair.first.name == name;
       });
-      if (iter == column_metadata.end() || iter->first.type != ColumnType::TYPE) {
+      if (iter == column_metadata.end()) {
+         return std::nullopt;
+      }
+      if (iter->first.type != ColumnType::TYPE) {
          SPDLOG_INFO(
             "Mismatching type found: expected {} vs actual {}",
             columnTypeToString(ColumnType::TYPE),
@@ -161,7 +164,7 @@ class TableSchema {
          );
          return std::nullopt;
       }
-      auto typed_metadata = dynamic_cast<typename ColumnType::Metadata*>(iter->second.get());
+      auto typed_metadata = dynamic_cast<ColumnType::Metadata*>(iter->second.get());
       RHYDB_ASSERT(typed_metadata != nullptr);
       return typed_metadata;
    }

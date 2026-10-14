@@ -3,6 +3,11 @@
 #include <utility>
 #include <variant>
 
+#include <arrow/array/util.h>
+#include <arrow/compute/exec.h>
+#include <arrow/table.h>
+
+#include "rhydb/query_engine/command/create_table_command.h"
 #include "rhydb/query_engine/command/insert_command.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/saneql/ast.h"
@@ -12,18 +17,37 @@
 namespace rhydb::query_engine::command {
 
 using saneql::BoundArguments;
-using saneql::ChildConverter;
 using saneql::FunctionSignature;
 using saneql::ParameterDefinition;
 using saneql::Tables;
 
+arrow::Result<std::shared_ptr<arrow::Table>> makeWriteSummary(
+   const std::string& name,
+   const std::shared_ptr<arrow::Scalar>& value
+) {
+   ARROW_ASSIGN_OR_RAISE(auto array, arrow::MakeArrayFromScalar(*value, 1));
+   return arrow::Table::Make(arrow::schema({arrow::field(name, value->type)}), {std::move(array)});
+}
+
+arrow::Status writeToSink(
+   const arrow::Table& write_result,
+   exec_node::ArrowBatchSink& output_sink
+) {
+   arrow::TableBatchReader reader{write_result};
+   std::shared_ptr<arrow::RecordBatch> batch;
+   while (true) {
+      ARROW_RETURN_NOT_OK(reader.ReadNext(&batch));
+      if (batch == nullptr) {
+         break;
+      }
+      ARROW_RETURN_NOT_OK(output_sink.writeBatch(arrow::compute::ExecBatch{*batch}));
+   }
+   return output_sink.finish();
+}
+
 namespace {
 
-WriteCommandPtr buildInsertInto(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
+WriteCommandPtr buildInsertInto(const BoundArguments& args, const Tables& tables) {
    const std::string target_name = saneql::ast::extractIdentifierName(args.at("target"));
    auto target_table = schema::TableName(target_name);
    CHECK_RHYDB_QUERY(
@@ -31,7 +55,7 @@ WriteCommandPtr buildInsertInto(
       "insertInto() target table '{}' not found in database",
       target_name
    );
-   auto source_query = convert_child(args.at("input"), tables);
+   auto source_query = saneql::convertExpression(args.at("input"), tables);
    return std::make_unique<InsertCommand>(std::move(source_query), std::move(target_table));
 }
 
@@ -41,9 +65,20 @@ WriteStatementRegistry::WriteStatementRegistry() {
    registerStatement(
       "insertInto",
       FunctionSignature{
-         {ParameterDefinition{.name = "input"}, ParameterDefinition{.name = "target"}}
+         {ParameterDefinition{.name = "input"}, ParameterDefinition{.name = "target"}},
       },
       buildInsertInto
+   );
+   registerStatement(
+      "createTable",
+      FunctionSignature{
+         {
+            ParameterDefinition{.name = "table"},
+            ParameterDefinition{.name = "columns"},
+            ParameterDefinition{.name = "primaryKey", .required = false, .positional = false},
+         },
+      },
+      buildCreateTable
    );
 }
 
@@ -56,7 +91,8 @@ void WriteStatementRegistry::registerStatement(
       Entry{.signature = std::move(signature), .handler = std::move(handler)};
 }
 
-const WriteStatementRegistry::Entry* WriteStatementRegistry::findStatement(const std::string& name
+const WriteStatementRegistry::Entry* WriteStatementRegistry::findStatement(
+   const std::string& name
 ) const {
    auto it = entries_.find(name);
    if (it == entries_.end()) {
@@ -78,12 +114,13 @@ Request parseRequest(std::string_view query_string, const Tables& tables) {
    // anything else is an ordinary read query and goes through the unchanged read conversion path.
    if (std::holds_alternative<saneql::ast::FunctionCall>(ast->value)) {
       const auto& call = std::get<saneql::ast::FunctionCall>(ast->value);
-      if (const auto* entry =
-             WriteStatementRegistry::instance().findStatement(call.function_name)) {
+      if (
+         const auto* entry = WriteStatementRegistry::instance().findStatement(call.function_name)
+      ) {
          auto bound = saneql::bindArguments(
             call.function_name, entry->signature, call.positional_arguments, call.named_arguments
          );
-         return entry->handler(bound, tables, saneql::convertExpression);
+         return entry->handler(bound, tables);
       }
    }
 

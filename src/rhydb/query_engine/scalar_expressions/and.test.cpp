@@ -13,8 +13,9 @@ nlohmann::json createData(const std::string& country, const std::string& date) {
    std::string age = row_id % 2 == 0 ? "null" : fmt::format("{}", (3 * row_id) + 4);
    float coverage = 0.9;
 
-   return nlohmann::json::parse(fmt::format(
-      R"(
+   return nlohmann::json::parse(
+      fmt::format(
+         R"(
 {{
    "primaryKey": "id_{}",
    "country": "{}",
@@ -32,12 +33,13 @@ nlohmann::json createData(const std::string& country, const std::string& date) {
    }}
 }}
 )",
-      primary_key,
-      country,
-      age,
-      coverage,
-      date
-   ));
+         primary_key,
+         country,
+         age,
+         coverage,
+         date
+      )
+   );
 }
 
 const auto DATABASE_CONFIG =
@@ -82,18 +84,18 @@ const QueryTestData TEST_DATA{
 const QueryTestScenario NESTED_AND = {
    .name = "NESTED_AND",
    .query =
-      "default.filter(date >= '2009-01-01'::date && date >= '2000-01-01'::date && country = "
+      "data.filter(date >= '2009-01-01'::date && date >= '2000-01-01'::date && country = "
       "'Germany').project({age,country,coverage,date,primaryKey})",
    .expected_query_result = nlohmann::json::parse(
       R"(
 [{"age":13,"country":"Germany","coverage":0.9,"date":"2009-06-07","primaryKey":"id_2"}])"
-   )
+   ),
 };
 
 const QueryTestScenario ALL_NEGATED_AND_ON_INDEXED_COLUMN = {
    .name = "ALL_NEGATED_AND_ON_INDEXED_COLUMN",
    .query =
-      "default.filter(!(country = 'Germany') && !(country = 'Switzerland'))"
+      "data.filter(!(country = 'Germany') && !(country = 'Switzerland'))"
       ".project(primaryKey)",
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_6"}])"),
 };

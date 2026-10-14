@@ -57,8 +57,9 @@ schema:
 
 TEST(DatabaseConfig, shouldBuildDatabaseConfigWithoutPrimaryKeyWhenValueIsNull) {
    for (const auto* const primary_key_line : {"primaryKey: null", "primaryKey: ~", "primaryKey:"}) {
-      const DatabaseConfig config = DatabaseConfig::getValidatedConfig(fmt::format(
-         R"(
+      const DatabaseConfig config = DatabaseConfig::getValidatedConfig(
+         fmt::format(
+            R"(
 schema:
   instanceName: "testInstanceName"
   metadata:
@@ -66,8 +67,9 @@ schema:
       type: "string"
   {}
 )",
-         primary_key_line
-      ));
+            primary_key_line
+         )
+      );
       ASSERT_FALSE(config.schema.primary_key.has_value()) << primary_key_line;
    }
 }
@@ -110,33 +112,33 @@ INSTANTIATE_TEST_SUITE_P(
       TestParameter{
          .value_type = ValueType::STRING,
          .generate_index = true,
-         .expected_column_type = ColumnType::DICTIONARY_ENCODED
+         .expected_column_type = ColumnType::DICTIONARY_ENCODED,
       },
       TestParameter{
          .value_type = ValueType::DATE,
          .generate_index = false,
-         .expected_column_type = ColumnType::DATE32
+         .expected_column_type = ColumnType::DATE32,
       },
       TestParameter{
          .value_type = ValueType::STRING,
          .generate_index = true,
          .generate_lineage_index = true,
-         .expected_column_type = ColumnType::DICTIONARY_ENCODED
+         .expected_column_type = ColumnType::DICTIONARY_ENCODED,
       },
       TestParameter{
          .value_type = ValueType::INT32,
          .generate_index = false,
-         .expected_column_type = ColumnType::INT32
+         .expected_column_type = ColumnType::INT32,
       },
       TestParameter{
          .value_type = ValueType::INT64,
          .generate_index = false,
-         .expected_column_type = ColumnType::INT64
+         .expected_column_type = ColumnType::INT64,
       },
       TestParameter{
          .value_type = ValueType::FLOAT,
          .generate_index = false,
-         .expected_column_type = ColumnType::FLOAT
+         .expected_column_type = ColumnType::FLOAT,
       }
    )
 );
@@ -311,10 +313,10 @@ schema:
 
    EXPECT_THAT(
       [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
-      ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("Metadata 'indexed date' generateIndex is set, but generating an "
-                              "index is only allowed for types STRING")
-      )
+      ThrowsMessage<ConfigException>(::testing::HasSubstr(
+         "Metadata 'indexed date' generateIndex is set, but generating an "
+         "index is only allowed for types STRING"
+      ))
    );
 }
 
@@ -334,10 +336,10 @@ schema:
 
    EXPECT_THAT(
       [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
-      ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("Metadata 'some lineage' generateLineageIndex is set, "
-                              "generateIndex must also be set")
-      )
+      ThrowsMessage<ConfigException>(::testing::HasSubstr(
+         "Metadata 'some lineage' generateLineageIndex is set, "
+         "generateIndex must also be set"
+      ))
    );
 }
 
@@ -448,10 +450,10 @@ schema:
 
    EXPECT_THAT(
       [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
-      ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("Metadata 'lineage' lineageIndexType is set to 'table', but "
-                              "generateLineageIndex is not set")
-      )
+      ThrowsMessage<ConfigException>(::testing::HasSubstr(
+         "Metadata 'lineage' lineageIndexType is set to 'table', but "
+         "generateLineageIndex is not set"
+      ))
    );
 }
 
@@ -472,11 +474,11 @@ schema:
 
    EXPECT_THAT(
       [&config_yaml]() { DatabaseConfig::getValidatedConfig(config_yaml); },
-      ThrowsMessage<ConfigException>(
-         ::testing::HasSubstr("Metadata 'some lineage' isPhyloTreeField and generateIndex "
-                              "are both set, if isPhyloTreeField is "
-                              "set then generateIndex cannot be set.")
-      )
+      ThrowsMessage<ConfigException>(::testing::HasSubstr(
+         "Metadata 'some lineage' isPhyloTreeField and generateIndex "
+         "are both set, if isPhyloTreeField is "
+         "set then generateIndex cannot be set."
+      ))
    );
 }
 

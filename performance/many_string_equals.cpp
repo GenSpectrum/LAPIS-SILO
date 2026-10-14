@@ -10,7 +10,6 @@
 
 #include <gtest/gtest.h>
 
-#include "sequence_generator.h"
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/initialize/initializer.h"
 #include "rhydb/query_engine/exec_node/ndjson_sink.h"
@@ -24,6 +23,7 @@
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/query_engine/scalar_expressions/or.h"
 #include "rhydb/query_engine/scalar_expressions/string_in_set.h"
+#include "sequence_generator.h"
 
 namespace {
 
@@ -50,7 +50,8 @@ std::unique_ptr<ScalarExpression> makeStringEquals(
 ) {
    return std::make_unique<Comparison>(
       std::make_unique<FieldRef>(rhydb::schema::ColumnIdentifier{
-         .name = column, .type = rhydb::schema::ColumnType::DICTIONARY_ENCODED
+         .name = column,
+         .type = rhydb::schema::ColumnType::DICTIONARY_ENCODED,
       }),
       std::make_unique<StringLiteral>(value),
       rhydb::query_engine::filter::operators::Comparator::EQUALS
@@ -76,9 +77,10 @@ schema:
    database->createTable(
       rhydb::schema::TableName::getDefault(),
       rhydb::initialize::Initializer::createSchemaFromConfigFiles(
-         std::move(database_config),
+         database_config,
          std::move(reference_genomes),
          {},
+         // NOLINTNEXTLINE(readability-trailing-comma): false positive on empty brace, llvm#223646
          rhydb::common::PhyloTree{},
          /*without_unaligned_sequences=*/true
       )
@@ -133,7 +135,8 @@ std::unique_ptr<ScalarExpression> buildStringInSet(
    const std::vector<std::string>& values
 ) {
    const rhydb::schema::ColumnIdentifier column_identifier{
-      .name = column, .type = rhydb::schema::ColumnType::STRING
+      .name = column,
+      .type = rhydb::schema::ColumnType::STRING,
    };
    std::unordered_set<std::string> value_set(values.begin(), values.end());
    return std::make_unique<StringInSet>(column_identifier, std::move(value_set));
@@ -150,7 +153,7 @@ void executeCountWithFilter(
    );
    auto filter_node = std::make_unique<FilterNode>(std::move(scan), std::move(filter));
    std::vector<AggregateDefinition> aggregates{
-      {.output_name = "count", .function = AggregateFunction::COUNT, .source_column = std::nullopt}
+      {.output_name = "count", .function = AggregateFunction::COUNT, .source_column = std::nullopt},
    };
    auto root = std::make_unique<AggregateNode>(
       std::move(filter_node), std::vector<rhydb::schema::ColumnIdentifier>{}, std::move(aggregates)
@@ -191,16 +194,16 @@ BenchmarkResult runBenchmark(
    int64_t sum = 0;
    int64_t min_val = durations[0];
    int64_t max_val = durations[0];
-   for (int64_t d : durations) {
-      sum += d;
-      min_val = std::min(min_val, d);
-      max_val = std::max(max_val, d);
+   for (const int64_t duration : durations) {
+      sum += duration;
+      min_val = std::min(min_val, duration);
+      max_val = std::max(max_val, duration);
    }
 
    return BenchmarkResult{
       .avg_ms = static_cast<double>(sum) / static_cast<double>(iterations) / 1000.0,
       .min_ms = static_cast<double>(min_val) / 1000.0,
-      .max_ms = static_cast<double>(max_val) / 1000.0
+      .max_ms = static_cast<double>(max_val) / 1000.0,
    };
 }
 
@@ -242,11 +245,11 @@ void run() {
       }
 
       // Lambda builders that capture search_values
-      auto build_or = [&]() { return buildManyStringEquals("accession", search_values); };
-      auto build_nested_or = [&]() {
+      auto build_or = [&] { return buildManyStringEquals("accession", search_values); };
+      auto build_nested_or = [&] {
          return buildManyNestedStringEquals("accession", search_values);
       };
-      auto build_set = [&]() { return buildStringInSet("accession", search_values); };
+      auto build_set = [&] { return buildStringInSet("accession", search_values); };
 
       // Run benchmarks
       auto or_result = runBenchmark(database, build_or, ITERATIONS);
@@ -284,10 +287,9 @@ void run() {
    SPDLOG_INFO("=== Testing on INDEXED column (country) ===");
    SPDLOG_INFO("");
 
-   std::vector<std::string> all_countries;
-   for (const auto country : STRING_EQUALS_COUNTRIES) {
-      all_countries.emplace_back(country);
-   }
+   const std::vector<std::string> all_countries(
+      STRING_EQUALS_COUNTRIES.begin(), STRING_EQUALS_COUNTRIES.end()
+   );
 
    for (size_t num_values : test_sizes) {
       SPDLOG_INFO("--- Benchmark with {} country values (indexed column) ---", num_values);
@@ -304,11 +306,11 @@ void run() {
             search_countries.push_back(fmt::format("NOTEXIST{:06}", i));
          }
       }
-      auto build_or = [&]() { return buildManyStringEquals("country", search_countries); };
-      auto build_nested_or = [&]() {
+      auto build_or = [&] { return buildManyStringEquals("country", search_countries); };
+      auto build_nested_or = [&] {
          return buildManyNestedStringEquals("country", search_countries);
       };
-      auto build_set = [&]() { return buildStringInSet("country", search_countries); };
+      auto build_set = [&] { return buildStringInSet("country", search_countries); };
 
       auto or_result = runBenchmark(database, build_or, ITERATIONS);
       SPDLOG_INFO(

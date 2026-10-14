@@ -14,7 +14,9 @@
 #include <fmt/format.h>
 #include <roaring/roaring.hh>
 
+#include "rhydb/common/aa_symbols.h"
 #include "rhydb/common/bitmap.h"
+#include "rhydb/common/nucleotide_symbols.h"
 #include "rhydb/common/panic.h"
 #include "rhydb/query_engine/filter/operators/empty.h"
 #include "rhydb/query_engine/filter/operators/index_scan.h"
@@ -22,10 +24,15 @@
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/filter/operators/selection.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
+#include "rhydb/query_engine/scalar_expressions/and.h"
+#include "rhydb/query_engine/scalar_expressions/at.h"
 #include "rhydb/query_engine/scalar_expressions/field_ref.h"
+#include "rhydb/query_engine/scalar_expressions/is_null.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
+#include "rhydb/query_engine/scalar_expressions/negation.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
 #include "rhydb/query_engine/scalar_expressions/string_in_set.h"
+#include "rhydb/query_engine/scalar_expressions/symbol_equals.h"
 #include "rhydb/storage/column/bool_column.h"
 #include "rhydb/storage/column/date32_column.h"
 #include "rhydb/storage/column/dictionary_encoded_column.h"
@@ -80,6 +87,120 @@ std::optional<ColumnAndValue> splitColumnAndValue(
    return std::nullopt;
 }
 
+/// `sequence.at(position) <op> literal`: the `.at()` side reads a single position of a sequence
+/// column and the other side is a string literal.
+struct SequencePositionAndLiteral {
+   ColumnIdentifier column;
+   uint32_t position;
+   const std::string* literal;
+};
+
+std::optional<SequencePositionAndLiteral> splitSequencePositionAndLiteral(
+   const Table& table,
+   const ScalarExpression* left,
+   const ScalarExpression* right
+) {
+   const auto* at_expression = dynCast<At>(left);
+   const auto* literal = dynCast<StringLiteral>(right);
+   if (at_expression == nullptr || literal == nullptr) {
+      at_expression = dynCast<At>(right);
+      literal = dynCast<StringLiteral>(left);
+   }
+   if (at_expression == nullptr || literal == nullptr) {
+      return std::nullopt;
+   }
+   const auto* field = dynCast<FieldRef>(at_expression->input.get());
+   if (field == nullptr) {
+      return std::nullopt;
+   }
+   // The FieldRef carries the type the column has in the query (sequences are read as strings),
+   // so whether it is a sequence column is decided by the table's schema.
+   auto table_column = table.schema->getColumn(field->column.name);
+   if (
+      !table_column.has_value() || (table_column->type != Nucleotide::COLUMN_TYPE &&
+                                    table_column->type != AminoAcid::COLUMN_TYPE)
+   ) {
+      return std::nullopt;
+   }
+   return SequencePositionAndLiteral{
+      .column = std::move(table_column.value()),
+      .position = at_expression->position,
+      .literal = &literal->value,
+   };
+}
+
+/// Rewrites `sequence.at(position) = 'X'` (or `<>`) into the symbol filters that `nucleotideEquals`
+/// / `aminoAcidEquals` use, so the predicate is answered from the sequence index instead of
+/// reconstructing every sequence. The result must match the Arrow evaluation of the comparison,
+/// which compares the decoded (upper-case) character: a null sequence never matches, and a literal
+/// that is not a decoded symbol character, as well as a position beyond the reference, never equals
+/// the extracted character.
+template <typename SymbolType>
+std::unique_ptr<ScalarExpression> rewriteSequencePositionComparison(
+   const Table& table,
+   const SequencePositionAndLiteral& split,
+   Comparator comparator,
+   ScalarExpression::AmbiguityMode mode
+) {
+   const auto& sequence_column = table.getColumn<typename SymbolType::Column>(split.column.name);
+   const uint32_t position_idx = split.position - 1;
+   const bool in_bounds = position_idx < sequence_column.metadata->reference_sequence.size();
+   const auto symbol =
+      split.literal->size() == 1 ? SymbolType::charToSymbol(split.literal->front()) : std::nullopt;
+   const bool is_decoded_symbol =
+      symbol.has_value() && SymbolType::symbolToChar(symbol.value()) == split.literal->front();
+
+   if (!in_bounds && split.literal->empty()) {
+      if (comparator == Comparator::EQUALS) {
+         return std::make_unique<Negation>(std::make_unique<IsNull>(split.column));
+      }
+      return std::make_unique<BoolLiteral>(false);
+   }
+   if (!in_bounds || !is_decoded_symbol) {
+      // The extracted character can never equal the literal, so `=` matches nothing and `<>`
+      // matches every row that has a sequence.
+      if (comparator == Comparator::EQUALS) {
+         return std::make_unique<BoolLiteral>(false);
+      }
+      return std::make_unique<Negation>(std::make_unique<IsNull>(split.column));
+   }
+
+   auto symbol_equals = std::make_unique<SymbolEquals<SymbolType>>(
+      split.column, position_idx, SymbolOrDot<SymbolType>(symbol.value())
+   );
+   if (comparator == Comparator::EQUALS) {
+      return symbol_equals->rewrite(table, mode);
+   }
+
+   // `<>` is the negation of `=` restricted to rows that have a sequence: the Arrow evaluation
+   // yields null, not true, for a null sequence, whereas a Negation would include those rows.
+   ScalarExpressionVector children;
+   children.emplace_back(std::make_unique<Negation>(std::move(symbol_equals)));
+   children.emplace_back(std::make_unique<Negation>(std::make_unique<IsNull>(split.column)));
+   return And(std::move(children)).rewrite(table, mode);
+}
+
+/// Returns nullptr when the comparison is not a sequence-position comparison that can be rewritten.
+std::unique_ptr<ScalarExpression> tryRewriteSequencePositionComparison(
+   const Table& table,
+   const ScalarExpression* left,
+   const ScalarExpression* right,
+   Comparator comparator,
+   ScalarExpression::AmbiguityMode mode
+) {
+   if (comparator != Comparator::EQUALS && comparator != Comparator::NOT_EQUALS) {
+      return nullptr;
+   }
+   auto split = splitSequencePositionAndLiteral(table, left, right);
+   if (!split.has_value()) {
+      return nullptr;
+   }
+   if (split->column.type == Nucleotide::COLUMN_TYPE) {
+      return rewriteSequencePositionComparison<Nucleotide>(table, *split, comparator, mode);
+   }
+   return rewriteSequencePositionComparison<AminoAcid>(table, *split, comparator, mode);
+}
+
 Comparator flipComparator(Comparator comparator) {
    switch (comparator) {
       case Comparator::LESS:
@@ -116,21 +237,23 @@ bool matchesComparator(std::string_view actual, Comparator comparator, std::stri
    RHYDB_UNREACHABLE();
 }
 
-template <typename ColumnType, typename ColumnMap>
+template <typename ColumnType>
 std::unique_ptr<Operator> compileTypedComparison(
    const Table& table,
-   const ColumnMap& column_map,
    const std::string& column_name,
    Comparator comparator,
    std::string_view type_name,
    typename ColumnType::value_type value
 ) {
    CHECK_RHYDB_QUERY(
-      column_map.contains(column_name), "The column '{}' is not of type {}", column_name, type_name
+      table.hasColumn<ColumnType>(column_name),
+      "The column '{}' is not of type {}",
+      column_name,
+      type_name
    );
    return std::make_unique<Selection>(
       std::make_unique<CompareToValueSelection<ColumnType>>(
-         column_map.at(column_name), comparator, value
+         table.getColumn<ColumnType>(column_name), comparator, value
       ),
       table.row_layout
    );
@@ -174,10 +297,10 @@ std::unique_ptr<Operator> compileStringComparison(
    Comparator comparator,
    const std::string& literal
 ) {
-   if (table.columns.string_columns.contains(column_name)) {
+   if (table.hasColumn<StringColumn>(column_name)) {
       // Equality on non-indexed string columns is always converted to StringInSet
       RHYDB_ASSERT(comparator != Comparator::EQUALS);
-      const auto& string_column = table.columns.string_columns.at(column_name);
+      const auto& string_column = table.getColumn<StringColumn>(column_name);
       return std::make_unique<Selection>(
          std::make_unique<CompareToValueSelection<StringColumn>>(
             string_column, comparator, literal
@@ -187,12 +310,12 @@ std::unique_ptr<Operator> compileStringComparison(
    }
 
    CHECK_RHYDB_QUERY(
-      table.columns.dictionary_encoded_columns.contains(column_name),
+      table.hasColumn<DictionaryEncodedColumn>(column_name),
       "The column '{}' is not of type string",
       column_name
    );
 
-   const auto& dictionary_column = table.columns.dictionary_encoded_columns.at(column_name);
+   const auto& dictionary_column = table.getColumn<DictionaryEncodedColumn>(column_name);
 
    if (comparator == Comparator::EQUALS) {
       const auto bitmap = dictionary_column.filter(literal);
@@ -232,7 +355,7 @@ std::unique_ptr<Operator> compileBoolComparison(
    // The column type is checked first so that comparing a non-bool column against a
    // bool literal reports the type mismatch rather than claiming the column is boolean.
    CHECK_RHYDB_QUERY(
-      table.columns.bool_columns.contains(column_name),
+      table.hasColumn<storage::column::BoolColumn>(column_name),
       "The column '{}' is not of type bool",
       column_name
    );
@@ -241,7 +364,7 @@ std::unique_ptr<Operator> compileBoolComparison(
       "The comparison operators <,>,<=,>= are not supported for boolean column '{}'",
       column_name
    );
-   const auto& bool_column = table.columns.bool_columns.at(column_name);
+   const auto& bool_column = table.getColumn<storage::column::BoolColumn>(column_name);
    // `column <> true` selects the same rows as `column = false`. Null rows are in
    // neither bitmap, so they are excluded either way, consistent with the other
    // comparison operators.
@@ -261,15 +384,11 @@ std::unique_ptr<Operator> compileIntComparison(
    Comparator comparator,
    int64_t value
 ) {
-   if (table.columns.int64_columns.contains(column_name)) {
-      return compileTypedComparison<Int64Column>(
-         table, table.columns.int64_columns, column_name, comparator, "int64", value
-      );
+   if (table.hasColumn<Int64Column>(column_name)) {
+      return compileTypedComparison<Int64Column>(table, column_name, comparator, "int64", value);
    }
    CHECK_RHYDB_QUERY(
-      table.columns.int32_columns.contains(column_name),
-      "The column '{}' is not of type int",
-      column_name
+      table.hasColumn<Int32Column>(column_name), "The column '{}' is not of type int", column_name
    );
    CHECK_RHYDB_QUERY(
       value >= std::numeric_limits<int32_t>::min() && value <= std::numeric_limits<int32_t>::max(),
@@ -277,12 +396,7 @@ std::unique_ptr<Operator> compileIntComparison(
       value
    );
    return compileTypedComparison<Int32Column>(
-      table,
-      table.columns.int32_columns,
-      column_name,
-      comparator,
-      "int",
-      static_cast<int32_t>(value)
+      table, column_name, comparator, "int", static_cast<int32_t>(value)
    );
 }
 
@@ -331,8 +445,15 @@ arrow::Result<arrow::compute::Expression> Comparison::toArrowExpression() const 
 
 std::unique_ptr<ScalarExpression> Comparison::rewrite(
    const Table& table,
-   AmbiguityMode /*mode*/
+   AmbiguityMode mode
 ) const {
+   if (
+      auto rewritten =
+         tryRewriteSequencePositionComparison(table, left.get(), right.get(), comparator, mode)
+   ) {
+      return rewritten;
+   }
+
    // Only equality is rewritten. A non-indexed string column has no per-value index,
    // so `column = 'value'` becomes a (single-element) StringInSet, which knows how to
    // scan it and which Or can merge with sibling StringInSets over the same column.
@@ -351,12 +472,12 @@ std::unique_ptr<ScalarExpression> Comparison::rewrite(
             column_name
          );
          CHECK_RHYDB_QUERY(
-            table.columns.string_columns.contains(column_name) ||
-               table.columns.dictionary_encoded_columns.contains(column_name),
+            table.hasColumn<StringColumn>(column_name) ||
+               table.hasColumn<DictionaryEncodedColumn>(column_name),
             "The column '{}' is not of type string",
             column_name
          );
-         if (table.columns.string_columns.contains(column_name)) {
+         if (table.hasColumn<StringColumn>(column_name)) {
             return std::make_unique<StringInSet>(
                split->column->column, std::unordered_set<std::string>{string_value->value}
             );
@@ -395,23 +516,13 @@ std::unique_ptr<Operator> Comparison::compile(const Table& table) const {
 
    if (const auto* float_value = dynCast<FloatLiteral>(value)) {
       return compileTypedComparison<FloatColumn>(
-         table,
-         table.columns.float_columns,
-         column_name,
-         effective_comparator,
-         "float",
-         float_value->value
+         table, column_name, effective_comparator, "float", float_value->value
       );
    }
 
    if (const auto* date_value = dynCast<DateLiteral>(value)) {
       return compileTypedComparison<Date32Column>(
-         table,
-         table.columns.date32_columns,
-         column_name,
-         effective_comparator,
-         "date",
-         date_value->value
+         table, column_name, effective_comparator, "date", date_value->value
       );
    }
 

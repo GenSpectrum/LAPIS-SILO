@@ -1,5 +1,7 @@
 #include "rhydb/query_engine/saneql/ast.h"
 
+#include <utility>
+
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
@@ -32,12 +34,36 @@ std::string binaryOpToString(BinaryOp op) {
 
 namespace {
 
+std::string quote(std::string_view value, char quote_character) {
+   std::string result{quote_character};
+   for (const char character : value) {
+      result += character;
+      if (character == quote_character) {
+         result += quote_character;
+      }
+   }
+   result += quote_character;
+   return result;
+}
+
+}  // namespace
+
+std::string quoteStringLiteral(std::string_view value) {
+   return quote(value, '\'');
+}
+
+std::string quoteIdentifier(std::string_view name) {
+   return quote(name, '"');
+}
+
+namespace {
+
 struct ExprToString {
    std::string operator()(const IntLiteral& lit) const { return std::to_string(lit.value); }
 
    std::string operator()(const FloatLiteral& lit) const { return fmt::format("{}", lit.value); }
 
-   std::string operator()(const StringLiteral& lit) const { return fmt::format("'{}'", lit.value); }
+   std::string operator()(const StringLiteral& lit) const { return quoteStringLiteral(lit.value); }
 
    std::string operator()(const BoolLiteral& lit) const { return lit.value ? "true" : "false"; }
 
@@ -141,12 +167,12 @@ uint32_t extractUint32Literal(const Expression& expression) {
    );
    int64_t parsed_value = std::get<IntLiteral>(expression.value).value;
    CHECK_RHYDB_QUERY(
-      parsed_value >= std::numeric_limits<uint32_t>::min(),
+      std::cmp_greater_equal(parsed_value, std::numeric_limits<uint32_t>::min()),
       "Cannot cast {} to uint32. Value out of range",
       parsed_value
    );
    CHECK_RHYDB_QUERY(
-      parsed_value <= std::numeric_limits<uint32_t>::max(),
+      std::cmp_less_equal(parsed_value, std::numeric_limits<uint32_t>::max()),
       "Cannot cast {} to uint32. Value out of range",
       parsed_value
    );

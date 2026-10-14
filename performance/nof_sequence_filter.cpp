@@ -13,10 +13,10 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include "sequence_generator.h"
 #include "rhydb/config/runtime_config.h"
 #include "rhydb/query_engine/exec_node/ndjson_sink.h"
 #include "rhydb/query_engine/planner.h"
+#include "sequence_generator.h"
 
 using rhydb::Database;
 using rhydb::query_engine::Planner;
@@ -50,7 +50,8 @@ BenchmarkResult runBenchmark(
       rhydb::query_engine::exec_node::NdjsonSink sink{&null_output, query_plan.results_schema};
       query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/60);
       const auto end = std::chrono::high_resolution_clock::now();
-      durations.push_back(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
+      durations.push_back(
+         std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
       );
    }
 
@@ -73,9 +74,9 @@ BenchmarkResult runBenchmark(
 // sequence).  This exercises the single-pass NOf optimisation at large scale.
 std::string buildMutationProfileQuery(const std::string& query_sequence, uint32_t distance) {
    return fmt::format(
-      "default.filter(nucleotideMutationProfile(distance:={}, sequenceName:='main', "
+      "data.filter(nucleotideMutationProfile(distance:={}, sequenceName:='main', "
       "querySequence:='{}'))"
-      ".groupBy({{count:=count()}})",
+      ".group(by:={{}}, aggs:={{count:=count()}})",
       distance,
       query_sequence
    );

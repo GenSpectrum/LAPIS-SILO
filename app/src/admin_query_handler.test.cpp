@@ -9,6 +9,9 @@
 #include <vector>
 
 #include <Poco/Net/HTTPResponse.h>
+#include <arrow/api.h>
+#include <arrow/io/memory.h>
+#include <arrow/ipc/reader.h>
 #include <fmt/format.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -124,15 +127,20 @@ void postAdminQuery(
    const std::filesystem::path& data_directory,
    const std::string& query,
    rhydb_app::test::MockResponse& response,
-   bool allow_admin_endpoint = true
+   bool allow_admin_endpoint = true,
+   const std::string& accept_header = ""
 ) {
    rhydb_app::test::MockRequest request(response);
    request.setMethod("POST");
    request.setURI("/admin/query");
+   if (!accept_header.empty()) {
+      request.set("Accept", accept_header);
+   }
    request.in_stream << query;
 
    rhydb_app::RhyDBRequestHandlerFactory factory{
-      configWithAdminEndpoint(data_directory, allow_admin_endpoint), handle
+      configWithAdminEndpoint(data_directory, allow_admin_endpoint),
+      handle,
    };
    std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{factory.createRequestHandler(request)};
    handler->handleRequest(request, response);
@@ -157,6 +165,7 @@ TEST(AdminQueryHandler, insertsQueryResultAndReportsRowCount) {
    );
 
    EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
+   EXPECT_EQ(response.getContentType(), "application/x-ndjson");
 
    const auto body = nlohmann::json::parse(response.out_stream.str());
    EXPECT_EQ(body.at("insertedRows").get<size_t>(), 2);
@@ -166,11 +175,75 @@ TEST(AdminQueryHandler, insertsQueryResultAndReportsRowCount) {
    ASSERT_TRUE(response.has("data-version"));
    EXPECT_THAT(response.get("data-version"), testing::MatchesRegex("[0-9]{10}"));
 
+   // Same headers as the read endpoint: the single summary row has no ordering.
+   ASSERT_TRUE(response.has("result-ordering"));
+   EXPECT_EQ(response.get("result-ordering"), "[]");
+
    // The rows really landed in the target table, and the source table is untouched.
    auto written = reloadFromDataDirectory(data_directory.path());
    EXPECT_EQ(written.getDataVersionTimestamp().value, response.get("data-version"));
    EXPECT_EQ(written.tables.at(TableName{"archive"})->row_layout.numRows(), 2U);
    EXPECT_EQ(written.tables.at(TableName{"source"})->row_layout.numRows(), 3U);
+}
+
+TEST(AdminQueryHandler, returnsResultAsArrowIpcWhenRequested) {
+   const TemporaryDataDirectory data_directory;
+   auto handle = makeActiveDatabaseWithSourceData(data_directory.path());
+
+   rhydb_app::test::MockResponse response;
+   postAdminQuery(
+      handle,
+      data_directory.path(),
+      "source.filter(country='CH').insertInto(archive)",
+      response,
+      /*allow_admin_endpoint=*/true,
+      "application/vnd.apache.arrow.stream"
+   );
+
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
+   EXPECT_EQ(response.getContentType(), "application/vnd.apache.arrow.stream");
+
+   auto buffer_reader = std::make_shared<arrow::io::BufferReader>(
+      arrow::Buffer::FromString(response.out_stream.str())
+   );
+   auto reader = arrow::ipc::RecordBatchStreamReader::Open(buffer_reader).ValueOrDie();
+   const auto result = reader->ToTable().ValueOrDie();
+   ASSERT_EQ(result->num_rows(), 1);
+   ASSERT_EQ(result->schema()->field_names(), std::vector<std::string>{"insertedRows"});
+   const auto inserted_rows =
+      std::static_pointer_cast<arrow::Int64Array>(result->column(0)->chunk(0));
+   EXPECT_EQ(inserted_rows->Value(0), 2);
+}
+
+TEST(AdminQueryHandler, createsTableAndPersistsItsSchema) {
+   const TemporaryDataDirectory data_directory;
+   auto handle = makeActiveDatabaseWithSourceData(data_directory.path());
+
+   rhydb_app::test::MockResponse response;
+   postAdminQuery(
+      handle,
+      data_directory.path(),
+      "createTable(countries, {name := string, population := int64}, primaryKey := name)",
+      response
+   );
+
+   EXPECT_EQ(response.getStatus(), Poco::Net::HTTPResponse::HTTP_OK);
+   EXPECT_EQ(
+      nlohmann::json::parse(response.out_stream.str()),
+      nlohmann::json({{"createdTable", "countries"}})
+   );
+
+   auto written = reloadFromDataDirectory(data_directory.path());
+   ASSERT_TRUE(written.tables.contains(TableName{"countries"}));
+   const auto& schema = *written.tables.at(TableName{"countries"})->schema;
+   EXPECT_EQ(
+      schema.getColumnIdentifiers(),
+      (std::vector<ColumnIdentifier>{
+         {.name = "name", .type = ColumnType::STRING},
+         {.name = "population", .type = ColumnType::INT64},
+      })
+   );
+   EXPECT_EQ(schema.primary_key, (ColumnIdentifier{.name = "name", .type = ColumnType::STRING}));
 }
 
 // The write is not only applied in memory: it is saved to the data directory as a new data version
@@ -341,7 +414,8 @@ TEST(AdminQueryHandler, serializesConcurrentWrites) {
    auto handle = makeActiveDatabaseWithSourceData(data_directory.path());
 
    rhydb_app::RhyDBRequestHandlerFactory factory{
-      configWithAdminEndpoint(data_directory.path(), true), handle
+      configWithAdminEndpoint(data_directory.path(), true),
+      handle,
    };
 
    constexpr size_t NUMBER_OF_THREADS = 4;
@@ -350,7 +424,7 @@ TEST(AdminQueryHandler, serializesConcurrentWrites) {
    std::vector<std::thread> writers;
    writers.reserve(NUMBER_OF_THREADS);
    for (size_t thread_index = 0; thread_index < NUMBER_OF_THREADS; ++thread_index) {
-      writers.emplace_back([&factory]() {
+      writers.emplace_back([&factory] {
          for (size_t request_index = 0; request_index < REQUESTS_PER_THREAD; ++request_index) {
             rhydb_app::test::MockResponse response;
             rhydb_app::test::MockRequest request(response);
@@ -359,7 +433,7 @@ TEST(AdminQueryHandler, serializesConcurrentWrites) {
             request.in_stream << "source.filter(country='CH').insertInto(archive)";
 
             std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{
-               factory.createRequestHandler(request)
+               factory.createRequestHandler(request),
             };
             handler->handleRequest(request, response);
 
@@ -399,7 +473,8 @@ TEST(QueryHandler, rejectsInsertQueryOnReadOnlyEndpointWithBadRequest) {
    request.in_stream << "source.filter(country='CH').insertInto(archive)";
 
    rhydb_app::RhyDBRequestHandlerFactory factory{
-      configWithAdminEndpoint(data_directory.path(), true), handle
+      configWithAdminEndpoint(data_directory.path(), true),
+      handle,
    };
    std::unique_ptr<Poco::Net::HTTPRequestHandler> handler{factory.createRequestHandler(request)};
    handler->handleRequest(request, response);

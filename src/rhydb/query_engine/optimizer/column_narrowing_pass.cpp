@@ -59,14 +59,10 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::AggregateNode
       }
    }
 
-   if (child_required.empty()) {
-      // COUNT(*) with no group-by: still need one column to drive the row stream.
-      auto child_schema = node.child->getOutputSchema();
-      RHYDB_ASSERT(!child_schema.empty());
-      required = RequiredColumns{child_schema.front()};
-   } else {
-      required = std::move(child_required);
-   }
+   // A bare count(*) with no group-by needs no columns at all: the scan drives rows off the row-id
+   // bitmap and emits zero-column batches (see ExecBatchBuilder::finishBatch), so leave `required`
+   // empty here instead of forcing a column to be materialized.
+   required = std::move(child_required);
    propagateToNode(node.child);
    return nullptr;
 }
@@ -79,7 +75,7 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::ProjectNode& 
          narrowed_fields.push_back(field);
       }
    }
-   node.fields = narrowed_fields;
+   node.fields = std::move(narrowed_fields);
 
    required = node.fields;
    propagateToNode(node.child);
@@ -148,13 +144,6 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::MapNode& node
 
    node.assignments = std::move(kept_assignments);
 
-   if (child_required.empty()) {
-      // Even when all output columns are produced by assignments, the child must
-      // emit at least one field so that row identity is preserved.
-      auto child_schema = node.child->getOutputSchema();
-      RHYDB_ASSERT(!child_schema.empty());
-      child_required.push_back(child_schema.front());
-   }
    required = std::move(child_required);
    propagateToNode(node.child);
 
@@ -219,15 +208,18 @@ operators::QueryNodePtr ColumnNarrowingPass::operator()(operators::JoinNode& nod
          return columns;
       }
       for (const auto& column : input.getOutputSchema()) {
-         if (std::ranges::find(required, column) != required.end() &&
-             std::ranges::find(columns, column) == columns.end()) {
+         if (
+            std::ranges::find(required, column) != required.end() &&
+            std::ranges::find(columns, column) == columns.end()
+         ) {
             columns.push_back(column);
          }
       }
       return columns;
    };
    ColumnNarrowingPass left_pass{input_required(*node.left, node.left_keys, left_output_dropped)};
-   ColumnNarrowingPass right_pass{input_required(*node.right, node.right_keys, right_output_dropped)
+   ColumnNarrowingPass right_pass{
+      input_required(*node.right, node.right_keys, right_output_dropped)
    };
    left_pass.propagateToNode(node.left);
    right_pass.propagateToNode(node.right);

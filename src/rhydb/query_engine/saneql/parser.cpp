@@ -67,7 +67,9 @@ ast::ExpressionPtr Parser::parseOrExpr() {
       auto right = parseAndExpr();
       left = ast::makeExpr(
          ast::BinaryExpr{
-            .op = ast::BinaryOp::OR, .left = std::move(left), .right = std::move(right)
+            .op = ast::BinaryOp::OR,
+            .left = std::move(left),
+            .right = std::move(right),
          },
          loc
       );
@@ -86,7 +88,9 @@ ast::ExpressionPtr Parser::parseAndExpr() {
       auto right = parseNotExpr();
       left = ast::makeExpr(
          ast::BinaryExpr{
-            .op = ast::BinaryOp::AND, .left = std::move(left), .right = std::move(right)
+            .op = ast::BinaryOp::AND,
+            .left = std::move(left),
+            .right = std::move(right),
          },
          loc
       );
@@ -143,7 +147,9 @@ ast::ExpressionPtr Parser::parseComparisonExpr() {
       auto right = parsePostfixExpr();
       left = ast::makeExpr(
          ast::BinaryExpr{
-            .op = comparator.value(), .left = std::move(left), .right = std::move(right)
+            .op = comparator.value(),
+            .left = std::move(left),
+            .right = std::move(right),
          },
          loc
       );
@@ -181,7 +187,7 @@ ast::ExpressionPtr Parser::parsePostfixExpr() {
                ast::FunctionCall{
                   .function_name = method_name.getStringValue(),
                   .positional_arguments = std::move(parsed.positional),
-                  .named_arguments = std::move(parsed.named)
+                  .named_arguments = std::move(parsed.named),
                },
                method_name.location
             );
@@ -195,7 +201,7 @@ ast::ExpressionPtr Parser::parsePostfixExpr() {
                ast::FunctionCall{
                   .function_name = method_name.getStringValue(),
                   .positional_arguments = std::move(pos_args),
-                  .named_arguments = {}
+                  .named_arguments = {},
                },
                method_name.location
             );
@@ -305,12 +311,12 @@ ast::ExpressionPtr Parser::parseSetOrRecordExpression() {
       advance();
       std::vector<ast::RecordField> fields;
       auto first_value = parseExpression();
-      fields.push_back({first_expression->toString(), std::move(first_value)});
+      fields.push_back({.name = first_expression->toString(), .value = std::move(first_value)});
       while (match(TokenType::COMMA)) {
          const Token field_name = expect(TokenType::IDENTIFIER);
          expect(TokenType::COLON_EQUALS);
          auto value = parseExpression();
-         fields.push_back({field_name.getStringValue(), std::move(value)});
+         fields.push_back({.name = field_name.getStringValue(), .value = std::move(value)});
       }
       expect(TokenType::RIGHT_BRACE);
       return ast::makeExpr(ast::RecordLiteral{std::move(fields)}, loc);
@@ -341,7 +347,7 @@ ast::ExpressionPtr Parser::parseIdentifierOrFunctionCall() {
          ast::FunctionCall{
             .function_name = std::move(name),
             .positional_arguments = std::move(parsed.positional),
-            .named_arguments = std::move(parsed.named)
+            .named_arguments = std::move(parsed.named),
          },
          loc
       );
@@ -394,7 +400,7 @@ Parser::ParsedArgs Parser::parseArgList() {
    bool seen_named = false;
 
    // NOLINTNEXTLINE(misc-no-recursion)
-   auto parse_one = [&]() {
+   auto parse_one = [&] {
       const SourceLocation loc = current().location;
       auto expr = parseExpression();
       if (check(TokenType::COLON_EQUALS)) {
@@ -417,7 +423,8 @@ Parser::ParsedArgs Parser::parseArgList() {
       if (seen_named) {
          throw ParseException(loc, "positional argument after named argument is not allowed");
       }
-      result.positional.push_back(ast::PositionalArgument{.value = std::move(expr), .location = loc}
+      result.positional.push_back(
+         ast::PositionalArgument{.value = std::move(expr), .location = loc}
       );
       return;
    };

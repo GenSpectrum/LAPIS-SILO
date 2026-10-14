@@ -15,6 +15,21 @@
 
 namespace rhydb::common {
 
+std::optional<RecombinantEdgeFollowingMode> recombinantEdgeFollowingModeFromName(
+   std::string_view name
+) {
+   if (name == DO_NOT_FOLLOW_NAME) {
+      return RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
+   }
+   if (name == FOLLOW_IF_FULLY_CONTAINED_IN_CLADE_NAME) {
+      return RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE;
+   }
+   if (name == ALWAYS_FOLLOW_NAME) {
+      return RecombinantEdgeFollowingMode::ALWAYS_FOLLOW;
+   }
+   return std::nullopt;
+}
+
 namespace {
 
 std::string edgesToString(const std::vector<Idx>& ids, const BidirectionalStringMap& lookup) {
@@ -150,8 +165,10 @@ std::set<Idx> LineageTree::getAllParents(
             for (const Idx parent : current_parents) {
                queue.emplace_back(parent);
             }
-         } else if (follow_recombinant_edges ==
-                    RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE) {
+         } else if (
+            follow_recombinant_edges ==
+            RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
+         ) {
             if (auto ancestor = recombinant_clade_ancestors.at(current)) {
                queue.emplace_back(ancestor.value());
             }
@@ -284,9 +301,11 @@ LineageTree LineageTree::fromEdgeList(
    LineageTree result;
    result.alias_mapping = alias_mapping;
    if (auto cycle = containsCycle(n_vertices, edge_list)) {
-      throw preprocessing::PreprocessingException(fmt::format(
-         "The given LineageTree contains the cycle: {}", edgesToString(cycle.value(), lookup)
-      ));
+      throw preprocessing::PreprocessingException(
+         fmt::format(
+            "The given LineageTree contains the cycle: {}", edgesToString(cycle.value(), lookup)
+         )
+      );
    }
    result.child_to_parent_relation.resize(n_vertices);
    for (const auto& [parent_id, vertex_id] : edge_list) {
@@ -326,9 +345,11 @@ void assignLineageIds(
 ) {
    for (const auto& lineage : file.lineages) {
       if (lookup.getId(lineage.lineage_name.string).has_value()) {
-         throw rhydb::preprocessing::PreprocessingException(fmt::format(
-            "The lineage definitions contain the duplicate lineage '{}'", lineage.lineage_name
-         ));
+         throw rhydb::preprocessing::PreprocessingException(
+            fmt::format(
+               "The lineage definitions contain the duplicate lineage '{}'", lineage.lineage_name
+            )
+         );
       }
       lookup.getOrCreateId(lineage.lineage_name.string);
    }
@@ -344,11 +365,14 @@ std::unordered_map<Idx, Idx> assignAliasIdsAndGetAliasMapping(
       RHYDB_ASSERT(lineage_id.has_value());
       for (const auto& alias : lineage.aliases) {
          if (lookup.getId(alias.string).has_value()) {
-            throw rhydb::preprocessing::PreprocessingException(fmt::format(
-               "The alias '{}' for lineage '{}' is already defined as a lineage or another alias.",
-               alias,
-               lineage.lineage_name
-            ));
+            throw rhydb::preprocessing::PreprocessingException(
+               fmt::format(
+                  "The alias '{}' for lineage '{}' is already defined as a lineage or another "
+                  "alias.",
+                  alias,
+                  lineage.lineage_name
+               )
+            );
          }
          auto alias_id = lookup.getOrCreateId(alias.string);
          alias_mapping[alias_id] = lineage_id.value();
@@ -370,12 +394,14 @@ std::vector<std::pair<Idx, Idx>> getParentChildEdges(
       for (const auto& parent_lineage : lineage.parents) {
          auto parent_id = lookup.getId(parent_lineage.string);
          if (!parent_id.has_value()) {
-            throw preprocessing::PreprocessingException(fmt::format(
-               "The lineage '{}' which is specified as the parent of vertex '{}' does not have a "
-               "definition itself.",
-               parent_lineage,
-               lineage.lineage_name
-            ));
+            throw preprocessing::PreprocessingException(
+               fmt::format(
+                  "The lineage '{}' which is specified as the parent of vertex '{}' does not have "
+                  "a definition itself.",
+                  parent_lineage,
+                  lineage.lineage_name
+               )
+            );
          }
          if (alias_mapping.contains(parent_id.value())) {
             parent_id = alias_mapping.at(parent_id.value());

@@ -65,18 +65,6 @@ set_target_properties(rhydblib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(rhydblib PUBLIC rhydblib_deps)
 
 # ---------------------------------------------------------------------------
-# Linter
-# ---------------------------------------------------------------------------
-
-# Apply clang-tidy (resolved by the root CMakeLists.txt) here, after rhydblib so
-# its objects are not linted via the CXX_CLANG_TIDY property, but before the
-# rhydb_test target below so the tests are. This matches the ordering from before
-# the src/ split. The root re-applies it at its own scope for the consumers.
-if (CLANG_TIDY_EXE)
-    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
-endif ()
-
-# ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 
@@ -88,6 +76,10 @@ if(BUILD_UNIT_TESTS)
     include_directories(${GTest_INCLUDE_DIRS})
 
     add_executable(rhydb_test ${RHYDB_TEST_SOURCES})
+    # Emit the test binary at the top-level build dir (build/<cfg>/rhydb_test)
+    # rather than build/<cfg>/src/, which is where this subdirectory would place
+    # it by default. The Makefile, CI, and tooling expect the historical path.
+    set_target_properties(rhydb_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
     if (NOT GTest_LIBRARIES)
         set(GTest_LIBRARIES gtest gmock)
     endif ()

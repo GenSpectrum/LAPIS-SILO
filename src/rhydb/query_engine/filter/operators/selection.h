@@ -6,6 +6,8 @@
 #include <optional>
 #include <ranges>
 #include <string>
+#include <string_view>
+#include <type_traits>
 #include <vector>
 
 #include "rhydb/common/bitmap.h"
@@ -29,7 +31,8 @@ class Predicate {
    [[nodiscard]] virtual bool match(storage::column::RowId row_id) const = 0;
    // Often there are faster ways to generate the results, than calling match on each row.
    // Optimise that case by overriding this method
-   [[nodiscard]] virtual roaring::Roaring makeBitmap(const storage::column::RowLayout& row_layout
+   [[nodiscard]] virtual roaring::Roaring makeBitmap(
+      const storage::column::RowLayout& row_layout
    ) const {
       roaring::Roaring result;
       for (const storage::column::RowId row_id : row_layout) {
@@ -52,10 +55,10 @@ enum class Comparator : uint8_t {
    HIGHER,
    LESS_OR_EQUALS,
    HIGHER_OR_EQUALS,
-   NOT_EQUALS
+   NOT_EQUALS,
 };
 
-inline std::string displayComparator(Comparator comparator) {
+inline std::string_view displayComparator(Comparator comparator) {
    switch (comparator) {
       case Comparator::EQUALS:
          return "=";
@@ -75,9 +78,14 @@ inline std::string displayComparator(Comparator comparator) {
 
 template <storage::column::Column ColumnType>
 class CompareToValueSelection : public Predicate {
+   using OwnedValue = std::conditional_t<
+      std::is_same_v<typename ColumnType::value_type, std::string_view>,
+      std::string,
+      typename ColumnType::value_type>;
+
    const ColumnType& column;
    Comparator comparator;
-   ColumnType::value_type value;
+   OwnedValue value;
    bool with_nulls;
 
   public:

@@ -42,7 +42,7 @@ NodeValuesResult getNodeValuesFromTable(
    uint32_t num_empty = 0;
    all_tree_node_ids.reserve(num_rows);
 
-   const auto& string_column = table.columns.string_columns.at(column_name);
+   const auto& string_column = table.getColumn<rhydb::storage::column::StringColumn>(column_name);
 
    for (const uint32_t row_in_table : filter_bitmap) {
       const auto row_id = rhydb::storage::column::RowId::fromGlobal(row_in_table);
@@ -54,7 +54,8 @@ NodeValuesResult getNodeValuesFromTable(
       }
    }
    return NodeValuesResult{
-      .node_values = std::move(all_tree_node_ids), .missing_node_count = num_empty
+      .node_values = std::move(all_tree_node_ids),
+      .missing_node_count = num_empty,
    };
 }
 
@@ -91,7 +92,7 @@ arrow::Result<arrow::acero::ExecNode*> PhyloSubtreeNode::addToExecPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto bitmap_filter = computeFilter(filter, *table);
+   auto compiled_filter = compileFilter(filter, table);
 
    CHECK_RHYDB_QUERY(
       table->schema->getColumn(column_name).has_value(),
@@ -124,15 +125,17 @@ arrow::Result<arrow::acero::ExecNode*> PhyloSubtreeNode::addToExecPlan(
       [table_handle,
        column_name_copy,
        output_fields,
-       bitmap_filter = std::move(bitmap_filter),
+       compiled_filter,
        &phylo_tree,
        contract,
-       already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+       already_produced = false] mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
          const std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
       already_produced = true;
+
+      Bitmap bitmap_filter = compiled_filter->evaluate();
 
       exec_node::SchemaOutputBuilder output_builder{output_fields};
 
@@ -165,7 +168,7 @@ arrow::Result<arrow::acero::ExecNode*> PhyloSubtreeNode::addToExecPlan(
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(output_fields),
       std::move(producer),
-      arrow::Ordering::Implicit()
+      arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", &plan, {}, options);
 }

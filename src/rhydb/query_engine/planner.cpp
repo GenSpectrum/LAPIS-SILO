@@ -6,7 +6,7 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
-#include "rhydb/query_engine/optimizer/bitmap_aggregation_rewrite_pass.h"
+#include "rhydb/query_engine/optimizer/aggregation_rewrite_pass.h"
 #include "rhydb/query_engine/optimizer/column_narrowing_pass.h"
 #include "rhydb/query_engine/optimizer/filter_pushdown_pass.h"
 #include "rhydb/query_engine/optimizer/map_pullup_pass.h"
@@ -19,7 +19,7 @@ namespace rhydb::query_engine {
 
 namespace {
 
-using optimizer::BitmapAggregationRewritePass;
+using optimizer::AggregationRewritePass;
 using optimizer::ColumnNarrowingPass;
 using optimizer::FilterPushdownPass;
 using optimizer::MapPullupPass;
@@ -39,10 +39,8 @@ arrow::Result<QueryPlan> planQueryOrError(
 
 }  // namespace
 
-QueryPlan Planner::planQuery(
+operators::QueryNodePtr Planner::optimize(
    operators::QueryNodePtr node,
-   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
-   const config::QueryOptions& query_options,
    std::string_view request_id
 ) {
    auto log_plan = [&](std::string_view phase) {
@@ -65,10 +63,20 @@ QueryPlan Planner::planQuery(
    log_plan("after MapPullupPass");
    node = SelectKRewritePass::run(std::move(node));
    log_plan("after SelectKRewritePass");
-   node = BitmapAggregationRewritePass::run(std::move(node));
-   log_plan("after BitmapAggregationRewritePass");
+   node = AggregationRewritePass::run(std::move(node));
+   log_plan("after AggregationRewritePass");
    node = NodeResolutionPass::run(std::move(node));
    log_plan("after NodeResolutionPass");
+   return node;
+}
+
+QueryPlan Planner::planQuery(
+   operators::QueryNodePtr node,
+   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables,
+   const config::QueryOptions& query_options,
+   std::string_view request_id
+) {
+   node = optimize(std::move(node), request_id);
    auto result = planQueryOrError(*node, tables, query_options, request_id);
    if (!result.ok()) {
       throw std::runtime_error(

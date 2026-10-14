@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "rhydb/common/types.h"
@@ -28,30 +29,55 @@ std::vector<LineageRelationRow> buildLineageRelationRows(
       if (parents.empty()) {
          // A root: no parent edge, but the lineage still needs a row so the walk can terminate and
          // so a lineage carrying no sequences is still present in the table.
-         rows.push_back(
-            {.lineage = std::move(lineage),
-             .parent = std::nullopt,
-             .is_recombinant_edge = false,
-             .recombinant_clade_ancestor = std::nullopt}
-         );
+         rows.push_back({
+            .lineage = std::move(lineage),
+            .parent = std::nullopt,
+            .is_recombinant_edge = false,
+            .recombinant_clade_ancestor = std::nullopt,
+         });
          continue;
       }
 
       const bool is_recombinant = parents.size() > 1;
       std::optional<std::string> recombinant_clade_ancestor;
       if (is_recombinant) {
-         if (const auto iterator = clade_ancestors.find(child_id);
-             iterator != clade_ancestors.end() && iterator->second.has_value()) {
+         if (
+            const auto iterator = clade_ancestors.find(child_id);
+            iterator != clade_ancestors.end() && iterator->second.has_value()
+         ) {
             recombinant_clade_ancestor = std::string{names.getValue(iterator->second.value())};
          }
       }
       for (const Idx parent_id : parents) {
-         rows.push_back(
-            {.lineage = lineage,
-             .parent = std::string{names.getValue(parent_id)},
-             .is_recombinant_edge = is_recombinant,
-             .recombinant_clade_ancestor = recombinant_clade_ancestor}
-         );
+         rows.push_back({
+            .lineage = lineage,
+            .parent = std::string{names.getValue(parent_id)},
+            .is_recombinant_edge = is_recombinant,
+            .recombinant_clade_ancestor = recombinant_clade_ancestor,
+         });
+      }
+   }
+   return rows;
+}
+
+std::string lineageAliasTableName(std::string_view column_name) {
+   return std::string{column_name} + "_aliases";
+}
+
+std::vector<LineageAliasRow> buildLineageAliasRows(
+   const common::LineageTreeAndIdMap& lineage_tree_and_id_map
+) {
+   const auto& tree = lineage_tree_and_id_map.lineage_tree;
+   const auto& names = lineage_tree_and_id_map.lineage_id_lookup_map;
+   std::vector<LineageAliasRow> rows;
+   for (size_t index = 0; index < names.size(); ++index) {
+      const auto value_id = static_cast<Idx>(index);
+      const Idx canonical_id = tree.resolveAlias(value_id);
+      if (canonical_id != value_id) {
+         rows.push_back({
+            .alias = std::string{names.getValue(value_id)},
+            .lineage = std::string{names.getValue(canonical_id)},
+         });
       }
    }
    return rows;

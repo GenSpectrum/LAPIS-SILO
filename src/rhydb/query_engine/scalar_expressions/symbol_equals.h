@@ -27,10 +27,10 @@ class SymbolOrDot {
   public:
    static SymbolOrDot<SymbolType> dot();
 
-   explicit SymbolOrDot(typename SymbolType::Symbol symbol);
+   explicit SymbolOrDot(SymbolType::Symbol symbol);
 
-   [[nodiscard]] typename SymbolType::Symbol getSymbolOrReplaceDotWith(
-      typename SymbolType::Symbol replace_dot_with
+   [[nodiscard]] SymbolType::Symbol getSymbolOrReplaceDotWith(
+      SymbolType::Symbol replace_dot_with
    ) const;
 
    [[nodiscard]] char asChar() const;
@@ -66,7 +66,8 @@ class SymbolEquals : public ScalarExpression {
       AmbiguityMode mode
    ) const override;
 
-   [[nodiscard]] std::unique_ptr<filter::operators::Operator> compile(const storage::Table& table
+   [[nodiscard]] std::unique_ptr<filter::operators::Operator> compile(
+      const storage::Table& table
    ) const override;
 
   private:

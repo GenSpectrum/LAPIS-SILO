@@ -36,7 +36,7 @@ std::string DateBetween::toString() const {
    res += (date_from.has_value() ? date32ToString(date_from.value()) : "unbounded");
    res += " and ";
    res += (date_to.has_value() ? date32ToString(date_to.value()) : "unbounded");
-   res += "]";
+   res += ']';
    return res;
 }
 
@@ -65,12 +65,10 @@ std::unique_ptr<Operator> DateBetween::compile(const storage::Table& table) cons
       column.name
    );
    CHECK_RHYDB_QUERY(
-      table.columns.date32_columns.contains(column.name),
-      "The column '{}' is not of type date",
-      column.name
+      table.hasColumn<Date32Column>(column.name), "The column '{}' is not of type date", column.name
    );
 
-   const auto& date_column = table.columns.date32_columns.at(column.name);
+   const auto& date_column = table.getColumn<Date32Column>(column.name);
 
    if (date_column.isSorted()) {
       return std::make_unique<RangeSelection>(
@@ -78,14 +76,20 @@ std::unique_ptr<Operator> DateBetween::compile(const storage::Table& table) cons
       );
    }
    PredicateVector predicates;
-   predicates.emplace_back(std::make_unique<CompareToValueSelection<Date32Column>>(
-      date_column,
-      Comparator::HIGHER_OR_EQUALS,
-      date_from.value_or(std::numeric_limits<Date32>::min())
-   ));
-   predicates.emplace_back(std::make_unique<CompareToValueSelection<Date32Column>>(
-      date_column, Comparator::LESS_OR_EQUALS, date_to.value_or(std::numeric_limits<Date32>::max())
-   ));
+   predicates.emplace_back(
+      std::make_unique<CompareToValueSelection<Date32Column>>(
+         date_column,
+         Comparator::HIGHER_OR_EQUALS,
+         date_from.value_or(std::numeric_limits<Date32>::min())
+      )
+   );
+   predicates.emplace_back(
+      std::make_unique<CompareToValueSelection<Date32Column>>(
+         date_column,
+         Comparator::LESS_OR_EQUALS,
+         date_to.value_or(std::numeric_limits<Date32>::max())
+      )
+   );
    return std::make_unique<Selection>(std::move(predicates), table.row_layout);
 }
 
@@ -115,18 +119,18 @@ std::vector<RangeSelection::Range> DateBetween::computeRangesOfSortedColumn(
 
       const auto chunk_size = value_buffer.chunkSize(static_cast<uint16_t>(chunk_idx));
       const RowId start_row =
-         (lower_index == chunk_size)
+         std::cmp_equal(lower_index, chunk_size)
             ? RowId{.chunk_id = static_cast<uint16_t>(chunk_idx + 1), .row_in_chunk = 0}
             : RowId{
                  .chunk_id = static_cast<uint16_t>(chunk_idx),
-                 .row_in_chunk = static_cast<uint16_t>(lower_index)
+                 .row_in_chunk = static_cast<uint16_t>(lower_index),
               };
       const RowId end_row =
-         (upper_index == chunk_size)
+         std::cmp_equal(upper_index, chunk_size)
             ? RowId{.chunk_id = static_cast<uint16_t>(chunk_idx + 1), .row_in_chunk = 0}
             : RowId{
                  .chunk_id = static_cast<uint16_t>(chunk_idx),
-                 .row_in_chunk = static_cast<uint16_t>(upper_index)
+                 .row_in_chunk = static_cast<uint16_t>(upper_index),
               };
       ranges.emplace_back(start_row, end_row);
    }

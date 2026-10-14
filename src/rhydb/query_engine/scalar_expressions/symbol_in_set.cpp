@@ -38,7 +38,7 @@ std::string SymbolInSet<SymbolType>::toString() const {
    std::string symbols_string = fmt::format(
       "{}",
       fmt::join(
-         symbols | std::views::transform([](typename SymbolType::Symbol symbol) {
+         symbols | std::views::transform([](SymbolType::Symbol symbol) {
             return SymbolType::symbolToChar(symbol);
          }),
          ", "
@@ -162,14 +162,16 @@ std::unique_ptr<filter::operators::Operator> compileWithMissingSymbol(
    );
 
    filter::operators::OperatorVector operators_for_union;
-   operators_for_union.push_back(std::make_unique<filter::operators::Selection>(
-      std::make_unique<filter::operators::IsInCoveredRegion>(
-         &sequence_column.horizontal_coverage_index,
-         position_idx,
-         filter::operators::IsInCoveredRegion::Comparator::IS_NOT_COVERED
-      ),
-      row_layout
-   ));
+   operators_for_union.push_back(
+      std::make_unique<filter::operators::Selection>(
+         std::make_unique<filter::operators::IsInCoveredRegion>(
+            &sequence_column.horizontal_coverage_index,
+            position_idx,
+            filter::operators::IsInCoveredRegion::Comparator::IS_NOT_COVERED
+         ),
+         row_layout
+      )
+   );
    operators_for_union.push_back(
       std::make_unique<filter::operators::IndexScan>(std::move(bitmap), row_layout)
    );
@@ -291,8 +293,7 @@ std::unique_ptr<filter::operators::Operator> SymbolInSet<SymbolType>::compile(
 ) const {
    const auto valid_sequence_name = validateSequenceName<SymbolType>(column.name, *table.schema);
 
-   const auto& sequence_column =
-      table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
+   const auto& sequence_column = table.getColumn<typename SymbolType::Column>(valid_sequence_name);
 
    return compileSymbolInSet(sequence_column, position_idx, symbols, table.row_layout);
 }

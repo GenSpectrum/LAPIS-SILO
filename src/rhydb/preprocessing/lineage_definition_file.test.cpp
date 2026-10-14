@@ -36,7 +36,7 @@ SOME_lineage: "
 }
 
 TEST(LineageDefinitionFile, errorOnMisspelledParents) {
-   auto throwing_lambda = []() {
+   auto throwing_lambda = [] {
       LineageDefinitionFile::fromYAMLString(R"(
 some_lineage:
   parent:
@@ -48,10 +48,10 @@ some_other_lineage:
 
    EXPECT_THAT(
       throwing_lambda,
-      ThrowsMessage<rhydb::preprocessing::PreprocessingException>(
-         ::testing::HasSubstr("The definition of lineage 'some_lineage' may only contain the "
-                              "fields 'parents' and 'aliases', it also contains invalid fields")
-      )
+      ThrowsMessage<rhydb::preprocessing::PreprocessingException>(::testing::HasSubstr(
+         "The definition of lineage 'some_lineage' may only contain the "
+         "fields 'parents' and 'aliases', it also contains invalid fields"
+      ))
    );
 }
 
@@ -72,7 +72,7 @@ some_other_lineage:
 }
 
 TEST(LineageDefinitionFile, errorOnExtraFields) {
-   auto throwing_lambda = []() {
+   auto throwing_lambda = [] {
       LineageDefinitionFile::fromYAMLString(R"(
 some_lineage:
   parents: []

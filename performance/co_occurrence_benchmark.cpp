@@ -1,9 +1,9 @@
 // Measurement-only benchmark for a co-occurrence query, expressed on the SaneQL interface.
 //
 // It builds a database of random sequences and times the end-to-end planning + execution of a
-// `map({s := main.at(p)}) | groupBy({count()}, {...})` query through the regular Planner. There is
-// deliberately no before/after comparison in here: run this benchmark on a branch WITHOUT the
-// co-occurrence optimization to get the baseline number, and again WITH it to get the optimized
+// `map({s := main.at(p)}) | group(by:={...}, aggs:={count()})` query through the regular Planner.
+// There is deliberately no before/after comparison in here: run this benchmark on a branch WITHOUT
+// the co-occurrence optimization to get the baseline number, and again WITH it to get the optimized
 // number. Because the query is unchanged, the two runs are directly comparable.
 
 #include <algorithm>
@@ -18,7 +18,6 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include "sequence_generator.h"
 #include "rhydb/config/database_config.h"
 #include "rhydb/config/runtime_config.h"
 #include "rhydb/database.h"
@@ -28,6 +27,7 @@
 #include "rhydb/query_engine/query_plan.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/reference_genomes.h"
+#include "sequence_generator.h"
 
 namespace {
 
@@ -58,9 +58,10 @@ schema:
    database->createTable(
       rhydb::schema::TableName::getDefault(),
       rhydb::initialize::Initializer::createSchemaFromConfigFiles(
-         std::move(database_config),
+         database_config,
          reference_genomes,
          {},
+         // NOLINTNEXTLINE(readability-trailing-comma): false positive on empty brace, llvm#223646
          rhydb::common::PhyloTree{},
          /*without_unaligned_sequences=*/true
       )
@@ -83,7 +84,7 @@ std::string buildQuery() {
       group_keys += fmt::format("s{}", i);
    }
    return fmt::format(
-      "default.map({{{}}}).groupBy({{count:=count()}}, {{{}}})", assignments, group_keys
+      "data.map({{{}}}).group(by:={{{}}}, aggs:={{count:=count()}})", assignments, group_keys
    );
 }
 
@@ -140,9 +141,9 @@ void run() {
       const auto start = std::chrono::high_resolution_clock::now();
       result_rows = planAndExecute(query, database, query_options);
       const auto end = std::chrono::high_resolution_clock::now();
-      const double ms = std::chrono::duration<double, std::milli>(end - start).count();
-      sum_ms += ms;
-      min_ms = (i == 0) ? ms : std::min(min_ms, ms);
+      const double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+      sum_ms += elapsed_ms;
+      min_ms = (i == 0) ? elapsed_ms : std::min(min_ms, elapsed_ms);
    }
 
    SPDLOG_INFO("Result rows: {}", result_rows);

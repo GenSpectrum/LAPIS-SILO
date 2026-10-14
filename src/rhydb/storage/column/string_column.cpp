@@ -21,9 +21,13 @@ size_t StringColumnChunk::insert(std::string_view value) {
    }
    RHYDB_ASSERT(value.length() < UINT32_MAX);
    auto suffix_id = variable_string_data.insert(value.substr(RhyDBString::PREFIX_LENGTH));
-   return fixed_string_data.insert(RhyDBString{
-      static_cast<uint32_t>(value.length()), value.substr(0, RhyDBString::PREFIX_LENGTH), suffix_id
-   });
+   return fixed_string_data.insert(
+      RhyDBString{
+         static_cast<uint32_t>(value.length()),
+         value.substr(0, RhyDBString::PREFIX_LENGTH),
+         suffix_id,
+      }
+   );
 }
 
 size_t StringColumnChunk::insertNull() {
@@ -97,7 +101,7 @@ std::expected<void, std::string> registerPhyloNodes(
       if (!value.has_value()) {
          continue;
       }
-      auto child_it = (metadata->phylo_tree->nodes).find(TreeNodeId{*value});
+      auto child_it = metadata->phylo_tree->nodes.find(TreeNodeId{*value});
       if (child_it == metadata->phylo_tree->nodes.end()) {
          continue;
       }
@@ -156,7 +160,8 @@ void StringColumn::update(
       StringColumnChunk rebuilt_chunk;
       for (uint32_t row_in_chunk = 0; row_in_chunk < chunk_row_count; ++row_in_chunk) {
          const RowId row_id{
-            .chunk_id = chunk_id, .row_in_chunk = static_cast<uint16_t>(row_in_chunk)
+            .chunk_id = chunk_id,
+            .row_in_chunk = static_cast<uint16_t>(row_in_chunk),
          };
          const uint32_t global_row_id = row_id.toGlobal();
          if (row_ids.contains(global_row_id)) {

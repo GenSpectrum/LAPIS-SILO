@@ -62,9 +62,11 @@ TEST(ErrorRequestHandler, handlesOtherErrors) {
    auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
 
    ON_CALL(*wrapped_handler_mock, handleRequest)
-      .WillByDefault(testing::Throw(
-         "One should not actually do this - since C++ admits it, throw a string here"
-      ));
+      .WillByDefault(
+         testing::Throw(
+            "One should not actually do this - since C++ admits it, throw a string here"
+         )
+      );
 
    auto under_test =
       rhydb_app::ErrorRequestHandler(std::move(wrapped_handler_mock), TEST_RUNTIME_CONFIG);
@@ -108,7 +110,7 @@ TEST(
    auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
 
    auto database = std::make_shared<rhydb_app::ActiveDatabase>();
-   ON_CALL(*wrapped_handler_mock, handleRequest).WillByDefault([&]() {
+   ON_CALL(*wrapped_handler_mock, handleRequest).WillByDefault([&] {
       database->getActiveDatabase();
       RHYDB_UNREACHABLE();
    });
@@ -143,7 +145,7 @@ TEST(
    auto wrapped_handler_mock = std::make_unique<MockRequestHandler>();
 
    auto database = std::make_shared<rhydb_app::ActiveDatabase>();
-   ON_CALL(*wrapped_handler_mock, handleRequest).WillByDefault([&]() {
+   ON_CALL(*wrapped_handler_mock, handleRequest).WillByDefault([&] {
       database->getActiveDatabase();
       RHYDB_UNREACHABLE();
    });

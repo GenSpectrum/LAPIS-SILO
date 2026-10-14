@@ -20,15 +20,15 @@
 
 namespace {
 
-using Operator = rhydb::query_engine::filter::operators::Operator;
-using OperatorVector = rhydb::query_engine::filter::operators::OperatorVector;
-using Empty = rhydb::query_engine::filter::operators::Empty;
-using Full = rhydb::query_engine::filter::operators::Full;
-using Complement = rhydb::query_engine::filter::operators::Complement;
-using Intersection = rhydb::query_engine::filter::operators::Intersection;
-using Union = rhydb::query_engine::filter::operators::Union;
-using Threshold = rhydb::query_engine::filter::operators::Threshold;
-using RowLayout = rhydb::storage::column::RowLayout;
+using rhydb::query_engine::filter::operators::Complement;
+using rhydb::query_engine::filter::operators::Empty;
+using rhydb::query_engine::filter::operators::Full;
+using rhydb::query_engine::filter::operators::Intersection;
+using rhydb::query_engine::filter::operators::Operator;
+using rhydb::query_engine::filter::operators::OperatorVector;
+using rhydb::query_engine::filter::operators::Threshold;
+using rhydb::query_engine::filter::operators::Union;
+using rhydb::storage::column::RowLayout;
 
 std::unique_ptr<Operator> handleTrivialCases(
    const int updated_number_of_matchers,
@@ -166,7 +166,7 @@ std::string NOf::toString() const {
       res = "[" + std::to_string(number_of_matchers) + "-of:";
    }
    res += joinWithLimit(children);
-   res += "]";
+   res += ']';
    return res;
 }
 
@@ -210,7 +210,7 @@ std::tuple<filter::operators::OperatorVector, filter::operators::OperatorVector,
    return std::tuple<filter::operators::OperatorVector, filter::operators::OperatorVector, int>{
       std::move(non_negated_child_operators),
       std::move(negated_child_operators),
-      updated_number_of_matchers
+      updated_number_of_matchers,
    };
 }
 
@@ -246,8 +246,10 @@ std::unique_ptr<ScalarExpression> NOf::rewriteToNonExact(
    return std::make_unique<And>(std::move(and_children));
 }
 
-std::unique_ptr<ScalarExpression> NOf::rewrite(const storage::Table& table, AmbiguityMode mode)
-   const {
+std::unique_ptr<ScalarExpression> NOf::rewrite(
+   const storage::Table& table,
+   AmbiguityMode mode
+) const {
    // We cannot easily map ambiguity modes through an exact NOf expression -> rewrite without exact
    if (mode != NONE && match_exactly && std::cmp_less(number_of_matchers, children.size())) {
       return rewriteToNonExact(table, mode);

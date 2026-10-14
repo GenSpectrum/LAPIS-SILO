@@ -26,6 +26,7 @@
 #include "rhydb/storage/table.h"
 
 namespace rhydb::query_engine::operators {
+namespace {
 struct PositionAndInsertionKey {
    uint32_t position_idx;
    std::string_view insertion_value;
@@ -34,11 +35,13 @@ struct PositionAndInsertionKey {
       return position_idx == other.position_idx && insertion_value == other.insertion_value;
    }
 };
+}  // namespace
 }  // namespace rhydb::query_engine::operators
 
 template <>
 struct std::hash<rhydb::query_engine::operators::PositionAndInsertionKey> {
-   std::size_t operator()(const rhydb::query_engine::operators::PositionAndInsertionKey& key
+   std::size_t operator()(
+      const rhydb::query_engine::operators::PositionAndInsertionKey& key
    ) const noexcept {
       std::size_t seed = 0;
       boost::hash_combine(seed, key.position_idx);
@@ -60,7 +63,7 @@ arrow::Status addAggregatedInsertionsToInsertionCounts(
    exec_node::SchemaOutputBuilder& output_builder
 ) {
    const auto& sequence_column =
-      table.columns.getColumns<storage::column::SequenceColumn<SymbolType>>().at(sequence_name);
+      table.getColumn<storage::column::SequenceColumn<SymbolType>>(sequence_name);
    std::unordered_map<PositionAndInsertionKey, uint32_t> all_insertions;
    const roaring::Roaring filter_bitmap = bitmap_filter.toRoaring();
    auto bitmap_cardinality = filter_bitmap.cardinality();
@@ -117,7 +120,7 @@ arrow::Result<arrow::acero::ExecNode*> InsertionsNode<SymbolType>::addToExecPlan
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto bitmap_filter = computeFilter(filter, *table);
+   auto compiled_filter = compileFilter(filter, table);
 
    auto table_handle = table;
    auto sequence_columns_handle = sequence_columns;
@@ -126,21 +129,25 @@ arrow::Result<arrow::acero::ExecNode*> InsertionsNode<SymbolType>::addToExecPlan
       // NOLINTNEXTLINE(readability-function-cognitive-complexity)
       [table_handle,
        output_fields,
-       bitmap_filter,
+       compiled_filter,
        sequence_columns_handle,
-       already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+       already_produced = false] mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
          const std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
       already_produced = true;
 
+      const Bitmap bitmap_filter = compiled_filter->evaluate();
+
       exec_node::SchemaOutputBuilder output_builder{output_fields};
 
       for (const auto& [sequence_name, _] : sequence_columns_handle) {
-         ARROW_RETURN_NOT_OK(addAggregatedInsertionsToInsertionCounts<SymbolType>(
-            sequence_name, bitmap_filter, *table_handle, output_builder
-         ));
+         ARROW_RETURN_NOT_OK(
+            addAggregatedInsertionsToInsertionCounts<SymbolType>(
+               sequence_name, bitmap_filter, *table_handle, output_builder
+            )
+         );
       }
 
       ARROW_ASSIGN_OR_RAISE(
@@ -155,7 +162,7 @@ arrow::Result<arrow::acero::ExecNode*> InsertionsNode<SymbolType>::addToExecPlan
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(output_fields),
       std::move(producer),
-      arrow::Ordering::Implicit()
+      arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", &plan, {}, options);
 }

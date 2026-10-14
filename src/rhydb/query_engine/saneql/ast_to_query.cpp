@@ -36,6 +36,7 @@
 #include "rhydb/query_engine/order_by_field.h"
 #include "rhydb/query_engine/saneql/ast.h"
 #include "rhydb/query_engine/saneql/function_registry.h"
+#include "rhydb/query_engine/saneql/lineage_from_tables.h"
 #include "rhydb/query_engine/saneql/parser.h"
 #include "rhydb/query_engine/scalar_expressions/and.h"
 #include "rhydb/query_engine/scalar_expressions/at.h"
@@ -61,6 +62,7 @@
 #include "rhydb/query_engine/scalar_expressions/string_search.h"
 #include "rhydb/query_engine/scalar_expressions/symbol_equals.h"
 #include "rhydb/query_engine/scalar_expressions/zstd_decompress_scalar.h"
+#include "rhydb/query_engine/subquery_value_set.h"
 #include "rhydb/storage/column/column_type_visitor.h"
 #include "rhydb/storage/column/sequence_column.h"
 #include "rhydb/storage/column/zstd_compressed_string_column.h"
@@ -100,7 +102,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertScalarFunctionCall(
    const SourceLocation& location,
    const std::vector<schema::ColumnIdentifier>& schema,
    std::string_view error_context,
-   const Tables& tables
+   const ScalarConversionContext& context
 ) {
    const auto* entry = ScalarFunctionRegistry::instance().findFunction(call.function_name);
    CHECK_RHYDB_QUERY(
@@ -114,7 +116,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertScalarFunctionCall(
    auto bound = bindArguments(
       call.function_name, entry->signature, call.positional_arguments, call.named_arguments
    );
-   auto expression = entry->handler(bound, schema, tables);
+   auto expression = entry->handler(bound, schema, context);
    // Validate that every referenced column actually exists, mirroring the check for
    // a bare column reference.
    for (const auto& referenced : expression->freeIUs()) {
@@ -143,7 +145,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
    const ast::Expression& ast,
    const std::vector<schema::ColumnIdentifier>& schema,
    std::string_view error_context,
-   const Tables& tables
+   const ScalarConversionContext& context
 ) {
    const auto& [value, location] = ast;
 
@@ -185,7 +187,7 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
    }
    if (std::holds_alternative<ast::FunctionCall>(value)) {
       return convertScalarFunctionCall(
-         std::get<ast::FunctionCall>(value), location, schema, error_context, tables
+         std::get<ast::FunctionCall>(value), location, schema, error_context, context
       );
    }
    if (isDateExpression(ast)) {
@@ -224,19 +226,19 @@ Comparator toComparator(BinaryOp binary_op) {
 ScalarExpressionPtr convertBinaryExprToFilter(
    const ast::BinaryExpr& bin_expr,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& tables
+   const ScalarConversionContext& context
 ) {
    switch (bin_expr.op) {
       case BinaryOp::AND: {
          scalar_expressions::ScalarExpressionVector children;
-         children.push_back(convertToFilter(*bin_expr.left, schema, tables));
-         children.push_back(convertToFilter(*bin_expr.right, schema, tables));
+         children.push_back(convertToFilter(*bin_expr.left, schema, context));
+         children.push_back(convertToFilter(*bin_expr.right, schema, context));
          return std::make_unique<scalar_expressions::And>(std::move(children));
       }
       case BinaryOp::OR: {
          scalar_expressions::ScalarExpressionVector children;
-         children.push_back(convertToFilter(*bin_expr.left, schema, tables));
-         children.push_back(convertToFilter(*bin_expr.right, schema, tables));
+         children.push_back(convertToFilter(*bin_expr.left, schema, context));
+         children.push_back(convertToFilter(*bin_expr.right, schema, context));
          return std::make_unique<scalar_expressions::Or>(std::move(children));
       }
       case BinaryOp::EQUALS:
@@ -247,9 +249,9 @@ ScalarExpressionPtr convertBinaryExprToFilter(
       case BinaryOp::GREATER_EQUAL: {
          const Comparator comparator = toComparator(bin_expr.op);
          auto left =
-            convertToScalar(*bin_expr.left, schema, "the left side of a comparison", tables);
+            convertToScalar(*bin_expr.left, schema, "the left side of a comparison", context);
          auto right =
-            convertToScalar(*bin_expr.right, schema, "the right side of a comparison", tables);
+            convertToScalar(*bin_expr.right, schema, "the right side of a comparison", context);
          return std::make_unique<scalar_expressions::Comparison>(
             std::move(left), std::move(right), comparator
          );
@@ -265,7 +267,7 @@ ScalarExpressionPtr convertBinaryExprToFilter(
 ScalarExpressionPtr handleBetween(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const ScalarConversionContext& /*context*/
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
    const auto& from_expr = args.at("from");
@@ -324,11 +326,13 @@ ScalarExpressionPtr buildValueSetPredicate(
    scalar_expressions::ScalarExpressionVector comparisons;
    comparisons.reserve(value_literals.size());
    for (auto& literal : value_literals) {
-      comparisons.push_back(std::make_unique<scalar_expressions::Comparison>(
-         std::make_unique<scalar_expressions::FieldRef>(column),
-         std::move(literal),
-         Comparator::EQUALS
-      ));
+      comparisons.push_back(
+         std::make_unique<scalar_expressions::Comparison>(
+            std::make_unique<scalar_expressions::FieldRef>(column),
+            std::move(literal),
+            Comparator::EQUALS
+         )
+      );
    }
    if (comparisons.size() == 1) {
       return std::move(comparisons.front());
@@ -339,22 +343,33 @@ ScalarExpressionPtr buildValueSetPredicate(
 ScalarExpressionPtr handleIn(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& tables
+   const ScalarConversionContext& context
 ) {
    const schema::ColumnIdentifier column =
       resolveColumn(extractIdentifierName(args.at("column")), schema);
    const auto& values_expr = args.at("values");
 
-   CHECK_RHYDB_QUERY(
-      std::holds_alternative<ast::SetLiteral>(values_expr.value),
-      "in() expects a set literal argument at {}:{}",
-      values_expr.location.line,
-      values_expr.location.column
-   );
-   // Values may be of any column type.
+   // Collect the candidate values as typed scalar literals, from either a set literal or a
+   // subquery. `in` is agnostic both to the value source and to the column type.
    std::vector<ScalarExpressionPtr> value_literals;
-   for (const auto& elem : std::get<ast::SetLiteral>(values_expr.value).elements) {
-      value_literals.push_back(convertToScalar(*elem, schema, "in() value", tables));
+   if (std::holds_alternative<ast::SetLiteral>(values_expr.value)) {
+      for (const auto& elem : std::get<ast::SetLiteral>(values_expr.value).elements) {
+         value_literals.push_back(convertToScalar(*elem, schema, "in() value", context));
+      }
+   } else {
+      // A subquery (a table reference or pipeline) runs through the generic query-tree conversion
+      // and is executed; its single column becomes the set.
+      CHECK_RHYDB_QUERY(
+         std::holds_alternative<ast::Identifier>(values_expr.value) ||
+            std::holds_alternative<ast::FunctionCall>(values_expr.value),
+         "in() expects a set literal (e.g. {{'a', 'b'}}) or a subquery (e.g. "
+         "data.filter(...).project({{column}})), got {} at {}",
+         values_expr.toString(),
+         values_expr.location.toString()
+      );
+      auto subquery = convertExpression(values_expr, context.tables);
+      value_literals =
+         materializeSubqueryColumnLiterals(std::move(subquery), context.tables, "in_subquery");
    }
    return buildValueSetPredicate(column, std::move(value_literals));
 }
@@ -362,7 +377,7 @@ ScalarExpressionPtr handleIn(
 ScalarExpressionPtr handleIsNull(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const ScalarConversionContext& /*context*/
 ) {
    return std::make_unique<scalar_expressions::IsNull>(
       resolveColumn(extractIdentifierName(args.at("column")), schema)
@@ -372,7 +387,7 @@ ScalarExpressionPtr handleIsNull(
 ScalarExpressionPtr handleIsNotNull(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const ScalarConversionContext& /*context*/
 ) {
    return std::make_unique<scalar_expressions::Negation>(
       std::make_unique<scalar_expressions::IsNull>(
@@ -384,7 +399,7 @@ ScalarExpressionPtr handleIsNotNull(
 ScalarExpressionPtr handleLineage(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const ScalarConversionContext& /*context*/
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
    const auto& value_expr = args.at("value");
@@ -402,19 +417,15 @@ ScalarExpressionPtr handleLineage(
    }
    auto recombinant_mode = args.getOptionalString("recombinantFollowingMode");
    if (recombinant_mode.has_value()) {
-      if (recombinant_mode.value() == "alwaysFollow") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::ALWAYS_FOLLOW;
-      } else if (recombinant_mode.value() == "followIfFullyContainedInClade") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE;
-      } else if (recombinant_mode.value() == "doNotFollow") {
-         sublineage_mode = common::RecombinantEdgeFollowingMode::DO_NOT_FOLLOW;
-      } else {
-         throw IllegalQueryException(
-            "invalid recombinantFollowingMode: '{}'. Valid values are: alwaysFollow, "
-            "followIfFullyContainedInClade, doNotFollow",
-            recombinant_mode.value()
-         );
-      }
+      sublineage_mode = common::recombinantEdgeFollowingModeFromName(recombinant_mode.value());
+      CHECK_RHYDB_QUERY(
+         sublineage_mode.has_value(),
+         "invalid recombinantFollowingMode: '{}'. Valid values are: {}, {}, {}",
+         recombinant_mode.value(),
+         common::ALWAYS_FOLLOW_NAME,
+         common::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE_NAME,
+         common::DO_NOT_FOLLOW_NAME
+      );
    }
    return std::make_unique<scalar_expressions::LineageFilter>(
       resolveColumn(column_name, schema), lineage_value, sublineage_mode
@@ -424,7 +435,7 @@ ScalarExpressionPtr handleLineage(
 ScalarExpressionPtr handlePhyloDescendantOf(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const ScalarConversionContext& /*context*/
 ) {
    return std::make_unique<scalar_expressions::PhyloChildFilter>(
       resolveColumn(extractIdentifierName(args.at("column")), schema),
@@ -435,7 +446,7 @@ ScalarExpressionPtr handlePhyloDescendantOf(
 ScalarExpressionPtr handleLike(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const ScalarConversionContext& /*context*/
 ) {
    auto column_name = extractIdentifierName(args.at("column"));
    auto pattern = extractStringLiteral(args.at("pattern"));
@@ -455,7 +466,7 @@ template <typename SymbolType>
 ScalarExpressionPtr handleSymbolEquals(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const ScalarConversionContext& /*context*/
 ) {
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_RHYDB_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
@@ -485,7 +496,7 @@ template <typename SymbolType>
 ScalarExpressionPtr handleHasMutation(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const ScalarConversionContext& /*context*/
 ) {
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_RHYDB_QUERY(position > 0, "The field 'position' is 1-indexed. Value of 0 not allowed.");
@@ -500,7 +511,7 @@ template <typename SymbolType>
 ScalarExpressionPtr handleInsertionContains(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const ScalarConversionContext& /*context*/
 ) {
    auto position = extractUint32Literal(args.at("position"));
    auto value = extractStringLiteral(args.at("value"));
@@ -518,7 +529,7 @@ ScalarExpressionPtr handleInsertionContains(
 ScalarExpressionPtr handleAt(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const ScalarConversionContext& /*context*/
 ) {
    auto input_column = extractIdentifierName(args.at("input"));
    const uint32_t position = extractUint32Literal(args.at("position"));
@@ -541,7 +552,7 @@ ScalarExpressionPtr handleAt(
 ScalarExpressionPtr handleIsoWeek(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const ScalarConversionContext& /*context*/
 ) {
    auto input_column = extractIdentifierName(args.at("input"));
    const auto found =
@@ -565,10 +576,10 @@ ScalarExpressionPtr handleIsoWeek(
 ScalarExpressionPtr handleExact(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& tables
+   const ScalarConversionContext& context
 ) {
    return std::make_unique<scalar_expressions::Exact>(
-      convertToFilter(args.at("child"), schema, tables)
+      convertToFilter(args.at("child"), schema, context)
    );
 }
 
@@ -576,10 +587,10 @@ ScalarExpressionPtr handleExact(
 ScalarExpressionPtr handleMaybe(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& tables
+   const ScalarConversionContext& context
 ) {
    return std::make_unique<scalar_expressions::Maybe>(
-      convertToFilter(args.at("child"), schema, tables)
+      convertToFilter(args.at("child"), schema, context)
    );
 }
 
@@ -587,7 +598,7 @@ ScalarExpressionPtr handleMaybe(
 ScalarExpressionPtr handleNOf(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& tables
+   const ScalarConversionContext& context
 ) {
    const int32_t number_of_matchers = extractInt32Literal(args.at("count"));
    bool match_exactly = false;
@@ -597,7 +608,7 @@ ScalarExpressionPtr handleNOf(
    const auto& children_set = extractSetLiteral(args.at("children"));
    scalar_expressions::ScalarExpressionVector children;
    for (const auto& child_expr : children_set.elements) {
-      children.push_back(convertToFilter(*child_expr, schema, tables));
+      children.push_back(convertToFilter(*child_expr, schema, context));
    }
    return std::make_unique<scalar_expressions::NOf>(
       std::move(children), number_of_matchers, match_exactly
@@ -680,7 +691,7 @@ template <typename SymbolType>
 ScalarExpressionPtr handleMutationProfile(
    const BoundArguments& args,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& /*tables*/
+   const ScalarConversionContext& /*context*/
 ) {
    const uint32_t distance = extractUint32Literal(args.at("distance"));
    auto sequence_name = extractStringLiteral(args.at("sequenceName"));
@@ -746,14 +757,14 @@ ScalarExpressionPtr convertFunctionCallToFilter(
    const ast::FunctionCall& node,
    const ast::Expression& ast,
    const std::vector<schema::ColumnIdentifier>& schema,
-   const Tables& tables
+   const ScalarConversionContext& context
 ) {
    const auto* entry = ScalarFunctionRegistry::instance().findFunction(node.function_name);
    CHECK_RHYDB_QUERY(entry != nullptr, "unknown scalar function '{}'", node.function_name);
    auto bound = bindArguments(
       node.function_name, entry->signature, node.positional_arguments, node.named_arguments
    );
-   auto expression = entry->handler(bound, schema, tables);
+   auto expression = entry->handler(bound, schema, context);
    // The registry also holds value-producing scalar functions (e.g. `at`), which are not filter
    // predicates. Reject them here rather than letting a non-boolean expression reach compile().
    CHECK_RHYDB_QUERY(
@@ -774,22 +785,31 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
    const std::vector<schema::ColumnIdentifier>& schema,
    const Tables& tables
 ) {
+   return convertToFilter(ast, schema, ScalarConversionContext{.tables = tables});
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
+   const ast::Expression& ast,
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const ScalarConversionContext& context
+) {
    return std::visit(
       [&](const auto& node) -> ScalarExpressionPtr {
          using T = std::decay_t<decltype(node)>;
 
          if constexpr (std::is_same_v<T, ast::BinaryExpr>) {
-            return convertBinaryExprToFilter(node, schema, tables);
+            return convertBinaryExprToFilter(node, schema, context);
          } else if constexpr (std::is_same_v<T, ast::UnaryNotExpr>) {
             return std::make_unique<scalar_expressions::Negation>(
-               convertToFilter(*node.operand, schema, tables)
+               convertToFilter(*node.operand, schema, context)
             );
          } else if constexpr (std::is_same_v<T, ast::BoolLiteral>) {
             return std::make_unique<scalar_expressions::BoolLiteral>(node.value);
          } else if constexpr (std::is_same_v<T, ast::Identifier>) {
             return convertIdentifierToFilter(node, ast, schema);
          } else if constexpr (std::is_same_v<T, ast::FunctionCall>) {
-            return convertFunctionCallToFilter(node, ast, schema, tables);
+            return convertFunctionCallToFilter(node, ast, schema, context);
          } else {
             throw IllegalQueryException(
                "unsupported expression type in filter context at {}:{}",
@@ -815,8 +835,24 @@ operators::AggregateFunction parseAggregateFunctionName(const std::string& funct
    if (function_name == "sum") {
       return operators::AggregateFunction::SUM;
    }
+   if (function_name == "min") {
+      return operators::AggregateFunction::MIN;
+   }
+   if (function_name == "max") {
+      return operators::AggregateFunction::MAX;
+   }
    throw IllegalQueryException(
-      "unknown aggregate function '{}'. Valid functions: count, sum", function_name
+      "unknown aggregate function '{}'. Valid functions: count, sum, min, max", function_name
+   );
+}
+
+/// Checks the arguments of `count()` / `count(column)`: at most one source column, of any type
+void validateCountArguments(const ast::RecordField& field, const ast::FunctionCall& func) {
+   CHECK_RHYDB_QUERY(
+      func.positional_arguments.size() <= 1 && func.named_arguments.empty(),
+      "aggregate '{}': count expects no argument or exactly one column argument, e.g. count() or "
+      "count(age)",
+      field.name
    );
 }
 
@@ -845,8 +881,38 @@ void validateSumArguments(
    );
 }
 
+bool isOrderedColumnType(schema::ColumnType type) {
+   return isNumericColumnType(type) || type == schema::ColumnType::DATE32 ||
+          type == schema::ColumnType::STRING || type == schema::ColumnType::DICTIONARY_ENCODED ||
+          type == schema::ColumnType::BOOL;
+}
+
+/// Checks the arguments of `min(column)` / `max(column)`: exactly one source column, whose
+/// values must be ordered (i.e. not a sequence)
+void validateMinMaxArguments(
+   const ast::RecordField& field,
+   const ast::FunctionCall& func,
+   const std::optional<schema::ColumnIdentifier>& source_column
+) {
+   CHECK_RHYDB_QUERY(
+      func.positional_arguments.size() == 1 && func.named_arguments.empty(),
+      "aggregate '{}': {} expects exactly one column argument, e.g. {}(age)",
+      field.name,
+      func.function_name,
+      func.function_name
+   );
+   CHECK_RHYDB_QUERY(
+      isOrderedColumnType(source_column->type),
+      "aggregate '{}': {} requires a numeric, date, string or boolean column, but '{}' has type {}",
+      field.name,
+      func.function_name,
+      source_column->name,
+      schema::columnTypeToString(source_column->type)
+   );
+}
+
 struct GroupByArgs {
-   std::vector<schema::ColumnIdentifier> group_by_fields;
+   std::vector<operators::MapNode::Assignment> group_by_fields;
    std::vector<operators::AggregateDefinition> aggregates;
 };
 
@@ -874,53 +940,100 @@ operators::AggregateDefinition parseAggregateDefinition(
       );
       source_column = *found;
    }
+   if (agg_func == operators::AggregateFunction::COUNT) {
+      validateCountArguments(field, func);
+   }
    if (agg_func == operators::AggregateFunction::SUM) {
       validateSumArguments(field, func, source_column);
    }
+   if (
+      agg_func == operators::AggregateFunction::MIN || agg_func == operators::AggregateFunction::MAX
+   ) {
+      validateMinMaxArguments(field, func, source_column);
+   }
    return {
-      .output_name = field.name, .function = agg_func, .source_column = std::move(source_column)
+      .output_name = field.name,
+      .function = agg_func,
+      .source_column = std::move(source_column),
    };
 }
 
-std::vector<schema::ColumnIdentifier> parseGroupByFields(
+/// The output column name of a group key: its source text, with the `a[i]` sugar kept instead of
+/// the desugared `at(a, i)`, so `S[10]` yields the column `S[10]` and a plain column keeps its
+/// name.
+// NOLINTNEXTLINE(misc-no-recursion)
+std::string groupByColumnName(const ast::Expression& expression) {
+   if (std::holds_alternative<ast::FunctionCall>(expression.value)) {
+      const auto& call = std::get<ast::FunctionCall>(expression.value);
+      if (
+         call.function_name == "at" && call.positional_arguments.size() == 2 &&
+         call.named_arguments.empty()
+      ) {
+         return fmt::format(
+            "{}[{}]",
+            groupByColumnName(*call.positional_arguments[0].value),
+            call.positional_arguments[1].value->toString()
+         );
+      }
+   }
+   return expression.toString();
+}
+
+/// Parses the `by` set: each element is a scalar expression (a plain column being the simplest),
+/// assigned to a column named after its source text (see groupByColumnName).
+std::vector<operators::MapNode::Assignment> parseGroupByFields(
    const ast::SetLiteral& set,
-   const std::vector<schema::ColumnIdentifier>& schema
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const ScalarConversionContext& context
 ) {
-   std::vector<schema::ColumnIdentifier> group_by_fields;
+   std::vector<operators::MapNode::Assignment> group_by_fields;
    for (const auto& elem : set.elements) {
-      auto group_by_name = extractIdentifierName(*elem);
-      auto found =
-         std::ranges::find_if(schema, [&](const auto& col) { return col.name == group_by_name; });
+      auto column_name = groupByColumnName(*elem);
       CHECK_RHYDB_QUERY(
-         found != schema.end(),
-         "groupBy field '{}' is not present in the input's output schema",
-         group_by_name
+         std::ranges::none_of(
+            group_by_fields,
+            [&](const auto& field) { return field.output_column.name == column_name; }
+         ),
+         "group field '{}' is given more than once",
+         column_name
       );
-      group_by_fields.push_back(*found);
+      auto expression =
+         convertToScalar(*elem, schema, fmt::format("group field '{}'", column_name), context);
+      group_by_fields.push_back({
+         .output_column = {.name = column_name, .type = expression->type()},
+         .expression = std::move(expression),
+      });
    }
    return group_by_fields;
 }
 
 GroupByArgs parseGroupBySpecs(
    const BoundArguments& args,
-   const std::vector<schema::ColumnIdentifier>& child_schema
+   const std::vector<schema::ColumnIdentifier>& child_schema,
+   const ScalarConversionContext& context
 ) {
    GroupByArgs result;
 
-   // Parse aggregates (required) — a RecordLiteral like {count:=count()}
-   const auto& agg_expr = args.at("aggregates");
+   // Parse by — a SetLiteral like {pango_lineage, S[10]}, or {} for a single global group
+   const auto& by_expr = args.at("by");
+   CHECK_RHYDB_QUERY(
+      !std::holds_alternative<ast::RecordLiteral>(by_expr.value),
+      "group by must be a set of scalar expressions like {pango_lineage, S[10]} "
+      "(or {} for no grouping), "
+      "aggregates go into aggs, e.g. group(by:={}, aggs:={count:=count()})"
+   );
+   const auto& set = extractSetLiteral(by_expr);
+   result.group_by_fields = parseGroupByFields(set, child_schema, context);
+
+   // Parse aggs — a RecordLiteral like {count:=count()}
+   const auto& agg_expr = args.at("aggs");
    CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::RecordLiteral>(agg_expr.value),
-      "groupBy aggregates must be a record literal like {{count:=count()}}"
+      "group aggs must be a record literal like {count:=count()}"
    );
    const auto& record = std::get<ast::RecordLiteral>(agg_expr.value);
    for (const auto& field : record.fields) {
       result.aggregates.push_back(parseAggregateDefinition(field, child_schema));
-   }
-   // Parse columns (optional) — a SetLiteral like {pango_lineage, division}
-   if (const auto* columns_expr = args.get("columns")) {
-      const auto& set = extractSetLiteral(*columns_expr);
-      result.group_by_fields = parseGroupByFields(set, child_schema);
    }
 
    return result;
@@ -967,7 +1080,7 @@ OrderByField parseOrderByField(
       const auto& call = std::get<ast::FunctionCall>(expression.value);
       CHECK_RHYDB_QUERY(
          call.function_name == "asc" || call.function_name == "desc",
-         "orderBy field must be an identifier or asc()/desc() call, got '{}' at {}:{}",
+         "order field must be an identifier or asc()/desc() call, got '{}' at {}:{}",
          call.function_name,
          expression.location.line,
          expression.location.column
@@ -992,7 +1105,7 @@ OrderByField parseOrderByField(
       return {.field = *found, .ascending = call.function_name == "asc"};
    }
    throw IllegalQueryException(
-      "orderBy field must be an identifier or asc()/desc() call at {}:{}",
+      "order field must be an identifier or asc()/desc() call at {}:{}",
       expression.location.line,
       expression.location.column
    );
@@ -1068,12 +1181,12 @@ operators::QueryNodePtr wrapWithDecompressIfNeeded(
       auto reference =
          storage::column::visit(col.type, ColumnToReferenceSequenceVisitor{}, *table_schema, col);
       if (reference.has_value()) {
-         assignments.push_back(
-            {.output_column = {.name = col.name, .type = schema::ColumnType::STRING},
-             .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
-                std::make_unique<scalar_expressions::FieldRef>(col), std::move(reference).value()
-             )}
-         );
+         assignments.push_back({
+            .output_column = {.name = col.name, .type = schema::ColumnType::STRING},
+            .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
+               std::make_unique<scalar_expressions::FieldRef>(col), std::move(reference).value()
+            ),
+         });
       }
    }
    if (assignments.empty()) {
@@ -1103,62 +1216,56 @@ operators::QueryNodePtr buildScanNode(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleFilter(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   auto child = convert_child(args.at("input"), tables);
-   auto filter_expr = convertToFilter(args.at("predicate"), child->getOutputSchema(), tables);
+operators::QueryNodePtr handleFilter(const BoundArguments& args, const Tables& tables) {
+   auto child = convertExpression(args.at("input"), tables);
+   const ScalarConversionContext context{.tables = tables};
+   auto filter_expr = convertToFilter(args.at("condition"), child->getOutputSchema(), context);
    return std::make_unique<operators::FilterNode>(std::move(child), std::move(filter_expr));
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleSchema(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   auto child = convert_child(args.at("input"), tables);
+operators::QueryNodePtr handleSchema(const BoundArguments& args, const Tables& tables) {
+   auto child = convertExpression(args.at("input"), tables);
    return std::make_unique<operators::SchemaNode>(std::move(child));
 }
 
 operators::QueryNodePtr handleTables(
    const BoundArguments& /*args*/,
-   const Tables& /*tables*/,
-   const ChildConverter& /*convert_child*/
+   const Tables& /*tables*/
 ) {
    return std::make_unique<operators::TablesNode>();
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleGroupBy(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   auto child = convert_child(args.at("input"), tables);
+operators::QueryNodePtr handleGroupBy(const BoundArguments& args, const Tables& tables) {
+   auto child = convertExpression(args.at("input"), tables);
    auto child_schema = child->getOutputSchema();
 
-   auto [group_by_fields, aggregates] = parseGroupBySpecs(args, child_schema);
+   const ScalarConversionContext context{.tables = tables};
+   auto [group_by_assignments, aggregates] = parseGroupBySpecs(args, child_schema, context);
 
+   std::vector<schema::ColumnIdentifier> group_by_fields;
+   group_by_fields.reserve(group_by_assignments.size());
+   for (const auto& assignment : group_by_assignments) {
+      group_by_fields.push_back(assignment.output_column);
+   }
+   if (!group_by_assignments.empty()) {
+      child =
+         std::make_unique<operators::MapNode>(std::move(child), std::move(group_by_assignments));
+   }
    return std::make_unique<operators::AggregateNode>(
       std::move(child), std::move(group_by_fields), std::move(aggregates)
    );
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleProject(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   const auto& field_argument = args.at("fields");
+operators::QueryNodePtr handleProject(const BoundArguments& args, const Tables& tables) {
+   const auto& field_argument = args.at("expressions");
    const std::vector<std::string> field_names =
       holds_alternative<ast::Identifier>(field_argument.value)
          ? std::vector{extractIdentifierName(field_argument)}
          : extractSetOfIdentifiers(field_argument);
-   auto child = convert_child(args.at("input"), tables);
+   auto child = convertExpression(args.at("input"), tables);
    auto child_schema = child->getOutputSchema();
    std::vector<schema::ColumnIdentifier> fields;
    for (const auto& name : field_names) {
@@ -1175,17 +1282,13 @@ operators::QueryNodePtr handleProject(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleProjectout(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   const auto& field_argument = args.at("fields");
+operators::QueryNodePtr handleProjectout(const BoundArguments& args, const Tables& tables) {
+   const auto& field_argument = args.at("remove");
    const std::vector<std::string> remove_names =
       holds_alternative<ast::Identifier>(field_argument.value)
          ? std::vector{extractIdentifierName(field_argument)}
          : extractSetOfIdentifiers(field_argument);
-   auto child = convert_child(args.at("input"), tables);
+   auto child = convertExpression(args.at("input"), tables);
    auto child_schema = child->getOutputSchema();
    for (const auto& name : remove_names) {
       auto found =
@@ -1216,25 +1319,21 @@ using operators::MapNode;
 MapNode::Assignment parseMapAssignment(
    const ast::RecordField& field,
    const std::vector<schema::ColumnIdentifier>& child_schema,
-   const Tables& tables
+   const ScalarConversionContext& context
 ) {
    auto expression = convertToScalar(
-      *field.value, child_schema, fmt::format("map() field '{}'", field.name), tables
+      *field.value, child_schema, fmt::format("map() field '{}'", field.name), context
    );
    return {
       .output_column = {.name = field.name, .type = expression->type()},
-      .expression = std::move(expression)
+      .expression = std::move(expression),
    };
 }
 
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleMap(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
+operators::QueryNodePtr handleMap(const BoundArguments& args, const Tables& tables) {
    const auto& expressions_argument = args.at("expressions");
    CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::RecordLiteral>(expressions_argument.value),
@@ -1243,9 +1342,10 @@ operators::QueryNodePtr handleMap(
    const auto& record = std::get<ast::RecordLiteral>(expressions_argument.value);
    CHECK_RHYDB_QUERY(!record.fields.empty(), "map() requires at least one assignment");
 
-   auto child = convert_child(args.at("input"), tables);
+   auto child = convertExpression(args.at("input"), tables);
    const auto child_schema = child->getOutputSchema();
 
+   const ScalarConversionContext context{.tables = tables};
    std::unordered_set<std::string> seen_output_names;
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.reserve(record.fields.size());
@@ -1255,7 +1355,7 @@ operators::QueryNodePtr handleMap(
          "map() assigns the output column '{}' more than once",
          field.name
       );
-      assignments.push_back(parseMapAssignment(field, child_schema, tables));
+      assignments.push_back(parseMapAssignment(field, child_schema, context));
    }
 
    return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
@@ -1267,12 +1367,8 @@ constexpr std::string_view AMINO_ACID_MUTATIONS_FUNCTION_NAME = "aminoAcidMutati
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleMutations(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   auto child = convert_child(args.at("input"), tables);
+operators::QueryNodePtr handleMutations(const BoundArguments& args, const Tables& tables) {
+   auto child = convertExpression(args.at("input"), tables);
    std::vector<std::string> sequence_names;
    if (const auto* seq_expr = args.get("sequenceNames")) {
       sequence_names = extractSetOfIdentifiers(*seq_expr);
@@ -1302,12 +1398,8 @@ constexpr std::string_view AMINO_ACID_INSERTIONS_FUNCTION_NAME = "aminoAcidInser
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleInsertions(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   auto child = convert_child(args.at("input"), tables);
+operators::QueryNodePtr handleInsertions(const BoundArguments& args, const Tables& tables) {
+   auto child = convertExpression(args.at("input"), tables);
    std::vector<std::string> sequence_names;
    if (const auto* seq_expr = args.get("sequenceNames")) {
       sequence_names = extractSetOfIdentifiers(*seq_expr);
@@ -1323,12 +1415,8 @@ operators::QueryNodePtr handleInsertions(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleRandomize(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   auto child = convert_child(args.at("input"), tables);
+operators::QueryNodePtr handleRandomize(const BoundArguments& args, const Tables& tables) {
+   auto child = convertExpression(args.at("input"), tables);
    uint32_t seed;
    auto seed_arg = args.getOptionalUint32("seed");
    if (seed_arg.has_value()) {
@@ -1342,12 +1430,8 @@ operators::QueryNodePtr handleRandomize(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleLimit(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   auto child = convert_child(args.at("input"), tables);
+operators::QueryNodePtr handleLimit(const BoundArguments& args, const Tables& tables) {
+   auto child = convertExpression(args.at("input"), tables);
    const uint32_t limit_val = extractUint32Literal(args.at("count"));
    CHECK_RHYDB_QUERY(limit_val > 0, "limit must be a positive number");
    auto offset = args.getOptionalUint32("offset");
@@ -1355,24 +1439,16 @@ operators::QueryNodePtr handleLimit(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleOffset(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   auto child = convert_child(args.at("input"), tables);
+operators::QueryNodePtr handleOffset(const BoundArguments& args, const Tables& tables) {
+   auto child = convertExpression(args.at("input"), tables);
    uint32_t offset_val = extractUint32Literal(args.at("count"));
    return std::make_unique<operators::FetchNode>(std::move(child), std::nullopt, offset_val);
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleOrderBy(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   auto child = convert_child(args.at("input"), tables);
-   auto order_fields = parseOrderByFields(args.at("fields"), child->getOutputSchema());
+operators::QueryNodePtr handleOrderBy(const BoundArguments& args, const Tables& tables) {
+   auto child = convertExpression(args.at("input"), tables);
+   auto order_fields = parseOrderByFields(args.at("by"), child->getOutputSchema());
    return std::make_unique<operators::OrderByNode>(
       std::move(child), std::move(order_fields), std::nullopt
    );
@@ -1381,26 +1457,21 @@ operators::QueryNodePtr handleOrderBy(
 // NOLINTNEXTLINE(misc-no-recursion)
 operators::QueryNodePtr handleMostRecentCommonAncestor(
    const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
+   const Tables& tables
 ) {
    auto column_name = extractStringLiteral(args.at("column"));
    bool print_nodes_not_in_tree = false;
    if (const auto* expr = args.get("printNodesNotInTree")) {
       print_nodes_not_in_tree = extractBoolLiteral(*expr);
    }
-   auto child = convert_child(args.at("input"), tables);
+   auto child = convertExpression(args.at("input"), tables);
    return std::make_unique<operators::UnresolvedMostRecentCommonAncestorNode>(
       std::move(child), std::move(column_name), print_nodes_not_in_tree
    );
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handlePhyloSubtree(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
+operators::QueryNodePtr handlePhyloSubtree(const BoundArguments& args, const Tables& tables) {
    auto column_name = extractStringLiteral(args.at("column"));
    bool print_nodes_not_in_tree = false;
    bool contract_unary_nodes = true;
@@ -1410,7 +1481,7 @@ operators::QueryNodePtr handlePhyloSubtree(
    if (const auto* expr = args.get("contractUnaryNodes")) {
       contract_unary_nodes = extractBoolLiteral(*expr);
    }
-   auto child = convert_child(args.at("input"), tables);
+   auto child = convertExpression(args.at("input"), tables);
    return std::make_unique<operators::UnresolvedPhyloSubtreeNode>(
       std::move(child), std::move(column_name), print_nodes_not_in_tree, contract_unary_nodes
    );
@@ -1572,13 +1643,9 @@ arrow::acero::JoinType parseJoinType(const BoundArguments& args) {
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleJoin(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   auto left = convert_child(args.at("left"), tables);
-   auto right = convert_child(args.at("right"), tables);
+operators::QueryNodePtr handleJoin(const BoundArguments& args, const Tables& tables) {
+   auto left = convertExpression(args.at("left"), tables);
+   auto right = convertExpression(args.at("right"), tables);
 
    auto left_schema = left->getOutputSchema();
    auto right_schema = right->getOutputSchema();
@@ -1613,19 +1680,15 @@ operators::QueryNodePtr handleJoin(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleUnionAll(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   auto left = convert_child(args.at("left"), tables);
-   auto right = convert_child(args.at("right"), tables);
+operators::QueryNodePtr handleUnionAll(const BoundArguments& args, const Tables& tables) {
+   auto left = convertExpression(args.at("left"), tables);
+   auto right = convertExpression(args.at("right"), tables);
 
    auto left_schema = left->getOutputSchema();
    auto right_schema = right->getOutputSchema();
    CHECK_RHYDB_QUERY(
       left_schema == right_schema,
-      "unionAll requires both inputs to have the same schema "
+      "unionall requires both inputs to have the same schema "
       "(same column names, types, and order). "
       "Left schema: [{}], right schema: [{}].",
       fmt::join(namesWithTypes(left_schema), ", "),
@@ -1636,25 +1699,32 @@ operators::QueryNodePtr handleUnionAll(
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr handleTransitiveClosure(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
-   auto child = convert_child(args.at("input"), tables);
+operators::QueryNodePtr handleTransitiveClosure(const BoundArguments& args, const Tables& tables) {
+   auto child = convertExpression(args.at("input"), tables);
    auto from_column = extractIdentifierName(args.at("from"));
    auto to_column = extractIdentifierName(args.at("to"));
    bool include_vertices = false;
    if (const auto* expr = args.get("includeVertices")) {
       include_vertices = extractBoolLiteral(*expr);
    }
-   std::optional<std::vector<std::string>> starting_from;
+   // The vertices to start from are constant scalar expressions: they are converted against no
+   // columns at all, so that a column reference is rejected.
+   std::optional<std::vector<ScalarExpressionPtr>> starting_from;
    if (const auto* expr = args.get("startingFrom")) {
       const auto& set = extractSetLiteral(*expr);
+      const ScalarConversionContext context{.tables = tables};
       starting_from.emplace();
       starting_from->reserve(set.elements.size());
       for (const auto& element : set.elements) {
-         starting_from->push_back(extractStringLiteral(*element));
+         auto vertex = convertToScalar(*element, {}, "a startingFrom vertex", context);
+         CHECK_RHYDB_QUERY(
+            vertex->type() == schema::ColumnType::STRING,
+            "a startingFrom vertex must be a string, but {} is of type {} at {}",
+            element->toString(),
+            schema::columnTypeToString(vertex->type()),
+            element->location.toString()
+         );
+         starting_from->push_back(std::move(vertex));
       }
    }
 
@@ -1698,7 +1768,7 @@ operators::QueryNodePtr convertExpression(
    auto bound = bindArguments(
       call.function_name, entry->signature, call.positional_arguments, call.named_arguments
    );
-   return entry->handler(bound, tables, convertExpression);
+   return entry->handler(bound, tables);
 }
 
 // ========================================================================
@@ -1736,24 +1806,22 @@ ParameterDefinition named(std::string name, bool required = true) {
 }  // namespace
 
 FunctionRegistry::FunctionRegistry() {
-   registerFunction("filter", {{pos("input"), pos("predicate")}}, handleFilter);
+   registerFunction("filter", {{pos("input"), pos("condition")}}, handleFilter);
 
    registerFunction("schema", {{pos("input")}}, handleSchema);
 
    registerFunction("tables", {{}}, handleTables);
 
-   registerFunction(
-      "groupBy", {{pos("input"), pos("aggregates"), pos("columns", false)}}, handleGroupBy
-   );
+   registerFunction("group", {{pos("input"), pos("by"), pos("aggs")}}, handleGroupBy);
 
-   registerFunction("project", {{pos("input"), pos("fields")}}, handleProject);
+   registerFunction("project", {{pos("input"), pos("expressions")}}, handleProject);
 
-   registerFunction("projectout", {{pos("input"), pos("fields")}}, handleProjectout);
+   registerFunction("projectout", {{pos("input"), pos("remove")}}, handleProjectout);
 
    registerFunction("map", {{pos("input"), pos("expressions")}}, handleMap);
 
    auto mutations_sig = FunctionSignature{
-      {pos("input"), named("minProportion"), named("sequenceNames", false), named("fields", false)}
+      {pos("input"), named("minProportion"), named("sequenceNames", false), named("fields", false)},
    };
    registerFunction(
       std::string{NUCLEOTIDE_MUTATIONS_FUNCTION_NAME}, mutations_sig, handleMutations
@@ -1776,7 +1844,7 @@ FunctionRegistry::FunctionRegistry() {
 
    registerFunction("offset", {{pos("input"), pos("count")}}, handleOffset);
 
-   registerFunction("orderBy", {{pos("input"), pos("fields")}}, handleOrderBy);
+   registerFunction("order", {{pos("input"), pos("by")}}, handleOrderBy);
 
    registerFunction(
       "mostRecentCommonAncestor",
@@ -1786,14 +1854,18 @@ FunctionRegistry::FunctionRegistry() {
 
    registerFunction(
       "phyloSubtree",
-      {{pos("input"),
-        pos("column"),
-        named("printNodesNotInTree", false),
-        named("contractUnaryNodes", false)}},
+      {
+         {
+            pos("input"),
+            pos("column"),
+            named("printNodesNotInTree", false),
+            named("contractUnaryNodes", false),
+         },
+      },
       handlePhyloSubtree
    );
 
-   registerFunction("unionAll", {{pos("left"), pos("right")}}, handleUnionAll);
+   registerFunction("unionall", {{pos("left"), pos("right")}}, handleUnionAll);
 
    registerFunction(
       "join", {{pos("left"), pos("right"), pos("on"), named("type", false)}}, handleJoin
@@ -1801,11 +1873,15 @@ FunctionRegistry::FunctionRegistry() {
 
    registerFunction(
       "transitiveClosure",
-      {{pos("input"),
-        pos("from"),
-        pos("to"),
-        named("includeVertices", false),
-        named("startingFrom", false)}},
+      {
+         {
+            pos("input"),
+            pos("from"),
+            pos("to"),
+            named("includeVertices", false),
+            named("startingFrom", false),
+         },
+      },
       handleTransitiveClosure
    );
 }
@@ -1825,11 +1901,30 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
 
    registerFunction(
       "lineage",
-      {{pos("column"),
-        pos("value"),
-        named("includeSublineages", false),
-        named("recombinantFollowingMode", false)}},
+      {
+         {
+            pos("column"),
+            pos("value"),
+            named("includeSublineages", false),
+            named("recombinantFollowingMode", false),
+         },
+      },
       handleLineage
+   );
+
+   registerFunction(
+      "lineageFromTables",
+      {
+         {
+            pos("column"),
+            pos("value"),
+            pos("lineages"),
+            pos("aliases"),
+            pos("includeSublineages", false),
+            pos("recombinantFollowingMode", false),
+         },
+      },
+      handleLineageFromTables
    );
 
    registerFunction("phyloDescendantOf", {{pos("column"), pos("node")}}, handlePhyloDescendantOf);
@@ -1850,8 +1945,12 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
 
    auto insertion_contains_sig =
       FunctionSignature{{named("position"), named("value"), named("sequenceName")}};
-   registerFunction("insertionContains", insertion_contains_sig, handleInsertionContains<Nucleotide>);
-   registerFunction("aminoAcidInsertionContains", insertion_contains_sig, handleInsertionContains<AminoAcid>);
+   registerFunction(
+      "insertionContains", insertion_contains_sig, handleInsertionContains<Nucleotide>
+   );
+   registerFunction(
+      "aminoAcidInsertionContains", insertion_contains_sig, handleInsertionContains<AminoAcid>
+   );
 
    registerFunction("exact", {{pos("child")}}, handleExact);
    registerFunction("maybe", {{pos("child")}}, handleMaybe);
@@ -1860,15 +1959,21 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
       "nOf", {{pos("count"), pos("children"), named("matchExactly", false)}}, handleNOf
    );
 
-   auto mutation_profile_sig = FunctionSignature{{
-      named("distance"),
-      named("sequenceName"),
-      named("querySequence", false),
-      named("sequenceId", false),
-      named("mutations", false),
-   }};
-   registerFunction("nucleotideMutationProfile", mutation_profile_sig, handleMutationProfile<Nucleotide>);
-   registerFunction("aminoAcidMutationProfile", mutation_profile_sig, handleMutationProfile<AminoAcid>);
+   auto mutation_profile_sig = FunctionSignature{
+      {
+         named("distance"),
+         named("sequenceName"),
+         named("querySequence", false),
+         named("sequenceId", false),
+         named("mutations", false),
+      },
+   };
+   registerFunction(
+      "nucleotideMutationProfile", mutation_profile_sig, handleMutationProfile<Nucleotide>
+   );
+   registerFunction(
+      "aminoAcidMutationProfile", mutation_profile_sig, handleMutationProfile<AminoAcid>
+   );
 }
 
 ScalarFunctionRegistry& ScalarFunctionRegistry::instance() {

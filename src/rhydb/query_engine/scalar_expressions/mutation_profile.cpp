@@ -135,13 +135,13 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
    const auto& primary_key_name = table.schema->primary_key->name;
    const auto primary_key_type = table.schema->primary_key->type;
 
-   const auto& seq_col =
-      table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
+   const auto& seq_col = table.getColumn<typename SymbolType::Column>(valid_sequence_name);
 
    std::optional<RowId> found_row_id;
 
    if (primary_key_type == schema::ColumnType::STRING) {
-      const auto& primary_key_column = table.columns.string_columns.at(primary_key_name);
+      const auto& primary_key_column =
+         table.getColumn<storage::column::StringColumn>(primary_key_name);
       for (const RowId row_id : table.row_layout) {
          if (primary_key_column.getValueString(row_id) == seq_id) {
             found_row_id = row_id;
@@ -150,16 +150,18 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
       }
    } else if (primary_key_type == schema::ColumnType::DICTIONARY_ENCODED) {
       const auto& primary_key_column =
-         table.columns.dictionary_encoded_columns.at(primary_key_name);
+         table.getColumn<storage::column::DictionaryEncodedColumn>(primary_key_name);
       const auto bitmap_opt = primary_key_column.filter(std::optional<std::string>(seq_id));
       if (bitmap_opt.has_value() && !bitmap_opt.value()->isEmpty()) {
          found_row_id = RowId::fromGlobal(bitmap_opt.value()->minimum());
       }
    } else {
-      throw IllegalQueryException(fmt::format(
-         "Unsupported primary key column type for {} MutationProfile sequenceId lookup",
-         SymbolType::SYMBOL_NAME
-      ));
+      throw IllegalQueryException(
+         fmt::format(
+            "Unsupported primary key column type for {} MutationProfile sequenceId lookup",
+            SymbolType::SYMBOL_NAME
+         )
+      );
    }
 
    if (found_row_id.has_value()) {
@@ -208,8 +210,7 @@ std::unique_ptr<ScalarExpression> MutationProfile<SymbolType>::rewrite(
 ) const {
    const auto valid_sequence_name = validateSequenceName<SymbolType>(column.name, *table.schema);
 
-   const auto& sequence_column =
-      table.columns.getColumns<typename SymbolType::Column>().at(valid_sequence_name);
+   const auto& sequence_column = table.getColumn<typename SymbolType::Column>(valid_sequence_name);
 
    // Build the profile sequence
    std::vector<typename SymbolType::Symbol> profile;
@@ -238,8 +239,10 @@ std::unique_ptr<ScalarExpression> MutationProfile<SymbolType>::rewrite(
       const auto& compatible_symbols = SymbolType::AMBIGUITY_SYMBOLS.at(profile_symbol);
       std::vector<typename SymbolType::Symbol> difference_symbols;
       for (const auto sym : SymbolType::SYMBOLS) {
-         if (std::find(compatible_symbols.begin(), compatible_symbols.end(), sym) ==
-             compatible_symbols.end()) {
+         if (
+            std::find(compatible_symbols.begin(), compatible_symbols.end(), sym) ==
+            compatible_symbols.end()
+         ) {
             difference_symbols.push_back(sym);
          }
       }
@@ -248,9 +251,11 @@ std::unique_ptr<ScalarExpression> MutationProfile<SymbolType>::rewrite(
          continue;
       }
 
-      difference_children.push_back(std::make_unique<SymbolInSet<SymbolType>>(
-         column, static_cast<uint32_t>(pos), std::move(difference_symbols)
-      ));
+      difference_children.push_back(
+         std::make_unique<SymbolInSet<SymbolType>>(
+            column, static_cast<uint32_t>(pos), std::move(difference_symbols)
+         )
+      );
    }
 
    // Return Not(NOf(difference_children, distance+1, false))
@@ -269,7 +274,7 @@ std::unique_ptr<filter::operators::Operator> MutationProfile<SymbolType>::compil
 ) const {
    throw QueryCompilationException{
       "{} MutationProfile expression must be eliminated in the query rewrite phase",
-      SymbolType::SYMBOL_NAME
+      SymbolType::SYMBOL_NAME,
    };
 }
 

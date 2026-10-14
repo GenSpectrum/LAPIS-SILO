@@ -1,4 +1,4 @@
-#include "rhydb/query_engine/optimizer/bitmap_aggregation_rewrite_pass.h"
+#include "rhydb/query_engine/optimizer/aggregation_rewrite_pass.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -11,6 +11,7 @@
 
 #include "rhydb/query_engine/operators/aggregate_node.h"
 #include "rhydb/query_engine/operators/bitmap_aggregation_node.h"
+#include "rhydb/query_engine/operators/count_filter_node.h"
 #include "rhydb/query_engine/operators/map_node.h"
 #include "rhydb/query_engine/operators/table_scan_node.h"
 #include "rhydb/query_engine/scalar_expressions/at.h"
@@ -29,12 +30,9 @@ bool isSequenceColumn(const schema::ColumnIdentifier& column) {
           column.type == schema::ColumnType::AMINO_ACID_SEQUENCE;
 }
 
-/// The bare `count()` group-by (a single count aggregate, no source column, at least one grouping
-/// key) is the only shape this rewrite recognizes.
-bool isBareCountGroupBy(const operators::AggregateNode& node) {
-   if (node.group_by_fields.empty()) {
-      return false;
-   }
+/// The bare `count()` aggregate (a single count aggregate with no source column) is the only shape
+/// this rewrite recognizes.
+bool isBareCount(const operators::AggregateNode& node) {
    return node.aggregates.size() == 1 &&
           node.aggregates[0].function == operators::AggregateFunction::COUNT &&
           !node.aggregates[0].source_column.has_value();
@@ -71,20 +69,21 @@ struct SequencePositionKey {
 std::optional<SequencePositionKey> asSequencePositionKey(
    const operators::MapNode::Assignment& assignment
 ) {
-   const auto* at =
+   const auto* at_expression =
       scalar_expressions::dynCast<scalar_expressions::At>(assignment.expression.get());
-   if (at == nullptr) {
+   if (at_expression == nullptr) {
       return std::nullopt;
    }
-   const auto* decompress =
-      scalar_expressions::dynCast<scalar_expressions::ZstdDecompressScalar>(at->input.get());
+   const auto* decompress = scalar_expressions::dynCast<scalar_expressions::ZstdDecompressScalar>(
+      at_expression->input.get()
+   );
    const auto* field_ref = scalar_expressions::dynCast<scalar_expressions::FieldRef>(
-      decompress != nullptr ? decompress->input.get() : at->input.get()
+      decompress != nullptr ? decompress->input.get() : at_expression->input.get()
    );
    if (field_ref == nullptr) {
       return std::nullopt;
    }
-   return SequencePositionKey{.column = field_ref->column, .position = at->position};
+   return SequencePositionKey{.column = field_ref->column, .position = at_expression->position};
 }
 
 /// The plan beneath a candidate aggregate: the table scan the grouping reads from, and the single
@@ -138,7 +137,7 @@ std::optional<operators::GroupingDimension> matchSequencePositionDimension(
       column.value(),
       key->position - 1,
       column->type == schema::ColumnType::NUCLEOTIDE_SEQUENCE,
-      group_by_field.name
+      group_by_field.name,
    };
 }
 
@@ -197,11 +196,16 @@ bool isGroupableScalarType(schema::ColumnType type) {
 /// (non-sequence) scalar columns, literals, `at` and `isoWeek`. This deliberately excludes anything
 /// sequence- or decompression-specific (those are grouped by the dedicated sequence-position path),
 /// so the rewrite only claims expressions the node can actually execute.
+// NOLINTNEXTLINE(misc-no-recursion)
 bool isEvaluableGroupableExpression(
    const scalar_expressions::ScalarExpression& expression,
    const schema::TableSchema& table_schema
 ) {
-   using namespace scalar_expressions;
+   using scalar_expressions::At;
+   using scalar_expressions::dynCast;
+   using scalar_expressions::FieldRef;
+   using scalar_expressions::IsoWeek;
+   using scalar_expressions::ScalarExpression;
    switch (expression.kind()) {
       case ScalarExpression::Kind::FIELD_REF: {
          const auto* field_ref = dynCast<FieldRef>(&expression);
@@ -238,12 +242,16 @@ std::optional<operators::GroupingDimension> matchScalarExpressionDimension(
       return std::nullopt;  // a plain scan column, not a map-computed expression
    }
    const auto& expression = *assignment->get().expression;
-   if (expression.freeIUs().empty() || !isGroupableScalarType(expression.type()) ||
-       !isEvaluableGroupableExpression(expression, *source.scan.table->schema)) {
+   if (
+      expression.freeIUs().empty() || !isGroupableScalarType(expression.type()) ||
+      !isEvaluableGroupableExpression(expression, *source.scan.table->schema)
+   ) {
       return std::nullopt;
    }
    return operators::ScalarExpressionDimension{
-      expression.clone(), expression.type(), group_by_field.name
+      expression.clone(),
+      expression.type(),
+      group_by_field.name,
    };
 }
 
@@ -272,18 +280,30 @@ bool isBitmapBacked(const operators::GroupingDimension& dimension) {
 }  // namespace
 
 // NOLINTNEXTLINE(misc-no-recursion)
-operators::QueryNodePtr BitmapAggregationRewritePass::operator()(operators::AggregateNode& node) {
+operators::QueryNodePtr AggregationRewritePass::operator()(operators::AggregateNode& node) {
    propagateToNode(node.child);
 
-   if (!isBareCountGroupBy(node)) {
+   if (!isBareCount(node)) {
       return nullptr;
    }
 
    // Whenever the plan is not a shape this rewrite can resolve, decline (nullptr) and leave the
-   // generic map/groupBy pipeline to handle it rather than erroring.
+   // generic map/group pipeline to handle it rather than erroring.
    auto source = groupBySource(*node.child);
    if (!source.has_value()) {
       return nullptr;
+   }
+
+   // A full `count(*)` with no grouping keys is the filter's cardinality: read it straight off the
+   // scan's filter bitmap. The map (if any) only decompresses columns nobody reads here and does
+   // not change the row count, so it is dropped. This is the fast path for
+   // `data.group(aggs:={n := count()}, by:={})`.
+   if (node.group_by_fields.empty()) {
+      return std::make_unique<operators::CountFilterNode>(
+         std::move(source->scan.table),
+         std::move(source->scan.filter),
+         node.aggregates[0].output_name
+      );
    }
 
    std::vector<operators::GroupingDimension> dimensions;

@@ -68,43 +68,12 @@ else ()
 endif()
 
 # ---------------------------------------------------------------------------
-# Linter
-# ---------------------------------------------------------------------------
-
-# Resolve the clang-tidy executable here, but do NOT set CMAKE_CXX_CLANG_TIDY
-# yet: CMAKE_CXX_CLANG_TIDY only affects targets created after it is set, and
-# before the src/ split the property was enabled after rhydblib (so rhydblib's
-# own objects were never linted via it) but before rhydb_test and the consumer
-# targets (which were). To preserve that exactly across directory scopes we pass
-# the resolved path down to src/ (applied after rhydblib, picked up by
-# rhydb_test) and re-apply it at this scope after add_subdirectory(src) so the
-# consumers below inherit it too.
-option(BUILD_WITH_CLANG_TIDY "Build process clang-tidy")
-if (NOT CMAKE_BUILD_TYPE STREQUAL Release AND BUILD_WITH_CLANG_TIDY)
-    find_program(CLANG_TIDY_EXE NAMES clang-tidy-19 clang-tidy-20)
-    if (NOT CLANG_TIDY_EXE)
-        message(SEND_ERROR "clang-tidy not found, aborting. You can run the build with '-D BUILD_WITH_CLANG_TIDY=OFF' to disable clang-tidy.")
-    else ()
-        message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
-        message(STATUS "run clang tidy with: ${CLANG_TIDY_EXE}")
-    endif ()
-endif ()
-
-# ---------------------------------------------------------------------------
 # Core library
 # ---------------------------------------------------------------------------
 
-# rhydblib and its dependencies, plus the rhydb_test unit tests. src/ applies the
-# resolved CLANG_TIDY_EXE after rhydblib so rhydb_test (but not rhydblib) is
-# linted, matching the pre-split ordering. The consumers below link against
-# rhydblib.
+# rhydblib and its dependencies, plus the rhydb_test unit tests. The consumers
+# below link against rhydblib.
 add_subdirectory(src)
-
-# Re-apply clang-tidy at this scope so the consumer targets added below inherit
-# it (subdirectory scopes do not propagate variables back to the parent).
-if (CLANG_TIDY_EXE)
-    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
-endif ()
 
 # ---------------------------------------------------------------------------
 # Consumers

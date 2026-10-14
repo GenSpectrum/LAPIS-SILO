@@ -34,7 +34,7 @@ Every response includes:
 | `X-Request-Id` | Echoes the request's `X-Request-Id`, or a generated UUID v4 if none was provided. Useful for correlating logs. |
 | `data-version` | A 10-digit Unix timestamp identifying the database snapshot used to serve the request. Allows clients to detect when the underlying data has changed between requests. |
 
-The `POST /query` endpoint additionally returns an [`result-ordering`](#response-headers) header describing the sort order of the result rows.
+The query endpoints (`POST /query` and `POST /admin/query`) additionally return a [`result-ordering`](#response-headers) header describing the sort order of the result rows.
 
 ## Endpoints
 
@@ -116,7 +116,7 @@ Queries time out after 120 seconds.
 
 #### Response Headers
 
-In addition to the [common response headers](#common-response-headers), a successful (200) query response carries an `result-ordering` header describing the order in which the result rows are returned.
+In addition to the [common response headers](#common-response-headers), a successful (200) query response carries a `result-ordering` header describing the order in which the result rows are returned.
 
 | Header | Description |
 |--------|-------------|
@@ -134,9 +134,9 @@ Examples:
 
 | Query | `result-ordering` header |
 |-------|-------------------|
-| `orderBy({date})` | `[{"field":"date","order":"ascending","nullPlacement":"atStart"}]` |
-| `orderBy({country, date.desc()})` | `[{"field":"country","order":"ascending","nullPlacement":"atStart"},{"field":"date","order":"descending","nullPlacement":"atEnd"}]` |
-| no `orderBy` (e.g. an aggregation) | `[]` |
+| `order(by:={date})` | `[{"field":"date","order":"ascending","nullPlacement":"atStart"}]` |
+| `order(by:={country, date.desc()})` | `[{"field":"country","order":"ascending","nullPlacement":"atStart"},{"field":"date","order":"descending","nullPlacement":"atEnd"}]` |
+| no `order` (e.g. an aggregation) | `[]` |
 
 #### Output Format Negotiation
 
@@ -200,6 +200,10 @@ Executes a SaneQL **write statement** against the database:
 - `insertInto(query: expression, table: symbol)`. Runs `query` and inserts its result rows into
 `table` — see [`insertInto`](query_documentation.md) for semantics and
 limitations.
+- `createTable(table: symbol, columns: record, primaryKey?: symbol)`. Creates a new, empty table with
+the given schema, taking the reference sequences of sequence columns from `reference_genomes` and
+the dictionaries of compressed string columns from queries —
+see [`query docs`](query_documentation.md) for the column types.
 
 The write goes through the [data directory](#runtime-configuration): the most recent state there is
 loaded into a database of its own, the statement is applied to that one, and the result is saved
@@ -216,15 +220,22 @@ available instances the endpoint should be guarded by other means (e.g. using `n
 source.filter(country='CH').project({primaryKey, country}).insertInto(archive)
 ```
 
-**Response** (200, `application/json`): a summary of the effect. For `insertInto`, the number of rows
-inserted:
+**Response** (200): a single row summarizing the effect, as NDJSON (`application/x-ndjson`) or, when
+requested via the `Accept: application/vnd.apache.arrow.stream` header, as an Arrow IPC stream, the
+same as for [`POST /query`](#post-query). For `insertInto`, the number of rows inserted:
 ```json
 {"insertedRows": 42}
 ```
 
-A successful response carries the [`data-version`](#common-response-headers) header naming the
-version the write produced, which is served once the directory watcher has picked it up. A failed
-write leaves the data version unchanged.
+For `createTable`, the name of the created table:
+```json
+{"createdTable": "archive"}
+```
+
+A successful response carries the same headers as [`POST /query`](#response-headers): the
+[`data-version`](#common-response-headers) header names the version the write produced, which is
+served once the directory watcher has picked it up, and the `result-ordering` header is `[]`, since
+the summary has no ordering. A failed write leaves the data version unchanged.
 
 **Errors** (400, `application/json`): returned when the body is not a valid write statement.
 A 500 is returned when the write itself could not be carried out, e.g. because the

@@ -47,14 +47,14 @@ std::unique_ptr<ScalarExpression> StringInSet::rewrite(
       column.name
    );
    CHECK_RHYDB_QUERY(
-      table.columns.string_columns.contains(column.name) ||
-         table.columns.dictionary_encoded_columns.contains(column.name),
+      table.hasColumn<StringColumn>(column.name) ||
+         table.hasColumn<storage::column::DictionaryEncodedColumn>(column.name),
       "The column '{}' is not of type string",
       column.name
    );
 
    // We do not change expressions for StringColumn
-   if (table.columns.string_columns.contains(column.name)) {
+   if (table.hasColumn<StringColumn>(column.name)) {
       return std::make_unique<StringInSet>(column, values);
    }
 
@@ -63,19 +63,22 @@ std::unique_ptr<ScalarExpression> StringInSet::rewrite(
    std::vector<std::unique_ptr<ScalarExpression>> string_equal_expressions;
    string_equal_expressions.reserve(values.size());
    for (const auto& value : values) {
-      string_equal_expressions.emplace_back(std::make_unique<Comparison>(
-         std::make_unique<FieldRef>(column),
-         std::make_unique<StringLiteral>(value),
-         filter::operators::Comparator::EQUALS
-      ));
+      string_equal_expressions.emplace_back(
+         std::make_unique<Comparison>(
+            std::make_unique<FieldRef>(column),
+            std::make_unique<StringLiteral>(value),
+            filter::operators::Comparator::EQUALS
+         )
+      );
    }
    return std::make_unique<Or>(std::move(string_equal_expressions));
 }
 
-std::unique_ptr<filter::operators::Operator> StringInSet::compile(const storage::Table& table
+std::unique_ptr<filter::operators::Operator> StringInSet::compile(
+   const storage::Table& table
 ) const {
-   RHYDB_ASSERT(table.columns.string_columns.contains(column.name));
-   const auto& string_column = table.columns.string_columns.at(column.name);
+   RHYDB_ASSERT(table.hasColumn<StringColumn>(column.name));
+   const auto& string_column = table.getColumn<StringColumn>(column.name);
    return std::make_unique<filter::operators::Selection>(
       std::make_unique<filter::operators::StringInSet<StringColumn>>(
          &string_column, filter::operators::StringInSet<StringColumn>::Comparator::IN, values

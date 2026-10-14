@@ -75,9 +75,9 @@ Selection::~Selection() noexcept = default;
 std::string Selection::toString() const {
    std::vector<std::string> predicate_strings;
    std::ranges::transform(
-      predicates,
-      std::back_inserter(predicate_strings),
-      [](const auto& predicate) { return predicate->toString(); }
+      predicates, std::back_inserter(predicate_strings), [](const auto& predicate) {
+         return predicate->toString();
+      }
    );
    std::string child_operator_string;
    if (child_operator.has_value()) {
@@ -91,6 +91,7 @@ Type Selection::type() const {
    return SELECTION;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 Bitmap Selection::evaluate() const {
    EVOBENCH_SCOPE("Selection", "evaluate");
    RHYDB_ASSERT(!predicates.empty());
@@ -107,7 +108,8 @@ Bitmap Selection::evaluate() const {
          for (const auto& [chunk_id, container_view] : child_bitmap) {
             for (const uint16_t row_in_chunk : container_view) {
                const storage::column::RowId row_id{
-                  .chunk_id = chunk_id, .row_in_chunk = row_in_chunk
+                  .chunk_id = chunk_id,
+                  .row_in_chunk = row_in_chunk,
                };
                if (matchesPredicates(predicates, row_id)) {
                   result.add(row_id.toGlobal());

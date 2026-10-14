@@ -37,9 +37,9 @@ std::shared_ptr<rhydb::Database> buildTestDatabase() {
       input_directory / "database_config.yaml"
    );
 
-   const auto reference_genomes =
-      rhydb::ReferenceGenomes::readFromFile(config.initialization_files.getReferenceGenomeFilepath()
-      );
+   const auto reference_genomes = rhydb::ReferenceGenomes::readFromFile(
+      config.initialization_files.getReferenceGenomeFilepath()
+   );
 
    std::map<std::filesystem::path, rhydb::common::LineageTreeAndIdMap> lineage_trees;
    for (const auto& file_path : config.initialization_files.getLineageDefinitionFilepaths()) {
@@ -103,8 +103,9 @@ TEST(DatabaseTest, shouldReturnCorrectDatabaseInfoAfterAppendingNewSequences) {
    // If this load fails, the serialization version likely needs to be increased
    // Run `make bump-serialization-version`
    auto database = rhydb::Database::loadDatabaseState(
-      rhydb::RhyDBDirectory{"testBaseData/rhydbSerializedState"}.getMostRecentDataDirectory().value(
-      )
+      rhydb::RhyDBDirectory{"testBaseData/rhydbSerializedState"}
+         .getMostRecentDataDirectory()
+         .value()
    );
 
    const auto database_info = database.getDatabaseInfo();
@@ -147,8 +148,9 @@ TEST(DatabaseTest, newDatabaseContainsEmptyBuiltinTables) {
 TEST(DatabaseTest, loadedDatabaseContainsBuiltinTables) {
    // The committed serialized state may predate some built-in tables, which are then added on load
    const auto database = rhydb::Database::loadDatabaseState(
-      rhydb::RhyDBDirectory{"testBaseData/rhydbSerializedState"}.getMostRecentDataDirectory().value(
-      )
+      rhydb::RhyDBDirectory{"testBaseData/rhydbSerializedState"}
+         .getMostRecentDataDirectory()
+         .value()
    );
 
    for (const auto& [table_name, _] : rhydb::schema::getBuiltinTableSchemas()) {
@@ -161,7 +163,7 @@ namespace {
 // Counts the rows of the default table matching `filter` by running a SaneQL count aggregation.
 int64_t countWhere(rhydb::Database& database, const std::string& filter) {
    auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
-      fmt::format("default.filter({}).groupBy({{count:=count()}})", filter),
+      fmt::format("data.filter({}).group(by:={{}}, aggs:={{count:=count()}})", filter),
       database.tables,
       rhydb::config::QueryOptions{},
       "count_query"
@@ -255,8 +257,9 @@ TEST(DatabaseTest, updateColumnRejectsInvalidRequests) {
    // A lineage-indexed column (pango_lineage) cannot be updated.
    EXPECT_THAT(
       [&]() { database->updateColumn(table, "pango_lineage", "'B.1'", "true"); },
-      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(::testing::HasSubstr("lineage index"
-      ))
+      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
+         ::testing::HasSubstr("lineage index")
+      )
    );
 
    // Unknown columns and tables are reported.
@@ -281,15 +284,20 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
    ColumnIdentifier primary_key{.name = "key", .type = ColumnType::STRING};
    ColumnIdentifier sequence_column{.name = "sequence", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
    std::vector<Nucleotide::Symbol> reference_sequence{
-      Nucleotide::Symbol::A, Nucleotide::Symbol::C, Nucleotide::Symbol::G, Nucleotide::Symbol::T
+      Nucleotide::Symbol::A,
+      Nucleotide::Symbol::C,
+      Nucleotide::Symbol::G,
+      Nucleotide::Symbol::T,
    };
 
    const std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
-      {sequence_column,
-       std::make_shared<SequenceColumnMetadata<Nucleotide>>(
-          sequence_column.name, std::move(reference_sequence)
-       )},
+      {
+         sequence_column,
+         std::make_shared<SequenceColumnMetadata<Nucleotide>>(
+            sequence_column.name, std::move(reference_sequence)
+         ),
+      },
    };
    const rhydb::schema::TableName first_table_name{"first"};
    database.createTable(
@@ -304,7 +312,7 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
    database.appendData(first_table_name, first_table_data);
 
    auto query_plan_1 = rhydb::query_engine::Planner::planSaneqlQuery(
-      "first.groupBy({count:=count()})",
+      "first.group(by:={}, aggs:={count:=count()})",
       database.tables,
       rhydb::config::QueryOptions{},
       "test_query_1"
@@ -319,7 +327,7 @@ TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
    database.appendData(second_table_name, second_table_data);
 
    auto query_plan_2 = rhydb::query_engine::Planner::planSaneqlQuery(
-      "second.groupBy({count:=count()})",
+      "second.group(by:={}, aggs:={count:=count()})",
       database.tables,
       rhydb::config::QueryOptions{},
       "test_query_2"
@@ -362,7 +370,7 @@ int64_t countInTableWhere(
    const std::string& filter
 ) {
    auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
-      fmt::format("{}.filter({}).groupBy({{count:=count()}})", table_name, filter),
+      fmt::format("{}.filter({}).group(by:={{}}, aggs:={{count:=count()}})", table_name, filter),
       database.tables,
       rhydb::config::QueryOptions{},
       "count_query"
@@ -375,6 +383,26 @@ int64_t countInTableWhere(
 }
 }  // namespace
 
+TEST(DatabaseTest, getFilteredBitmapSupportsSubqueries) {
+   rhydb::Database database;
+   database.createTable(TableName{"people"}, makeValueColumnSchema());
+   database.createTable(TableName{"selected"}, makeValueColumnSchema());
+
+   std::stringstream people_data;
+   people_data << R"({"key":"a","country":"CH","age":1})" << "\n"
+               << R"({"key":"b","country":"US","age":2})" << "\n"
+               << R"({"key":"c","country":"DE","age":3})" << "\n";
+   database.appendData(TableName{"people"}, people_data);
+   std::stringstream selected_data;
+   selected_data << R"({"key":"x","country":"DE","age":0})" << "\n"
+                 << R"({"key":"y","country":"CH","age":0})" << "\n";
+   database.appendData(TableName{"selected"}, selected_data);
+
+   const roaring::Roaring bitmap =
+      database.getFilteredBitmap("people", "country.in(selected.project({country}))");
+   EXPECT_EQ(bitmap, roaring::Roaring({0, 2}));
+}
+
 TEST(DatabaseInsertQueryTest, copiesFilteredRowsFromOneTableIntoAnother) {
    rhydb::Database database;
    database.createTable(TableName{"source"}, makeValueColumnSchema());
@@ -386,9 +414,9 @@ TEST(DatabaseInsertQueryTest, copiesFilteredRowsFromOneTableIntoAnother) {
                << R"({"key":"c","country":"CH","age":3})" << "\n";
    database.appendData(TableName{"source"}, source_data);
 
-   const nlohmann::json result = database.executeWrite(
+   const nlohmann::json result = rhydb::test::writeResultToJson(database.executeWrite(
       "source.filter(country='CH').insertInto(archive)", defaultQueryOptions(), "test_request_id"
-   );
+   ));
 
    EXPECT_EQ(result.at("insertedRows").get<size_t>(), 2);
    EXPECT_EQ(countInTableWhere(database, "archive", "true"), 2);
@@ -420,18 +448,18 @@ TEST(DatabaseInsertQueryTest, reshapesWithProjectAndAccumulates) {
    database.appendData(TableName{"source"}, source_data);
 
    // project drops the `age` column the target does not have.
-   const nlohmann::json result = database.executeWrite(
+   const nlohmann::json result = rhydb::test::writeResultToJson(database.executeWrite(
       "source.project({key, country}).insertInto(archive)", defaultQueryOptions(), "test_request_id"
-   );
+   ));
    EXPECT_EQ(result.at("insertedRows").get<size_t>(), 2);
    EXPECT_EQ(countInTableWhere(database, "archive", "true"), 2);
 
    // A second append accumulates on top of the existing rows rather than replacing them.
-   const nlohmann::json result_again = database.executeWrite(
+   const nlohmann::json result_again = rhydb::test::writeResultToJson(database.executeWrite(
       "source.filter(country='US').project({key, country}).insertInto(archive)",
       defaultQueryOptions(),
       "test_request_id"
-   );
+   ));
    EXPECT_EQ(result_again.at("insertedRows").get<size_t>(), 1);
    EXPECT_EQ(countInTableWhere(database, "archive", "true"), 3);
 }
@@ -455,11 +483,11 @@ TEST(DatabaseInsertQueryTest, insertsAResultThatSpansSeveralBatches) {
    database.appendData(TableName{"source"}, source_data);
 
    // A cutoff of 1 makes the table scan emit tiny batches, so the insert sees many of them.
-   const nlohmann::json result = database.executeWrite(
+   const nlohmann::json result = rhydb::test::writeResultToJson(database.executeWrite(
       "source.insertInto(archive)",
       rhydb::config::QueryOptions{.materialization_cutoff = 1},
       "test_request_id"
-   );
+   ));
 
    EXPECT_EQ(result.at("insertedRows").get<size_t>(), NUMBER_OF_ROWS);
    EXPECT_EQ(countInTableWhere(database, "archive", "true"), NUMBER_OF_ROWS);

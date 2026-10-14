@@ -1,5 +1,6 @@
 #include "rhydb/query_engine/scalar_expressions/insertion_contains.h"
 
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -11,6 +12,7 @@
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/query_parse_sequence_name.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
+#include "rhydb/storage/column/insertion_index.h"
 #include "rhydb/storage/column/sequence_column.h"
 #include "rhydb/storage/insertion_format_exception.h"
 
@@ -52,11 +54,7 @@ std::unique_ptr<filter::operators::Operator> InsertionContains<SymbolType>::comp
 ) const {
    const auto valid_sequence_name = validateSequenceName<SymbolType>(column.name, *table.schema);
 
-   const std::map<std::string, storage::column::SequenceColumn<SymbolType>>& sequence_stores =
-      table.columns.getColumns<typename SymbolType::Column>();
-
-   const storage::column::SequenceColumn<SymbolType>& sequence_store =
-      sequence_stores.at(valid_sequence_name);
+   const auto& sequence_store = table.getColumn<typename SymbolType::Column>(valid_sequence_name);
    const size_t reference_sequence_size = sequence_store.metadata->reference_sequence.size();
    CHECK_RHYDB_QUERY(
       position_idx <= reference_sequence_size,
@@ -66,22 +64,27 @@ std::unique_ptr<filter::operators::Operator> InsertionContains<SymbolType>::comp
       reference_sequence_size,
       valid_sequence_name
    );
+   std::shared_ptr<const storage::insertion::InsertionSearchPattern<SymbolType>> search_pattern;
+   try {
+      search_pattern =
+         std::make_shared<const storage::insertion::InsertionSearchPattern<SymbolType>>(
+            storage::insertion::InsertionSearchPattern<SymbolType>::make(value)
+         );
+   } catch (const storage::InsertionFormatException&) {
+      throw IllegalQueryException(
+         "The field 'value' in the InsertionContains expression does not contain a valid "
+         "regex "
+         "pattern: \"{}\". It must only consist of {} symbols and the regex symbol '.*'. "
+         "Also note "
+         "that the stop codon * must be escaped correctly with a \\ in amino acid queries.",
+         value,
+         SymbolType::SYMBOL_NAME_LOWER_CASE
+      );
+   }
    return std::make_unique<filter::operators::BitmapProducer>(
-      [&]() {
-         try {
-            auto search_result = sequence_store.insertion_index.search(position_idx, value);
-            return Bitmap(std::move(*search_result));
-         } catch (const storage::InsertionFormatException& exception) {
-            throw IllegalQueryException(
-               "The field 'value' in the InsertionContains expression does not contain a valid "
-               "regex "
-               "pattern: \"{}\". It must only consist of {} symbols and the regex symbol '.*'. "
-               "Also note "
-               "that the stop codon * must be escaped correctly with a \\ in amino acid queries.",
-               value,
-               SymbolType::SYMBOL_NAME_LOWER_CASE
-            );
-         }
+      [&sequence_store, position_idx = position_idx, search_pattern] {
+         auto search_result = sequence_store.insertion_index.search(position_idx, *search_pattern);
+         return Bitmap(std::move(*search_result));
       },
       table.row_layout
    );

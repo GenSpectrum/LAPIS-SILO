@@ -8,11 +8,11 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include "sequence_generator.h"
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/initialize/initializer.h"
 #include "rhydb/query_engine/exec_node/ndjson_sink.h"
 #include "rhydb/query_engine/planner.h"
+#include "sequence_generator.h"
 
 using rhydb::Database;
 using rhydb::query_engine::Planner;
@@ -37,7 +37,7 @@ TestDatabaseResult setupTestDatabase() {
    auto database = initializeDatabaseWithShortReadSchema(reference);
    database->appendData(rhydb::schema::TableName::getDefault(), input_file);
 
-   return {database, ref_length};
+   return {.database = database, .reference_length = ref_length};
 }
 
 class QueryGenerator {
@@ -47,7 +47,7 @@ class QueryGenerator {
    static constexpr std::array<char, 5> SYMBOLS = {'A', 'C', 'G', 'T', '-'};
 
   public:
-   QueryGenerator(size_t ref_length, uint64_t seed = 42)
+   explicit QueryGenerator(size_t ref_length, uint64_t seed = 42)
        : rng(seed),
          reference_length(ref_length) {}
 
@@ -59,7 +59,7 @@ class QueryGenerator {
 
       if (use_all_symbols) {
          return fmt::format(
-            "default.filter("
+            "data.filter("
             "locationName = 'generated' && "
             "samplingDate.between('2024-01-01'::date, '2024-01-07'::date) && "
             "(nucleotideEquals(position:={0}, symbol:='A', sequenceName:='main') || "
@@ -68,19 +68,19 @@ class QueryGenerator {
             "nucleotideEquals(position:={0}, symbol:='T', sequenceName:='main') || "
             "nucleotideEquals(position:={0}, symbol:='-', sequenceName:='main')) && "
             "samplingDate.between('2024-01-01'::date, '2024-01-07'::date)"
-            ").groupBy({{count:=count()}})",
+            ").group(by:={{}}, aggs:={{count:=count()}})",
             position
          );
       }
       std::uniform_int_distribution<size_t> sym_dist(0, SYMBOLS.size() - 1);
       const char symbol = SYMBOLS[sym_dist(rng)];
       return fmt::format(
-         "default.filter("
+         "data.filter("
          "locationName = 'generated' && "
          "samplingDate.between('2024-01-01'::date, '2024-01-07'::date) && "
          "nucleotideEquals(position:={}, symbol:='{}', sequenceName:='main') && "
          "samplingDate.between('2024-01-01'::date, '2024-01-07'::date)"
-         ").groupBy({{count:=count()}})",
+         ").group(by:={{}}, aggs:={{count:=count()}})",
          position,
          symbol
       );

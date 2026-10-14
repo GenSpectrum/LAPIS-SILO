@@ -31,10 +31,10 @@ namespace {
 using rhydb::storage::column::VerticalSequenceIndex;
 
 template <typename SymbolType>
-using SequenceDiffKey = typename VerticalSequenceIndex<SymbolType>::SequenceDiffKey;
+using SequenceDiffKey = VerticalSequenceIndex<SymbolType>::SequenceDiffKey;
 
 template <typename SymbolType>
-using SequenceDiff = typename VerticalSequenceIndex<SymbolType>::SequenceDiff;
+using SequenceDiff = VerticalSequenceIndex<SymbolType>::SequenceDiff;
 
 __attribute__((noinline)) void initializeCountsWithSequenceCount(
    std::vector<uint32_t>& count_per_local_reference_position,
@@ -329,14 +329,12 @@ arrow::Status addMutationsToOutput(
                const double proportion = static_cast<double>(count) / static_cast<double>(total);
                using OutputValue = std::optional<std::variant<std::string, bool, int32_t, double>>;
                ARROW_RETURN_NOT_OK(output_builder.addValueIfContainedInOutput(
-                  MutationsNode<SymbolType>::MUTATION_FROM_FIELD_NAME,
-                  [&]() -> OutputValue {
+                  MutationsNode<SymbolType>::MUTATION_FROM_FIELD_NAME, [&]() -> OutputValue {
                      return {std::string(1, SymbolType::symbolToChar(symbol_in_reference_genome))};
                   }
                ));
                ARROW_RETURN_NOT_OK(output_builder.addValueIfContainedInOutput(
-                  MutationsNode<SymbolType>::MUTATION_TO_FIELD_NAME,
-                  [&]() -> OutputValue {
+                  MutationsNode<SymbolType>::MUTATION_TO_FIELD_NAME, [&]() -> OutputValue {
                      return {std::string(1, SymbolType::symbolToChar(symbol))};
                   }
                ));
@@ -376,7 +374,7 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto bitmap_filter = computeFilter(filter, *table);
+   auto compiled_filter = compileFilter(filter, table);
 
    auto table_handle = table;
    auto output_fields = getOutputSchema();
@@ -387,30 +385,35 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
       [table_handle,
        given_min_proportion,
        output_fields,
-       bitmap_filter = std::move(bitmap_filter),
+       compiled_filter,
        sequence_column_identifiers,
-       already_produced = false]() mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+       already_produced = false] mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
          const std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
       already_produced = true;
 
+      const Bitmap bitmap_filter = compiled_filter->evaluate();
+
       exec_node::SchemaOutputBuilder output_builder(output_fields);
 
       for (const auto& sequence_column_identifier : sequence_column_identifiers) {
          const storage::column::SequenceColumn<SymbolType>& sequence_column =
-            table_handle->columns.template getColumns<storage::column::SequenceColumn<SymbolType>>()
-               .at(sequence_column_identifier.name);
+            table_handle->template getColumn<storage::column::SequenceColumn<SymbolType>>(
+               sequence_column_identifier.name
+            );
 
-         ARROW_RETURN_NOT_OK(addMutationsToOutput<SymbolType>(
-            sequence_column_identifier.name,
-            sequence_column,
-            given_min_proportion,
-            bitmap_filter,
-            table_handle->row_layout.numRows(),
-            output_builder
-         ));
+         ARROW_RETURN_NOT_OK(
+            addMutationsToOutput<SymbolType>(
+               sequence_column_identifier.name,
+               sequence_column,
+               given_min_proportion,
+               bitmap_filter,
+               table_handle->row_layout.numRows(),
+               output_builder
+            )
+         );
       }
       ARROW_ASSIGN_OR_RAISE(
          const std::vector<arrow::Datum> result_columns, output_builder.finish()
@@ -424,7 +427,7 @@ arrow::Result<arrow::acero::ExecNode*> MutationsNode<SymbolType>::addToExecPlan(
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(output_fields),
       std::move(producer),
-      arrow::Ordering::Implicit()
+      arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", &plan, {}, options);
 }

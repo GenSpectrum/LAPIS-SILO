@@ -13,6 +13,7 @@
 #include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/batched_bitmap_reader.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
+#include "rhydb/query_engine/operators/compute_filter.h"
 #include "rhydb/storage/table.h"
 
 namespace rhydb::query_engine::exec_node {
@@ -36,13 +37,19 @@ class ExecBatchBuilder {
 
    arrow::Status appendEntries(const storage::Table& table, const Bitmap& row_ids);
 
-   arrow::Result<arrow::ExecBatch> finishBatch();
+   arrow::Result<arrow::ExecBatch> finishBatch(int64_t length);
 };
 
 class TableScanGenerator {
    ExecBatchBuilder exec_batch_builder;
 
-   Bitmap bitmap_filter;
+   // Evaluated on the first batch, so that the filter is computed during the execution of the
+   // plan and not while the plan is built
+   std::shared_ptr<const operators::CompiledFilter> filter;
+
+   size_t batch_size_cutoff;
+
+   bool filter_computed = false;
 
    std::optional<BatchedBitmapReader> current_bitmap_reader;
 
@@ -51,15 +58,14 @@ class TableScanGenerator {
   public:
    TableScanGenerator(
       const std::vector<rhydb::schema::ColumnIdentifier>& columns,
-      Bitmap bitmap_filter_,
+      std::shared_ptr<const operators::CompiledFilter> filter,
       std::shared_ptr<const storage::Table> table,
       size_t batch_size_cutoff
    )
        : exec_batch_builder(columns),
-         bitmap_filter(std::move(bitmap_filter_)),
-         table(std::move(table)) {
-      current_bitmap_reader = BatchedBitmapReader{bitmap_filter.toRoaring(), batch_size_cutoff};
-   }
+         filter(std::move(filter)),
+         batch_size_cutoff(batch_size_cutoff),
+         table(std::move(table)) {}
 
    arrow::Future<std::optional<arrow::ExecBatch>> operator()() {
       SPDLOG_TRACE("TableScanGenerator::operator()");
@@ -80,7 +86,7 @@ class TableScanGenerator {
 #else
       // We do this to guard against https://github.com/apache/arrow/issues/47641
       // and https://github.com/apache/arrow/issues/47642
-      std::thread([future, this]() mutable {
+      std::thread([future, this] mutable {
          try {
             auto result = produceNextBatch();
             future.MarkFinished(std::move(result));
@@ -99,7 +105,7 @@ class TableScanGenerator {
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    arrow::acero::ExecPlan* plan,
    const std::vector<rhydb::schema::ColumnIdentifier>& columns,
-   Bitmap bitmap_filter_,
+   std::shared_ptr<const operators::CompiledFilter> filter,
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 );

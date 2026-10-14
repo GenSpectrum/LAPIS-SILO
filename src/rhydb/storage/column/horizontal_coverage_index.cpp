@@ -160,7 +160,9 @@ roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
    // `[batch_max_start, batch_min_end)`, every row in the chunk covers it.
    if (positionCoveredByWholeChunk(position, chunk_id)) {
       return {
-         roaring::internal::run_container_create_range(0, num_rows), num_rows, RUN_CONTAINER_TYPE
+         roaring::internal::run_container_create_range(0, num_rows),
+         num_rows,
+         RUN_CONTAINER_TYPE,
       };
    }
 
@@ -185,22 +187,28 @@ roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
    }
 
    roaring_util::RoaringContainer result{
-      bitset, static_cast<uint32_t>(bitset->cardinality), BITSET_CONTAINER_TYPE
+      bitset,
+      static_cast<uint32_t>(bitset->cardinality),
+      BITSET_CONTAINER_TYPE,
    };
    result.runOptimizeAndShrink();
    return result;
 }
 
-bool HorizontalCoverageIndex::noRowCoversPositionInChunk(uint32_t position, uint16_t chunk_id)
-   const {
+bool HorizontalCoverageIndex::noRowCoversPositionInChunk(
+   uint32_t position,
+   uint16_t chunk_id
+) const {
    if (chunk_id >= starts.size()) {
       return true;
    }
    return batch_max_end.at(chunk_id) <= position || batch_min_start.at(chunk_id) > position;
 }
 
-bool HorizontalCoverageIndex::positionCoveredByWholeChunk(uint32_t position, uint16_t chunk_id)
-   const {
+bool HorizontalCoverageIndex::positionCoveredByWholeChunk(
+   uint32_t position,
+   uint16_t chunk_id
+) const {
    if (chunk_id >= starts.size()) {
       return false;
    }
@@ -232,7 +240,8 @@ void HorizontalCoverageIndex::insertNullSequence(RowId row_id) {
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-std::vector<uint64_t> HorizontalCoverageIndex::computeCoverageCardinalities(size_t genome_length
+std::vector<uint64_t> HorizontalCoverageIndex::computeCoverageCardinalities(
+   size_t genome_length
 ) const {
    std::vector<int64_t> coverage_changes(genome_length + 1, 0);
    for (size_t chunk_id = 0; chunk_id < starts.size(); ++chunk_id) {
@@ -246,7 +255,7 @@ std::vector<uint64_t> HorizontalCoverageIndex::computeCoverageCardinalities(size
          coverage_changes[end] -= 1;
       }
    }
-   for (const auto& [_row_id, missing_positions] : horizontal_bitmaps) {
+   for (const auto& [row_id, missing_positions] : horizontal_bitmaps) {
       for (const uint32_t position_idx : missing_positions) {
          RHYDB_ASSERT_LT(position_idx, genome_length);
          coverage_changes[position_idx] -= 1;

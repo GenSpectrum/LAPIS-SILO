@@ -22,6 +22,19 @@ TEST(SaneQLParser, parsesStringLiteral) {
    EXPECT_EQ(expr->toString(), "'USA'");
 }
 
+TEST(SaneQLParser, stringLiteralWithQuoteRoundTrips) {
+   Parser parser("'O''Brien'");
+   auto expr = parser.parse();
+   EXPECT_EQ(ast::extractStringLiteral(*expr), "O'Brien");
+   EXPECT_EQ(expr->toString(), "'O''Brien'");
+}
+
+TEST(SaneQLParser, quotedIdentifierRoundTrips) {
+   Parser parser(ast::quoteIdentifier("a \"b\""));
+   auto expr = parser.parse();
+   EXPECT_EQ(ast::extractIdentifierName(*expr), "a \"b\"");
+}
+
 TEST(SaneQLParser, parsesIntLiteral) {
    Parser parser("42");
    auto expr = parser.parse();
@@ -117,16 +130,18 @@ TEST(SaneQLParser, parsesFunctionCallWithNamedArgs) {
 }
 
 TEST(SaneQLParser, parsesMethodCall) {
-   Parser parser("default.filter(country = 'USA')");
+   Parser parser("data.filter(country = 'USA')");
    auto expr = parser.parse();
    // Method call syntax is desugared: receiver becomes first positional arg
-   EXPECT_EQ(expr->toString(), "filter(default, (country = 'USA'))");
+   EXPECT_EQ(expr->toString(), "filter(data, (country = 'USA'))");
 }
 
 TEST(SaneQLParser, parsesMethodCallChain) {
-   Parser parser("default.filter(country = 'USA').groupBy({count:=count()})");
+   Parser parser("data.filter(country = 'USA').group(by:={}, aggs:={count:=count()})");
    auto expr = parser.parse();
-   EXPECT_EQ(expr->toString(), "groupBy(filter(default, (country = 'USA')), {count:=count()})");
+   EXPECT_EQ(
+      expr->toString(), "group(filter(data, (country = 'USA')), by:={}, aggs:={count:=count()})"
+   );
 }
 
 TEST(SaneQLParser, parsesTypeCast) {
@@ -154,13 +169,14 @@ TEST(SaneQLParser, parsesMethodCallOnSetLiteral) {
 }
 
 TEST(SaneQLParser, parsesComplexFilterQuery) {
-   Parser parser("default.filter(country = 'USA' && age > 30).groupBy({count:=count()})");
+   Parser parser("data.filter(country = 'USA' && age > 30).group(by:={}, aggs:={count:=count()})");
    auto expr = parser.parse();
    ASSERT_TRUE(std::holds_alternative<ast::FunctionCall>(expr->value));
    auto& outer = std::get<ast::FunctionCall>(expr->value);
-   EXPECT_EQ(outer.function_name, "groupBy");
+   EXPECT_EQ(outer.function_name, "group");
    // First positional arg is the child pipeline (filter call)
-   ASSERT_TRUE(std::holds_alternative<ast::FunctionCall>(outer.positional_arguments[0].value->value)
+   ASSERT_TRUE(
+      std::holds_alternative<ast::FunctionCall>(outer.positional_arguments[0].value->value)
    );
    auto& filter = std::get<ast::FunctionCall>(outer.positional_arguments[0].value->value);
    EXPECT_EQ(filter.function_name, "filter");
@@ -177,7 +193,7 @@ TEST(SaneQLParser, parsesDateBetweenWithTypeCast) {
 }
 
 TEST(SaneQLParser, parsesLimitMethod) {
-   Parser parser("default.filter(country = 'USA').limit(100)");
+   Parser parser("data.filter(country = 'USA').limit(100)");
    auto expr = parser.parse();
    ASSERT_TRUE(std::holds_alternative<ast::FunctionCall>(expr->value));
    auto& limit_call = std::get<ast::FunctionCall>(expr->value);
@@ -199,12 +215,12 @@ TEST(SaneQLParser, parsesFullExampleQuery) {
       "metadata\n"
       "  .filter(country = 'USA' && date_submitted.between('2020-01-01'::date, "
       "'2023-12-31'::date))\n"
-      "  .groupBy({count:=count()})"
+      "  .group(by:={}, aggs:={count:=count()})"
    );
    auto expr = parser.parse();
    ASSERT_TRUE(std::holds_alternative<ast::FunctionCall>(expr->value));
    auto& agg = std::get<ast::FunctionCall>(expr->value);
-   EXPECT_EQ(agg.function_name, "groupBy");
+   EXPECT_EQ(agg.function_name, "group");
 }
 
 TEST(SaneQLParser, throwsOnUnexpectedToken) {
@@ -249,10 +265,10 @@ TEST(SaneQLParser, throwsOnInvalidRecordLiteral) {
          Parser parser("{a.b := 'c'}");
          (void)parser.parse();
       },
-      ThrowsMessage<ParseException>(
-         ::testing::HasSubstr("Parse error at 1:1: A RecordLiteral requires a simple identifier "
-                              "expression as field names")
-      )
+      ThrowsMessage<ParseException>(::testing::HasSubstr(
+         "Parse error at 1:1: A RecordLiteral requires a simple identifier "
+         "expression as field names"
+      ))
    );
 }
 
@@ -262,10 +278,10 @@ TEST(SaneQLParser, throwsOnInvalidNamedArgument) {
          Parser parser("test(1, x(1) := false)");
          (void)parser.parse();
       },
-      ThrowsMessage<ParseException>(
-         ::testing::HasSubstr("Parse error at 1:9: A named argument requires a simple identifier "
-                              "as the name, but got 'x(1)'")
-      )
+      ThrowsMessage<ParseException>(::testing::HasSubstr(
+         "Parse error at 1:9: A named argument requires a simple identifier "
+         "as the name, but got 'x(1)'"
+      ))
    );
 }
 

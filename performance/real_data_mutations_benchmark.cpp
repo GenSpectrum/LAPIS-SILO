@@ -1,7 +1,11 @@
-// Co-occurrence groupBy over the ~141 real SARS-CoV-2 mutation positions in
-// performance/mutations.csv, run against real wastewater short-read data.
+// Benchmarks run against real wastewater short-read data (see dataset note below):
+//   * coverageGroupByOverWastewaterReads: co-occurrence group over the ~141 real SARS-CoV-2
+//     mutation positions in performance/mutations.csv.
+//   * bareCountGroupByOverWastewaterReads: a bare `count()` group-by
+// Both share a single ingested database via the RealDataMutations test fixture.
 //
-// This is the benchmark for the HorizontalCoverageIndex coverage-scan optimization. That
+// The co-occurrence benchmark is the one for the HorizontalCoverageIndex coverage-scan
+// optimization. That
 // win only appears on *short reads with partial coverage*: each read covers a small genome window,
 // so most of the 141 grouped positions are "not covered" for any given read, and the per-2^16-chunk
 // coverage envelopes let the query skip the chunks that cannot cover a queried position.
@@ -19,6 +23,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -30,7 +35,6 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include "sequence_generator.h"
 #include "rhydb/common/input_stream_wrapper.h"
 #include "rhydb/config/database_config.h"
 #include "rhydb/config/runtime_config.h"
@@ -41,6 +45,7 @@
 #include "rhydb/query_engine/query_plan.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/reference_genomes.h"
+#include "sequence_generator.h"
 
 namespace {
 
@@ -87,7 +92,7 @@ std::string buildQuery(const std::vector<uint32_t>& positions) {
       group_keys += fmt::format("s{}", i);
    }
    return fmt::format(
-      "default.map({{{}}}).groupBy({{count:=count()}}, {{{}}})", assignments, group_keys
+      "data.map({{{}}}).group(by:={{{}}}, aggs:={{count:=count()}})", assignments, group_keys
    );
 }
 
@@ -109,9 +114,10 @@ schema:
    database.createTable(
       rhydb::schema::TableName::getDefault(),
       rhydb::initialize::Initializer::createSchemaFromConfigFiles(
-         std::move(database_config),
+         database_config,
          reference_genomes,
          {},
+         // NOLINTNEXTLINE(readability-trailing-comma): false positive on empty brace, llvm#223646
          rhydb::common::PhyloTree{},
          /*without_unaligned_sequences=*/true
       )
@@ -126,10 +132,12 @@ Database ingest() {
    Database database = makeEmptyDatabase();
    const auto dataset = benchmarkDataPath(WASAP_MUTATION_COVERAGE_ZST);
    if (!std::filesystem::exists(dataset)) {
-      throw std::runtime_error(fmt::format(
-         "Could not find {}. Prepare benchmark data first with `make generateTestData`.",
-         dataset.string()
-      ));
+      throw std::runtime_error(
+         fmt::format(
+            "Could not find {}. Prepare benchmark data first with `make generateTestData`.",
+            dataset.string()
+         )
+      );
    }
    const rhydb::InputStreamWrapper input{dataset};
 
@@ -166,16 +174,13 @@ size_t planAndExecute(
    return rows;
 }
 
-void run() {
-   const auto query_options = rhydb::config::RuntimeConfig::withDefaults().query_options;
-
-   const auto positions = readMutationPositions("performance/mutations.csv");
-   SPDLOG_INFO("Loaded {} mutation positions from performance/mutations.csv", positions.size());
-
-   const Database database = ingest();
-
-   const std::string query = buildQuery(positions);
-
+/// Runs `query` ITERATIONS times, logging avg/min wall time and the result row count.
+void timeQuery(
+   const std::string& label,
+   const std::string& query,
+   const Database& database,
+   const QueryOptions& query_options
+) {
    double sum_ms = 0;
    double min_ms = 0;
    size_t result_rows = 0;
@@ -183,22 +188,48 @@ void run() {
       const auto start = std::chrono::high_resolution_clock::now();
       result_rows = planAndExecute(query, database, query_options);
       const auto end = std::chrono::high_resolution_clock::now();
-      const double ms = std::chrono::duration<double, std::milli>(end - start).count();
-      sum_ms += ms;
-      min_ms = (i == 0) ? ms : std::min(min_ms, ms);
+      const double elapsed_ms = std::chrono::duration<double, std::milli>(end - start).count();
+      sum_ms += elapsed_ms;
+      min_ms = (i == 0) ? elapsed_ms : std::min(min_ms, elapsed_ms);
    }
 
-   SPDLOG_INFO("Result rows: {}", result_rows);
+   SPDLOG_INFO("[{}] Result rows: {}", label, result_rows);
    SPDLOG_INFO(
-      "Query execution over {} iterations: avg {:.1f} ms, min {:.1f} ms",
+      "[{}] Query execution over {} iterations: avg {:.1f} ms, min {:.1f} ms",
+      label,
       ITERATIONS,
       sum_ms / ITERATIONS,
       min_ms
    );
 }
 
+// Ingesting the wastewater dataset takes a while, so both benchmarks in this file share a single
+// ingested database via the test suite fixture.
+class RealDataMutations : public ::testing::Test {
+  protected:
+   static void SetUpTestSuite() {
+      if (!database.has_value()) {
+         database.emplace(ingest());
+      }
+   }
+
+   static void TearDownTestSuite() { database.reset(); }
+
+   static std::optional<Database> database;
+};
+
+std::optional<Database> RealDataMutations::database;
+
 }  // namespace
 
-TEST(RealDataMutations, coverageGroupByOverWastewaterReads) {
-   run();
+TEST_F(RealDataMutations, coverageGroupByOverWastewaterReads) {
+   const auto query_options = rhydb::config::RuntimeConfig::withDefaults().query_options;
+   const auto positions = readMutationPositions("performance/mutations.csv");
+   SPDLOG_INFO("Loaded {} mutation positions from performance/mutations.csv", positions.size());
+   timeQuery("coverageGroupBy", buildQuery(positions), *database, query_options);
+}
+
+TEST_F(RealDataMutations, bareCountGroupByOverWastewaterReads) {
+   const auto query_options = rhydb::config::RuntimeConfig::withDefaults().query_options;
+   timeQuery("bareCount", "data.group(by := {}, aggs := {n := count()})", *database, query_options);
 }

@@ -36,9 +36,9 @@ template <typename SymbolType>
 InsertionEntry<SymbolType> parseInsertion(const std::string& value) {
    auto position_and_insertion = splitBy(value, DELIMITER_INSERTION);
    std::ranges::transform(
-      position_and_insertion,
-      position_and_insertion.begin(),
-      [](const std::string& value) { return removeSymbol(value, '\"'); }
+      position_and_insertion, position_and_insertion.begin(), [](const std::string& value) {
+         return removeSymbol(value, '\"');
+      }
    );
    if (position_and_insertion.size() == 2 && !position_and_insertion.at(1).empty()) {
       try {
@@ -60,12 +60,14 @@ InsertionEntry<SymbolType> parseInsertion(const std::string& value) {
          for (char character : insertion) {
             auto symbol = SymbolType::charToSymbol(character);
             if (symbol == std::nullopt) {
-               throw InsertionFormatException(fmt::format(
-                  "Illegal {} character '{}' in insertion: {}",
-                  SymbolType::SYMBOL_NAME_LOWER_CASE,
-                  character,
-                  value
-               ));
+               throw InsertionFormatException(
+                  fmt::format(
+                     "Illegal {} character '{}' in insertion: {}",
+                     SymbolType::SYMBOL_NAME_LOWER_CASE,
+                     character,
+                     value
+                  )
+               );
             }
          }
          return {.position_idx = position, .insertion = insertion};
@@ -233,7 +235,7 @@ SequenceColumnInfo SequenceColumn<SymbolType>::calculateInfo() {
    sequence_column_info = {
       .sequence_count = sequence_count,
       .vertical_bitmaps_size = computeVerticalBitmapsSize(),
-      .horizontal_bitmaps_size = computeHorizontalBitmapsSize()
+      .horizontal_bitmaps_size = computeHorizontalBitmapsSize(),
    };
    return sequence_column_info;
 }
@@ -270,7 +272,7 @@ void SequenceColumn<SymbolType>::flushBuffer() {
 template <typename SymbolType>
 size_t SequenceColumn<SymbolType>::computeVerticalBitmapsSize() const {
    size_t result = 0;
-   for (const auto& [_pos, sequence_diff] : vertical_sequence_index.vertical_bitmaps) {
+   for (const auto& [pos, sequence_diff] : vertical_sequence_index.vertical_bitmaps) {
       result += sequence_diff.sizeInBytes();
    }
    return result;
@@ -279,7 +281,7 @@ size_t SequenceColumn<SymbolType>::computeVerticalBitmapsSize() const {
 template <typename SymbolType>
 size_t SequenceColumn<SymbolType>::computeHorizontalBitmapsSize() const {
    size_t result = 0;
-   for (const auto& [_pos, bitmap] : horizontal_coverage_index.horizontal_bitmaps) {
+   for (const auto& [pos, bitmap] : horizontal_coverage_index.horizontal_bitmaps) {
       result += bitmap.getSizeInBytes(false);
    }
    return result;
@@ -299,9 +301,11 @@ SequenceColumnBuilder<SymbolType>::SequenceColumnBuilder(
    std::string local_reference
 )
     : local_reference(std::move(local_reference)),
-      compressed_input_decompressor(std::make_shared<ZstdDDictionary>(
-         SymbolType::sequenceToString(metadata->reference_sequence)
-      )) {
+      compressed_input_decompressor(
+         std::make_shared<ZstdDDictionary>(
+            SymbolType::sequenceToString(metadata->reference_sequence)
+         )
+      ) {
    RHYDB_ASSERT_GT(metadata->reference_sequence.size(), 0ULL);
    RHYDB_ASSERT_EQ(this->local_reference.size(), metadata->reference_sequence.size());
    local_reference_contains_missing_symbol =
@@ -335,9 +339,13 @@ void SequenceColumnBuilder<SymbolType>::insert(
    }
    auto [coverage, mutations] = std::move(coverage_mutations).value();
 
-   buffer.push_back(typename SequenceColumn<SymbolType>::BufferedSequence{
-      .coverage = std::move(coverage), .mutations = std::move(mutations), .insertions = {insertions}
-   });
+   buffer.push_back(
+      typename SequenceColumn<SymbolType>::BufferedSequence{
+         .coverage = std::move(coverage),
+         .mutations = std::move(mutations),
+         .insertions = {insertions},
+      }
+   );
 }
 
 template class SequenceColumn<Nucleotide>;

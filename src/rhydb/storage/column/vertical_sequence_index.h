@@ -44,14 +44,15 @@ class VerticalSequenceIndex {
 
    std::map<SequenceDiffKey, SequenceDiff> vertical_bitmaps;
 
-   using const_iterator = typename std::map<SequenceDiffKey, SequenceDiff>::const_iterator;
+   using const_iterator = std::map<SequenceDiffKey, SequenceDiff>::const_iterator;
 
    void addSymbolsToPositions(
       uint32_t position_idx,
       const SymbolMap<SymbolType, std::vector<uint32_t>>& ids_per_symbol
    );
 
-   [[nodiscard]] std::pair<const_iterator, const_iterator> getRangeForPosition(uint32_t position_idx
+   [[nodiscard]] std::pair<const_iterator, const_iterator> getRangeForPosition(
+      uint32_t position_idx
    ) const;
 
    [[nodiscard]] SymbolMap<SymbolType, uint32_t> computeSymbolCountsForPosition(
@@ -100,8 +101,10 @@ class VerticalSequenceIndex {
       const std::vector<typename SymbolType::Symbol>& symbols
    ) const;
 
-   void overwriteSymbolsInSequences(std::vector<std::string>& sequences, const Bitmap& row_ids)
-      const;
+   void overwriteSymbolsInSequences(
+      std::vector<std::string>& sequences,
+      const Bitmap& row_ids
+   ) const;
 
   private:
    friend class boost::serialization::access;

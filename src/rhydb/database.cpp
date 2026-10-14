@@ -1,5 +1,7 @@
 #include "rhydb/database.h"
 
+#include <algorithm>
+#include <expected>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -15,7 +17,6 @@
 #include <arrow/ipc/writer.h>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
-#include <nlohmann/json.hpp>
 
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/common/aa_symbols.h"
@@ -44,26 +45,6 @@
 
 namespace {
 template <typename SymbolType>
-std::optional<std::vector<typename SymbolType::Symbol>> stringToSymbolVector(
-   const std::string& sequence
-) {
-   const size_t size = sequence.size();
-   std::vector<typename SymbolType::Symbol> result;
-   result.reserve(size);
-   for (size_t i = 0; i < size; ++i) {
-      if (i + 1 < size && sequence[i] == '\\') {
-         ++i;
-      }
-      auto symbol = SymbolType::charToSymbol(sequence[i]);
-      if (symbol == std::nullopt) {
-         return std::nullopt;
-      }
-      result.emplace_back(symbol.value());
-   }
-   return result;
-}
-
-template <typename SymbolType>
 std::string symbolVectorToString(const std::vector<typename SymbolType::Symbol>& sequence) {
    const size_t size = sequence.size();
    std::string result;
@@ -77,6 +58,17 @@ std::string symbolVectorToString(const std::vector<typename SymbolType::Symbol>&
 }  // namespace
 
 namespace rhydb {
+
+namespace {
+
+const std::string DATABASE_SCHEMA_FILENAME = "database_schema.silo";
+const std::string DATA_VERSION_FILENAME = "data_version.silo";
+
+std::string tableDataFilename(std::string_view table_name) {
+   return fmt::format("{}.silo", table_name);
+}
+
+}  // namespace
 
 Database::Database() {
    createMissingBuiltinTables();
@@ -98,10 +90,33 @@ void Database::createMissingBuiltinTables() {
    }
 }
 
+std::expected<void, std::string> Database::validateTableName(std::string_view table_name) {
+   if (table_name.empty()) {
+      return std::unexpected{std::string{"a table name must not be empty"}};
+   }
+   const bool has_only_safe_characters = std::ranges::all_of(table_name, [](char character) {
+      return (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') ||
+             (character >= '0' && character <= '9') || character == '_' || character == '-';
+   });
+   if (!has_only_safe_characters) {
+      return std::unexpected{fmt::format(
+         "the table name '{}' may only contain letters, digits, '_' and '-'", table_name
+      )};
+   }
+   const auto data_filename = tableDataFilename(table_name);
+   if (data_filename == DATABASE_SCHEMA_FILENAME || data_filename == DATA_VERSION_FILENAME) {
+      return std::unexpected{fmt::format("the table name '{}' is reserved", table_name)};
+   }
+   return {};
+}
+
 void Database::createTable(
    schema::TableName table_name,
    std::shared_ptr<schema::TableSchema> table_schema
 ) {
+   if (auto valid = validateTableName(table_name.getName()); !valid.has_value()) {
+      throw std::runtime_error{fmt::format("Cannot create table: {}", valid.error())};
+   }
    tables.emplace(table_name, std::make_shared<storage::Table>(table_name, table_schema));
    schema.tables.emplace(std::move(table_name), std::move(table_schema));
 }
@@ -109,80 +124,14 @@ void Database::createTable(
 void Database::appendData(
    const schema::TableName& table_name,
    std::istream& input_stream,
-   append::ClusteredBufferingOptions clustering_options
+   const append::ClusteredBufferingOptions& clustering_options
 ) {
    rhydb::append::NdjsonLineReader input_data{input_stream};
    RHYDB_ASSERT(tables.contains(table_name));
    auto& table = tables.at(table_name);
-   rhydb::append::appendDataToTable(table, input_data, std::move(clustering_options));
+   rhydb::append::appendDataToTable(table, input_data, clustering_options);
    updateDataVersion();
    SPDLOG_INFO("Database info: {}", getDatabaseInfo());
-}
-
-void Database::createNucleotideSequenceTable(
-   const std::string& table_name,
-   const std::string& primary_key_name,
-   const std::string& sequence_name,
-   const std::string& reference_sequence,
-   const std::vector<std::string>& extra_string_columns
-) {
-   auto table_schema = std::make_shared<schema::TableSchema>();
-   const schema::ColumnIdentifier primary_key = {
-      .name = primary_key_name, .type = schema::ColumnType::STRING
-   };
-   table_schema->column_metadata.emplace(
-      primary_key, std::make_shared<storage::column::StringColumnMetadata>(primary_key_name)
-   );
-   auto reference_sequence_vector = stringToSymbolVector<Nucleotide>(reference_sequence).value();
-   table_schema->column_metadata.emplace(
-      schema::ColumnIdentifier{
-         .name = sequence_name, .type = schema::ColumnType::NUCLEOTIDE_SEQUENCE
-      },
-      std::make_shared<storage::column::SequenceColumnMetadata<Nucleotide>>(
-         sequence_name, std::move(reference_sequence_vector)
-      )
-   );
-   for (const auto& column_name : extra_string_columns) {
-      table_schema->column_metadata.emplace(
-         schema::ColumnIdentifier{.name = column_name, .type = schema::ColumnType::STRING},
-         std::make_shared<storage::column::StringColumnMetadata>(column_name)
-      );
-   }
-   table_schema->primary_key = primary_key;
-   createTable(schema::TableName(table_name), std::move(table_schema));
-}
-
-void Database::createGeneTable(
-   const std::string& table_name,
-   const std::string& primary_key_name,
-   const std::string& sequence_name,
-   const std::string& reference_sequence,
-   const std::vector<std::string>& extra_string_columns
-) {
-   auto table_schema = std::make_shared<schema::TableSchema>();
-   const schema::ColumnIdentifier primary_key = {
-      .name = primary_key_name, .type = schema::ColumnType::STRING
-   };
-   table_schema->column_metadata.emplace(
-      primary_key, std::make_shared<storage::column::StringColumnMetadata>(primary_key_name)
-   );
-   auto reference_sequence_vector = stringToSymbolVector<AminoAcid>(reference_sequence).value();
-   table_schema->column_metadata.emplace(
-      schema::ColumnIdentifier{
-         .name = sequence_name, .type = schema::ColumnType::AMINO_ACID_SEQUENCE
-      },
-      std::make_shared<storage::column::SequenceColumnMetadata<AminoAcid>>(
-         sequence_name, std::move(reference_sequence_vector)
-      )
-   );
-   for (const auto& column_name : extra_string_columns) {
-      table_schema->column_metadata.emplace(
-         schema::ColumnIdentifier{.name = column_name, .type = schema::ColumnType::STRING},
-         std::make_shared<storage::column::StringColumnMetadata>(column_name)
-      );
-   }
-   table_schema->primary_key = primary_key;
-   createTable(schema::TableName(table_name), std::move(table_schema));
 }
 
 void Database::appendDataFromFile(const std::string& table_name, const std::string& file_path) {
@@ -319,7 +268,7 @@ void Database::updateColumn(
    }
 
    const roaring::Roaring row_ids = getFilteredBitmap(table_name, filter_expression);
-   query_engine::assignScalarLiteralToColumn(table.columns, *column, value, row_ids);
+   query_engine::assignScalarLiteralToColumn(table, *column, value, row_ids);
 
    // The update mutates persisted table data, so bump the data version like appendData does; this
    // keeps getDataVersionTimestamp() and versioned save directories consistent with the change.
@@ -330,15 +279,20 @@ namespace {
 
 void addTableStatisticsToDatabaseInfo(DatabaseInfo& database_info, const storage::Table& table) {
    // TODO(#743) try to analyze size accuracy relative to RSS
-   for (const auto& [_, seq_column] : table.columns.nuc_columns) {
-      auto info = seq_column.getInfo();
-      database_info.vertical_bitmaps_size += info.vertical_bitmaps_size;
-      database_info.horizontal_bitmaps_size += info.horizontal_bitmaps_size;
-   }
-   for (const auto& [_, seq_column] : table.columns.aa_columns) {
-      auto info = seq_column.getInfo();
-      database_info.vertical_bitmaps_size += info.vertical_bitmaps_size;
-      database_info.horizontal_bitmaps_size += info.horizontal_bitmaps_size;
+   for (const auto& [_, column] : table.columns) {
+      std::visit(
+         [&]<typename Column>(const Column& seq_column) {
+            if constexpr (
+               std::is_same_v<Column, storage::column::SequenceColumn<Nucleotide>> ||
+               std::is_same_v<Column, storage::column::SequenceColumn<AminoAcid>>
+            ) {
+               auto info = seq_column.getInfo();
+               database_info.vertical_bitmaps_size += info.vertical_bitmaps_size;
+               database_info.horizontal_bitmaps_size += info.horizontal_bitmaps_size;
+            }
+         },
+         column
+      );
    }
    database_info.row_count += table.row_layout.numRows();
 }
@@ -350,7 +304,7 @@ DatabaseInfo Database::getDatabaseInfo() const {
       .version = rhydb::RELEASE_VERSION,
       .row_count = 0,
       .vertical_bitmaps_size = 0,
-      .horizontal_bitmaps_size = 0
+      .horizontal_bitmaps_size = 0,
    };
    const auto default_table = tables.find(schema::TableName::getDefault());
    if (default_table != tables.end()) {
@@ -358,9 +312,6 @@ DatabaseInfo Database::getDatabaseInfo() const {
    }
    return database_info;
 }
-
-const std::string DATABASE_SCHEMA_FILENAME = "database_schema.silo";
-const std::string DATA_VERSION_FILENAME = "data_version.silo";
 
 void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    if (getDataVersionTimestamp().value.empty()) {
@@ -404,7 +355,7 @@ void Database::saveDatabaseState(const std::filesystem::path& save_directory) {
    for (const auto& [table_name, table] : tables) {
       SPDLOG_DEBUG("Saving table data for table {}", table_name.getName());
       const std::filesystem::path table_file =
-         versioned_save_directory / (table_name.getName() + ".silo");
+         versioned_save_directory / tableDataFilename(table_name.getName());
       table->saveData(table_file);
    }
 
@@ -451,7 +402,8 @@ Database Database::loadDatabaseState(const RhyDBDataSource& rhydb_data_source) {
 
    for (const auto& [table_name, _] : schema.tables) {
       SPDLOG_DEBUG("Loading data for table {}", table_name.getName());
-      database.tables.at(table_name)->loadData(save_directory / (table_name.getName() + ".silo"));
+      database.tables.at(table_name)
+         ->loadData(save_directory / tableDataFilename(table_name.getName()));
    }
 
    database.data_version_ = loadDataVersion(save_directory / DATA_VERSION_FILENAME);
@@ -474,25 +426,62 @@ void Database::updateDataVersion() {
    SPDLOG_DEBUG("Data version was set to {}", data_version_.toString());
 }
 
-std::string Database::executeQueryAsArrowIpc(const std::string& query_string) const {
-   auto query_plan = query_engine::Planner::planSaneqlQuery(
-      query_string, tables, config::QueryOptions{}, "executeQueryAsArrowIpc"
-   );
+namespace {
 
-   constexpr uint64_t DEFAULT_TIMEOUT_SECONDS = 120;
-   std::ostringstream output_stream;
-   auto output_sink =
-      query_engine::exec_node::ArrowIpcSink::make(&output_stream, query_plan.results_schema);
-   if (!output_sink.status().ok()) {
+std::shared_ptr<arrow::Table> valueOrThrow(
+   arrow::Result<std::shared_ptr<arrow::Table>> write_result
+) {
+   if (!write_result.ok()) {
       throw std::runtime_error(
-         fmt::format("Failed to create Arrow IPC writer: {}", output_sink.status().message())
+         fmt::format("Failed to build the write result: {}", write_result.status().message())
       );
    }
-   query_plan.executeAndWrite(output_sink.ValueUnsafe(), DEFAULT_TIMEOUT_SECONDS);
+   return std::move(write_result).ValueUnsafe();
+}
+
+}  // namespace
+
+std::string Database::executeQueryAsArrowIpc(const std::string& query_string) {
+   constexpr std::string_view REQUEST_ID = "executeQueryAsArrowIpc";
+   auto request = query_engine::command::parseRequest(query_string, tables);
+
+   std::ostringstream output_stream;
+   auto make_output_sink = [&](const std::shared_ptr<arrow::Schema>& schema) {
+      auto output_sink = query_engine::exec_node::ArrowIpcSink::make(&output_stream, schema);
+      if (!output_sink.status().ok()) {
+         throw std::runtime_error(
+            fmt::format("Failed to create Arrow IPC writer: {}", output_sink.status().message())
+         );
+      }
+      return std::move(output_sink).ValueUnsafe();
+   };
+
+   if (auto* command = std::get_if<query_engine::command::WriteCommandPtr>(&request)) {
+      const auto write_result =
+         valueOrThrow((*command)->execute(*this, config::QueryOptions{}, REQUEST_ID));
+      auto output_sink = make_output_sink(write_result->schema());
+      const auto status = query_engine::command::writeToSink(*write_result, output_sink);
+      if (!status.ok()) {
+         throw std::runtime_error(
+            fmt::format("Failed to write the write result: {}", status.message())
+         );
+      }
+      return output_stream.str();
+   }
+
+   auto query_plan = query_engine::Planner::planQuery(
+      std::move(std::get<query_engine::operators::QueryNodePtr>(request)),
+      tables,
+      config::QueryOptions{},
+      REQUEST_ID
+   );
+   constexpr uint64_t DEFAULT_TIMEOUT_SECONDS = 120;
+   auto output_sink = make_output_sink(query_plan.results_schema);
+   query_plan.executeAndWrite(output_sink, DEFAULT_TIMEOUT_SECONDS);
    return output_stream.str();
 }
 
-nlohmann::json Database::executeWrite(
+std::shared_ptr<arrow::Table> Database::executeWrite(
    const std::string& query_string,
    const config::QueryOptions& query_options,
    std::string_view request_id
@@ -504,7 +493,7 @@ nlohmann::json Database::executeWrite(
          "expected a write statement, e.g. `<query>.insertInto(<table>)`"
       );
    }
-   return (*command)->execute(*this, query_options, request_id);
+   return valueOrThrow((*command)->execute(*this, query_options, request_id));
 }
 
 }  // namespace rhydb

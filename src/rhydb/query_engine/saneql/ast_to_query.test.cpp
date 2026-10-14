@@ -10,6 +10,8 @@
 #include <gtest/gtest.h>
 
 #include "rhydb/query_engine/illegal_query_exception.h"
+#include "rhydb/query_engine/operators/aggregate_node.h"
+#include "rhydb/query_engine/operators/map_node.h"
 #include "rhydb/query_engine/saneql/ast.h"
 #include "rhydb/query_engine/saneql/parser.h"
 #include "rhydb/schema/database_schema.h"
@@ -25,20 +27,20 @@ namespace ast = rhydb::query_engine::saneql::ast;
 
 namespace {
 
+using Tables = std::map<rhydb::schema::TableName, std::shared_ptr<rhydb::storage::Table>>;
+
 auto parseFilter(
    std::string_view query,
    const std::vector<rhydb::schema::ColumnIdentifier>& schema = {}
 ) {
-   return convertToFilter(*Parser(query).parse(), schema, {});
+   return convertToFilter(*Parser(query).parse(), schema, Tables{});
 }
 
 // Schema exposing a nucleotide sequence column, so that the sequence leaf expressions can
 // resolve their sequence name against the input schema at parse time.
 const std::vector<rhydb::schema::ColumnIdentifier> SEQUENCE_SCHEMA{
-   {.name = "segment1", .type = rhydb::schema::ColumnType::NUCLEOTIDE_SEQUENCE}
+   {.name = "segment1", .type = rhydb::schema::ColumnType::NUCLEOTIDE_SEQUENCE},
 };
-
-using Tables = std::map<rhydb::schema::TableName, std::shared_ptr<rhydb::storage::Table>>;
 
 Tables makeTablesWithDefault() {
    using rhydb::schema::ColumnIdentifier;
@@ -50,11 +52,11 @@ Tables makeTablesWithDefault() {
    ColumnIdentifier date_column{.name = "date", .type = ColumnType::DATE32};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
-      {date_column, std::make_shared<ColumnMetadata>(date_column.name)}
+      {date_column, std::make_shared<ColumnMetadata>(date_column.name)},
    };
    auto schema = std::make_shared<rhydb::schema::TableSchema>(std::move(col_meta), primary_key);
    Tables tables;
-   const rhydb::schema::TableName table_name("default");
+   const rhydb::schema::TableName table_name("data");
    tables[table_name] = std::make_shared<rhydb::storage::Table>(table_name, schema);
    return tables;
 }
@@ -71,11 +73,11 @@ Tables makeTablesWithDictionaryEncodedColumn() {
    ColumnIdentifier lineage_column{.name = "lineage", .type = ColumnType::DICTIONARY_ENCODED};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
-      {lineage_column, std::make_shared<DictionaryEncodedColumnMetadata>(lineage_column.name)}
+      {lineage_column, std::make_shared<DictionaryEncodedColumnMetadata>(lineage_column.name)},
    };
    auto schema = std::make_shared<rhydb::schema::TableSchema>(std::move(col_meta), primary_key);
    Tables tables;
-   const rhydb::schema::TableName table_name("default");
+   const rhydb::schema::TableName table_name("data");
    tables[table_name] = std::make_shared<rhydb::storage::Table>(table_name, schema);
    return tables;
 }
@@ -86,12 +88,12 @@ TEST(AstToQuery, nullFromAndTo) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
       [&tables]() {
-         (void)parseAndConvertToQueryTree("default.filter(id.between(null, null))", tables);
+         (void)parseAndConvertToQueryTree("data.filter(id.between(null, null))", tables);
       },
-      ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("Could not infer type of between expression. From-value or to-value "
-                              "needs to be a typed non-null value, got from: 'null' to: 'null'")
-      )
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
+         "Could not infer type of between expression. From-value or to-value "
+         "needs to be a typed non-null value, got from: 'null' to: 'null'"
+      ))
    );
 }
 
@@ -253,7 +255,7 @@ TEST(AstToQueryConvertToFilter, unsupportedExpressionTypeThrows) {
 
 TEST(AstToQueryConvertToFilter, booleanColumnReferenceBuildsFieldRef) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "isHuman", .type = rhydb::schema::ColumnType::BOOL}
+      {.name = "isHuman", .type = rhydb::schema::ColumnType::BOOL},
    };
    EXPECT_EQ(parseFilter("isHuman", schema)->toString(), "isHuman");
 }
@@ -271,14 +273,14 @@ TEST(AstToQueryConvertToFilter, unknownColumnReferenceThrows) {
 
 TEST(AstToQueryIntComparison, lessThanBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32},
    };
    EXPECT_EQ(parseFilter("age < 5", schema)->toString(), "age < 5");
 }
 
 TEST(AstToQueryIntComparison, greaterThanBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32},
    };
    EXPECT_EQ(parseFilter("age > 5", schema)->toString(), "age > 5");
 }
@@ -287,14 +289,14 @@ TEST(AstToQueryIntComparison, greaterThanBuildsComparison) {
 
 TEST(AstToQueryFloatComparison, lessEqualBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = rhydb::schema::ColumnType::FLOAT}
+      {.name = "age", .type = rhydb::schema::ColumnType::FLOAT},
    };
    EXPECT_EQ(parseFilter("age <= 5.0", schema)->toString(), "age <= 5");
 }
 
 TEST(AstToQueryFloatComparison, greaterThanBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = rhydb::schema::ColumnType::FLOAT}
+      {.name = "age", .type = rhydb::schema::ColumnType::FLOAT},
    };
    EXPECT_EQ(parseFilter("age > 5.0", schema)->toString(), "age > 5");
 }
@@ -303,14 +305,14 @@ TEST(AstToQueryFloatComparison, greaterThanBuildsComparison) {
 
 TEST(AstToQueryDateComparison, lessThanBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "date", .type = rhydb::schema::ColumnType::DATE32}
+      {.name = "date", .type = rhydb::schema::ColumnType::DATE32},
    };
    EXPECT_EQ(parseFilter("date < '2020-01-01'::date", schema)->toString(), "date < '2020-01-01'");
 }
 
 TEST(AstToQueryDateComparison, greaterThanBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "date", .type = rhydb::schema::ColumnType::DATE32}
+      {.name = "date", .type = rhydb::schema::ColumnType::DATE32},
    };
    EXPECT_EQ(parseFilter("date > '2020-01-01'::date", schema)->toString(), "date > '2020-01-01'");
 }
@@ -321,7 +323,7 @@ TEST(AstToQueryBinaryExpr, unsupportedValueTypeThrows) {
    // `a` is in the schema so that the right operand is the only invalid one and the
    // assertion cannot be satisfied by an error about the left side.
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "a", .type = rhydb::schema::ColumnType::INT32}
+      {.name = "a", .type = rhydb::schema::ColumnType::INT32},
    };
    EXPECT_THAT(
       [&]() { (void)parseFilter("a = {1, 2}", schema); },
@@ -361,7 +363,7 @@ TEST(AstToQueryBinaryExpr, notEqualsNoIdentifierBuildsComparison) {
 
 TEST(AstToQueryBinaryExpr, equalsNullThrows) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32},
    };
    EXPECT_THAT(
       [&]() { (void)parseFilter("age = null", schema); },
@@ -373,7 +375,7 @@ TEST(AstToQueryBinaryExpr, equalsNullThrows) {
 
 TEST(AstToQueryBinaryExpr, nullOnLeftThrows) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32},
    };
    EXPECT_THAT(
       [&]() { (void)parseFilter("null = age", schema); },
@@ -385,7 +387,7 @@ TEST(AstToQueryBinaryExpr, nullOnLeftThrows) {
 
 TEST(AstToQueryBinaryExpr, notEqualsNullThrows) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32},
    };
    EXPECT_THAT(
       [&]() { (void)parseFilter("age <> null", schema); },
@@ -397,7 +399,7 @@ TEST(AstToQueryBinaryExpr, notEqualsNullThrows) {
 
 TEST(AstToQueryBinaryExpr, orderingAgainstNullThrows) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32},
    };
    EXPECT_THAT(
       [&]() { (void)parseFilter("age < null", schema); },
@@ -409,14 +411,14 @@ TEST(AstToQueryBinaryExpr, orderingAgainstNullThrows) {
 
 TEST(AstToQueryBinaryExpr, equalsIdentifierOnRightBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32},
    };
    EXPECT_EQ(parseFilter("30 = age", schema)->toString(), "30 = age");
 }
 
 TEST(AstToQueryBinaryExpr, comparisonIdentifierOnRightBuildsComparison) {
    const std::vector<rhydb::schema::ColumnIdentifier> schema{
-      {.name = "age", .type = rhydb::schema::ColumnType::INT32}
+      {.name = "age", .type = rhydb::schema::ColumnType::INT32},
    };
    // Operands keep their written order; Comparison::compile flips the comparator when
    // the column is on the right, so `1 < age` stays `1 < age` at this stage.
@@ -441,19 +443,21 @@ TEST(AstToQueryBinaryExpr, unhandledBinaryOpThrows) {
       {}
    );
    EXPECT_THAT(
-      [&]() { (void)convertToFilter(*expr, {}, {}); },
+      [&]() { (void)convertToFilter(*expr, {}, Tables{}); },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("unhandled binary operator"))
    );
 }
 
-// --- groupBy ---
+// --- group ---
 
 TEST(AstToQueryGroupBy, aggregatesNotRecordLiteralThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&]() { (void)parseAndConvertToQueryTree("default.groupBy('not_a_record')", tables); },
+      [&]() {
+         (void)parseAndConvertToQueryTree("data.group(by:={}, aggs:='not_a_record')", tables);
+      },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("groupBy aggregates must be a record literal")
+         ::testing::HasSubstr("group aggs must be a record literal like {count:=count()}")
       )
    );
 }
@@ -461,7 +465,7 @@ TEST(AstToQueryGroupBy, aggregatesNotRecordLiteralThrows) {
 TEST(AstToQueryGroupBy, aggregateDefNotFunctionCallThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&]() { (void)parseAndConvertToQueryTree("default.groupBy({n:=42})", tables); },
+      [&]() { (void)parseAndConvertToQueryTree("data.group(by:={}, aggs:={n:=42})", tables); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("aggregate definition 'n' must be a function call")
       )
@@ -471,7 +475,7 @@ TEST(AstToQueryGroupBy, aggregateDefNotFunctionCallThrows) {
 TEST(AstToQueryGroupBy, unknownAggregateFunctionThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&]() { (void)parseAndConvertToQueryTree("default.groupBy({n:=avg()})", tables); },
+      [&]() { (void)parseAndConvertToQueryTree("data.group(by:={}, aggs:={n:=avg()})", tables); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("unknown aggregate function 'avg'. Valid functions: count, sum")
       )
@@ -482,20 +486,146 @@ TEST(AstToQueryGroupBy, fieldNotInSchemaThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
       [&tables]() {
-         (void)parseAndConvertToQueryTree("default.groupBy({n:=count()}, {nonexistent})", tables);
+         (void)parseAndConvertToQueryTree(
+            "data.group(by:={nonexistent}, aggs:={n:=count()})", tables
+         );
       },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("group field 'nonexistent' references unknown column 'nonexistent'")
+      )
+   );
+}
+
+TEST(AstToQueryGroupBy, acceptsNamedByAndAggs) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree =
+      parseAndConvertToQueryTree("data.group(aggs:={n:=count()}, by:={date})", tables);
+   std::vector<std::string> column_names;
+   for (const auto& col : query_tree->getOutputSchema()) {
+      column_names.push_back(col.name);
+   }
+   EXPECT_THAT(column_names, ::testing::UnorderedElementsAre("date", "n"));
+}
+
+TEST(AstToQueryGroupBy, acceptsPositionalByAndAggs) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree = parseAndConvertToQueryTree("data.group({date}, {n:=count()})", tables);
+   std::vector<std::string> column_names;
+   for (const auto& col : query_tree->getOutputSchema()) {
+      column_names.push_back(col.name);
+   }
+   EXPECT_THAT(column_names, ::testing::UnorderedElementsAre("date", "n"));
+}
+
+TEST(AstToQueryGroupBy, missingAggsThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&]() { (void)parseAndConvertToQueryTree("data.group(by:={date})", tables); },
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("group() requires argument 'aggs'"))
+   );
+}
+
+TEST(AstToQueryGroupBy, aggregatesInByPositionThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&]() { (void)parseAndConvertToQueryTree("data.group({n:=count()}, {date})", tables); },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
-         "groupBy field 'nonexistent' is not present in the input's output schema"
+         "group by must be a set of scalar expressions like {pango_lineage, S[10]} (or {} for "
+         "no grouping), aggregates go into aggs, e.g. group(by:={}, aggs:={count:=count()})"
       ))
+   );
+}
+
+TEST(AstToQueryGroupBy, byIsComputedByMapBelowTheAggregate) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree =
+      parseAndConvertToQueryTree("data.group({date, date.isoWeek()}, {n:=count()})", tables);
+   std::vector<std::string> column_names;
+   for (const auto& col : query_tree->getOutputSchema()) {
+      column_names.push_back(col.name);
+   }
+   EXPECT_THAT(column_names, ::testing::UnorderedElementsAre("date", "isoWeek(date)", "n"));
+   const auto* aggregate =
+      dynamic_cast<const rhydb::query_engine::operators::AggregateNode*>(query_tree.get());
+   ASSERT_NE(aggregate, nullptr);
+   const auto* map =
+      dynamic_cast<const rhydb::query_engine::operators::MapNode*>(aggregate->child.get());
+   ASSERT_NE(map, nullptr);
+   ASSERT_EQ(map->assignments.size(), 2);
+   EXPECT_EQ(map->assignments[0].output_column.name, "date");
+   EXPECT_EQ(map->assignments[1].output_column.name, "isoWeek(date)");
+}
+
+TEST(AstToQueryGroupBy, duplicateScalarExpressionInByThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&]() {
+         (void)parseAndConvertToQueryTree(
+            "data.group({date.isoWeek(), isoWeek(date)}, {n:=count()})", tables
+         );
+      },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("group field 'isoWeek(date)' is given more than once")
+      )
+   );
+}
+
+TEST(AstToQueryGroupBy, invalidScalarExpressionInByThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&]() {
+         (void)parseAndConvertToQueryTree("data.group({nope.isoWeek()}, {n:=count()})", tables);
+      },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("isoWeek(): the field nope is not found in the current context")
+      )
+   );
+}
+
+// --- projectout ---
+
+TEST(AstToQueryProjectout, acceptsNamedRemove) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree = parseAndConvertToQueryTree("data.projectout(remove:={date})", tables);
+   const auto output_schema = query_tree->getOutputSchema();
+   ASSERT_EQ(output_schema.size(), 1);
+   EXPECT_EQ(output_schema[0].name, "id");
+}
+
+TEST(AstToQueryProjectout, oldFieldsParameterNameThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() { (void)parseAndConvertToQueryTree("data.projectout(fields:={date})", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("projectout() received unknown argument 'fields'")
+      )
    );
 }
 
 // --- project ---
 
+TEST(AstToQueryProject, acceptsNamedExpressions) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree = parseAndConvertToQueryTree("data.project(expressions:={date})", tables);
+   const auto output_schema = query_tree->getOutputSchema();
+   ASSERT_EQ(output_schema.size(), 1);
+   EXPECT_EQ(output_schema[0].name, "date");
+}
+
+TEST(AstToQueryProject, oldFieldsParameterNameThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() { (void)parseAndConvertToQueryTree("data.project(fields:={date})", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("project() received unknown argument 'fields'")
+      )
+   );
+}
+
 TEST(AstToQueryProject, fieldNotInSchemaThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.project(nonexistent)", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.project(nonexistent)", tables); },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
          "project field 'nonexistent' is not present in the input's output schema"
       ))
@@ -507,7 +637,7 @@ TEST(AstToQueryProject, fieldNotInSchemaThrows) {
 TEST(AstToQueryMap, expressionsNotRecordLiteralThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.map(id)", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.map(id)", tables); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("map() expects a record of assignments like {x := 3, y := age}")
       )
@@ -517,7 +647,7 @@ TEST(AstToQueryMap, expressionsNotRecordLiteralThrows) {
 TEST(AstToQueryMap, emptyBracesAreNotARecordLiteral) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.map({})", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.map({})", tables); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("map() expects a record of assignments like {x := 3, y := age}")
       )
@@ -526,13 +656,13 @@ TEST(AstToQueryMap, emptyBracesAreNotARecordLiteral) {
 
 TEST(AstToQueryMap, fieldReferenceResolvesToColumn) {
    auto tables = makeTablesWithDefault();
-   EXPECT_NO_THROW((void)parseAndConvertToQueryTree("default.map({x := id})", tables));
+   EXPECT_NO_THROW((void)parseAndConvertToQueryTree("data.map({x := id})", tables));
 }
 
 TEST(AstToQueryMap, fieldReferenceToUnknownColumnThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.map({x := nope})", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.map({x := nope})", tables); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("map() field 'x' references unknown column 'nope'")
       )
@@ -542,7 +672,7 @@ TEST(AstToQueryMap, fieldReferenceToUnknownColumnThrows) {
 TEST(AstToQueryMap, unsupportedValueThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.map({x := count()})", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.map({x := count()})", tables); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("map() field 'x' references unknown scalar function 'count'")
       )
@@ -551,13 +681,13 @@ TEST(AstToQueryMap, unsupportedValueThrows) {
 
 TEST(AstToQueryMap, atResolvesToCharacterOfColumn) {
    auto tables = makeTablesWithDefault();
-   EXPECT_NO_THROW((void)parseAndConvertToQueryTree("default.map({c := id.at(2)})", tables));
+   EXPECT_NO_THROW((void)parseAndConvertToQueryTree("data.map({c := id.at(2)})", tables));
 }
 
 TEST(AstToQueryMap, atOnUnknownColumnThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.map({c := nope.at(2)})", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.map({c := nope.at(2)})", tables); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("at(): the field nope is not found in the current context")
       )
@@ -567,7 +697,7 @@ TEST(AstToQueryMap, atOnUnknownColumnThrows) {
 TEST(AstToQueryMap, atWithPositionZeroThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.map({c := id.at(0)})", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.map({c := id.at(0)})", tables); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("at(): the field 'position' is 1-indexed. Value of 0 not allowed.")
       )
@@ -576,7 +706,7 @@ TEST(AstToQueryMap, atWithPositionZeroThrows) {
 
 TEST(AstToQueryMap, isoWeekResolvesToWeekOfDateColumn) {
    auto tables = makeTablesWithDefault();
-   const auto query_tree = parseAndConvertToQueryTree("default.map({w := date.isoWeek()})", tables);
+   const auto query_tree = parseAndConvertToQueryTree("data.map({w := date.isoWeek()})", tables);
    const auto output_schema = query_tree->getOutputSchema();
    const auto found =
       std::ranges::find_if(output_schema, [](const auto& col) { return col.name == "w"; });
@@ -587,9 +717,7 @@ TEST(AstToQueryMap, isoWeekResolvesToWeekOfDateColumn) {
 TEST(AstToQueryMap, isoWeekOnUnknownColumnThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() {
-         (void)parseAndConvertToQueryTree("default.map({w := nope.isoWeek()})", tables);
-      },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.map({w := nope.isoWeek()})", tables); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("isoWeek(): the field nope is not found in the current context")
       )
@@ -599,9 +727,28 @@ TEST(AstToQueryMap, isoWeekOnUnknownColumnThrows) {
 TEST(AstToQueryMap, isoWeekOnNonDateColumnThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.map({w := id.isoWeek()})", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.map({w := id.isoWeek()})", tables); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("isoWeek(): the field id must be a date column")
+      )
+   );
+}
+
+TEST(AstToQueryFilter, acceptsNamedCondition) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree =
+      parseAndConvertToQueryTree("data.filter(condition:=id = 'some_id')", tables);
+   EXPECT_EQ(query_tree->getOutputSchema().size(), 2);
+}
+
+TEST(AstToQueryFilter, oldPredicateParameterNameThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() {
+         (void)parseAndConvertToQueryTree("data.filter(predicate:=id = 'some_id')", tables);
+      },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("filter() received unknown argument 'predicate'")
       )
    );
 }
@@ -617,14 +764,36 @@ TEST(AstToQueryFilter, nonBooleanScalarFunctionRejected) {
    );
 }
 
-// --- orderBy ---
+// --- order ---
+
+TEST(AstToQueryOrderBy, acceptsNamedBy) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree = parseAndConvertToQueryTree("data.order(by:={date.desc()})", tables);
+   EXPECT_EQ(query_tree->getOutputSchema().size(), 2);
+}
+
+TEST(AstToQueryOrderBy, acceptsPositionalBy) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree = parseAndConvertToQueryTree("data.order({date.desc()})", tables);
+   EXPECT_EQ(query_tree->getOutputSchema().size(), 2);
+}
+
+TEST(AstToQueryOrderBy, oldFieldsParameterNameThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&tables]() { (void)parseAndConvertToQueryTree("data.order(fields:={date})", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("order() received unknown argument 'fields'")
+      )
+   );
+}
 
 TEST(AstToQueryOrderBy, fieldUnsupportedTypeThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.orderBy({'value'})", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.order(by:={'value'})", tables); },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("orderBy field must be an identifier or asc()/desc() call")
+         ::testing::HasSubstr("order field must be an identifier or asc()/desc() call")
       )
    );
 }
@@ -632,9 +801,9 @@ TEST(AstToQueryOrderBy, fieldUnsupportedTypeThrows) {
 TEST(AstToQueryOrderBy, unsupportedFunctionNameThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.orderBy({foo(bar)})", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.order(by:={foo(bar)})", tables); },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("orderBy field must be an identifier or asc()/desc() call, got 'foo'")
+         ::testing::HasSubstr("order field must be an identifier or asc()/desc() call, got 'foo'")
       )
    );
 }
@@ -642,16 +811,17 @@ TEST(AstToQueryOrderBy, unsupportedFunctionNameThrows) {
 TEST(AstToQueryOrderBy, ascWrongArgCountThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&]() { (void)parseAndConvertToQueryTree("default.orderBy({asc()})", tables); },
-      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("asc() expects exactly one argument"
-      ))
+      [&]() { (void)parseAndConvertToQueryTree("data.order(by:={asc()})", tables); },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("asc() expects exactly one argument")
+      )
    );
 }
 
 TEST(AstToQueryOrderBy, unknownFieldThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.orderBy({nonexistent})", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.order(by:={nonexistent})", tables); },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("OrderByField nonexistent is not contained in the result")
       )
@@ -662,7 +832,7 @@ TEST(AstToQueryOrderBy, unknownFieldInAscThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
       [&tables]() {
-         (void)parseAndConvertToQueryTree("default.orderBy({asc(nonexistent)})", tables);
+         (void)parseAndConvertToQueryTree("data.order(by:={asc(nonexistent)})", tables);
       },
       ThrowsMessage<IllegalQueryException>(
          ::testing::HasSubstr("OrderByField nonexistent is not contained in the result")
@@ -675,7 +845,7 @@ TEST(AstToQueryOrderBy, unknownFieldInAscThrows) {
 TEST(AstToQueryLimit, zeroLimitThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
-      [&tables]() { (void)parseAndConvertToQueryTree("default.limit(0)", tables); },
+      [&tables]() { (void)parseAndConvertToQueryTree("data.limit(0)", tables); },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr("limit must be a positive number"))
    );
 }
@@ -721,7 +891,7 @@ TEST(AstToQueryJoin, onExpressionNotABinaryExpressionThrows) {
    EXPECT_THAT(
       [&tables]() {
          (void)parseAndConvertToQueryTree(
-            "join(default.project({id}), default.map({pk := id}).project({pk}), id)", tables
+            "join(data.project({id}), data.map({pk := id}).project({pk}), id)", tables
          );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
@@ -737,7 +907,7 @@ TEST(AstToQueryJoin, conjunctOfOnExpressionNotABinaryExpressionThrows) {
    EXPECT_THAT(
       [&tables]() {
          (void)parseAndConvertToQueryTree(
-            "join(default.project({id, date}), default.map({pk := id}).project({pk}), id = pk && "
+            "join(data.project({id, date}), data.map({pk := id}).project({pk}), id = pk && "
             "date)",
             tables
          );
@@ -754,7 +924,7 @@ TEST(AstToQueryJoin, onExpressionNotAnEqualityThrows) {
    EXPECT_THAT(
       [&tables]() {
          (void)parseAndConvertToQueryTree(
-            "join(default.project({id}), default.map({pk := id}).project({pk}), id <> pk)", tables
+            "join(data.project({id}), data.map({pk := id}).project({pk}), id <> pk)", tables
          );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
@@ -769,8 +939,7 @@ TEST(AstToQueryJoin, onExpressionEqualityOfTwoColumnsOfTheSameInputThrows) {
    EXPECT_THAT(
       [&tables]() {
          (void)parseAndConvertToQueryTree(
-            "join(default.project({id, date}), default.map({pk := id}).project({pk}), id = date)",
-            tables
+            "join(data.project({id, date}), data.map({pk := id}).project({pk}), id = date)", tables
          );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
@@ -785,7 +954,7 @@ TEST(AstToQueryJoin, onExpressionEqualityOfMismatchingColumnTypesThrows) {
    EXPECT_THAT(
       [&tables]() {
          auto query_tree = parseAndConvertToQueryTree(
-            "join(default.project({id}), default.map({num := 3}).project({num}), id = num)", tables
+            "join(data.project({id}), data.map({num := 3}).project({num}), id = num)", tables
          );
       },
       ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
@@ -801,7 +970,7 @@ TEST(AstToQueryJoin, onExpressionEqualityOfMismatchingColumnTypesThrows) {
 TEST(AstToQueryJoin, onExpressionEqualityOfStringAndDictionaryEncodedColumnsSucceeds) {
    auto tables = makeTablesWithDictionaryEncodedColumn();
    EXPECT_NO_THROW((void)parseAndConvertToQueryTree(
-      "join(default.project({id}), default.map({lin := lineage}).project({lin}), id = lin)", tables
+      "join(data.project({id}), data.map({lin := lineage}).project({lin}), id = lin)", tables
    ));
 }
 
@@ -812,8 +981,7 @@ TEST(AstToQueryJoin, onExpressionComparingANonIdentifierThrows) {
    EXPECT_THAT(
       [&tables]() {
          (void)parseAndConvertToQueryTree(
-            "join(default.project({id}), default.map({pk := id}).project({pk}), id = 'value')",
-            tables
+            "join(data.project({id}), data.map({pk := id}).project({pk}), id = 'value')", tables
          );
       },
       ThrowsMessage<IllegalQueryException>(

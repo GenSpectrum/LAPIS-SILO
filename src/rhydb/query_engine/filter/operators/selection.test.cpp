@@ -172,9 +172,11 @@ std::pair<std::shared_ptr<ColumnMetadata>, Int32Column> makeRangeTestColumn() {
 // value >= 10 AND value < 50, as two separate predicates, matching rows [10, 50).
 std::vector<std::unique_ptr<Predicate>> makeRangePredicates(const Int32Column& column) {
    std::vector<std::unique_ptr<Predicate>> predicates;
-   predicates.push_back(std::make_unique<CompareToValueSelection<Int32Column>>(
-      column, Comparator::HIGHER_OR_EQUALS, 10
-   ));
+   predicates.push_back(
+      std::make_unique<CompareToValueSelection<Int32Column>>(
+         column, Comparator::HIGHER_OR_EQUALS, 10
+      )
+   );
    predicates.push_back(
       std::make_unique<CompareToValueSelection<Int32Column>>(column, Comparator::LESS, 50)
    );
@@ -206,7 +208,7 @@ TEST(OperatorSelection, multiplePredicatesWithLargeChildReturnCorrectValues) {
    // from the most-selective predicate.
    const roaring::Roaring child_bitmap = rangeBitmap(5, 80);
    std::unique_ptr<Operator> child =
-      std::make_unique<BitmapProducer>([&]() { return Bitmap(&child_bitmap); }, row_layout);
+      std::make_unique<BitmapProducer>([&] { return Bitmap(&child_bitmap); }, row_layout);
 
    const Selection under_test(std::move(child), makeRangePredicates(test_column), row_layout);
 
@@ -222,7 +224,7 @@ TEST(OperatorSelection, multiplePredicatesWithSmallChildReturnCorrectValues) {
    // row against all predicates. Rows 5 and 60 and 99 fail the [10, 50) range.
    const roaring::Roaring child_bitmap({5, 15, 45, 60, 99});
    std::unique_ptr<Operator> child =
-      std::make_unique<BitmapProducer>([&]() { return Bitmap(&child_bitmap); }, row_layout);
+      std::make_unique<BitmapProducer>([&] { return Bitmap(&child_bitmap); }, row_layout);
 
    const Selection under_test(std::move(child), makeRangePredicates(test_column), row_layout);
 

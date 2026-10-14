@@ -14,7 +14,9 @@
 #include "rhydb/test/query_fixture.test.h"
 
 using rhydb::common::LineageTreeAndIdMap;
+using rhydb::initialize::buildLineageAliasRows;
 using rhydb::initialize::buildLineageRelationRows;
+using rhydb::initialize::LineageAliasRow;
 using rhydb::initialize::LineageRelationRow;
 using rhydb::preprocessing::LineageDefinitionFile;
 using ::testing::UnorderedElementsAreArray;
@@ -30,14 +32,15 @@ LineageRelationRow edge(
       .lineage = std::move(lineage),
       .parent = std::move(parent),
       .is_recombinant_edge = is_recombinant_edge,
-      .recombinant_clade_ancestor = std::move(recombinant_clade_ancestor)
+      .recombinant_clade_ancestor = std::move(recombinant_clade_ancestor),
    };
 }
 }  // namespace
 
 TEST(LineageRelationTable, emitsOnlyDirectEdgesForALinearChain) {
-   auto tree = LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(
-      R"(
+   auto tree = LineageTreeAndIdMap::fromLineageDefinitionFile(
+      LineageDefinitionFile::fromYAMLString(
+         R"(
 BASE:
   parents: []
 CHILD:
@@ -47,7 +50,8 @@ GRANDCHILD:
   parents:
     - CHILD
 )"
-   ));
+      )
+   );
 
    const auto rows = buildLineageRelationRows(tree);
 
@@ -63,8 +67,9 @@ GRANDCHILD:
 
 TEST(LineageRelationTable, recombinantEmitsOneEdgePerParentWithCladeAncestor) {
    // XBB recombines A.1 and A.2, whose clade ancestor is A.
-   auto tree = LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(
-      R"(
+   auto tree = LineageTreeAndIdMap::fromLineageDefinitionFile(
+      LineageDefinitionFile::fromYAMLString(
+         R"(
 A:
   parents: []
 A.1:
@@ -78,7 +83,8 @@ XBB:
     - A.1
     - A.2
 )"
-   ));
+      )
+   );
 
    const auto rows = buildLineageRelationRows(tree);
 
@@ -94,12 +100,45 @@ XBB:
    );
 }
 
+TEST(LineageRelationTable, aliasesAreNotEdgesButAliasRows) {
+   auto tree = LineageTreeAndIdMap::fromLineageDefinitionFile(
+      LineageDefinitionFile::fromYAMLString(
+         R"(
+A:
+  aliases:
+    - X
+  parents: []
+A.1:
+  aliases:
+    - Y
+    - Z
+  parents:
+    - A
+)"
+      )
+   );
+
+   EXPECT_THAT(
+      buildLineageRelationRows(tree),
+      UnorderedElementsAreArray({edge("A", std::nullopt), edge("A.1", "A")})
+   );
+   EXPECT_THAT(
+      buildLineageAliasRows(tree),
+      UnorderedElementsAreArray({
+         LineageAliasRow{.alias = "X", .lineage = "A"},
+         LineageAliasRow{.alias = "Y", .lineage = "A.1"},
+         LineageAliasRow{.alias = "Z", .lineage = "A.1"},
+      })
+   );
+}
+
 namespace {
 using rhydb::ReferenceGenomes;
 using rhydb::test::QueryTestData;
 using rhydb::test::QueryTestScenario;
 
-// A column with `lineageIndexType: table` gets a companion relation table named after the column.
+// A column with `lineageIndexType: table` gets a companion relation table named after the column,
+// and an alias table named after the column with an `_aliases` suffix.
 const auto DATABASE_CONFIG =
    R"(
 schema:
@@ -125,6 +164,8 @@ const auto QUERYABLE_LINEAGE_TREE =
 BASE:
   parents: []
 CHILD:
+  aliases:
+    - C
   parents:
     - BASE
 )"));
@@ -135,7 +176,7 @@ nlohmann::json createDataWithLineageValue(const std::string& primary_key, std::s
       {"lin", std::move(value)},
       {"segment1", nullptr},
       {"unaligned_segment1", nullptr},
-      {"gene1", nullptr}
+      {"gene1", nullptr},
    };
 }
 
@@ -144,23 +185,23 @@ const QueryTestData TEST_DATA{
       {createDataWithLineageValue("id_1", "CHILD"), createDataWithLineageValue("id_2", "BASE")},
    .database_config = DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES,
-   .lineage_trees = {{"test_lineage_index", QUERYABLE_LINEAGE_TREE}}
+   .lineage_trees = {{"test_lineage_index", QUERYABLE_LINEAGE_TREE}},
 };
 
 // Only the direct edges are stored (no transitive closure, no per-mode duplication): the root BASE
 // (parent null) and the edge CHILD->BASE => 2 rows.
 const QueryTestScenario RELATION_TABLE_CONTAINS_ONLY_DIRECT_EDGES = {
    .name = "RELATION_TABLE_CONTAINS_ONLY_DIRECT_EDGES",
-   .query = "lin.groupBy({count:=count()})",
-   .expected_query_result = nlohmann::json::parse(R"([{"count":2}])")
+   .query = "lin.group(by:={}, aggs:={count:=count()})",
+   .expected_query_result = nlohmann::json::parse(R"([{"count":2}])"),
 };
 
 // The `parent` column is directly queryable: exactly one lineage (CHILD) has BASE as its direct
 // parent.
 const QueryTestScenario RELATION_TABLE_PARENT_IS_QUERYABLE = {
    .name = "RELATION_TABLE_PARENT_IS_QUERYABLE",
-   .query = "lin.filter(parent = 'BASE').groupBy({count:=count()})",
-   .expected_query_result = nlohmann::json::parse(R"([{"count":1}])")
+   .query = "lin.filter(parent = 'BASE').group(by:={}, aggs:={count:=count()})",
+   .expected_query_result = nlohmann::json::parse(R"([{"count":1}])"),
 };
 
 const QueryTestScenario RELATION_TABLE_ROW_SHAPE = {
@@ -171,7 +212,13 @@ const QueryTestScenario RELATION_TABLE_ROW_SHAPE = {
    .expected_query_result = nlohmann::json::parse(R"(
 [{"lineage":"CHILD","parent":"BASE","is_recombinant_edge":false,
 "recombinant_clade_ancestor":null}]
-)")
+)"),
+};
+
+const QueryTestScenario ALIAS_TABLE_MAPS_ALIASES_TO_LINEAGES = {
+   .name = "ALIAS_TABLE_MAPS_ALIASES_TO_LINEAGES",
+   .query = "lin_aliases.project({alias, lineage})",
+   .expected_query_result = nlohmann::json::parse(R"([{"alias":"C","lineage":"CHILD"}])"),
 };
 
 }  // namespace
@@ -182,6 +229,7 @@ QUERY_TEST(
    ::testing::Values(
       RELATION_TABLE_CONTAINS_ONLY_DIRECT_EDGES,
       RELATION_TABLE_PARENT_IS_QUERYABLE,
-      RELATION_TABLE_ROW_SHAPE
+      RELATION_TABLE_ROW_SHAPE,
+      ALIAS_TABLE_MAPS_ALIASES_TO_LINEAGES
    )
 )

@@ -97,7 +97,9 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumn<Nu
       table_scan_node.getColumnTypeArrayBuilders<storage::column::SequenceColumn<Nucleotide>>().at(
          column_name
       );
-   return appendSequences<Nucleotide>(table.columns.nuc_columns.at(column_name), row_ids, *array);
+   return appendSequences<Nucleotide>(
+      table.getColumn<storage::column::SequenceColumn<Nucleotide>>(column_name), row_ids, *array
+   );
 }
 
 template <>
@@ -114,7 +116,9 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumn<Am
       table_scan_node.getColumnTypeArrayBuilders<storage::column::SequenceColumn<AminoAcid>>().at(
          column_name
       );
-   return appendSequences<AminoAcid>(table.columns.aa_columns.at(column_name), row_ids, *array);
+   return appendSequences<AminoAcid>(
+      table.getColumn<storage::column::SequenceColumn<AminoAcid>>(column_name), row_ids, *array
+   );
 }
 
 template <>
@@ -132,8 +136,7 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStr
       table_scan_node.getColumnTypeArrayBuilders<storage::column::ZstdCompressedStringColumn>().at(
          column_name
       );
-   const auto& column =
-      table.columns.getColumns<storage::column::ZstdCompressedStringColumn>().at(column_name);
+   const auto& column = table.getColumn<storage::column::ZstdCompressedStringColumn>(column_name);
    for (const auto& [chunk_key, view] : row_ids) {
       const uint32_t base = static_cast<uint32_t>(chunk_key) << 16U;
       for (const uint16_t low_bits : view) {
@@ -157,7 +160,7 @@ arrow::Status ColumnEntryAppender::operator()(
    const Bitmap& row_ids
 ) {
    EVOBENCH_SCOPE("ColumnEntryAppender", columnTypeToString(Column::TYPE));
-   auto& column = table.columns.getColumns<Column>().at(column_name);
+   auto& column = table.getColumn<Column>(column_name);
    auto array = table_scan_node.getColumnTypeArrayBuilders<Column>().at(column_name);
    for (const auto& [chunk_key, view] : row_ids) {
       const uint32_t base = static_cast<uint32_t>(chunk_key) << 16U;
@@ -187,7 +190,7 @@ arrow::Status ColumnEntryAppender::operator()(
 ExecBatchBuilder::ExecBatchBuilder(std::vector<rhydb::schema::ColumnIdentifier> output_fields_)
     : output_fields(std::move(output_fields_)) {
    for (const auto& [name, type] : output_fields) {
-      storage::column::visit(type, [&]<storage::column::Column Column>() {
+      storage::column::visit(type, [&]<storage::column::Column Column> {
          array_builders[type].emplace(name, std::make_shared<ArrowBuilder<Column>>());
       });
    }
@@ -196,18 +199,20 @@ ExecBatchBuilder::ExecBatchBuilder(std::vector<rhydb::schema::ColumnIdentifier> 
 arrow::Status ExecBatchBuilder::appendEntries(const storage::Table& table, const Bitmap& row_ids) {
    EVOBENCH_SCOPE("ExecBatchBuilder", "appendEntries");
    for (const auto& field : output_fields) {
-      ARROW_RETURN_NOT_OK(storage::column::visit(
-         field.type, ColumnEntryAppender{}, *this, field.name, table, row_ids
-      ));
+      ARROW_RETURN_NOT_OK(
+         storage::column::visit(
+            field.type, ColumnEntryAppender{}, *this, field.name, table, row_ids
+         )
+      );
    }
    return arrow::Status::OK();
 }
 
-arrow::Result<arrow::ExecBatch> ExecBatchBuilder::finishBatch() {
+arrow::Result<arrow::ExecBatch> ExecBatchBuilder::finishBatch(int64_t length) {
    EVOBENCH_SCOPE("ExecBatchBuilder", "finishBatch");
    std::vector<arrow::Datum> data;
    for (auto& field : output_fields) {
-      auto status = storage::column::visit(field.type, [&]<storage::column::Column Column>() {
+      auto status = storage::column::visit(field.type, [&]<storage::column::Column Column> {
          ARROW_ASSIGN_OR_RAISE(
             auto array, getColumnTypeArrayBuilders<Column>().at(field.name)->Finish()
          );
@@ -216,18 +221,25 @@ arrow::Result<arrow::ExecBatch> ExecBatchBuilder::finishBatch() {
       });
       ARROW_RETURN_NOT_OK(status);
    }
-   return arrow::compute::ExecBatch::Make(data);
+   // Pass the row count explicitly: a zero-column batch (e.g. a bare count(*) whose scan needs no
+   // columns) has no arrays to infer the length from, and Arrow rejects ExecBatch::Make without it.
+   return arrow::compute::ExecBatch::Make(std::move(data), length);
 }
 
 arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBatch() {
    EVOBENCH_SCOPE("TableScanGenerator", "produceNextBatch");
+   if (!filter_computed) {
+      current_bitmap_reader =
+         BatchedBitmapReader{filter->evaluate().toRoaring(), batch_size_cutoff};
+      filter_computed = true;
+   }
    while (current_bitmap_reader.has_value()) {
       auto row_ids = current_bitmap_reader.value().nextBatch();
       if (row_ids.has_value()) {
-         ARROW_RETURN_NOT_OK(
-            exec_batch_builder.appendEntries(*table, Bitmap{std::move(row_ids.value())})
-         );
-         ARROW_ASSIGN_OR_RAISE(auto batch, exec_batch_builder.finishBatch());
+         const Bitmap batch_row_ids{std::move(row_ids.value())};
+         const auto length = static_cast<int64_t>(batch_row_ids.cardinality());
+         ARROW_RETURN_NOT_OK(exec_batch_builder.appendEntries(*table, batch_row_ids));
+         ARROW_ASSIGN_OR_RAISE(auto batch, exec_batch_builder.finishBatch(length));
          SPDLOG_DEBUG("Finished arrow::ExecBatch with length: {}", batch.length);
          return batch;
       }
@@ -239,15 +251,17 @@ arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBa
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    arrow::acero::ExecPlan* plan,
    const std::vector<rhydb::schema::ColumnIdentifier>& columns,
-   Bitmap bitmap_filter_,
+   std::shared_ptr<const operators::CompiledFilter> filter,
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 ) {
    const exec_node::TableScanGenerator generator(
-      columns, std::move(bitmap_filter_), std::move(table), batch_size_cutoff
+      columns, std::move(filter), std::move(table), batch_size_cutoff
    );
    const arrow::acero::SourceNodeOptions source_node_options{
-      exec_node::columnsToArrowSchema(columns), generator, arrow::Ordering::Implicit()
+      exec_node::columnsToArrowSchema(columns),
+      generator,
+      arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", plan, {}, source_node_options);
 }

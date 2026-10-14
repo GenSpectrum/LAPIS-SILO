@@ -12,14 +12,14 @@
 #include <vector>
 
 #include <arrow/compute/initialize.h>
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
-#include <fmt/format.h>
 
-#include "sequence_generator.h"
 #include "rhydb/append/table_inserter.h"
 #include "rhydb/query_engine/exec_node/ndjson_sink.h"
 #include "rhydb/query_engine/planner.h"
+#include "sequence_generator.h"
 
 // Demonstrates what N-way clustered ingestion buffering buys on amplicon-coverage short reads.
 //
@@ -73,8 +73,7 @@ std::pair<std::shared_ptr<Database>, double> buildDatabase(
    const auto start = std::chrono::high_resolution_clock::now();
    database->appendData(rhydb::schema::TableName::getDefault(), input_file, scenario.clustering);
    const auto end = std::chrono::high_resolution_clock::now();
-   const double seconds =
-      std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0;
+   const double seconds = std::chrono::duration<double>(end - start).count();
    return {database, seconds};
 }
 
@@ -85,7 +84,7 @@ class QueryGenerator {
    static constexpr std::array<char, 5> SYMBOLS = {'A', 'C', 'G', 'T', '-'};
 
   public:
-   QueryGenerator(size_t ref_length, uint64_t seed = 42)
+   explicit QueryGenerator(size_t ref_length, uint64_t seed = 42)
        : rng(seed),
          reference_length(ref_length) {}
 
@@ -97,7 +96,7 @@ class QueryGenerator {
 
       if (use_all_symbols) {
          return fmt::format(
-            "default.filter("
+            "data.filter("
             "locationName = 'generated' && "
             "samplingDate.between('2024-01-01'::date, '2024-01-07'::date) && "
             "(nucleotideEquals(position:={0}, symbol:='A', sequenceName:='main') || "
@@ -106,19 +105,19 @@ class QueryGenerator {
             "nucleotideEquals(position:={0}, symbol:='T', sequenceName:='main') || "
             "nucleotideEquals(position:={0}, symbol:='-', sequenceName:='main')) && "
             "samplingDate.between('2024-01-01'::date, '2024-01-07'::date)"
-            ").groupBy({{count:=count()}})",
+            ").group(by:={{}}, aggs:={{count:=count()}})",
             position
          );
       }
       std::uniform_int_distribution<size_t> sym_dist(0, SYMBOLS.size() - 1);
       const char symbol = SYMBOLS[sym_dist(rng)];
       return fmt::format(
-         "default.filter("
+         "data.filter("
          "locationName = 'generated' && "
          "samplingDate.between('2024-01-01'::date, '2024-01-07'::date) && "
          "nucleotideEquals(position:={}, symbol:='{}', sequenceName:='main') && "
          "samplingDate.between('2024-01-01'::date, '2024-01-07'::date)"
-         ").groupBy({{count:=count()}})",
+         ").group(by:={{}}, aggs:={{count:=count()}})",
          position,
          symbol
       );
@@ -145,7 +144,7 @@ double executeAllQueries(
       query_plan.executeAndWrite(sink, /*timeout_in_seconds=*/20);
    }
    const auto end = std::chrono::high_resolution_clock::now();
-   return std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0;
+   return std::chrono::duration<double>(end - start).count();
 }
 
 struct ScenarioResult {
@@ -158,13 +157,27 @@ void run() {
    const std::string reference = readReferenceFromFile();
    SPDLOG_INFO("Read reference sequence of length {}", reference.size());
 
-   const std::array<Scenario, 3> scenarios{{
-      {"amplicon-sorted, ingestion clustering off", SHORT_READ_AMPLICON_SORTED_NDJSON, {}},
-      {"amplicon-shuffled, ingestion clustering off", SHORT_READ_AMPLICON_SHUFFLED_NDJSON, {}},
-      {"amplicon-shuffled, 128-way clustered ingestion",
-       SHORT_READ_AMPLICON_SHUFFLED_NDJSON,
-       clusteredOptions()},
-   }};
+   const std::array<Scenario, 3> scenarios{
+      {
+         {
+            .name = "amplicon-sorted, ingestion clustering off",
+            .dataset_path = SHORT_READ_AMPLICON_SORTED_NDJSON,
+            // NOLINTNEXTLINE(readability-trailing-comma): false positive on empty brace,llvm#223646
+            .clustering = {},
+         },
+         {
+            .name = "amplicon-shuffled, ingestion clustering off",
+            .dataset_path = SHORT_READ_AMPLICON_SHUFFLED_NDJSON,
+            // NOLINTNEXTLINE(readability-trailing-comma): false positive on empty brace,llvm#223646
+            .clustering = {},
+         },
+         {
+            .name = "amplicon-shuffled, 128-way clustered ingestion",
+            .dataset_path = SHORT_READ_AMPLICON_SHUFFLED_NDJSON,
+            .clustering = clusteredOptions(),
+         },
+      },
+   };
 
    std::vector<ScenarioResult> results;
    for (const auto& scenario : scenarios) {
@@ -175,7 +188,9 @@ void run() {
       );
       const double query_seconds = executeAllQueries(database, reference.size());
       SPDLOG_INFO("Finished query set in {:.3f} seconds", query_seconds);
-      results.push_back({scenario.name, ingest_seconds, query_seconds});
+      results.push_back(
+         {.name = scenario.name, .ingest_seconds = ingest_seconds, .query_seconds = query_seconds}
+      );
    }
 
    SPDLOG_INFO("=== Summary (ingestion / {} queries) ===", DEFAULT_QUERY_COUNT);

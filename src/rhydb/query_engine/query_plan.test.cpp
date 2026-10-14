@@ -70,7 +70,7 @@ TEST(QueryPlan, reportsExplicitSortFieldsForOrderedResult) {
                    .ValueOrDie();
 
    const arrow::compute::Ordering ordering{
-      {arrow::compute::SortKey{"id", arrow::compute::SortOrder::Descending}}
+      {arrow::compute::SortKey{"id", arrow::compute::SortOrder::Descending}},
    };
    arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> generator;
    node = arrow::acero::MakeExecNode(
@@ -93,7 +93,8 @@ TEST(QueryPlan, reportsExplicitSortFieldsForOrderedResult) {
 
    EXPECT_EQ(
       nlohmann::json::parse(serializeResultOrdering(under_test.result_ordering)),
-      nlohmann::json::array({{{"field", "id"}, {"order", "descending"}, {"nullPlacement", "atEnd"}}}
+      nlohmann::json::array(
+         {{{"field", "id"}, {"order", "descending"}, {"nullPlacement", "atEnd"}}}
       )
    );
 }
@@ -149,7 +150,7 @@ TEST(QueryPlan, doesNotAbortPlanAfterEmptyGroupedAggregateCompletes) {
    std::vector<std::thread> threads;
    threads.reserve(THREAD_COUNT);
    for (int thread = 0; thread < THREAD_COUNT; ++thread) {
-      threads.emplace_back([&]() {
+      threads.emplace_back([&] {
          for (int run = 0; run < RUNS_PER_THREAD; ++run) {
             auto arrow_plan = arrow::acero::ExecPlan::Make().ValueOrDie();
             auto* node =

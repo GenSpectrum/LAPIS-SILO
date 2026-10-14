@@ -16,7 +16,8 @@ VariableDataRegistry::Identifier VariableDataRegistry::insert(std::string_view d
       RHYDB_PANIC("Maximum number of variable string data reached. Aborting.");
    }
    VariableDataRegistry::Identifier identifier{
-      .page_id = static_cast<uint32_t>(page_id), .offset = offset
+      .page_id = static_cast<uint32_t>(page_id),
+      .offset = offset,
    };
    offset += sizeof(size_t);
 
@@ -64,7 +65,8 @@ VariableDataRegistry::DataList getDataFromPage(
 
 }  // namespace
 
-VariableDataRegistry::DataList VariableDataRegistry::get(VariableDataRegistry::Identifier identifier
+VariableDataRegistry::DataList VariableDataRegistry::get(
+   VariableDataRegistry::Identifier identifier
 ) const {
    auto length = *reinterpret_cast<size_t*>(
       variable_data_pages.at(identifier.page_id).buffer + identifier.offset
