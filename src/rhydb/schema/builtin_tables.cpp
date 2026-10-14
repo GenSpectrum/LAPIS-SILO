@@ -24,12 +24,32 @@ std::shared_ptr<TableSchema> createReferenceGenomesTableSchema() {
    return table_schema;
 }
 
+std::shared_ptr<TableSchema> createLineageDefinitionsTableSchema() {
+   const ColumnIdentifier column_name_column{
+      .name = std::string{LINEAGE_DEFINITIONS_COLUMN_NAME_COLUMN}, .type = ColumnType::STRING
+   };
+   const ColumnIdentifier definition_column{
+      .name = std::string{LINEAGE_DEFINITIONS_DEFINITION_COLUMN}, .type = ColumnType::STRING
+   };
+   auto table_schema = std::make_shared<TableSchema>();
+   for (const auto& column : {column_name_column, definition_column}) {
+      table_schema->column_metadata.emplace(
+         column, std::make_shared<storage::column::StringColumnMetadata>(column.name)
+      );
+   }
+   table_schema->primary_key = column_name_column;
+   return table_schema;
+}
+
 }  // namespace
 
 std::map<TableName, std::shared_ptr<TableSchema>> getBuiltinTableSchemas() {
    std::map<TableName, std::shared_ptr<TableSchema>> result;
    result.emplace(
       TableName{std::string{REFERENCE_GENOMES_TABLE_NAME}}, createReferenceGenomesTableSchema()
+   );
+   result.emplace(
+      TableName{std::string{LINEAGE_DEFINITIONS_TABLE_NAME}}, createLineageDefinitionsTableSchema()
    );
    return result;
 }

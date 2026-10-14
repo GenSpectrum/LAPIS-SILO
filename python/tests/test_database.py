@@ -613,7 +613,7 @@ class TestCreatedTablesQueryable:
 
         result = empty_database.query("tables()")
         assert isinstance(result, pa.Table)
-        assert set(result.to_pydict()["tableName"]) == {"reference_genomes", "sequences"}
+        assert set(result.to_pydict()["tableName"]) == {"lineage_definitions", "reference_genomes", "sequences"}
 
 
 class TestQuery:

@@ -158,8 +158,7 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
    {{"gene1", "*"}},
 };
 
-const auto QUERYABLE_LINEAGE_TREE =
-   LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
+const std::string QUERYABLE_LINEAGE_DEFINITION = R"(
 BASE:
   parents: []
 CHILD:
@@ -167,7 +166,11 @@ CHILD:
     - C
   parents:
     - BASE
-)"));
+)";
+
+const auto QUERYABLE_LINEAGE_TREE = LineageTreeAndIdMap::fromLineageDefinitionFile(
+   LineageDefinitionFile::fromYAMLString(QUERYABLE_LINEAGE_DEFINITION)
+);
 
 nlohmann::json createDataWithLineageValue(const std::string& primary_key, std::string value) {
    return {
@@ -220,6 +223,16 @@ const QueryTestScenario ALIAS_TABLE_MAPS_ALIASES_TO_LINEAGES = {
    .expected_query_result = nlohmann::json::parse(R"([{"alias":"C","lineage":"CHILD"}])"),
 };
 
+// The lineage definition file is kept verbatim in the built-in lineage definitions table, keyed by
+// the lineage column.
+const QueryTestScenario LINEAGE_DEFINITIONS_TABLE_CONTAINS_DEFINITION_FILE = {
+   .name = "LINEAGE_DEFINITIONS_TABLE_CONTAINS_DEFINITION_FILE",
+   .query = "lineage_definitions.project({column_name, definition})",
+   .expected_query_result = nlohmann::json::array(
+      {{{"column_name", "lin"}, {"definition", QUERYABLE_LINEAGE_DEFINITION}}}
+   ),
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -229,6 +242,7 @@ QUERY_TEST(
       RELATION_TABLE_CONTAINS_ONLY_DIRECT_EDGES,
       RELATION_TABLE_PARENT_IS_QUERYABLE,
       RELATION_TABLE_ROW_SHAPE,
-      ALIAS_TABLE_MAPS_ALIASES_TO_LINEAGES
+      ALIAS_TABLE_MAPS_ALIASES_TO_LINEAGES,
+      LINEAGE_DEFINITIONS_TABLE_CONTAINS_DEFINITION_FILE
    )
 )

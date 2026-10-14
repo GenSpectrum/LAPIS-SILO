@@ -1,6 +1,9 @@
 #pragma once
 
+#include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #include "rhydb/common/lineage_tree.h"
 #include "rhydb/common/phylo_tree.h"
@@ -46,6 +49,13 @@ class Initializer {
    /// Fills the built-in reference genomes table, which must still be empty.
    static void fillReferenceGenomesTable(
       const ReferenceGenomes& reference_genomes,
+      Database& database
+   );
+
+   /// Fills the built-in lineage definitions table, which must still be empty, with one row per
+   /// (lineage column name, lineage definition file).
+   static void fillLineageDefinitionsTable(
+      const std::vector<std::pair<std::string, std::string>>& lineage_definitions,
       Database& database
    );
 

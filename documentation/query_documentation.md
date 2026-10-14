@@ -26,6 +26,9 @@ presence. Otherwise they behave like any other table. The built-in tables are:
 
 - `reference_genomes`: the reference sequences from `reference_genomes.json`, one row per
   sequence — see [input_format.md](input_format.md#reference_genomesjson) for its schema.
+- `lineage_definitions`: the lineage definition files, one row per column with a lineage
+  definition — see [lineage_definitions.md](lineage_definitions.md#lineage-definitions-table) for
+  its schema.
 
 ### Tabular data model
 
