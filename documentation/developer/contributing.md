@@ -148,7 +148,7 @@ The linter runs clang-tidy on the compilation database (`compile_commands.json`)
 so linting does not build anything.
 
 When pushing to GitHub, the linter will run on all changed files in the dependencies image, which has clang-tidy installed.
-To run the same changed-files lint path locally, use `make lint-changes`. `make lint-all` lints all files.
+To run the same changed-files lint path locally and apply clang-tidy's fixes, use `make lint-changes`. `make lint-all` lints all files.
 
 On main, or if requested using the `trigger-linter` label, the linter will run on all files. This builds a separate Docker image, which runs the formatter. (This was a workaround, because
 building with clang-tidy under alpine was not possible yet. Should be changed in [#1167](https://github.com/RhyOrg/RhyDB/issues/1167))

@@ -201,7 +201,7 @@ bump-serialization-version:
 
 .PHONY: lint-changes
 lint-changes:
-	buildScripts/lint-changes $(LINT_DOCKER_IMAGE)
+	LINT_FIX=1 buildScripts/lint-changes $(LINT_DOCKER_IMAGE)
 
 .PHONY: lint-all
 lint-all:
