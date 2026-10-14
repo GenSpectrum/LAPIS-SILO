@@ -81,11 +81,11 @@ void Initializer::createTableInDatabase(
 
    fillReferenceGenomesTable(reference_genomes, database);
 
-   // Materialize the companion lineage relation and alias tables for every column configured with
-   // `lineageIndexType` 'table' or 'both'. The tree name is resolved against the loaded lineage
-   // definitions the same way the column's in-memory index is.
+   // Materialize the companion lineage relation and alias tables for every column with a lineage
+   // definition. The tree name is resolved against the loaded lineage definitions the same way the
+   // column's in-memory index is.
    for (const auto& config_metadata : database_config.schema.metadata) {
-      if (!config_metadata.generatesLineageTable()) {
+      if (!config_metadata.generate_lineage_index.has_value()) {
          continue;
       }
       auto lineage_tree =
@@ -306,7 +306,7 @@ void ColumnMetadataInitializer::operator()<storage::column::DictionaryEncodedCol
    const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
-   if (config_metadata.generatesLineageColumnIndex()) {
+   if (config_metadata.generate_lineage_index.has_value()) {
       auto lineage_tree_name = config_metadata.generate_lineage_index.value();
       auto lineage_tree = Initializer::findLineageTreeForName(lineage_trees, lineage_tree_name);
       if (not lineage_tree.has_value()) {

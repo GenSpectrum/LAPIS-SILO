@@ -37,34 +37,6 @@ ValueType rhydb::config::toDatabaseValueType(std::string_view type) {
    throw rhydb::config::ConfigException("Unknown metadata type: " + std::string(type));
 }
 
-rhydb::config::LineageIndexType rhydb::config::toLineageIndexType(std::string_view type) {
-   if (type == "columnMetadata") {
-      return LineageIndexType::COLUMN_METADATA;
-   }
-   if (type == "table") {
-      return LineageIndexType::TABLE;
-   }
-   if (type == "both") {
-      return LineageIndexType::BOTH;
-   }
-   throw rhydb::config::ConfigException(
-      "Unknown lineageIndexType: '" + std::string(type) +
-      "'. Must be one of 'columnMetadata', 'table', 'both'."
-   );
-}
-
-std::string_view rhydb::config::lineageIndexTypeToString(LineageIndexType type) {
-   switch (type) {
-      case LineageIndexType::COLUMN_METADATA:
-         return "columnMetadata";
-      case LineageIndexType::TABLE:
-         return "table";
-      case LineageIndexType::BOTH:
-         return "both";
-   }
-   RHYDB_UNREACHABLE();
-}
-
 bool YAML::convert<rhydb::config::DatabaseConfig>::decode(
    const Node& node,
    rhydb::config::DatabaseConfig& config
@@ -133,12 +105,6 @@ bool YAML::convert<rhydb::config::DatabaseMetadata>::decode(
    } else {
       metadata.generate_lineage_index = std::nullopt;
    }
-   if (node["lineageIndexType"].IsDefined()) {
-      metadata.lineage_index_type =
-         rhydb::config::toLineageIndexType(node["lineageIndexType"].as<std::string>());
-   } else {
-      metadata.lineage_index_type = rhydb::config::LineageIndexType::COLUMN_METADATA;
-   }
    if (node["isPhyloTreeField"].IsDefined()) {
       metadata.phylo_tree_node_identifier = node["isPhyloTreeField"].as<bool>();
    } else {
@@ -163,7 +129,6 @@ YAML::Node YAML::convert<rhydb::config::DatabaseMetadata>::encode(
    node["generateIndex"] = metadata.generate_index;
    if (metadata.generate_lineage_index) {
       node["generateLineageIndex"] = metadata.generate_lineage_index.value();
-      node["lineageIndexType"] = std::string{lineageIndexTypeToString(metadata.lineage_index_type)};
    }
    if (metadata.phylo_tree_node_identifier) {
       node["isPhyloTreeField"] = true;
@@ -199,15 +164,6 @@ schema::ColumnType DatabaseMetadata::getColumnType() const {
       return schema::ColumnType::FLOAT;
    }
    throw std::runtime_error("Did not find metadata with name: " + std::string(name));
-}
-
-bool DatabaseMetadata::generatesLineageColumnIndex() const {
-   return generate_lineage_index.has_value() && lineage_index_type != LineageIndexType::TABLE;
-}
-
-bool DatabaseMetadata::generatesLineageTable() const {
-   return generate_lineage_index.has_value() &&
-          lineage_index_type != LineageIndexType::COLUMN_METADATA;
 }
 
 std::optional<DatabaseMetadata> DatabaseConfig::getMetadata(const std::string& name) const {
@@ -296,17 +252,6 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
          throw ConfigException(
             "Metadata '" + metadata.name +
             "' generateLineageIndex is set, generateIndex must also be set."
-         );
-      }
-
-      if (
-         !generate_lineage_indexed_field &&
-         metadata.lineage_index_type != LineageIndexType::COLUMN_METADATA
-      ) {
-         throw ConfigException(
-            "Metadata '" + metadata.name + "' lineageIndexType is set to '" +
-            std::string(lineageIndexTypeToString(metadata.lineage_index_type)) +
-            "', but generateLineageIndex is not set."
          );
       }
 

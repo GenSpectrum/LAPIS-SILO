@@ -36,8 +36,8 @@ const std::vector<nlohmann::json> DATA = {
    createDataWithLineageValue("id_10", "IWA"),
 };
 
-// With `lineageIndexType: table`, the lineage hierarchy is only available as the relation table
-// `pango_lineage` and the alias table `pango_lineage_aliases`.
+// The lineage hierarchy is available as the relation table `pango_lineage` and the alias table
+// `pango_lineage_aliases`.
 const auto DATABASE_CONFIG =
    R"(
 schema:
@@ -49,7 +49,6 @@ schema:
       type: "string"
       generateIndex: true
       generateLineageIndex: test_lineage_index
-      lineageIndexType: table
   primaryKey: "primaryKey"
 )";
 

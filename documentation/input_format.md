@@ -54,13 +54,8 @@ schema:
 - `name`: Field name (must match JSON key)
 - `type`: One of `string`, `int` (alias `int32`, 32-bit integer), `int64` (64-bit integer), `float`, `date`, `boolean`
 - `generateIndex`: Set to `true` to create a bitmap index for fast equality lookups. This is only valid for `string` columns
-- `generateLineageIndex`: Path to lineage definition file for hierarchical queries. This is only possible if `generateIndex` is also set
-- `lineageIndexType`: How the lineage definition is made available for querying. One of:
-  - `columnMetadata` (default) — the lineage tree is attached to the column itself, which is what the `lineage(...)` filter uses
-  - `table` — preprocessing materializes separate tables holding the lineage edges and aliases, and the column carries no lineage tree. `lineage(...)` then reads the hierarchy and aliases from the relation and alias tables, which is slower than the in-memory lineage tree
-  - `both` — both of the above
-
-  Only valid together with `generateLineageIndex`; setting it on a column without a lineage definition is a config error. See [lineage_definitions.md](lineage_definitions.md) for the relation table's schema.
+- `generateLineageIndex`: Path to lineage definition file for hierarchical queries. This is only possible if `generateIndex` is also set.
+  Preprocessing also materializes the definition as a relation table named after the column and an alias table named `<column>_aliases`. See [lineage_definitions.md](lineage_definitions.md) for their schema.
 - `treatUnknownLineagesAsNull`: Treats unknown lineage values as null when adding them to the lineage index
 - `isPhyloTreeField`: Mark this column as a phyloTreeField, which enables the phylogenetic queries. See [phylogenetic_queries.md](phylogenetic_queries.md)
 

@@ -29,10 +29,8 @@
 #include "sequence_generator.h"
 
 // Measures `lineageFromTables(..., includeSublineages:=true)` over lineage targets of varying
-// descendant-set size and growing row counts. The column is configured with
-// `lineageIndexType: table`, so the numbers describe the resolution via the lineage relation and
-// alias tables (the transitive closure computed at query time), not the in-memory lineage index of
-// `lineage(...)`.
+// descendant-set size and growing row counts, i.e. the resolution via the lineage relation and
+// alias tables (the transitive closure computed at query time).
 
 namespace {
 
@@ -64,7 +62,6 @@ schema:
       type: string
       generateIndex: true
       generateLineageIndex: {}
-      lineageIndexType: table
   primaryKey: primaryKey
 )",
       LINEAGE_TREE_NAME
