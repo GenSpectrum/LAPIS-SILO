@@ -1,6 +1,8 @@
 # RhyDB
 
-High-performance analytical database for sequence alignment data
+High-performance analytical database for sequence alignment data.
+
+Check out [rhydb.org](https://rhydb.org/) to interactively try out this database engine on a few sample instances.
 
 For information on how to build, test, and contribute to RhyDB, see [Contributing](documentation/developer/contributing.md).
 
