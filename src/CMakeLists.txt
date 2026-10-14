@@ -1,4 +1,4 @@
-# Core RhyDB library (rhydblib). Consumer by several targets.
+# Core RhyDB library (rhydblib). Consumed by several targets.
 # Should be agnostic to those targets.
 
 # ---------------------------------------------------------------------------
