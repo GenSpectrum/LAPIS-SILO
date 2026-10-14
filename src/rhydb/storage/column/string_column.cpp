@@ -161,8 +161,10 @@ void StringColumn::rebuildChunk(
          .row_in_chunk = static_cast<uint16_t>(row_in_chunk),
       };
       const uint32_t global_row_id = row_id.toGlobal();
-      if (next_updated_row != roaring_util::RoaringContainerView::end() &&
-          *next_updated_row == row_in_chunk) {
+      if (
+         next_updated_row != roaring_util::RoaringContainerView::end() &&
+         *next_updated_row == row_in_chunk
+      ) {
          // Updated row: take its new value (or the null placeholder when clearing).
          ++next_updated_row;
          const std::optional<std::string>& value = value_of(index++);
