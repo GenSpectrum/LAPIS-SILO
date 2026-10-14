@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.16.1](https://github.com/RhyOrg/RhyDB/compare/v0.16.0...v0.16.1) (2026-10-14)
+
+
+### Features
+
+* **config:** always materialize the lineage relation and alias tables ([#1700](https://github.com/RhyOrg/RhyDB/issues/1700)) ([f30880f](https://github.com/RhyOrg/RhyDB/commit/f30880f5866d03741fe8089172af48520461aa5a))
+* **query_engine:** allow any scalar string expression as `isoWeek` and `at` input ([#1683](https://github.com/RhyOrg/RhyDB/issues/1683)) ([98d9061](https://github.com/RhyOrg/RhyDB/commit/98d90618fc0982fd03f6048b55dc0d32c2fddb22))
+* **query_engine:** start the ExecBatch production asynchronously ([#1702](https://github.com/RhyOrg/RhyDB/issues/1702)) ([ba62f8a](https://github.com/RhyOrg/RhyDB/commit/ba62f8a1f6318b537e3fb5606fab371a1f26c49e))
+* **rhydb:** add an optimized `fastUnion` implementation for `Bitmap` ([#1692](https://github.com/RhyOrg/RhyDB/issues/1692)) ([142a9c3](https://github.com/RhyOrg/RhyDB/commit/142a9c353460d481ed7791040e0192b26f7e8ee0))
+
+
+### Bug Fixes
+
+* **schema:** don't dereference end() in TableSchema::getColumnMetadata ([#1691](https://github.com/RhyOrg/RhyDB/issues/1691)) ([1dc6a46](https://github.com/RhyOrg/RhyDB/commit/1dc6a46c918854db43eefb7934892cf5af2a9f1c))
+
 ## [0.16.0](https://github.com/RhyOrg/RhyDB/compare/v0.15.0...v0.16.0) (2026-10-12)
 
 
