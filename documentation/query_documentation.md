@@ -122,7 +122,7 @@ A boolean column can be used directly as a predicate: `data.filter(isHuman)` is 
 
 ### `group(by, aggs)`
 
-Aggregates rows, producing counts or other aggregate values. `by` is a set of column names to group by (`{}` aggregates all rows into a single group); `aggs` is a record literal of named aggregates.
+Aggregates rows, producing counts or other aggregate values. `by` is a set of expressions to group by (`{}` aggregates all rows into a single group); `aggs` is a record literal of named aggregates.
 
 Currently supported aggregate functions:
 
@@ -140,11 +140,13 @@ data.group(by:={country, pango_lineage}, aggs:={count:=count()})
 data.group(by:={country}, aggs:={count:=count(), total_age:=sum(age)})
 data.group(by:={country}, aggs:={count:=count(), with_age:=count(age)})
 data.group(by:={}, aggs:={youngest:=min(age), oldest:=max(age)})
+data.group(by:={S[10], S[11], S[12]}, aggs:={count:=count()})
+data.group(by:={country, date.isoWeek()}, aggs:={count:=count()})
 ```
 
 **Output:** one row per group, containing the named aggregation fields and the `by` columns. Rows where a `by` column is null form their own group with a null value for that column.
 
-```json
+```json lines
 {"count": 48, "pango_lineage": "B.1.1.7"}
 {"count": 1,  "pango_lineage": null}
 ```
@@ -502,7 +504,7 @@ data.mutations(minProportion:=0.1).schema()
 | `fieldName` | string | Name of the field                                                                                    |
 | `type`      | string | Type of the field (e.g. `STRING`, `INT32`, `INT64`, `DATE32`, `BOOL`, `FLOAT`, `DICTIONARY_ENCODED`) |
 
-```json
+```json lines
 {"fieldName": "age", "type": "INT32"}
 {"fieldName": "count", "type": "INT64"}
 ```
@@ -712,24 +714,23 @@ the [Python bindings](python_bindings.md).
 
 ## Scalar Functions
 
-Most scalar functions are boolean predicates used inside `.filter(...)`.
-Functions that return a non-boolean value (like [`at`](#atinput-position) and [`isoWeek`](#isoweekinput))
-cannot be used as a filter predicate and are instead used as `map()` assignments.
+Scalar functions are evaluated once per row of their input and can be used wherever a scalar expression is expected.
 
 ### `at(input, position)`
 
-Extracts the single character of a string `input` at the 1-based `position`, returning it as a string. `position` must be greater than 0. If `position` is past the end of the value, the result is an empty string `""` (a `null` value yields `null`). This is not a boolean predicate, so it cannot be used in `.filter(...)`; use it inside [`map()`](#mapexpressions).
+Extracts the single character of a string or sequence `input` at the 1-based `position`, returning it as a string. `position` must be greater than 0. If `position` is past the end of the value, the result is an empty string `""` (a `null` value yields `null`).
 
 The square-bracket notation `input[position]` is shorthand for `input.at(position)`.
 
 ```
 data.map({second_char := primary_key.at(2)})
 data.map({second_char := primary_key[2]})
+data.filter(main[100] = 'A')
 ```
 
 ### `isoWeek(input)`
 
-Maps a date `input` to its ISO 8601 week date, formatted as `<ISO-year>-W<ISO-week>` (e.g. `2026-W12`), as a string. The ISO week-numbering year is used, so it can differ from the calendar year around January (e.g. `2021-01-01` is `2020-W53`); the zero-padded week keeps the value chronologically sortable within a year. A `null` date yields `null`. Use it inside [`map()`](#mapexpressions).
+Maps a date `input` to its ISO 8601 week date, formatted as `<ISO-year>-W<ISO-week>` (e.g. `2026-W12`), as a string. The ISO week-numbering year is used, so it can differ from the calendar year around January (e.g. `2021-01-01` is `2020-W53`); the zero-padded week keeps the value chronologically sortable within a year. `input` must be a date. A `null` date yields `null`.
 
 ```
 data.map({week := date.isoWeek()})

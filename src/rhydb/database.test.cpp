@@ -383,6 +383,26 @@ int64_t countInTableWhere(
 }
 }  // namespace
 
+TEST(DatabaseTest, getFilteredBitmapSupportsSubqueries) {
+   rhydb::Database database;
+   database.createTable(TableName{"people"}, makeValueColumnSchema());
+   database.createTable(TableName{"selected"}, makeValueColumnSchema());
+
+   std::stringstream people_data;
+   people_data << R"({"key":"a","country":"CH","age":1})" << "\n"
+               << R"({"key":"b","country":"US","age":2})" << "\n"
+               << R"({"key":"c","country":"DE","age":3})" << "\n";
+   database.appendData(TableName{"people"}, people_data);
+   std::stringstream selected_data;
+   selected_data << R"({"key":"x","country":"DE","age":0})" << "\n"
+                 << R"({"key":"y","country":"CH","age":0})" << "\n";
+   database.appendData(TableName{"selected"}, selected_data);
+
+   const roaring::Roaring bitmap =
+      database.getFilteredBitmap("people", "country.in(selected.project({country}))");
+   EXPECT_EQ(bitmap, roaring::Roaring({0, 2}));
+}
+
 TEST(DatabaseInsertQueryTest, copiesFilteredRowsFromOneTableIntoAnother) {
    rhydb::Database database;
    database.createTable(TableName{"source"}, makeValueColumnSchema());

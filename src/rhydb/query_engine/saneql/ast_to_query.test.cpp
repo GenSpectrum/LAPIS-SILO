@@ -10,6 +10,8 @@
 #include <gtest/gtest.h>
 
 #include "rhydb/query_engine/illegal_query_exception.h"
+#include "rhydb/query_engine/operators/aggregate_node.h"
+#include "rhydb/query_engine/operators/map_node.h"
 #include "rhydb/query_engine/saneql/ast.h"
 #include "rhydb/query_engine/saneql/parser.h"
 #include "rhydb/schema/database_schema.h"
@@ -455,7 +457,7 @@ TEST(AstToQueryGroupBy, aggregatesNotRecordLiteralThrows) {
          (void)parseAndConvertToQueryTree("data.group(by:={}, aggs:='not_a_record')", tables);
       },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("group aggs must be a record literal")
+         ::testing::HasSubstr("group aggs must be a record literal like {count:=count()}")
       )
    );
 }
@@ -488,9 +490,9 @@ TEST(AstToQueryGroupBy, fieldNotInSchemaThrows) {
             "data.group(by:={nonexistent}, aggs:={n:=count()})", tables
          );
       },
-      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
-         "group field 'nonexistent' is not present in the input's output schema"
-      ))
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("group field 'nonexistent' references unknown column 'nonexistent'")
+      )
    );
 }
 
@@ -527,8 +529,55 @@ TEST(AstToQueryGroupBy, aggregatesInByPositionThrows) {
    auto tables = makeTablesWithDefault();
    EXPECT_THAT(
       [&]() { (void)parseAndConvertToQueryTree("data.group({n:=count()}, {date})", tables); },
+      ThrowsMessage<IllegalQueryException>(::testing::HasSubstr(
+         "group by must be a set of scalar expressions like {pango_lineage, S[10]} (or {} for "
+         "no grouping), aggregates go into aggs, e.g. group(by:={}, aggs:={count:=count()})"
+      ))
+   );
+}
+
+TEST(AstToQueryGroupBy, byIsComputedByMapBelowTheAggregate) {
+   auto tables = makeTablesWithDefault();
+   const auto query_tree =
+      parseAndConvertToQueryTree("data.group({date, date.isoWeek()}, {n:=count()})", tables);
+   std::vector<std::string> column_names;
+   for (const auto& col : query_tree->getOutputSchema()) {
+      column_names.push_back(col.name);
+   }
+   EXPECT_THAT(column_names, ::testing::UnorderedElementsAre("date", "isoWeek(date)", "n"));
+   const auto* aggregate =
+      dynamic_cast<const rhydb::query_engine::operators::AggregateNode*>(query_tree.get());
+   ASSERT_NE(aggregate, nullptr);
+   const auto* map =
+      dynamic_cast<const rhydb::query_engine::operators::MapNode*>(aggregate->child.get());
+   ASSERT_NE(map, nullptr);
+   ASSERT_EQ(map->assignments.size(), 2);
+   EXPECT_EQ(map->assignments[0].output_column.name, "date");
+   EXPECT_EQ(map->assignments[1].output_column.name, "isoWeek(date)");
+}
+
+TEST(AstToQueryGroupBy, duplicateScalarExpressionInByThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&]() {
+         (void)parseAndConvertToQueryTree(
+            "data.group({date.isoWeek(), isoWeek(date)}, {n:=count()})", tables
+         );
+      },
       ThrowsMessage<IllegalQueryException>(
-         ::testing::HasSubstr("group by must be a set of columns")
+         ::testing::HasSubstr("group field 'isoWeek(date)' is given more than once")
+      )
+   );
+}
+
+TEST(AstToQueryGroupBy, invalidScalarExpressionInByThrows) {
+   auto tables = makeTablesWithDefault();
+   EXPECT_THAT(
+      [&]() {
+         (void)parseAndConvertToQueryTree("data.group({nope.isoWeek()}, {n:=count()})", tables);
+      },
+      ThrowsMessage<IllegalQueryException>(
+         ::testing::HasSubstr("isoWeek() input references unknown column 'nope'")
       )
    );
 }

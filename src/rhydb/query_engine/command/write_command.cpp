@@ -17,7 +17,6 @@
 namespace rhydb::query_engine::command {
 
 using saneql::BoundArguments;
-using saneql::ChildConverter;
 using saneql::FunctionSignature;
 using saneql::ParameterDefinition;
 using saneql::Tables;
@@ -48,11 +47,7 @@ arrow::Status writeToSink(
 
 namespace {
 
-WriteCommandPtr buildInsertInto(
-   const BoundArguments& args,
-   const Tables& tables,
-   const ChildConverter& convert_child
-) {
+WriteCommandPtr buildInsertInto(const BoundArguments& args, const Tables& tables) {
    const std::string target_name = saneql::ast::extractIdentifierName(args.at("target"));
    auto target_table = schema::TableName(target_name);
    CHECK_RHYDB_QUERY(
@@ -60,7 +55,7 @@ WriteCommandPtr buildInsertInto(
       "insertInto() target table '{}' not found in database",
       target_name
    );
-   auto source_query = convert_child(args.at("input"), tables);
+   auto source_query = saneql::convertExpression(args.at("input"), tables);
    return std::make_unique<InsertCommand>(std::move(source_query), std::move(target_table));
 }
 
@@ -125,7 +120,7 @@ Request parseRequest(std::string_view query_string, const Tables& tables) {
          auto bound = saneql::bindArguments(
             call.function_name, entry->signature, call.positional_arguments, call.named_arguments
          );
-         return entry->handler(bound, tables, saneql::convertExpression);
+         return entry->handler(bound, tables);
       }
    }
 

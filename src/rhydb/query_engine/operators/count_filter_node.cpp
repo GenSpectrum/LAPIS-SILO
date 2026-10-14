@@ -11,6 +11,7 @@
 #include <arrow/builder.h>
 #include <nlohmann/json.hpp>
 
+#include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
 #include "rhydb/schema/database_schema.h"
@@ -39,16 +40,18 @@ arrow::Result<arrow::acero::ExecNode*> CountFilterNode::addToExecPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   auto filter_bitmap = compileFilter(filter, table)->evaluate();
+   auto compiled_filter = compileFilter(filter, table);
 
    std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
-      [filter_bitmap = std::move(filter_bitmap),
+      [compiled_filter,
        already_produced = false] mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
          const std::optional<arrow::ExecBatch> result = std::nullopt;
          return arrow::Future{result};
       }
       already_produced = true;
+
+      const Bitmap filter_bitmap = compiled_filter->evaluate();
 
       auto result_count = static_cast<int64_t>(filter_bitmap.cardinality());
 

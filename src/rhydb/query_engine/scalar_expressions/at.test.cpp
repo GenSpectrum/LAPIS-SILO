@@ -1,3 +1,9 @@
+#include <algorithm>
+#include <iterator>
+#include <string>
+#include <vector>
+
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 
 #include "rhydb/test/query_fixture.test.h"
@@ -105,15 +111,12 @@ const QueryTestScenario AT_SEQUENCE_INNER_SCENARIO = {
    ),
 };
 
-// A sequence `.at()` predicate cannot be lowered to a bitmap filter (neither side is a plain column
-// reference), so applying it directly to the table scan is rejected. Issue #1462 tracks making
-// `seq.at(n) = symbol` use an efficient sequence filter here.
-const QueryTestScenario AT_FILTER_ON_SCAN_REJECTED_SCENARIO = {
-   .name = "AT_FILTER_ON_SCAN_REJECTED",
+// A sequence `.at()` comparison applied directly to the table scan is rewritten into the symbol
+// filter that `nucleotideEquals` uses, so it is answered from the sequence index.
+const QueryTestScenario AT_FILTER_ON_SCAN_SCENARIO = {
+   .name = "AT_FILTER_ON_SCAN",
    .query = "data.filter(segment1.at(1) = 'A').project({primaryKey})",
-   .expected_error_message =
-      "A Comparison expression can only be compiled to a filter when exactly one side is a column "
-      "reference and the other a literal value",
+   .expected_query_result = nlohmann::json({{{"primaryKey", "id_0"}}}),
 };
 
 // The same `.at()` predicate placed above a limit() cannot be pushed into the scan (limit is a
@@ -136,7 +139,126 @@ QUERY_TEST(
       AT_DICTIONARY_ENCODED_SCENARIO,
       AT_SEQUENCE_FIRST_SCENARIO,
       AT_SEQUENCE_INNER_SCENARIO,
-      AT_FILTER_ON_SCAN_REJECTED_SCENARIO,
+      AT_FILTER_ON_SCAN_SCENARIO,
       AT_FILTER_ABOVE_LIMIT_SCENARIO
    )
 );
+
+namespace {
+
+const std::vector<nlohmann::json> FILTER_DATA = {
+   {
+      {"primaryKey", "id_0"},
+      {"segment1", alignedSequence("ACGT")},
+      {"gene1", alignedSequence("*")},
+   },
+   {
+      {"primaryKey", "id_1"},
+      {"segment1", nullptr},
+      {"gene1", nullptr},
+   },
+   {
+      {"primaryKey", "id_2"},
+      {"segment1", alignedSequence("NCGT")},
+      {"gene1", alignedSequence("X")},
+   },
+   {
+      {"primaryKey", "id_3"},
+      {"segment1", alignedSequence("RCGA")},
+      {"gene1", nullptr},
+   },
+};
+
+const auto FILTER_DATABASE_CONFIG =
+   R"(
+schema:
+  instanceName: "at filter test"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+  primaryKey: "primaryKey"
+)";
+
+const QueryTestData FILTER_TEST_DATA{
+   .ndjson_input_data = FILTER_DATA,
+   .database_config = FILTER_DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES,
+   .without_unaligned_sequences = true,
+};
+
+nlohmann::json primaryKeys(const std::vector<std::string>& keys) {
+   auto result = nlohmann::json::array();
+   for (const auto& key : keys) {
+      result.push_back({{"primaryKey", key}});
+   }
+   return result;
+}
+
+/// Directly on the table scan the predicate is rewritten into a sequence-index filter, above
+/// limit() (a pushdown barrier) it is evaluated by Arrow on the extracted character. Both must
+/// select the same rows, so every predicate is checked in both positions.
+std::vector<QueryTestScenario> onScanAndAboveLimit(
+   const std::string& name,
+   const std::string& predicate,
+   const std::vector<std::string>& expected_keys
+) {
+   return {
+      {
+         .name = name + "_ON_SCAN",
+         .query = fmt::format("data.filter({}).project({{primaryKey}})", predicate),
+         .expected_query_result = primaryKeys(expected_keys),
+      },
+      {
+         .name = name + "_ABOVE_LIMIT",
+         .query = fmt::format("data.limit(10).filter({}).project({{primaryKey}})", predicate),
+         .expected_query_result = primaryKeys(expected_keys),
+      },
+   };
+}
+
+std::vector<QueryTestScenario> filterScenarios() {
+   std::vector<QueryTestScenario> scenarios;
+   const auto add = [&](
+                       const std::string& name,
+                       const std::string& predicate,
+                       const std::vector<std::string>& expected_keys
+                    ) {
+      std::ranges::move(
+         onScanAndAboveLimit(name, predicate, expected_keys), std::back_inserter(scenarios)
+      );
+   };
+   add("EQUALS_MUTATED", "segment1[1] = 'A'", {"id_0"});
+   add("EQUALS_LITERAL_ON_LEFT", "'A' = segment1[1]", {"id_0"});
+   add("EQUALS_REFERENCE", "segment1[4] = 'T'", {"id_0", "id_2"});
+   add("EQUALS_MISSING_EXCLUDES_NULL", "segment1[1] = 'N'", {"id_2"});
+   add("EQUALS_AMBIGUOUS", "segment1[1] = 'R'", {"id_3"});
+   add("EQUALS_LOWER_CASE", "segment1[1] = 'a'", {});
+   add("EQUALS_MULTIPLE_CHARACTERS", "segment1[1] = 'AC'", {});
+   add("EQUALS_INVALID_SYMBOL", "segment1[1] = 'X'", {});
+   add("EQUALS_OUT_OF_BOUNDS", "segment1[5] = 'A'", {});
+   add("NOT_EQUALS", "segment1[1] <> 'A'", {"id_2", "id_3"});
+   add("NOT_EQUALS_REFERENCE", "segment1[4] <> 'T'", {"id_3"});
+   add("NOT_EQUALS_INVALID_SYMBOL", "segment1[1] <> 'X'", {"id_0", "id_2", "id_3"});
+   add("NOT_EQUALS_OUT_OF_BOUNDS", "segment1[5] <> 'A'", {"id_0", "id_2", "id_3"});
+   add("AMINO_ACID_EQUALS", "gene1[1] = '*'", {"id_0"});
+   add("AMINO_ACID_EQUALS_ANY", "gene1[1] = 'X'", {"id_2"});
+   add("AMINO_ACID_NOT_EQUALS", "gene1[1] <> '*'", {"id_2"});
+   add("IN_OR", "segment1[1] = 'A' || segment1[4] = 'A'", {"id_0", "id_3"});
+
+   // Like nucleotideEquals, the index filter honours maybe(): ambiguous symbols may be 'A'.
+   scenarios.push_back({
+      .name = "MAYBE_EQUALS_ON_SCAN",
+      .query = "data.filter(maybe(segment1[1] = 'A')).project({primaryKey})",
+      .expected_query_result = primaryKeys({"id_0", "id_2", "id_3"}),
+   });
+   scenarios.push_back({
+      .name = "MAYBE_NOT_EQUALS_ON_SCAN",
+      .query = "data.filter(maybe(segment1[1] <> 'A')).project({primaryKey})",
+      .expected_query_result = primaryKeys({"id_2", "id_3"}),
+   });
+   return scenarios;
+}
+
+}  // namespace
+
+QUERY_TEST(AtFilterTest, FILTER_TEST_DATA, ::testing::ValuesIn(filterScenarios()));
