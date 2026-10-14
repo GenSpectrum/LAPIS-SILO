@@ -16,10 +16,9 @@ tableName
 
 The table holding the sequences and their metadata is named `data`.
 
-Additional tables exist if the database config declares columns with `lineageIndexType: table` or
-`both`: each such column gets a companion table named after the column, holding the edges of its
-lineage tree, and one named after the column with an `_aliases` suffix, holding its aliases. These
-are queried like any other table — see
+Additional tables exist for columns with a lineage definition: each such column gets a companion
+table named after the column, holding the edges of its lineage tree, and one named after the column
+with an `_aliases` suffix, holding its aliases. These are queried like any other table — see
 [lineage_definitions.md](lineage_definitions.md#lineage-relation-tables) for their schema.
 
 Some tables are **built-in**: every database contains them, so queries can always rely on their
@@ -552,9 +551,8 @@ With `includeVertices:=true` (default `false`), the reflexive pair `(v, v)` is a
 emitted for every vertex `v` that appears in the relation, yielding the *reflexive*-transitive
 closure.
 
-A typical input is a **lineage relation table**. When a column is configured with
-`lineageIndexType: table` (or `both`), preprocessing materializes a companion table (named after
-that column) with one row per direct edge, holding the child lineage in a `lineage` column and
+A typical input is a **lineage relation table**. For a column with a lineage definition,
+preprocessing materializes a companion table (named after that column) with one row per direct edge, holding the child lineage in a `lineage` column and
 its direct parent in a `parent` column (null for roots). Its closure pairs every lineage with
 each of its descendants:
 
@@ -798,9 +796,7 @@ primary_key.like('key_[0-9]+')
 ### `lineage(column, value [, includeSublineages:=bool] [, recombinantFollowingMode:=string])`
 
 True if the lineage column matches `value`. The column must have `generateLineageIndex` set in the
-schema, with a `lineageIndexType` of `columnMetadata` (the default) or `both` — with
-`lineageIndexType: table` the lineage tree is not attached to the column and this filter is
-unavailable on it.
+schema.
 
 `includeSublineages` (default `false`) also matches sublineages of `value`. `value` may be `null` to match NULL rows.
 
@@ -818,9 +814,9 @@ pango_lineage.lineage('XBB', includeSublineages:=true, recombinantFollowingMode:
 ### `lineageFromTables(column, value, lineages, aliases [, includeSublineages] [, recombinantFollowingMode])`
 
 Works similar to the filter `lineage(...)`, but reads the lineage hierarchy from a lineage relation table
-`lineages` and an alias table `aliases` instead of an in-memory lineage index. With
-`lineageIndexType: table` (or `both`), preprocessing materializes these tables for a column, as
-`<column>` and `<column>_aliases` (see [lineage_definitions.md](lineage_definitions.md)):
+`lineages` and an alias table `aliases` instead of an in-memory lineage index. Preprocessing
+materializes these tables for every column with a lineage definition, as `<column>` and
+`<column>_aliases` (see [lineage_definitions.md](lineage_definitions.md)):
 
 ```
 pango_lineage.lineageFromTables('B.1.1.7', pango_lineage, pango_lineage_aliases)

@@ -1,6 +1,5 @@
 #include "rhydb/initialize/initializer.h"
 
-#include <fmt/format.h>
 #include <gtest/gtest.h>
 
 #include "rhydb/database.h"
@@ -203,67 +202,6 @@ A.11:
    ASSERT_TRUE(table_schema->primary_key.has_value());
    ASSERT_EQ(table_schema->primary_key->name, "primaryKey");
    ASSERT_EQ(table_schema->primary_key->type, ColumnType::STRING);
-}
-
-namespace {
-// Builds a schema from a config whose single lineage column uses the given `lineageIndexType`, and
-// returns whether the resulting column carries the in-memory lineage tree.
-bool lineageColumnHasInMemoryTree(const std::string& lineage_index_type) {
-   const std::string config_yaml = fmt::format(
-      R"(
-schema:
-  instanceName: "test"
-  metadata:
-    - name: "primaryKey"
-      type: "string"
-    - name: "lineage"
-      type: "string"
-      generateIndex: true
-      generateLineageIndex: test_lineage_definition.yaml
-      lineageIndexType: {}
-  primaryKey: "primaryKey"
-)",
-      lineage_index_type
-   );
-   const auto database_config = rhydb::config::DatabaseConfig::getValidatedConfig(config_yaml);
-   const ReferenceGenomes reference_genomes =
-      ReferenceGenomes::readFromFile("testBaseData/unitTestDummyDataset/reference_genomes.json");
-   const std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees{
-      {
-         "test_lineage_definition.yaml",
-         LineageTreeAndIdMap::fromLineageDefinitionFile(
-            rhydb::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
-A:
-  parents: []
-A.1:
-  parents:
-  - A
-)")
-         ),
-      },
-   };
-   auto table_schema = Initializer::createSchemaFromConfigFiles(
-      database_config, reference_genomes, lineage_trees, PhyloTree(), false
-   );
-   auto* metadata =
-      table_schema->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("lineage")
-         .value();
-   return metadata->lineage_tree.has_value();
-}
-}  // namespace
-
-TEST(Initializer, lineageIndexTypeColumnMetadataAttachesInMemoryTree) {
-   EXPECT_TRUE(lineageColumnHasInMemoryTree("columnMetadata"));
-}
-
-TEST(Initializer, lineageIndexTypeBothAttachesInMemoryTree) {
-   EXPECT_TRUE(lineageColumnHasInMemoryTree("both"));
-}
-
-TEST(Initializer, lineageIndexTypeTableDoesNotAttachInMemoryTree) {
-   // 'table' mode materializes only the relation table; the column stays a plain indexed string
-   // column without the in-memory lineage index.
-   EXPECT_FALSE(lineageColumnHasInMemoryTree("table"));
 }
 
 TEST(Initializer, rejectsCreatingTableWithNameOfExistingTable) {

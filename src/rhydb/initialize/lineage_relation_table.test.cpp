@@ -137,8 +137,8 @@ using rhydb::ReferenceGenomes;
 using rhydb::test::QueryTestData;
 using rhydb::test::QueryTestScenario;
 
-// A column with `lineageIndexType: table` gets a companion relation table named after the column,
-// and an alias table named after the column with an `_aliases` suffix.
+// A column with a lineage definition gets a companion relation table named after the column, and
+// an alias table named after the column with an `_aliases` suffix.
 const auto DATABASE_CONFIG =
    R"(
 schema:
@@ -150,7 +150,6 @@ schema:
       type: "string"
       generateIndex: true
       generateLineageIndex: test_lineage_index
-      lineageIndexType: "table"
   primaryKey: "primaryKey"
 )";
 
