@@ -1,5 +1,17 @@
 #include "rhydb/query_engine/exec_node/table_scan.h"
+
+#include <atomic>
+#include <cstdint>
+#include <exception>
+#include <mutex>
+#include <optional>
+#include <string_view>
 #include <utility>
+
+#include <arrow/acero/query_context.h>
+#include <arrow/compute/ordering.h>
+#include <arrow/util/async_util.h>
+#include <arrow/util/future.h>
 
 #include <roaring/containers/array.h>
 #include <roaring/containers/bitset.h>
@@ -10,10 +22,14 @@
 
 #include "evobench/evobench.hpp"
 #include "rhydb/common/bitmap.h"
+#include "rhydb/common/panic.h"
 #include "rhydb/query_engine/batched_bitmap_reader.h"
+#include "rhydb/query_engine/operators/compute_filter.h"
 #include "rhydb/storage/column/column_type_visitor.h"
 
 namespace rhydb::query_engine::exec_node {
+
+using operators::CompiledFilter;
 
 namespace {
 
@@ -226,44 +242,196 @@ arrow::Result<arrow::ExecBatch> ExecBatchBuilder::finishBatch(int64_t length) {
    return arrow::compute::ExecBatch::Make(std::move(data), length);
 }
 
-arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBatch() {
-   EVOBENCH_SCOPE("TableScanGenerator", "produceNextBatch");
-   if (!filter_computed) {
-      current_bitmap_reader =
-         BatchedBitmapReader{filter->evaluate().toRoaring(), batch_size_cutoff};
-      filter_computed = true;
+namespace {
+
+class TableScan final : public arrow::acero::ExecNode {
+  public:
+   TableScan(
+      arrow::acero::ExecPlan* plan,
+      const std::vector<schema::ColumnIdentifier>& columns,
+      CompiledFilter filter,
+      std::shared_ptr<const storage::Table> table,
+      size_t batch_size_cutoff
+   )
+       : ExecNode(plan, {}, {}, columnsToArrowSchema(columns)),
+         exec_batch_builder_(columns),
+         filter_(std::move(filter)),
+         table_(std::move(table)),
+         batch_size_cutoff_(batch_size_cutoff) {}
+
+   [[nodiscard]] const char* kind_name() const override { return "TableScan"; }
+
+   [[nodiscard]] const arrow::Ordering& ordering() const override {
+      static const arrow::Ordering implicit = arrow::Ordering::Implicit();
+      return implicit;
    }
-   while (current_bitmap_reader.has_value()) {
-      auto row_ids = current_bitmap_reader.value().nextBatch();
-      if (row_ids.has_value()) {
-         const Bitmap batch_row_ids{std::move(row_ids.value())};
-         const auto length = static_cast<int64_t>(batch_row_ids.cardinality());
-         ARROW_RETURN_NOT_OK(exec_batch_builder.appendEntries(*table, batch_row_ids));
-         ARROW_ASSIGN_OR_RAISE(auto batch, exec_batch_builder.finishBatch(length));
-         SPDLOG_DEBUG("Finished arrow::ExecBatch with length: {}", batch.length);
-         return batch;
+
+   [[noreturn]] arrow::Status InputReceived(
+      arrow::acero::ExecNode* /*input*/,
+      arrow::ExecBatch /*batch*/
+   ) override {
+      RHYDB_UNREACHABLE();
+   }
+
+   [[noreturn]] arrow::Status
+   InputFinished(arrow::acero::ExecNode* /*input*/, int /*total_batches*/) override {
+      RHYDB_UNREACHABLE();
+   }
+
+   arrow::Status StartProducing() override {
+      // Keeps the plan running while the scan is paused and no batch task is scheduled
+      ARROW_ASSIGN_OR_RAISE(scan_done_, plan_->query_context()->BeginExternalTask(kind_name()));
+      if (!scan_done_.is_valid()) {
+         return arrow::Status::OK();
       }
-      current_bitmap_reader = std::nullopt;
+      scheduleNextBatch();
+      return arrow::Status::OK();
    }
-   return std::nullopt;
-}
+
+   void PauseProducing(arrow::acero::ExecNode* /*output*/, int32_t counter) override {
+      const std::scoped_lock lock(mutex_);
+      if (counter <= backpressure_counter_) {
+         return;
+      }
+      backpressure_counter_ = counter;
+      paused_ = true;
+   }
+
+   void ResumeProducing(arrow::acero::ExecNode* /*output*/, int32_t counter) override {
+      {
+         const std::scoped_lock lock(mutex_);
+         if (counter <= backpressure_counter_) {
+            return;
+         }
+         backpressure_counter_ = counter;
+         paused_ = false;
+         if (!parked_) {
+            return;
+         }
+         parked_ = false;
+      }
+      scheduleNextBatch();
+   }
+
+  protected:
+   arrow::Status StopProducingImpl() override {
+      {
+         const std::scoped_lock lock(mutex_);
+         stopped_ = true;
+         if (!parked_) {
+            return arrow::Status::OK();
+         }
+         parked_ = false;
+      }
+      return finish();
+   }
+
+  private:
+   // Batches are produced one after another, each in its own task. The next task is scheduled
+   // before the current batch is delivered, so producing and consuming overlap.
+   void scheduleNextBatch() {
+      auto* executor = plan_->query_context()->executor();
+      const bool scheduled = plan_->query_context()->async_scheduler()->AddSimpleTask(
+         [this, executor] {
+            return executor->Submit([this] {
+               arrow::Status status;
+               try {
+                  status = produceNextBatch();
+               } catch (const std::exception& exception) {
+                  status = arrow::Status::ExecutionError(exception.what());
+               }
+               if (!status.ok()) {
+                  markDone(status);
+               }
+               return status;
+            });
+         },
+         std::string_view{"TableScan::ProduceBatch"}
+      );
+      // The plan was aborted
+      if (!scheduled) {
+         markDone(arrow::Status::OK());
+      }
+   }
+
+   arrow::Status produceNextBatch() {
+      EVOBENCH_SCOPE("TableScan", "produceNextBatch");
+      if (!bitmap_reader_.has_value()) {
+         bitmap_reader_.emplace(filter_.evaluate().toRoaring(), batch_size_cutoff_);
+      }
+      bool stopped = false;
+      {
+         const std::scoped_lock lock(mutex_);
+         stopped = stopped_;
+      }
+      std::optional<roaring::Roaring> row_ids =
+         stopped ? std::nullopt : bitmap_reader_->nextBatch();
+      if (!row_ids.has_value()) {
+         return finish();
+      }
+
+      const Bitmap batch_row_ids{std::move(row_ids.value())};
+      const auto length = static_cast<int64_t>(batch_row_ids.cardinality());
+      ARROW_RETURN_NOT_OK(exec_batch_builder_.appendEntries(*table_, batch_row_ids));
+      ARROW_ASSIGN_OR_RAISE(auto batch, exec_batch_builder_.finishBatch(length));
+      batch.index = batch_count_++;
+
+      bool parked = false;
+      {
+         const std::scoped_lock lock(mutex_);
+         parked = paused_ && !stopped_;
+         parked_ = parked;
+      }
+      if (!parked) {
+         scheduleNextBatch();
+      }
+      return output_->InputReceived(this, std::move(batch));
+   }
+
+   arrow::Status finish() {
+      ARROW_RETURN_NOT_OK(output_->InputFinished(this, batch_count_));
+      markDone(arrow::Status::OK());
+      return arrow::Status::OK();
+   }
+
+   void markDone(const arrow::Status& status) {
+      if (!done_.exchange(true)) {
+         scan_done_.MarkFinished(status);
+      }
+   }
+
+   ExecBatchBuilder exec_batch_builder_;
+   CompiledFilter filter_;
+   std::shared_ptr<const storage::Table> table_;
+   size_t batch_size_cutoff_;
+
+   // Only touched by the batch tasks, which run one after another
+   std::optional<BatchedBitmapReader> bitmap_reader_;
+   int batch_count_ = 0;
+
+   arrow::Future<> scan_done_;
+   std::atomic<bool> done_ = false;
+
+   std::mutex mutex_;
+   int32_t backpressure_counter_ = 0;
+   bool paused_ = false;
+   // Paused with no batch task scheduled; resuming or stopping continues from here
+   bool parked_ = false;
+   bool stopped_ = false;
+};
+
+}  // namespace
 
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    arrow::acero::ExecPlan* plan,
-   const std::vector<rhydb::schema::ColumnIdentifier>& columns,
-   std::shared_ptr<const operators::CompiledFilter> filter,
+   const std::vector<schema::ColumnIdentifier>& columns,
+   CompiledFilter filter,
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 ) {
-   const exec_node::TableScanGenerator generator(
-      columns, std::move(filter), std::move(table), batch_size_cutoff
+   return plan->EmplaceNode<TableScan>(
+      plan, columns, std::move(filter), std::move(table), batch_size_cutoff
    );
-   const arrow::acero::SourceNodeOptions source_node_options{
-      exec_node::columnsToArrowSchema(columns),
-      generator,
-      arrow::Ordering::Implicit(),
-   };
-   return arrow::acero::MakeExecNode("source", plan, {}, source_node_options);
 }
 
 }  // namespace rhydb::query_engine::exec_node

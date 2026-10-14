@@ -25,10 +25,8 @@ arrow::Result<arrow::acero::ExecNode*> TableScanNode::addToExecPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& query_options
 ) const {
-   auto compiled_filter = compileFilter(filter, table);
-
    return exec_node::makeTableScan(
-      &plan, fields, compiled_filter, table, query_options.materialization_cutoff
+      &plan, fields, CompiledFilter{table, *filter}, table, query_options.materialization_cutoff
    );
 }
 

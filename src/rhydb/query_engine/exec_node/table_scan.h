@@ -4,14 +4,11 @@
 #include <vector>
 
 #include <arrow/acero/exec_plan.h>
-#include <arrow/acero/options.h>
 #include <arrow/builder.h>
 #include <arrow/record_batch.h>
-#include <spdlog/spdlog.h>
 #include <nlohmann/json_fwd.hpp>
 
 #include "rhydb/common/bitmap.h"
-#include "rhydb/query_engine/batched_bitmap_reader.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
 #include "rhydb/storage/table.h"
@@ -40,72 +37,14 @@ class ExecBatchBuilder {
    arrow::Result<arrow::ExecBatch> finishBatch(int64_t length);
 };
 
-class TableScanGenerator {
-   ExecBatchBuilder exec_batch_builder;
-
-   // Evaluated on the first batch, so that the filter is computed during the execution of the
-   // plan and not while the plan is built
-   std::shared_ptr<const operators::CompiledFilter> filter;
-
-   size_t batch_size_cutoff;
-
-   bool filter_computed = false;
-
-   std::optional<BatchedBitmapReader> current_bitmap_reader;
-
-   const std::shared_ptr<const storage::Table> table;
-
-  public:
-   TableScanGenerator(
-      const std::vector<rhydb::schema::ColumnIdentifier>& columns,
-      std::shared_ptr<const operators::CompiledFilter> filter,
-      std::shared_ptr<const storage::Table> table,
-      size_t batch_size_cutoff
-   )
-       : exec_batch_builder(columns),
-         filter(std::move(filter)),
-         batch_size_cutoff(batch_size_cutoff),
-         table(std::move(table)) {}
-
-   arrow::Future<std::optional<arrow::ExecBatch>> operator()() {
-      SPDLOG_TRACE("TableScanGenerator::operator()");
-      auto future = arrow::Future<std::optional<arrow::ExecBatch>>::Make();
-#ifdef __EMSCRIPTEN__
-      // In the browser build we produce the batch synchronously. Spawning a
-      // detached pthread per batch (as the native path does below) starves or
-      // deadlocks Emscripten's fixed pthread worker pool (PTHREAD_POOL_SIZE in
-      // wasm/CMakeLists.txt) on larger datasets. The arrow issues worked around
-      // below do not affect the browser build, which runs acero with a
-      // single-threaded executor.
-      try {
-         auto result = produceNextBatch();
-         future.MarkFinished(std::move(result));
-      } catch (const std::exception& exception) {
-         future.MarkFinished(arrow::Status::ExecutionError(exception.what()));
-      }
-#else
-      // We do this to guard against https://github.com/apache/arrow/issues/47641
-      // and https://github.com/apache/arrow/issues/47642
-      std::thread([future, this] mutable {
-         try {
-            auto result = produceNextBatch();
-            future.MarkFinished(std::move(result));
-         } catch (const std::exception& exception) {
-            future.MarkFinished(arrow::Status::ExecutionError(exception.what()));
-         }
-      }).detach();
-#endif
-      return future;
-   };
-
-  private:
-   arrow::Result<std::optional<arrow::ExecBatch>> produceNextBatch();
-};
-
+/// Adds a source node to `plan` that produces `columns` of the rows of `table` matched by
+/// `filter`. The filter is evaluated when the plan starts, and the rows are produced in batches
+/// limited by `batch_size_cutoff`, one batch per task, pausing while the output applies
+/// backpressure.
 arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    arrow::acero::ExecPlan* plan,
    const std::vector<rhydb::schema::ColumnIdentifier>& columns,
-   std::shared_ptr<const operators::CompiledFilter> filter,
+   operators::CompiledFilter filter,
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 );
