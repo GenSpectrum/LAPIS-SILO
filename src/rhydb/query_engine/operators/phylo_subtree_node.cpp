@@ -160,7 +160,7 @@ arrow::Result<arrow::acero::ExecNode*> PhyloSubtreeNode::addToExecPlan(
          const std::vector<arrow::Datum> result_columns, output_builder.finish()
       );
       ARROW_ASSIGN_OR_RAISE(
-         const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
+         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
       );
       return result;
    };

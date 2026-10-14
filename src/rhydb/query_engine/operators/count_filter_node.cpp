@@ -60,7 +60,7 @@ arrow::Result<arrow::acero::ExecNode*> CountFilterNode::addToExecPlan(
       arrow::Datum datum;
       ARROW_ASSIGN_OR_RAISE(datum, result_builder.Finish());
       ARROW_ASSIGN_OR_RAISE(
-         const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make({datum})
+         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make({datum})
       );
       return result;
    };

@@ -16,7 +16,7 @@ arrow::AsyncGenerator<std::optional<arrow::ExecBatch>> makeAsyncBatchGenerator(
    arrow::internal::Executor* executor = plan.query_context()->executor();
    // Shared, because the source node copies its generator, which would copy the producer's state
    auto producer = std::make_shared<BatchProducer>(std::move(produce_next_batch));
-   auto produce = [producer]() -> arrow::Result<std::optional<arrow::ExecBatch>> {
+   auto produce = [producer] -> arrow::Result<std::optional<arrow::ExecBatch>> {
       try {
          return (*producer)();
       } catch (const std::exception& exception) {

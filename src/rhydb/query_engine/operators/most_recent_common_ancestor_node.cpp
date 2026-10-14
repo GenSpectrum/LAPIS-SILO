@@ -170,7 +170,7 @@ arrow::Result<arrow::acero::ExecNode*> MostRecentCommonAncestorNode::addToExecPl
       );
 
       ARROW_ASSIGN_OR_RAISE(
-         const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
+         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
       );
       return result;
    };
