@@ -21,12 +21,14 @@ const std::vector<nlohmann::json> DATA = {
    {
       {"primaryKey", "id_0"},
       {"str_value", "short"},
+      {"indexed_value", "B.1.1"},
       {"segment1", alignedSequence("ACGT")},
       {"gene1", nullptr},
    },
    {
       {"primaryKey", "id_1"},
       {"str_value", "longlonglong"},
+      {"indexed_value", "XBB.1"},
       {"segment1", nullptr},
       {"gene1", nullptr},
    },
@@ -41,6 +43,9 @@ schema:
       type: "string"
     - name: "str_value"
       type: "string"
+    - name: "indexed_value"
+      type: "string"
+      generateIndex: true
   primaryKey: "primaryKey"
 )";
 
@@ -78,6 +83,15 @@ const QueryTestScenario AT_STRING_OUT_OF_BOUNDS_SCENARIO = {
    .query = "data.map({eighth := str_value.at(8)}).project({primaryKey, eighth})",
    .expected_query_result = nlohmann::json(
       {{{"primaryKey", "id_0"}, {"eighth", ""}}, {{"primaryKey", "id_1"}, {"eighth", "g"}}}
+   ),
+};
+
+// An indexed string column is dictionary-encoded, but still a valid string input to `.at()`.
+const QueryTestScenario AT_DICTIONARY_ENCODED_SCENARIO = {
+   .name = "AT_DICTIONARY_ENCODED",
+   .query = "data.map({second := indexed_value.at(2)}).project({primaryKey, second})",
+   .expected_query_result = nlohmann::json(
+      {{{"primaryKey", "id_0"}, {"second", "."}}, {{"primaryKey", "id_1"}, {"second", "B"}}}
    ),
 };
 
@@ -122,6 +136,7 @@ QUERY_TEST(
       AT_STRING_SCENARIO,
       AT_BRACKET_SCENARIO,
       AT_STRING_OUT_OF_BOUNDS_SCENARIO,
+      AT_DICTIONARY_ENCODED_SCENARIO,
       AT_SEQUENCE_FIRST_SCENARIO,
       AT_SEQUENCE_INNER_SCENARIO,
       AT_FILTER_ON_SCAN_SCENARIO,

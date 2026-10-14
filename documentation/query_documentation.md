@@ -181,7 +181,7 @@ data.projectout(division)
 
 ### `map(expressions)`
 
-Adds columns to the table. `expressions` is a record of `name := value` assignments. Each value may be a literal (integers, floats, single-quoted strings, or booleans), a field reference, or a call to a non-boolean [scalar function](#scalar-functions) such as [`at`](#atcolumn-position).
+Adds columns to the table. `expressions` is a record of `name := value` assignments. Each value may be a literal (integers, floats, single-quoted strings, or booleans), a field reference, or a call to a non-boolean [scalar function](#scalar-functions) such as [`at`](#atinput-position).
 
 ```
 data.map({x := 3, label := 'cohort A', active := true, copy := country})
@@ -716,11 +716,11 @@ the [Python bindings](python_bindings.md).
 
 Scalar functions are evaluated once per row of their input and can be used wherever a scalar expression is expected.
 
-### `at(column, position)`
+### `at(input, position)`
 
-Extracts the single character of a string or sequence `column` at the 1-based `position`, returning it as a string. `position` must be greater than 0. If `position` is past the end of the value, the result is an empty string `""` (a `null` value yields `null`).
+Extracts the single character of a string or sequence `input` at the 1-based `position`, returning it as a string. `position` must be greater than 0. If `position` is past the end of the value, the result is an empty string `""` (a `null` value yields `null`).
 
-The square-bracket notation `column[position]` is shorthand for `column.at(position)`.
+The square-bracket notation `input[position]` is shorthand for `input.at(position)`.
 
 ```
 data.map({second_char := primary_key.at(2)})
@@ -728,9 +728,9 @@ data.map({second_char := primary_key[2]})
 data.filter(main[100] = 'A')
 ```
 
-### `isoWeek(column)`
+### `isoWeek(input)`
 
-Maps a date `column` to its ISO 8601 week date, formatted as `<ISO-year>-W<ISO-week>` (e.g. `2026-W12`), as a string. The ISO week-numbering year is used, so it can differ from the calendar year around January (e.g. `2021-01-01` is `2020-W53`); the zero-padded week keeps the value chronologically sortable within a year. `column` must be a date column. A `null` date yields `null`.
+Maps a date `input` to its ISO 8601 week date, formatted as `<ISO-year>-W<ISO-week>` (e.g. `2026-W12`), as a string. The ISO week-numbering year is used, so it can differ from the calendar year around January (e.g. `2021-01-01` is `2020-W53`); the zero-padded week keeps the value chronologically sortable within a year. `input` must be a date. A `null` date yields `null`.
 
 ```
 data.map({week := date.isoWeek()})
