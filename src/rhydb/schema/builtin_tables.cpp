@@ -26,10 +26,12 @@ std::shared_ptr<TableSchema> createReferenceGenomesTableSchema() {
 
 std::shared_ptr<TableSchema> createLineageDefinitionsTableSchema() {
    const ColumnIdentifier column_name_column{
-      .name = std::string{LINEAGE_DEFINITIONS_COLUMN_NAME_COLUMN}, .type = ColumnType::STRING
+      .name = std::string{LINEAGE_DEFINITIONS_COLUMN_NAME_COLUMN},
+      .type = ColumnType::STRING,
    };
    const ColumnIdentifier definition_column{
-      .name = std::string{LINEAGE_DEFINITIONS_DEFINITION_COLUMN}, .type = ColumnType::STRING
+      .name = std::string{LINEAGE_DEFINITIONS_DEFINITION_COLUMN},
+      .type = ColumnType::STRING,
    };
    auto table_schema = std::make_shared<TableSchema>();
    for (const auto& column : {column_name_column, definition_column}) {
