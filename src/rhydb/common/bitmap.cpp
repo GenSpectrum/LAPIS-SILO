@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <span>
+#include <functional>
+#include <queue>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -293,14 +294,53 @@ Bitmap Bitmap::operator-(const Bitmap& other) const {
 }
 
 Bitmap Bitmap::fastUnion(const std::vector<Bitmap>& bitmaps) {
-   // TODO(#1490) implement with n-way min-heap
-   if (bitmaps.empty()) {
-      return Bitmap{};
+   // One cursor per input, pointing at its next container; the min-heap yields them by key.
+   struct Cursor {
+      uint16_t key;
+      // the idx of this bitmap within the `bitmaps` vector
+      size_t bitmap_idx;
+      // cursor to the current position within this bitmap's containers
+      size_t container_position;
+
+      bool operator>(const Cursor& other) const { return key > other.key; }
+   };
+   std::priority_queue<Cursor, std::vector<Cursor>, std::greater<>> heap;
+   for (size_t bitmap_idx = 0; bitmap_idx < bitmaps.size(); ++bitmap_idx) {
+      if (!bitmaps[bitmap_idx].keys.empty()) {
+         heap.push(
+            {.key = bitmaps[bitmap_idx].keys[0], .bitmap_idx = bitmap_idx, .container_position = 0}
+         );
+      }
    }
-   std::span<const Bitmap> bitmaps_span{bitmaps.data(), bitmaps.size()};
-   Bitmap result = bitmaps_span.front();
-   for (const auto& bitmap : bitmaps_span.subspan(1)) {
-      result |= bitmap;
+
+   Bitmap result;
+   std::vector<roaring_util::RoaringContainerView> group_views;
+   const Container* last_in_group = nullptr;
+   while (!heap.empty()) {
+      const uint16_t key = heap.top().key;
+      group_views.clear();
+      while (!heap.empty() && heap.top().key == key) {
+         const Cursor cursor = heap.top();
+         heap.pop();
+         const Bitmap& bitmap = bitmaps[cursor.bitmap_idx];
+         last_in_group = &bitmap.containers[cursor.container_position];
+         group_views.push_back(viewOf(*last_in_group));
+         if (cursor.container_position + 1 < bitmap.keys.size()) {
+            heap.push({
+               .key = bitmap.keys[cursor.container_position + 1],
+               .bitmap_idx = cursor.bitmap_idx,
+               .container_position = cursor.container_position + 1,
+            });
+         }
+      }
+
+      result.keys.push_back(key);
+      if (group_views.size() == 1) {
+         // A container only one input has for this key is taken over as is, a view staying a view
+         result.containers.push_back(copyContainer(*last_in_group));
+      } else {
+         result.containers.emplace_back(roaring_util::fastUnion(group_views));
+      }
    }
    return result;
 }
@@ -331,27 +371,13 @@ Bitmap Bitmap::fromContainerViews(
       } else {
          // Several containers share this key (multiple requested symbols in one 2^16 block): OR
          // them into one owning container.
-         const auto& first_view = container_views[idx].second;
-         auto* accumulator =
-            roaring::internal::container_clone(first_view.rawContainer(), first_view.getTypecode());
-         uint8_t accumulator_typecode = first_view.getTypecode();
-         for (size_t i = idx + 1; i < group_end; ++i) {
-            const auto& next_view = container_views[i].second;
-            uint8_t result_typecode = 0;
-            auto* result_container = roaring::internal::container_ior(
-               accumulator,
-               accumulator_typecode,
-               next_view.rawContainer(),
-               next_view.getTypecode(),
-               &result_typecode
-            );
-            if (result_container != accumulator) {
-               roaring::internal::container_free(accumulator, accumulator_typecode);
-               accumulator = result_container;
-               accumulator_typecode = result_typecode;
-            }
+         std::vector<roaring_util::RoaringContainerView> group_views;
+         group_views.reserve(group_end - idx);
+         for (size_t i = idx; i < group_end; ++i) {
+            group_views.push_back(container_views[i].second);
          }
-         pushIfNonEmpty(result.keys, result.containers, key, accumulator, accumulator_typecode);
+         result.keys.push_back(key);
+         result.containers.emplace_back(roaring_util::fastUnion(group_views));
       }
       idx = group_end;
    }

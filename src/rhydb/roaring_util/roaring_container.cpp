@@ -112,6 +112,39 @@ RoaringContainer operator|(RoaringContainerView lhs, RoaringContainerView rhs) {
    return ownContainer(result, typecode);
 }
 
+RoaringContainer fastUnion(std::span<const RoaringContainerView> views) {
+   if (views.empty()) {
+      return RoaringContainer::withCapacity(1);
+   }
+   if (views.size() == 1) {
+      return views[0].toOwning();
+   }
+   if (views.size() == 2) {
+      return views[0] | views[1];
+   }
+   // Accumulating in a bitset makes each OR linear in the added container, instead of re-merging an
+   // ever-growing sorted array container
+   roaring::internal::container_t* accumulator = roaring::internal::bitset_container_create();
+   RHYDB_ASSERT(accumulator != nullptr);
+   uint8_t typecode = BITSET_CONTAINER_TYPE;
+   for (const auto& view : views) {
+      if (view.empty()) {
+         continue;
+      }
+      uint8_t result_typecode = 0;
+      auto* result = roaring::internal::container_lazy_ior(
+         accumulator, typecode, view.rawContainer(), view.getTypecode(), &result_typecode
+      );
+      if (result != accumulator) {
+         roaring::internal::container_free(accumulator, typecode);
+         accumulator = result;
+      }
+      typecode = result_typecode;
+   }
+   accumulator = roaring::internal::container_repair_after_lazy(accumulator, &typecode);
+   return ownContainer(accumulator, typecode);
+}
+
 RoaringContainer& RoaringContainer::operator|=(RoaringContainerView addend) {
    // `container_ior` requires both operands to be non-empty: the mixed array/run unions read
    // element 0 of the array before checking its cardinality, so an empty array would inject

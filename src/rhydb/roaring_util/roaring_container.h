@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -269,6 +270,11 @@ class RoaringContainerView {
 [[nodiscard]] RoaringContainer operator&(RoaringContainerView lhs, RoaringContainerView rhs);
 [[nodiscard]] RoaringContainer operator-(RoaringContainerView lhs, RoaringContainerView rhs);
 [[nodiscard]] RoaringContainer operator|(RoaringContainerView lhs, RoaringContainerView rhs);
+
+/// Union of any number of containers. Like roaring's `or_many`, more than two containers are OR-ed
+/// lazily -- without maintaining the cardinality after every step -- into a bitset, which is
+/// repaired (and converted to its most compact representation) once at the end.
+[[nodiscard]] RoaringContainer fastUnion(std::span<const RoaringContainerView> views);
 
 /// A single roaring container that is either a non-owning view into a container owned elsewhere or
 /// a privately-owned copy

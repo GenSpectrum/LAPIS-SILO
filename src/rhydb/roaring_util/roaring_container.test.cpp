@@ -380,6 +380,71 @@ TEST(RoaringContainerSetAlgebra, unionWithEmptyOperandsReturnsTheOther) {
    EXPECT_NE(both_empty.rawContainer(), nullptr);
 }
 
+TEST(RoaringContainerSetAlgebra, fastUnionOfNoneOneOrTwoContainers) {
+   EXPECT_TRUE(rhydb::roaring_util::fastUnion({}).empty());
+
+   const auto first = makeContainer({1, 3});
+   const auto second = makeContainer({2, 3});
+   const std::vector<RoaringContainerView> single{RoaringContainerView{first}};
+   EXPECT_EQ(toRoaring(rhydb::roaring_util::fastUnion(single)), (roaring::Roaring{1, 3}));
+
+   const std::vector<RoaringContainerView> pair{
+      RoaringContainerView{first},
+      RoaringContainerView{second},
+   };
+   EXPECT_EQ(toRoaring(rhydb::roaring_util::fastUnion(pair)), (roaring::Roaring{1, 2, 3}));
+}
+
+TEST(RoaringContainerSetAlgebra, fastUnionOfManyMixedContainers) {
+   // Array, bitset and run containers, plus empty ones, in a single union.
+   std::vector<RoaringContainer> containers;
+   roaring::Roaring expected;
+   for (uint16_t index = 0; index < 50; ++index) {
+      auto container = RoaringContainer::withCapacity(index % 5 == 0 ? 5000 : 4);
+      if (index % 7 == 3) {
+         containers.push_back(std::move(container));
+         continue;
+      }
+      const uint16_t count = index % 5 == 0 ? 4500 : 3;
+      for (uint16_t offset = 0; offset < count; ++offset) {
+         const auto value = static_cast<uint16_t>((index * 1000) + offset);
+         container.add(value);
+         expected.add(value);
+      }
+      if (index % 5 == 1) {
+         container.runOptimizeAndShrink();
+      }
+      containers.push_back(std::move(container));
+   }
+   std::vector<RoaringContainerView> views;
+   views.reserve(containers.size());
+   for (const auto& container : containers) {
+      views.emplace_back(container);
+   }
+
+   const RoaringContainer united = rhydb::roaring_util::fastUnion(views);
+   EXPECT_EQ(toRoaring(united), expected);
+   EXPECT_EQ(united.getCardinality(), expected.cardinality());
+}
+
+TEST(RoaringContainerSetAlgebra, fastUnionOfManySparseContainersStaysCompact) {
+   // The bitset accumulator must be converted back to an array container for a sparse result.
+   std::vector<RoaringContainer> containers;
+   containers.reserve(100);
+   for (uint16_t value = 0; value < 100; ++value) {
+      containers.push_back(makeContainer({static_cast<uint16_t>(value * 3)}));
+   }
+   std::vector<RoaringContainerView> views;
+   views.reserve(containers.size());
+   for (const auto& container : containers) {
+      views.emplace_back(container);
+   }
+
+   const RoaringContainer united = rhydb::roaring_util::fastUnion(views);
+   EXPECT_EQ(united.getCardinality(), 100);
+   EXPECT_EQ(united.getTypecode(), ARRAY_CONTAINER_TYPE);
+}
+
 TEST(RoaringContainerSetAlgebra, orAssignAccumulatesInPlace) {
    RoaringContainer accumulator = makeContainer({1, 2});
    const auto addend = makeContainer({2, 3, 4});

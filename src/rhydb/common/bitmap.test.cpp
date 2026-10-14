@@ -181,6 +181,59 @@ TEST(Bitmap, fastUnionIsOrderIndependentAndMatchesRepeatedOrEqual) {
    } while (std::ranges::next_permutation(order).found);
 }
 
+TEST(Bitmap, fastUnionOfManyInputsSharingEveryKey) {
+   // Many inputs overlapping in every 2^16 block, mixing array, bitset and run containers, so each
+   // block is the union of many containers. Some blocks stay sparse in total (and must end up as
+   // array containers again), others become dense.
+   std::vector<roaring::Roaring> sources;
+   for (uint32_t bitmap_index = 0; bitmap_index < 300; ++bitmap_index) {
+      roaring::Roaring source;
+      for (uint32_t key = 0; key < 4; ++key) {
+         const uint32_t base = key << 16U;
+         if (key == 0) {
+            source.add(base + (bitmap_index * 7));
+         } else if (key == 1) {
+            source.addRange(base + (bitmap_index * 200), base + (bitmap_index * 200) + 150);
+         } else if (bitmap_index % 3 == 0) {
+            source.addRange(base + bitmap_index, base + 50000);
+         } else {
+            for (uint32_t value = bitmap_index; value < 65536; value += 97) {
+               source.add(base + value);
+            }
+         }
+      }
+      source.runOptimize();
+      sources.push_back(std::move(source));
+   }
+
+   roaring::Roaring expected;
+   std::vector<Bitmap> bitmaps;
+   for (const auto& source : sources) {
+      expected |= source;
+      bitmaps.emplace_back(&source);
+   }
+
+   const auto united = Bitmap::fastUnion(bitmaps);
+   EXPECT_EQ(united.toRoaring(), expected);
+   EXPECT_EQ(united.cardinality(), expected.cardinality());
+}
+
+TEST(Bitmap, fastUnionOfOwningInputsSharingKeys) {
+   // Owning inputs (as produced by evaluating child operators) overlapping in a block.
+   const roaring::Roaring first{1, 5, (1U << 16) + 2};
+   const roaring::Roaring second{5, 6, (1U << 16) + 3};
+   const roaring::Roaring third{7, (2U << 16) + 1};
+
+   std::vector<Bitmap> bitmaps;
+   bitmaps.emplace_back(roaring::Roaring{first});
+   bitmaps.emplace_back(roaring::Roaring{second});
+   bitmaps.emplace_back(roaring::Roaring{third});
+
+   const auto united = Bitmap::fastUnion(bitmaps);
+   EXPECT_EQ(united.toRoaring(), first | second | third);
+   EXPECT_EQ(united.cardinality(), (first | second | third).cardinality());
+}
+
 TEST(Bitmap, iteratingContainersReconstructsRowIdsInAscendingOrder) {
    const roaring::Roaring source = multiContainer();
    const Bitmap under_test{&source};
