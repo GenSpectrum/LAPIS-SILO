@@ -17,6 +17,7 @@
 #include "rhydb/common/bitmap.h"
 #include "rhydb/common/phylo_tree.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
+#include "rhydb/query_engine/exec_node/async_batch_producer.h"
 #include "rhydb/query_engine/exec_node/schema_output_builder.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
@@ -121,17 +122,16 @@ arrow::Result<arrow::acero::ExecNode*> PhyloSubtreeNode::addToExecPlan(
    const auto column_name_copy = column_name;
    const bool contract = contract_unary_nodes;
 
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
+   exec_node::BatchProducer producer =
       [table_handle,
        column_name_copy,
        output_fields,
        compiled_filter,
        &phylo_tree,
        contract,
-       already_produced = false] mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+       already_produced = false] mutable -> arrow::Result<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
-         const std::optional<arrow::ExecBatch> result = std::nullopt;
-         return arrow::Future{result};
+         return std::nullopt;
       }
       already_produced = true;
 
@@ -160,14 +160,14 @@ arrow::Result<arrow::acero::ExecNode*> PhyloSubtreeNode::addToExecPlan(
          const std::vector<arrow::Datum> result_columns, output_builder.finish()
       );
       ARROW_ASSIGN_OR_RAISE(
-         const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
+         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make(result_columns)
       );
-      return arrow::Future{result};
+      return result;
    };
 
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(output_fields),
-      std::move(producer),
+      exec_node::makeAsyncBatchGenerator(plan, std::move(producer)),
       arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", &plan, {}, options);

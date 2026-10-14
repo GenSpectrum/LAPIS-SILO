@@ -1,6 +1,5 @@
 #include "rhydb/query_engine/operators/schema_node.h"
 
-#include <functional>
 #include <map>
 #include <optional>
 #include <string>
@@ -13,6 +12,7 @@
 #include <nlohmann/json.hpp>
 
 #include "rhydb/query_engine/exec_node/arrow_util.h"
+#include "rhydb/query_engine/exec_node/async_batch_producer.h"
 #include "rhydb/schema/database_schema.h"
 
 namespace rhydb::query_engine::operators {
@@ -54,23 +54,21 @@ arrow::Result<arrow::acero::ExecNode*> SchemaNode::addToExecPlan(
    const std::map<schema::TableName, std::shared_ptr<storage::Table>>& /*tables*/,
    const config::QueryOptions& /*query_options*/
 ) const {
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
+   exec_node::BatchProducer producer =
       [input_schema = child->getOutputSchema(),
-       already_produced = false] mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+       already_produced = false] mutable -> arrow::Result<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
-         const std::optional<arrow::ExecBatch> result = std::nullopt;
-         return arrow::Future{result};
+         return std::nullopt;
       }
       already_produced = true;
 
-      ARROW_ASSIGN_OR_RAISE(const arrow::ExecBatch batch, buildSchemaBatch(input_schema));
-      const std::optional<arrow::ExecBatch> result = batch;
-      return arrow::Future{result};
+      ARROW_ASSIGN_OR_RAISE(arrow::ExecBatch batch, buildSchemaBatch(input_schema));
+      return batch;
    };
 
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(getOutputSchema()),
-      std::move(producer),
+      exec_node::makeAsyncBatchGenerator(plan, std::move(producer)),
       arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", &plan, {}, options);

@@ -226,7 +226,7 @@ arrow::Result<arrow::ExecBatch> ExecBatchBuilder::finishBatch(int64_t length) {
    return arrow::compute::ExecBatch::Make(std::move(data), length);
 }
 
-arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::produceNextBatch() {
+arrow::Result<std::optional<arrow::ExecBatch>> TableScanGenerator::operator()() {
    EVOBENCH_SCOPE("TableScanGenerator", "produceNextBatch");
    if (!filter_computed) {
       current_bitmap_reader =
@@ -255,12 +255,11 @@ arrow::Result<arrow::acero::ExecNode*> makeTableScan(
    std::shared_ptr<const storage::Table> table,
    size_t batch_size_cutoff
 ) {
-   const exec_node::TableScanGenerator generator(
-      columns, std::move(filter), std::move(table), batch_size_cutoff
-   );
    const arrow::acero::SourceNodeOptions source_node_options{
       exec_node::columnsToArrowSchema(columns),
-      generator,
+      makeAsyncBatchGenerator(
+         *plan, TableScanGenerator{columns, std::move(filter), std::move(table), batch_size_cutoff}
+      ),
       arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", plan, {}, source_node_options);

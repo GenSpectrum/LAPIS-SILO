@@ -13,6 +13,7 @@
 
 #include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
+#include "rhydb/query_engine/exec_node/async_batch_producer.h"
 #include "rhydb/query_engine/operators/compute_filter.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/table.h"
@@ -42,12 +43,11 @@ arrow::Result<arrow::acero::ExecNode*> CountFilterNode::addToExecPlan(
 ) const {
    auto compiled_filter = compileFilter(filter, table);
 
-   std::function<arrow::Future<std::optional<arrow::ExecBatch>>()> producer =
+   exec_node::BatchProducer producer =
       [compiled_filter,
-       already_produced = false] mutable -> arrow::Future<std::optional<arrow::ExecBatch>> {
+       already_produced = false] mutable -> arrow::Result<std::optional<arrow::ExecBatch>> {
       if (already_produced) {
-         const std::optional<arrow::ExecBatch> result = std::nullopt;
-         return arrow::Future{result};
+         return std::nullopt;
       }
       already_produced = true;
 
@@ -60,16 +60,16 @@ arrow::Result<arrow::acero::ExecNode*> CountFilterNode::addToExecPlan(
       arrow::Datum datum;
       ARROW_ASSIGN_OR_RAISE(datum, result_builder.Finish());
       ARROW_ASSIGN_OR_RAISE(
-         const std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make({datum})
+         std::optional<arrow::ExecBatch> result, arrow::ExecBatch::Make({datum})
       );
-      return arrow::Future{result};
+      return result;
    };
 
    const std::vector<schema::ColumnIdentifier> output_schema = getOutputSchema();
 
    const arrow::acero::SourceNodeOptions options{
       exec_node::columnsToArrowSchema(output_schema),
-      std::move(producer),
+      exec_node::makeAsyncBatchGenerator(plan, std::move(producer)),
       arrow::Ordering::Implicit(),
    };
    return arrow::acero::MakeExecNode("source", &plan, {}, options);
