@@ -13,10 +13,10 @@ COPY release_version.txt* ./
 
 RUN  \
     export CMAKE_BUILD_PARALLEL_LEVEL=4; \
-    make build/Release/rhydb_test \
+    make build/Release/src/rhydb_test \
     && make build/Release/rhydb_app_test \
     && make build/Release/rhydb \
-    && cp build/Release/rhydb_test . \
+    && cp build/Release/src/rhydb_test . \
     && cp build/Release/rhydb_app_test . \
     && cp build/Release/rhydb .
 

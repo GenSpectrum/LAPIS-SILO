@@ -76,10 +76,6 @@ if(BUILD_UNIT_TESTS)
     include_directories(${GTest_INCLUDE_DIRS})
 
     add_executable(rhydb_test ${RHYDB_TEST_SOURCES})
-    # Emit the test binary at the top-level build dir (build/<cfg>/rhydb_test)
-    # rather than build/<cfg>/src/, which is where this subdirectory would place
-    # it by default. The Makefile, CI, and tooling expect the historical path.
-    set_target_properties(rhydb_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
     if (NOT GTest_LIBRARIES)
         set(GTest_LIBRARIES gtest gmock)
     endif ()

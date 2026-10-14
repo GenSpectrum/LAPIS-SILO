@@ -2,10 +2,10 @@
 ## It will contain the PID of the running rhydb API server.
 ## If something fails during execution, it might be necessary to kill the daemon using `make clean-api`.
 RHYDB_DEBUG_EXECUTABLE=./build/Debug/rhydb
-RHYDB_DEBUG_TEST_EXECUTABLE=./build/Debug/rhydb_test
+RHYDB_DEBUG_TEST_EXECUTABLE=./build/Debug/src/rhydb_test
 RHYDB_DEBUG_APP_TEST_EXECUTABLE=./build/Debug/rhydb_app_test
 RHYDB_RELEASE_EXECUTABLE=./build/Release/rhydb
-RHYDB_RELEASE_TEST_EXECUTABLE=./build/Release/rhydb_test
+RHYDB_RELEASE_TEST_EXECUTABLE=./build/Release/src/rhydb_test
 RHYDB_RELEASE_APP_TEST_EXECUTABLE=./build/Release/rhydb_app_test
 RHYDB_WASM_EXECUTABLE=./build/wasm/rhydb_wasm.js
 RHYDB_WASM_DIST_DIR=wasm/dist
