@@ -8,6 +8,10 @@ DOCKER_IMAGE="${1:-ghcr.io/rhyorg/rhydb-dependencies:latest}"
 
 echo "Using Docker image: $DOCKER_IMAGE"
 
+# With LINT_FIX=1 (set by `make lint-changes`), clang-tidy applies its fixes to the source tree.
+# CI leaves it unset, so findings fail the job instead of being rewritten inside the container.
+LINT_FIX="${LINT_FIX:-0}"
+
 # Get the list of changed .cpp files from the local Git repository, only (A)dded, (C)reated, and
 # (M)odified. Headers are linted through the translation units that include them.
 files=$(git diff --name-only --diff-filter=ACM origin/main -- 'src/*.cpp' 'app/*.cpp' 'performance/*.cpp')
@@ -31,6 +35,7 @@ docker run --rm \
   -v "$(pwd)/app:/src/app" \
   -v "$(pwd)/CMakeLists.txt:/src/CMakeLists.txt" \
   -e files="$files" \
+  -e LINT_FIX="$LINT_FIX" \
   "$DOCKER_IMAGE" \
   /bin/bash --login -c '
     set -euo pipefail
@@ -39,4 +44,8 @@ docker run --rm \
     for file in $files; do
       patterns+=("^/src/${file//./\\.}\$")
     done
-    run-clang-tidy-23 -p build/Debug -quiet "${patterns[@]}"'
+    fix_args=()
+    if [[ "$LINT_FIX" == 1 ]]; then
+      fix_args=(-fix -clang-apply-replacements-binary /usr/lib/llvm-23/bin/clang-apply-replacements)
+    fi
+    run-clang-tidy-23 -p build/Debug -quiet "${fix_args[@]}" "${patterns[@]}"'
