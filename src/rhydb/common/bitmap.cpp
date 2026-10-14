@@ -297,15 +297,19 @@ Bitmap Bitmap::fastUnion(const std::vector<Bitmap>& bitmaps) {
    // One cursor per input, pointing at its next container; the min-heap yields them by key.
    struct Cursor {
       uint16_t key;
-      size_t bitmap;
-      size_t position;
+      // the idx of this bitmap within the `bitmaps` vector
+      size_t bitmap_idx;
+      // cursor to the current position within this bitmap's containers
+      size_t container_position;
 
       bool operator>(const Cursor& other) const { return key > other.key; }
    };
    std::priority_queue<Cursor, std::vector<Cursor>, std::greater<>> heap;
-   for (size_t bitmap = 0; bitmap < bitmaps.size(); ++bitmap) {
-      if (!bitmaps[bitmap].keys.empty()) {
-         heap.push({.key = bitmaps[bitmap].keys[0], .bitmap = bitmap, .position = 0});
+   for (size_t bitmap_idx = 0; bitmap_idx < bitmaps.size(); ++bitmap_idx) {
+      if (!bitmaps[bitmap_idx].keys.empty()) {
+         heap.push(
+            {.key = bitmaps[bitmap_idx].keys[0], .bitmap_idx = bitmap_idx, .container_position = 0}
+         );
       }
    }
 
@@ -318,14 +322,14 @@ Bitmap Bitmap::fastUnion(const std::vector<Bitmap>& bitmaps) {
       while (!heap.empty() && heap.top().key == key) {
          const Cursor cursor = heap.top();
          heap.pop();
-         const Bitmap& bitmap = bitmaps[cursor.bitmap];
-         last_in_group = &bitmap.containers[cursor.position];
+         const Bitmap& bitmap = bitmaps[cursor.bitmap_idx];
+         last_in_group = &bitmap.containers[cursor.container_position];
          group_views.push_back(viewOf(*last_in_group));
-         if (cursor.position + 1 < bitmap.keys.size()) {
+         if (cursor.container_position + 1 < bitmap.keys.size()) {
             heap.push({
-               .key = bitmap.keys[cursor.position + 1],
-               .bitmap = cursor.bitmap,
-               .position = cursor.position + 1,
+               .key = bitmap.keys[cursor.container_position + 1],
+               .bitmap_idx = cursor.bitmap_idx,
+               .container_position = cursor.container_position + 1,
             });
          }
       }
