@@ -8,6 +8,7 @@
 #include <boost/serialization/access.hpp>
 #include <roaring/roaring.hh>
 
+#include "rhydb/roaring_util/roaring_container.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/column/column_metadata.h"
 #include "rhydb/storage/column/row_id.h"
@@ -73,6 +74,14 @@ class BoolColumn {
    /// according to `value` (`std::nullopt` marks it null). Rows not in `row_ids` are left
    /// untouched.
    void update(const roaring::Roaring& row_ids, std::optional<bool> value);
+
+   /// Assigns `new_values[i]` to the `i`-th row (in ascending order) of `rows` within the chunk
+   /// `chunk_id`; a `std::nullopt` value marks the row null. Rows not in `rows` are left untouched.
+   void update(
+      uint16_t chunk_id,
+      roaring_util::RoaringContainerView rows,
+      const Buffer& new_values
+   );
 
   private:
    friend class boost::serialization::access;

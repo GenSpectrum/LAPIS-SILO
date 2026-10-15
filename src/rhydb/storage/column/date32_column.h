@@ -9,6 +9,7 @@
 #include <roaring/roaring.hh>
 
 #include "rhydb/common/date32.h"
+#include "rhydb/roaring_util/roaring_container.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/column/chunked_value_buffer.h"
 #include "rhydb/storage/column/column_metadata.h"
@@ -50,6 +51,16 @@ class Date32Column {
    /// in place. Rows not in `row_ids` are left untouched. Since an update can move a value in
    /// either direction, the column's sortedness is recomputed by a full scan afterwards.
    void update(const roaring::Roaring& row_ids, std::optional<common::Date32> value);
+
+   /// Assigns `new_values[i]` to the `i`-th row (in ascending order) of `rows` within the chunk
+   /// `chunk_id`; a `std::nullopt` value marks the row null. Rows not in `rows` are left untouched.
+   /// The column stays sorted if it was and the chunk is still sorted against its neighbours; an
+   /// unsorted column is not checked for having become sorted again.
+   void update(
+      uint16_t chunk_id,
+      roaring_util::RoaringContainerView rows,
+      const Buffer& new_values
+   );
 
    /// The per-chunk value buffers. Used by `DateBetween` to binary search a sorted column.
    [[nodiscard]] const ChunkedValueBuffer<common::Date32>& getValueBuffer() const { return values; }

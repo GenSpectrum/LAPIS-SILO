@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
+#include "rhydb/common/bitmap.h"
 #include "rhydb/storage/column/row_id.h"
 
 using rhydb::storage::column::RowId;
@@ -87,6 +88,32 @@ TEST(ZstdCompressedStringColumn, updateOverwritesCompressedValuesAcrossChunks) {
    under_test.update(to_null, std::nullopt);
    EXPECT_TRUE(under_test.isNull(RowId(0, 1)));
    EXPECT_EQ(under_test.getDecompressed(RowId(0, 1)), std::nullopt);
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(ZstdCompressedStringColumn, updateChunkAssignsEachRowItsOwnValue) {
+   rhydb::storage::column::ZstdCompressedStringColumnMetadata column_metadata{
+      "test_column", "ACGT"
+   };
+   rhydb::storage::column::ZstdCompressedStringColumn under_test(&column_metadata);
+
+   appendChunk(under_test, {"2020-01-01", "2023-01-05"});
+   appendChunk(under_test, {std::nullopt, "2021-12-03", "2022-02-02"});
+
+   // In the second chunk: null -> a value, a value -> null; the row in between is untouched.
+   const roaring::Roaring rows{RowId(1, 0).toGlobal(), RowId(1, 2).toGlobal()};
+   for (const auto& [chunk_id, chunk_rows] : rhydb::Bitmap{&rows}) {
+      under_test.update(chunk_id, chunk_rows, {"2099-09-09", std::nullopt});
+   }
+
+   EXPECT_FALSE(under_test.isNull(RowId(1, 0)));
+   EXPECT_EQ(under_test.getDecompressed(RowId(1, 0)), "2099-09-09");
+   EXPECT_EQ(under_test.getDecompressed(RowId(1, 1)), "2021-12-03");
+   EXPECT_TRUE(under_test.isNull(RowId(1, 2)));
+   EXPECT_EQ(under_test.getDecompressed(RowId(1, 2)), std::nullopt);
+   // The first chunk is untouched.
+   EXPECT_EQ(under_test.getDecompressed(RowId(0, 0)), "2020-01-01");
+   EXPECT_EQ(under_test.getDecompressed(RowId(0, 1)), "2023-01-05");
 }
 
 // Each appendChunk starts a fresh, immutable chunk whose global row ids begin at a fresh

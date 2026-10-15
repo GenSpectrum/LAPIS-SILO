@@ -1,5 +1,6 @@
 #include "rhydb/storage/column/zstd_compressed_string_column.h"
 
+#include "rhydb/common/panic.h"
 #include "rhydb/storage/column/row_id.h"
 
 namespace rhydb::storage::column {
@@ -50,6 +51,28 @@ void ZstdCompressedStringColumn::update(
    }
    for (const uint32_t global_row_id : row_ids) {
       values.setValue(RowId::fromGlobal(global_row_id), stored_value);
+   }
+}
+
+void ZstdCompressedStringColumn::update(
+   uint16_t chunk_id,
+   roaring_util::RoaringContainerView rows,
+   const Buffer& new_values
+) {
+   RHYDB_ASSERT_EQ(new_values.size(), static_cast<size_t>(rows.getCardinality()));
+   // An empty stored buffer denotes null (see `appendChunk`/`getDecompressed`).
+   size_t index = 0;
+   for (const uint16_t row_in_chunk : rows) {
+      const RowId row_id{.chunk_id = chunk_id, .row_in_chunk = row_in_chunk};
+      const std::optional<std::string>& value = new_values[index++];
+      std::string stored_value;
+      if (value.has_value()) {
+         stored_value = metadata->compressor.compress(value->data(), value->size());
+         null_bitmap.remove(row_id.toGlobal());
+      } else {
+         null_bitmap.add(row_id.toGlobal());
+      }
+      values.setValue(row_id, std::move(stored_value));
    }
 }
 

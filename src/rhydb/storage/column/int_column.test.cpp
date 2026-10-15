@@ -4,6 +4,8 @@
 #include <gtest/gtest.h>
 #include <roaring/roaring.hh>
 
+#include "rhydb/common/bitmap.h"
+
 using rhydb::storage::column::ColumnMetadata;
 using rhydb::storage::column::Int32Column;
 using rhydb::storage::column::Int64Column;
@@ -113,4 +115,28 @@ TEST(Int64Column, updateAssignsValueBeyondInt32Range) {
    ASSERT_EQ(column.getValue(RowId(0, 0)), 10);  // untouched
    ASSERT_FALSE(column.isNull(RowId(0, 1)));
    ASSERT_EQ(column.getValue(RowId(0, 1)), large_value);  // null -> value
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TYPED_TEST(NumericColumnTest, updateChunkAssignsEachRowItsOwnValue) {
+   ColumnMetadata column_metadata("int_column1");
+   TypeParam column{&column_metadata};
+   RHYDB_ASSERT(column.appendChunk({10, std::nullopt, 30}).has_value());
+   RHYDB_ASSERT(column.appendChunk({40, 50, std::nullopt}).has_value());
+
+   // In the second chunk: 40 -> null, null -> 77; the row between them is untouched.
+   const roaring::Roaring rows{RowId(1, 0).toGlobal(), RowId(1, 2).toGlobal()};
+   for (const auto& [chunk_id, chunk_rows] : rhydb::Bitmap{&rows}) {
+      column.update(chunk_id, chunk_rows, {std::nullopt, 77});
+   }
+
+   EXPECT_TRUE(column.isNull(RowId(1, 0)));
+   EXPECT_FALSE(column.isNull(RowId(1, 1)));
+   EXPECT_EQ(column.getValue(RowId(1, 1)), 50);
+   EXPECT_FALSE(column.isNull(RowId(1, 2)));
+   EXPECT_EQ(column.getValue(RowId(1, 2)), 77);
+   // The first chunk is untouched.
+   EXPECT_EQ(column.getValue(RowId(0, 0)), 10);
+   EXPECT_TRUE(column.isNull(RowId(0, 1)));
+   EXPECT_EQ(column.getValue(RowId(0, 2)), 30);
 }
