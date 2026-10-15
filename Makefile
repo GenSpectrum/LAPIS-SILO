@@ -146,7 +146,7 @@ python-tests: ${DEPENDENCIES_FLAG}
 	.venv/bin/pytest python/tests -v
 
 
-PYTHON_VERSIONS ?= 3.11 3.12 3.13 3.14
+PYTHON_VERSIONS ?= 3.11 3.12 3.13 3.14 3.15
 
 .PHONY: build-wheels
 build-wheels: ${RHYDB_RELEASE_EXECUTABLE}

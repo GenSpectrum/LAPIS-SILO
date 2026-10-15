@@ -18,7 +18,7 @@ RUN python3 -m pipx ensurepath
 # This line tells it to execute all subsequent commands with a prior login
 SHELL ["/bin/bash", "--login", "-c"]
 
-RUN python3 -m pipx install uv==0.10.2
+RUN python3 -m pipx install uv==0.13.1
 
 WORKDIR /src
 COPY conanfile.py ./
