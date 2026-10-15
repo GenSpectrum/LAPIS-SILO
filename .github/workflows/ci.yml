@@ -537,7 +537,7 @@ jobs:
 
               # Build wheels for all supported Python versions
               mkdir -p wheelhouse
-              for pyversion in 3.11 3.12 3.13 3.14; do
+              for pyversion in 3.11 3.12 3.13 3.14 3.15; do
                 uv python install \$pyversion
                 rm -rf dist
                 uv build --wheel --python \$pyversion
