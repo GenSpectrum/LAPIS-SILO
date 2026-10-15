@@ -84,6 +84,7 @@ void Initializer::createTableInDatabase(
    // Materialize the companion lineage relation and alias tables for every column with a lineage
    // definition. The tree name is resolved against the loaded lineage definitions the same way the
    // column's in-memory index is.
+   std::vector<std::pair<std::string, std::string>> lineage_definitions;
    for (const auto& config_metadata : database_config.schema.metadata) {
       if (!config_metadata.generate_lineage_index.has_value()) {
          continue;
@@ -104,7 +105,9 @@ void Initializer::createTableInDatabase(
       }
       createLineageRelationTable(config_metadata.name, lineage_tree.value(), database);
       createLineageAliasTable(config_metadata.name, lineage_tree.value(), database);
+      lineage_definitions.emplace_back(config_metadata.name, lineage_tree.value().file);
    }
+   fillLineageDefinitionsTable(lineage_definitions, database);
 }
 
 void Initializer::fillReferenceGenomesTable(
@@ -154,6 +157,38 @@ void Initializer::fillReferenceGenomesTable(
       table_name_string,
       reference_genomes.nucleotide_sequence_names.size() +
          reference_genomes.aa_sequence_names.size()
+   );
+}
+
+void Initializer::fillLineageDefinitionsTable(
+   const std::vector<std::pair<std::string, std::string>>& lineage_definitions,
+   Database& database
+) {
+   const std::string table_name_string{schema::LINEAGE_DEFINITIONS_TABLE_NAME};
+   const schema::TableName table_name{table_name_string};
+   RHYDB_ASSERT(database.tables.contains(table_name));
+   if (database.tables.at(table_name)->row_count > 0) {
+      throw InitializeException(
+         "Cannot fill lineage definitions table '{}': it already contains rows.", table_name_string
+      );
+   }
+
+   std::string ndjson;
+   for (const auto& [column_name, definition] : lineage_definitions) {
+      const nlohmann::json line{
+         {schema::LINEAGE_DEFINITIONS_COLUMN_NAME_COLUMN, column_name},
+         {schema::LINEAGE_DEFINITIONS_DEFINITION_COLUMN, definition},
+      };
+      ndjson += line.dump();
+      ndjson += '\n';
+   }
+   std::stringstream ndjson_stream{ndjson};
+   rhydb::append::NdjsonLineReader ndjson_reader{ndjson_stream};
+   rhydb::append::appendDataToTable(database.tables.at(table_name), ndjson_reader);
+   SPDLOG_INFO(
+      "Filled lineage definitions table '{}' with {} rows",
+      table_name_string,
+      lineage_definitions.size()
    );
 }
 

@@ -81,7 +81,8 @@ Returns the lineage tree definition for the given column.
 **Parameters:**
 - `columnName` (path) — Name of a column with `generateLineageIndex: true`
 
-**Response** (200, `application/yaml`): the lineage definition YAML file.
+**Response** (200, `application/yaml`): the lineage definition YAML file, as stored in the
+built-in `lineage_definitions` table.
 
 **Errors** (400):
 - Column does not exist

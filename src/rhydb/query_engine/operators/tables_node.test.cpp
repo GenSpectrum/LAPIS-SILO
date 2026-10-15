@@ -59,8 +59,11 @@ const QueryTestData TEST_DATA{
 const QueryTestScenario TABLES_SCENARIO = {
    .name = "TABLES",
    .query = "tables()",
-   .expected_query_result =
-      nlohmann::json({{{"tableName", "data"}}, {{"tableName", "reference_genomes"}}}),
+   .expected_query_result = nlohmann::json({
+      {{"tableName", "data"}},
+      {{"tableName", "lineage_definitions"}},
+      {{"tableName", "reference_genomes"}},
+   }),
 };
 
 const QueryTestScenario TABLES_SCHEMA_SCENARIO = {
@@ -116,6 +119,7 @@ TEST(TablesNodeMultiTableTest, listsAndFiltersMultipleTables) {
       nlohmann::json::array({
          {{"tableName", "archive"}},
          {{"tableName", "backup"}},
+         {{"tableName", "lineage_definitions"}},
          {{"tableName", "reference_genomes"}},
          {{"tableName", "source"}},
       })
@@ -143,6 +147,7 @@ TEST(TablesNodeMultiTableTest, listsOnlyBuiltinTablesForNewDatabase) {
    ASSERT_EQ(
       rhydb::test::executeQueryToJsonArray(query_plan),
       nlohmann::json::array({
+         {{"tableName", "lineage_definitions"}},
          {{"tableName", "reference_genomes"}},
       })
    );

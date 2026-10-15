@@ -141,3 +141,14 @@ Next to the relation table, a table named after the column with an `_aliases` su
 |--------|------|-------------|
 | `alias` | string | Primary key. The alias |
 | `lineage` | string | The canonical lineage that `alias` stands for |
+
+### Lineage Definitions Table
+
+The lineage definition files themselves are kept in the built-in table `lineage_definitions`, one
+row per column with a lineage definition. `GET /lineageDefinition/{columnName}` serves the file
+from this table.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `column_name` | string | Primary key. The name of the lineage column |
+| `definition` | string | The lineage definition file of that column, verbatim |
