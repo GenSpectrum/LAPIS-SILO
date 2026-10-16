@@ -35,7 +35,7 @@ ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 	buildScripts/install-dependencies
 	touch ${DEPENDENCIES_FLAG}
 
-build/wasm/conanprofile-emscripten:
+build/wasm/conanprofile-emscripten: buildScripts/create-wasm-conanprofile
 	buildScripts/create-wasm-conanprofile
 
 ${WASM_DEPENDENCIES_FLAG}: conanfile.py conanprofile build/wasm/conanprofile-emscripten
@@ -64,7 +64,10 @@ build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(NATIVE_CMAKE_
 	$(CMAKE) -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
 
 build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(WASM_CMAKE_FILES)
-	emcmake cmake -G Ninja -S . -B build/wasm -D CMAKE_BUILD_TYPE=Release -D BUILD_UNIT_TESTS=OFF
+	# Fresh cache: CMake reads the toolchain's *_FLAGS_INIT only when creating it
+	rm -f build/wasm/CMakeCache.txt
+	$(CMAKE) -G Ninja -S . -B build/wasm -D CMAKE_BUILD_TYPE=Release -D BUILD_UNIT_TESTS=OFF \
+		-D CMAKE_TOOLCHAIN_FILE=$(CURDIR)/build/wasm/generators/conan_toolchain.cmake
 
 ${RHYDB_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb

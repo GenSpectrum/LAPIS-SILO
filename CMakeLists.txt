@@ -7,7 +7,8 @@ endif ()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-set(CMAKE_CXX_FLAGS "-Wall")
+# Append to keep the toolchain's flags
+string(APPEND CMAKE_CXX_FLAGS " -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -D RHYDB_DEBUG_ASSERTIONS=1")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D RHYDB_DEBUG_ASSERTIONS=0")
 
@@ -22,37 +23,6 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${CMAKE_BINARY_DIR}/generators/")
 
 # Export compile commands for configuring language servers or debugging the build
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# ---------------------------------------------------------------------------
-# Toolchain policy
-# ---------------------------------------------------------------------------
-# Top-level build setup that must be decided before the core library (src/) and
-# the consumers are added. It conditions how the Emscripten/WebAssembly build is
-# configured and exports the extra compile options/definitions that core applies
-# to rhydblib (see src/CMakeLists.txt).
-
-# Under the Emscripten toolchain, find_package defaults to searching only inside
-# the cross-compilation sysroot (CMAKE_FIND_ROOT_PATH), so the Conan-generated
-# package config files in build/wasm/generators are ignored. Add that directory
-# as a find root and allow package lookups to fall back to CMAKE_PREFIX_PATH.
-# This must run before any find_package call (i.e. before add_subdirectory(src)).
-if(EMSCRIPTEN)
-    list(APPEND CMAKE_FIND_ROOT_PATH "${CMAKE_BINARY_DIR}/generators")
-    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
-endif()
-
-# WebAssembly-only usage requirements, exported for src/CMakeLists.txt to attach
-# to rhydblib_deps (INTERFACE, so they compile into the rhydblib objects too):
-# NO_EVOBENCH disables the evobench probes (the browser build does not profile),
-# and -fexceptions must reach every rhydblib object (they throw). -pthread keeps
-# RhyDB objects ABI-consistent with the Emscripten dependency builds. The build
-# variant is detected via the compiler-defined __EMSCRIPTEN__ macro.
-set(RHYDB_CORE_EXTRA_COMPILE_OPTIONS "")
-set(RHYDB_CORE_EXTRA_COMPILE_DEFINITIONS "")
-if(EMSCRIPTEN)
-    list(APPEND RHYDB_CORE_EXTRA_COMPILE_DEFINITIONS NO_EVOBENCH)
-    list(APPEND RHYDB_CORE_EXTRA_COMPILE_OPTIONS -fexceptions -pthread)
-endif()
 
 # ---------------------------------------------------------------------------
 # Version
@@ -74,6 +44,11 @@ endif()
 # rhydblib and its dependencies, plus the rhydb_test unit tests. The consumers
 # below link against rhydblib.
 add_subdirectory(src)
+
+if(EMSCRIPTEN)
+    # The browser build does not profile. -pthread/-fexceptions come from the toolchain.
+    target_compile_definitions(rhydblib PUBLIC NO_EVOBENCH)
+endif()
 
 # ---------------------------------------------------------------------------
 # Consumers

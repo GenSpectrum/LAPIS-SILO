@@ -8,14 +8,17 @@ mkdir -p build/wasm
 # platform (e.g. byte order, type sizes). Without it, dependency builds that
 # call TEST_BIG_ENDIAN fall back to a broken detection path and fail to
 # configure. Conan generates its own toolchain, so we chain-load Emscripten's
-# via tools.cmake.cmaketoolchain:user_toolchain.
-EMCC_PATH=$(command -v emcc)
-EMSCRIPTEN_TOOLCHAIN="$(dirname "${EMCC_PATH}")/cmake/Modules/Platform/Emscripten.cmake"
+# via tools.cmake.cmaketoolchain:user_toolchain. em-config also finds it for
+# Homebrew, where emcc on PATH is a symlink.
+EMSCRIPTEN_TOOLCHAIN="$(em-config EMSCRIPTEN_ROOT)/cmake/Modules/Platform/Emscripten.cmake"
 if [ ! -f "${EMSCRIPTEN_TOOLCHAIN}" ]; then
    echo "Could not find Emscripten CMake toolchain at ${EMSCRIPTEN_TOOLCHAIN}" >&2
    exit 1
 fi
 
+# Every object in the module (dependencies and RhyDB) needs the same flags:
+# -pthread     wasm atomics and shared memory; the linker rejects objects without it
+# -fexceptions exceptions unwind through all frames, including dependencies
 cat > build/wasm/conanprofile-emscripten <<PROFILE
 [settings]
 os=Emscripten
@@ -29,9 +32,9 @@ build_type=Release
 [conf]
 tools.build:compiler_executables={"c":"emcc","cpp":"em++"}
 tools.build:cflags=["-pthread"]
-tools.build:cxxflags=["-pthread"]
-tools.build:exelinkflags=["-pthread"]
-tools.build:sharedlinkflags=["-pthread"]
+tools.build:cxxflags=["-pthread","-fexceptions"]
+tools.build:exelinkflags=["-pthread","-fexceptions"]
+tools.build:sharedlinkflags=["-pthread","-fexceptions"]
 tools.cmake.cmaketoolchain:generator=Ninja
 tools.cmake.cmaketoolchain:user_toolchain=["${EMSCRIPTEN_TOOLCHAIN}"]
 PROFILE
