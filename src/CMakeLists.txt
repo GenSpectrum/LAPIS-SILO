@@ -51,11 +51,6 @@ target_compile_definitions(rhydblib_deps INTERFACE
         SIMDJSON_EXCEPTIONS=0
 )
 
-# Extra flags that some targets might need.
-# These are INTERFACE so they compile into the rhydblib objects too.
-target_compile_options(rhydblib_deps INTERFACE ${RHYDB_CORE_EXTRA_COMPILE_OPTIONS})
-target_compile_definitions(rhydblib_deps INTERFACE ${RHYDB_CORE_EXTRA_COMPILE_DEFINITIONS})
-
 file(GLOB_RECURSE RHYDBLIB_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE RHYDB_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.test.cpp")
 list(REMOVE_ITEM RHYDBLIB_SOURCES ${RHYDB_TEST_SOURCES})
