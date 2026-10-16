@@ -98,41 +98,69 @@ struct ExpectedRows {
 };
 
 const std::map<std::string, ExpectedRows> EXPECTED_ROWS = {
-   {"ROOT",
-    {.exact = {},
-     .do_not_follow = {0, 2, 3, 4, 6, 8, 9},
-     .follow_if_fully_contained_in_clade = ALL_ROWS,
-     .always_follow = ALL_ROWS}},
-   {"L0",
-    {.exact = {4},
-     .do_not_follow = {4, 6, 8, 9},
-     .follow_if_fully_contained_in_clade = {4, 6, 8, 9},
-     .always_follow = {1, 4, 5, 6, 7, 8, 9}}},
-   {"L1",
-    {.exact = {0, 2},
-     .do_not_follow = {0, 2, 3, 4, 6, 8, 9},
-     .follow_if_fully_contained_in_clade = ALL_ROWS,
-     .always_follow = ALL_ROWS}},
-   {"L2",
-    {.exact = {3},
-     .do_not_follow = {3},
-     .follow_if_fully_contained_in_clade = {3},
-     .always_follow = {1, 3, 5, 7}}},
-   {"L3",
-    {.exact = {1},
-     .do_not_follow = {1},
-     .follow_if_fully_contained_in_clade = {1},
-     .always_follow = {1, 5, 7}}},
-   {"L4",
-    {.exact = {5, 7},
-     .do_not_follow = {5, 7},
-     .follow_if_fully_contained_in_clade = {5, 7},
-     .always_follow = {5, 7}}},
-   {"L5",
-    {.exact = {6, 8, 9},
-     .do_not_follow = {6, 8, 9},
-     .follow_if_fully_contained_in_clade = {6, 8, 9},
-     .always_follow = {5, 6, 7, 8, 9}}},
+   {
+      "ROOT",
+      {
+         .exact = {},
+         .do_not_follow = {0, 2, 3, 4, 6, 8, 9},
+         .follow_if_fully_contained_in_clade = ALL_ROWS,
+         .always_follow = ALL_ROWS,
+      },
+   },
+   {
+      "L0",
+      {
+         .exact = {4},
+         .do_not_follow = {4, 6, 8, 9},
+         .follow_if_fully_contained_in_clade = {4, 6, 8, 9},
+         .always_follow = {1, 4, 5, 6, 7, 8, 9},
+      },
+   },
+   {
+      "L1",
+      {
+         .exact = {0, 2},
+         .do_not_follow = {0, 2, 3, 4, 6, 8, 9},
+         .follow_if_fully_contained_in_clade = ALL_ROWS,
+         .always_follow = ALL_ROWS,
+      },
+   },
+   {
+      "L2",
+      {
+         .exact = {3},
+         .do_not_follow = {3},
+         .follow_if_fully_contained_in_clade = {3},
+         .always_follow = {1, 3, 5, 7},
+      },
+   },
+   {
+      "L3",
+      {
+         .exact = {1},
+         .do_not_follow = {1},
+         .follow_if_fully_contained_in_clade = {1},
+         .always_follow = {1, 5, 7},
+      },
+   },
+   {
+      "L4",
+      {
+         .exact = {5, 7},
+         .do_not_follow = {5, 7},
+         .follow_if_fully_contained_in_clade = {5, 7},
+         .always_follow = {5, 7},
+      },
+   },
+   {
+      "L5",
+      {
+         .exact = {6, 8, 9},
+         .do_not_follow = {6, 8, 9},
+         .follow_if_fully_contained_in_clade = {6, 8, 9},
+         .always_follow = {5, 6, 7, 8, 9},
+      },
+   },
 };
 
 QueryTestScenario scenario(
