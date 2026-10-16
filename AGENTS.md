@@ -12,6 +12,7 @@ Documentation (for devs and users) in `documentation/`.
 # Build
 make build/Debug/rhydb             # Debug build (includes ASAN)
 make build/Release/rhydb           # Release build (includes mimalloc on Linux)
+cmake --preset debug               # Configure only (also release, wasm), see CMakePresets.json
 
 make clean                         # Clean generated outputs/logs/deps (keeps build/)
 make full-clean                    # clean + remove build/ (forces full reconfigure + rebuild)

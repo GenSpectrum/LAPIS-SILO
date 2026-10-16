@@ -1,0 +1,57 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 22,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja"
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Native debug build with warnings, AddressSanitizer and RhyDB debug assertions",
+      "inherits": "base",
+      "binaryDir": "${sourceDir}/build/Debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "-Wall -fsanitize=address"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Native optimized build with warnings",
+      "inherits": "base",
+      "binaryDir": "${sourceDir}/build/Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS": "-Wall"
+      }
+    },
+    {
+      "name": "wasm",
+      "displayName": "WebAssembly",
+      "description": "Emscripten build; requires the WASM dependencies (make build/wasm/dependencies)",
+      "inherits": "base",
+      "binaryDir": "${sourceDir}/build/wasm",
+      "toolchainFile": "${sourceDir}/build/wasm/generators/conan_toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_APP": "OFF",
+        "BUILD_BENCHMARKS": "OFF",
+        "BUILD_WASM_MODULE": "ON",
+        "BUILD_UNIT_TESTS": "OFF",
+        "ENABLE_EVOBENCH": "OFF",
+        "ENABLE_LZMA": "OFF"
+      },
+      "environment": {
+        "CXXFLAGS": "-Wall"
+      }
+    }
+  ]
+}

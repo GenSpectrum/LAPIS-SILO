@@ -79,15 +79,17 @@ target_link_libraries(
 # The subproject owns its unit tests (the API-layer tests), just as the core
 # owns rhydb_test and wasm/ owns its node test.
 
-find_package(GTest REQUIRED)
-if (NOT GTest_LIBRARIES)
-    set(GTest_LIBRARIES gtest gmock)
-endif ()
+if(BUILD_UNIT_TESTS)
+    find_package(GTest REQUIRED)
+    if (NOT GTest_LIBRARIES)
+        set(GTest_LIBRARIES gtest gmock)
+    endif ()
 
-# GTest is built without its own main (gtest/*:no_main), so both test binaries
-# share the harness entry point in src/main.test.cpp (repo-root cwd + arrow
-# init + RUN_ALL_TESTS). Each binary compiles it to run only its own tests.
-add_executable(rhydb_app_test ${RHYDB_APP_TESTS} "${CMAKE_SOURCE_DIR}/src/main.test.cpp")
-set_target_properties(rhydb_app_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
-target_include_directories(rhydb_app_test PRIVATE ${GTest_INCLUDE_DIRS})
-target_link_libraries(rhydb_app_test PUBLIC ${GTest_LIBRARIES} rhydb_app)
+    # GTest is built without its own main (gtest/*:no_main), so both test binaries
+    # share the harness entry point in src/main.test.cpp (repo-root cwd + arrow
+    # init + RUN_ALL_TESTS). Each binary compiles it to run only its own tests.
+    add_executable(rhydb_app_test ${RHYDB_APP_TESTS} "${CMAKE_SOURCE_DIR}/src/main.test.cpp")
+    set_target_properties(rhydb_app_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+    target_include_directories(rhydb_app_test PRIVATE ${GTest_INCLUDE_DIRS})
+    target_link_libraries(rhydb_app_test PUBLIC ${GTest_LIBRARIES} rhydb_app)
+endif()
