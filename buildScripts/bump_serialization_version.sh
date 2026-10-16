@@ -24,11 +24,11 @@ find "$SERIALIZED_STATE_DIR" -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} +
 
 # 3. Build the test binary
 echo "Building rhydb_test..."
-make -C "$REPO_ROOT" build/Debug/rhydb_test
+make -C "$REPO_ROOT" build/Debug/src/rhydb_test
 
 # 4. Run the save/reload test with RHYDB_KEEP_SERIALIZED_STATE to preserve the new state
 echo "Generating new serialized state..."
-RHYDB_KEEP_SERIALIZED_STATE=1 "$REPO_ROOT/build/Debug/rhydb_test" \
+RHYDB_KEEP_SERIALIZED_STATE=1 "$REPO_ROOT/build/Debug/src/rhydb_test" \
     --gtest_filter="DatabaseTest.shouldSaveAndReloadDatabaseWithoutErrors"
 
 # 5. Verify a new directory was created

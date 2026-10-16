@@ -1,5 +1,5 @@
 from conan import ConanFile
-from conan.tools.cmake import CMakeDeps
+from conan.tools.cmake import CMakeDeps, CMakeToolchain
 
 
 class RhyDbRecipe(ConanFile):
@@ -146,3 +146,11 @@ class RhyDbRecipe(ConanFile):
         for package in packages:
             deps.set_property(package, "cmake_find_mode", "both")
         deps.generate()
+
+        if self.options.wasm:
+            # RhyDB itself is configured with this toolchain, so it gets the same flags
+            # as its dependencies
+            toolchain = CMakeToolchain(self)
+            # Do not write a CMakeUserPresets.json into the source tree
+            toolchain.user_presets_path = False
+            toolchain.generate()

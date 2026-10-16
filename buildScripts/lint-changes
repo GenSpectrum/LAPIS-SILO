@@ -34,12 +34,13 @@ docker run --rm \
   -v "$(pwd)/src:/src/src" \
   -v "$(pwd)/app:/src/app" \
   -v "$(pwd)/CMakeLists.txt:/src/CMakeLists.txt" \
+  -v "$(pwd)/CMakePresets.json:/src/CMakePresets.json" \
   -e files="$files" \
   -e LINT_FIX="$LINT_FIX" \
   "$DOCKER_IMAGE" \
   /bin/bash --login -c '
     set -euo pipefail
-    cmake -G Ninja -D CMAKE_BUILD_TYPE=Debug -B build/Debug
+    cmake --preset debug
     patterns=()
     for file in $files; do
       patterns+=("^/src/${file//./\\.}\$")

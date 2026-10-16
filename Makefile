@@ -2,10 +2,10 @@
 ## It will contain the PID of the running rhydb API server.
 ## If something fails during execution, it might be necessary to kill the daemon using `make clean-api`.
 RHYDB_DEBUG_EXECUTABLE=./build/Debug/rhydb
-RHYDB_DEBUG_TEST_EXECUTABLE=./build/Debug/rhydb_test
+RHYDB_DEBUG_TEST_EXECUTABLE=./build/Debug/src/rhydb_test
 RHYDB_DEBUG_APP_TEST_EXECUTABLE=./build/Debug/rhydb_app_test
 RHYDB_RELEASE_EXECUTABLE=./build/Release/rhydb
-RHYDB_RELEASE_TEST_EXECUTABLE=./build/Release/rhydb_test
+RHYDB_RELEASE_TEST_EXECUTABLE=./build/Release/src/rhydb_test
 RHYDB_RELEASE_APP_TEST_EXECUTABLE=./build/Release/rhydb_app_test
 RHYDB_WASM_EXECUTABLE=./build/wasm/rhydb_wasm.js
 RHYDB_WASM_DIST_DIR=wasm/dist
@@ -35,7 +35,7 @@ ${DEPENDENCIES_FLAG}: conanfile.py conanprofile
 	buildScripts/install-dependencies
 	touch ${DEPENDENCIES_FLAG}
 
-build/wasm/conanprofile-emscripten:
+build/wasm/conanprofile-emscripten: buildScripts/create-wasm-conanprofile
 	buildScripts/create-wasm-conanprofile
 
 ${WASM_DEPENDENCIES_FLAG}: conanfile.py conanprofile build/wasm/conanprofile-emscripten
@@ -54,17 +54,21 @@ $(SRC_FILE_LIST): FORCE
 #
 # $(wildcard ...) drops files that are absent from the current checkout. Some
 # build contexts only copy a subset of the tree into Docker containers.
-NATIVE_CMAKE_FILES=$(wildcard CMakeLists.txt app/CMakeLists.txt performance/CMakeLists.txt performance/BenchmarkData.cmake python/CMakeLists.txt)
-WASM_CMAKE_FILES=$(wildcard CMakeLists.txt wasm/CMakeLists.txt)
+NATIVE_CMAKE_FILES=$(wildcard CMakePresets.json CMakeLists.txt src/CMakeLists.txt app/CMakeLists.txt performance/CMakeLists.txt performance/BenchmarkData.cmake python/CMakeLists.txt)
+WASM_CMAKE_FILES=$(wildcard CMakePresets.json CMakeLists.txt src/CMakeLists.txt wasm/CMakeLists.txt)
 
+# Build settings and developer flags are in CMakePresets.json
 build/Debug/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(NATIVE_CMAKE_FILES)
-	$(CMAKE) -G Ninja -B build/Debug -D CMAKE_BUILD_TYPE=Debug
+	$(CMAKE) --preset debug
 
 build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(NATIVE_CMAKE_FILES)
-	$(CMAKE) -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
+	$(CMAKE) --preset release
 
 build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(WASM_CMAKE_FILES)
-	emcmake cmake -G Ninja -S . -B build/wasm -D CMAKE_BUILD_TYPE=Release -D BUILD_UNIT_TESTS=OFF
+	# Fresh cache: CMake reads the toolchain's *_FLAGS_INIT and $$CXXFLAGS only when creating it.
+	# (The wasm preset sets -Wall via CXXFLAGS, as CMAKE_CXX_FLAGS would drop the toolchain's.)
+	rm -f build/wasm/CMakeCache.txt
+	$(CMAKE) --preset wasm
 
 ${RHYDB_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb
@@ -146,7 +150,7 @@ python-tests: ${DEPENDENCIES_FLAG}
 	.venv/bin/pytest python/tests -v
 
 
-PYTHON_VERSIONS ?= 3.11 3.12 3.13 3.14
+PYTHON_VERSIONS ?= 3.11 3.12 3.13 3.14 3.15
 
 .PHONY: build-wheels
 build-wheels: ${RHYDB_RELEASE_EXECUTABLE}

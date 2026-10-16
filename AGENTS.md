@@ -12,6 +12,7 @@ Documentation (for devs and users) in `documentation/`.
 # Build
 make build/Debug/rhydb             # Debug build (includes ASAN)
 make build/Release/rhydb           # Release build (includes mimalloc on Linux)
+cmake --preset debug               # Configure only (also release, wasm), see CMakePresets.json
 
 make clean                         # Clean generated outputs/logs/deps (keeps build/)
 make full-clean                    # clean + remove build/ (forces full reconfigure + rebuild)
@@ -25,9 +26,9 @@ make wasm                          # Build rhydb_wasm.js/.wasm into wasm/dist (r
 make wasm-test                     # Build wasm and run wasm/test
 
 # Run specific tests
-build/Debug/rhydb_test --gtest_filter='TestSuite*'         # By suite
-build/Debug/rhydb_test --gtest_filter='TestSuite.testCase'  # By case
-build/Debug/rhydb_test --gtest_filter='*Pattern*'           # By pattern
+build/Debug/src/rhydb_test --gtest_filter='TestSuite*'         # By suite
+build/Debug/src/rhydb_test --gtest_filter='TestSuite.testCase'  # By case
+build/Debug/src/rhydb_test --gtest_filter='*Pattern*'           # By pattern
 
 # Format & CI
 make format                        # Format C++ code (requires clang-format)
