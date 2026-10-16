@@ -7,10 +7,20 @@ endif ()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-# Append to keep the toolchain's flags
-string(APPEND CMAKE_CXX_FLAGS " -Wall")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -D RHYDB_DEBUG_ASSERTIONS=1")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D RHYDB_DEBUG_ASSERTIONS=0")
+# CMAKE_CXX_FLAGS* are left to the toolchain and the caller (see CMakePresets.json)
+
+# ---------------------------------------------------------------------------
+# Options
+# ---------------------------------------------------------------------------
+
+# The defaults describe the native build; the presets set them for each variant.
+option(BUILD_APP "Build the rhydb command-line application" ON)
+option(BUILD_BENCHMARKS "Build the performance benchmarks" ON)
+option(BUILD_PYTHON_BINDINGS "Build the Python bindings" OFF)
+option(BUILD_WASM_MODULE "Build the WebAssembly module (requires the Emscripten toolchain)" OFF)
+option(BUILD_UNIT_TESTS "Build the unit tests" ON)
+option(ENABLE_EVOBENCH "Compile in the evobench probes" ON)
+option(ENABLE_LZMA "Support lzma (.xz) compressed inputs" ON)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -45,29 +55,20 @@ endif()
 # below link against rhydblib.
 add_subdirectory(src)
 
-if(EMSCRIPTEN)
-    # The browser build does not profile. -pthread/-fexceptions come from the toolchain.
-    target_compile_definitions(rhydblib PUBLIC NO_EVOBENCH)
-endif()
-
 # ---------------------------------------------------------------------------
 # Consumers
 # ---------------------------------------------------------------------------
 
-if(EMSCRIPTEN)
-    # The browser embind module, a consumer of the shared rhydblib declaration.
-    add_subdirectory(wasm)
-else()
-    # The native command-line application (the `rhydb` executable) is a consumer
-    # of the shared rhydblib declaration
+# Each is a consumer of the shared rhydblib declaration
+if(BUILD_APP)
     add_subdirectory(app)
-
-    # The performance benchmark targets
+endif()
+if(BUILD_BENCHMARKS)
     add_subdirectory(performance)
-
-    # The python binding target
-    option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
-    if(BUILD_PYTHON_BINDINGS)
-        add_subdirectory(python)
-    endif()
+endif()
+if(BUILD_PYTHON_BINDINGS)
+    add_subdirectory(python)
+endif()
+if(BUILD_WASM_MODULE)
+    add_subdirectory(wasm)
 endif()

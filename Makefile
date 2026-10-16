@@ -54,20 +54,21 @@ $(SRC_FILE_LIST): FORCE
 #
 # $(wildcard ...) drops files that are absent from the current checkout. Some
 # build contexts only copy a subset of the tree into Docker containers.
-NATIVE_CMAKE_FILES=$(wildcard CMakeLists.txt src/CMakeLists.txt app/CMakeLists.txt performance/CMakeLists.txt performance/BenchmarkData.cmake python/CMakeLists.txt)
-WASM_CMAKE_FILES=$(wildcard CMakeLists.txt src/CMakeLists.txt wasm/CMakeLists.txt)
+NATIVE_CMAKE_FILES=$(wildcard CMakePresets.json CMakeLists.txt src/CMakeLists.txt app/CMakeLists.txt performance/CMakeLists.txt performance/BenchmarkData.cmake python/CMakeLists.txt)
+WASM_CMAKE_FILES=$(wildcard CMakePresets.json CMakeLists.txt src/CMakeLists.txt wasm/CMakeLists.txt)
 
+# Build settings and developer flags are in CMakePresets.json
 build/Debug/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(NATIVE_CMAKE_FILES)
-	$(CMAKE) -G Ninja -B build/Debug -D CMAKE_BUILD_TYPE=Debug
+	$(CMAKE) --preset debug
 
 build/Release/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(NATIVE_CMAKE_FILES)
-	$(CMAKE) -G Ninja -B build/Release -D CMAKE_BUILD_TYPE=Release
+	$(CMAKE) --preset release
 
 build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(WASM_CMAKE_FILES)
-	# Fresh cache: CMake reads the toolchain's *_FLAGS_INIT only when creating it
+	# Fresh cache: CMake reads the toolchain's *_FLAGS_INIT and $$CXXFLAGS only when creating it.
+	# (The wasm preset sets -Wall via CXXFLAGS, as CMAKE_CXX_FLAGS would drop the toolchain's.)
 	rm -f build/wasm/CMakeCache.txt
-	$(CMAKE) -G Ninja -S . -B build/wasm -D CMAKE_BUILD_TYPE=Release -D BUILD_UNIT_TESTS=OFF \
-		-D CMAKE_TOOLCHAIN_FILE=$(CURDIR)/build/wasm/generators/conan_toolchain.cmake
+	$(CMAKE) --preset wasm
 
 ${RHYDB_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb

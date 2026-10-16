@@ -2,7 +2,7 @@ ARG DEPENDENCY_IMAGE=ghcr.io/rhyorg/rhydb-dependencies:latest
 
 FROM $DEPENDENCY_IMAGE AS builder
 
-COPY CMakeLists.txt Makefile conanfile.py ./
+COPY CMakeLists.txt CMakePresets.json Makefile conanfile.py ./
 COPY buildScripts/ ./buildScripts/
 COPY src/ ./src/
 COPY app/ ./app/

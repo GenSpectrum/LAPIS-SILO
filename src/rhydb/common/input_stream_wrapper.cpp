@@ -11,7 +11,7 @@
 
 #include "rhydb/preprocessing/preprocessing_exception.h"
 
-#ifndef __EMSCRIPTEN__
+#if RHYDB_WITH_LZMA
 #include <boost/iostreams/filter/lzma.hpp>
 #endif
 
@@ -35,16 +35,15 @@ InputStreamWrapper::InputStreamWrapper(const std::filesystem::path& file_path) {
       file_stream = std::ifstream(withZSTending(file_path), std::ios::binary);
       boost_input_stream->push(boost::iostreams::zstd_decompressor());
    } else if (std::filesystem::is_regular_file(withXZending(file_path))) {
-#ifndef __EMSCRIPTEN__
+#if RHYDB_WITH_LZMA
       SPDLOG_INFO("Detected file-ending .xz for input file " + file_path.string());
       file_stream = std::ifstream(withXZending(file_path), std::ios::binary);
       boost_input_stream->push(boost::iostreams::lzma_decompressor());
 #else
-      // The WASM build does not include lzma. Fail fast instead of letting the
+      // Built without lzma (e.g. the WASM build). Fail fast instead of letting the
       // .xz file fall through and be read as if it were uncompressed.
       throw rhydb::preprocessing::PreprocessingException(
-         "The WASM build does not support .xz (lzma) inputs; found: " +
-         withXZending(file_path).string()
+         "This build does not support .xz (lzma) inputs; found: " + withXZending(file_path).string()
       );
 #endif
    } else if (std::filesystem::is_regular_file(file_path)) {

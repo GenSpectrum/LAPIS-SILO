@@ -1,8 +1,8 @@
 # The WebAssembly (Emscripten) embind module. Like app/ and python/, this is a
 # thin consumer of the portable rhydblib declared in src/CMakeLists.txt.
 #
-# This subdirectory is only added when configuring with the Emscripten toolchain
-# (see the EMSCRIPTEN guard in the root CMakeLists.txt). The shared C++ standard,
+# This subdirectory is only added with BUILD_WASM_MODULE (see the wasm preset),
+# which needs the Emscripten toolchain. The shared C++ standard,
 # core dependencies, source globbing, and the NO_EVOBENCH define all come from
 # rhydblib, -pthread/-fexceptions from the toolchain.
 

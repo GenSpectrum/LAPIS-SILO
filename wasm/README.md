@@ -95,7 +95,7 @@ From the RhyDB repository root, build the WASM artifacts:
 make wasm
 ```
 
-The compatibility wrapper `./wasm/scripts/build-wasm.sh` also calls `make wasm`. The Makefile writes the Emscripten Conan profile to `build/wasm/conanprofile-emscripten`, installs dependencies into `build/wasm`, configures CMake with the Conan-generated toolchain, builds `rhydb_wasm`, and copies the artifacts to `wasm/dist`.
+The compatibility wrapper `./wasm/scripts/build-wasm.sh` also calls `make wasm`. The Makefile writes the Emscripten Conan profile to `build/wasm/conanprofile-emscripten`, installs dependencies into `build/wasm`, configures CMake with the Conan-generated toolchain (via the `wasm` preset in `CMakePresets.json`), builds `rhydb_wasm`, and copies the artifacts to `wasm/dist`.
 
 ## Tests
 
