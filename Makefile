@@ -2,10 +2,10 @@
 ## It will contain the PID of the running rhydb API server.
 ## If something fails during execution, it might be necessary to kill the daemon using `make clean-api`.
 RHYDB_DEBUG_EXECUTABLE=./build/Debug/rhydb
-RHYDB_DEBUG_TEST_EXECUTABLE=./build/Debug/rhydb_test
+RHYDB_DEBUG_TEST_EXECUTABLE=./build/Debug/src/rhydb_test
 RHYDB_DEBUG_APP_TEST_EXECUTABLE=./build/Debug/rhydb_app_test
 RHYDB_RELEASE_EXECUTABLE=./build/Release/rhydb
-RHYDB_RELEASE_TEST_EXECUTABLE=./build/Release/rhydb_test
+RHYDB_RELEASE_TEST_EXECUTABLE=./build/Release/src/rhydb_test
 RHYDB_RELEASE_APP_TEST_EXECUTABLE=./build/Release/rhydb_app_test
 RHYDB_WASM_EXECUTABLE=./build/wasm/rhydb_wasm.js
 RHYDB_WASM_DIST_DIR=wasm/dist
@@ -54,8 +54,8 @@ $(SRC_FILE_LIST): FORCE
 #
 # $(wildcard ...) drops files that are absent from the current checkout. Some
 # build contexts only copy a subset of the tree into Docker containers.
-NATIVE_CMAKE_FILES=$(wildcard CMakeLists.txt app/CMakeLists.txt performance/CMakeLists.txt performance/BenchmarkData.cmake python/CMakeLists.txt)
-WASM_CMAKE_FILES=$(wildcard CMakeLists.txt wasm/CMakeLists.txt)
+NATIVE_CMAKE_FILES=$(wildcard CMakeLists.txt src/CMakeLists.txt app/CMakeLists.txt performance/CMakeLists.txt performance/BenchmarkData.cmake python/CMakeLists.txt)
+WASM_CMAKE_FILES=$(wildcard CMakeLists.txt src/CMakeLists.txt wasm/CMakeLists.txt)
 
 build/Debug/build.ninja: ${DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(NATIVE_CMAKE_FILES)
 	$(CMAKE) -G Ninja -B build/Debug -D CMAKE_BUILD_TYPE=Debug
