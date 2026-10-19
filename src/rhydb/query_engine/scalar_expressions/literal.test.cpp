@@ -1,6 +1,7 @@
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 
 #include <arrow/compute/api.h>
+#include <arrow/scalar.h>
 #include <arrow/type.h>
 #include <gtest/gtest.h>
 
@@ -31,8 +32,9 @@ TEST(NullLiteral, evaluatesToANullOfItsType) {
          arrow::compute::ExecuteScalarExpression(bound, arrow::compute::ExecBatch{{}, 1})
             .ValueOrDie();
       ASSERT_TRUE(value.is_scalar());
-      EXPECT_FALSE(value.scalar()->is_valid);
-      EXPECT_TRUE(value.type()->Equals(*exec_node::columnTypeToArrowType(type)));
+      EXPECT_TRUE(
+         value.scalar()->Equals(*arrow::MakeNullScalar(exec_node::columnTypeToArrowType(type)))
+      );
    }
 }
 
