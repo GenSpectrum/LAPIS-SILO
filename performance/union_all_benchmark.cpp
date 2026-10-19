@@ -54,7 +54,6 @@ schema:
       Initializer::createSchemaFromConfigFiles(
          database_config,
          reference_genomes,
-         {},
          PhyloTree(),
          /*without_unaligned_sequences=*/true
       )
