@@ -1860,8 +1860,8 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
          {
             pos("column"),
             pos("value"),
-            named("includeSublineages", false),
-            named("recombinantFollowingMode", false),
+            pos("includeSublineages", false),
+            pos("recombinantFollowingMode", false),
          },
       },
       handleLineage
