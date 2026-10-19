@@ -171,10 +171,10 @@ std::function<void()> prepareWrite(
          } else {
             // The values were cast to the Arrow type the column is read as, so they are an array
             // of the type the column's Arrow builder produces.
-            using ArrayType = typename arrow::TypeTraits<
+            using ArrayType = arrow::TypeTraits<
                typename exec_node::ArrowBuilder<Column>::TypeClass>::ArrayType;
             const auto& values = static_cast<const ArrayType&>(*computed.values);
-            using Value = typename Column::Buffer::value_type::value_type;
+            using Value = Column::Buffer::value_type::value_type;
             auto value_at = [&](int64_t index) -> std::optional<Value> {
                if (values.IsNull(index)) {
                   return std::nullopt;
