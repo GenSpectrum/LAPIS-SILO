@@ -27,6 +27,7 @@
 #include "rhydb/common/version.h"
 #include "rhydb/database_info.h"
 #include "rhydb/persistence/exception.h"
+#include "rhydb/query_engine/column_assignment.h"
 #include "rhydb/query_engine/command/write_command.h"
 #include "rhydb/query_engine/exec_node/arrow_ipc_sink.h"
 #include "rhydb/query_engine/exec_node/ndjson_sink.h"
@@ -36,7 +37,6 @@
 #include "rhydb/query_engine/planner.h"
 #include "rhydb/query_engine/saneql/ast_to_query.h"
 #include "rhydb/query_engine/saneql/parser.h"
-#include "rhydb/query_engine/scalar_column_update.h"
 #include "rhydb/query_engine/scalar_expressions/literal.h"
 #include "rhydb/schema/builtin_tables.h"
 #include "rhydb/schema/database_schema.h"
@@ -258,17 +258,29 @@ void Database::updateColumn(
          fmt::format("The database does not contain the table '{}'", table_name)
       );
    }
-   auto& table = *maybe_table->second;
+   const auto& table = maybe_table->second;
 
-   const auto column = table.schema->getColumn(column_name);
+   const auto column = table->schema->getColumn(column_name);
    if (!column.has_value()) {
       throw query_engine::IllegalQueryException(
          fmt::format("The table '{}' does not contain a column '{}'", table_name, column_name)
       );
    }
 
-   const roaring::Roaring row_ids = getFilteredBitmap(table_name, filter_expression);
-   query_engine::assignScalarLiteralToColumn(table, *column, value, row_ids);
+   const auto predicate = query_engine::saneql::convertToFilter(
+      *query_engine::saneql::Parser{filter_expression}.parse(),
+      table->schema->getColumnIdentifiers(),
+      tables
+   );
+   std::vector<query_engine::ColumnAssignment> assignments;
+   assignments.push_back(
+      query_engine::makeColumnAssignment(
+         table, *column, *query_engine::saneql::Parser{value}.parse(), tables
+      )
+   );
+   query_engine::applyColumnAssignments(
+      table, assignments, *predicate, tables, config::QueryOptions{}, "updateColumn"
+   );
 
    // The update mutates persisted table data, so bump the data version like appendData does; this
    // keeps getDataVersionTimestamp() and versioned save directories consistent with the change.

@@ -743,6 +743,15 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
    return convertToFilter(ast, schema, ScalarConversionContext{.tables = tables});
 }
 
+std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
+   const ast::Expression& ast,
+   const std::vector<schema::ColumnIdentifier>& schema,
+   std::string_view error_context,
+   const Tables& tables
+) {
+   return convertToScalar(ast, schema, error_context, ScalarConversionContext{.tables = tables});
+}
+
 // NOLINTNEXTLINE(misc-no-recursion)
 std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
    const ast::Expression& ast,
@@ -1162,12 +1171,7 @@ operators::QueryNodePtr buildScanNode(
    CHECK_RHYDB_QUERY(
       iter != tables.end(), "table '{}' not found in database", table_name.getName()
    );
-   const auto table_schema = iter->second->schema;
-   std::vector<schema::ColumnIdentifier> fields = iter->second->schema->getColumnIdentifiers();
-   auto table_scan = std::make_unique<operators::TableScanNode>(
-      iter->second, std::make_unique<scalar_expressions::BoolLiteral>(true), std::move(fields)
-   );
-   return wrapWithDecompressIfNeeded(std::move(table_scan), table_schema);
+   return makeTableScan(iter->second, std::make_unique<scalar_expressions::BoolLiteral>(true));
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
@@ -1934,6 +1938,16 @@ ScalarFunctionRegistry::ScalarFunctionRegistry() {
 ScalarFunctionRegistry& ScalarFunctionRegistry::instance() {
    static ScalarFunctionRegistry registry;
    return registry;
+}
+
+operators::QueryNodePtr makeTableScan(
+   const std::shared_ptr<storage::Table>& table,
+   std::unique_ptr<scalar_expressions::ScalarExpression> filter
+) {
+   auto table_scan = std::make_unique<operators::TableScanNode>(
+      table, std::move(filter), table->schema->getColumnIdentifiers()
+   );
+   return wrapWithDecompressIfNeeded(std::move(table_scan), table->schema);
 }
 
 }  // namespace rhydb::query_engine::saneql
