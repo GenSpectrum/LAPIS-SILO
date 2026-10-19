@@ -15,18 +15,18 @@ using rhydb::preprocessing::LineageDefinitionFile;
 using rhydb::test::QueryTestData;
 using rhydb::test::QueryTestScenario;
 
-/* A double diamond with the recombinants L3 (of L2 and L0) and L4 (of the recombinant L3 and L5),
+/* A double diamond with the recombinants L4 (of L2 and L3) and L6 (of the recombinant L4 and L5),
  * below ROOT, which no row carries:
  *
  *     ROOT
  *      |
  *      L1
  *     /  \
- *   L2    L0
+ *   L2    L3
  *    \   /  \
- *     L3     L5
+ *     L4     L5
  *       \   /
- *        L4
+ *        L6
  */
 const auto LINEAGE_TREE =
    LineageTreeAndIdMap::fromLineageDefinitionFile(LineageDefinitionFile::fromYAMLString(R"(
@@ -36,26 +36,30 @@ L1:
   parents: [ROOT]
 L2:
   parents: [L1]
-L0:
-  parents: [L1]
 L3:
-  parents: [L2, L0]
-L5:
-  parents: [L0]
+  parents: [L1]
 L4:
-  parents: [L3, L5]
+  parents: [L2, L3]
+L5:
+  parents: [L3]
+L6:
+  parents: [L4, L5]
 )"));
 
-// The lineage of the row with primary key id_<i>.
+// The lineage of each row, whose primary key id_<row>_<lineage> carries it.
 const std::vector<std::string> ROW_LINEAGES =
-   {"L1", "L3", "L1", "L2", "L0", "L4", "L5", "L4", "L5", "L5"};
+   {"L1", "L4", "L1", "L2", "L3", "L6", "L5", "L6", "L5", "L5"};
+
+std::string primaryKey(size_t row) {
+   return fmt::format("id_{}_{}", row, ROW_LINEAGES.at(row));
+}
 
 std::vector<nlohmann::json> createData() {
    std::vector<nlohmann::json> data;
    data.reserve(ROW_LINEAGES.size());
    for (size_t row = 0; row < ROW_LINEAGES.size(); ++row) {
       data.push_back({
-         {"primaryKey", fmt::format("id_{}", row)},
+         {"primaryKey", primaryKey(row)},
          {"pango_lineage", ROW_LINEAGES.at(row)},
          {"segment1", nullptr},
          {"unaligned_segment1", nullptr},
@@ -86,15 +90,22 @@ const QueryTestData TEST_DATA{
    .lineage_trees = {{"test_lineage_index", LINEAGE_TREE}},
 };
 
-const std::vector<size_t> ALL_ROWS = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+const std::vector<std::string> ALL_ROWS = [] {
+   std::vector<std::string> rows;
+   rows.reserve(ROW_LINEAGES.size());
+   for (size_t row = 0; row < ROW_LINEAGES.size(); ++row) {
+      rows.push_back(primaryKey(row));
+   }
+   return rows;
+}();
 
-// For each queried lineage, the matching rows without sublineages and with sublineages in each
-// recombinantFollowingMode.
+// For each queried lineage, the primary keys of the matching rows (in insertion order) without
+// sublineages and with sublineages in each recombinantFollowingMode.
 struct ExpectedRows {
-   std::vector<size_t> exact;
-   std::vector<size_t> do_not_follow;
-   std::vector<size_t> follow_if_fully_contained_in_clade;
-   std::vector<size_t> always_follow;
+   std::vector<std::string> exact;
+   std::vector<std::string> do_not_follow;
+   std::vector<std::string> follow_if_fully_contained_in_clade;
+   std::vector<std::string> always_follow;
 };
 
 const std::map<std::string, ExpectedRows> EXPECTED_ROWS = {
@@ -102,25 +113,18 @@ const std::map<std::string, ExpectedRows> EXPECTED_ROWS = {
       "ROOT",
       {
          .exact = {},
-         .do_not_follow = {0, 2, 3, 4, 6, 8, 9},
+         .do_not_follow =
+            {"id_0_L1", "id_2_L1", "id_3_L2", "id_4_L3", "id_6_L5", "id_8_L5", "id_9_L5"},
          .follow_if_fully_contained_in_clade = ALL_ROWS,
          .always_follow = ALL_ROWS,
       },
    },
    {
-      "L0",
-      {
-         .exact = {4},
-         .do_not_follow = {4, 6, 8, 9},
-         .follow_if_fully_contained_in_clade = {4, 6, 8, 9},
-         .always_follow = {1, 4, 5, 6, 7, 8, 9},
-      },
-   },
-   {
       "L1",
       {
-         .exact = {0, 2},
-         .do_not_follow = {0, 2, 3, 4, 6, 8, 9},
+         .exact = {"id_0_L1", "id_2_L1"},
+         .do_not_follow =
+            {"id_0_L1", "id_2_L1", "id_3_L2", "id_4_L3", "id_6_L5", "id_8_L5", "id_9_L5"},
          .follow_if_fully_contained_in_clade = ALL_ROWS,
          .always_follow = ALL_ROWS,
       },
@@ -128,37 +132,47 @@ const std::map<std::string, ExpectedRows> EXPECTED_ROWS = {
    {
       "L2",
       {
-         .exact = {3},
-         .do_not_follow = {3},
-         .follow_if_fully_contained_in_clade = {3},
-         .always_follow = {1, 3, 5, 7},
+         .exact = {"id_3_L2"},
+         .do_not_follow = {"id_3_L2"},
+         .follow_if_fully_contained_in_clade = {"id_3_L2"},
+         .always_follow = {"id_1_L4", "id_3_L2", "id_5_L6", "id_7_L6"},
       },
    },
    {
       "L3",
       {
-         .exact = {1},
-         .do_not_follow = {1},
-         .follow_if_fully_contained_in_clade = {1},
-         .always_follow = {1, 5, 7},
+         .exact = {"id_4_L3"},
+         .do_not_follow = {"id_4_L3", "id_6_L5", "id_8_L5", "id_9_L5"},
+         .follow_if_fully_contained_in_clade = {"id_4_L3", "id_6_L5", "id_8_L5", "id_9_L5"},
+         .always_follow =
+            {"id_1_L4", "id_4_L3", "id_5_L6", "id_6_L5", "id_7_L6", "id_8_L5", "id_9_L5"},
       },
    },
    {
       "L4",
       {
-         .exact = {5, 7},
-         .do_not_follow = {5, 7},
-         .follow_if_fully_contained_in_clade = {5, 7},
-         .always_follow = {5, 7},
+         .exact = {"id_1_L4"},
+         .do_not_follow = {"id_1_L4"},
+         .follow_if_fully_contained_in_clade = {"id_1_L4"},
+         .always_follow = {"id_1_L4", "id_5_L6", "id_7_L6"},
       },
    },
    {
       "L5",
       {
-         .exact = {6, 8, 9},
-         .do_not_follow = {6, 8, 9},
-         .follow_if_fully_contained_in_clade = {6, 8, 9},
-         .always_follow = {5, 6, 7, 8, 9},
+         .exact = {"id_6_L5", "id_8_L5", "id_9_L5"},
+         .do_not_follow = {"id_6_L5", "id_8_L5", "id_9_L5"},
+         .follow_if_fully_contained_in_clade = {"id_6_L5", "id_8_L5", "id_9_L5"},
+         .always_follow = {"id_5_L6", "id_6_L5", "id_7_L6", "id_8_L5", "id_9_L5"},
+      },
+   },
+   {
+      "L6",
+      {
+         .exact = {"id_5_L6", "id_7_L6"},
+         .do_not_follow = {"id_5_L6", "id_7_L6"},
+         .follow_if_fully_contained_in_clade = {"id_5_L6", "id_7_L6"},
+         .always_follow = {"id_5_L6", "id_7_L6"},
       },
    },
 };
@@ -167,11 +181,11 @@ QueryTestScenario scenario(
    const std::string& name,
    const std::string& lineage,
    const std::string& arguments,
-   const std::vector<size_t>& rows
+   const std::vector<std::string>& primary_keys
 ) {
    nlohmann::json expected = nlohmann::json::array();
-   for (const size_t row : rows) {
-      expected.push_back({{"primaryKey", fmt::format("id_{}", row)}});
+   for (const auto& primary_key : primary_keys) {
+      expected.push_back({{"primaryKey", primary_key}});
    }
    return {
       .name = fmt::format("{}_{}", lineage, name),
