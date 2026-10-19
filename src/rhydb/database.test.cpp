@@ -11,7 +11,6 @@
 
 #include "config/source/yaml_file.h"
 #include "rhydb/append/append_exception.h"
-#include "rhydb/common/lineage_tree.h"
 #include "rhydb/common/phylo_tree.h"
 #include "rhydb/config/preprocessing_config.h"
 #include "rhydb/database_info.h"
@@ -41,12 +40,6 @@ std::shared_ptr<rhydb::Database> buildTestDatabase() {
       config.initialization_files.getReferenceGenomeFilepath()
    );
 
-   std::map<std::filesystem::path, rhydb::common::LineageTreeAndIdMap> lineage_trees;
-   for (const auto& file_path : config.initialization_files.getLineageDefinitionFilepaths()) {
-      lineage_trees[file_path] =
-         rhydb::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(file_path);
-   }
-
    rhydb::common::PhyloTree phylo_tree_file;
    auto opt_path = config.initialization_files.getPhyloTreeFilepath();
    if (opt_path.has_value()) {
@@ -59,7 +52,6 @@ std::shared_ptr<rhydb::Database> buildTestDatabase() {
       rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          database_config,
          reference_genomes,
-         lineage_trees,
          phylo_tree_file,
          /*without_unaligned_sequences=*/false
       )

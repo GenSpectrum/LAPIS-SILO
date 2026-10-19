@@ -24,31 +24,9 @@ TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
       ReferenceGenomes::readFromFile("testBaseData/unitTestDummyDataset/reference_genomes.json");
    const PhyloTree phylo_tree_file =
       PhyloTree::fromNewickFile("testBaseData/unitTestDummyDataset/phylogenetic_tree.nwk");
-   const std::map<std::filesystem::path, LineageTreeAndIdMap> lineage_trees{
-      {
-         "test_lineage_definition.yaml",
-         LineageTreeAndIdMap::fromLineageDefinitionFile(
-            rhydb::preprocessing::LineageDefinitionFile::fromYAMLString(R"(
-A:
-  aliases:
-  - X
-A.1:
-  parents:
-  - A
-A.11:
-  aliases:
-  - X2
-  - Y3
-  parents:
-  - A
-)")
-         ),
-      },
-   };
    auto table_schema = Initializer::createSchemaFromConfigFiles(
       database_config,
       reference_genomes,
-      lineage_trees,
       phylo_tree_file,
       /*without_unaligned_sequences=*/false
    );
