@@ -41,6 +41,7 @@ const std::vector<nlohmann::json> DATA = {
    createDataWithLineageValue("id_2", SOME_SUBLINEAGE),
    createDataWithLineageNullValue("id_3"),
    createDataWithLineageValue("id_4", RECOMBINANT_LINEAGE),
+   createDataWithLineageValue("id_5", "UNKNOWN"),
 };
 
 const auto DATABASE_CONFIG =
@@ -171,12 +172,18 @@ const QueryTestScenario EXPLICIT_DO_NOT_FOLLOW = {
 };
 
 // lineage(...) is a rewrite over the lineage tables, so a lineage that is not in them just matches
-// nothing.
+// nothing, even when it is stored in the column.
 const QueryTestScenario UNKNOWN_LINEAGE_MATCHES_NOTHING = {
    .name = "UNKNOWN_LINEAGE_MATCHES_NOTHING",
    .query =
       "data.filter(pango_lineage.lineage('UNKNOWN', includeSublineages:=true))"
       ".project({pango_lineage, primaryKey})",
+   .expected_query_result = nlohmann::json::array(),
+};
+
+const QueryTestScenario UNKNOWN_LINEAGE_WITHOUT_SUBLINEAGES_MATCHES_NOTHING = {
+   .name = "UNKNOWN_LINEAGE_WITHOUT_SUBLINEAGES_MATCHES_NOTHING",
+   .query = "data.filter(pango_lineage.lineage('UNKNOWN')).project({pango_lineage, primaryKey})",
    .expected_query_result = nlohmann::json::array(),
 };
 
@@ -207,6 +214,7 @@ QUERY_TEST(
       DOES_NOT_FILTER_NON_INCLUDED_RECOMBINANTS,
       EXPLICIT_DO_NOT_FOLLOW,
       UNKNOWN_LINEAGE_MATCHES_NOTHING,
+      UNKNOWN_LINEAGE_WITHOUT_SUBLINEAGES_MATCHES_NOTHING,
       RECOMBINANT_FOLLOWING_MODE_WITHOUT_SUBLINEAGES
    )
 )

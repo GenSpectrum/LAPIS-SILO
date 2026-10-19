@@ -17,8 +17,10 @@ namespace rhydb::query_engine::saneql {
 namespace {
 
 /// The edges of the lineage hierarchy, as a table with columns `edge_from` and `edge_to`. Without
-/// sublineages, these are just the edges between each lineage and its aliases, in both directions:
-/// walking them from a lineage or alias reaches its canonical lineage and all aliases thereof. With
+/// sublineages, these are a self-edge for each lineage and the edges between each lineage and its
+/// aliases, in both directions: walking them from a lineage or alias reaches its canonical lineage
+/// and all aliases thereof. The self-edges make every lineage of the relation reach itself, even
+/// one without any other edge, while a value that is no lineage or alias reaches nothing. With
 /// sublineages, they also contain the edges from each lineage to its children: 'doNotFollow' drops
 /// the edges into recombinant lineages, 'alwaysFollow' keeps them, and
 /// 'followIfFullyContainedInClade' attaches each recombinant lineage to its clade ancestor instead
@@ -30,14 +32,17 @@ std::string lineageEdgesQuery(
    bool include_sublineages,
    common::RecombinantEdgeFollowingMode recombinant_following_mode
 ) {
-   std::string alias_edges = fmt::format(
-      "{aliases}.map({{edge_from := lineage, edge_to := alias}}).project({{edge_from, edge_to}})"
+   std::string self_and_alias_edges = fmt::format(
+      "{lineages}.map({{edge_from := lineage, edge_to := lineage}}).project({{edge_from, edge_to}})"
+      ".unionall({aliases}.map({{edge_from := lineage, edge_to := alias}})"
+      ".project({{edge_from, edge_to}}))"
       ".unionall({aliases}.map({{edge_from := alias, edge_to := lineage}})"
       ".project({{edge_from, edge_to}}))",
+      fmt::arg("lineages", lineages),
       fmt::arg("aliases", aliases)
    );
    if (!include_sublineages) {
-      return alias_edges;
+      return self_and_alias_edges;
    }
    const std::string parent_edges = fmt::format(
       "{}.filter({}).map({{edge_from := parent, edge_to := lineage}})"
@@ -51,7 +56,7 @@ std::string lineageEdgesQuery(
       recombinant_following_mode !=
       common::RecombinantEdgeFollowingMode::FOLLOW_IF_FULLY_CONTAINED_IN_CLADE
    ) {
-      return fmt::format("{}.unionall({})", parent_edges, alias_edges);
+      return fmt::format("{}.unionall({})", parent_edges, self_and_alias_edges);
    }
    return fmt::format(
       "{}.unionall({}.filter(is_recombinant_edge = true)"
@@ -59,7 +64,7 @@ std::string lineageEdgesQuery(
       ".project({{edge_from, edge_to}})).unionall({})",
       parent_edges,
       lineages,
-      alias_edges
+      self_and_alias_edges
    );
 }
 
@@ -92,11 +97,8 @@ bool parseIncludeSublineages(const BoundArguments& args) {
 /// lineages below it and their aliases, as all lineages reachable from `value` by
 /// lineageEdgesQuery:
 ///
-///    column = value
-///    || column.in(<edges>.transitiveClosure(edge_from, edge_to, startingFrom := {value})
-///                    .project({to}))
-///
-/// (`column = value` matches `value` even if it has no edges at all.)
+///    column.in(<edges>.transitiveClosure(edge_from, edge_to, startingFrom := {value})
+///                 .project({to}))
 ///
 /// This is a pure rewrite into other functions of the query language, which compute the result
 /// from the given tables when the query runs. `lineages` and `aliases` are table names.
@@ -118,7 +120,7 @@ ScalarExpressionPtr lineageFilterOverTables(
    );
    const std::string value = value_expression.toString();
    const std::string query = fmt::format(
-      "{column} = {value} || {column}.in({edges}"
+      "{column}.in({edges}"
       ".transitiveClosure(edge_from, edge_to, startingFrom := {{{value}}})"
       ".project({{to}}))",
       fmt::arg("column", column),
