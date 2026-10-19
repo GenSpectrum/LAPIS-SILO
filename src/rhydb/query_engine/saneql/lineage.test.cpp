@@ -41,6 +41,7 @@ const std::vector<nlohmann::json> DATA = {
    createDataWithLineageValue("id_2", SOME_SUBLINEAGE),
    createDataWithLineageNullValue("id_3"),
    createDataWithLineageValue("id_4", RECOMBINANT_LINEAGE),
+   createDataWithLineageValue("id_5", "UNKNOWN"),
 };
 
 const auto DATABASE_CONFIG =
@@ -106,18 +107,20 @@ const QueryTestScenario LINEAGE_FILTER_INCLUDING_SUBLINEAGES_SCENARIO = {
    }),
 };
 
-const QueryTestScenario LINEAGE_FILTER_NULL_SCENARIO = {
-   .name = "LINEAGE_FILTER_NULL_SCENARIO",
+const QueryTestScenario LINEAGE_FILTER_NULL_IS_REJECTED = {
+   .name = "LINEAGE_FILTER_NULL_IS_REJECTED",
    .query = "data.filter(pango_lineage.lineage(null)).project({pango_lineage, primaryKey})",
-   .expected_query_result = nlohmann::json({{{"primaryKey", "id_3"}, {"pango_lineage", nullptr}}}),
+   .expected_error_message =
+      "lineage() does not accept null as the lineage; use isNull(\"pango_lineage\") instead",
 };
 
-const QueryTestScenario LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO = {
-   .name = "LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO",
+const QueryTestScenario LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_IS_REJECTED = {
+   .name = "LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_IS_REJECTED",
    .query =
       "data.filter(pango_lineage.lineage(null, "
       "includeSublineages:=true)).project({pango_lineage, primaryKey})",
-   .expected_query_result = nlohmann::json({{{"primaryKey", "id_3"}, {"pango_lineage", nullptr}}}),
+   .expected_error_message =
+      "lineage() does not accept null as the lineage; use isNull(\"pango_lineage\") instead",
 };
 
 const QueryTestScenario FILTER_INCLUDING_RECOMBINANTS = {
@@ -168,19 +171,50 @@ const QueryTestScenario EXPLICIT_DO_NOT_FOLLOW = {
 )"),
 };
 
+// lineage(...) is a rewrite over the lineage tables, so a lineage that is not in them just matches
+// nothing, even when it is stored in the column.
+const QueryTestScenario UNKNOWN_LINEAGE_MATCHES_NOTHING = {
+   .name = "UNKNOWN_LINEAGE_MATCHES_NOTHING",
+   .query =
+      "data.filter(pango_lineage.lineage('UNKNOWN', includeSublineages:=true))"
+      ".project({pango_lineage, primaryKey})",
+   .expected_query_result = nlohmann::json::array(),
+};
+
+const QueryTestScenario UNKNOWN_LINEAGE_WITHOUT_SUBLINEAGES_MATCHES_NOTHING = {
+   .name = "UNKNOWN_LINEAGE_WITHOUT_SUBLINEAGES_MATCHES_NOTHING",
+   .query = "data.filter(pango_lineage.lineage('UNKNOWN')).project({pango_lineage, primaryKey})",
+   .expected_query_result = nlohmann::json::array(),
+};
+
+// recombinantFollowingMode only takes effect together with includeSublineages.
+const QueryTestScenario RECOMBINANT_FOLLOWING_MODE_WITHOUT_SUBLINEAGES = {
+   .name = "RECOMBINANT_FOLLOWING_MODE_WITHOUT_SUBLINEAGES",
+   .query =
+      "data.filter(pango_lineage.lineage('BASE.1', recombinantFollowingMode:='alwaysFollow'))"
+      ".project({pango_lineage, primaryKey})",
+   .expected_query_result = nlohmann::json::parse(R"(
+[{"pango_lineage":"BASE.1","primaryKey":"id_0"},
+{"pango_lineage":"BASE.1","primaryKey":"id_1"}]
+)"),
+};
+
 }  // namespace
 
 QUERY_TEST(
-   LineageFilterTest,
+   LineageTest,
    TEST_DATA,
    ::testing::Values(
       LINEAGE_FILTER_SCENARIO,
       LINEAGE_FILTER_INCLUDING_SUBLINEAGES_SCENARIO,
-      LINEAGE_FILTER_NULL_SCENARIO,
-      LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_SCENARIO,
+      LINEAGE_FILTER_NULL_IS_REJECTED,
+      LINEAGE_FILTER_NULL_INCLUDING_SUBLINEAGES_IS_REJECTED,
       FILTER_INCLUDING_RECOMBINANTS,
       FILTER_INCLUDING_CONTAINED_RECOMBINANTS,
       DOES_NOT_FILTER_NON_INCLUDED_RECOMBINANTS,
-      EXPLICIT_DO_NOT_FOLLOW
+      EXPLICIT_DO_NOT_FOLLOW,
+      UNKNOWN_LINEAGE_MATCHES_NOTHING,
+      UNKNOWN_LINEAGE_WITHOUT_SUBLINEAGES_MATCHES_NOTHING,
+      RECOMBINANT_FOLLOWING_MODE_WITHOUT_SUBLINEAGES
    )
 )

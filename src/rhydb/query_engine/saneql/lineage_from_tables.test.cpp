@@ -34,6 +34,7 @@ const std::vector<nlohmann::json> DATA = {
    createDataWithLineageValue("id_8", nullptr),
    createDataWithLineageValue("id_9", "ISOLATED_WITH_ALIAS"),
    createDataWithLineageValue("id_10", "IWA"),
+   createDataWithLineageValue("id_11", "UNKNOWN"),
 };
 
 // The lineage hierarchy is available as the relation table `pango_lineage` and the alias table
@@ -257,12 +258,20 @@ const QueryTestScenario UNDER_AND = {
 };
 
 // lineageFromTables is a rewrite of the query, so a lineage that is not in the tables just matches
-// nothing, instead of being rejected like by lineage(...).
+// nothing, even when it is stored in the column.
 const QueryTestScenario UNKNOWN_LINEAGE_MATCHES_NOTHING = {
    .name = "UNKNOWN_LINEAGE_MATCHES_NOTHING",
    .query =
       "data.filter(pango_lineage.lineageFromTables('UNKNOWN', pango_lineage, "
       "pango_lineage_aliases, includeSublineages:=true)).project({pango_lineage, primaryKey})",
+   .expected_query_result = nlohmann::json::array(),
+};
+
+const QueryTestScenario UNKNOWN_LINEAGE_WITHOUT_SUBLINEAGES_MATCHES_NOTHING = {
+   .name = "UNKNOWN_LINEAGE_WITHOUT_SUBLINEAGES_MATCHES_NOTHING",
+   .query =
+      "data.filter(pango_lineage.lineageFromTables('UNKNOWN', pango_lineage, "
+      "pango_lineage_aliases)).project({pango_lineage, primaryKey})",
    .expected_query_result = nlohmann::json::array(),
 };
 
@@ -307,6 +316,7 @@ QUERY_TEST(
       LINEAGE_CONTAINING_QUOTE,
       UNDER_AND,
       UNKNOWN_LINEAGE_MATCHES_NOTHING,
+      UNKNOWN_LINEAGE_WITHOUT_SUBLINEAGES_MATCHES_NOTHING,
       NULL_LINEAGE,
       INVALID_RECOMBINANT_FOLLOWING_MODE
    )
