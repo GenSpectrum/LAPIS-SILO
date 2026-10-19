@@ -119,7 +119,7 @@ A.11:
       table_schema
          ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("pango_lineage")
          .value();
-   ASSERT_EQ(pango_metadata->dictionary.size(), 0);
+   ASSERT_EQ(pango_metadata->numValues(), 0);
 
    ASSERT_TRUE(table_schema->getColumn("primaryKey").has_value());
    ASSERT_EQ(table_schema->getColumn("primaryKey").value().type, ColumnType::STRING);

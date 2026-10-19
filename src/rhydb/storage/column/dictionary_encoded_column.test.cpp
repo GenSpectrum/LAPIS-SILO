@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 
+#include <fmt/format.h>
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
@@ -147,6 +148,62 @@ TEST(DictionaryEncodedColumn, updateChunkAssignsEachRowItsOwnValue) {
    ASSERT_EQ(*under_test.filter("value 3").value(), roaring::Roaring({0, 3}));
    ASSERT_EQ(*under_test.filter("value 4").value(), roaring::Roaring({2}));
    EXPECT_TRUE(under_test.isNull(RowId(0, 1)));
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(DictionaryEncodedColumn, dictionaryStaysSortedWhenSmallerValuesArriveLater) {
+   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   DictionaryEncodedColumn under_test{&column_metadata};
+
+   ASSERT_TRUE(appendValues(under_test, {"c", "e", "c"}).has_value());
+   EXPECT_EQ(under_test.getValueId("c"), 0U);
+   EXPECT_EQ(under_test.getValueId("e"), 1U);
+
+   // "a" and "d" sort before existing values, so the ids of those shift and are remapped in place.
+   ASSERT_TRUE(appendValues(under_test, {"d", "a", "e"}).has_value());
+   ASSERT_EQ(column_metadata.numValues(), 4);
+   EXPECT_EQ(under_test.lookupValue(0U), "a");
+   EXPECT_EQ(under_test.lookupValue(1U), "c");
+   EXPECT_EQ(under_test.lookupValue(2U), "d");
+   EXPECT_EQ(under_test.lookupValue(3U), "e");
+   EXPECT_EQ(under_test.getValue(RowId(0, 0)), 1U);
+   EXPECT_EQ(under_test.getValue(RowId(0, 1)), 3U);
+   EXPECT_EQ(under_test.getValue(RowId(1, 1)), 0U);
+   EXPECT_EQ(under_test.getValueString(RowId(0, 2)), "c");
+   EXPECT_EQ(under_test.getValueString(RowId(1, 0)), "d");
+
+   ASSERT_EQ(*under_test.filter("c").value(), roaring::Roaring({0, 2}));
+   ASSERT_EQ(*under_test.filter("e").value(), roaring::Roaring({1, RowId::chunkStart(1) + 2}));
+   ASSERT_EQ(*under_test.filter("a").value(), roaring::Roaring({RowId::chunkStart(1) + 1}));
+
+   // An update introducing a new smallest value remaps as well.
+   under_test.update(roaring::Roaring({0}), "Z long value exceeding the short string size");
+   EXPECT_EQ(under_test.lookupValue(0U), "Z long value exceeding the short string size");
+   EXPECT_EQ(
+      under_test.getValueString(RowId(0, 0)), "Z long value exceeding the short string size"
+   );
+   EXPECT_EQ(under_test.getValueString(RowId(0, 2)), "c");
+   ASSERT_EQ(*under_test.filter("c").value(), roaring::Roaring({2}));
+}
+
+TEST(DictionaryEncodedColumn, dictionarySpanningMultipleChunks) {
+   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   DictionaryEncodedColumn under_test{&column_metadata};
+
+   constexpr size_t NUM_VALUES = rhydb::storage::column::COLUMN_CHUNK_SIZE + 10;
+   DictionaryEncodedColumn::Builder builder;
+   for (size_t i = NUM_VALUES; i > 0; --i) {
+      builder.insert(fmt::format("value {:06}", i - 1));
+   }
+   ASSERT_TRUE(under_test.appendChunk(builder.finalize()).has_value());
+
+   ASSERT_EQ(column_metadata.numValues(), NUM_VALUES);
+   for (const size_t i : {size_t{0}, size_t{65535}, size_t{65536}, NUM_VALUES - 1}) {
+      const auto value = fmt::format("value {:06}", i);
+      EXPECT_EQ(under_test.getValueId(value), i);
+      EXPECT_EQ(under_test.lookupValue(static_cast<rhydb::Idx>(i)), value);
+   }
+   EXPECT_EQ(under_test.getValueString(RowId(0, 0)), fmt::format("value {:06}", NUM_VALUES - 1));
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
