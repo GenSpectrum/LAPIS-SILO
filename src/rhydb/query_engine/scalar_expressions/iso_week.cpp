@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <arrow/compute/api.h>
+#include <arrow/scalar.h>
 #include <fmt/format.h>
 
 #include "rhydb/common/panic.h"
@@ -32,19 +33,22 @@ arrow::Result<arrow::compute::Expression> IsoWeek::toArrowExpression() const {
    const auto year_string = arrow::compute::call(
       "cast",
       {arrow::compute::call("iso_year", {input_expression})},
-      arrow::compute::CastOptions::Safe(arrow::utf8())
+      arrow::compute::CastOptions::Safe(arrow::large_utf8())
    );
    const auto week_string = arrow::compute::call(
       "cast",
       {arrow::compute::call("iso_week", {input_expression})},
-      arrow::compute::CastOptions::Safe(arrow::utf8())
+      arrow::compute::CastOptions::Safe(arrow::large_utf8())
    );
    // Zero-pad the week to two digits so `2021-W02` sorts before `2021-W10`.
    const auto week_padded =
       arrow::compute::call("utf8_lpad", {week_string}, arrow::compute::PadOptions(2, "0"));
    // Join `<year> + "-W" + <week>` -- third argument is separator
    return arrow::compute::call(
-      "binary_join_element_wise", {year_string, week_padded, arrow::compute::literal("-W")}
+      "binary_join_element_wise",
+      {year_string,
+       week_padded,
+       arrow::compute::literal(std::make_shared<arrow::LargeStringScalar>("-W"))}
    );
 }
 

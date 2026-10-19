@@ -104,7 +104,7 @@ std::string StringLiteral::toString() const {
 }
 
 arrow::Result<arrow::compute::Expression> StringLiteral::toArrowExpression() const {
-   return arrow::compute::literal(arrow::Datum(value));
+   return arrow::compute::literal(arrow::Datum(std::make_shared<arrow::LargeStringScalar>(value)));
 }
 
 std::unique_ptr<ScalarExpression> StringLiteral::rewrite(

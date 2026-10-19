@@ -115,7 +115,7 @@ class ArrayToJsonTypeVisitor : public arrow::ArrayVisitor {
       return arrow::Status::OK();
    }
 
-   arrow::Status Visit(const arrow::StringArray& array) override {
+   arrow::Status Visit(const arrow::LargeStringArray& array) override {
       for (size_t i = 0; i < BatchSize; ++i) {
          if (array.IsNull(row_base + i)) {
             output_stream.streams.at(i) << "null";

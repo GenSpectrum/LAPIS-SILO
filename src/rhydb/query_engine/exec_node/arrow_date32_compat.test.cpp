@@ -93,7 +93,7 @@ TEST(RhyDBDate32MatchesArrowDate32, arrowCastFromStringMatchesRhyDBEncoding) {
       "2025-01-01",
    };
 
-   arrow::StringBuilder string_builder;
+   arrow::LargeStringBuilder string_builder;
    for (const auto& date_string : dates) {
       ASSERT_TRUE(string_builder.Append(date_string).ok());
    }

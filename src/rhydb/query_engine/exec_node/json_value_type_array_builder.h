@@ -12,7 +12,7 @@ class JsonValueTypeArrayBuilder {
    std::variant<
       arrow::Int32Builder,
       arrow::DoubleBuilder,
-      arrow::StringBuilder,
+      arrow::LargeStringBuilder,
       arrow::BooleanBuilder>
       builder;
 

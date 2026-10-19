@@ -62,18 +62,18 @@ uint32_t validateAndFindColumn(
    return static_cast<uint32_t>(std::distance(child_schema.begin(), found));
 }
 
-arrow::Result<std::shared_ptr<arrow::StringArray>> asStringArray(const arrow::Datum& datum) {
+arrow::Result<std::shared_ptr<arrow::LargeStringArray>> asStringArray(const arrow::Datum& datum) {
    if (!datum.is_array()) {
       return arrow::Status::Invalid("transitiveClosure() expected an array-typed input column");
    }
    auto array = datum.make_array();
-   if (array->type_id() != arrow::Type::STRING) {
+   if (array->type_id() != arrow::Type::LARGE_STRING) {
       return arrow::Status::Invalid(
          "transitiveClosure() expected a string-typed input column, but got ",
          array->type()->ToString()
       );
    }
-   return std::static_pointer_cast<arrow::StringArray>(std::move(array));
+   return std::static_pointer_cast<arrow::LargeStringArray>(std::move(array));
 }
 
 /// Builds the interned relation from the child's exec batches, reading the edge endpoints from
@@ -211,8 +211,8 @@ class ClosureProducer {
 
    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
    arrow::Result<arrow::ExecBatch> buildBatch(size_t begin, size_t end) const {
-      arrow::StringBuilder from_builder{};
-      arrow::StringBuilder to_builder{};
+      arrow::LargeStringBuilder from_builder{};
+      arrow::LargeStringBuilder to_builder{};
       ARROW_RETURN_NOT_OK(from_builder.Reserve(static_cast<int64_t>(end - begin)));
       ARROW_RETURN_NOT_OK(to_builder.Reserve(static_cast<int64_t>(end - begin)));
       for (size_t index = begin; index < end; ++index) {
