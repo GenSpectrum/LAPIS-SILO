@@ -33,8 +33,6 @@ std::optional<const roaring::Roaring*> DictionaryEncodedColumn::filter(
 }
 
 std::expected<void, std::string> DictionaryEncodedColumn::appendChunk(const Buffer& buffer) {
-   // Build this chunk's value ids in isolation so that previously appended chunks are never
-   // touched; the inverted index is global and keeps being updated by row id.
    const uint32_t base = RowId::chunkStart(static_cast<uint16_t>(value_ids.numChunks()));
    std::vector<Idx> chunk;
    chunk.reserve(buffer.size());

@@ -12,6 +12,7 @@
 
 #include "rhydb/common/date32.h"
 #include "rhydb/common/panic.h"
+#include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/filter/operators/empty.h"
 #include "rhydb/query_engine/filter/operators/full.h"
 #include "rhydb/query_engine/filter/operators/operator.h"
@@ -164,6 +165,31 @@ std::unique_ptr<ScalarExpression> DateLiteral::rewrite(
 }
 
 std::unique_ptr<filter::operators::Operator> DateLiteral::
+   compile(const storage::Table& /*table*/) const {
+   compileNonBooleanLiteral();
+}
+
+NullLiteral::NullLiteral(schema::ColumnType value_type)
+    : value_type(value_type) {}
+
+std::string NullLiteral::toString() const {
+   return "null";
+}
+
+arrow::Result<arrow::compute::Expression> NullLiteral::toArrowExpression() const {
+   return arrow::compute::literal(
+      arrow::Datum(arrow::MakeNullScalar(exec_node::columnTypeToArrowType(value_type)))
+   );
+}
+
+std::unique_ptr<ScalarExpression> NullLiteral::rewrite(
+   const storage::Table& /*table*/,
+   AmbiguityMode /*mode*/
+) const {
+   return std::make_unique<NullLiteral>(value_type);
+}
+
+std::unique_ptr<filter::operators::Operator> NullLiteral::
    compile(const storage::Table& /*table*/) const {
    compileNonBooleanLiteral();
 }

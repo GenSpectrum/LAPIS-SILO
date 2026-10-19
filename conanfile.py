@@ -38,6 +38,8 @@ class RhyDbRecipe(ConanFile):
         self.options["arrow"].with_mimalloc = False
         self.options["arrow"].compute = True
         self.options["arrow"].acero = True
+        self.options["arrow"].parquet = False
+        self.options["arrow"].with_thrift = False
 
         self.options["boost"].zstd = True
         self.options["boost"].shared = False
@@ -86,8 +88,6 @@ class RhyDbRecipe(ConanFile):
             # single-threaded, slimmer Arrow, and a few extra boost libraries
             # compiled out.
             self.options["arrow"].filesystem_layer = False
-            self.options["arrow"].parquet = False
-            self.options["arrow"].with_thrift = False
             self.options["arrow"].with_zlib = False
 
             self.options["boost"].lzma = False
