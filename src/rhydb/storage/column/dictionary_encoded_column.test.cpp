@@ -191,20 +191,41 @@ TEST(DictionaryEncodedColumn, dictionarySpanningMultipleChunks) {
    ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
-   constexpr size_t NUM_VALUES = rhydb::storage::column::COLUMN_CHUNK_SIZE + 10;
+   constexpr size_t CHUNK_SIZE = rhydb::storage::column::COLUMN_CHUNK_SIZE;
+   constexpr size_t NUM_VALUES = CHUNK_SIZE + 10;
+   // Descending values, flushed at the data chunk limit: the second data chunk interns the ten
+   // smallest values, which shifts every id stored for the first data chunk past the boundary of
+   // the dictionary's first chunk.
    DictionaryEncodedColumn::Builder builder;
    for (size_t i = NUM_VALUES; i > 0; --i) {
       builder.insert(fmt::format("value {:06}", i - 1));
+      if (builder.numValues() == CHUNK_SIZE) {
+         ASSERT_TRUE(under_test.appendChunk(builder.finalize()).has_value());
+      }
    }
    ASSERT_TRUE(under_test.appendChunk(builder.finalize()).has_value());
 
+   ASSERT_EQ(under_test.numChunks(), 2);
+   ASSERT_EQ(under_test.chunkSize(0), CHUNK_SIZE);
+   ASSERT_EQ(under_test.chunkSize(1), 10);
    ASSERT_EQ(under_test.numDictionaryValues(), NUM_VALUES);
    for (const size_t value_id : {size_t{0}, size_t{65535}, size_t{65536}, NUM_VALUES - 1}) {
       const auto value = fmt::format("value {:06}", value_id);
       EXPECT_EQ(under_test.getValueId(value), value_id);
       EXPECT_EQ(under_test.lookupValue(static_cast<rhydb::Idx>(value_id)), value);
    }
+
+   EXPECT_EQ(under_test.getValue(RowId(0, 0)), NUM_VALUES - 1);
    EXPECT_EQ(under_test.getValueString(RowId(0, 0)), fmt::format("value {:06}", NUM_VALUES - 1));
+   EXPECT_EQ(under_test.getValue(RowId(0, UINT16_MAX)), 10U);
+   EXPECT_EQ(under_test.getValueString(RowId(0, UINT16_MAX)), "value 000010");
+   EXPECT_EQ(under_test.getValue(RowId(1, 0)), 9U);
+   EXPECT_EQ(under_test.getValueString(RowId(1, 9)), "value 000000");
+
+   ASSERT_EQ(*under_test.filter("value 000010").value(), roaring::Roaring({UINT16_MAX}));
+   ASSERT_EQ(
+      *under_test.filter("value 000000").value(), roaring::Roaring({RowId::chunkStart(1) + 9})
+   );
 }
 
 TEST(DictionaryEncodedColumn, columnsSharingMetadataKeepTheirOwnDictionaries) {
