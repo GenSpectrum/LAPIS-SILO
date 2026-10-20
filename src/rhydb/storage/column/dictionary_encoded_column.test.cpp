@@ -12,8 +12,8 @@
 
 #include "rhydb/common/bitmap.h"
 
+using rhydb::storage::column::ColumnMetadata;
 using rhydb::storage::column::DictionaryEncodedColumn;
-using rhydb::storage::column::DictionaryEncodedColumnMetadata;
 using rhydb::storage::column::RowId;
 
 namespace {
@@ -33,7 +33,7 @@ namespace {
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
 TEST(DictionaryEncodedColumn, shouldReturnTheCorrectFilteredValues) {
-   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
@@ -51,7 +51,7 @@ TEST(DictionaryEncodedColumn, shouldReturnTheCorrectFilteredValues) {
 }
 
 TEST(DictionaryEncodedColumn, insertValuesToPartition) {
-   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
@@ -71,7 +71,7 @@ TEST(DictionaryEncodedColumn, insertValuesToPartition) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DictionaryEncodedColumn, valuesSpanningMultipleAppendedChunks) {
-   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
    // Each appendChunk starts a fresh, immutable chunk of value ids whose global row ids begin at a
@@ -104,7 +104,7 @@ TEST(DictionaryEncodedColumn, valuesSpanningMultipleAppendedChunks) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DictionaryEncodedColumn, updateKeepsInvertedIndexConsistent) {
-   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
@@ -132,7 +132,7 @@ TEST(DictionaryEncodedColumn, updateKeepsInvertedIndexConsistent) {
 }
 
 TEST(DictionaryEncodedColumn, updateChunkAssignsEachRowItsOwnValue) {
-   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(appendValues(under_test, {"value 1", "value 2", "value 2", "value 3"}).has_value());
@@ -152,7 +152,7 @@ TEST(DictionaryEncodedColumn, updateChunkAssignsEachRowItsOwnValue) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DictionaryEncodedColumn, dictionaryStaysSortedWhenSmallerValuesArriveLater) {
-   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(appendValues(under_test, {"c", "e", "c"}).has_value());
@@ -161,7 +161,7 @@ TEST(DictionaryEncodedColumn, dictionaryStaysSortedWhenSmallerValuesArriveLater)
 
    // "a" and "d" sort before existing values, so the ids of those shift and are remapped in place.
    ASSERT_TRUE(appendValues(under_test, {"d", "a", "e"}).has_value());
-   ASSERT_EQ(column_metadata.numValues(), 4);
+   ASSERT_EQ(under_test.numDictionaryValues(), 4);
    EXPECT_EQ(under_test.lookupValue(0U), "a");
    EXPECT_EQ(under_test.lookupValue(1U), "c");
    EXPECT_EQ(under_test.lookupValue(2U), "d");
@@ -188,7 +188,7 @@ TEST(DictionaryEncodedColumn, dictionaryStaysSortedWhenSmallerValuesArriveLater)
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DictionaryEncodedColumn, dictionarySpanningMultipleChunks) {
-   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
    constexpr size_t NUM_VALUES = rhydb::storage::column::COLUMN_CHUNK_SIZE + 10;
@@ -198,13 +198,28 @@ TEST(DictionaryEncodedColumn, dictionarySpanningMultipleChunks) {
    }
    ASSERT_TRUE(under_test.appendChunk(builder.finalize()).has_value());
 
-   ASSERT_EQ(column_metadata.numValues(), NUM_VALUES);
+   ASSERT_EQ(under_test.numDictionaryValues(), NUM_VALUES);
    for (const size_t value_id : {size_t{0}, size_t{65535}, size_t{65536}, NUM_VALUES - 1}) {
       const auto value = fmt::format("value {:06}", value_id);
       EXPECT_EQ(under_test.getValueId(value), value_id);
       EXPECT_EQ(under_test.lookupValue(static_cast<rhydb::Idx>(value_id)), value);
    }
    EXPECT_EQ(under_test.getValueString(RowId(0, 0)), fmt::format("value {:06}", NUM_VALUES - 1));
+}
+
+TEST(DictionaryEncodedColumn, columnsSharingMetadataKeepTheirOwnDictionaries) {
+   ColumnMetadata column_metadata("some_column");
+   DictionaryEncodedColumn first{&column_metadata};
+   DictionaryEncodedColumn second{&column_metadata};
+
+   // Interning "a" into `second` must not renumber the id `first` stores for "c".
+   ASSERT_TRUE(appendValues(first, {"c"}).has_value());
+   ASSERT_TRUE(appendValues(second, {"a"}).has_value());
+
+   EXPECT_EQ(first.getValueString(RowId(0, 0)), "c");
+   ASSERT_EQ(*first.filter("c").value(), roaring::Roaring({0}));
+   EXPECT_EQ(first.filter("a"), std::nullopt);
+   EXPECT_EQ(second.getValueString(RowId(0, 0)), "a");
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)

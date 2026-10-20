@@ -14,28 +14,34 @@
 
 namespace rhydb::storage::column {
 
-size_t DictionaryEncodedColumnMetadata::numValues() const {
+DictionaryEncodedColumn::DictionaryEncodedColumn(ColumnMetadata* metadata)
+    : metadata(metadata),
+      dictionary_metadata(std::make_unique<StringColumn::Metadata>(metadata->column_name)),
+      dictionary(dictionary_metadata.get()) {}
+
+size_t DictionaryEncodedColumn::numDictionaryValues() const {
    size_t num_values = 0;
-   for (size_t chunk_id = 0; chunk_id < values.numChunks(); ++chunk_id) {
-      num_values += values.chunkSize(chunk_id);
+   for (size_t chunk_id = 0; chunk_id < dictionary.numChunks(); ++chunk_id) {
+      num_values += dictionary.chunkSize(chunk_id);
    }
    return num_values;
 }
 
-std::string DictionaryEncodedColumnMetadata::getValue(Idx value_id) const {
-   return values.getValueString(RowId::fromGlobal(value_id));
+std::string DictionaryEncodedColumn::lookupValue(Idx dict_id) const {
+   return dictionary.getValueString(RowId::fromGlobal(dict_id));
 }
 
-std::optional<Idx> DictionaryEncodedColumnMetadata::getId(std::string_view value) const {
-   // `insertValues` fills every chunk but the last one completely, so the ids are contiguous
+std::optional<Idx> DictionaryEncodedColumn::findDictionaryId(std::string_view value) const {
+   // `insertDictionaryValues` fills every chunk but the last one completely, so the ids are
+   // contiguous
    Idx low = 0;
-   auto high = static_cast<Idx>(numValues());
+   auto high = static_cast<Idx>(numDictionaryValues());
    while (low < high) {
       const Idx mid = low + ((high - low) / 2);
       const RowId row_id = RowId::fromGlobal(mid);
-      auto ordering = values.getValue(row_id).fastCompare(value);
+      auto ordering = dictionary.getValue(row_id).fastCompare(value);
       if (!ordering.has_value()) {
-         ordering = compareBytesUnsigned(values.getValueString(row_id), value);
+         ordering = compareBytesUnsigned(dictionary.getValueString(row_id), value);
       }
       if (*ordering == std::strong_ordering::equal) {
          return mid;
@@ -49,14 +55,14 @@ std::optional<Idx> DictionaryEncodedColumnMetadata::getId(std::string_view value
    return std::nullopt;
 }
 
-std::vector<Idx> DictionaryEncodedColumnMetadata::insertValues(
+std::vector<Idx> DictionaryEncodedColumn::insertDictionaryValues(
    const std::vector<std::string_view>& new_values
 ) {
-   const auto old_num_values = static_cast<Idx>(numValues());
+   const auto old_num_values = static_cast<Idx>(numDictionaryValues());
    std::vector<Idx> old_to_new_id;
    old_to_new_id.reserve(old_num_values);
 
-   StringColumn merged{&values_metadata};
+   StringColumn merged{dictionary_metadata.get()};
    StringColumn::Buffer chunk;
    chunk.reserve(COLUMN_CHUNK_SIZE);
    const auto flush = [&] {
@@ -74,7 +80,7 @@ std::vector<Idx> DictionaryEncodedColumnMetadata::insertValues(
    Idx next_id = 0;
    auto new_value = new_values.begin();
    for (Idx old_id = 0; old_id < old_num_values; ++old_id) {
-      std::string old_value = getValue(old_id);
+      std::string old_value = lookupValue(old_id);
       for (; new_value != new_values.end() && compareBytesUnsigned(*new_value, old_value) < 0;
            ++new_value) {
          push(std::string{*new_value});
@@ -91,12 +97,9 @@ std::vector<Idx> DictionaryEncodedColumnMetadata::insertValues(
       flush();
    }
 
-   values = std::move(merged);
+   dictionary = std::move(merged);
    return old_to_new_id;
 }
-
-DictionaryEncodedColumn::DictionaryEncodedColumn(DictionaryEncodedColumnMetadata* metadata)
-    : metadata(metadata) {}
 
 std::optional<const roaring::Roaring*> DictionaryEncodedColumn::filter(Idx value_id) const {
    if (indexed_values.contains(value_id)) {
@@ -111,7 +114,7 @@ std::optional<const roaring::Roaring*> DictionaryEncodedColumn::filter(
    if (value == std::nullopt) {
       return &null_bitmap;
    }
-   const auto& value_id = metadata->getId(value.value());
+   const auto& value_id = findDictionaryId(value.value());
    if (!value_id.has_value()) {
       return std::nullopt;
    }
@@ -133,7 +136,7 @@ std::unordered_map<std::string_view, Idx> DictionaryEncodedColumn::internValues(
    std::unordered_map<std::string_view, Idx> value_ids_by_value;
    std::vector<std::string_view> missing_values;
    for (const std::string_view value : distinct_values) {
-      if (auto value_id = metadata->getId(value)) {
+      if (auto value_id = findDictionaryId(value)) {
          value_ids_by_value.emplace(value, *value_id);
       } else {
          missing_values.push_back(value);
@@ -143,7 +146,7 @@ std::unordered_map<std::string_view, Idx> DictionaryEncodedColumn::internValues(
       return value_ids_by_value;
    }
 
-   const std::vector<Idx> old_to_new_id = metadata->insertValues(missing_values);
+   const std::vector<Idx> old_to_new_id = insertDictionaryValues(missing_values);
    for (size_t chunk_id = 0; chunk_id < value_ids.numChunks(); ++chunk_id) {
       for (uint32_t row_in_chunk = 0; row_in_chunk < value_ids.chunkSize(chunk_id);
            ++row_in_chunk) {
@@ -163,7 +166,7 @@ std::unordered_map<std::string_view, Idx> DictionaryEncodedColumn::internValues(
    // The ids of the values that were already present have shifted as well, so look all up anew
    value_ids_by_value.clear();
    for (const std::string_view value : distinct_values) {
-      value_ids_by_value.emplace(value, metadata->getId(value).value());
+      value_ids_by_value.emplace(value, findDictionaryId(value).value());
    }
    return value_ids_by_value;
 }
@@ -263,7 +266,7 @@ bool DictionaryEncodedColumn::isNull(RowId row_id) const {
 }
 
 std::optional<rhydb::Idx> DictionaryEncodedColumn::getValueId(const std::string& value) const {
-   return metadata->getId(value);
+   return findDictionaryId(value);
 }
 
 }  // namespace rhydb::storage::column

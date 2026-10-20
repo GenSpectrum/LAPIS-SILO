@@ -11,8 +11,8 @@
 
 using rhydb::query_engine::filter::operators::Selection;
 using rhydb::query_engine::filter::operators::StringInSet;
+using rhydb::storage::column::ColumnMetadata;
 using rhydb::storage::column::DictionaryEncodedColumn;
-using rhydb::storage::column::DictionaryEncodedColumnMetadata;
 using rhydb::storage::column::RowId;
 using rhydb::storage::column::RowLayout;
 using rhydb::storage::column::StringColumn;
@@ -33,9 +33,10 @@ std::pair<std::shared_ptr<StringColumnMetadata>, StringColumn> makeTestStringCol
    return {metadata, std::move(test_column)};
 }
 
-std::pair<std::shared_ptr<DictionaryEncodedColumnMetadata>, DictionaryEncodedColumn>
-makeTestDictionaryEncodedColumn(const std::vector<std::string>& values) {
-   auto metadata = std::make_shared<DictionaryEncodedColumnMetadata>("test_indexed");
+std::pair<std::shared_ptr<ColumnMetadata>, DictionaryEncodedColumn> makeTestDictionaryEncodedColumn(
+   const std::vector<std::string>& values
+) {
+   auto metadata = std::make_shared<ColumnMetadata>("test_indexed");
    DictionaryEncodedColumn test_column{metadata.get()};
    DictionaryEncodedColumn::Builder builder;
    for (const auto& value : values) {

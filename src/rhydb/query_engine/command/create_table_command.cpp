@@ -323,7 +323,7 @@ std::shared_ptr<storage::column::ColumnMetadata> createColumnMetadata(
       case ColumnType::STRING:
          return std::make_shared<storage::column::StringColumnMetadata>(column.name);
       case ColumnType::DICTIONARY_ENCODED:
-         return std::make_shared<storage::column::DictionaryEncodedColumnMetadata>(column.name);
+         return std::make_shared<storage::column::DictionaryEncodedColumn::Metadata>(column.name);
       case ColumnType::DATE32:
       case ColumnType::BOOL:
       case ColumnType::INT32:
