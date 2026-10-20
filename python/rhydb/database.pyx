@@ -257,64 +257,14 @@ cdef class PyDatabase:
         except Exception as e:
             raise RuntimeError(f"Failed to get filtered bitmap: {e}")
 
-    def update_column(self, str table_name, str column_name, str value, str filter_expression=""):
-        """
-        Assign a single scalar value to a column for all rows matching a filter.
-
-        The rows to update are selected by ``filter_expression`` (a SaneQL filter, like
-        ``get_filtered_bitmap``). Every matched row is assigned the same ``value``, a SaneQL
-        literal (parsed by the same parser as queries) matching the column's type, e.g. ``"3"``
-        for an int column, ``"3.14"`` for a float column, ``"true"``/``"false"`` for a bool
-        column, ``"'2021-03-15'::date"`` for a date column, and a quoted string literal such as
-        ``"'Basel'"`` for a string column. The literal ``"null"`` clears the matched rows.
-
-        Scalar value columns (int, float, date and bool) and string columns (plain, indexed and
-        zstd-compressed) can be updated. String columns backed by a phylogenetic tree cannot be
-        updated, because that auxiliary index has no in-place update support.
-
-        Not thread-safe: this mutates the in-memory database in place with no
-        internal locking.
-
-        Parameters
-        ----------
-        table_name : str
-            Name of the table
-        column_name : str
-            Name of the column to update
-        value : str
-            SaneQL literal assigned to every matched row (``"null"`` clears the rows)
-        filter_expression : str, optional
-            SaneQL filter expression selecting the rows to update
-            (default: 'true' which matches all rows)
-        """
-        if not table_name or not table_name.strip():
-            raise ValueError("table_name cannot be empty")
-        if not column_name or not column_name.strip():
-            raise ValueError("column_name cannot be empty")
-
-        # Default to True filter (updates all rows) if no filter specified
-        if filter_expression is None or filter_expression == "":
-            filter_expression = 'true'
-
-        cdef string cpp_table_name = table_name.encode('utf-8')
-        cdef string cpp_column_name = column_name.encode('utf-8')
-        cdef string cpp_filter = filter_expression.encode('utf-8')
-        cdef string cpp_value = value.encode('utf-8')
-
-        try:
-            self.c_database.updateColumn(cpp_table_name, cpp_column_name, cpp_value, cpp_filter)
-        except ValueError:
-            raise
-        except Exception as e:
-            raise RuntimeError(f"Failed to update column '{column_name}': {e}")
-
     def query(self, str query_string):
         """
         Execute a query and return results as a PyArrow Table
 
-        Write statements such as ``createTable(...)`` and ``<query>.insertInto(<table>)`` are
-        applied to this database in place and return a single-row summary of their effect
-        (e.g. ``{createdTable: "sequences"}``). Sequence columns take their reference from the
+        Write statements such as ``createTable(...)``, ``<query>.insertInto(<table>)`` and
+        ``update(<table>, set := {...}, where := ...)`` are applied to this database in place and
+        return a single-row summary of their effect (e.g. ``{createdTable: "sequences"}`` or
+        ``{updatedRows: 2}``). Sequence columns take their reference from the
         built-in ``reference_genomes`` table, so add the reference there before creating a table
         with a sequence column. Not thread-safe: write statements mutate the in-memory database
         with no internal locking.

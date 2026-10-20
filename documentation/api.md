@@ -205,6 +205,10 @@ limitations.
 the given schema, taking the reference sequences of sequence columns from `reference_genomes` and
 the dictionaries of compressed string columns from queries —
 see [`query docs`](query_documentation.md) for the column types.
+- `update(table: symbol, set: record, where?: expression)`. Assigns values, computed per row, to
+columns of the rows of `table` matching `where`, like SQL's `UPDATE ... SET ... WHERE ...`, e.g.
+`update(data, set := {age := 42}, where := primaryKey = 'key1')` — see
+[`update`](query_documentation.md) for semantics and limitations.
 
 The write goes through the [data directory](#runtime-configuration): the most recent state there is
 loaded into a database of its own, the statement is applied to that one, and the result is saved
@@ -231,6 +235,11 @@ same as for [`POST /query`](#post-query). For `insertInto`, the number of rows i
 For `createTable`, the name of the created table:
 ```json
 {"createdTable": "archive"}
+```
+
+For `update`, the number of rows updated:
+```json
+{"updatedRows": 2}
 ```
 
 A successful response carries the same headers as [`POST /query`](#response-headers): the

@@ -1,6 +1,6 @@
 # Python Bindings (`rhydb`)
 
-`rhydb` is a Python package that embeds RhyDB in-process, exposing the `Database` class. It lets you build or load a RhyDB database, run [SaneQL](query_documentation.md) queries, edit scalar values, and persist state — all without running the HTTP API server.
+`rhydb` is a Python package that embeds RhyDB in-process, exposing the `Database` class. It lets you build or load a RhyDB database, run [SaneQL](query_documentation.md) queries, update column values, and persist state — all without running the HTTP API server.
 
 Queries return [Apache Arrow](https://arrow.apache.org/) tables (`pyarrow`), and filter results are returned as [Roaring bitmaps](https://roaringbitmap.org/) (`pyroaring`), so results integrate directly with the scientific Python stack.
 
@@ -32,8 +32,8 @@ db = Database("path/to/data-directory")
 table = db.query("data.filter(region = 'Europe').project({primaryKey, age})")
 print(table.to_pydict())
 
-# Overwrite a scalar column for the matching rows
-db.update_column("data", "age", "0", filter_expression="age = 4")
+# Overwrite a column for the matching rows
+db.query("update(data, set := {age := 0}, where := age = 4)")
 ```
 
 ## The `Database` Class
@@ -101,8 +101,8 @@ db.append_data_from_string(
 
 **`query(query_string)`** → `pyarrow.Table`
 Executes a [SaneQL](query_documentation.md) query. The leading identifier is the table name.
-Write statements (`createTable(...)`, `<query>.insertInto(<table>)`) are applied to the in-memory
-database in place and return a single-row summary, e.g. `{createdTable: "sequences"}`.
+Write statements (`createTable(...)`, `<query>.insertInto(<table>)`, `update(...)`) are applied to
+the in-memory database in place and return a single-row summary, e.g. `{createdTable: "sequences"}`.
 
 ```python
 result = db.query("data.filter(age >= 18).project({primaryKey, age, country})")
@@ -126,46 +126,30 @@ print(len(matching))                       # number of matching rows
 
 ### Updating columns
 
-**`update_column(table_name, column_name, value, filter_expression="")`**
-
-Assigns a single `value` to `column_name` for every row matched by `filter_expression` (a SaneQL filter, like `get_filtered_bitmap`). An empty or `None` filter defaults to `true`, updating all rows.
-
-`value` is a **SaneQL literal** — parsed by the same parser as queries — and must match the column's type:
-
-| Column type | `value` examples                     |
-|-------------| ------------------------------------ |
-| int32       | `"3"`, `"-1"`                         |
-| int64       | `"5000000000"`, `"-1"`               |
-| float       | `"3.14"`, `"0"`                       |
-| bool        | `"true"`, `"false"`                  |
-| date        | `"'2021-03-15'::date"`               |
-| string      | `"'Basel'"` &nbsp;(a quoted string literal) |
-| any of them | `"null"` &nbsp;(clears the rows)     |
-
-Scalar value columns (int32, int64, float, date, bool) and string columns (plain, indexed, and zstd-compressed) can be updated. Columns backed by a **phylogenetic tree** (e.g. the primary key when it is a phylo field) are rejected because that auxiliary index has no in-place update support. Sequence columns are also rejected.
+Columns are updated with the SaneQL
+[`update`](query_documentation.md#updatetable-symbol-set-record-where-expression) statement, run
+through `query()` like any other query. It returns the number of updated rows, e.g.
+`{updatedRows: 2}`. See its documentation for which values can be assigned to which column types.
 
 ```python
 db = Database("path/to/rhydb-dir")
 
 # Set every row's age to 0
-db.update_column("data", "age", "0")
+db.query("update(data, set := {age := 0})")
 
 # Set age to 100 only for rows currently equal to 4
-db.update_column("data", "age", "100", filter_expression="age = 4")
+db.query("update(data, set := {age := 100}, where := age = 4)")
 
-# Assign a date literal
-db.update_column("data", "date", "'2000-01-01'::date")
-
-# Reassign a string column (note the quotes: the value is a SaneQL string literal)
-db.update_column("data", "division", "'Basel'", filter_expression="division = 'Bern'")
+# Assign several columns at once, computing a value from the row
+db.query("update(data, set := {date := '2000-01-01'::date, region := at(country, 1)})")
 
 # Clear a boolean column to null for a subset of rows
-db.update_column("data", "test_boolean_column", "null", filter_expression="region = 'Asia'")
+db.query("update(data, set := {test_boolean_column := null}, where := region = 'Asia')")
 ```
 
 The update mutates only the **in-memory** database. On-disk state is left untouched until you call `save_checkpoint`. Because the update bumps the data version, a subsequently saved checkpoint is written as a new versioned state.
 
-**Not thread-safe.** `update_column` mutates the in-memory database in place with no internal locking.
+**Not thread-safe.** `update` mutates the in-memory database in place with no internal locking.
 
 ### Persisting state
 
@@ -173,7 +157,7 @@ The update mutates only the **in-memory** database. On-disk state is left untouc
 Writes the current database state into `save_directory` as a new versioned state, which can later be reloaded with `Database(save_directory)`.
 
 ```python
-db.update_column("data", "age", "0")
+db.query("update(data, set := {age := 0})")
 db.save_checkpoint("out/rhydb-dir")
 reloaded = Database("out/rhydb-dir")
 ```
@@ -182,13 +166,13 @@ reloaded = Database("out/rhydb-dir")
 
 The bindings translate C++ exceptions into Python ones:
 
-- **`ValueError`** — invalid query or update: an unknown column, an unsupported column type, a literal that does not match the column type, or a malformed SaneQL expression. Empty required arguments (such as `table_name` or `column_name`) also raise `ValueError`.
+- **`ValueError`** — invalid query or update: an unknown column, an unsupported column type, a literal that does not match the column type, or a malformed SaneQL expression. Empty required arguments (such as `table_name`) also raise `ValueError`.
 - **`FileNotFoundError`** — a path passed to the loader or `append_data_from_file` does not exist.
 - **`RuntimeError`** — other failures (for example, a failed load or save).
 
 ```python
 try:
-    db.update_column("data", "does_not_exist", "'B.1'")
+    db.query("update(data, set := {does_not_exist := 'B.1'})")
 except ValueError as e:
     print(e)   # the column does not exist
 ```
@@ -203,7 +187,7 @@ with Database("path/to/rhydb-dir") as db:
     before = len(db.get_filtered_bitmap("data", "age = 4"))
 
     # Reset those rows' age to null
-    db.update_column("data", "age", "null", filter_expression="age = 4")
+    db.query("update(data, set := {age := null}, where := age = 4)")
 
     # Verify via a query
     remaining = len(db.get_filtered_bitmap("data", "age = 4"))
