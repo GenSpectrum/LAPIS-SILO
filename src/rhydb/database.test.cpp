@@ -484,10 +484,14 @@ TEST(DatabaseUpdateQueryTest, rejectsInvalidStatements) {
    expect_rejected("update(data, set := {age := 1, age := 2})", "more than once");
    expect_rejected("update(data, set := age)", "expects `set` to be a record");
    expect_rejected("update(data, set := {})", "expects `set` to be a record");
-   expect_rejected("update(data, where := age = 4)", "set");
-   expect_rejected("update(data, set := {age := 1}, where := unknown = 4)", "unknown");
+   expect_rejected("update(data, where := age = 4)", "update() requires argument 'set'");
+   expect_rejected(
+      "update(data, set := {age := 1}, where := unknown = 4)", "references unknown column 'unknown'"
+   );
    // The predicate is only accepted by name, like SQL's WHERE clause.
-   expect_rejected("update(data, {age := 1}, age = 4)", "");
+   expect_rejected(
+      "update(data, {age := 1}, age = 4)", "update() received too many positional arguments"
+   );
 
    // An invalid assignment rejects the whole statement, so no other column is updated either.
    ASSERT_EQ(countWhere(*database, "age = 1"), 0);
