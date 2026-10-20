@@ -4,16 +4,14 @@ set -euo pipefail
 
 ./buildScripts/ensure-uv
 
-# For correct ASAN instrumentation, we also need to build arrow with ASAN
+# The Debug build of RhyDB uses ASAN (see the debug preset in CMakePresets.json), so all dependencies
+# must be built with ASAN as well. Otherwise their uninstrumented copies of inline libc++ code (e.g.
+# std::vector) can be linked instead of ours and lead to false container-overflow reports.
 asan_confs=(
-  --conf 'arrow/*:tools.build:cflags=["-fsanitize=address"]'
-  --conf 'arrow/*:tools.build:cxxflags=["-fsanitize=address"]'
-  --conf 'arrow/*:tools.build:sharedlinkflags=["-fsanitize=address"]'
-  --conf 'arrow/*:tools.build:exelinkflags=["-fsanitize=address"]'
-  --conf 'gtest/*:tools.build:cflags=["-fsanitize=address"]'
-  --conf 'gtest/*:tools.build:cxxflags=["-fsanitize=address"]'
-  --conf 'gtest/*:tools.build:sharedlinkflags=["-fsanitize=address"]'
-  --conf 'gtest/*:tools.build:exelinkflags=["-fsanitize=address"]'
+  --conf 'tools.build:cflags=["-fsanitize=address"]'
+  --conf 'tools.build:cxxflags=["-fsanitize=address"]'
+  --conf 'tools.build:sharedlinkflags=["-fsanitize=address"]'
+  --conf 'tools.build:exelinkflags=["-fsanitize=address"]'
   --conf 'tools.info.package_id:confs=["tools.build:cflags","tools.build:cxxflags","tools.build:sharedlinkflags","tools.build:exelinkflags"]'
 )
 
