@@ -79,7 +79,7 @@ createTable(sequences, {
    primary_key := string,
    main := nucleotideSequence(reference := main),
    country := string(generateIndex := true),
-   age := int
+   age := int32
 }, primaryKey := primary_key)
 """)
 ```

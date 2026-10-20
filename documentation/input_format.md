@@ -42,7 +42,7 @@ schema:
       type: string
       generateLineageIndex: pango.yaml
     - name: age
-      type: int
+      type: int32
     - name: qc_value
       type: float
     - name: is_complete
@@ -52,7 +52,7 @@ schema:
 
 **Metadata Field Options**:
 - `name`: Field name (must match JSON key)
-- `type`: One of `string`, `int` (alias `int32`, 32-bit integer), `int64` (64-bit integer), `float`, `date`, `boolean`
+- `type`: One of `string`, `int32` (32-bit integer, alias `int`), `int64` (64-bit integer), `float`, `date`, `boolean`
 - `generateIndex`: Set to `true` to create a bitmap index for fast equality lookups. This is only valid for `string` columns
 - `generateLineageIndex`: Path to lineage definition file for hierarchical queries. This is only possible if `generateIndex` is also set.
   Preprocessing materializes the definition as a relation table named after the column and an alias table named `<column>_aliases`, which is what `lineage(...)` resolves against. See [lineage_definitions.md](lineage_definitions.md) for their schema.
@@ -154,7 +154,7 @@ String values for textual data which is stored compressed by a common dictionary
 
 ### INT64
 
-64-bit signed integers. Configured as `int64`. Use this when values may exceed the 32-bit `int` range.
+64-bit signed integers. Configured as `int64`. Use this when values may exceed the `int32` range.
 
 | Property | Value |
 |----------|-------|
@@ -315,7 +315,7 @@ schema:
       type: string
       generateIndex: true
     - name: age
-      type: int
+      type: int32
     - name: qc_score
       type: float
   primaryKey: accession

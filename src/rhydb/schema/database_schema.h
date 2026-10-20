@@ -79,7 +79,7 @@ constexpr std::string_view valueTypeToString(ValueType type) {
       case ValueType::BOOL:
          return "boolean";
       case ValueType::INT32:
-         return "int";
+         return "int32";
       case ValueType::INT64:
          return "int64";
       case ValueType::FLOAT:
