@@ -117,7 +117,7 @@ void Table::validatePrimaryKeyUnique() const {
    }
    SPDLOG_DEBUG("Checking that primary keys are unique.");
    const auto& primary_key = schema->primary_key.value();
-   RHYDB_ASSERT(primary_key.type == schema::ColumnType::STRING);
+   RHYDB_ASSERT(primary_key.type == schema::DataType::STRING);
 
    const auto& primary_key_column = getColumn<StringColumn>(primary_key.name);
 

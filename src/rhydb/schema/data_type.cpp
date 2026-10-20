@@ -8,6 +8,33 @@
 
 namespace rhydb::schema {
 
+std::string_view dataTypeToString(const DataType& type) {
+   switch (type.getKind()) {
+      case DataType::Kind::STRING:
+         return "STRING";
+      case DataType::Kind::DICTIONARY_ENCODED:
+         RHYDB_ASSERT(type.getDictionaryValueType() == DataType::STRING);
+         return "DICTIONARY_ENCODED(STRING)";
+      case DataType::Kind::DATE32:
+         return "DATE32";
+      case DataType::Kind::BOOL:
+         return "BOOL";
+      case DataType::Kind::INT32:
+         return "INT32";
+      case DataType::Kind::INT64:
+         return "INT64";
+      case DataType::Kind::FLOAT:
+         return "FLOAT";
+      case DataType::Kind::AMINO_ACID_SEQUENCE:
+         return "AMINO_ACID_SEQUENCE";
+      case DataType::Kind::NUCLEOTIDE_SEQUENCE:
+         return "NUCLEOTIDE_SEQUENCE";
+      case DataType::Kind::ZSTD_COMPRESSED_STRING:
+         return "ZSTD_COMPRESSED_STRING";
+   }
+   RHYDB_UNREACHABLE();
+}
+
 std::string_view toSchemaTypeName(const DataType& type) {
    switch (type.getKind()) {
       case DataType::Kind::STRING:

@@ -51,7 +51,7 @@ std::unique_ptr<ScalarExpression> makeStringEquals(
    return std::make_unique<Comparison>(
       std::make_unique<FieldRef>(rhydb::schema::ColumnIdentifier{
          .name = column,
-         .type = rhydb::schema::ColumnType::DICTIONARY_ENCODED,
+         .type = rhydb::schema::DataType::dictionaryEncoded(rhydb::schema::DataType::STRING),
       }),
       std::make_unique<StringLiteral>(value),
       rhydb::query_engine::filter::operators::Comparator::EQUALS
@@ -135,7 +135,7 @@ std::unique_ptr<ScalarExpression> buildStringInSet(
 ) {
    const rhydb::schema::ColumnIdentifier column_identifier{
       .name = column,
-      .type = rhydb::schema::ColumnType::STRING,
+      .type = rhydb::schema::DataType::STRING,
    };
    std::unordered_set<std::string> value_set(values.begin(), values.end());
    return std::make_unique<StringInSet>(column_identifier, std::move(value_set));

@@ -17,10 +17,7 @@ using rhydb::schema::DataType;
 DataType rhydb::config::toDatabaseDataType(std::string_view type) {
    const auto data_type = rhydb::schema::fromSchemaTypeName(type);
    // Sequence columns are declared separately, as `nucleotideSequences` etc.
-   if (
-      !data_type.has_value() || data_type == DataType::NUCLEOTIDE_SEQUENCE ||
-      data_type == DataType::AMINO_ACID_SEQUENCE || data_type == DataType::ZSTD_COMPRESSED_STRING
-   ) {
+   if (!data_type.has_value() || rhydb::schema::isSequenceColumn(data_type.value())) {
       throw ConfigException("Unknown metadata type: " + std::string(type));
    }
    return data_type.value();
@@ -122,28 +119,11 @@ YAML::Node YAML::convert<rhydb::config::DatabaseMetadata>::encode(
 
 namespace rhydb::config {
 
-schema::ColumnType DatabaseMetadata::getColumnType() const {
-   switch (type.getKind()) {
-      case DataType::Kind::STRING:
-         return generate_index ? schema::ColumnType::DICTIONARY_ENCODED
-                               : schema::ColumnType::STRING;
-      case DataType::Kind::DATE32:
-         return schema::ColumnType::DATE32;
-      case DataType::Kind::BOOL:
-         return schema::ColumnType::BOOL;
-      case DataType::Kind::INT32:
-         return schema::ColumnType::INT32;
-      case DataType::Kind::INT64:
-         return schema::ColumnType::INT64;
-      case DataType::Kind::FLOAT:
-         return schema::ColumnType::FLOAT;
-      case DataType::Kind::DICTIONARY_ENCODED:
-      case DataType::Kind::AMINO_ACID_SEQUENCE:
-      case DataType::Kind::NUCLEOTIDE_SEQUENCE:
-      case DataType::Kind::ZSTD_COMPRESSED_STRING:
-         break;
+schema::DataType DatabaseMetadata::getColumnType() const {
+   if (generate_index) {
+      return schema::DataType::dictionaryEncoded(type);
    }
-   throw std::runtime_error("Did not find metadata with name: " + std::string(name));
+   return type;
 }
 
 std::optional<DatabaseMetadata> DatabaseConfig::getMetadata(const std::string& name) const {

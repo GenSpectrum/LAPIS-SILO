@@ -91,14 +91,14 @@ using rhydb::Database;
 using rhydb::config::QueryOptions;
 using rhydb::query_engine::Planner;
 using rhydb::schema::ColumnIdentifier;
-using rhydb::schema::ColumnType;
+using rhydb::schema::DataType;
 using rhydb::schema::TableName;
 using rhydb::schema::TableSchema;
 using rhydb::storage::column::ColumnMetadata;
 using rhydb::storage::column::StringColumnMetadata;
 
 std::shared_ptr<TableSchema> makeMinimalSchema() {
-   const ColumnIdentifier key{.name = "key", .type = ColumnType::STRING};
+   const ColumnIdentifier key{.name = "key", .type = DataType::STRING};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {key, std::make_shared<StringColumnMetadata>(key.name)},
    };

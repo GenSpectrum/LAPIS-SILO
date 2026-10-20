@@ -25,8 +25,8 @@ class FloatColumn {
    using Builder = FloatColumnBuilder;
    using Buffer = std::vector<std::optional<double>>;
 
-   static constexpr schema::ColumnType TYPE = schema::ColumnType::FLOAT;
-   static schema::DataType type() { return schema::DataType::FLOAT; }
+   static constexpr const schema::DataType& TYPE = schema::DataType::FLOAT;
+   static schema::DataType type() { return TYPE; }
    using value_type = double;
 
   private:

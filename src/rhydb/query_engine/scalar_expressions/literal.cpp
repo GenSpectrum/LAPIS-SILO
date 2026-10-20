@@ -169,8 +169,8 @@ std::unique_ptr<filter::operators::Operator> DateLiteral::
    compileNonBooleanLiteral();
 }
 
-NullLiteral::NullLiteral(schema::ColumnType value_type)
-    : value_type(value_type) {}
+NullLiteral::NullLiteral(schema::DataType value_type)
+    : value_type(std::move(value_type)) {}
 
 std::string NullLiteral::toString() const {
    return "null";

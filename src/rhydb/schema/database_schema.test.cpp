@@ -10,7 +10,7 @@
 #include "rhydb/storage/column/int_column.h"
 
 using rhydb::schema::ColumnIdentifier;
-using rhydb::schema::ColumnType;
+using rhydb::schema::DataType;
 using rhydb::schema::TableSchema;
 using rhydb::storage::column::BoolColumn;
 using rhydb::storage::column::ColumnMetadata;
@@ -18,7 +18,7 @@ using rhydb::storage::column::ColumnMetadata;
 namespace {
 
 TableSchema schemaWithBoolColumn() {
-   const ColumnIdentifier column{.name = "flag", .type = ColumnType::BOOL};
+   const ColumnIdentifier column{.name = "flag", .type = DataType::BOOL};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {column, std::make_shared<ColumnMetadata>("flag")},
    };

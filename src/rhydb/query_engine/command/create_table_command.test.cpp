@@ -18,7 +18,7 @@
 
 using rhydb::query_engine::IllegalQueryException;
 using rhydb::schema::ColumnIdentifier;
-using rhydb::schema::ColumnType;
+using rhydb::schema::DataType;
 using rhydb::schema::TableName;
 using ::testing::HasSubstr;
 using ::testing::ThrowsMessage;
@@ -99,20 +99,20 @@ TEST(CreateTableCommand, createsTableWithFullSchema) {
    EXPECT_EQ(
       schema.getColumnIdentifiers(),
       (std::vector<ColumnIdentifier>{
-         {.name = "S", .type = ColumnType::AMINO_ACID_SEQUENCE},
-         {.name = "age", .type = ColumnType::INT32},
-         {.name = "big", .type = ColumnType::INT64},
-         {.name = "complete", .type = ColumnType::BOOL},
-         {.name = "country", .type = ColumnType::DICTIONARY_ENCODED},
-         {.name = "date", .type = ColumnType::DATE32},
-         {.name = "key", .type = ColumnType::STRING},
-         {.name = "main", .type = ColumnType::NUCLEOTIDE_SEQUENCE},
-         {.name = "qc", .type = ColumnType::FLOAT},
-         {.name = "segment", .type = ColumnType::NUCLEOTIDE_SEQUENCE},
-         {.name = "unaligned_main", .type = ColumnType::ZSTD_COMPRESSED_STRING},
+         {.name = "S", .type = DataType::AMINO_ACID_SEQUENCE},
+         {.name = "age", .type = DataType::INT32},
+         {.name = "big", .type = DataType::INT64},
+         {.name = "complete", .type = DataType::BOOL},
+         {.name = "country", .type = DataType::dictionaryEncoded(DataType::STRING)},
+         {.name = "date", .type = DataType::DATE32},
+         {.name = "key", .type = DataType::STRING},
+         {.name = "main", .type = DataType::NUCLEOTIDE_SEQUENCE},
+         {.name = "qc", .type = DataType::FLOAT},
+         {.name = "segment", .type = DataType::NUCLEOTIDE_SEQUENCE},
+         {.name = "unaligned_main", .type = DataType::ZSTD_COMPRESSED_STRING},
       })
    );
-   EXPECT_EQ(schema.primary_key, (ColumnIdentifier{.name = "key", .type = ColumnType::STRING}));
+   EXPECT_EQ(schema.primary_key, (ColumnIdentifier{.name = "key", .type = DataType::STRING}));
 
    EXPECT_EQ(database.getNucleotideReferenceSequence("covid", "main"), "ACGT");
    EXPECT_EQ(database.getNucleotideReferenceSequence("covid", "segment"), "TTTTT");

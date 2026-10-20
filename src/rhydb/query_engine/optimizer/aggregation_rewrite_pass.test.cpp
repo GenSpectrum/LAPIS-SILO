@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <gmock/gmock.h>
@@ -29,21 +30,24 @@
 using rhydb::Nucleotide;
 using rhydb::query_engine::optimizer::AggregationRewritePass;
 using rhydb::schema::ColumnIdentifier;
-using rhydb::schema::ColumnType;
+using rhydb::schema::DataType;
 namespace scalar_expressions = rhydb::query_engine::scalar_expressions;
 namespace operators = rhydb::query_engine::operators;
 
 namespace {
 
-const ColumnIdentifier NUC_COLUMN{.name = "nuc", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
-const ColumnIdentifier ID_COLUMN{.name = "id", .type = ColumnType::STRING};
-const ColumnIdentifier DIVISION_COLUMN{.name = "division", .type = ColumnType::DICTIONARY_ENCODED};
-const ColumnIdentifier HOST_COLUMN{.name = "host", .type = ColumnType::STRING};
-const ColumnIdentifier DATE_COLUMN{.name = "date", .type = ColumnType::DATE32};
-const ColumnIdentifier INT32_COLUMN{.name = "age", .type = ColumnType::INT32};
-const ColumnIdentifier INT64_COLUMN{.name = "reads", .type = ColumnType::INT64};
-const ColumnIdentifier FLOAT_COLUMN{.name = "coverage", .type = ColumnType::FLOAT};
-const ColumnIdentifier BOOL_COLUMN{.name = "passed", .type = ColumnType::BOOL};
+const ColumnIdentifier NUC_COLUMN{.name = "nuc", .type = DataType::NUCLEOTIDE_SEQUENCE};
+const ColumnIdentifier ID_COLUMN{.name = "id", .type = DataType::STRING};
+const ColumnIdentifier DIVISION_COLUMN{
+   .name = "division",
+   .type = DataType::dictionaryEncoded(DataType::STRING),
+};
+const ColumnIdentifier HOST_COLUMN{.name = "host", .type = DataType::STRING};
+const ColumnIdentifier DATE_COLUMN{.name = "date", .type = DataType::DATE32};
+const ColumnIdentifier INT32_COLUMN{.name = "age", .type = DataType::INT32};
+const ColumnIdentifier INT64_COLUMN{.name = "reads", .type = DataType::INT64};
+const ColumnIdentifier FLOAT_COLUMN{.name = "coverage", .type = DataType::FLOAT};
+const ColumnIdentifier BOOL_COLUMN{.name = "passed", .type = DataType::BOOL};
 
 /// A table whose schema carries a nucleotide sequence column "nuc", an indexed string column
 /// "division", a plain (non-indexed) string column "host", a "date" column, one column of each
@@ -92,7 +96,7 @@ operators::QueryNodePtr makeMapWithAt(
 ) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back({
-      .output_column = {.name = field, .type = ColumnType::STRING},
+      .output_column = {.name = field, .type = DataType::STRING},
       .expression = std::make_unique<scalar_expressions::At>(
          std::make_unique<scalar_expressions::FieldRef>(at_column), 1
       ),
@@ -108,7 +112,7 @@ operators::QueryNodePtr makeMapWithIsoWeek(
 ) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back({
-      .output_column = {.name = field, .type = ColumnType::STRING},
+      .output_column = {.name = field, .type = DataType::STRING},
       .expression = std::make_unique<scalar_expressions::IsoWeek>(
          std::make_unique<scalar_expressions::FieldRef>(date_column)
       ),
@@ -121,11 +125,11 @@ operators::QueryNodePtr makeMapWithFieldRef(
    operators::QueryNodePtr child,
    const std::string& field,
    const ColumnIdentifier& source_column,
-   ColumnType output_type = ColumnType::STRING
+   DataType output_type = DataType::STRING
 ) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back({
-      .output_column = {.name = field, .type = output_type},
+      .output_column = {.name = field, .type = std::move(output_type)},
       .expression = std::make_unique<scalar_expressions::FieldRef>(source_column),
    });
    return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
@@ -136,7 +140,7 @@ operators::QueryNodePtr makeMapWithFieldRef(
 operators::QueryNodePtr withSequencePosition(operators::QueryNodePtr map) {
    auto& map_node = dynamic_cast<operators::MapNode&>(*map);
    map_node.assignments.push_back({
-      .output_column = {.name = "s", .type = ColumnType::STRING},
+      .output_column = {.name = "s", .type = DataType::STRING},
       .expression = std::make_unique<scalar_expressions::At>(
          std::make_unique<scalar_expressions::FieldRef>(NUC_COLUMN), 1
       ),
@@ -168,7 +172,7 @@ operators::QueryNodePtr makeGroupByCount(
    std::vector<ColumnIdentifier> group_by;
    group_by.reserve(fields.size());
    for (const auto& field : fields) {
-      group_by.push_back({.name = field, .type = ColumnType::STRING});
+      group_by.push_back({.name = field, .type = DataType::STRING});
    }
    std::vector<operators::AggregateDefinition> aggregates{
       {
@@ -327,7 +331,7 @@ TEST(AggregationRewritePass, rewritesBareCountOverScanToCountFilter) {
    ASSERT_EQ(result->kind(), operators::NodeKind::COUNT_FILTER);
    EXPECT_THAT(
       result->getOutputSchema(),
-      ::testing::ElementsAre(ColumnIdentifier{.name = "count", .type = ColumnType::INT64})
+      ::testing::ElementsAre(ColumnIdentifier{.name = "count", .type = DataType::INT64})
    );
 }
 
@@ -399,7 +403,7 @@ TEST(AggregationRewritePass, declinesWhenIntermediateMapIsNotDecompress) {
 // by a test.
 TEST(AggregationRewritePass, rewritesMapFieldRefOverInt32Column) {
    auto node = makeGroupByCount(
-      withSequencePosition(makeMapWithFieldRef(makeScan(), "a", INT32_COLUMN, ColumnType::INT32)),
+      withSequencePosition(makeMapWithFieldRef(makeScan(), "a", INT32_COLUMN, DataType::INT32)),
       {"s", "a"}
    );
 
@@ -410,7 +414,7 @@ TEST(AggregationRewritePass, rewritesMapFieldRefOverInt32Column) {
 
 TEST(AggregationRewritePass, rewritesMapFieldRefOverInt64Column) {
    auto node = makeGroupByCount(
-      withSequencePosition(makeMapWithFieldRef(makeScan(), "r", INT64_COLUMN, ColumnType::INT64)),
+      withSequencePosition(makeMapWithFieldRef(makeScan(), "r", INT64_COLUMN, DataType::INT64)),
       {"s", "r"}
    );
 
@@ -421,7 +425,7 @@ TEST(AggregationRewritePass, rewritesMapFieldRefOverInt64Column) {
 
 TEST(AggregationRewritePass, rewritesMapFieldRefOverFloatColumn) {
    auto node = makeGroupByCount(
-      withSequencePosition(makeMapWithFieldRef(makeScan(), "c", FLOAT_COLUMN, ColumnType::FLOAT)),
+      withSequencePosition(makeMapWithFieldRef(makeScan(), "c", FLOAT_COLUMN, DataType::FLOAT)),
       {"s", "c"}
    );
 
@@ -432,7 +436,7 @@ TEST(AggregationRewritePass, rewritesMapFieldRefOverFloatColumn) {
 
 TEST(AggregationRewritePass, rewritesMapFieldRefOverBoolColumn) {
    auto node = makeGroupByCount(
-      withSequencePosition(makeMapWithFieldRef(makeScan(), "p", BOOL_COLUMN, ColumnType::BOOL)),
+      withSequencePosition(makeMapWithFieldRef(makeScan(), "p", BOOL_COLUMN, DataType::BOOL)),
       {"s", "p"}
    );
 

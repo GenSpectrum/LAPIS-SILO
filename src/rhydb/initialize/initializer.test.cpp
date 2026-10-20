@@ -38,9 +38,9 @@ TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    ASSERT_TRUE(table_schema->primary_key.has_value());
    ASSERT_EQ(table_schema->primary_key->name, database_config.schema.primary_key.value());
 
-   using rhydb::schema::ColumnType;
+   using rhydb::schema::DataType;
    ASSERT_TRUE(table_schema->getColumn("M").has_value());
-   ASSERT_EQ(table_schema->getColumn("M").value().type, ColumnType::AMINO_ACID_SEQUENCE);
+   ASSERT_EQ(table_schema->getColumn("M").value().type, DataType::AMINO_ACID_SEQUENCE);
    ASSERT_TRUE(table_schema
                   ->getColumnMetadata<rhydb::storage::column::SequenceColumn<rhydb::AminoAcid>>("M")
                   .has_value());
@@ -52,25 +52,30 @@ TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    );
 
    ASSERT_TRUE(table_schema->getColumn("age").has_value());
-   ASSERT_EQ(table_schema->getColumn("age").value().type, ColumnType::INT32);
+   ASSERT_EQ(table_schema->getColumn("age").value().type, DataType::INT32);
 
    ASSERT_TRUE(table_schema->getColumn("country").has_value());
-   ASSERT_EQ(table_schema->getColumn("country").value().type, ColumnType::DICTIONARY_ENCODED);
+   ASSERT_EQ(
+      table_schema->getColumn("country").value().type, DataType::dictionaryEncoded(DataType::STRING)
+   );
    ASSERT_TRUE(table_schema
                   ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("country")
                   .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("date").has_value());
-   ASSERT_EQ(table_schema->getColumn("date").value().type, ColumnType::DATE32);
+   ASSERT_EQ(table_schema->getColumn("date").value().type, DataType::DATE32);
 
    ASSERT_TRUE(table_schema->getColumn("division").has_value());
-   ASSERT_EQ(table_schema->getColumn("division").value().type, ColumnType::DICTIONARY_ENCODED);
+   ASSERT_EQ(
+      table_schema->getColumn("division").value().type,
+      DataType::dictionaryEncoded(DataType::STRING)
+   );
    ASSERT_TRUE(table_schema
                   ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("division")
                   .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("main").has_value());
-   ASSERT_EQ(table_schema->getColumn("main").value().type, ColumnType::NUCLEOTIDE_SEQUENCE);
+   ASSERT_EQ(table_schema->getColumn("main").value().type, DataType::NUCLEOTIDE_SEQUENCE);
    ASSERT_TRUE(
       table_schema
          ->getColumnMetadata<rhydb::storage::column::SequenceColumn<rhydb::Nucleotide>>("main")
@@ -85,7 +90,10 @@ TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    );
 
    ASSERT_TRUE(table_schema->getColumn("pango_lineage").has_value());
-   ASSERT_EQ(table_schema->getColumn("pango_lineage").value().type, ColumnType::DICTIONARY_ENCODED);
+   ASSERT_EQ(
+      table_schema->getColumn("pango_lineage").value().type,
+      DataType::dictionaryEncoded(DataType::STRING)
+   );
    ASSERT_TRUE(
       table_schema
          ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("pango_lineage")
@@ -100,22 +108,24 @@ TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    ASSERT_EQ(pango_metadata->dictionary.size(), 0);
 
    ASSERT_TRUE(table_schema->getColumn("primaryKey").has_value());
-   ASSERT_EQ(table_schema->getColumn("primaryKey").value().type, ColumnType::STRING);
+   ASSERT_EQ(table_schema->getColumn("primaryKey").value().type, DataType::STRING);
    ASSERT_TRUE(table_schema->getColumnMetadata<rhydb::storage::column::StringColumn>("primaryKey")
                   .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("qc_value").has_value());
-   ASSERT_EQ(table_schema->getColumn("qc_value").value().type, ColumnType::FLOAT);
+   ASSERT_EQ(table_schema->getColumn("qc_value").value().type, DataType::FLOAT);
 
    ASSERT_TRUE(table_schema->getColumn("region").has_value());
-   ASSERT_EQ(table_schema->getColumn("region").value().type, ColumnType::DICTIONARY_ENCODED);
+   ASSERT_EQ(
+      table_schema->getColumn("region").value().type, DataType::dictionaryEncoded(DataType::STRING)
+   );
    ASSERT_TRUE(table_schema
                   ->getColumnMetadata<rhydb::storage::column::DictionaryEncodedColumn>("region")
                   .has_value());
 
    ASSERT_TRUE(table_schema->getColumn("testSecondSequence").has_value());
    ASSERT_EQ(
-      table_schema->getColumn("testSecondSequence").value().type, ColumnType::NUCLEOTIDE_SEQUENCE
+      table_schema->getColumn("testSecondSequence").value().type, DataType::NUCLEOTIDE_SEQUENCE
    );
    ASSERT_TRUE(table_schema
                   ->getColumnMetadata<rhydb::storage::column::SequenceColumn<rhydb::Nucleotide>>(
@@ -133,11 +143,11 @@ TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    );
 
    ASSERT_TRUE(table_schema->getColumn("test_boolean_column").has_value());
-   ASSERT_EQ(table_schema->getColumn("test_boolean_column").value().type, ColumnType::BOOL);
+   ASSERT_EQ(table_schema->getColumn("test_boolean_column").value().type, DataType::BOOL);
 
    ASSERT_TRUE(table_schema->getColumn("unaligned_main").has_value());
    ASSERT_EQ(
-      table_schema->getColumn("unaligned_main").value().type, ColumnType::ZSTD_COMPRESSED_STRING
+      table_schema->getColumn("unaligned_main").value().type, DataType::ZSTD_COMPRESSED_STRING
    );
    ASSERT_TRUE(
       table_schema
@@ -155,7 +165,7 @@ TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    ASSERT_TRUE(table_schema->getColumn("unaligned_testSecondSequence").has_value());
    ASSERT_EQ(
       table_schema->getColumn("unaligned_testSecondSequence").value().type,
-      ColumnType::ZSTD_COMPRESSED_STRING
+      DataType::ZSTD_COMPRESSED_STRING
    );
    ASSERT_TRUE(table_schema
                   ->getColumnMetadata<rhydb::storage::column::ZstdCompressedStringColumn>(
@@ -173,11 +183,11 @@ TEST(Initializer, correctlyCreatesSchemaFromInitializationFiles) {
    );
 
    ASSERT_TRUE(table_schema->getColumn("unsorted_date").has_value());
-   ASSERT_EQ(table_schema->getColumn("unsorted_date").value().type, ColumnType::DATE32);
+   ASSERT_EQ(table_schema->getColumn("unsorted_date").value().type, DataType::DATE32);
 
    ASSERT_TRUE(table_schema->primary_key.has_value());
    ASSERT_EQ(table_schema->primary_key->name, "primaryKey");
-   ASSERT_EQ(table_schema->primary_key->type, ColumnType::STRING);
+   ASSERT_EQ(table_schema->primary_key->type, DataType::STRING);
 }
 
 TEST(Initializer, rejectsCreatingTableWithNameOfExistingTable) {

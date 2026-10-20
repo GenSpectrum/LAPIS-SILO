@@ -359,7 +359,7 @@ TEST(DatabaseUpdateQueryTest, rejectsInvalidStatements) {
    );
    expect_rejected(
       "update(data, set := {division := 5})",
-      "has type 'INT64', which cannot be assigned to a column of type 'DICTIONARY_ENCODED'"
+      "has type 'INT64', which cannot be assigned to a column of type 'DICTIONARY_ENCODED(STRING)'"
    );
    expect_rejected(
       "update(data, set := {age := qc_value})",
@@ -403,7 +403,7 @@ TEST(DatabaseUpdateQueryTest, rejectsInvalidStatements) {
 
 using rhydb::Nucleotide;
 using rhydb::schema::ColumnIdentifier;
-using rhydb::schema::ColumnType;
+using rhydb::schema::DataType;
 using rhydb::schema::TableSchema;
 using rhydb::storage::column::ColumnMetadata;
 using rhydb::storage::column::SequenceColumnMetadata;
@@ -411,8 +411,8 @@ using rhydb::storage::column::StringColumnMetadata;
 
 TEST(DatabaseTest, canCreateMultipleTablesAndAddData) {
    rhydb::Database database;
-   ColumnIdentifier primary_key{.name = "key", .type = ColumnType::STRING};
-   ColumnIdentifier sequence_column{.name = "sequence", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
+   ColumnIdentifier primary_key{.name = "key", .type = DataType::STRING};
+   ColumnIdentifier sequence_column{.name = "sequence", .type = DataType::NUCLEOTIDE_SEQUENCE};
    std::vector<Nucleotide::Symbol> reference_sequence{
       Nucleotide::Symbol::A,
       Nucleotide::Symbol::C,
@@ -481,9 +481,9 @@ rhydb::config::QueryOptions defaultQueryOptions() {
 // cleanly; sequence columns are intentionally left out (a query emits them as decompressed strings,
 // while the append path ingests them as structured objects).
 std::shared_ptr<TableSchema> makeValueColumnSchema() {
-   const ColumnIdentifier key{.name = "key", .type = ColumnType::STRING};
-   const ColumnIdentifier country{.name = "country", .type = ColumnType::STRING};
-   const ColumnIdentifier age{.name = "age", .type = ColumnType::INT32};
+   const ColumnIdentifier key{.name = "key", .type = DataType::STRING};
+   const ColumnIdentifier country{.name = "country", .type = DataType::STRING};
+   const ColumnIdentifier age{.name = "age", .type = DataType::INT32};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {key, std::make_shared<StringColumnMetadata>(key.name)},
       {country, std::make_shared<StringColumnMetadata>(country.name)},
@@ -562,8 +562,8 @@ TEST(DatabaseInsertQueryTest, reshapesWithProjectAndAccumulates) {
    rhydb::Database database;
    database.createTable(TableName{"source"}, makeValueColumnSchema());
    // Target keeps only a subset of columns; the query must project down to match it.
-   const ColumnIdentifier key{.name = "key", .type = ColumnType::STRING};
-   const ColumnIdentifier country{.name = "country", .type = ColumnType::STRING};
+   const ColumnIdentifier key{.name = "key", .type = DataType::STRING};
+   const ColumnIdentifier country{.name = "country", .type = DataType::STRING};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> archive_metadata{
       {key, std::make_shared<StringColumnMetadata>(key.name)},
       {country, std::make_shared<StringColumnMetadata>(country.name)},

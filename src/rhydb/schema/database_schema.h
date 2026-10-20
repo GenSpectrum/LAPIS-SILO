@@ -18,50 +18,11 @@
 
 namespace rhydb::schema {
 
-enum class ColumnType : uint8_t {
-   STRING,
-   DICTIONARY_ENCODED,
-   DATE32,
-   BOOL,
-   INT32,
-   INT64,
-   FLOAT,
-   AMINO_ACID_SEQUENCE,
-   NUCLEOTIDE_SEQUENCE,
-   ZSTD_COMPRESSED_STRING,
-};
-
-constexpr std::string_view columnTypeToString(ColumnType type) {
-   switch (type) {
-      case ColumnType::STRING:
-         return "STRING";
-      case ColumnType::DICTIONARY_ENCODED:
-         return "DICTIONARY_ENCODED";
-      case ColumnType::DATE32:
-         return "DATE32";
-      case ColumnType::BOOL:
-         return "BOOL";
-      case ColumnType::INT32:
-         return "INT32";
-      case ColumnType::INT64:
-         return "INT64";
-      case ColumnType::FLOAT:
-         return "FLOAT";
-      case ColumnType::AMINO_ACID_SEQUENCE:
-         return "AMINO_ACID_SEQUENCE";
-      case ColumnType::NUCLEOTIDE_SEQUENCE:
-         return "NUCLEOTIDE_SEQUENCE";
-      case ColumnType::ZSTD_COMPRESSED_STRING:
-         return "ZSTD_COMPRESSED_STRING";
-   }
-   RHYDB_UNREACHABLE();
-}
-
-bool isSequenceColumn(ColumnType type);
+bool isSequenceColumn(const DataType& type);
 
 struct ColumnIdentifier {
    std::string name;
-   rhydb::schema::ColumnType type;
+   rhydb::schema::DataType type;
 
    bool operator<(const ColumnIdentifier& other) const {
       return std::tie(name, type) < std::tie(other.name, other.type);
@@ -124,8 +85,8 @@ class TableSchema {
       if (iter->first.type != ColumnType::TYPE) {
          SPDLOG_INFO(
             "Mismatching type found: expected {} vs actual {}",
-            columnTypeToString(ColumnType::TYPE),
-            columnTypeToString(iter->first.type)
+            dataTypeToString(ColumnType::TYPE),
+            dataTypeToString(iter->first.type)
          );
          return std::nullopt;
       }

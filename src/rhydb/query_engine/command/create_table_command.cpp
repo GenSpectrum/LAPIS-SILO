@@ -1,6 +1,7 @@
 #include "rhydb/query_engine/command/create_table_command.h"
 
 #include <algorithm>
+#include <concepts>
 #include <map>
 #include <memory>
 #include <optional>
@@ -29,6 +30,7 @@
 #include "rhydb/query_engine/saneql/function_registry.h"
 #include "rhydb/schema/builtin_tables.h"
 #include "rhydb/storage/column/column_metadata.h"
+#include "rhydb/storage/column/column_type_visitor.h"
 #include "rhydb/storage/column/dictionary_encoded_column.h"
 #include "rhydb/storage/column/sequence_column.h"
 #include "rhydb/storage/column/string_column.h"
@@ -39,29 +41,15 @@ namespace rhydb::query_engine::command {
 
 using saneql::FunctionSignature;
 using saneql::ParameterDefinition;
-using schema::ColumnType;
+using schema::DataType;
 
 namespace {
-
-const std::map<std::string, ColumnType, std::less<>> VALUE_TYPES_WITHOUT_OPTIONS{
-   {"int", ColumnType::INT32},
-   {"int32", ColumnType::INT32},
-   {"int64", ColumnType::INT64},
-   {"float", ColumnType::FLOAT},
-   {"boolean", ColumnType::BOOL},
-   {"date", ColumnType::DATE32},
-};
-
-const std::map<std::string, ColumnType, std::less<>> SEQUENCE_TYPES{
-   {"nucleotideSequence", ColumnType::NUCLEOTIDE_SEQUENCE},
-   {"aminoAcidSequence", ColumnType::AMINO_ACID_SEQUENCE},
-};
 
 const std::string GENERATE_INDEX_OPTION = "generateIndex";
 const std::string REFERENCE_OPTION = "reference";
 const std::string DICTIONARY_OPTION = "dictionary";
 
-const FunctionSignature STRING_TYPE_SIGNATURE{
+const FunctionSignature INDEXABLE_TYPE_SIGNATURE{
    {ParameterDefinition{.name = GENERATE_INDEX_OPTION, .required = false, .positional = false}},
 };
 
@@ -111,48 +99,47 @@ ColumnDefinition parseColumnDefinition(
       );
    }
 
-   if (type_name == "string") {
-      auto options = saneql::bindArguments(type_name, STRING_TYPE_SIGNATURE, *positional, *named);
+   const auto data_type = schema::fromSchemaTypeName(type_name);
+   if (data_type.has_value() && DataType::canBeDictionaryEncoded(data_type.value())) {
+      auto options =
+         saneql::bindArguments(type_name, INDEXABLE_TYPE_SIGNATURE, *positional, *named);
       const auto* generate_index = options.get(GENERATE_INDEX_OPTION);
       const bool is_indexed = generate_index != nullptr && extractBoolLiteral(*generate_index);
       return ColumnDefinition{
          .name = column_name,
-         .type = is_indexed ? ColumnType::DICTIONARY_ENCODED : ColumnType::STRING,
+         .type = is_indexed ? DataType::dictionaryEncoded(data_type.value()) : data_type.value(),
          .reference_name = std::nullopt,
          .dictionary_query = std::nullopt,
       };
    }
 
-   if (
-      auto value_type = VALUE_TYPES_WITHOUT_OPTIONS.find(type_name);
-      value_type != VALUE_TYPES_WITHOUT_OPTIONS.end()
-   ) {
+   if (data_type.has_value() && !schema::isSequenceColumn(data_type.value())) {
       std::ignore = saneql::bindArguments(type_name, NO_OPTIONS_SIGNATURE, *positional, *named);
       return ColumnDefinition{
          .name = column_name,
-         .type = value_type->second,
+         .type = data_type.value(),
          .reference_name = std::nullopt,
          .dictionary_query = std::nullopt,
       };
    }
 
-   if (auto sequence_type = SEQUENCE_TYPES.find(type_name); sequence_type != SEQUENCE_TYPES.end()) {
+   if (data_type == DataType::NUCLEOTIDE_SEQUENCE || data_type == DataType::AMINO_ACID_SEQUENCE) {
       auto options = saneql::bindArguments(type_name, SEQUENCE_TYPE_SIGNATURE, *positional, *named);
       return ColumnDefinition{
          .name = column_name,
-         .type = sequence_type->second,
+         .type = data_type.value(),
          .reference_name = extractIdentifierName(options.at(REFERENCE_OPTION)),
          .dictionary_query = std::nullopt,
       };
    }
 
-   if (type_name == "zstdCompressedString") {
+   if (data_type == DataType::ZSTD_COMPRESSED_STRING) {
       auto options = saneql::bindArguments(
          type_name, ZSTD_COMPRESSED_STRING_TYPE_SIGNATURE, *positional, *named
       );
       return ColumnDefinition{
          .name = column_name,
-         .type = ColumnType::ZSTD_COMPRESSED_STRING,
+         .type = DataType::ZSTD_COMPRESSED_STRING,
          .reference_name = std::nullopt,
          .dictionary_query = saneql::convertExpression(options.at(DICTIONARY_OPTION), tables),
       };
@@ -277,8 +264,7 @@ std::string computeDictionary(
 ) {
    const auto output_schema = dictionary_query->getOutputSchema();
    CHECK_RHYDB_QUERY(
-      output_schema.size() == 1 && (output_schema.front().type == ColumnType::STRING ||
-                                    output_schema.front().type == ColumnType::DICTIONARY_ENCODED),
+      output_schema.size() == 1 && output_schema.front().type.getPlainType() == DataType::STRING,
       "createTable(): the dictionary of column '{}' must be a query with exactly one column of "
       "type "
       "`string`, e.g. `reference_genomes.filter(name = 'main' && type = 'nucleotide')"
@@ -286,7 +272,7 @@ std::string computeDictionary(
       column_name,
       fmt::join(
          output_schema | std::views::transform([](const auto& column) {
-            return fmt::format("{}: {}", column.name, schema::columnTypeToString(column.type));
+            return fmt::format("{}: {}", column.name, schema::dataTypeToString(column.type));
          }),
          ", "
       )
@@ -320,18 +306,29 @@ std::shared_ptr<storage::column::ColumnMetadata> createColumnMetadata(
    const config::QueryOptions& query_options,
    std::string_view request_id
 ) {
-   switch (column.type) {
-      case ColumnType::STRING:
+   using Kind = schema::DataType::Kind;
+   switch (column.type.getKind()) {
+      case Kind::STRING:
          return std::make_shared<storage::column::StringColumnMetadata>(column.name);
-      case ColumnType::DICTIONARY_ENCODED:
-         return std::make_shared<storage::column::DictionaryEncodedColumnMetadata>(column.name);
-      case ColumnType::DATE32:
-      case ColumnType::BOOL:
-      case ColumnType::INT32:
-      case ColumnType::INT64:
-      case ColumnType::FLOAT:
+      case Kind::DICTIONARY_ENCODED:
+         return storage::column::visit(
+            column.type,
+            [&]<storage::column::Column ColumnClass> -> std::shared_ptr<
+                                                        storage::column::ColumnMetadata> {
+               if constexpr (std::same_as<ColumnClass, storage::column::DictionaryEncodedColumn>) {
+                  return std::make_shared<typename ColumnClass::Metadata>(column.name);
+               } else {
+                  RHYDB_UNREACHABLE();
+               }
+            }
+         );
+      case Kind::DATE32:
+      case Kind::BOOL:
+      case Kind::INT32:
+      case Kind::INT64:
+      case Kind::FLOAT:
          return std::make_shared<storage::column::ColumnMetadata>(column.name);
-      case ColumnType::NUCLEOTIDE_SEQUENCE: {
+      case Kind::NUCLEOTIDE_SEQUENCE: {
          auto reference = getReferenceSequence(
             reference_genomes, column, schema::REFERENCE_GENOMES_NUCLEOTIDE_TYPE
          );
@@ -339,7 +336,7 @@ std::shared_ptr<storage::column::ColumnMetadata> createColumnMetadata(
             column.name, toReferenceSymbols<Nucleotide>(reference, column)
          );
       }
-      case ColumnType::AMINO_ACID_SEQUENCE: {
+      case Kind::AMINO_ACID_SEQUENCE: {
          auto reference = getReferenceSequence(
             reference_genomes, column, schema::REFERENCE_GENOMES_AMINO_ACID_TYPE
          );
@@ -347,7 +344,7 @@ std::shared_ptr<storage::column::ColumnMetadata> createColumnMetadata(
             column.name, toReferenceSymbols<AminoAcid>(reference, column)
          );
       }
-      case ColumnType::ZSTD_COMPRESSED_STRING: {
+      case Kind::ZSTD_COMPRESSED_STRING: {
          auto dictionary = computeDictionary(
             column.name,
             std::move(column.dictionary_query).value(),
@@ -407,7 +404,7 @@ void checkPrimaryKey(
       *primary_key
    );
    CHECK_RHYDB_QUERY(
-      primary_key_column->type == ColumnType::STRING,
+      primary_key_column->type == DataType::STRING,
       "createTable(): the primary key '{}' must be a column of type `string` without "
       "`generateIndex`",
       *primary_key
@@ -463,7 +460,7 @@ arrow::Result<std::shared_ptr<arrow::Table>> CreateTableCommand::execute(
    }
 
    auto primary_key = primary_key_.transform([](const std::string& name) {
-      return schema::ColumnIdentifier{.name = name, .type = ColumnType::STRING};
+      return schema::ColumnIdentifier{.name = name, .type = DataType::STRING};
    });
    database.createTable(
       table_name_,

@@ -129,15 +129,15 @@ class LiteralCollectingSink : public exec_node::ArrowBatchSink {
    arrow::Status finish() override { return arrow::Status::OK(); }
 };
 
-bool isSupportedScalarType(schema::ColumnType type) {
-   switch (type) {
-      case schema::ColumnType::STRING:
-      case schema::ColumnType::DICTIONARY_ENCODED:
-      case schema::ColumnType::INT32:
-      case schema::ColumnType::INT64:
-      case schema::ColumnType::FLOAT:
-      case schema::ColumnType::DATE32:
-      case schema::ColumnType::BOOL:
+bool isSupportedScalarType(const schema::DataType& type) {
+   using Kind = schema::DataType::Kind;
+   switch (type.getPlainType().getKind()) {
+      case Kind::STRING:
+      case Kind::INT32:
+      case Kind::INT64:
+      case Kind::FLOAT:
+      case Kind::DATE32:
+      case Kind::BOOL:
          return true;
       default:
          return false;
@@ -160,7 +160,7 @@ std::vector<ScalarExpressionPtr> materializeSubqueryColumnLiterals(
    CHECK_RHYDB_QUERY(
       isSupportedScalarType(output_schema.front().type),
       "in(<subquery>): the subquery column has type {}, which is not a supported scalar type.",
-      schema::columnTypeToString(output_schema.front().type)
+      schema::dataTypeToString(output_schema.front().type)
    );
 
    auto query_plan = Planner::planQuery(

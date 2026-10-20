@@ -41,10 +41,10 @@ class InsertionsNode final : public QueryNode {
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override {
       std::vector<schema::ColumnIdentifier> fields;
-      fields.emplace_back(std::string(POSITION_FIELD_NAME), schema::ColumnType::INT32);
-      fields.emplace_back(std::string(INSERTED_SYMBOLS_FIELD_NAME), schema::ColumnType::STRING);
-      fields.emplace_back(std::string(SEQUENCE_FIELD_NAME), schema::ColumnType::STRING);
-      fields.emplace_back(std::string(COUNT_FIELD_NAME), schema::ColumnType::INT32);
+      fields.emplace_back(std::string(POSITION_FIELD_NAME), schema::DataType::INT32);
+      fields.emplace_back(std::string(INSERTED_SYMBOLS_FIELD_NAME), schema::DataType::STRING);
+      fields.emplace_back(std::string(SEQUENCE_FIELD_NAME), schema::DataType::STRING);
+      fields.emplace_back(std::string(COUNT_FIELD_NAME), schema::DataType::INT32);
       return fields;
    }
 

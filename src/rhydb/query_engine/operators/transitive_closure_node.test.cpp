@@ -317,7 +317,7 @@ const QueryTestScenario NON_STRING_COLUMN_SCENARIO = {
    .query = "data.transitiveClosure(pango_lineage_indexed, primaryKey)",
    .expected_error_message =
       "transitiveClosure() can only be applied to STRING columns, but "
-      "column 'pango_lineage_indexed' has type DICTIONARY_ENCODED",
+      "column 'pango_lineage_indexed' has type DICTIONARY_ENCODED(STRING)",
 };
 
 //   ROOT

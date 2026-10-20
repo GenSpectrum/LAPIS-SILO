@@ -77,7 +77,10 @@ void LineageDefinitionHandler::get(
    if (column_identifier == std::nullopt) {
       throw BadRequest("The column {} does not exist in this instance.", column_name);
    }
-   if (column_identifier.value().type != rhydb::schema::ColumnType::DICTIONARY_ENCODED) {
+   if (
+      column_identifier.value().type !=
+      rhydb::schema::DataType::dictionaryEncoded(rhydb::schema::DataType::STRING)
+   ) {
       throw BadRequest("The column {} is not of type dictionary-encoded string.", column_name);
    }
 

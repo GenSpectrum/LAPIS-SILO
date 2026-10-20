@@ -54,10 +54,10 @@ uint32_t validateAndFindColumn(
       column_name
    );
    CHECK_RHYDB_QUERY(
-      found->type == schema::ColumnType::STRING,
+      found->type == schema::DataType::STRING,
       "transitiveClosure() can only be applied to STRING columns, but column '{}' has type {}",
       column_name,
-      schema::columnTypeToString(found->type)
+      schema::dataTypeToString(found->type)
    );
    return static_cast<uint32_t>(std::distance(child_schema.begin(), found));
 }
@@ -288,8 +288,8 @@ TransitiveClosureNode::TransitiveClosureNode(
 
 std::vector<schema::ColumnIdentifier> TransitiveClosureNode::getOutputSchema() const {
    return {
-      {.name = std::string{FROM_COLUMN}, .type = schema::ColumnType::STRING},
-      {.name = std::string{TO_COLUMN}, .type = schema::ColumnType::STRING},
+      {.name = std::string{FROM_COLUMN}, .type = schema::DataType::STRING},
+      {.name = std::string{TO_COLUMN}, .type = schema::DataType::STRING},
    };
 }
 

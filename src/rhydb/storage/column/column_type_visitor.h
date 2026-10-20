@@ -14,28 +14,31 @@
 
 namespace rhydb::storage::column {
 
+/// Calls `func.template operator()<Column>(args...)` with the column class storing `type`
 template <typename VisitorFunction, typename... Args>
-static decltype(auto) visit(schema::ColumnType type, VisitorFunction&& func, Args&&... args) {
-   switch (type) {
-      case schema::ColumnType::STRING:
+static decltype(auto) visit(const schema::DataType& type, VisitorFunction&& func, Args&&... args) {
+   using Kind = schema::DataType::Kind;
+   switch (type.getKind()) {
+      case Kind::STRING:
          return func.template operator()<StringColumn>(std::forward<Args>(args)...);
-      case schema::ColumnType::DICTIONARY_ENCODED:
+      case Kind::DICTIONARY_ENCODED:
+         RHYDB_ASSERT(type.getDictionaryValueType() == schema::DataType::STRING);
          return func.template operator()<DictionaryEncodedColumn>(std::forward<Args>(args)...);
-      case schema::ColumnType::DATE32:
+      case Kind::DATE32:
          return func.template operator()<Date32Column>(std::forward<Args>(args)...);
-      case schema::ColumnType::BOOL:
+      case Kind::BOOL:
          return func.template operator()<BoolColumn>(std::forward<Args>(args)...);
-      case schema::ColumnType::INT32:
+      case Kind::INT32:
          return func.template operator()<Int32Column>(std::forward<Args>(args)...);
-      case schema::ColumnType::INT64:
+      case Kind::INT64:
          return func.template operator()<Int64Column>(std::forward<Args>(args)...);
-      case schema::ColumnType::FLOAT:
+      case Kind::FLOAT:
          return func.template operator()<FloatColumn>(std::forward<Args>(args)...);
-      case schema::ColumnType::NUCLEOTIDE_SEQUENCE:
+      case Kind::NUCLEOTIDE_SEQUENCE:
          return func.template operator()<SequenceColumn<Nucleotide>>(std::forward<Args>(args)...);
-      case schema::ColumnType::AMINO_ACID_SEQUENCE:
+      case Kind::AMINO_ACID_SEQUENCE:
          return func.template operator()<SequenceColumn<AminoAcid>>(std::forward<Args>(args)...);
-      case schema::ColumnType::ZSTD_COMPRESSED_STRING:
+      case Kind::ZSTD_COMPRESSED_STRING:
          return func.template operator()<ZstdCompressedStringColumn>(std::forward<Args>(args)...);
    }
    RHYDB_UNREACHABLE();

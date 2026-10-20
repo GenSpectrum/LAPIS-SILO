@@ -33,8 +33,8 @@ schema::ColumnIdentifier resolveDriverColumn(
       );
    }
    if (
-      column.value().type != schema::ColumnType::NUCLEOTIDE_SEQUENCE &&
-      column.value().type != schema::ColumnType::AMINO_ACID_SEQUENCE
+      column.value().type != schema::DataType::NUCLEOTIDE_SEQUENCE &&
+      column.value().type != schema::DataType::AMINO_ACID_SEQUENCE
    ) {
       throw AppendException(
          "the clustering driver column '{}' must be a nucleotide or amino-acid sequence column",
@@ -45,7 +45,7 @@ schema::ColumnIdentifier resolveDriverColumn(
 }
 
 size_t genomeLengthOf(const storage::Table& table, const schema::ColumnIdentifier& driver_column) {
-   if (driver_column.type == schema::ColumnType::NUCLEOTIDE_SEQUENCE) {
+   if (driver_column.type == schema::DataType::NUCLEOTIDE_SEQUENCE) {
       return table.getColumn<storage::column::SequenceColumn<Nucleotide>>(driver_column.name)
          .genome_length;
    }

@@ -26,7 +26,7 @@ using rhydb::append::appendDataToTable;
 using rhydb::append::ClusteredBufferingOptions;
 using rhydb::append::NdjsonLineReader;
 using rhydb::schema::ColumnIdentifier;
-using rhydb::schema::ColumnType;
+using rhydb::schema::DataType;
 using rhydb::schema::TableName;
 using rhydb::schema::TableSchema;
 using rhydb::storage::Table;
@@ -43,10 +43,10 @@ constexpr std::string_view SEQ_COLUMN = "seq";
 // A table with a string primary key and a single nucleotide sequence column whose reference is
 // `genome_length` copies of 'A'.
 std::shared_ptr<Table> makeTable(size_t genome_length) {
-   const ColumnIdentifier pk_id{.name = std::string{PK_COLUMN}, .type = ColumnType::STRING};
+   const ColumnIdentifier pk_id{.name = std::string{PK_COLUMN}, .type = DataType::STRING};
    const ColumnIdentifier seq_id{
       .name = std::string{SEQ_COLUMN},
-      .type = ColumnType::NUCLEOTIDE_SEQUENCE,
+      .type = DataType::NUCLEOTIDE_SEQUENCE,
    };
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata;
    column_metadata.emplace(pk_id, std::make_shared<StringColumnMetadata>(std::string{PK_COLUMN}));

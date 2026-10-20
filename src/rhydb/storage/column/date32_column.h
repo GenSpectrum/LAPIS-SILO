@@ -25,8 +25,8 @@ class Date32Column {
    /// Dates are parsed during phase-1 extraction so the chunk holds parsed values.
    using Buffer = std::vector<std::optional<common::Date32>>;
 
-   static constexpr schema::ColumnType TYPE = schema::ColumnType::DATE32;
-   static schema::DataType type() { return schema::DataType::DATE32; }
+   static constexpr const schema::DataType& TYPE = schema::DataType::DATE32;
+   static schema::DataType type() { return TYPE; }
    using value_type = common::Date32;
 
    [[maybe_unused]] Metadata* metadata;

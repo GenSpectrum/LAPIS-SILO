@@ -19,7 +19,7 @@ class FieldRef : public ScalarExpression {
 
    explicit FieldRef(schema::ColumnIdentifier column);
 
-   [[nodiscard]] schema::ColumnType type() const override { return column.type; }
+   [[nodiscard]] schema::DataType type() const override { return column.type; }
 
    [[nodiscard]] std::unique_ptr<ScalarExpression> clone() const override {
       return std::make_unique<FieldRef>(column);

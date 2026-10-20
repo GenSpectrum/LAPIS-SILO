@@ -17,13 +17,13 @@ namespace rhydb::query_engine::operators {
 
 using config::QueryOptions;
 using schema::ColumnIdentifier;
-using schema::ColumnType;
+using schema::DataType;
 using schema::TableName;
 using storage::Table;
 
 std::vector<ColumnIdentifier> TablesNode::getOutputSchema() const {
    return {
-      {.name = std::string{TABLE_NAME_COLUMN}, .type = ColumnType::STRING},
+      {.name = std::string{TABLE_NAME_COLUMN}, .type = DataType::STRING},
    };
 }
 

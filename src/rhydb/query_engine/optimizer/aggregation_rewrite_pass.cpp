@@ -26,8 +26,8 @@ namespace rhydb::query_engine::optimizer {
 namespace {
 
 bool isSequenceColumn(const schema::ColumnIdentifier& column) {
-   return column.type == schema::ColumnType::NUCLEOTIDE_SEQUENCE ||
-          column.type == schema::ColumnType::AMINO_ACID_SEQUENCE;
+   return column.type == schema::DataType::NUCLEOTIDE_SEQUENCE ||
+          column.type == schema::DataType::AMINO_ACID_SEQUENCE;
 }
 
 /// The bare `count()` aggregate (a single count aggregate with no source column) is the only shape
@@ -136,7 +136,7 @@ std::optional<operators::GroupingDimension> matchSequencePositionDimension(
    return operators::SequencePositionDimension{
       column.value(),
       key->position - 1,
-      column->type == schema::ColumnType::NUCLEOTIDE_SEQUENCE,
+      column->type == schema::DataType::NUCLEOTIDE_SEQUENCE,
       group_by_field.name,
    };
 }
@@ -164,7 +164,11 @@ std::optional<operators::GroupingDimension> matchIndexedColumnDimension(
       column_name = field_ref->column.name;
    }
    const auto column = source.scan.table->schema->getColumn(column_name);
-   if (!column.has_value() || column->type != schema::ColumnType::DICTIONARY_ENCODED) {
+   // The inverted-index grouping emits the dictionary values as strings
+   if (
+      !column.has_value() ||
+      column->type != schema::DataType::dictionaryEncoded(schema::DataType::STRING)
+   ) {
       return std::nullopt;
    }
    return operators::IndexedColumnDimension{column.value(), group_by_field.name};
@@ -173,19 +177,20 @@ std::optional<operators::GroupingDimension> matchIndexedColumnDimension(
 /// A scalar output type the bitmap aggregation can group on (and emit): every value type its output
 /// materialization can build. Sequence / compressed columns are excluded -- they are not a single
 /// groupable value.
-bool isGroupableScalarType(schema::ColumnType type) {
-   switch (type) {
-      case schema::ColumnType::STRING:
-      case schema::ColumnType::DICTIONARY_ENCODED:
-      case schema::ColumnType::INT32:
-      case schema::ColumnType::INT64:
-      case schema::ColumnType::FLOAT:
-      case schema::ColumnType::BOOL:
-      case schema::ColumnType::DATE32:
+bool isGroupableScalarType(const schema::DataType& type) {
+   using Kind = schema::DataType::Kind;
+   switch (type.getPlainType().getKind()) {
+      case Kind::STRING:
+      case Kind::INT32:
+      case Kind::INT64:
+      case Kind::FLOAT:
+      case Kind::BOOL:
+      case Kind::DATE32:
          return true;
-      case schema::ColumnType::AMINO_ACID_SEQUENCE:
-      case schema::ColumnType::NUCLEOTIDE_SEQUENCE:
-      case schema::ColumnType::ZSTD_COMPRESSED_STRING:
+      case Kind::DICTIONARY_ENCODED:
+      case Kind::AMINO_ACID_SEQUENCE:
+      case Kind::NUCLEOTIDE_SEQUENCE:
+      case Kind::ZSTD_COMPRESSED_STRING:
          return false;
    }
    return false;

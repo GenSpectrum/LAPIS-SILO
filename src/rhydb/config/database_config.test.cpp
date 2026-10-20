@@ -10,7 +10,6 @@
 using rhydb::config::ConfigException;
 using rhydb::config::DatabaseConfig;
 using rhydb::config::toDatabaseDataType;
-using rhydb::schema::ColumnType;
 using rhydb::schema::DataType;
 
 TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
@@ -98,7 +97,7 @@ struct TestParameter {
    bool generate_index;
    bool generate_lineage_index;
    bool phylo_tree_node_identifier;
-   ColumnType expected_column_type;
+   DataType expected_column_type;
 };
 
 class DatabaseMetadataFixture : public ::testing::TestWithParam<TestParameter> {};
@@ -124,38 +123,38 @@ INSTANTIATE_TEST_SUITE_P(
          .value_type = DataType::STRING,
          .generate_index = false,
          .phylo_tree_node_identifier = true,
-         .expected_column_type = ColumnType::STRING,
+         .expected_column_type = DataType::STRING,
       },
       TestParameter{
          .value_type = DataType::STRING,
          .generate_index = true,
-         .expected_column_type = ColumnType::DICTIONARY_ENCODED,
+         .expected_column_type = DataType::dictionaryEncoded(DataType::STRING),
       },
       TestParameter{
          .value_type = DataType::DATE32,
          .generate_index = false,
-         .expected_column_type = ColumnType::DATE32,
+         .expected_column_type = DataType::DATE32,
       },
       TestParameter{
          .value_type = DataType::STRING,
          .generate_index = true,
          .generate_lineage_index = true,
-         .expected_column_type = ColumnType::DICTIONARY_ENCODED,
+         .expected_column_type = DataType::dictionaryEncoded(DataType::STRING),
       },
       TestParameter{
          .value_type = DataType::INT32,
          .generate_index = false,
-         .expected_column_type = ColumnType::INT32,
+         .expected_column_type = DataType::INT32,
       },
       TestParameter{
          .value_type = DataType::INT64,
          .generate_index = false,
-         .expected_column_type = ColumnType::INT64,
+         .expected_column_type = DataType::INT64,
       },
       TestParameter{
          .value_type = DataType::FLOAT,
          .generate_index = false,
-         .expected_column_type = ColumnType::FLOAT,
+         .expected_column_type = DataType::FLOAT,
       }
    )
 );
