@@ -30,8 +30,11 @@ WriteCommandPtr buildUpdate(const saneql::BoundArguments& args, const saneql::Ta
    std::unique_ptr<scalar_expressions::ScalarExpression> predicate =
       std::make_unique<scalar_expressions::BoolLiteral>(true);
    if (where != nullptr) {
-      predicate =
-         saneql::convertToFilter(*where, table->second->schema->getColumnIdentifiers(), tables);
+      const auto columns = saneql::makeTableScan(
+                              table->second, std::make_unique<scalar_expressions::BoolLiteral>(true)
+      )
+                              ->getOutputSchema();
+      predicate = saneql::convertToFilter(*where, columns, tables);
    }
 
    const auto* set = std::get_if<ast::RecordLiteral>(&args.at("set").value);

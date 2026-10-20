@@ -269,7 +269,10 @@ void Database::updateColumn(
 
    const auto predicate = query_engine::saneql::convertToFilter(
       *query_engine::saneql::Parser{filter_expression}.parse(),
-      table->schema->getColumnIdentifiers(),
+      query_engine::saneql::makeTableScan(
+         table, std::make_unique<query_engine::scalar_expressions::BoolLiteral>(true)
+      )
+         ->getOutputSchema(),
       tables
    );
    std::vector<query_engine::ColumnAssignment> assignments;

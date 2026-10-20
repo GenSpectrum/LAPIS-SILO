@@ -406,6 +406,23 @@ TEST(DatabaseUpdateQueryTest, assignsSeveralColumnsFromTheValuesBeforeTheUpdate)
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(DatabaseUpdateQueryTest, selectsRowsByAPredicateOnASequenceColumn) {
+   auto database = buildTestDatabase();
+   ASSERT_EQ(countWhere(*database, "main.at(2) = 'A'"), 1);
+   ASSERT_EQ(countWhere(*database, "age = 42"), 0);
+
+   // The predicate sees the sequence columns as queries do, so it may read their symbols.
+   EXPECT_EQ(update(*database, "update(data, set := {age := 42}, where := main.at(2) = 'A')"), 1);
+   EXPECT_EQ(countWhere(*database, "age = 42"), 1);
+   EXPECT_EQ(countWhere(*database, "main.at(2) = 'A' && age = 42"), 1);
+
+   database->updateColumn(
+      rhydb::schema::TableName::getDefault().getName(), "age", "43", "main.at(2) = 'A'"
+   );
+   EXPECT_EQ(countWhere(*database, "main.at(2) = 'A' && age = 43"), 1);
+   EXPECT_EQ(countWhere(*database, "age = 43"), 1);
+}
+
 TEST(DatabaseUpdateQueryTest, computesValuesFromTheRowsColumns) {
    auto database = buildTestDatabase();
    const auto before = rowsByKey(*database, "division, country, age, qc_value");
