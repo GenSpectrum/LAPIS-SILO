@@ -186,6 +186,7 @@ TEST(DictionaryEncodedColumn, dictionaryStaysSortedWhenSmallerValuesArriveLater)
    ASSERT_EQ(*under_test.filter("c").value(), roaring::Roaring({2}));
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DictionaryEncodedColumn, dictionarySpanningMultipleChunks) {
    DictionaryEncodedColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
@@ -198,10 +199,10 @@ TEST(DictionaryEncodedColumn, dictionarySpanningMultipleChunks) {
    ASSERT_TRUE(under_test.appendChunk(builder.finalize()).has_value());
 
    ASSERT_EQ(column_metadata.numValues(), NUM_VALUES);
-   for (const size_t i : {size_t{0}, size_t{65535}, size_t{65536}, NUM_VALUES - 1}) {
-      const auto value = fmt::format("value {:06}", i);
-      EXPECT_EQ(under_test.getValueId(value), i);
-      EXPECT_EQ(under_test.lookupValue(static_cast<rhydb::Idx>(i)), value);
+   for (const size_t value_id : {size_t{0}, size_t{65535}, size_t{65536}, NUM_VALUES - 1}) {
+      const auto value = fmt::format("value {:06}", value_id);
+      EXPECT_EQ(under_test.getValueId(value), value_id);
+      EXPECT_EQ(under_test.lookupValue(static_cast<rhydb::Idx>(value_id)), value);
    }
    EXPECT_EQ(under_test.getValueString(RowId(0, 0)), fmt::format("value {:06}", NUM_VALUES - 1));
 }
