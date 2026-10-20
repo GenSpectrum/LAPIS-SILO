@@ -11,8 +11,8 @@ JsonValueTypeArrayBuilder::JsonValueTypeArrayBuilder(const std::shared_ptr<arrow
       builder = arrow::Int32Builder{};
    } else if (type == arrow::float64()) {
       builder = arrow::DoubleBuilder{};
-   } else if (type == arrow::utf8()) {
-      builder = arrow::StringBuilder{};
+   } else if (type == arrow::large_utf8()) {
+      builder = arrow::LargeStringBuilder{};
    } else if (type == arrow::boolean()) {
       builder = arrow::BooleanBuilder{};
    } else {
@@ -48,7 +48,7 @@ arrow::Status JsonValueTypeArrayBuilder::insert(
                ) {
                   ARROW_RETURN_NOT_OK(builder.Append(val));
                } else if constexpr (
-                  std::is_same_v<T, std::string> && std::is_same_v<B, arrow::StringBuilder>
+                  std::is_same_v<T, std::string> && std::is_same_v<B, arrow::LargeStringBuilder>
                ) {
                   ARROW_RETURN_NOT_OK(builder.Append(val));
                } else if constexpr (

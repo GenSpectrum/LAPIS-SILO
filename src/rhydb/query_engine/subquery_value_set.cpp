@@ -39,7 +39,7 @@ class LiteralCollectingVisitor : public arrow::ArrayVisitor {
    explicit LiteralCollectingVisitor(std::vector<ScalarExpressionPtr>& literals)
        : literals(literals) {}
 
-   arrow::Status Visit(const arrow::StringArray& array) override {
+   arrow::Status Visit(const arrow::LargeStringArray& array) override {
       for (int64_t i = 0; i < array.length(); ++i) {
          if (!array.IsNull(i)) {
             add<se::StringLiteral>(std::string{array.GetView(i)});

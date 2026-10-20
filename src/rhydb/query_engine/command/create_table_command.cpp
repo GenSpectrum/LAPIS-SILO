@@ -15,6 +15,7 @@
 #include <arrow/array/array_binary.h>
 #include <arrow/array/util.h>
 #include <arrow/compute/exec.h>
+#include <arrow/scalar.h>
 #include <fmt/ranges.h>
 
 #include "rhydb/common/aa_symbols.h"
@@ -251,7 +252,7 @@ class StringValuesSink : public exec_node::ArrowBatchSink {
       } else {
          ARROW_ASSIGN_OR_RAISE(array, arrow::MakeArrayFromScalar(*datum.scalar(), batch.length));
       }
-      const auto& string_array = dynamic_cast<const arrow::StringArray&>(*array);
+      const auto& string_array = dynamic_cast<const arrow::LargeStringArray&>(*array);
       for (int64_t row = 0; row < string_array.length(); ++row) {
          if (string_array.IsNull(row)) {
             values.emplace_back(std::nullopt);
@@ -470,7 +471,9 @@ arrow::Result<std::shared_ptr<arrow::Table>> CreateTableCommand::execute(
    );
    database.updateDataVersion();
 
-   return makeWriteSummary("createdTable", arrow::MakeScalar(table_name_.getName()));
+   return makeWriteSummary(
+      "createdTable", std::make_shared<arrow::LargeStringScalar>(table_name_.getName())
+   );
 }
 
 }  // namespace rhydb::query_engine::command

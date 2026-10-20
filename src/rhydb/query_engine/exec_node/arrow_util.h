@@ -29,31 +29,31 @@ struct ArrowBuilderSelector;
 
 template <>
 struct ArrowBuilderSelector<storage::column::StringColumn> {
-   using builder_type = arrow::StringBuilder;
+   using builder_type = arrow::LargeStringBuilder;
    using value_type = std::string;
 };
 
 template <>
 struct ArrowBuilderSelector<storage::column::DictionaryEncodedColumn> {
-   using builder_type = arrow::StringBuilder;
+   using builder_type = arrow::LargeStringBuilder;
    using value_type = std::string;
 };
 
 template <>
 struct ArrowBuilderSelector<storage::column::SequenceColumn<Nucleotide>> {
-   using builder_type = arrow::BinaryBuilder;
+   using builder_type = arrow::LargeBinaryBuilder;
    using value_type = std::string;
 };
 
 template <>
 struct ArrowBuilderSelector<storage::column::SequenceColumn<AminoAcid>> {
-   using builder_type = arrow::BinaryBuilder;
+   using builder_type = arrow::LargeBinaryBuilder;
    using value_type = std::string;
 };
 
 template <>
 struct ArrowBuilderSelector<storage::column::ZstdCompressedStringColumn> {
-   using builder_type = arrow::BinaryBuilder;
+   using builder_type = arrow::LargeBinaryBuilder;
    using value_type = std::string;
 };
 

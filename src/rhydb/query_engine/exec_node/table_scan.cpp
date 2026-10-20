@@ -42,7 +42,7 @@ template <typename SymbolType>
 arrow::Status appendSequences(
    const storage::column::SequenceColumn<SymbolType>& sequence_column,
    const Bitmap& row_ids,
-   arrow::BinaryBuilder& output_array
+   arrow::LargeBinaryBuilder& output_array
 ) {
    const Bitmap non_null_row_ids = row_ids - Bitmap{&sequence_column.null_bitmap};
    auto reconstructed_non_null_sequences =

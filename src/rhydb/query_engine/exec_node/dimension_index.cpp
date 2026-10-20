@@ -217,7 +217,7 @@ class SequencePositionIndex : public DimensionIndex {
 
    /// One 1-character string per symbol
    [[nodiscard]] arrow::Result<std::shared_ptr<arrow::Array>> values() const override {
-      arrow::StringBuilder builder;
+      arrow::LargeStringBuilder builder;
       for (const auto symbol : SymbolType::SYMBOLS) {
          ARROW_RETURN_NOT_OK(builder.Append(std::string(1, SymbolType::symbolToChar(symbol))));
       }
@@ -280,7 +280,7 @@ class IndexedColumnIndex : public DimensionIndex {
    /// The distinct values in sorted order (the group indices `chunk` hands out), then a
    /// null for the trailing null group.
    [[nodiscard]] arrow::Result<std::shared_ptr<arrow::Array>> values() const override {
-      arrow::StringBuilder builder;
+      arrow::LargeStringBuilder builder;
       for (const auto& value : key_values) {
          ARROW_RETURN_NOT_OK(builder.Append(value));
       }
@@ -294,8 +294,8 @@ class IndexedColumnIndex : public DimensionIndex {
 /// Binds one Arrow value type to the C++ key it is bucketed by and the builder that reproduces it,
 /// so `buildScalarGroups` is written once and instantiated per output type.
 struct StringValueTraits {
-   using ArrayType = arrow::StringArray;
-   using BuilderType = arrow::StringBuilder;
+   using ArrayType = arrow::LargeStringArray;
+   using BuilderType = arrow::LargeStringBuilder;
    using KeyType = std::string;
    static KeyType key(const ArrayType& array, int64_t index) { return array.GetString(index); }
    static arrow::Status append(BuilderType& builder, const KeyType& value) {

@@ -32,7 +32,7 @@ arrow::Result<arrow::acero::ExecNode*> TablesNode::addToExecPlan(
    const std::map<TableName, std::shared_ptr<Table>>& tables,
    const QueryOptions& /*query_options*/
 ) const {
-   arrow::StringBuilder table_name_builder{};
+   arrow::LargeStringBuilder table_name_builder{};
    for (const auto& [table_name, _] : tables) {
       ARROW_RETURN_NOT_OK(table_name_builder.Append(table_name.getName()));
    }

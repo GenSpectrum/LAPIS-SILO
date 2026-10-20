@@ -6,7 +6,7 @@ std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column
    switch (column_type) {
       case schema::ColumnType::STRING:
       case schema::ColumnType::DICTIONARY_ENCODED:
-         return arrow::utf8();
+         return arrow::large_utf8();
       case schema::ColumnType::DATE32:
          return arrow::date32();
       case schema::ColumnType::BOOL:
@@ -20,7 +20,7 @@ std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column
       case schema::ColumnType::AMINO_ACID_SEQUENCE:
       case schema::ColumnType::NUCLEOTIDE_SEQUENCE:
       case schema::ColumnType::ZSTD_COMPRESSED_STRING:
-         return arrow::binary();
+         return arrow::large_binary();
    }
    RHYDB_UNREACHABLE();
 }
