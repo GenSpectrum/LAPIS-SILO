@@ -46,9 +46,11 @@ arrow::Result<arrow::compute::Expression> IsoWeek::toArrowExpression() const {
    // Join `<year> + "-W" + <week>` -- third argument is separator
    return arrow::compute::call(
       "binary_join_element_wise",
-      {year_string,
-       week_padded,
-       arrow::compute::literal(std::make_shared<arrow::LargeStringScalar>("-W"))}
+      {
+         year_string,
+         week_padded,
+         arrow::compute::literal(std::make_shared<arrow::LargeStringScalar>("-W")),
+      }
    );
 }
 
