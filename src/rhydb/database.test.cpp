@@ -405,6 +405,7 @@ TEST(DatabaseUpdateQueryTest, assignsSeveralColumnsFromTheValuesBeforeTheUpdate)
    EXPECT_EQ(countWhere(*database, "age = 4"), 1);
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DatabaseUpdateQueryTest, computesValuesFromTheRowsColumns) {
    auto database = buildTestDatabase();
    const auto before = rowsByKey(*database, "division, country, age, qc_value");
