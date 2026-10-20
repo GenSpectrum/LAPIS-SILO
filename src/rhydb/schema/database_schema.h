@@ -12,6 +12,7 @@
 #include <boost/serialization/split_member.hpp>
 
 #include "rhydb/common/panic.h"
+#include "rhydb/schema/data_type.h"
 #include "rhydb/storage/column/column.h"
 #include "rhydb/storage/column/column_metadata.h"
 
@@ -28,20 +29,6 @@ enum class ColumnType : uint8_t {
    AMINO_ACID_SEQUENCE,
    NUCLEOTIDE_SEQUENCE,
    ZSTD_COMPRESSED_STRING,
-};
-
-/// The logical type of the values a column holds, as opposed to the storage-specific `ColumnType`
-/// (e.g. both `STRING` and `DICTIONARY_ENCODED` columns hold `ValueType::STRING` values). This is
-/// the type a column reports via `type()`.
-enum class ValueType : uint8_t {
-   STRING,
-   DATE,
-   BOOL,
-   INT32,
-   INT64,
-   FLOAT,
-   NUCLEOTIDE_SEQUENCE,
-   AMINO_ACID_SEQUENCE,
 };
 
 constexpr std::string_view columnTypeToString(ColumnType type) {
@@ -66,28 +53,6 @@ constexpr std::string_view columnTypeToString(ColumnType type) {
          return "NUCLEOTIDE_SEQUENCE";
       case ColumnType::ZSTD_COMPRESSED_STRING:
          return "ZSTD_COMPRESSED_STRING";
-   }
-   RHYDB_UNREACHABLE();
-}
-
-constexpr std::string_view valueTypeToString(ValueType type) {
-   switch (type) {
-      case ValueType::STRING:
-         return "string";
-      case ValueType::DATE:
-         return "date";
-      case ValueType::BOOL:
-         return "boolean";
-      case ValueType::INT32:
-         return "int32";
-      case ValueType::INT64:
-         return "int64";
-      case ValueType::FLOAT:
-         return "float";
-      case ValueType::NUCLEOTIDE_SEQUENCE:
-         return "nucleotideSequence";
-      case ValueType::AMINO_ACID_SEQUENCE:
-         return "aminoAcidSequence";
    }
    RHYDB_UNREACHABLE();
 }

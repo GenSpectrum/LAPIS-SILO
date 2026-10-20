@@ -7,7 +7,7 @@
 
 namespace rhydb::schema {
 enum class ColumnType : uint8_t;
-enum class ValueType : uint8_t;
+class DataType;
 }  // namespace rhydb::schema
 
 namespace rhydb::storage::column {
@@ -37,8 +37,9 @@ concept Column = requires(T column) {
 
    { T::TYPE } -> std::convertible_to<schema::ColumnType>;
 
-   // The logical type of the values this column holds (e.g. STRING, INT32, NUCLEOTIDE_SEQUENCE).
-   { column.type() } -> std::convertible_to<schema::ValueType>;
+   // The full type of this column. Columns whose type depends on their metadata (e.g. the fields
+   // of a struct) report it per instance, the others statically.
+   { column.type() } -> std::convertible_to<schema::DataType>;
 };
 
 }  // namespace rhydb::storage::column
