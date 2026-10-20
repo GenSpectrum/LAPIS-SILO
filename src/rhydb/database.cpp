@@ -27,7 +27,6 @@
 #include "rhydb/common/version.h"
 #include "rhydb/database_info.h"
 #include "rhydb/persistence/exception.h"
-#include "rhydb/query_engine/column_assignment.h"
 #include "rhydb/query_engine/command/write_command.h"
 #include "rhydb/query_engine/exec_node/arrow_ipc_sink.h"
 #include "rhydb/query_engine/exec_node/ndjson_sink.h"
@@ -243,51 +242,6 @@ roaring::Roaring Database::getFilteredBitmap(
    auto filter_operator = rewritten_filter_expression->compile(*table);
    roaring::Roaring bitmap = filter_operator->evaluate().toRoaring();
    return bitmap;
-}
-
-// Currently updates are not thread-safe. An update during concurrent access is not allowed
-void Database::updateColumn(
-   const std::string& table_name,
-   const std::string& column_name,
-   const std::string& value,
-   const std::string& filter_expression
-) {
-   auto maybe_table = tables.find(schema::TableName{table_name});
-   if (maybe_table == tables.end()) {
-      throw query_engine::IllegalQueryException(
-         fmt::format("The database does not contain the table '{}'", table_name)
-      );
-   }
-   const auto& table = maybe_table->second;
-
-   const auto column = table->schema->getColumn(column_name);
-   if (!column.has_value()) {
-      throw query_engine::IllegalQueryException(
-         fmt::format("The table '{}' does not contain a column '{}'", table_name, column_name)
-      );
-   }
-
-   const auto predicate = query_engine::saneql::convertToFilter(
-      *query_engine::saneql::Parser{filter_expression}.parse(),
-      query_engine::saneql::makeTableScan(
-         table, std::make_unique<query_engine::scalar_expressions::BoolLiteral>(true)
-      )
-         ->getOutputSchema(),
-      tables
-   );
-   std::vector<query_engine::ColumnAssignment> assignments;
-   assignments.push_back(
-      query_engine::makeColumnAssignment(
-         table, *column, *query_engine::saneql::Parser{value}.parse(), tables
-      )
-   );
-   query_engine::applyColumnAssignments(
-      table, assignments, *predicate, tables, config::QueryOptions{}, "updateColumn"
-   );
-
-   // The update mutates persisted table data, so bump the data version like appendData does; this
-   // keeps getDataVersionTimestamp() and versioned save directories consistent with the change.
-   updateDataVersion();
 }
 
 namespace {

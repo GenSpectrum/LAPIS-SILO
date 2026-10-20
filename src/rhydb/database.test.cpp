@@ -168,93 +168,6 @@ int64_t countWhere(rhydb::Database& database, const std::string& filter) {
 }
 }  // namespace
 
-TEST(DatabaseTest, updateColumnAssignsScalarValueToMatchingRows) {
-   auto database = buildTestDatabase();
-   const std::string table = rhydb::schema::TableName::getDefault().getName();
-
-   // Two rows (key1, key4) start with age 4; key3 has a null age.
-   ASSERT_EQ(countWhere(*database, "age = 4"), 2);
-
-   // Assign a scalar int to only the matching rows.
-   database->updateColumn(table, "age", "100", "age = 4");
-   ASSERT_EQ(countWhere(*database, "age = 4"), 0);
-   ASSERT_EQ(countWhere(*database, "age = 100"), 2);
-
-   // A previously-null value can be set to a concrete value.
-   ASSERT_EQ(countWhere(*database, "age = 7"), 0);
-   database->updateColumn(table, "age", "7", "primaryKey = 'key3'");
-   ASSERT_EQ(countWhere(*database, "age = 7"), 1);
-
-   // A SaneQL `null` literal clears the matched rows back to null.
-   database->updateColumn(table, "age", "null", "primaryKey = 'key3'");
-   ASSERT_EQ(countWhere(*database, "age = 7"), 0);
-   ASSERT_EQ(countWhere(*database, "age.isNull()"), 1);
-
-   // Bool values are parsed as the boolean literals 'true'/'false'.
-   database->updateColumn(table, "test_boolean_column", "false", "true");
-   ASSERT_EQ(countWhere(*database, "test_boolean_column = false"), 5);
-
-   // Date values are SaneQL date literals.
-   database->updateColumn(table, "date", "'2000-01-01'::date", "true");
-   ASSERT_EQ(countWhere(*database, "date = '2000-01-01'::date"), 5);
-
-   // Indexed string columns can be reassigned; the inverted index stays consistent. `value` is a
-   // SaneQL string literal, so it is quoted.
-   ASSERT_EQ(countWhere(*database, "division = 'Bern'"), 2);
-   database->updateColumn(table, "division", "'Zurich'", "division = 'Bern'");
-   ASSERT_EQ(countWhere(*database, "division = 'Bern'"), 0);
-   ASSERT_EQ(countWhere(*database, "division = 'Zurich'"), 2);
-
-   // A value not previously present in the dictionary is interned on update.
-   database->updateColumn(table, "division", "'Geneva'", "primaryKey = 'key1'");
-   ASSERT_EQ(countWhere(*database, "division = 'Geneva'"), 1);
-
-   // A SaneQL `null` literal clears an indexed string back to null, and a concrete value can be set
-   // again afterwards.
-   database->updateColumn(table, "division", "null", "primaryKey = 'key1'");
-   ASSERT_EQ(countWhere(*database, "division.isNull()"), 1);
-   database->updateColumn(table, "division", "'Basel'", "primaryKey = 'key1'");
-   ASSERT_EQ(countWhere(*database, "division.isNull()"), 0);
-   ASSERT_EQ(countWhere(*database, "division = 'Basel'"), 1);
-}
-
-TEST(DatabaseTest, updateColumnRejectsInvalidRequests) {
-   auto database = buildTestDatabase();
-   const std::string table = rhydb::schema::TableName::getDefault().getName();
-
-   // A literal that does not match the column's type is a query error.
-   EXPECT_THAT(
-      [&]() { database->updateColumn(table, "age", "'not_a_number'", "true"); },
-      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
-         ::testing::HasSubstr("cannot be assigned to a column of type 'INT32'")
-      )
-   );
-
-   // A string literal must be quoted; an int literal is not a valid string value.
-   EXPECT_THAT(
-      [&]() { database->updateColumn(table, "division", "5", "true"); },
-      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
-         ::testing::HasSubstr("cannot be assigned to a column of type 'DICTIONARY_ENCODED'")
-      )
-   );
-
-   // A phylogenetic-tree-backed column (primaryKey) cannot be updated.
-   EXPECT_THAT(
-      [&]() { database->updateColumn(table, "primaryKey", "'new_key'", "true"); },
-      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
-         ::testing::HasSubstr("phylogenetic tree")
-      )
-   );
-
-   // Unknown columns and tables are reported.
-   EXPECT_THAT(
-      [&]() { database->updateColumn(table, "does_not_exist", "1", "true"); },
-      ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
-         ::testing::HasSubstr("does not contain a column")
-      )
-   );
-}
-
 namespace {
 // The rows of the default table as a map from primary key to the values of `columns`.
 std::map<std::string, nlohmann::json> rowsByKey(
@@ -274,77 +187,6 @@ std::map<std::string, nlohmann::json> rowsByKey(
    return rows;
 }
 }  // namespace
-
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
-TEST(DatabaseTest, updateColumnComputesValuesFromTheRowsColumns) {
-   auto database = buildTestDatabase();
-   const std::string table = rhydb::schema::TableName::getDefault().getName();
-   const auto before = rowsByKey(*database, "country, age, qc_value, main, unaligned_main");
-
-   // A value can be computed by a scalar function of the row's columns.
-   database->updateColumn(table, "region", "at(country, 1)", "true");
-   // An integer can be assigned to a float column.
-   database->updateColumn(table, "qc_value", "age", "primaryKey <> 'key1'");
-   // Sequence and compressed string columns are read decompressed, as in queries.
-   database->updateColumn(table, "division", "unaligned_main", "true");
-   database->updateColumn(table, "country", "at(main, 2)", "true");
-
-   const auto after = rowsByKey(*database, "region, qc_value, division, country");
-   ASSERT_EQ(after.size(), before.size());
-   for (const auto& [key, row] : after) {
-      const auto& old_row = before.at(key);
-      if (old_row.at("country").is_null()) {
-         EXPECT_TRUE(row.at("region").is_null()) << key;
-      } else {
-         EXPECT_EQ(
-            row.at("region").get<std::string>(),
-            old_row.at("country").get<std::string>().substr(0, 1)
-         ) << key;
-      }
-      EXPECT_EQ(row.at("division"), old_row.at("unaligned_main")) << key;
-      if (old_row.at("main").is_null()) {
-         EXPECT_TRUE(row.at("country").is_null()) << key;
-      } else {
-         EXPECT_EQ(
-            row.at("country").get<std::string>(), old_row.at("main").get<std::string>().substr(1, 1)
-         ) << key;
-      }
-      if (key == "key1") {
-         EXPECT_EQ(row.at("qc_value"), old_row.at("qc_value")) << key;
-      } else if (old_row.at("age").is_null()) {
-         EXPECT_TRUE(row.at("qc_value").is_null()) << key;
-      } else {
-         EXPECT_EQ(row.at("qc_value").get<double>(), old_row.at("age").get<double>()) << key;
-      }
-   }
-}
-
-TEST(DatabaseTest, updateColumnRejectsValuesThatDoNotFit) {
-   auto database = buildTestDatabase();
-   const std::string table = rhydb::schema::TableName::getDefault().getName();
-
-   auto expect_rejected =
-      [&](const std::string& column, const std::string& value, const std::string& message) {
-         EXPECT_THAT(
-            [&]() { database->updateColumn(table, column, value, "true"); },
-            ThrowsMessage<rhydb::query_engine::IllegalQueryException>(::testing::HasSubstr(message))
-         ) << column
-           << " := " << value;
-      };
-
-   expect_rejected(
-      "age", "qc_value", "has type 'FLOAT', which cannot be assigned to a column of type 'INT32'"
-   );
-   // Sequence columns can be read, but not updated.
-   expect_rejected("main", "'ACGTACGT'", "Updating columns of type 'NUCLEOTIDE_SEQUENCE'");
-   expect_rejected("E", "'MYSF*'", "Updating columns of type 'AMINO_ACID_SEQUENCE'");
-
-   // A value that does not fit the column is only detected while computing it, but still before
-   // anything is written.
-   ASSERT_EQ(countWhere(*database, "age = 4"), 2);
-   expect_rejected("age", "3000000000", "3000000000");
-   EXPECT_EQ(countWhere(*database, "age = 4"), 2);
-}
 
 namespace {
 // Runs the SaneQL write statement `statement` and returns the number of rows it updated.
@@ -414,12 +256,32 @@ TEST(DatabaseUpdateQueryTest, selectsRowsByAPredicateOnASequenceColumn) {
    EXPECT_EQ(update(*database, "update(data, set := {age := 42}, where := main.at(2) = 'A')"), 1);
    EXPECT_EQ(countWhere(*database, "age = 42"), 1);
    EXPECT_EQ(countWhere(*database, "main.at(2) = 'A' && age = 42"), 1);
+}
 
-   database->updateColumn(
-      rhydb::schema::TableName::getDefault().getName(), "age", "43", "main.at(2) = 'A'"
-   );
-   EXPECT_EQ(countWhere(*database, "main.at(2) = 'A' && age = 43"), 1);
-   EXPECT_EQ(countWhere(*database, "age = 43"), 1);
+TEST(DatabaseUpdateQueryTest, assignsDatesAndIndexedStrings) {
+   auto database = buildTestDatabase();
+
+   // Date values are SaneQL date literals.
+   EXPECT_EQ(update(*database, "update(data, set := {date := '2000-01-01'::date})"), 5);
+   ASSERT_EQ(countWhere(*database, "date = '2000-01-01'::date"), 5);
+
+   // Indexed string columns can be reassigned; the inverted index stays consistent.
+   ASSERT_EQ(countWhere(*database, "division = 'Bern'"), 2);
+   update(*database, "update(data, set := {division := 'Zurich'}, where := division = 'Bern')");
+   ASSERT_EQ(countWhere(*database, "division = 'Bern'"), 0);
+   ASSERT_EQ(countWhere(*database, "division = 'Zurich'"), 2);
+
+   // A value not previously present in the dictionary is interned on update.
+   update(*database, "update(data, set := {division := 'Geneva'}, where := primaryKey = 'key1')");
+   ASSERT_EQ(countWhere(*database, "division = 'Geneva'"), 1);
+
+   // A SaneQL `null` literal clears an indexed string back to null, and a concrete value can be set
+   // again afterwards.
+   update(*database, "update(data, set := {division := null}, where := primaryKey = 'key1')");
+   ASSERT_EQ(countWhere(*database, "division.isNull()"), 1);
+   update(*database, "update(data, set := {division := 'Basel'}, where := primaryKey = 'key1')");
+   ASSERT_EQ(countWhere(*database, "division.isNull()"), 0);
+   ASSERT_EQ(countWhere(*database, "division = 'Basel'"), 1);
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -458,6 +320,28 @@ TEST(DatabaseUpdateQueryTest, computesValuesFromTheRowsColumns) {
    }
 }
 
+TEST(DatabaseUpdateQueryTest, readsSequenceAndCompressedColumnsDecompressed) {
+   auto database = buildTestDatabase();
+   const auto before = rowsByKey(*database, "main, unaligned_main");
+
+   // Sequence and compressed string columns are read decompressed, as in queries.
+   update(*database, "update(data, set := {division := unaligned_main, country := at(main, 2)})");
+
+   const auto after = rowsByKey(*database, "division, country");
+   ASSERT_EQ(after.size(), before.size());
+   for (const auto& [key, row] : after) {
+      const auto& old_row = before.at(key);
+      EXPECT_EQ(row.at("division"), old_row.at("unaligned_main")) << key;
+      if (old_row.at("main").is_null()) {
+         EXPECT_TRUE(row.at("country").is_null()) << key;
+      } else {
+         EXPECT_EQ(
+            row.at("country").get<std::string>(), old_row.at("main").get<std::string>().substr(1, 1)
+         ) << key;
+      }
+   }
+}
+
 TEST(DatabaseUpdateQueryTest, rejectsInvalidStatements) {
    auto database = buildTestDatabase();
 
@@ -476,8 +360,17 @@ TEST(DatabaseUpdateQueryTest, rejectsInvalidStatements) {
       "update(data, set := {division := 5})",
       "has type 'INT64', which cannot be assigned to a column of type 'DICTIONARY_ENCODED'"
    );
-   expect_rejected("update(data, set := {age := qc_value})", "cannot be assigned");
-   expect_rejected("update(data, set := {main := 'ACGTACGT'})", "is not supported");
+   expect_rejected(
+      "update(data, set := {age := qc_value})",
+      "has type 'FLOAT', which cannot be assigned to a column of type 'INT32'"
+   );
+   // Sequence columns can be read, but not updated.
+   expect_rejected(
+      "update(data, set := {main := 'ACGTACGT'})", "Updating columns of type 'NUCLEOTIDE_SEQUENCE'"
+   );
+   expect_rejected(
+      "update(data, set := {E := 'MYSF*'})", "Updating columns of type 'AMINO_ACID_SEQUENCE'"
+   );
    expect_rejected("update(data, set := {primaryKey := 'new_key'})", "phylogenetic tree");
    expect_rejected("update(data, set := {does_not_exist := 1})", "does not contain a column");
    expect_rejected("update(does_not_exist, set := {age := 1})", "not found in database");
