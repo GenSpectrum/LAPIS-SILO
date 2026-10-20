@@ -320,6 +320,7 @@ TEST(DatabaseUpdateQueryTest, computesValuesFromTheRowsColumns) {
    }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DatabaseUpdateQueryTest, readsSequenceAndCompressedColumnsDecompressed) {
    auto database = buildTestDatabase();
    const auto before = rowsByKey(*database, "main, unaligned_main");
