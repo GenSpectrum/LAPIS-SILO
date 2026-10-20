@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <string_view>
+#include <vector>
 
 #include "rhydb/query_engine/operators/query_node.h"
 #include "rhydb/query_engine/saneql/ast.h"
@@ -44,6 +45,25 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
    const ast::Expression& ast,
    const std::vector<schema::ColumnIdentifier>& schema,
    const ScalarConversionContext& context
+);
+
+/// Scans the rows of `table` matching `filter`, a predicate over the table's columns, with every
+/// column as queries see it: sequence and compressed string columns are decompressed into strings.
+operators::QueryNodePtr makeTableScan(
+   const std::shared_ptr<storage::Table>& table,
+   std::unique_ptr<scalar_expressions::ScalarExpression> filter
+);
+
+/// Converts a saneql expression into a value-producing scalar expression: a literal (int, float,
+/// string, bool or date), a reference to a column of `schema`, or a scalar function call.
+/// `error_context` prefixes diagnostics so callers can describe where the expression appears
+/// (e.g. "update() value of column 'age'"). `tables` gives the expression access to the other
+/// tables of the database.
+std::unique_ptr<scalar_expressions::ScalarExpression> convertToScalar(
+   const ast::Expression& ast,
+   const std::vector<schema::ColumnIdentifier>& schema,
+   std::string_view error_context,
+   const std::map<schema::TableName, std::shared_ptr<storage::Table>>& tables
 );
 
 }  // namespace rhydb::query_engine::saneql

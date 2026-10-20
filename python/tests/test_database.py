@@ -890,7 +890,7 @@ class TestUpdateColumn:
     def test_update_string_column_type_mismatch_raises(self, main_reference_sequence):
         """A non-string literal is rejected for a string column."""
         db = self._database_with_string_column(main_reference_sequence)
-        with pytest.raises(ValueError, match="expected string literal"):
+        with pytest.raises(ValueError, match="cannot be assigned"):
             db.update_column("sequences", "country", "5")
 
 

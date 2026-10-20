@@ -75,7 +75,7 @@ void Initializer::createTableInDatabase(
       );
    }
    auto table_schema = createSchemaFromConfigFiles(
-      database_config, reference_genomes, lineage_trees, phylo_tree, without_unaligned_sequences
+      database_config, reference_genomes, phylo_tree, without_unaligned_sequences
    );
    database.createTable(std::move(table_name), std::move(table_schema));
 
@@ -328,7 +328,6 @@ struct ColumnMetadataInitializer {
       std::shared_ptr<storage::column::ColumnMetadata>& metadata,
       const config::DatabaseMetadata& config_metadata,
       const ReferenceGenomes& reference_genomes,
-      const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
       const common::PhyloTree& phylo_tree_file
    );
 };
@@ -338,7 +337,6 @@ void ColumnMetadataInitializer::operator()<storage::column::DictionaryEncodedCol
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& /*reference_genomes*/,
-   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
    // A lineage definition on this column materializes as its own relation table (see
@@ -352,7 +350,6 @@ void ColumnMetadataInitializer::operator()<storage::column::StringColumn>(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& /*reference_genomes*/,
-   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& phylo_tree_file
 ) {
    if (config_metadata.phylo_tree_node_identifier) {
@@ -369,7 +366,6 @@ void ColumnMetadataInitializer::operator()<storage::column::ZstdCompressedString
    std::shared_ptr<storage::column::ColumnMetadata>& /*metadata*/,
    const config::DatabaseMetadata& /*config_metadata*/,
    const ReferenceGenomes& /*reference_genomes*/,
-   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
    RHYDB_PANIC("unaligned nucleotide sequences cannot be in config::DatabaseMetadata");
@@ -380,7 +376,6 @@ void ColumnMetadataInitializer::operator()<storage::column::SequenceColumn<Nucle
    std::shared_ptr<storage::column::ColumnMetadata>& /*metadata*/,
    const config::DatabaseMetadata& /*config_metadata*/,
    const ReferenceGenomes& /*reference_genomes*/,
-   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
    RHYDB_PANIC("nucleotides cannot be in config::DatabaseMetadata");
@@ -391,7 +386,6 @@ void ColumnMetadataInitializer::operator()<storage::column::SequenceColumn<Amino
    std::shared_ptr<storage::column::ColumnMetadata>& /*metadata*/,
    const config::DatabaseMetadata& /*config_metadata*/,
    const ReferenceGenomes& /*reference_genomes*/,
-   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
    RHYDB_PANIC("amino acid cannot be in config::DatabaseMetadata");
@@ -402,7 +396,6 @@ void ColumnMetadataInitializer::operator()(
    std::shared_ptr<storage::column::ColumnMetadata>& metadata,
    const config::DatabaseMetadata& config_metadata,
    const ReferenceGenomes& /*reference_genomes*/,
-   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& /*lineage_trees*/,
    const common::PhyloTree& /*phylo_tree_file*/
 ) {
    metadata = std::make_shared<typename ColumnType::Metadata>(config_metadata.name);
@@ -450,7 +443,6 @@ const std::string UNALIGNED_NUCLEOTIDE_SEQUENCE_PREFIX = "unaligned_";
 std::shared_ptr<schema::TableSchema> Initializer::createSchemaFromConfigFiles(
    const config::DatabaseConfig& database_config,
    ReferenceGenomes reference_genomes,
-   const std::map<std::filesystem::path, common::LineageTreeAndIdMap>& lineage_trees,
    const common::PhyloTree& phylo_tree_file,
    bool without_unaligned_sequences
 ) {
@@ -476,7 +468,6 @@ std::shared_ptr<schema::TableSchema> Initializer::createSchemaFromConfigFiles(
          metadata,
          config_metadata,
          reference_genomes,
-         lineage_trees,
          phylo_tree_file
       );
       column_metadata.emplace(column_identifier, metadata);

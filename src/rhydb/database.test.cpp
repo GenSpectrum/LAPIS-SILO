@@ -11,7 +11,6 @@
 
 #include "config/source/yaml_file.h"
 #include "rhydb/append/append_exception.h"
-#include "rhydb/common/lineage_tree.h"
 #include "rhydb/common/phylo_tree.h"
 #include "rhydb/config/preprocessing_config.h"
 #include "rhydb/database_info.h"
@@ -41,12 +40,6 @@ std::shared_ptr<rhydb::Database> buildTestDatabase() {
       config.initialization_files.getReferenceGenomeFilepath()
    );
 
-   std::map<std::filesystem::path, rhydb::common::LineageTreeAndIdMap> lineage_trees;
-   for (const auto& file_path : config.initialization_files.getLineageDefinitionFilepaths()) {
-      lineage_trees[file_path] =
-         rhydb::common::LineageTreeAndIdMap::fromLineageDefinitionFilePath(file_path);
-   }
-
    rhydb::common::PhyloTree phylo_tree_file;
    auto opt_path = config.initialization_files.getPhyloTreeFilepath();
    if (opt_path.has_value()) {
@@ -59,7 +52,6 @@ std::shared_ptr<rhydb::Database> buildTestDatabase() {
       rhydb::initialize::Initializer::createSchemaFromConfigFiles(
          database_config,
          reference_genomes,
-         lineage_trees,
          phylo_tree_file,
          /*without_unaligned_sequences=*/false
       )
@@ -234,7 +226,7 @@ TEST(DatabaseTest, updateColumnRejectsInvalidRequests) {
    EXPECT_THAT(
       [&]() { database->updateColumn(table, "age", "'not_a_number'", "true"); },
       ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
-         ::testing::HasSubstr("expected integer literal")
+         ::testing::HasSubstr("cannot be assigned to a column of type 'INT32'")
       )
    );
 
@@ -242,7 +234,7 @@ TEST(DatabaseTest, updateColumnRejectsInvalidRequests) {
    EXPECT_THAT(
       [&]() { database->updateColumn(table, "division", "5", "true"); },
       ThrowsMessage<rhydb::query_engine::IllegalQueryException>(
-         ::testing::HasSubstr("expected string literal")
+         ::testing::HasSubstr("cannot be assigned to a column of type 'DICTIONARY_ENCODED'")
       )
    );
 
@@ -261,6 +253,97 @@ TEST(DatabaseTest, updateColumnRejectsInvalidRequests) {
          ::testing::HasSubstr("does not contain a column")
       )
    );
+}
+
+namespace {
+// The rows of the default table as a map from primary key to the values of `columns`.
+std::map<std::string, nlohmann::json> rowsByKey(
+   rhydb::Database& database,
+   const std::string& columns
+) {
+   auto query_plan = rhydb::query_engine::Planner::planSaneqlQuery(
+      fmt::format("data.project({{primaryKey, {}}})", columns),
+      database.tables,
+      rhydb::config::QueryOptions{},
+      "rows_query"
+   );
+   std::map<std::string, nlohmann::json> rows;
+   for (const auto& row : rhydb::test::executeQueryToJsonArray(query_plan)) {
+      rows[row.at("primaryKey").get<std::string>()] = row;
+   }
+   return rows;
+}
+}  // namespace
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(DatabaseTest, updateColumnComputesValuesFromTheRowsColumns) {
+   auto database = buildTestDatabase();
+   const std::string table = rhydb::schema::TableName::getDefault().getName();
+   const auto before = rowsByKey(*database, "country, age, qc_value, main, unaligned_main");
+
+   // A value can be computed by a scalar function of the row's columns.
+   database->updateColumn(table, "region", "at(country, 1)", "true");
+   // An integer can be assigned to a float column.
+   database->updateColumn(table, "qc_value", "age", "primaryKey <> 'key1'");
+   // Sequence and compressed string columns are read decompressed, as in queries.
+   database->updateColumn(table, "division", "unaligned_main", "true");
+   database->updateColumn(table, "country", "at(main, 2)", "true");
+
+   const auto after = rowsByKey(*database, "region, qc_value, division, country");
+   ASSERT_EQ(after.size(), before.size());
+   for (const auto& [key, row] : after) {
+      const auto& old_row = before.at(key);
+      if (old_row.at("country").is_null()) {
+         EXPECT_TRUE(row.at("region").is_null()) << key;
+      } else {
+         EXPECT_EQ(
+            row.at("region").get<std::string>(),
+            old_row.at("country").get<std::string>().substr(0, 1)
+         ) << key;
+      }
+      EXPECT_EQ(row.at("division"), old_row.at("unaligned_main")) << key;
+      if (old_row.at("main").is_null()) {
+         EXPECT_TRUE(row.at("country").is_null()) << key;
+      } else {
+         EXPECT_EQ(
+            row.at("country").get<std::string>(), old_row.at("main").get<std::string>().substr(1, 1)
+         ) << key;
+      }
+      if (key == "key1") {
+         EXPECT_EQ(row.at("qc_value"), old_row.at("qc_value")) << key;
+      } else if (old_row.at("age").is_null()) {
+         EXPECT_TRUE(row.at("qc_value").is_null()) << key;
+      } else {
+         EXPECT_EQ(row.at("qc_value").get<double>(), old_row.at("age").get<double>()) << key;
+      }
+   }
+}
+
+TEST(DatabaseTest, updateColumnRejectsValuesThatDoNotFit) {
+   auto database = buildTestDatabase();
+   const std::string table = rhydb::schema::TableName::getDefault().getName();
+
+   auto expect_rejected =
+      [&](const std::string& column, const std::string& value, const std::string& message) {
+         EXPECT_THAT(
+            [&]() { database->updateColumn(table, column, value, "true"); },
+            ThrowsMessage<rhydb::query_engine::IllegalQueryException>(::testing::HasSubstr(message))
+         ) << column
+           << " := " << value;
+      };
+
+   expect_rejected(
+      "age", "qc_value", "has type 'FLOAT', which cannot be assigned to a column of type 'INT32'"
+   );
+   // Sequence columns can be read, but not updated.
+   expect_rejected("main", "'ACGTACGT'", "Updating columns of type 'NUCLEOTIDE_SEQUENCE'");
+   expect_rejected("E", "'MYSF*'", "Updating columns of type 'AMINO_ACID_SEQUENCE'");
+
+   // A value that does not fit the column is only detected while computing it, but still before
+   // anything is written.
+   ASSERT_EQ(countWhere(*database, "age = 4"), 2);
+   expect_rejected("age", "3000000000", "3000000000");
+   EXPECT_EQ(countWhere(*database, "age = 4"), 2);
 }
 
 using rhydb::Nucleotide;

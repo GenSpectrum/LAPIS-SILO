@@ -31,7 +31,7 @@ ci: format all-tests
 conanprofile:
 	buildScripts/create-conanprofile
 
-${DEPENDENCIES_FLAG}: conanfile.py conanprofile
+${DEPENDENCIES_FLAG}: conanfile.py conanprofile buildScripts/install-dependencies
 	buildScripts/install-dependencies
 	touch ${DEPENDENCIES_FLAG}
 
