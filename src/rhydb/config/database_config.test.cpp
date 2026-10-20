@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
+#include <yaml-cpp/yaml.h>
 
 #include "config/config_exception.h"
 
@@ -19,6 +20,22 @@ TEST(DatabaseMetadataType, shouldBeConvertableFromString) {
    ASSERT_TRUE(toDatabaseValueType("int32") == ValueType::INT32);
    ASSERT_TRUE(toDatabaseValueType("int64") == ValueType::INT64);
    ASSERT_THROW(toDatabaseValueType("unknown"), ConfigException);
+}
+
+TEST(DatabaseMetadataType, shouldBeWrittenWithItsCanonicalName) {
+   const DatabaseConfig config = DatabaseConfig::getValidatedConfig(R"(
+schema:
+  instanceName: test
+  metadata:
+    - name: key
+      type: string
+    - name: age
+      type: int
+  primaryKey: key
+)");
+   const YAML::Node node =
+      YAML::convert<rhydb::config::DatabaseMetadata>::encode(config.schema.metadata.at(1));
+   EXPECT_EQ(node["type"].as<std::string>(), "int32");
 }
 
 TEST(DatabaseConfig, shouldBuildDatabaseConfig) {
