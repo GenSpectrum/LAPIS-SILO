@@ -64,8 +64,8 @@ CMake auto-scans `src/` and `app/src/` directories. The Makefile maintains `.src
 
 ### `using` statements
 
-Never use `using my::Type` in `.h` files.
-Use `using my::Type` (only in `.cpp` files) deliberately for all `rhydb::...` types.
+Never use `using my::Type` at namespace scope in `.h` files, where it would leak into every includer.
+Inside a function body or other local scope in a header it is fine, since it does not escape that scope.
 
 ### Error handling
 - `std::expected<T, Error>` for recoverable errors.
