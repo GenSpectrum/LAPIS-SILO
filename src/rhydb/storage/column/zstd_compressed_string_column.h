@@ -88,11 +88,19 @@ class ZstdCompressedStringColumn {
    }
 };
 
+/// Compresses each value on insertion, so a buffered chunk only holds the compressed bytes rather
+/// than up to COLUMN_CHUNK_SIZE raw (possibly genome-sized) strings.
 class ZstdCompressedStringColumnBuilder {
+   ZstdCompressedStringColumn::Metadata* metadata;
    ZstdCompressedStringColumn::Buffer buffer;
 
   public:
-   void insert(std::string_view value) { buffer.emplace_back(std::string{value}); }
+   explicit ZstdCompressedStringColumnBuilder(ZstdCompressedStringColumn::Metadata* metadata)
+       : metadata(metadata) {}
+
+   void insert(std::string_view value) {
+      buffer.emplace_back(metadata->compressor.compress(value.data(), value.size()));
+   }
 
    void insertNull() { buffer.emplace_back(std::nullopt); }
 

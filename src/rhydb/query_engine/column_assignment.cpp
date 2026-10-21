@@ -191,11 +191,25 @@ std::function<void()> prepareWrite(
             buffers.reserve(chunks.size());
             int64_t index = 0;
             for (const auto& [chunk_id, chunk_rows] : chunks) {
-               auto& buffer = buffers.emplace_back();
-               buffer.reserve(chunk_rows.getCardinality());
+               // The builder produces the column's storage representation (e.g. compressed values)
+               auto builder = [&] {
+                  if constexpr (
+                     std::is_constructible_v<typename Column::Builder, typename Column::Metadata*>
+                  ) {
+                     return typename Column::Builder{column_data.metadata};
+                  } else {
+                     return typename Column::Builder{};
+                  }
+               }();
                for (uint32_t row = 0; row < chunk_rows.getCardinality(); ++row) {
-                  buffer.push_back(value_at(index++));
+                  auto value = value_at(index++);
+                  if (value.has_value()) {
+                     builder.insert(*value);
+                  } else {
+                     builder.insertNull();
+                  }
                }
+               buffers.push_back(builder.finalize());
             }
             return [&column_data, &chunks, buffers = std::move(buffers)] {
                storage::column::updateChunks(column_data, chunks, buffers);

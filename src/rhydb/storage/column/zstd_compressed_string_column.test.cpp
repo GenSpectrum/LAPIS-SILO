@@ -25,7 +25,7 @@ TEST(ZstdCompressedStringColumn, insertValuesAndGetThemBack) {
       "2021-03-21",
       "asd",
    };
-   rhydb::storage::column::ZstdCompressedStringColumn::Builder builder;
+   rhydb::storage::column::ZstdCompressedStringColumn::Builder builder{&column_metadata};
    for (const auto& value : values_to_add) {
       if (value.has_value()) {
          builder.insert(value.value());
@@ -48,7 +48,7 @@ void appendChunk(
    rhydb::storage::column::ZstdCompressedStringColumn& column,
    const std::vector<std::optional<std::string>>& values
 ) {
-   rhydb::storage::column::ZstdCompressedStringColumn::Builder builder;
+   rhydb::storage::column::ZstdCompressedStringColumn::Builder builder{column.metadata};
    for (const auto& value : values) {
       if (value.has_value()) {
          builder.insert(value.value());
@@ -103,7 +103,10 @@ TEST(ZstdCompressedStringColumn, updateChunkAssignsEachRowItsOwnValue) {
    // In the second chunk: null -> a value, a value -> null; the row in between is untouched.
    const roaring::Roaring rows{RowId(1, 0).toGlobal(), RowId(1, 2).toGlobal()};
    for (const auto& [chunk_id, chunk_rows] : rhydb::Bitmap{&rows}) {
-      under_test.update(chunk_id, chunk_rows, {"2099-09-09", std::nullopt});
+      rhydb::storage::column::ZstdCompressedStringColumn::Builder builder{&column_metadata};
+      builder.insert("2099-09-09");
+      builder.insertNull();
+      under_test.update(chunk_id, chunk_rows, builder.finalize());
    }
 
    EXPECT_FALSE(under_test.isNull(RowId(1, 0)));

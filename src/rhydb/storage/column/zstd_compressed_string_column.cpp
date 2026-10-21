@@ -26,7 +26,7 @@ std::expected<void, std::string> ZstdCompressedStringColumn::appendChunk(const B
    for (size_t i = 0; i < buffer.size(); ++i) {
       const auto& value = buffer[i];
       if (value.has_value()) {
-         chunk.emplace_back(metadata->compressor.compress(value->data(), value->size()));
+         chunk.emplace_back(*value);
       } else {
          null_bitmap.add(base + static_cast<uint32_t>(i));
          chunk.emplace_back();
@@ -65,14 +65,12 @@ void ZstdCompressedStringColumn::update(
    for (const uint16_t row_in_chunk : rows) {
       const RowId row_id{.chunk_id = chunk_id, .row_in_chunk = row_in_chunk};
       const std::optional<std::string>& value = new_values[index++];
-      std::string stored_value;
       if (value.has_value()) {
-         stored_value = metadata->compressor.compress(value->data(), value->size());
          null_bitmap.remove(row_id.toGlobal());
       } else {
          null_bitmap.add(row_id.toGlobal());
       }
-      values.setValue(row_id, std::move(stored_value));
+      values.setValue(row_id, value.value_or(std::string{}));
    }
 }
 
