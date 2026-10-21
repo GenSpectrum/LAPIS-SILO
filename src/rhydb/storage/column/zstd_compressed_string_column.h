@@ -43,7 +43,7 @@ class ZstdCompressedStringColumn {
    using Buffer = std::vector<std::optional<std::string>>;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::ZSTD_COMPRESSED_STRING;
-   static constexpr schema::ValueType type() { return schema::ValueType::STRING; }
+   static schema::DataType type() { return schema::DataType::ZSTD_COMPRESSED_STRING; }
    using value_type = std::string_view;
 
   private:

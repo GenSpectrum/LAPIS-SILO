@@ -40,7 +40,7 @@ class Nucleotide {
    };
 
    static constexpr schema::ColumnType COLUMN_TYPE = schema::ColumnType::NUCLEOTIDE_SEQUENCE;
-   static constexpr schema::ValueType VALUE_TYPE = schema::ValueType::NUCLEOTIDE_SEQUENCE;
+   static constexpr const schema::DataType& DATA_TYPE = schema::DataType::NUCLEOTIDE_SEQUENCE;
    using Column = storage::column::SequenceColumn<Nucleotide>;
 
    static constexpr uint32_t COUNT = 16;

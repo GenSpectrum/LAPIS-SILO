@@ -12,29 +12,18 @@
 
 #include "config/config_exception.h"
 
-using rhydb::schema::ValueType;
+using rhydb::schema::DataType;
 
-ValueType rhydb::config::toDatabaseValueType(std::string_view type) {
-   if (type == "string") {
-      return ValueType::STRING;
+DataType rhydb::config::toDatabaseDataType(std::string_view type) {
+   const auto data_type = rhydb::schema::fromSchemaTypeName(type);
+   // Sequence columns are declared separately, as `nucleotideSequences` etc.
+   if (
+      !data_type.has_value() || data_type == DataType::NUCLEOTIDE_SEQUENCE ||
+      data_type == DataType::AMINO_ACID_SEQUENCE || data_type == DataType::ZSTD_COMPRESSED_STRING
+   ) {
+      throw ConfigException("Unknown metadata type: " + std::string(type));
    }
-   if (type == "date") {
-      return ValueType::DATE;
-   }
-   if (type == "boolean") {
-      return ValueType::BOOL;
-   }
-   if (type == "int" || type == "int32") {
-      return ValueType::INT32;
-   }
-   if (type == "int64") {
-      return ValueType::INT64;
-   }
-   if (type == "float") {
-      return ValueType::FLOAT;
-   }
-
-   throw rhydb::config::ConfigException("Unknown metadata type: " + std::string(type));
+   return data_type.value();
 }
 
 bool YAML::convert<rhydb::config::DatabaseConfig>::decode(
@@ -94,7 +83,7 @@ bool YAML::convert<rhydb::config::DatabaseMetadata>::decode(
    rhydb::config::DatabaseMetadata& metadata
 ) {
    metadata.name = node["name"].as<std::string>();
-   metadata.type = rhydb::config::toDatabaseValueType(node["type"].as<std::string>());
+   metadata.type = rhydb::config::toDatabaseDataType(node["type"].as<std::string>());
    if (node["generateIndex"].IsDefined()) {
       metadata.generate_index = node["generateIndex"].as<bool>();
    } else {
@@ -113,14 +102,14 @@ bool YAML::convert<rhydb::config::DatabaseMetadata>::decode(
    return true;
 }
 
-using rhydb::schema::valueTypeToString;
+using rhydb::schema::toSchemaTypeName;
 
 YAML::Node YAML::convert<rhydb::config::DatabaseMetadata>::encode(
    const rhydb::config::DatabaseMetadata& metadata
 ) {
    Node node;
    node["name"] = metadata.name;
-   node["type"] = std::string{valueTypeToString(metadata.type)};
+   node["type"] = std::string{toSchemaTypeName(metadata.type)};
    node["generateIndex"] = metadata.generate_index;
    if (metadata.generate_lineage_index) {
       node["generateLineageIndex"] = metadata.generate_lineage_index.value();
@@ -134,26 +123,25 @@ YAML::Node YAML::convert<rhydb::config::DatabaseMetadata>::encode(
 namespace rhydb::config {
 
 schema::ColumnType DatabaseMetadata::getColumnType() const {
-   if (type == ValueType::STRING) {
-      if (generate_index) {
-         return schema::ColumnType::DICTIONARY_ENCODED;
-      }
-      return schema::ColumnType::STRING;
-   }
-   if (type == ValueType::DATE) {
-      return schema::ColumnType::DATE32;
-   }
-   if (type == ValueType::BOOL) {
-      return schema::ColumnType::BOOL;
-   }
-   if (type == ValueType::INT32) {
-      return schema::ColumnType::INT32;
-   }
-   if (type == ValueType::INT64) {
-      return schema::ColumnType::INT64;
-   }
-   if (type == ValueType::FLOAT) {
-      return schema::ColumnType::FLOAT;
+   switch (type.getKind()) {
+      case DataType::Kind::STRING:
+         return generate_index ? schema::ColumnType::DICTIONARY_ENCODED
+                               : schema::ColumnType::STRING;
+      case DataType::Kind::DATE32:
+         return schema::ColumnType::DATE32;
+      case DataType::Kind::BOOL:
+         return schema::ColumnType::BOOL;
+      case DataType::Kind::INT32:
+         return schema::ColumnType::INT32;
+      case DataType::Kind::INT64:
+         return schema::ColumnType::INT64;
+      case DataType::Kind::FLOAT:
+         return schema::ColumnType::FLOAT;
+      case DataType::Kind::DICTIONARY_ENCODED:
+      case DataType::Kind::AMINO_ACID_SEQUENCE:
+      case DataType::Kind::NUCLEOTIDE_SEQUENCE:
+      case DataType::Kind::ZSTD_COMPRESSED_STRING:
+         break;
    }
    throw std::runtime_error("Did not find metadata with name: " + std::string(name));
 }
@@ -209,15 +197,15 @@ DatabaseConfig DatabaseConfig::getValidatedConfigFromFile(
 }
 
 namespace {
-std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfig& config) {
-   std::map<std::string, ValueType> metadata_map;
+std::map<std::string, DataType> validateMetadataDefinitions(const DatabaseConfig& config) {
+   std::map<std::string, DataType> metadata_map;
    for (const auto& metadata : config.schema.metadata) {
       if (metadata_map.contains(metadata.name)) {
          throw ConfigException("Metadata " + metadata.name + " is defined twice in the config");
       }
 
       const auto generate_lineage_indexed_field = metadata.generate_lineage_index;
-      if (metadata.type != ValueType::STRING && generate_lineage_indexed_field) {
+      if (metadata.type != DataType::STRING && generate_lineage_indexed_field) {
          throw ConfigException(
             "Metadata '" + metadata.name +
             "' generateLineageIndex is set, but the column is not of type STRING."
@@ -225,15 +213,14 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
       }
 
       const auto phylo_tree_node_identifiered_field = metadata.phylo_tree_node_identifier;
-      if (metadata.type != ValueType::STRING && phylo_tree_node_identifiered_field) {
+      if (metadata.type != DataType::STRING && phylo_tree_node_identifiered_field) {
          throw ConfigException(
             "Metadata '" + metadata.name +
             "' isPhyloTreeField is set, but the column is not of type STRING."
          );
       }
 
-      const auto must_not_generate_index_on_type = metadata.type != ValueType::STRING;
-      if (metadata.generate_index && must_not_generate_index_on_type) {
+      if (metadata.generate_index && !DataType::canBeDictionaryEncoded(metadata.type)) {
          throw ConfigException(
             "Metadata '" + metadata.name +
             "' generateIndex is set, but generating an index is only allowed for types STRING"
@@ -263,7 +250,7 @@ std::map<std::string, ValueType> validateMetadataDefinitions(const DatabaseConfi
 }  // namespace
 
 void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
-   const std::map<std::string, ValueType> metadata_map = validateMetadataDefinitions(config);
+   const std::map<std::string, DataType> metadata_map = validateMetadataDefinitions(config);
 
    if (config.schema.metadata.empty()) {
       throw ConfigException("Database config without fields not possible");
@@ -309,7 +296,7 @@ void DatabaseConfig::validateConfig(const DatabaseConfig& config) {
       ctx.out(),
       "{{ name: '{}', type: '{}', generate_index: {} }}",
       database_metadata.name,
-      valueTypeToString(database_metadata.type),
+      toSchemaTypeName(database_metadata.type),
       database_metadata.generate_index
    );
 }

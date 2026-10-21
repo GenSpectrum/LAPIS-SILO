@@ -62,10 +62,10 @@ CMake auto-scans `src/` and `app/src/` directories. The Makefile maintains `.src
 #include "rhydb/common/panic.h"           // 4. Internal (quotes)
 ```
 
-### `using` statements
+### `using` declarations
 
-Never use `using my::Type` in `.h` files.
-Use `using my::Type` (only in `.cpp` files) deliberately for all `rhydb::...` types.
+Never use `using my::Type` at namespace scope in `.h` files, where it would leak into every includer.
+Inside a function body or other local scope in a header and in source files, `using` declarations should be used when it makes code more readable.
 
 ### Error handling
 - `std::expected<T, Error>` for recoverable errors.
