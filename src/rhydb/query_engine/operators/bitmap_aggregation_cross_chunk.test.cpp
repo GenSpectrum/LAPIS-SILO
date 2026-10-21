@@ -49,9 +49,9 @@ nlohmann::json createRow(const std::string& primary_key, const std::string& nucl
 }
 
 // A filler row with a null `segment1`. All filler rows group as `s1 = null`.
-nlohmann::json createFillerRow(size_t index) {
+nlohmann::json createFillerRow(size_t chunk_index, size_t filler_index) {
    return {
-      {"primaryKey", "filler_" + std::to_string(index)},
+      {"primaryKey", "filler_c" + std::to_string(chunk_index) + "_" + std::to_string(filler_index)},
       {"segment1", nullptr},
    };
 }

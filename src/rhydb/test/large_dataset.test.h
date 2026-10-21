@@ -31,13 +31,15 @@ struct LargeDataset {
 /// that chunk to flush at the chunk boundary. The last chunk is left partial,
 /// so the non-full final chunk path is exercised too.
 ///
-/// `make_filler(n)` must return a schema-valid row for the test's schema, where
-/// `n` is the running filler index (use it to generate a unique primary key).
-/// Filler rows should group predictably (e.g. a null sequence collapses them
-/// into the single null group), so the test can assert their combined count.
+/// `make_filler(chunk_index, filler_index)` must return a schema-valid row for
+/// the test's schema. `chunk_index` is the chunk the filler row lands in, and
+/// `filler_index` is the running filler count across all chunks (use it to
+/// generate a unique primary key). Filler rows should group predictably (e.g. a
+/// null sequence collapses them into the single null group), so the test can
+/// assert their combined count.
 inline LargeDataset buildAcrossChunks(
    const std::vector<std::vector<nlohmann::json>>& chunks,
-   const std::function<nlohmann::json(size_t)>& make_filler
+   const std::function<nlohmann::json(size_t chunk_index, size_t filler_index)>& make_filler
 ) {
    LargeDataset dataset;
    for (size_t chunk_index = 0; chunk_index < chunks.size(); ++chunk_index) {
@@ -52,7 +54,7 @@ inline LargeDataset buildAcrossChunks(
       }
 
       for (size_t i = chunk_rows.size(); i < CHUNK_SIZE; ++i) {
-         dataset.rows.push_back(make_filler(dataset.filler_count));
+         dataset.rows.push_back(make_filler(chunk_index, dataset.filler_count));
          ++dataset.filler_count;
       }
    }
