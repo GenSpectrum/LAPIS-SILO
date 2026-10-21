@@ -27,14 +27,14 @@ DataType roundTrip(const DataType& type) {
 }  // namespace
 
 TEST(DataType, dictionaryEncodedTypeHasItsValueTypeAsChild) {
-   constexpr DataType DICTIONARY_STRING = DataType::dictionaryEncoded(DataType::STRING);
-   static_assert(DICTIONARY_STRING.getKind() == Kind::DICTIONARY_ENCODED);
-   static_assert(DICTIONARY_STRING.getDictionaryValueType() == DataType::STRING);
-   static_assert(DICTIONARY_STRING.getPlainType() == DataType::STRING);
-   static_assert(DataType::INT32.getPlainType() == DataType::INT32);
+   const DataType dictionary_string = DataType::dictionaryEncoded(DataType::STRING);
+   EXPECT_EQ(dictionary_string.getKind(), Kind::DICTIONARY_ENCODED);
+   EXPECT_EQ(dictionary_string.getDictionaryValueType(), DataType::STRING);
+   EXPECT_EQ(dictionary_string.getPlainType(), DataType::STRING);
+   EXPECT_EQ(DataType::INT32.getPlainType(), DataType::INT32);
 
-   EXPECT_EQ(DICTIONARY_STRING, DataType::dictionaryEncoded(DataType::STRING));
-   EXPECT_NE(DICTIONARY_STRING, DataType::STRING);
+   EXPECT_EQ(dictionary_string, DataType::dictionaryEncoded(DataType::STRING));
+   EXPECT_NE(dictionary_string, DataType::STRING);
 }
 
 TEST(DataType, isOrderedByKindAndThenByChild) {
@@ -59,7 +59,7 @@ TEST(DataType, survivesSerialization) {
 TEST(DataType, hasSchemaTypeNames) {
    using rhydb::schema::fromSchemaTypeName;
    using rhydb::schema::toSchemaTypeName;
-   for (const DataType type : {
+   for (const DataType& type : {
            DataType::STRING,
            DataType::DATE32,
            DataType::BOOL,

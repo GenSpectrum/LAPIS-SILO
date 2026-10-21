@@ -55,7 +55,7 @@ class DictionaryEncodedColumn {
    using Buffer = std::vector<std::optional<std::string>>;
 
    static constexpr schema::ColumnType TYPE = schema::ColumnType::DICTIONARY_ENCODED;
-   static constexpr schema::DataType type() {
+   static schema::DataType type() {
       return schema::DataType::dictionaryEncoded(schema::DataType::STRING);
    }
    using value_type = std::string_view;

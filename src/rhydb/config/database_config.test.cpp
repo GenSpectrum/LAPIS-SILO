@@ -104,7 +104,7 @@ struct TestParameter {
 class DatabaseMetadataFixture : public ::testing::TestWithParam<TestParameter> {};
 
 TEST_P(DatabaseMetadataFixture, getColumnTypeShouldReturnCorrectColumnType) {
-   const auto test_parameter = GetParam();
+   const auto& test_parameter = GetParam();
 
    const rhydb::config::DatabaseMetadata under_test = {
       .name = "testName",

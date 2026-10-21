@@ -21,7 +21,7 @@ DataType rhydb::config::toDatabaseDataType(std::string_view type) {
       !data_type.has_value() || data_type == DataType::NUCLEOTIDE_SEQUENCE ||
       data_type == DataType::AMINO_ACID_SEQUENCE || data_type == DataType::ZSTD_COMPRESSED_STRING
    ) {
-      throw rhydb::config::ConfigException("Unknown metadata type: " + std::string(type));
+      throw ConfigException("Unknown metadata type: " + std::string(type));
    }
    return data_type.value();
 }
