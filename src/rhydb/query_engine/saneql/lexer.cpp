@@ -124,7 +124,7 @@ Token Lexer::readNumber() {
       if (current == '.') {
          is_float = true;
       } else if (current == 'e' || current == 'E') {
-         // Scientific notation such as 9.0E-4, which is how e.g. Java prints doubles below 1e-3
+         // Scientific notation such as 9.0E-4
          is_float = true;
          if (!isAtEnd() && (peek() == '+' || peek() == '-')) {
             advance();

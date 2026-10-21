@@ -586,6 +586,22 @@ const QueryTestScenario OR_WITH_AND = {
    ),
 };
 
+// A filter on many accessions, as LAPIS sends it, must neither overflow the stack nor take
+// quadratic time
+std::string longOrChainQuery() {
+   std::string filter = "primaryKey = 'id_2'";
+   for (size_t i = 0; i < 100'000; ++i) {
+      filter += fmt::format(" || primaryKey = 'not_present_{}'", i);
+   }
+   return fmt::format("data.filter({}).project(primaryKey)", filter);
+}
+
+const QueryTestScenario OR_LONG_CHAIN = {
+   .name = "OR_LONG_CHAIN",
+   .query = longOrChainQuery(),
+   .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_2"}])"),
+};
+
 const QueryTestScenario OR_EMPTY_CHILDREN = {
    .name = "OR_EMPTY_CHILDREN",
    .query = "data.filter(false).project(primaryKey)",
@@ -604,6 +620,7 @@ QUERY_TEST(
       OR_STRING_EQUALS_MERGED,
       OR_MIXED_COLUMNS,
       OR_WITH_AND,
+      OR_LONG_CHAIN,
       OR_EMPTY_CHILDREN
    )
 );
