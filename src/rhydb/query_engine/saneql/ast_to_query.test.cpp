@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -285,6 +286,50 @@ TEST(AstToQueryIntComparison, greaterThanBuildsComparison) {
    EXPECT_EQ(parseFilter("age > 5", schema)->toString(), "age > 5");
 }
 
+// --- chains of && and || ---
+
+TEST(AstToQueryChain, convertsChainOfOrsToSingleOr) {
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "country", .type = rhydb::schema::ColumnType::STRING},
+   };
+   EXPECT_EQ(
+      parseFilter(
+         "country = 'a' || (country = 'b' || country = 'c') || country = 'd' || country = 'e'",
+         schema
+      )
+         ->toString(),
+      "Or(country = 'a' | country = 'b' | country = 'c' | country = 'd' | country = 'e')"
+   );
+}
+
+TEST(AstToQueryChain, doesNotMergeAndIntoOr) {
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "country", .type = rhydb::schema::ColumnType::STRING},
+   };
+   EXPECT_EQ(
+      parseFilter("country = 'a' || country = 'b' && country = 'c' && country = 'd'", schema)
+         ->toString(),
+      "Or(country = 'a' | And(country = 'b' & country = 'c' & country = 'd'))"
+   );
+}
+
+TEST(AstToQueryChain, convertsLongChainOfOrsToSingleOr) {
+   const std::vector<rhydb::schema::ColumnIdentifier> schema{
+      {.name = "accession", .type = rhydb::schema::ColumnType::STRING},
+   };
+   std::string query = "accession = 'a0'";
+   for (size_t i = 1; i < 100'000; ++i) {
+      query += " || accession = 'a" + std::to_string(i) + "'";
+   }
+   EXPECT_THAT(
+      parseFilter(query, schema)->toString(),
+      ::testing::AllOf(
+         ::testing::StartsWith("Or(accession = 'a0' | accession = 'a1' | "),
+         ::testing::EndsWith(" | ... (99990 more))")
+      )
+   );
+}
+
 // --- float comparisons ---
 
 TEST(AstToQueryFloatComparison, lessEqualBuildsComparison) {
@@ -432,7 +477,7 @@ TEST(AstToQueryBinaryExpr, comparisonNoIdentifierBuildsComparison) {
 }
 
 TEST(AstToQueryBinaryExpr, unhandledBinaryOpThrows) {
-   // All 8 BinaryOp enum values are handled in convertBinaryExprToFilter; the throw
+   // All 6 BinaryOp enum values are handled in convertBinaryExprToFilter; the throw
    // after the switch is a defensive guard reachable only via an out-of-range op value.
    auto expr = ast::makeExpr(
       ast::BinaryExpr{

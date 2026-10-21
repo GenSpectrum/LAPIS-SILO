@@ -29,8 +29,6 @@ struct NamedArgument {
 };
 
 enum class BinaryOp : uint8_t {
-   AND,
-   OR,
    EQUALS,
    NOT_EQUALS,
    LESS_THAN,
@@ -40,6 +38,13 @@ enum class BinaryOp : uint8_t {
 };
 
 [[nodiscard]] std::string binaryOpToString(BinaryOp op);
+
+enum class LogicalOp : uint8_t {
+   AND,
+   OR,
+};
+
+[[nodiscard]] std::string logicalOpToString(LogicalOp op);
 
 /// `value` as a string literal that parses back to `value`, i.e. quoted with every `'` doubled.
 [[nodiscard]] std::string quoteStringLiteral(std::string_view value);
@@ -73,6 +78,14 @@ struct BinaryExpr {
    BinaryOp op;
    ExpressionPtr left;
    ExpressionPtr right;
+};
+
+/// An n-ary conjunction or disjunction, e.g. `a && b && c`. The parser collapses a chain of the
+/// same operator into a single node, so that long chains (e.g. a filter on 100k accessions) do
+/// not build a deeply nested AST, whose recursive passes would overflow the stack.
+struct LogicalExpr {
+   LogicalOp op;
+   std::vector<ExpressionPtr> operands;
 };
 
 struct UnaryNotExpr {
@@ -111,6 +124,7 @@ using ExpressionVariant = std::variant<
    NullLiteral,
    Identifier,
    BinaryExpr,
+   LogicalExpr,
    UnaryNotExpr,
    FunctionCall,
    TypeCast,

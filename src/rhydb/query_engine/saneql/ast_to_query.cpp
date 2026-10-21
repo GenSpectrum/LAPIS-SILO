@@ -1,4 +1,5 @@
 #include "rhydb/query_engine/saneql/ast_to_query.h"
+#include "rhydb/common/panic.h"
 
 #include <chrono>
 #include <optional>
@@ -227,18 +228,6 @@ ScalarExpressionPtr convertBinaryExprToFilter(
    const ScalarConversionContext& context
 ) {
    switch (bin_expr.op) {
-      case BinaryOp::AND: {
-         scalar_expressions::ScalarExpressionVector children;
-         children.push_back(convertToFilter(*bin_expr.left, schema, context));
-         children.push_back(convertToFilter(*bin_expr.right, schema, context));
-         return std::make_unique<scalar_expressions::And>(std::move(children));
-      }
-      case BinaryOp::OR: {
-         scalar_expressions::ScalarExpressionVector children;
-         children.push_back(convertToFilter(*bin_expr.left, schema, context));
-         children.push_back(convertToFilter(*bin_expr.right, schema, context));
-         return std::make_unique<scalar_expressions::Or>(std::move(children));
-      }
       case BinaryOp::EQUALS:
       case BinaryOp::NOT_EQUALS:
       case BinaryOp::LESS_THAN:
@@ -256,6 +245,26 @@ ScalarExpressionPtr convertBinaryExprToFilter(
       }
    }
    throw IllegalQueryException("unhandled binary operator");
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+ScalarExpressionPtr convertLogicalExprToFilter(
+   const ast::LogicalExpr& logical_expr,
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const ScalarConversionContext& context
+) {
+   scalar_expressions::ScalarExpressionVector children;
+   children.reserve(logical_expr.operands.size());
+   for (const auto& operand : logical_expr.operands) {
+      children.push_back(convertToFilter(*operand, schema, context));
+   }
+   switch (logical_expr.op) {
+      case ast::LogicalOp::AND:
+         return std::make_unique<scalar_expressions::And>(std::move(children));
+      case ast::LogicalOp::OR:
+         return std::make_unique<scalar_expressions::Or>(std::move(children));
+   }
+   RHYDB_UNREACHABLE();
 }
 
 // ========================================================================
@@ -764,6 +773,8 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
 
          if constexpr (std::is_same_v<T, ast::BinaryExpr>) {
             return convertBinaryExprToFilter(node, schema, context);
+         } else if constexpr (std::is_same_v<T, ast::LogicalExpr>) {
+            return convertLogicalExprToFilter(node, schema, context);
          } else if constexpr (std::is_same_v<T, ast::UnaryNotExpr>) {
             return std::make_unique<scalar_expressions::Negation>(
                convertToFilter(*node.operand, schema, context)
@@ -1512,6 +1523,19 @@ void collectJoinKeys(
    const std::vector<schema::ColumnIdentifier>& right_schema,
    JoinKeys& keys
 ) {
+   if (const auto* logical = std::get_if<ast::LogicalExpr>(&on_expression.value)) {
+      CHECK_RHYDB_QUERY(
+         logical->op == ast::LogicalOp::AND,
+         "join() on-expression only supports equality (=) comparisons, optionally combined with "
+         "'&&', at {}:{}",
+         on_expression.location.line,
+         on_expression.location.column
+      );
+      for (const auto& operand : logical->operands) {
+         collectJoinKeys(*operand, left_schema, right_schema, keys);
+      }
+      return;
+   }
    CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::BinaryExpr>(on_expression.value),
       "join() on-expression must be an equality between a left and a right column, or a "
@@ -1520,11 +1544,6 @@ void collectJoinKeys(
       on_expression.location.column
    );
    const auto& binary = std::get<ast::BinaryExpr>(on_expression.value);
-   if (binary.op == BinaryOp::AND) {
-      collectJoinKeys(*binary.left, left_schema, right_schema, keys);
-      collectJoinKeys(*binary.right, left_schema, right_schema, keys);
-      return;
-   }
    CHECK_RHYDB_QUERY(
       binary.op == BinaryOp::EQUALS,
       "join() on-expression only supports equality (=) comparisons, optionally combined with "

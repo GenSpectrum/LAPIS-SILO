@@ -12,10 +12,6 @@ namespace rhydb::query_engine::saneql::ast {
 
 std::string binaryOpToString(BinaryOp op) {
    switch (op) {
-      case BinaryOp::AND:
-         return "&&";
-      case BinaryOp::OR:
-         return "||";
       case BinaryOp::EQUALS:
          return "=";
       case BinaryOp::NOT_EQUALS:
@@ -56,6 +52,16 @@ std::string quoteIdentifier(std::string_view name) {
    return quote(name, '"');
 }
 
+std::string logicalOpToString(LogicalOp op) {
+   switch (op) {
+      case LogicalOp::AND:
+         return "&&";
+      case LogicalOp::OR:
+         return "||";
+   }
+   RHYDB_UNREACHABLE();
+}
+
 namespace {
 
 struct ExprToString {
@@ -75,6 +81,17 @@ struct ExprToString {
       return fmt::format(
          "({} {} {})", expr.left->toString(), binaryOpToString(expr.op), expr.right->toString()
       );
+   }
+
+   std::string operator()(const LogicalExpr& expr) const {
+      std::string operands;
+      for (size_t i = 0; i < expr.operands.size(); i++) {
+         if (i > 0) {
+            operands += fmt::format(" {} ", logicalOpToString(expr.op));
+         }
+         operands += expr.operands[i]->toString();
+      }
+      return fmt::format("({})", operands);
    }
 
    std::string operator()(const UnaryNotExpr& expr) const {
