@@ -86,7 +86,6 @@ const QueryTestScenario FLIPPED_OPERANDS = {
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_below"}])"),
 };
 
-// Java/Kotlin print doubles below 1e-3 in scientific notation, e.g. 0.0015 as 1.5E-3
 const QueryTestScenario SCIENTIFIC_NOTATION = {
    .name = "FLOAT_SCIENTIFIC_NOTATION",
    .query = "data.filter(float_value > 1.5E-3 && float_value < 0.4e1).project(primaryKey)",
