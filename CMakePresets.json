@@ -52,6 +52,21 @@
       "environment": {
         "CXXFLAGS": "-Wall"
       }
+    },
+    {
+      "name": "wasm64",
+      "displayName": "WebAssembly (64-bit / MEMORY64)",
+      "description": "Emscripten wasm64 build; requires the wasm64 dependencies (make build/wasm64/dependencies)",
+      "inherits": "wasm",
+      "binaryDir": "${sourceDir}/build/wasm64",
+      "toolchainFile": "${sourceDir}/build/wasm64/generators/conan_toolchain.cmake",
+      "cacheVariables": {
+        "RHYDB_WASM_MEMORY64": "ON",
+        "CMAKE_C_FLAGS": "--target=wasm64"
+      },
+      "environment": {
+        "CXXFLAGS": "-Wall --target=wasm64"
+      }
     }
   ]
 }
