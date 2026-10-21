@@ -1,5 +1,4 @@
 #include "rhydb/query_engine/saneql/ast_to_query.h"
-#include "rhydb/common/panic.h"
 
 #include <chrono>
 #include <optional>
@@ -15,6 +14,7 @@
 
 #include "rhydb/common/aa_symbols.h"
 #include "rhydb/common/nucleotide_symbols.h"
+#include "rhydb/common/panic.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/operators/aggregate_node.h"
