@@ -88,18 +88,39 @@ int totalForSymbol(char symbol) {
    return 0;
 }
 rhydb::test::LargeDataset buildDataset() {
-   std::vector<std::vector<nlohmann::json>> chunks(3);
-   size_t primary_key_counter = 0;
-   for (size_t chunk_index = 0; chunk_index < chunks.size(); ++chunk_index) {
-      for (const auto& layout : GROUP_LAYOUTS) {
-         for (int i = 0; i < layout.rows_per_chunk[chunk_index]; ++i) {
-            chunks[chunk_index].push_back(createRow(
-               "id_" + std::to_string(primary_key_counter++), sequenceWithFirstSymbol(layout.symbol)
-            ));
-         }
-      }
-   }
-   return buildAcrossChunks(chunks, createFillerRow);
+   // std::vector<std::vector<nlohmann::json>> chunks(3);
+   // size_t primary_key_counter = 0;
+   // for (size_t chunk_index = 0; chunk_index < chunks.size(); ++chunk_index) {
+   //    for (const auto& layout : GROUP_LAYOUTS) {
+   //       for (int i = 0; i < layout.rows_per_chunk[chunk_index]; ++i) {
+   //          chunks[chunk_index].push_back(createRow(
+   //             "id_" + std::to_string(primary_key_counter++), sequenceWithFirstSymbol(layout.symbol)
+   //          ));
+   //       }
+   //    }
+   // }
+   return buildAcrossChunks(
+      template = (chunk_id, id) => ({
+          primary_key: `id_${chunk_id}_${id}`,
+          segment1: null,
+      }),
+      values = [
+          [
+         { segment1: { sequence: "ATGCN" , insertions: [] }},
+         { segment1: { sequence: "CTGCN" , insertions: [] }},
+         { segment1: { sequence: "GTGCN" , insertions: [] }}
+         ],
+          [
+         { segment1: { sequence: "ATGCN" , insertions: [] }},
+         { segment1: { sequence: "CTGCN" , insertions: [] }},
+         { segment1: { sequence: "TTGCN" , insertions: [] }}
+         ],
+          [
+         { segment1: { sequence: "ATGCN" , insertions: [] }},
+         { segment1: { sequence: "TTGCN" , insertions: [] }}
+         ],
+      ]
+   );
 }
 
 const rhydb::test::LargeDataset DATASET = buildDataset();
