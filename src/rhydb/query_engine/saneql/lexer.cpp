@@ -120,10 +120,16 @@ Token Lexer::readNumber() {
 
    bool is_float = false;
    while (!isAtEnd() && (std::isalnum(static_cast<unsigned char>(peek())) || peek() == '.')) {
-      if (peek() == '.') {
+      const char current = advance();
+      if (current == '.') {
          is_float = true;
+      } else if (current == 'e' || current == 'E') {
+         // Scientific notation such as 9.0E-4, which is how e.g. Java prints doubles below 1e-3
+         is_float = true;
+         if (!isAtEnd() && (peek() == '+' || peek() == '-')) {
+            advance();
+         }
       }
-      advance();
    }
 
    const std::string_view num_str = input.substr(num_start, position - num_start);

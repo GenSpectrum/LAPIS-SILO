@@ -63,6 +63,28 @@ TEST(SaneQLParser, parsesNegativeFloat) {
    EXPECT_DOUBLE_EQ(std::get<ast::FloatLiteral>(expr->value).value, -3.14);
 }
 
+TEST(SaneQLParser, parsesFloatLiteralInScientificNotation) {
+   Parser parser("9.0E-4");
+   auto expr = parser.parse();
+   ASSERT_TRUE(std::holds_alternative<ast::FloatLiteral>(expr->value));
+   EXPECT_DOUBLE_EQ(std::get<ast::FloatLiteral>(expr->value).value, 0.0009);
+}
+
+TEST(SaneQLParser, parsesNegativeFloatInScientificNotation) {
+   Parser parser("-9.0E-4");
+   auto expr = parser.parse();
+   ASSERT_TRUE(std::holds_alternative<ast::FloatLiteral>(expr->value));
+   EXPECT_DOUBLE_EQ(std::get<ast::FloatLiteral>(expr->value).value, -0.0009);
+}
+
+TEST(SaneQLParser, parsesComparisonWithFloatInScientificNotation) {
+   Parser parser("data.filter(completeness <= 9.0E-4 && 1e-5 < completeness)");
+   auto expr = parser.parse();
+   EXPECT_EQ(
+      expr->toString(), "filter(data, ((completeness <= 0.0009) && (1e-05 < completeness)))"
+   );
+}
+
 TEST(SaneQLParser, parsesBoolLiteral) {
    Parser parser("true");
    auto expr = parser.parse();
