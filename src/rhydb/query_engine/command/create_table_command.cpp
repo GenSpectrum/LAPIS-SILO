@@ -42,6 +42,13 @@ namespace rhydb::query_engine::command {
 using saneql::FunctionSignature;
 using saneql::ParameterDefinition;
 using schema::DataType;
+using storage::column::Column;
+using storage::column::ColumnMetadata;
+using storage::column::DictionaryEncodedColumn;
+using storage::column::SequenceColumnMetadata;
+using storage::column::StringColumn;
+using storage::column::StringColumnMetadata;
+using storage::column::ZstdCompressedStringColumnMetadata;
 
 namespace {
 
@@ -159,10 +166,9 @@ std::optional<std::string> findReferenceSequence(
    const std::string& name,
    std::string_view type
 ) {
-   const auto& name_column = reference_genomes.getColumn<storage::column::StringColumn>("name");
-   const auto& type_column = reference_genomes.getColumn<storage::column::StringColumn>("type");
-   const auto& sequence_column =
-      reference_genomes.getColumn<storage::column::StringColumn>("sequence");
+   const auto& name_column = reference_genomes.getColumn<StringColumn>("name");
+   const auto& type_column = reference_genomes.getColumn<StringColumn>("type");
+   const auto& sequence_column = reference_genomes.getColumn<StringColumn>("sequence");
    for (const auto row_id : reference_genomes.row_layout) {
       if (
          name_column.isNull(row_id) || type_column.isNull(row_id) || sequence_column.isNull(row_id)
@@ -299,23 +305,21 @@ std::string computeDictionary(
    return std::move(sink.values.front()).value();
 }
 
-std::shared_ptr<storage::column::ColumnMetadata> createColumnMetadata(
+std::shared_ptr<ColumnMetadata> createColumnMetadata(
    ColumnDefinition& column,
    const storage::Table& reference_genomes,
    const Database& database,
    const config::QueryOptions& query_options,
    std::string_view request_id
 ) {
-   using Kind = schema::DataType::Kind;
+   using Kind = DataType::Kind;
    switch (column.type.getKind()) {
       case Kind::STRING:
-         return std::make_shared<storage::column::StringColumnMetadata>(column.name);
+         return std::make_shared<StringColumnMetadata>(column.name);
       case Kind::DICTIONARY_ENCODED:
          return storage::column::visit(
-            column.type,
-            [&]<storage::column::Column ColumnClass> -> std::shared_ptr<
-                                                        storage::column::ColumnMetadata> {
-               if constexpr (std::same_as<ColumnClass, storage::column::DictionaryEncodedColumn>) {
+            column.type, [&]<Column ColumnClass> -> std::shared_ptr<ColumnMetadata> {
+               if constexpr (std::same_as<ColumnClass, DictionaryEncodedColumn>) {
                   return std::make_shared<typename ColumnClass::Metadata>(column.name);
                } else {
                   RHYDB_UNREACHABLE();
@@ -327,12 +331,12 @@ std::shared_ptr<storage::column::ColumnMetadata> createColumnMetadata(
       case Kind::INT32:
       case Kind::INT64:
       case Kind::FLOAT:
-         return std::make_shared<storage::column::ColumnMetadata>(column.name);
+         return std::make_shared<ColumnMetadata>(column.name);
       case Kind::NUCLEOTIDE_SEQUENCE: {
          auto reference = getReferenceSequence(
             reference_genomes, column, schema::REFERENCE_GENOMES_NUCLEOTIDE_TYPE
          );
-         return std::make_shared<storage::column::SequenceColumnMetadata<Nucleotide>>(
+         return std::make_shared<SequenceColumnMetadata<Nucleotide>>(
             column.name, toReferenceSymbols<Nucleotide>(reference, column)
          );
       }
@@ -340,7 +344,7 @@ std::shared_ptr<storage::column::ColumnMetadata> createColumnMetadata(
          auto reference = getReferenceSequence(
             reference_genomes, column, schema::REFERENCE_GENOMES_AMINO_ACID_TYPE
          );
-         return std::make_shared<storage::column::SequenceColumnMetadata<AminoAcid>>(
+         return std::make_shared<SequenceColumnMetadata<AminoAcid>>(
             column.name, toReferenceSymbols<AminoAcid>(reference, column)
          );
       }
@@ -352,7 +356,7 @@ std::shared_ptr<storage::column::ColumnMetadata> createColumnMetadata(
             query_options,
             request_id
          );
-         return std::make_shared<storage::column::ZstdCompressedStringColumnMetadata>(
+         return std::make_shared<ZstdCompressedStringColumnMetadata>(
             column.name, std::move(dictionary)
          );
       }
@@ -450,8 +454,7 @@ arrow::Result<std::shared_ptr<arrow::Table>> CreateTableCommand::execute(
 
    const auto& reference_genomes =
       *database.tables.at(schema::TableName{std::string{schema::REFERENCE_GENOMES_TABLE_NAME}});
-   std::map<schema::ColumnIdentifier, std::shared_ptr<storage::column::ColumnMetadata>>
-      column_metadata;
+   std::map<schema::ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata;
    for (auto& column : columns_) {
       column_metadata.emplace(
          schema::ColumnIdentifier{.name = column.name, .type = column.type},

@@ -18,6 +18,8 @@
 
 namespace rhydb_app {
 
+using rhydb::schema::DataType;
+
 namespace {
 
 /// The lineage definition file of the lineage column `column_name`, as preprocessing stored it in
@@ -77,10 +79,7 @@ void LineageDefinitionHandler::get(
    if (column_identifier == std::nullopt) {
       throw BadRequest("The column {} does not exist in this instance.", column_name);
    }
-   if (
-      column_identifier.value().type !=
-      rhydb::schema::DataType::dictionaryEncoded(rhydb::schema::DataType::STRING)
-   ) {
+   if (column_identifier.value().type != DataType::dictionaryEncoded(DataType::STRING)) {
       throw BadRequest("The column {} is not of type dictionary-encoded string.", column_name);
    }
 
