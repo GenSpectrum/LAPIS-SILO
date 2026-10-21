@@ -1,4 +1,3 @@
-#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -40,90 +39,58 @@ const auto REFERENCE_GENOMES = ReferenceGenomes{
    {},
 };
 
-// A real row carrying `nucleotide_sequence` on `segment1`.
-nlohmann::json createRow(const std::string& primary_key, const std::string& nucleotide_sequence) {
+// A template row: a unique primary key and a null `segment1`. Template-only
+// (padding) rows keep the null sequence, so they all group as `s1 = null`.
+nlohmann::json createTemplate(size_t chunk_index, size_t row_index) {
    return {
-      {"primaryKey", primary_key},
-      {"segment1", {{"sequence", nucleotide_sequence}, {"insertions", nlohmann::json::array()}}},
-   };
-}
-
-// A filler row with a null `segment1`. All filler rows group as `s1 = null`.
-nlohmann::json createFillerRow(size_t chunk_index, size_t filler_index) {
-   return {
-      {"primaryKey", "filler_c" + std::to_string(chunk_index) + "_" + std::to_string(filler_index)},
+      {"primaryKey", "id_c" + std::to_string(chunk_index) + "_" + std::to_string(row_index)},
       {"segment1", nullptr},
    };
 }
 
-// The reference is "ATGCN". We group by segment1.at(1), so the symbol at the
-// first position of each row's sequence decides its group. Build sequences that
-// put a chosen symbol at position 1 and keep the rest at the reference.
-std::string sequenceWithFirstSymbol(char symbol) {
-   std::string sequence = "ATGCN";
-   sequence[0] = symbol;
-   return sequence;
+// A `segment1` column value carrying `nucleotide_sequence`, overlaid on the
+// template for real rows. The symbol at position 1 decides the row's group.
+nlohmann::json segment1Value(const std::string& nucleotide_sequence) {
+   return {{"sequence", nucleotide_sequence}, {"insertions", nlohmann::json::array()}};
 }
 
-// Per group, how many real rows go into each of the three chunks. The same
-// group appears across chunks, so the totals can only be produced by folding
-// per-chunk counts together.
-struct GroupLayout {
-   char symbol;
-   std::array<int, 3> rows_per_chunk;
+// The real rows per chunk, as column overrides laid over the template. The same
+// first-position symbol appears in several chunks (A in all three; C in chunks
+// 0 and 1; T in chunks 1 and 2), so the asserted totals can only be produced by
+// folding the per-chunk counts together.
+const std::vector<std::vector<nlohmann::json>> VALUES = {
+   {
+      {{"segment1", segment1Value("ATGCN")}},
+      {{"segment1", segment1Value("CTGCN")}},
+      {{"segment1", segment1Value("GTGCN")}},
+   },
+   {
+      {{"segment1", segment1Value("ATGCN")}},
+      {{"segment1", segment1Value("CTGCN")}},
+      {{"segment1", segment1Value("TTGCN")}},
+   },
+   {
+      {{"segment1", segment1Value("ATGCN")}},
+      {{"segment1", segment1Value("TTGCN")}},
+   },
 };
 
-constexpr std::array<GroupLayout, 3> GROUP_LAYOUTS{{
-   {'A', {3, 5, 2}},  // total 10
-   {'C', {1, 0, 4}},  // total 5, absent from the middle chunk
-   {'G', {0, 2, 6}},  // total 8, absent from the first chunk
-}};
-
+// Counts the real rows whose segment1 sequence starts with `symbol`, across all
+// chunks. Keeps the expected result in sync with VALUES.
 int totalForSymbol(char symbol) {
-   for (const auto& layout : GROUP_LAYOUTS) {
-      if (layout.symbol == symbol) {
-         return layout.rows_per_chunk[0] + layout.rows_per_chunk[1] + layout.rows_per_chunk[2];
+   int total = 0;
+   for (const auto& chunk_values : VALUES) {
+      for (const auto& row : chunk_values) {
+         const auto& sequence = row.at("segment1").at("sequence").get_ref<const std::string&>();
+         if (!sequence.empty() && sequence[0] == symbol) {
+            ++total;
+         }
       }
    }
-   return 0;
-}
-rhydb::test::LargeDataset buildDataset() {
-   // std::vector<std::vector<nlohmann::json>> chunks(3);
-   // size_t primary_key_counter = 0;
-   // for (size_t chunk_index = 0; chunk_index < chunks.size(); ++chunk_index) {
-   //    for (const auto& layout : GROUP_LAYOUTS) {
-   //       for (int i = 0; i < layout.rows_per_chunk[chunk_index]; ++i) {
-   //          chunks[chunk_index].push_back(createRow(
-   //             "id_" + std::to_string(primary_key_counter++), sequenceWithFirstSymbol(layout.symbol)
-   //          ));
-   //       }
-   //    }
-   // }
-   return buildAcrossChunks(
-      template = (chunk_id, id) => ({
-          primary_key: `id_${chunk_id}_${id}`,
-          segment1: null,
-      }),
-      values = [
-          [
-         { segment1: { sequence: "ATGCN" , insertions: [] }},
-         { segment1: { sequence: "CTGCN" , insertions: [] }},
-         { segment1: { sequence: "GTGCN" , insertions: [] }}
-         ],
-          [
-         { segment1: { sequence: "ATGCN" , insertions: [] }},
-         { segment1: { sequence: "CTGCN" , insertions: [] }},
-         { segment1: { sequence: "TTGCN" , insertions: [] }}
-         ],
-          [
-         { segment1: { sequence: "ATGCN" , insertions: [] }},
-         { segment1: { sequence: "TTGCN" , insertions: [] }}
-         ],
-      ]
-   );
+   return total;
 }
 
-const rhydb::test::LargeDataset DATASET = buildDataset();
+const rhydb::test::LargeDataset DATASET = buildAcrossChunks(createTemplate, VALUES);
 
 const QueryTestData TEST_DATA{
    .ndjson_input_data = DATASET.rows,
@@ -141,6 +108,7 @@ const QueryTestScenario GROUP_BY_POSITION_ACROSS_CHUNKS = {
       {{"s1", "A"}, {"count", totalForSymbol('A')}},
       {{"s1", "C"}, {"count", totalForSymbol('C')}},
       {{"s1", "G"}, {"count", totalForSymbol('G')}},
+      {{"s1", "T"}, {"count", totalForSymbol('T')}},
       {{"s1", nullptr}, {"count", static_cast<int64_t>(DATASET.filler_count)}},
    }),
 };
