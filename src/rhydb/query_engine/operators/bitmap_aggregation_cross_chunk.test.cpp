@@ -5,6 +5,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "rhydb/storage/reference_genomes.h"
 #include "rhydb/test/large_dataset.test.h"
 #include "rhydb/test/query_fixture.test.h"
 
@@ -17,12 +18,43 @@
 // also covers the non-full-chunk path.
 
 namespace {
+using rhydb::ReferenceGenomes;
 using rhydb::test::buildAcrossChunks;
-using rhydb::test::CHUNK_SIZE;
-using rhydb::test::largeDatasetReferenceGenomes;
-using rhydb::test::largeDatasetRow;
 using rhydb::test::QueryTestData;
 using rhydb::test::QueryTestScenario;
+
+// A string primary key and a single nucleotide segment `segment1`.
+const auto DATABASE_CONFIG =
+   R"(
+schema:
+  instanceName: "large dataset"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+  primaryKey: "primaryKey"
+)";
+
+// The reference is intentionally short to keep the large datasets cheap.
+const auto REFERENCE_GENOMES = ReferenceGenomes{
+   {{"segment1", "ATGCN"}},
+   {},
+};
+
+// A real row carrying `nucleotide_sequence` on `segment1`.
+nlohmann::json createRow(const std::string& primary_key, const std::string& nucleotide_sequence) {
+   return {
+      {"primaryKey", primary_key},
+      {"segment1", {{"sequence", nucleotide_sequence}, {"insertions", nlohmann::json::array()}}},
+   };
+}
+
+// A filler row with a null `segment1`. All filler rows group as `s1 = null`.
+nlohmann::json createFillerRow(size_t index) {
+   return {
+      {"primaryKey", "filler_" + std::to_string(index)},
+      {"segment1", nullptr},
+   };
+}
 
 // The reference is "ATGCN". We group by segment1.at(1), so the symbol at the
 // first position of each row's sequence decides its group. Build sequences that
@@ -55,28 +87,27 @@ int totalForSymbol(char symbol) {
    }
    return 0;
 }
-
 rhydb::test::LargeDataset buildDataset() {
    std::vector<std::vector<nlohmann::json>> chunks(3);
    size_t primary_key_counter = 0;
    for (size_t chunk_index = 0; chunk_index < chunks.size(); ++chunk_index) {
       for (const auto& layout : GROUP_LAYOUTS) {
          for (int i = 0; i < layout.rows_per_chunk[chunk_index]; ++i) {
-            chunks[chunk_index].push_back(largeDatasetRow(
+            chunks[chunk_index].push_back(createRow(
                "id_" + std::to_string(primary_key_counter++), sequenceWithFirstSymbol(layout.symbol)
             ));
          }
       }
    }
-   return buildAcrossChunks(chunks);
+   return buildAcrossChunks(chunks, createFillerRow);
 }
 
 const rhydb::test::LargeDataset DATASET = buildDataset();
 
 const QueryTestData TEST_DATA{
    .ndjson_input_data = DATASET.rows,
-   .database_config = rhydb::test::LARGE_DATASET_CONFIG,
-   .reference_genomes = largeDatasetReferenceGenomes(),
+   .database_config = DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES,
    .without_unaligned_sequences = true,
 };
 
