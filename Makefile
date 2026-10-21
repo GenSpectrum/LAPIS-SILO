@@ -8,11 +8,13 @@ RHYDB_RELEASE_EXECUTABLE=./build/Release/rhydb
 RHYDB_RELEASE_TEST_EXECUTABLE=./build/Release/src/rhydb_test
 RHYDB_RELEASE_APP_TEST_EXECUTABLE=./build/Release/rhydb_app_test
 RHYDB_WASM_EXECUTABLE=./build/wasm/rhydb_wasm.js
+RHYDB_WASM64_EXECUTABLE=./build/wasm64/rhydb_wasm.js
 RHYDB_WASM_DIST_DIR=wasm/dist
 RHYDB_BENCHMARK_EXECUTABLE=./build/Release/performance/rhydb_benchmark
 RUNNING_RHYDB_FLAG=running_rhydb.flag
 DEPENDENCIES_FLAG=dependencies
 WASM_DEPENDENCIES_FLAG=build/wasm/dependencies
+WASM64_DEPENDENCIES_FLAG=build/wasm64/dependencies
 CMAKE_BUILD_PARALLEL_LEVEL ?= 16
 # Docker image for lint-changes/lint-all; empty uses the scripts' default (:latest)
 LINT_DOCKER_IMAGE ?=
@@ -42,6 +44,18 @@ ${WASM_DEPENDENCIES_FLAG}: conanfile.py conanprofile build/wasm/conanprofile-ems
 	buildScripts/install-wasm-dependencies
 	touch ${WASM_DEPENDENCIES_FLAG}
 
+build/wasm64/conanprofile-emscripten: buildScripts/create-wasm-conanprofile
+	WASM_ARCH=wasm64 buildScripts/create-wasm-conanprofile
+
+# The wasm and wasm64 Conan installs share the same cache (~/.conan2). Two
+# `conan install` processes mutating it at once (e.g. under `make -j wasm-test`)
+# can corrupt the shared recipe/source store, so the wasm64 install is ordered
+# after the wasm one via an order-only prerequisite (|). Order-only keeps the
+# sequencing without forcing a wasm64 reinstall whenever the wasm flag is newer.
+${WASM64_DEPENDENCIES_FLAG}: conanfile.py conanprofile build/wasm64/conanprofile-emscripten | ${WASM_DEPENDENCIES_FLAG}
+	WASM_ARCH=wasm64 buildScripts/install-wasm-dependencies
+	touch ${WASM64_DEPENDENCIES_FLAG}
+
 SRC_FILE_LIST=.src_file_list
 $(SRC_FILE_LIST): FORCE
 	@find src app/src wasm/src -type f | sort > $@.tmp
@@ -69,6 +83,10 @@ build/wasm/build.ninja: ${WASM_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(WASM_CMAKE_
 	# (The wasm preset sets -Wall via CXXFLAGS, as CMAKE_CXX_FLAGS would drop the toolchain's.)
 	rm -f build/wasm/CMakeCache.txt
 	$(CMAKE) --preset wasm
+
+build/wasm64/build.ninja: ${WASM64_DEPENDENCIES_FLAG} $(SRC_FILE_LIST) $(WASM_CMAKE_FILES)
+	rm -f build/wasm64/CMakeCache.txt
+	$(CMAKE) --preset wasm64
 
 ${RHYDB_DEBUG_EXECUTABLE}: build/Debug/build.ninja $(shell find src app/src -type f)
 	$(CMAKE) --build build/Debug --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb
@@ -102,13 +120,21 @@ ${RHYDB_WASM_EXECUTABLE}: build/wasm/build.ninja $(shell find src wasm/src -type
 	# repo-local TypeScript (devDependency) discoverable on PATH for the link step.
 	PATH="$(CURDIR)/node_modules/.bin:$$PATH" $(CMAKE) --build build/wasm --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_wasm
 
+${RHYDB_WASM64_EXECUTABLE}: build/wasm64/build.ninja $(shell find src wasm/src -type f)
+	PATH="$(CURDIR)/node_modules/.bin:$$PATH" $(CMAKE) --build build/wasm64 --parallel $(CMAKE_BUILD_PARALLEL_LEVEL) --target rhydb_wasm
+
 .PHONY: wasm
 wasm: ${RHYDB_WASM_EXECUTABLE}
 	mkdir -p ${RHYDB_WASM_DIST_DIR}
 	cp build/wasm/rhydb_wasm.js build/wasm/rhydb_wasm.wasm build/wasm/rhydb_wasm.d.ts ${RHYDB_WASM_DIST_DIR}/
 
+.PHONY: wasm64
+wasm64: ${RHYDB_WASM64_EXECUTABLE}
+	mkdir -p ${RHYDB_WASM_DIST_DIR}/wasm64
+	cp build/wasm64/rhydb_wasm.js build/wasm64/rhydb_wasm.wasm build/wasm64/rhydb_wasm.d.ts ${RHYDB_WASM_DIST_DIR}/wasm64/
+
 .PHONY: wasm-test
-wasm-test: wasm
+wasm-test: wasm wasm64
 	node --test wasm/test/*.test.mts
 
 .PHONY: output

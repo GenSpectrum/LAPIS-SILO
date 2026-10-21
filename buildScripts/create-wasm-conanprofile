@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-mkdir -p build/wasm
+WASM_ARCH="${WASM_ARCH:-wasm}"
 
 # The Emscripten CMake toolchain file teaches CMake about the Emscripten
 # platform (e.g. byte order, type sizes). Without it, dependency builds that
@@ -19,7 +19,13 @@ fi
 # Every object in the module (dependencies and RhyDB) needs the same flags:
 # -pthread     wasm atomics and shared memory; the linker rejects objects without it
 # -fexceptions exceptions unwind through all frames, including dependencies
-cat > build/wasm/conanprofile-emscripten <<PROFILE
+# For wasm64, --target=wasm64 is added so the dependencies compile with 64-bit
+# pointers. Emscripten's CMake toolchain also keys CMAKE_SIZEOF_VOID_P=8 off this
+# flag, so the dependency configure steps detect the 64-bit ABI.
+case "${WASM_ARCH}" in
+  wasm)
+    mkdir -p build/wasm
+    cat > build/wasm/conanprofile-emscripten <<PROFILE
 [settings]
 os=Emscripten
 arch=wasm
@@ -38,3 +44,31 @@ tools.build:sharedlinkflags=["-pthread","-fexceptions"]
 tools.cmake.cmaketoolchain:generator=Ninja
 tools.cmake.cmaketoolchain:user_toolchain=["${EMSCRIPTEN_TOOLCHAIN}"]
 PROFILE
+    ;;
+  wasm64)
+    mkdir -p build/wasm64
+    cat > build/wasm64/conanprofile-emscripten <<PROFILE
+[settings]
+os=Emscripten
+arch=wasm64
+compiler=emcc
+compiler.version=$(emcc -dumpversion)
+compiler.libcxx=libc++
+compiler.cppstd=23
+build_type=Release
+
+[conf]
+tools.build:compiler_executables={"c":"emcc","cpp":"em++"}
+tools.build:cflags=["-pthread","--target=wasm64"]
+tools.build:cxxflags=["-pthread","-fexceptions","--target=wasm64"]
+tools.build:exelinkflags=["-pthread","-fexceptions","--target=wasm64"]
+tools.build:sharedlinkflags=["-pthread","-fexceptions","--target=wasm64"]
+tools.cmake.cmaketoolchain:generator=Ninja
+tools.cmake.cmaketoolchain:user_toolchain=["${EMSCRIPTEN_TOOLCHAIN}"]
+PROFILE
+    ;;
+  *)
+    echo "Unsupported WASM_ARCH='${WASM_ARCH}' (expected 'wasm' or 'wasm64')" >&2
+    exit 1
+    ;;
+esac
