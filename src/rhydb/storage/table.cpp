@@ -21,7 +21,7 @@
 #include "rhydb/preprocessing/preprocessing_exception.h"
 #include "rhydb/roaring_util/roaring_serialize.h"
 #include "rhydb/schema/duplicate_primary_key_exception.h"
-#include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/data_type_visitor.h"
 #include "rhydb/storage/table_chunk_builder.h"
 
 namespace rhydb::storage {

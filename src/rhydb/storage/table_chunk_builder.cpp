@@ -12,7 +12,7 @@
 #include "rhydb/common/base64.h"
 #include "rhydb/common/date32.h"
 #include "rhydb/common/nucleotide_symbols.h"
-#include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/data_type_visitor.h"
 #include "rhydb/storage/table.h"
 
 namespace rhydb::storage {

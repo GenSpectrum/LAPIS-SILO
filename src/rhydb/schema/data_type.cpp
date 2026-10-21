@@ -2,19 +2,24 @@
 
 #include <initializer_list>
 #include <optional>
+#include <string>
 #include <string_view>
+
+#include <fmt/format.h>
 
 #include "rhydb/common/panic.h"
 
 namespace rhydb::schema {
 
-std::string_view dataTypeToString(const DataType& type) {
+// NOLINTNEXTLINE(misc-no-recursion)
+std::string dataTypeToString(const DataType& type) {
    switch (type.getKind()) {
       case DataType::Kind::STRING:
          return "STRING";
       case DataType::Kind::DICTIONARY_ENCODED:
-         RHYDB_ASSERT(type.getDictionaryValueType() == DataType::STRING);
-         return "DICTIONARY_ENCODED(STRING)";
+         return fmt::format(
+            "DICTIONARY_ENCODED({})", dataTypeToString(type.getDictionaryValueType())
+         );
       case DataType::Kind::DATE32:
          return "DATE32";
       case DataType::Kind::BOOL:

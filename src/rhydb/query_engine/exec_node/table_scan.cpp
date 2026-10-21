@@ -11,7 +11,7 @@
 #include "evobench/evobench.hpp"
 #include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/batched_bitmap_reader.h"
-#include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/data_type_visitor.h"
 
 namespace rhydb::query_engine::exec_node {
 

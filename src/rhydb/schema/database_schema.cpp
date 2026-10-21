@@ -17,7 +17,7 @@
 #include <boost/serialization/vector.hpp>
 
 #include "rhydb/storage/column/column_metadata.h"
-#include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/data_type_visitor.h"
 
 namespace rhydb::schema {
 

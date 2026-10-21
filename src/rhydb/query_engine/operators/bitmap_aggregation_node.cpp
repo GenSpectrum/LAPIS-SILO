@@ -168,7 +168,7 @@ nlohmann::json ScalarExpressionDimension::toJson() const {
    return {
       {"kind", "scalarExpression"},
       {"expression", expression->toString()},
-      {"outputType", std::string{schema::dataTypeToString(output_type)}},
+      {"outputType", schema::dataTypeToString(output_type)},
       {"outputName", output_name},
    };
 }

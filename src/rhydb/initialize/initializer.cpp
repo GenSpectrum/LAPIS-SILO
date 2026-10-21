@@ -21,7 +21,7 @@
 #include "rhydb/initialize/lineage_relation_table.h"
 #include "rhydb/schema/builtin_tables.h"
 #include "rhydb/storage/column/column_metadata.h"
-#include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/data_type_visitor.h"
 #include "rhydb/storage/column/dictionary_encoded_column.h"
 #include "rhydb/storage/column/string_column.h"
 #include "rhydb/storage/column/zstd_compressed_string_column.h"

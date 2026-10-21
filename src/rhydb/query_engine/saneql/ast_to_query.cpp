@@ -62,7 +62,7 @@
 #include "rhydb/query_engine/scalar_expressions/symbol_equals.h"
 #include "rhydb/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 #include "rhydb/query_engine/subquery_value_set.h"
-#include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/data_type_visitor.h"
 #include "rhydb/storage/column/sequence_column.h"
 #include "rhydb/storage/column/zstd_compressed_string_column.h"
 

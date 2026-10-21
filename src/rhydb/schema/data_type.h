@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -153,7 +154,7 @@ inline constinit const DataType DataType::NUCLEOTIDE_SEQUENCE{Kind::NUCLEOTIDE_S
 inline constinit const DataType DataType::ZSTD_COMPRESSED_STRING{Kind::ZSTD_COMPRESSED_STRING};
 
 /// The display name of a type, e.g. in error messages and query plans
-std::string_view dataTypeToString(const DataType& type);
+std::string dataTypeToString(const DataType& type);
 
 /// The name of a non-parameterized type in a schema definition (database config, `createTable`),
 /// as opposed to its display name `dataTypeToString`
