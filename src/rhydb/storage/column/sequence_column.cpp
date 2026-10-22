@@ -180,9 +180,7 @@ void SequenceColumn<SymbolType>::finalize() {
          continue;
       }
       // Only now compute the coverage bitmap for the position that needs to be adapted
-      const auto coverage_bitmaps =
-         horizontal_coverage_index.getCoverageBitmapForPositions<1>(position_idx);
-      const roaring::Roaring& coverage_bitmap = coverage_bitmaps[0];
+      const roaring::Roaring coverage_bitmap = horizontal_coverage_index.coveredRows(position_idx);
       const auto new_reference_symbol = vertical_sequence_index.adaptLocalReference(
          coverage_bitmap, position_idx, current_reference_symbol
       );
