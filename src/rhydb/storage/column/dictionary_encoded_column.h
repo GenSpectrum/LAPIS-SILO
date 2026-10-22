@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -14,43 +15,22 @@
 #include <boost/serialization/assume_abstract.hpp>
 #include <roaring/roaring.hh>
 
-#include "rhydb/common/bidirectional_string_map.h"
 #include "rhydb/common/types.h"
 #include "rhydb/roaring_util/roaring_container.h"
+#include "rhydb/roaring_util/roaring_serialize.h"
 #include "rhydb/schema/database_schema.h"
 #include "rhydb/storage/column/chunked_value_buffer.h"
 #include "rhydb/storage/column/column.h"
 #include "rhydb/storage/column/column_metadata.h"
+#include "rhydb/storage/column/string_column.h"
 
 namespace rhydb::storage::column {
 
 class DictionaryEncodedColumnBuilder;
 
-class DictionaryEncodedColumnMetadata : public ColumnMetadata {
-  public:
-   common::BidirectionalStringMap dictionary;
-
-   explicit DictionaryEncodedColumnMetadata(std::string column_name)
-       : ColumnMetadata(std::move(column_name)) {}
-
-   DictionaryEncodedColumnMetadata(
-      std::string column_name,
-      rhydb::common::BidirectionalStringMap dictionary
-   )
-       : ColumnMetadata(std::move(column_name)),
-         dictionary(std::move(dictionary)) {}
-
-   DictionaryEncodedColumnMetadata() = delete;
-   DictionaryEncodedColumnMetadata(const DictionaryEncodedColumnMetadata& other) = delete;
-   DictionaryEncodedColumnMetadata(DictionaryEncodedColumnMetadata&& other) = delete;
-   DictionaryEncodedColumnMetadata& operator=(const DictionaryEncodedColumnMetadata& other) =
-      delete;
-   DictionaryEncodedColumnMetadata& operator=(DictionaryEncodedColumnMetadata&& other) = delete;
-};
-
 class DictionaryEncodedColumn {
   public:
-   using Metadata = DictionaryEncodedColumnMetadata;
+   using Metadata = ColumnMetadata;
    using Builder = DictionaryEncodedColumnBuilder;
    using Buffer = std::vector<std::optional<std::string>>;
 
@@ -63,6 +43,13 @@ class DictionaryEncodedColumn {
    roaring::Roaring null_bitmap;
 
   private:
+   /// Owned by this column, because `insertDictionaryValues` renumbers the ids that only this
+   /// column's `value_ids` and `indexed_values` refer to. Behind a pointer so that `dictionary`
+   /// keeps pointing to it when the column is moved.
+   std::unique_ptr<StringColumn::Metadata> dictionary_metadata;
+   /// The dictionary: every distinct value of the column exactly once, in ascending (byte-wise)
+   /// order. A value's dictionary id is its row id in this sub-column, so ids are order-preserving.
+   StringColumn dictionary;
    ChunkedValueBuffer<Idx> value_ids;
    std::unordered_map<Idx, roaring::Roaring> indexed_values;
 
@@ -105,20 +92,37 @@ class DictionaryEncodedColumn {
    [[nodiscard]] bool isNull(RowId row_id) const;
 
    [[nodiscard]] std::string getValueString(RowId row_id) const {
-      return std::string{lookupValue(getValue(row_id))};
+      return lookupValue(getValue(row_id));
    }
 
-   [[nodiscard]] std::string_view lookupValue(Idx dict_id) const {
-      return metadata->dictionary.getValue(dict_id);
-   }
+   [[nodiscard]] std::string lookupValue(Idx dict_id) const;
+
+   [[nodiscard]] size_t numDictionaryValues() const;
 
    [[nodiscard]] std::optional<rhydb::Idx> getValueId(const std::string& value) const;
 
   private:
+   /// Binary searches the sorted dictionary for `value`.
+   [[nodiscard]] std::optional<Idx> findDictionaryId(std::string_view value) const;
+
+   /// Merges `new_values` (sorted, distinct and none of them in the dictionary yet) into the
+   /// dictionary. Every value sorting after an inserted one moves to a higher id, so the returned
+   /// vector maps each old id to its new id.
+   [[nodiscard]] std::vector<Idx> insertDictionaryValues(
+      const std::vector<std::string_view>& new_values
+   );
+
+   /// Returns the dictionary id of every distinct value in `buffer` (a null maps to the empty
+   /// string placeholder), inserting the missing ones into the dictionary first. The returned keys
+   /// view into `buffer`. Inserting renumbers existing ids, so the stored ids and the inverted
+   /// index are remapped before this returns.
+   std::unordered_map<std::string_view, Idx> internValues(const Buffer& buffer);
+
    friend class boost::serialization::access;
    template <class Archive>
    [[maybe_unused]] void serialize(Archive& archive, const uint32_t /*version*/) {
       // clang-format off
+      archive & dictionary;
       archive & value_ids;
       archive & indexed_values;
       archive & null_bitmap;
@@ -148,36 +152,3 @@ class DictionaryEncodedColumnBuilder {
 };
 
 }  // namespace rhydb::storage::column
-
-BOOST_SERIALIZATION_SPLIT_FREE(rhydb::storage::column::DictionaryEncodedColumnMetadata);
-namespace boost::serialization {
-template <class Archive>
-[[maybe_unused]] void save(
-   Archive& archive,
-   const rhydb::storage::column::DictionaryEncodedColumnMetadata& object,
-   [[maybe_unused]] const uint32_t version
-) {
-   archive & object.column_name;
-   archive & object.dictionary;
-}
-}  // namespace boost::serialization
-
-BOOST_SERIALIZATION_SPLIT_FREE(
-   std::shared_ptr<rhydb::storage::column::DictionaryEncodedColumnMetadata>
-);
-namespace boost::serialization {
-template <class Archive>
-[[maybe_unused]] void load(
-   Archive& archive,
-   std::shared_ptr<rhydb::storage::column::DictionaryEncodedColumnMetadata>& object,
-   [[maybe_unused]] const uint32_t version
-) {
-   std::string column_name;
-   rhydb::common::BidirectionalStringMap dictionary;
-   archive & column_name;
-   archive & dictionary;
-   object = std::make_shared<rhydb::storage::column::DictionaryEncodedColumnMetadata>(
-      std::move(column_name), std::move(dictionary)
-   );
-}
-}  // namespace boost::serialization

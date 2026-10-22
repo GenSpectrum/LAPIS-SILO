@@ -6,13 +6,14 @@
 #include <string>
 #include <string_view>
 
+#include <fmt/format.h>
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
 #include "rhydb/common/bitmap.h"
 
+using rhydb::storage::column::ColumnMetadata;
 using rhydb::storage::column::DictionaryEncodedColumn;
-using rhydb::storage::column::DictionaryEncodedColumnMetadata;
 using rhydb::storage::column::RowId;
 
 namespace {
@@ -32,7 +33,7 @@ namespace {
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
 TEST(DictionaryEncodedColumn, shouldReturnTheCorrectFilteredValues) {
-   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
@@ -50,7 +51,7 @@ TEST(DictionaryEncodedColumn, shouldReturnTheCorrectFilteredValues) {
 }
 
 TEST(DictionaryEncodedColumn, insertValuesToPartition) {
-   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
@@ -70,7 +71,7 @@ TEST(DictionaryEncodedColumn, insertValuesToPartition) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DictionaryEncodedColumn, valuesSpanningMultipleAppendedChunks) {
-   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
    // Each appendChunk starts a fresh, immutable chunk of value ids whose global row ids begin at a
@@ -103,7 +104,7 @@ TEST(DictionaryEncodedColumn, valuesSpanningMultipleAppendedChunks) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(DictionaryEncodedColumn, updateKeepsInvertedIndexConsistent) {
-   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(
@@ -131,7 +132,7 @@ TEST(DictionaryEncodedColumn, updateKeepsInvertedIndexConsistent) {
 }
 
 TEST(DictionaryEncodedColumn, updateChunkAssignsEachRowItsOwnValue) {
-   DictionaryEncodedColumnMetadata column_metadata("some_column");
+   ColumnMetadata column_metadata("some_column");
    DictionaryEncodedColumn under_test{&column_metadata};
 
    ASSERT_TRUE(appendValues(under_test, {"value 1", "value 2", "value 2", "value 3"}).has_value());
@@ -147,6 +148,133 @@ TEST(DictionaryEncodedColumn, updateChunkAssignsEachRowItsOwnValue) {
    ASSERT_EQ(*under_test.filter("value 3").value(), roaring::Roaring({0, 3}));
    ASSERT_EQ(*under_test.filter("value 4").value(), roaring::Roaring({2}));
    EXPECT_TRUE(under_test.isNull(RowId(0, 1)));
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(DictionaryEncodedColumn, dictionaryStaysSortedWhenSmallerValuesArriveLater) {
+   ColumnMetadata column_metadata("some_column");
+   DictionaryEncodedColumn under_test{&column_metadata};
+
+   ASSERT_TRUE(appendValues(under_test, {"c", "e", "c"}).has_value());
+   EXPECT_EQ(under_test.getValueId("c"), 0U);
+   EXPECT_EQ(under_test.getValueId("e"), 1U);
+
+   // "a" and "d" sort before existing values, so the ids of those shift and are remapped in place.
+   ASSERT_TRUE(appendValues(under_test, {"d", "a", "e"}).has_value());
+   ASSERT_EQ(under_test.numDictionaryValues(), 4);
+   EXPECT_EQ(under_test.lookupValue(0U), "a");
+   EXPECT_EQ(under_test.lookupValue(1U), "c");
+   EXPECT_EQ(under_test.lookupValue(2U), "d");
+   EXPECT_EQ(under_test.lookupValue(3U), "e");
+   EXPECT_EQ(under_test.getValue(RowId(0, 0)), 1U);
+   EXPECT_EQ(under_test.getValue(RowId(0, 1)), 3U);
+   EXPECT_EQ(under_test.getValue(RowId(1, 1)), 0U);
+   EXPECT_EQ(under_test.getValueString(RowId(0, 2)), "c");
+   EXPECT_EQ(under_test.getValueString(RowId(1, 0)), "d");
+
+   ASSERT_EQ(*under_test.filter("c").value(), roaring::Roaring({0, 2}));
+   ASSERT_EQ(*under_test.filter("e").value(), roaring::Roaring({1, RowId::chunkStart(1) + 2}));
+   ASSERT_EQ(*under_test.filter("a").value(), roaring::Roaring({RowId::chunkStart(1) + 1}));
+
+   // An update introducing a new smallest value remaps as well.
+   under_test.update(roaring::Roaring({0}), "Z long value exceeding the short string size");
+   EXPECT_EQ(under_test.lookupValue(0U), "Z long value exceeding the short string size");
+   EXPECT_EQ(
+      under_test.getValueString(RowId(0, 0)), "Z long value exceeding the short string size"
+   );
+   EXPECT_EQ(under_test.getValueString(RowId(0, 2)), "c");
+   ASSERT_EQ(*under_test.filter("c").value(), roaring::Roaring({2}));
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(DictionaryEncodedColumn, dictionarySpanningMultipleChunks) {
+   ColumnMetadata column_metadata("some_column");
+   DictionaryEncodedColumn under_test{&column_metadata};
+
+   constexpr size_t CHUNK_SIZE = rhydb::storage::column::COLUMN_CHUNK_SIZE;
+   constexpr size_t NUM_VALUES = CHUNK_SIZE + 10;
+   // Descending values, flushed at the data chunk limit: the second data chunk interns the ten
+   // smallest values, which shifts every id stored for the first data chunk past the boundary of
+   // the dictionary's first chunk.
+   DictionaryEncodedColumn::Builder builder;
+   for (size_t i = NUM_VALUES; i > 0; --i) {
+      builder.insert(fmt::format("value {:06}", i - 1));
+      if (builder.numValues() == CHUNK_SIZE) {
+         ASSERT_TRUE(under_test.appendChunk(builder.finalize()).has_value());
+      }
+   }
+   ASSERT_TRUE(under_test.appendChunk(builder.finalize()).has_value());
+
+   ASSERT_EQ(under_test.numChunks(), 2);
+   ASSERT_EQ(under_test.chunkSize(0), CHUNK_SIZE);
+   ASSERT_EQ(under_test.chunkSize(1), 10);
+   ASSERT_EQ(under_test.numDictionaryValues(), NUM_VALUES);
+   for (const size_t value_id : {size_t{0}, size_t{65535}, size_t{65536}, NUM_VALUES - 1}) {
+      const auto value = fmt::format("value {:06}", value_id);
+      EXPECT_EQ(under_test.getValueId(value), value_id);
+      EXPECT_EQ(under_test.lookupValue(static_cast<rhydb::Idx>(value_id)), value);
+   }
+
+   EXPECT_EQ(under_test.getValue(RowId(0, 0)), NUM_VALUES - 1);
+   EXPECT_EQ(under_test.getValueString(RowId(0, 0)), fmt::format("value {:06}", NUM_VALUES - 1));
+   EXPECT_EQ(under_test.getValue(RowId(0, UINT16_MAX)), 10U);
+   EXPECT_EQ(under_test.getValueString(RowId(0, UINT16_MAX)), "value 000010");
+   EXPECT_EQ(under_test.getValue(RowId(1, 0)), 9U);
+   EXPECT_EQ(under_test.getValueString(RowId(1, 9)), "value 000000");
+
+   ASSERT_EQ(*under_test.filter("value 000010").value(), roaring::Roaring({UINT16_MAX}));
+   ASSERT_EQ(
+      *under_test.filter("value 000000").value(), roaring::Roaring({RowId::chunkStart(1) + 9})
+   );
+}
+
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+TEST(DictionaryEncodedColumn, nullArrivingLaterKeepsNullAndEmptyStringApart) {
+   ColumnMetadata column_metadata("some_column");
+   DictionaryEncodedColumn under_test{&column_metadata};
+
+   ASSERT_TRUE(appendValues(under_test, {"b", "c"}).has_value());
+
+   // The first null interns the "" placeholder, which sorts before every existing value and so
+   // shifts all their ids. A real "" shares that id, but only it is in the inverted index.
+   DictionaryEncodedColumn::Builder builder;
+   builder.insertNull();
+   builder.insert("");
+   builder.insert("a");
+   ASSERT_TRUE(under_test.appendChunk(builder.finalize()).has_value());
+
+   ASSERT_EQ(under_test.numDictionaryValues(), 4);
+   EXPECT_EQ(under_test.getValue(RowId(0, 0)), 2U);
+   EXPECT_EQ(under_test.getValue(RowId(0, 1)), 3U);
+   EXPECT_EQ(under_test.getValue(RowId(1, 0)), 0U);
+   EXPECT_EQ(under_test.getValue(RowId(1, 1)), 0U);
+   EXPECT_EQ(under_test.getValue(RowId(1, 2)), 1U);
+
+   ASSERT_EQ(*under_test.filter("b").value(), roaring::Roaring({0}));
+   ASSERT_EQ(*under_test.filter("c").value(), roaring::Roaring({1}));
+   ASSERT_EQ(*under_test.filter("a").value(), roaring::Roaring({RowId::chunkStart(1) + 2}));
+   ASSERT_EQ(*under_test.filter("").value(), roaring::Roaring({RowId::chunkStart(1) + 1}));
+   ASSERT_EQ(
+      *under_test.filter(std::optional<std::string>{}).value(),
+      roaring::Roaring({RowId::chunkStart(1) + 0})
+   );
+   EXPECT_TRUE(under_test.isNull(RowId(1, 0)));
+   EXPECT_FALSE(under_test.isNull(RowId(1, 1)));
+}
+
+TEST(DictionaryEncodedColumn, columnsSharingMetadataKeepTheirOwnDictionaries) {
+   ColumnMetadata column_metadata("some_column");
+   DictionaryEncodedColumn first{&column_metadata};
+   DictionaryEncodedColumn second{&column_metadata};
+
+   // Interning "a" into `second` must not renumber the id `first` stores for "c".
+   ASSERT_TRUE(appendValues(first, {"c"}).has_value());
+   ASSERT_TRUE(appendValues(second, {"a"}).has_value());
+
+   EXPECT_EQ(first.getValueString(RowId(0, 0)), "c");
+   ASSERT_EQ(*first.filter("c").value(), roaring::Roaring({0}));
+   EXPECT_EQ(first.filter("a"), std::nullopt);
+   EXPECT_EQ(second.getValueString(RowId(0, 0)), "a");
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)

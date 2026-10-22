@@ -67,7 +67,6 @@ Tables makeTablesWithDictionaryEncodedColumn() {
    using rhydb::schema::ColumnIdentifier;
    using rhydb::schema::DataType;
    using rhydb::storage::column::ColumnMetadata;
-   using rhydb::storage::column::DictionaryEncodedColumnMetadata;
    using rhydb::storage::column::StringColumnMetadata;
 
    ColumnIdentifier primary_key{.name = "id", .type = DataType::STRING};
@@ -77,7 +76,7 @@ Tables makeTablesWithDictionaryEncodedColumn() {
    };
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
-      {lineage_column, std::make_shared<DictionaryEncodedColumnMetadata>(lineage_column.name)},
+      {lineage_column, std::make_shared<ColumnMetadata>(lineage_column.name)},
    };
    auto schema = std::make_shared<rhydb::schema::TableSchema>(std::move(col_meta), primary_key);
    Tables tables;

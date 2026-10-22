@@ -56,13 +56,12 @@ const ColumnIdentifier BOOL_COLUMN{.name = "passed", .type = DataType::BOOL};
 /// the pass only reads the schema, it never executes the node.
 std::shared_ptr<rhydb::storage::Table> tableWithColumns() {
    using rhydb::storage::column::ColumnMetadata;
-   using rhydb::storage::column::DictionaryEncodedColumnMetadata;
    using rhydb::storage::column::SequenceColumnMetadata;
    using rhydb::storage::column::StringColumnMetadata;
 
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {ID_COLUMN, std::make_shared<StringColumnMetadata>(ID_COLUMN.name)},
-      {DIVISION_COLUMN, std::make_shared<DictionaryEncodedColumnMetadata>(DIVISION_COLUMN.name)},
+      {DIVISION_COLUMN, std::make_shared<ColumnMetadata>(DIVISION_COLUMN.name)},
       {HOST_COLUMN, std::make_shared<StringColumnMetadata>(HOST_COLUMN.name)},
       {DATE_COLUMN, std::make_shared<ColumnMetadata>(DATE_COLUMN.name)},
       {INT32_COLUMN, std::make_shared<ColumnMetadata>(INT32_COLUMN.name)},
