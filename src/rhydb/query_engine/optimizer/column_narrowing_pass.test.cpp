@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "rhydb/query_engine/operator_visitor.h"
@@ -28,17 +29,17 @@
 
 using rhydb::query_engine::optimizer::ColumnNarrowingPass;
 using rhydb::schema::ColumnIdentifier;
-using rhydb::schema::ColumnType;
+using rhydb::schema::DataType;
 namespace operators = rhydb::query_engine::operators;
 
 namespace {
 
 ColumnIdentifier col(std::string name) {
-   return ColumnIdentifier{.name = std::move(name), .type = ColumnType::STRING};
+   return ColumnIdentifier{.name = std::move(name), .type = DataType::STRING};
 }
 
-ColumnIdentifier colWithType(std::string name, ColumnType type) {
-   return ColumnIdentifier{.name = std::move(name), .type = type};
+ColumnIdentifier colWithType(std::string name, DataType type) {
+   return ColumnIdentifier{.name = std::move(name), .type = std::move(type)};
 }
 
 std::shared_ptr<rhydb::storage::Table> dummyTable() {
@@ -279,7 +280,7 @@ TEST(ColumnNarrowingPassProject, stackedProjectsAreCollapsedAfterNarrowing) {
 //   4. Eliminate the MapNode entirely when all assignments are pruned.
 
 TEST(ColumnNarrowingPassMap, keepsSequenceColumnInChildWhenRequired) {
-   auto nuc_col = colWithType("nuc", ColumnType::NUCLEOTIDE_SEQUENCE);
+   auto nuc_col = colWithType("nuc", DataType::NUCLEOTIDE_SEQUENCE);
    auto id_col = col("id");
    auto scan = makeScan({nuc_col, id_col});
    operators::QueryNodePtr node =
@@ -297,7 +298,7 @@ TEST(ColumnNarrowingPassMap, keepsSequenceColumnInChildWhenRequired) {
 }
 
 TEST(ColumnNarrowingPassMap, doesNotEliminateNodeWhenSequenceColumnRequired) {
-   auto nuc_col = colWithType("nuc", ColumnType::NUCLEOTIDE_SEQUENCE);
+   auto nuc_col = colWithType("nuc", DataType::NUCLEOTIDE_SEQUENCE);
    auto scan = makeScan({nuc_col});
    operators::QueryNodePtr node =
       std::make_unique<operators::MapNode>(std::move(scan), decompressAssignments(nuc_col));
@@ -312,8 +313,8 @@ TEST(ColumnNarrowingPassMap, doesNotEliminateNodeWhenSequenceColumnRequired) {
 }
 
 TEST(ColumnNarrowingPassMap, prunesUnrequiredSequenceColumns) {
-   auto nuc_col = colWithType("nuc", ColumnType::NUCLEOTIDE_SEQUENCE);
-   auto aa_col = colWithType("aa", ColumnType::AMINO_ACID_SEQUENCE);
+   auto nuc_col = colWithType("nuc", DataType::NUCLEOTIDE_SEQUENCE);
+   auto aa_col = colWithType("aa", DataType::AMINO_ACID_SEQUENCE);
    auto id_col = col("id");
    auto scan = makeScan({nuc_col, aa_col, id_col});
    std::vector<operators::MapNode::Assignment> assignments;
@@ -332,7 +333,7 @@ TEST(ColumnNarrowingPassMap, prunesUnrequiredSequenceColumns) {
 }
 
 TEST(ColumnNarrowingPassMap, eliminatesNodeWhenNoAssignmentIsRequired) {
-   auto nuc_col = colWithType("nuc", ColumnType::NUCLEOTIDE_SEQUENCE);
+   auto nuc_col = colWithType("nuc", DataType::NUCLEOTIDE_SEQUENCE);
    auto id_col = col("id");
    auto scan = makeScan({nuc_col, id_col});
    operators::QueryNodePtr node =

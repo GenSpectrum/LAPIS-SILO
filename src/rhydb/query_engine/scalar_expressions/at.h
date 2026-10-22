@@ -25,7 +25,7 @@ class At : public ScalarExpression {
 
    At(std::unique_ptr<ScalarExpression> input, uint32_t position);
 
-   [[nodiscard]] schema::ColumnType type() const override { return schema::ColumnType::STRING; }
+   [[nodiscard]] schema::DataType type() const override { return schema::DataType::STRING; }
 
    static constexpr Kind KIND = Kind::AT;
    [[nodiscard]] Kind kind() const override { return KIND; }

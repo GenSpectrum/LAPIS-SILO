@@ -31,7 +31,7 @@ namespace scalar_expressions = rhydb::query_engine::scalar_expressions;
 
 using rhydb::query_engine::filter::operators::Comparator;
 using rhydb::schema::ColumnIdentifier;
-using rhydb::schema::ColumnType;
+using rhydb::schema::DataType;
 
 namespace {
 
@@ -39,7 +39,7 @@ std::shared_ptr<rhydb::storage::Table> makeTable() {
    using rhydb::storage::column::ColumnMetadata;
    using rhydb::storage::column::StringColumnMetadata;
 
-   ColumnIdentifier primary_key{.name = "id", .type = ColumnType::STRING};
+   ColumnIdentifier primary_key{.name = "id", .type = DataType::STRING};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
    };
@@ -61,7 +61,7 @@ operators::QueryNodePtr makeScan() {
 operators::QueryNodePtr makeMap(operators::QueryNodePtr child) {
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back({
-      .output_column = {.name = "x", .type = ColumnType::INT64},
+      .output_column = {.name = "x", .type = DataType::INT64},
       .expression = std::make_unique<scalar_expressions::Int64Literal>(3),
    });
    return std::make_unique<operators::MapNode>(std::move(child), std::move(assignments));
@@ -119,10 +119,10 @@ TEST(MapPullupPass, pullsEmptyMapUpThroughFetch) {
 // --- A zstd-decompression MapNode (the real motivating case) is pulled above a Fetch ---
 
 TEST(MapPullupPass, pullsDecompressMapUpThroughFetch) {
-   const auto seq_column = ColumnIdentifier{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
+   const auto seq_column = ColumnIdentifier{.name = "seq", .type = DataType::NUCLEOTIDE_SEQUENCE};
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back({
-      .output_column = {.name = "seq", .type = ColumnType::STRING},
+      .output_column = {.name = "seq", .type = DataType::STRING},
       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
          std::make_unique<scalar_expressions::FieldRef>(seq_column), "A"
       ),
@@ -204,11 +204,11 @@ TEST(MapPullupPass, pullsInnerMapUpUnderRootMapAndMerges) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TEST(MapPullupPass, mergesAtOverDecompressIntoOneMap) {
-   const auto seq_column = ColumnIdentifier{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
+   const auto seq_column = ColumnIdentifier{.name = "seq", .type = DataType::NUCLEOTIDE_SEQUENCE};
 
    std::vector<operators::MapNode::Assignment> lower_assignments;
    lower_assignments.push_back({
-      .output_column = {.name = "seq", .type = ColumnType::STRING},
+      .output_column = {.name = "seq", .type = DataType::STRING},
       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
          std::make_unique<scalar_expressions::FieldRef>(seq_column), "A"
       ),
@@ -222,10 +222,10 @@ TEST(MapPullupPass, mergesAtOverDecompressIntoOneMap) {
 
    std::vector<operators::MapNode::Assignment> upper_assignments;
    upper_assignments.push_back({
-      .output_column = {.name = "symbol", .type = ColumnType::STRING},
+      .output_column = {.name = "symbol", .type = DataType::STRING},
       .expression = std::make_unique<scalar_expressions::At>(
          std::make_unique<scalar_expressions::FieldRef>(
-            ColumnIdentifier{.name = "seq", .type = ColumnType::STRING}
+            ColumnIdentifier{.name = "seq", .type = DataType::STRING}
          ),
          3
       ),
@@ -260,11 +260,11 @@ TEST(MapPullupPass, mergesAtOverDecompressIntoOneMap) {
 // place. ---
 
 TEST(MapPullupPass, doesNotMergeWhenUpperReferencesProducedColumnUnsubstitutably) {
-   const auto seq_column = ColumnIdentifier{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
+   const auto seq_column = ColumnIdentifier{.name = "seq", .type = DataType::NUCLEOTIDE_SEQUENCE};
 
    std::vector<operators::MapNode::Assignment> lower_assignments;
    lower_assignments.push_back({
-      .output_column = {.name = "seq", .type = ColumnType::STRING},
+      .output_column = {.name = "seq", .type = DataType::STRING},
       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
          std::make_unique<scalar_expressions::FieldRef>(seq_column), "A"
       ),
@@ -281,10 +281,10 @@ TEST(MapPullupPass, doesNotMergeWhenUpperReferencesProducedColumnUnsubstitutably
    // produces.
    std::vector<operators::MapNode::Assignment> upper_assignments;
    upper_assignments.push_back({
-      .output_column = {.name = "flag", .type = ColumnType::BOOL},
+      .output_column = {.name = "flag", .type = DataType::BOOL},
       .expression = std::make_unique<scalar_expressions::Comparison>(
          std::make_unique<scalar_expressions::FieldRef>(
-            ColumnIdentifier{.name = "seq", .type = ColumnType::STRING}
+            ColumnIdentifier{.name = "seq", .type = DataType::STRING}
          ),
          std::make_unique<scalar_expressions::StringLiteral>("AAAA"),
          Comparator::EQUALS
@@ -316,7 +316,7 @@ TEST(MapPullupPass, doesNotPullMapUpThroughFilter) {
 
 TEST(MapPullupPass, doesNotPullMapUpThroughProject) {
    auto project = std::make_unique<operators::ProjectNode>(
-      makeMap(makeScan()), std::vector<ColumnIdentifier>{{.name = "x", .type = ColumnType::INT64}}
+      makeMap(makeScan()), std::vector<ColumnIdentifier>{{.name = "x", .type = DataType::INT64}}
    );
 
    auto result = MapPullupPass::run(std::move(project));
@@ -331,7 +331,7 @@ TEST(MapPullupPass, doesNotPullMapUpThroughProject) {
 
 TEST(MapPullupPass, pullsMapUpThroughOrderBy) {
    std::vector<rhydb::query_engine::OrderByField> fields{
-      {.field = {.name = "id", .type = ColumnType::STRING}, .ascending = true},
+      {.field = {.name = "id", .type = DataType::STRING}, .ascending = true},
    };
    auto order_by = std::make_unique<operators::OrderByNode>(
       makeMap(makeScan()), std::move(fields), std::nullopt
@@ -353,7 +353,7 @@ TEST(MapPullupPass, pullsMapUpThroughOrderBy) {
 
 TEST(MapPullupPass, pullsMapUpThroughOrderByPreservingRandomizeSeed) {
    std::vector<rhydb::query_engine::OrderByField> fields{
-      {.field = {.name = "id", .type = ColumnType::STRING}, .ascending = true},
+      {.field = {.name = "id", .type = DataType::STRING}, .ascending = true},
    };
    auto order_by = std::make_unique<operators::OrderByNode>(
       makeMap(makeScan()), std::move(fields), std::optional<uint32_t>{42}
@@ -375,7 +375,7 @@ TEST(MapPullupPass, pullsMapUpThroughOrderByPreservingRandomizeSeed) {
 TEST(MapPullupPass, doesNotPullMapUpThroughOrderByOnProducedColumn) {
    // makeMap produces column `x`; ordering by `x` must not be pushed below the Map.
    std::vector<rhydb::query_engine::OrderByField> fields{
-      {.field = {.name = "x", .type = ColumnType::INT64}, .ascending = true},
+      {.field = {.name = "x", .type = DataType::INT64}, .ascending = true},
    };
    auto order_by = std::make_unique<operators::OrderByNode>(
       makeMap(makeScan()), std::move(fields), std::nullopt

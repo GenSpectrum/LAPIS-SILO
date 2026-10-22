@@ -31,7 +31,7 @@ CountFilterNode::CountFilterNode(
 
 std::vector<schema::ColumnIdentifier> CountFilterNode::getOutputSchema() const {
    std::vector<schema::ColumnIdentifier> output_fields;
-   output_fields.emplace_back(output_name, schema::ColumnType::INT64);
+   output_fields.emplace_back(output_name, schema::DataType::INT64);
    return output_fields;
 }
 

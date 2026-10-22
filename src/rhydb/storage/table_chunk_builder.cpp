@@ -12,7 +12,7 @@
 #include "rhydb/common/base64.h"
 #include "rhydb/common/date32.h"
 #include "rhydb/common/nucleotide_symbols.h"
-#include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/data_type_visitor.h"
 #include "rhydb/storage/table.h"
 
 namespace rhydb::storage {
@@ -392,7 +392,7 @@ std::optional<std::pair<uint32_t, uint32_t>> TableChunkBuilder::coverageRangeAt(
    const schema::ColumnIdentifier& sequence_column,
    size_t index
 ) const {
-   if (sequence_column.type == schema::ColumnType::NUCLEOTIDE_SEQUENCE) {
+   if (sequence_column.type == schema::DataType::NUCLEOTIDE_SEQUENCE) {
       return nuc_column_builders.at(sequence_column.name).coverageRangeAt(index);
    }
    return aa_column_builders.at(sequence_column.name).coverageRangeAt(index);

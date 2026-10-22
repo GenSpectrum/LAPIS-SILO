@@ -21,11 +21,14 @@ namespace rhydb::query_engine::scalar_expressions {
 namespace {
 
 using rhydb::schema::ColumnIdentifier;
-using rhydb::schema::ColumnType;
+using rhydb::schema::DataType;
 
-const ColumnIdentifier COLUMN_A{.name = "country", .type = ColumnType::DICTIONARY_ENCODED};
-const ColumnIdentifier COLUMN_B{.name = "age", .type = ColumnType::INT32};
-const ColumnIdentifier COLUMN_C{.name = "date", .type = ColumnType::DATE32};
+const ColumnIdentifier COLUMN_A{
+   .name = "country",
+   .type = DataType::dictionaryEncoded(DataType::STRING),
+};
+const ColumnIdentifier COLUMN_B{.name = "age", .type = DataType::INT32};
+const ColumnIdentifier COLUMN_C{.name = "date", .type = DataType::DATE32};
 
 std::set<ColumnIdentifier> asSet(const std::vector<ColumnIdentifier>& columns) {
    return {columns.begin(), columns.end()};

@@ -79,11 +79,11 @@ PhyloSubtreeNode::PhyloSubtreeNode(
 
 std::vector<schema::ColumnIdentifier> PhyloSubtreeNode::getOutputSchema() const {
    std::vector<schema::ColumnIdentifier> output_fields;
-   output_fields.emplace_back("missingNodeCount", schema::ColumnType::INT32);
+   output_fields.emplace_back("missingNodeCount", schema::DataType::INT32);
    if (print_nodes_not_in_tree) {
-      output_fields.emplace_back("missingFromTree", schema::ColumnType::STRING);
+      output_fields.emplace_back("missingFromTree", schema::DataType::STRING);
    }
-   output_fields.emplace_back("subtreeNewick", schema::ColumnType::STRING);
+   output_fields.emplace_back("subtreeNewick", schema::DataType::STRING);
    return output_fields;
 }
 
@@ -101,7 +101,7 @@ arrow::Result<arrow::acero::ExecNode*> PhyloSubtreeNode::addToExecPlan(
       column_name
    );
    CHECK_RHYDB_QUERY(
-      table->schema->getColumn(column_name).value().type == schema::ColumnType::STRING,
+      table->schema->getColumn(column_name).value().type == schema::DataType::STRING,
       "PhyloSubtree action cannot be called on column '{}' as it is not a column of type STRING",
       column_name
    );

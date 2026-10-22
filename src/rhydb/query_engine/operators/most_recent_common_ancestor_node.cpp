@@ -77,13 +77,13 @@ MostRecentCommonAncestorNode::MostRecentCommonAncestorNode(
 
 std::vector<schema::ColumnIdentifier> MostRecentCommonAncestorNode::getOutputSchema() const {
    std::vector<schema::ColumnIdentifier> output_fields;
-   output_fields.emplace_back("missingNodeCount", schema::ColumnType::INT32);
+   output_fields.emplace_back("missingNodeCount", schema::DataType::INT32);
    if (print_nodes_not_in_tree) {
-      output_fields.emplace_back("missingFromTree", schema::ColumnType::STRING);
+      output_fields.emplace_back("missingFromTree", schema::DataType::STRING);
    }
-   output_fields.emplace_back("mrcaNode", schema::ColumnType::STRING);
-   output_fields.emplace_back("mrcaParent", schema::ColumnType::STRING);
-   output_fields.emplace_back("mrcaDepth", schema::ColumnType::INT32);
+   output_fields.emplace_back("mrcaNode", schema::DataType::STRING);
+   output_fields.emplace_back("mrcaParent", schema::DataType::STRING);
+   output_fields.emplace_back("mrcaDepth", schema::DataType::INT32);
    return output_fields;
 }
 
@@ -101,7 +101,7 @@ arrow::Result<arrow::acero::ExecNode*> MostRecentCommonAncestorNode::addToExecPl
       column_name
    );
    CHECK_RHYDB_QUERY(
-      table->schema->getColumn(column_name).value().type == schema::ColumnType::STRING,
+      table->schema->getColumn(column_name).value().type == schema::DataType::STRING,
       "MostRecentCommonAncestor action cannot be called on column '{}' as it is not a column "
       "of type STRING",
       column_name

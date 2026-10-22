@@ -27,10 +27,10 @@ class UnresolvedInsertionsNode final : public QueryNode {
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override {
       using IN = InsertionsNode<SymbolType>;
       return {
-         {.name = std::string(IN::POSITION_FIELD_NAME), .type = schema::ColumnType::INT32},
-         {.name = std::string(IN::INSERTED_SYMBOLS_FIELD_NAME), .type = schema::ColumnType::STRING},
-         {.name = std::string(IN::SEQUENCE_FIELD_NAME), .type = schema::ColumnType::STRING},
-         {.name = std::string(IN::COUNT_FIELD_NAME), .type = schema::ColumnType::INT32},
+         {.name = std::string(IN::POSITION_FIELD_NAME), .type = schema::DataType::INT32},
+         {.name = std::string(IN::INSERTED_SYMBOLS_FIELD_NAME), .type = schema::DataType::STRING},
+         {.name = std::string(IN::SEQUENCE_FIELD_NAME), .type = schema::DataType::STRING},
+         {.name = std::string(IN::COUNT_FIELD_NAME), .type = schema::DataType::INT32},
       };
    }
 

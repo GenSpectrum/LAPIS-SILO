@@ -504,7 +504,7 @@ data.mutations(minProportion:=0.1).schema()
 | Field       | Type   | Description                                                                                          |
 |-------------|--------|------------------------------------------------------------------------------------------------------|
 | `fieldName` | string | Name of the field                                                                                    |
-| `type`      | string | Type of the field (e.g. `STRING`, `INT32`, `INT64`, `DATE32`, `BOOL`, `FLOAT`, `DICTIONARY_ENCODED`) |
+| `type`      | string | Type of the field (e.g. `STRING`, `INT32`, `INT64`, `DATE32`, `BOOL`, `FLOAT`, `DICTIONARY_ENCODED(STRING)`) |
 
 ```json lines
 {"fieldName": "age", "type": "INT32"}

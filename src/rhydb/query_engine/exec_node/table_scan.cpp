@@ -11,7 +11,7 @@
 #include "evobench/evobench.hpp"
 #include "rhydb/common/bitmap.h"
 #include "rhydb/query_engine/batched_bitmap_reader.h"
-#include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/data_type_visitor.h"
 
 namespace rhydb::query_engine::exec_node {
 
@@ -90,9 +90,6 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumn<Nu
    const storage::Table& table,
    const Bitmap& row_ids
 ) {
-   EVOBENCH_SCOPE(
-      "ColumnEntryAppender", columnTypeToString(storage::column::SequenceColumn<Nucleotide>::TYPE)
-   );
    auto* array =
       table_scan_node.getColumnTypeArrayBuilders<storage::column::SequenceColumn<Nucleotide>>().at(
          column_name
@@ -109,9 +106,6 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::SequenceColumn<Am
    const storage::Table& table,
    const Bitmap& row_ids
 ) {
-   EVOBENCH_SCOPE(
-      "ColumnEntryAppender", columnTypeToString(storage::column::SequenceColumn<AminoAcid>::TYPE)
-   );
    auto* array =
       table_scan_node.getColumnTypeArrayBuilders<storage::column::SequenceColumn<AminoAcid>>().at(
          column_name
@@ -129,9 +123,6 @@ arrow::Status ColumnEntryAppender::operator()<storage::column::ZstdCompressedStr
    const storage::Table& table,
    const Bitmap& row_ids
 ) {
-   EVOBENCH_SCOPE(
-      "ColumnEntryAppender", columnTypeToString(storage::column::ZstdCompressedStringColumn::TYPE)
-   );
    auto* array =
       table_scan_node.getColumnTypeArrayBuilders<storage::column::ZstdCompressedStringColumn>().at(
          column_name
@@ -159,7 +150,6 @@ arrow::Status ColumnEntryAppender::operator()(
    const storage::Table& table,
    const Bitmap& row_ids
 ) {
-   EVOBENCH_SCOPE("ColumnEntryAppender", columnTypeToString(Column::TYPE));
    auto& column = table.getColumn<Column>(column_name);
    auto array = table_scan_node.getColumnTypeArrayBuilders<Column>().at(column_name);
    for (const auto& [chunk_key, view] : row_ids) {

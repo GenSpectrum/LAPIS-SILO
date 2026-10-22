@@ -10,7 +10,7 @@
 #include "rhydb/query_engine/filter/operators/operator.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/scalar_expressions/scalar_expression.h"
-#include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/data_type_visitor.h"
 
 namespace rhydb::query_engine::scalar_expressions {
 

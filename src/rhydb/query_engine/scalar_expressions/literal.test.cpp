@@ -12,10 +12,10 @@ namespace rhydb::query_engine::scalar_expressions {
 
 namespace {
 
-using rhydb::schema::ColumnType;
+using rhydb::schema::DataType;
 
 TEST(NullLiteral, hasTheTypeItIsGiven) {
-   for (const auto type : {ColumnType::INT32, ColumnType::FLOAT, ColumnType::STRING}) {
+   for (const auto& type : {DataType::INT32, DataType::FLOAT, DataType::STRING}) {
       const NullLiteral literal{type};
       EXPECT_EQ(literal.type(), type);
       EXPECT_EQ(literal.clone()->type(), type);
@@ -25,7 +25,7 @@ TEST(NullLiteral, hasTheTypeItIsGiven) {
 }
 
 TEST(NullLiteral, evaluatesToANullOfItsType) {
-   for (const auto type : {ColumnType::INT32, ColumnType::FLOAT, ColumnType::STRING}) {
+   for (const auto& type : {DataType::INT32, DataType::FLOAT, DataType::STRING}) {
       const auto expression = NullLiteral{type}.toArrowExpression().ValueOrDie();
       const auto bound = expression.Bind(arrow::Schema{{}}).ValueOrDie();
       const auto value =

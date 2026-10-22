@@ -24,7 +24,7 @@ namespace operators = rhydb::query_engine::operators;
 namespace scalar_expressions = rhydb::query_engine::scalar_expressions;
 
 using rhydb::schema::ColumnIdentifier;
-using rhydb::schema::ColumnType;
+using rhydb::schema::DataType;
 
 namespace {
 
@@ -32,7 +32,7 @@ std::shared_ptr<rhydb::storage::Table> makeTable() {
    using rhydb::storage::column::ColumnMetadata;
    using rhydb::storage::column::StringColumnMetadata;
 
-   ColumnIdentifier primary_key{.name = "id", .type = ColumnType::STRING};
+   ColumnIdentifier primary_key{.name = "id", .type = DataType::STRING};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
    };
@@ -49,7 +49,7 @@ operators::QueryNodePtr makeScan() {
 }
 
 std::vector<OrderByField> idAscending() {
-   return {OrderByField{.field = {.name = "id", .type = ColumnType::STRING}, .ascending = true}};
+   return {OrderByField{.field = {.name = "id", .type = DataType::STRING}, .ascending = true}};
 }
 
 operators::QueryNodePtr makeOrderBy(

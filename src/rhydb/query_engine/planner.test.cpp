@@ -60,13 +60,13 @@ std::map<rhydb::schema::TableName, std::shared_ptr<rhydb::storage::Table>>
 tablesWithSequenceColumnFirst() {
    using rhydb::AminoAcid;
    using rhydb::schema::ColumnIdentifier;
-   using rhydb::schema::ColumnType;
+   using rhydb::schema::DataType;
    using rhydb::storage::column::ColumnMetadata;
    using rhydb::storage::column::SequenceColumnMetadata;
    using rhydb::storage::column::StringColumnMetadata;
 
-   const ColumnIdentifier sequence{.name = "E", .type = ColumnType::AMINO_ACID_SEQUENCE};
-   const ColumnIdentifier primary_key{.name = "id", .type = ColumnType::STRING};
+   const ColumnIdentifier sequence{.name = "E", .type = DataType::AMINO_ACID_SEQUENCE};
+   const ColumnIdentifier primary_key{.name = "id", .type = DataType::STRING};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {
          sequence,

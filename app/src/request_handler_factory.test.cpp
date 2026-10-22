@@ -21,11 +21,11 @@ std::unique_ptr<RhyDBRequestHandlerFactory> createRequestHandlerWithInitializedD
 ) {
    auto handle = std::make_shared<rhydb_app::ActiveDatabase>();
    auto table_schema = std::make_shared<rhydb::schema::TableSchema>();
-   table_schema->primary_key = {.name = "primary_key", .type = rhydb::schema::ColumnType::STRING};
+   table_schema->primary_key = {.name = "primary_key", .type = rhydb::schema::DataType::STRING};
    table_schema->column_metadata.emplace(
       rhydb::schema::ColumnIdentifier{
          .name = "primary_key",
-         .type = rhydb::schema::ColumnType::STRING,
+         .type = rhydb::schema::DataType::STRING,
       },
       std::make_shared<rhydb::storage::column::StringColumnMetadata>("primary_key")
    );

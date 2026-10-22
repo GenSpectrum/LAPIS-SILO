@@ -9,6 +9,7 @@
 
 using rhydb::schema::DataType;
 using Kind = rhydb::schema::DataType::Kind;
+using rhydb::schema::dataTypeToString;
 
 namespace {
 
@@ -53,6 +54,13 @@ TEST(DataType, survivesSerialization) {
    EXPECT_EQ(
       roundTrip(DataType::dictionaryEncoded(DataType::STRING)),
       DataType::dictionaryEncoded(DataType::STRING)
+   );
+}
+
+TEST(DataType, hasDisplayNames) {
+   EXPECT_EQ(dataTypeToString(DataType::ZSTD_COMPRESSED_STRING), "ZSTD_COMPRESSED_STRING");
+   EXPECT_EQ(
+      dataTypeToString(DataType::dictionaryEncoded(DataType::STRING)), "DICTIONARY_ENCODED(STRING)"
    );
 }
 

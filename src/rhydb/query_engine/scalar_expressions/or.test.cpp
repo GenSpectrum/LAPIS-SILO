@@ -16,11 +16,11 @@ namespace rhydb::query_engine::scalar_expressions {
 namespace {
 
 schema::ColumnIdentifier col(std::string name) {
-   return {.name = std::move(name), .type = schema::ColumnType::STRING};
+   return {.name = std::move(name), .type = schema::DataType::STRING};
 }
 
 schema::ColumnIdentifier nucSeq(std::string name) {
-   return {.name = std::move(name), .type = schema::ColumnType::NUCLEOTIDE_SEQUENCE};
+   return {.name = std::move(name), .type = schema::DataType::NUCLEOTIDE_SEQUENCE};
 }
 
 // Helper to count expressions of a specific type
@@ -358,7 +358,7 @@ TEST(OrToString, shouldHandleNestedOr) {
 }
 
 using schema::ColumnIdentifier;
-using schema::ColumnType;
+using schema::DataType;
 using storage::column::ColumnMetadata;
 using storage::column::StringColumnMetadata;
 
@@ -368,7 +368,7 @@ std::unique_ptr<ScalarExpression> stringEquals(
    const std::string& value
 ) {
    return std::make_unique<Comparison>(
-      std::make_unique<FieldRef>(ColumnIdentifier{.name = column, .type = ColumnType::STRING}),
+      std::make_unique<FieldRef>(ColumnIdentifier{.name = column, .type = DataType::STRING}),
       std::make_unique<StringLiteral>(value),
       filter::operators::Comparator::EQUALS
    );
@@ -376,7 +376,7 @@ std::unique_ptr<ScalarExpression> stringEquals(
 }  // namespace
 
 TEST(OrToString, shouldHandleNestedStringEquals) {
-   ColumnIdentifier primary_key{.name = "key", .type = ColumnType::STRING};
+   ColumnIdentifier primary_key{.name = "key", .type = DataType::STRING};
    const std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
    };
@@ -403,7 +403,7 @@ TEST(OrToString, shouldHandleNestedStringEquals) {
 }
 
 TEST(OrToString, shouldHandleObufscatedNestedStringEquals) {
-   ColumnIdentifier primary_key{.name = "key", .type = ColumnType::STRING};
+   ColumnIdentifier primary_key{.name = "key", .type = DataType::STRING};
    const std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
    };

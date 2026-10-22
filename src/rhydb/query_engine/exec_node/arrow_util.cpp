@@ -2,24 +2,27 @@
 
 namespace rhydb::query_engine::exec_node {
 
-std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column_type) {
-   switch (column_type) {
-      case schema::ColumnType::STRING:
-      case schema::ColumnType::DICTIONARY_ENCODED:
+std::shared_ptr<arrow::DataType> columnTypeToArrowType(const schema::DataType& column_type) {
+   using Kind = schema::DataType::Kind;
+   // A dictionary-encoded column is output as plain values
+   switch (column_type.getPlainType().getKind()) {
+      case Kind::STRING:
          return arrow::large_utf8();
-      case schema::ColumnType::DATE32:
+      case Kind::DICTIONARY_ENCODED:
+         RHYDB_UNREACHABLE();
+      case Kind::DATE32:
          return arrow::date32();
-      case schema::ColumnType::BOOL:
+      case Kind::BOOL:
          return arrow::boolean();
-      case schema::ColumnType::INT32:
+      case Kind::INT32:
          return arrow::int32();
-      case schema::ColumnType::INT64:
+      case Kind::INT64:
          return arrow::int64();
-      case schema::ColumnType::FLOAT:
+      case Kind::FLOAT:
          return arrow::float64();
-      case schema::ColumnType::AMINO_ACID_SEQUENCE:
-      case schema::ColumnType::NUCLEOTIDE_SEQUENCE:
-      case schema::ColumnType::ZSTD_COMPRESSED_STRING:
+      case Kind::AMINO_ACID_SEQUENCE:
+      case Kind::NUCLEOTIDE_SEQUENCE:
+      case Kind::ZSTD_COMPRESSED_STRING:
          return arrow::large_binary();
    }
    RHYDB_UNREACHABLE();

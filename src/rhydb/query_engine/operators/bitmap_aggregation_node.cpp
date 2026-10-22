@@ -119,7 +119,7 @@ SequencePositionDimension::SequencePositionDimension(
       output_name(std::move(output_name)) {}
 
 schema::ColumnIdentifier SequencePositionDimension::outputColumn() const {
-   return {.name = output_name, .type = schema::ColumnType::STRING};
+   return {.name = output_name, .type = schema::DataType::STRING};
 }
 
 nlohmann::json SequencePositionDimension::toJson() const {
@@ -140,7 +140,7 @@ IndexedColumnDimension::IndexedColumnDimension(
       output_name(std::move(output_name)) {}
 
 schema::ColumnIdentifier IndexedColumnDimension::outputColumn() const {
-   return {.name = output_name, .type = schema::ColumnType::STRING};
+   return {.name = output_name, .type = schema::DataType::STRING};
 }
 
 nlohmann::json IndexedColumnDimension::toJson() const {
@@ -153,11 +153,11 @@ nlohmann::json IndexedColumnDimension::toJson() const {
 
 ScalarExpressionDimension::ScalarExpressionDimension(
    std::unique_ptr<scalar_expressions::ScalarExpression> expression,
-   schema::ColumnType output_type,
+   schema::DataType output_type,
    std::string output_name
 )
     : expression(std::move(expression)),
-      output_type(output_type),
+      output_type(std::move(output_type)),
       output_name(std::move(output_name)) {}
 
 schema::ColumnIdentifier ScalarExpressionDimension::outputColumn() const {
@@ -168,7 +168,7 @@ nlohmann::json ScalarExpressionDimension::toJson() const {
    return {
       {"kind", "scalarExpression"},
       {"expression", expression->toString()},
-      {"outputType", std::string{schema::columnTypeToString(output_type)}},
+      {"outputType", schema::dataTypeToString(output_type)},
       {"outputName", output_name},
    };
 }
@@ -192,7 +192,7 @@ std::vector<schema::ColumnIdentifier> BitmapAggregationNode::getOutputSchema() c
          std::visit([](const auto& dim) { return dim.outputColumn(); }, dimension)
       );
    }
-   output_fields.emplace_back(count_field_name, schema::ColumnType::INT64);
+   output_fields.emplace_back(count_field_name, schema::DataType::INT64);
    return output_fields;
 }
 

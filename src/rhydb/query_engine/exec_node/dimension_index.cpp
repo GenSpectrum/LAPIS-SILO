@@ -541,29 +541,29 @@ arrow::Result<std::unique_ptr<DimensionIndex>> buildDimensionIndex(
       return std::make_unique<IndexedColumnIndex>(column);
    }
    const auto& scalar_expression = std::get<ResolvedScalarExpressionDimension>(dimension);
-   switch (scalar_expression.output_type) {
-      case schema::ColumnType::STRING:
-      case schema::ColumnType::DICTIONARY_ENCODED:
+   using Kind = schema::DataType::Kind;
+   switch (scalar_expression.output_type.getPlainType().getKind()) {
+      case Kind::STRING:
          return buildScalarExpressionIndex<StringValueTraits>(
             table, scalar_expression, filter_bitmap
          );
-      case schema::ColumnType::INT32:
+      case Kind::INT32:
          return buildScalarExpressionIndex<Int32ValueTraits>(
             table, scalar_expression, filter_bitmap
          );
-      case schema::ColumnType::INT64:
+      case Kind::INT64:
          return buildScalarExpressionIndex<Int64ValueTraits>(
             table, scalar_expression, filter_bitmap
          );
-      case schema::ColumnType::FLOAT:
+      case Kind::FLOAT:
          return buildScalarExpressionIndex<DoubleValueTraits>(
             table, scalar_expression, filter_bitmap
          );
-      case schema::ColumnType::BOOL:
+      case Kind::BOOL:
          return buildScalarExpressionIndex<BoolValueTraits>(
             table, scalar_expression, filter_bitmap
          );
-      case schema::ColumnType::DATE32:
+      case Kind::DATE32:
          return buildScalarExpressionIndex<Date32ValueTraits>(
             table, scalar_expression, filter_bitmap
          );
