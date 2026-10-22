@@ -39,7 +39,7 @@ struct LargeDataset {
 /// rows, which forces that chunk to flush at the chunk boundary. The last chunk
 /// holds exactly `values.back().size()` rows and is left partial, so the
 /// non-full final chunk path is exercised too.
-inline LargeDataset buildAcrossChunks(
+inline LargeDataset buildLargeTestDataset(
    const std::function<nlohmann::json(size_t chunk_index, size_t row_index)>& make_template,
    const std::vector<std::vector<nlohmann::json>>& values
 ) {
