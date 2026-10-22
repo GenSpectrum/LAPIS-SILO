@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.17.0](https://github.com/RhyOrg/RhyDB/compare/v0.16.1...v0.17.0) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **schema:** the type of a dictionary-encoded string column is now reported as `DICTIONARY_ENCODED(STRING)` instead of `DICTIONARY_ENCODED`.
+* **rhydb:** RhyDB's arrow interface now returns string columns using the LargeString type
+
+### Features
+
+* **python:** also build python wheels for 3.15 ([#1711](https://github.com/RhyOrg/RhyDB/issues/1711)) ([bdf1c4f](https://github.com/RhyOrg/RhyDB/commit/bdf1c4f1e38b067556a9349cd3c5837f85932213))
+* **query_engine:** add a `NullLiteral` scalar expression ([#1717](https://github.com/RhyOrg/RhyDB/issues/1717)) ([66d12d5](https://github.com/RhyOrg/RhyDB/commit/66d12d598312d57c719801947af800a150dacbd0))
+* **query_engine:** compute updated column values from scalar expressions ([#1718](https://github.com/RhyOrg/RhyDB/issues/1718)) ([49ddbde](https://github.com/RhyOrg/RhyDB/commit/49ddbde35fecd23cd7ae97267e3ed31db4ccba36))
+* **rhydb:** materialize a `lineage_definitions` table ([#1706](https://github.com/RhyOrg/RhyDB/issues/1706)) ([1ff89ab](https://github.com/RhyOrg/RhyDB/commit/1ff89aba0661889ee750aeb1178348f123df6586))
+* **storage:** assign each row of a chunk its own value in column updates ([#1698](https://github.com/RhyOrg/RhyDB/issues/1698)) ([4eda381](https://github.com/RhyOrg/RhyDB/commit/4eda38106d21cf2b478e7f204f84ba5d432b8a19))
+* **wasm:** publish 64 bit wasm build ([#1736](https://github.com/RhyOrg/RhyDB/issues/1736)) ([a63d76a](https://github.com/RhyOrg/RhyDB/commit/a63d76a5cb8a66362817f705d7fd8105ada3cb5a))
+
+
+### Bug Fixes
+
+* **query_engine:** correctly detect e-notation for float inputs ([#1732](https://github.com/RhyOrg/RhyDB/issues/1732)) ([bb761ff](https://github.com/RhyOrg/RhyDB/commit/bb761ff277c357bdd6da87ae878360d13e6b9213))
+* **query_engine:** parse deeply-nested `||` and `&&` expressions as n-ary nodes ([#1733](https://github.com/RhyOrg/RhyDB/issues/1733)) ([5224441](https://github.com/RhyOrg/RhyDB/commit/5224441002a8388d65e8b7414ce79939877b3a6a))
+* **storage:** do not buffer unaligned sequences uncompressed ([#1735](https://github.com/RhyOrg/RhyDB/issues/1735)) ([dd90ab5](https://github.com/RhyOrg/RhyDB/commit/dd90ab5c0be50ffe27197d816d40bb2601d0c782))
+
+
+### Code Refactoring
+
+* **rhydb:** always prefer LargeString and LargeBinary types ([#1723](https://github.com/RhyOrg/RhyDB/issues/1723)) ([69470b7](https://github.com/RhyOrg/RhyDB/commit/69470b7392f1a3840a02a30f539a08924c059578))
+* **schema:** replace ColumnType by DataType ([#1730](https://github.com/RhyOrg/RhyDB/issues/1730)) ([c4e3953](https://github.com/RhyOrg/RhyDB/commit/c4e39533916f977ab627cc440f44d5ad3b61c6c6))
+
 ## [0.16.1](https://github.com/RhyOrg/RhyDB/compare/v0.16.0...v0.16.1) (2026-10-14)
 
 
