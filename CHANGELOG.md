@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.1](https://github.com/RhyOrg/RhyDB/compare/v0.17.0...v0.17.1) (2026-10-22)
+
+
+### Performance Improvements
+
+* **query_engine:** compute the IsInCoveredRegion bitmap chunk by chunk ([#1741](https://github.com/RhyOrg/RhyDB/issues/1741)) ([1b2821f](https://github.com/RhyOrg/RhyDB/commit/1b2821f8728d764f7389721fea90dcdefa955698))
+
 ## [0.17.0](https://github.com/RhyOrg/RhyDB/compare/v0.16.1...v0.17.0) (2026-10-22)
 
 
