@@ -38,11 +38,11 @@ namespace {
 
 std::shared_ptr<rhydb::storage::Table> makeTable() {
    using rhydb::schema::ColumnIdentifier;
-   using rhydb::schema::ColumnType;
+   using rhydb::schema::DataType;
    using rhydb::storage::column::ColumnMetadata;
    using rhydb::storage::column::StringColumnMetadata;
 
-   ColumnIdentifier primary_key{.name = "id", .type = ColumnType::STRING};
+   ColumnIdentifier primary_key{.name = "id", .type = DataType::STRING};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
    };
@@ -108,7 +108,7 @@ TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
 
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back({
-      .output_column = {.name = "x", .type = rhydb::schema::ColumnType::INT64},
+      .output_column = {.name = "x", .type = rhydb::schema::DataType::INT64},
       .expression = std::make_unique<scalar_expressions::Int64Literal>(3),
    });
    auto map_node =
@@ -131,16 +131,16 @@ TEST(FilterPushdownPass, pushesFilterThroughMapIntoTableScan) {
 // so only the rows matching the filter are ever decompressed.
 TEST(FilterPushdownPass, pushesFilterThroughDecompressMapIntoTableScan) {
    using rhydb::schema::ColumnIdentifier;
-   using rhydb::schema::ColumnType;
+   using rhydb::schema::DataType;
 
-   const ColumnIdentifier seq_column{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
+   const ColumnIdentifier seq_column{.name = "seq", .type = DataType::NUCLEOTIDE_SEQUENCE};
    auto scan = std::make_unique<operators::TableScanNode>(
       makeTable(), makeDummyFilter(), std::vector<ColumnIdentifier>{seq_column}
    );
 
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back({
-      .output_column = {.name = "seq", .type = ColumnType::STRING},
+      .output_column = {.name = "seq", .type = DataType::STRING},
       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
          std::make_unique<scalar_expressions::FieldRef>(seq_column), "A"
       ),
@@ -171,14 +171,14 @@ TEST(FilterPushdownPass, pushesFilterThroughDecompressMapIntoTableScan) {
 // turn this valid plan into an invalid one; the FilterNode is kept above the MapNode instead.
 TEST(FilterPushdownPass, doesNotPushFilterReferencingMapProducedColumnBelowMap) {
    using rhydb::schema::ColumnIdentifier;
-   using rhydb::schema::ColumnType;
+   using rhydb::schema::DataType;
 
    auto table = makeTable();
    auto scan = std::make_unique<operators::TableScanNode>(
       table, makeDummyFilter(), std::vector<ColumnIdentifier>{}
    );
 
-   const ColumnIdentifier produced_column{.name = "x", .type = ColumnType::INT64};
+   const ColumnIdentifier produced_column{.name = "x", .type = DataType::INT64};
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back({
       .output_column = produced_column,
@@ -209,14 +209,14 @@ TEST(FilterPushdownPass, doesNotPushFilterReferencingMapProducedColumnBelowMap) 
 // is still pushed below the map into the TableScan.
 TEST(FilterPushdownPass, pushesFilterReferencingPassThroughColumnBelowMap) {
    using rhydb::schema::ColumnIdentifier;
-   using rhydb::schema::ColumnType;
+   using rhydb::schema::DataType;
 
    auto table = makeTable();
    auto scan = std::make_unique<operators::TableScanNode>(
       table, makeDummyFilter(), std::vector<ColumnIdentifier>{}
    );
 
-   const ColumnIdentifier produced_column{.name = "x", .type = ColumnType::INT64};
+   const ColumnIdentifier produced_column{.name = "x", .type = DataType::INT64};
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back({
       .output_column = produced_column,
@@ -225,7 +225,7 @@ TEST(FilterPushdownPass, pushesFilterReferencingPassThroughColumnBelowMap) {
    auto map_node = std::make_unique<operators::MapNode>(std::move(scan), std::move(assignments));
 
    // filter references `id`, a pass-through column the map does not produce
-   const ColumnIdentifier pass_through_column{.name = "id", .type = ColumnType::STRING};
+   const ColumnIdentifier pass_through_column{.name = "id", .type = DataType::STRING};
    auto filter_node = std::make_unique<operators::FilterNode>(
       std::move(map_node), std::make_unique<scalar_expressions::FieldRef>(pass_through_column)
    );
@@ -246,16 +246,16 @@ TEST(FilterPushdownPass, pushesFilterReferencingPassThroughColumnBelowMap) {
 // `segment1 := zstd_decompress(segment1)`; the co-occurrence-with-filter query relies on it.
 TEST(FilterPushdownPass, pushesFilterThroughTransparentDecompressMapIntoTableScan) {
    using rhydb::schema::ColumnIdentifier;
-   using rhydb::schema::ColumnType;
+   using rhydb::schema::DataType;
 
-   const ColumnIdentifier compressed_column{.name = "seq", .type = ColumnType::NUCLEOTIDE_SEQUENCE};
+   const ColumnIdentifier compressed_column{.name = "seq", .type = DataType::NUCLEOTIDE_SEQUENCE};
    auto scan = std::make_unique<operators::TableScanNode>(
       makeTable(), makeDummyFilter(), std::vector<ColumnIdentifier>{compressed_column}
    );
 
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back({
-      .output_column = {.name = "seq", .type = ColumnType::STRING},
+      .output_column = {.name = "seq", .type = DataType::STRING},
       .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
          std::make_unique<scalar_expressions::FieldRef>(compressed_column), "A"
       ),
@@ -264,7 +264,7 @@ TEST(FilterPushdownPass, pushesFilterThroughTransparentDecompressMapIntoTableSca
 
    // filter references the decompressed column `seq` {seq, STRING} - same identifier the map
    // produces, but the assignment is a transparent realization so the filter can be pushed down.
-   const ColumnIdentifier decompressed_column{.name = "seq", .type = ColumnType::STRING};
+   const ColumnIdentifier decompressed_column{.name = "seq", .type = DataType::STRING};
    auto filter_node = std::make_unique<operators::FilterNode>(
       std::move(map_node), std::make_unique<scalar_expressions::FieldRef>(decompressed_column)
    );
@@ -285,14 +285,14 @@ TEST(FilterPushdownPass, pushesFilterThroughTransparentDecompressMapIntoTableSca
 // literal assignment stands in for any non-transparent expression.
 TEST(FilterPushdownPass, doesNotPushFilterThroughValueChangingReplaceInPlaceMap) {
    using rhydb::schema::ColumnIdentifier;
-   using rhydb::schema::ColumnType;
+   using rhydb::schema::DataType;
 
    auto scan = std::make_unique<operators::TableScanNode>(
       makeTable(), makeDummyFilter(), std::vector<ColumnIdentifier>{}
    );
 
    // replace the existing pass-through column `id` with a computed value
-   const ColumnIdentifier replaced_column{.name = "id", .type = ColumnType::INT64};
+   const ColumnIdentifier replaced_column{.name = "id", .type = DataType::INT64};
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back({
       .output_column = replaced_column,
@@ -322,7 +322,7 @@ TEST(FilterPushdownPass, pushesFilterThroughProjectAndMapIntoTableScan) {
 
    std::vector<operators::MapNode::Assignment> assignments;
    assignments.push_back({
-      .output_column = {.name = "x", .type = rhydb::schema::ColumnType::INT64},
+      .output_column = {.name = "x", .type = rhydb::schema::DataType::INT64},
       .expression = std::make_unique<scalar_expressions::Int64Literal>(3),
    });
    auto map_node =
@@ -330,7 +330,7 @@ TEST(FilterPushdownPass, pushesFilterThroughProjectAndMapIntoTableScan) {
    auto project_node = std::make_unique<operators::ProjectNode>(
       std::move(map_node),
       std::vector<rhydb::schema::ColumnIdentifier>{
-         {.name = "x", .type = rhydb::schema::ColumnType::INT64},
+         {.name = "x", .type = rhydb::schema::DataType::INT64},
       }
    );
    auto outer_filter =
@@ -354,7 +354,7 @@ TEST(FilterPushdownPass, pushesFilterThroughProjectAndMapIntoTableScan) {
 TEST(FilterPushdownPass, pushesFilterThroughDeterministicOrderByIntoTableScan) {
    std::vector<rhydb::query_engine::OrderByField> fields;
    fields.push_back({
-      .field = {.name = "primaryKey", .type = rhydb::schema::ColumnType::STRING},
+      .field = {.name = "primaryKey", .type = rhydb::schema::DataType::STRING},
       .ascending = true,
    });
    auto order_by = std::make_unique<operators::OrderByNode>(

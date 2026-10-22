@@ -12,91 +12,17 @@
 #include <boost/serialization/split_member.hpp>
 
 #include "rhydb/common/panic.h"
+#include "rhydb/schema/data_type.h"
 #include "rhydb/storage/column/column.h"
 #include "rhydb/storage/column/column_metadata.h"
 
 namespace rhydb::schema {
 
-enum class ColumnType : uint8_t {
-   STRING,
-   DICTIONARY_ENCODED,
-   DATE32,
-   BOOL,
-   INT32,
-   INT64,
-   FLOAT,
-   AMINO_ACID_SEQUENCE,
-   NUCLEOTIDE_SEQUENCE,
-   ZSTD_COMPRESSED_STRING,
-};
-
-/// The logical type of the values a column holds, as opposed to the storage-specific `ColumnType`
-/// (e.g. both `STRING` and `DICTIONARY_ENCODED` columns hold `ValueType::STRING` values). This is
-/// the type a column reports via `type()`.
-enum class ValueType : uint8_t {
-   STRING,
-   DATE,
-   BOOL,
-   INT32,
-   INT64,
-   FLOAT,
-   NUCLEOTIDE_SEQUENCE,
-   AMINO_ACID_SEQUENCE,
-};
-
-constexpr std::string_view columnTypeToString(ColumnType type) {
-   switch (type) {
-      case ColumnType::STRING:
-         return "STRING";
-      case ColumnType::DICTIONARY_ENCODED:
-         return "DICTIONARY_ENCODED";
-      case ColumnType::DATE32:
-         return "DATE32";
-      case ColumnType::BOOL:
-         return "BOOL";
-      case ColumnType::INT32:
-         return "INT32";
-      case ColumnType::INT64:
-         return "INT64";
-      case ColumnType::FLOAT:
-         return "FLOAT";
-      case ColumnType::AMINO_ACID_SEQUENCE:
-         return "AMINO_ACID_SEQUENCE";
-      case ColumnType::NUCLEOTIDE_SEQUENCE:
-         return "NUCLEOTIDE_SEQUENCE";
-      case ColumnType::ZSTD_COMPRESSED_STRING:
-         return "ZSTD_COMPRESSED_STRING";
-   }
-   RHYDB_UNREACHABLE();
-}
-
-constexpr std::string_view valueTypeToString(ValueType type) {
-   switch (type) {
-      case ValueType::STRING:
-         return "string";
-      case ValueType::DATE:
-         return "date";
-      case ValueType::BOOL:
-         return "boolean";
-      case ValueType::INT32:
-         return "int";
-      case ValueType::INT64:
-         return "int64";
-      case ValueType::FLOAT:
-         return "float";
-      case ValueType::NUCLEOTIDE_SEQUENCE:
-         return "nucleotideSequence";
-      case ValueType::AMINO_ACID_SEQUENCE:
-         return "aminoAcidSequence";
-   }
-   RHYDB_UNREACHABLE();
-}
-
-bool isSequenceColumn(ColumnType type);
+bool isSequenceColumn(const DataType& type);
 
 struct ColumnIdentifier {
    std::string name;
-   rhydb::schema::ColumnType type;
+   rhydb::schema::DataType type;
 
    bool operator<(const ColumnIdentifier& other) const {
       return std::tie(name, type) < std::tie(other.name, other.type);
@@ -159,8 +85,8 @@ class TableSchema {
       if (iter->first.type != ColumnType::TYPE) {
          SPDLOG_INFO(
             "Mismatching type found: expected {} vs actual {}",
-            columnTypeToString(ColumnType::TYPE),
-            columnTypeToString(iter->first.type)
+            dataTypeToString(ColumnType::TYPE),
+            dataTypeToString(iter->first.type)
          );
          return std::nullopt;
       }

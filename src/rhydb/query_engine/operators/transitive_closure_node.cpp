@@ -39,8 +39,9 @@ struct Relation {
    std::vector<uint32_t> sources;
 };
 
-/// Validates that `column_name` is a STRING column of the input and returns its position, which
-/// is also its index into the input's exec batches.
+/// Validates that `column_name` is a column of the input holding STRING values (possibly
+/// dictionary-encoded) and returns its position, which is also its index into the input's exec
+/// batches.
 uint32_t validateAndFindColumn(
    const std::vector<schema::ColumnIdentifier>& child_schema,
    const std::string& column_name
@@ -54,26 +55,26 @@ uint32_t validateAndFindColumn(
       column_name
    );
    CHECK_RHYDB_QUERY(
-      found->type == schema::ColumnType::STRING,
+      found->type.getPlainType() == schema::DataType::STRING,
       "transitiveClosure() can only be applied to STRING columns, but column '{}' has type {}",
       column_name,
-      schema::columnTypeToString(found->type)
+      schema::dataTypeToString(found->type)
    );
    return static_cast<uint32_t>(std::distance(child_schema.begin(), found));
 }
 
-arrow::Result<std::shared_ptr<arrow::StringArray>> asStringArray(const arrow::Datum& datum) {
+arrow::Result<std::shared_ptr<arrow::LargeStringArray>> asStringArray(const arrow::Datum& datum) {
    if (!datum.is_array()) {
       return arrow::Status::Invalid("transitiveClosure() expected an array-typed input column");
    }
    auto array = datum.make_array();
-   if (array->type_id() != arrow::Type::STRING) {
+   if (array->type_id() != arrow::Type::LARGE_STRING) {
       return arrow::Status::Invalid(
          "transitiveClosure() expected a string-typed input column, but got ",
          array->type()->ToString()
       );
    }
-   return std::static_pointer_cast<arrow::StringArray>(std::move(array));
+   return std::static_pointer_cast<arrow::LargeStringArray>(std::move(array));
 }
 
 /// Builds the interned relation from the child's exec batches, reading the edge endpoints from
@@ -211,8 +212,8 @@ class ClosureProducer {
 
    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
    arrow::Result<arrow::ExecBatch> buildBatch(size_t begin, size_t end) const {
-      arrow::StringBuilder from_builder{};
-      arrow::StringBuilder to_builder{};
+      arrow::LargeStringBuilder from_builder{};
+      arrow::LargeStringBuilder to_builder{};
       ARROW_RETURN_NOT_OK(from_builder.Reserve(static_cast<int64_t>(end - begin)));
       ARROW_RETURN_NOT_OK(to_builder.Reserve(static_cast<int64_t>(end - begin)));
       for (size_t index = begin; index < end; ++index) {
@@ -288,8 +289,8 @@ TransitiveClosureNode::TransitiveClosureNode(
 
 std::vector<schema::ColumnIdentifier> TransitiveClosureNode::getOutputSchema() const {
    return {
-      {.name = std::string{FROM_COLUMN}, .type = schema::ColumnType::STRING},
-      {.name = std::string{TO_COLUMN}, .type = schema::ColumnType::STRING},
+      {.name = std::string{FROM_COLUMN}, .type = schema::DataType::STRING},
+      {.name = std::string{TO_COLUMN}, .type = schema::DataType::STRING},
    };
 }
 

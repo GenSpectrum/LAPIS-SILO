@@ -44,7 +44,7 @@ struct BinaryDecompressKernel {
          return arrow::Status::Invalid("Expected array input, got scalar/chunked array");
       }
       const arrow::ArraySpan& input_span = input.values[0].array;
-      if (input_span.type->id() != arrow::Type::BINARY) {
+      if (input_span.type->id() != arrow::Type::LARGE_BINARY) {
          return arrow::Status::Invalid(
             fmt::format(
                "Expected string array input, got another type: {}", input_span.type->ToString()
@@ -53,16 +53,16 @@ struct BinaryDecompressKernel {
       }
       // TODO(#791) this is a copy of the Array's data, whereas the view should suffice
       auto array = input_span.ToArray();
-      const auto* input_as_array = static_cast<const arrow::BinaryArray*>(array.get());
+      const auto* input_as_array = static_cast<const arrow::LargeBinaryArray*>(array.get());
       if (!input.values[1].is_scalar()) {
          return arrow::Status::Invalid("Expected scalar input of type binary as second argument");
       }
-      const auto* input_dict = static_cast<const arrow::BinaryScalar*>(input.values[1].scalar);
+      const auto* input_dict = static_cast<const arrow::LargeBinaryScalar*>(input.values[1].scalar);
       RHYDB_ASSERT(input_dict);
       auto dictionary = std::make_shared<rhydb::ZstdDDictionary>(input_dict->view());
       rhydb::ZstdDecompressor decompressor{dictionary};
 
-      arrow::StringBuilder builder(context->memory_pool());
+      arrow::LargeStringBuilder builder(context->memory_pool());
       ARROW_RETURN_NOT_OK(builder.Reserve(input_span.length));
 
       for (int64_t i = 0; i < input_span.length; ++i) {
@@ -111,8 +111,9 @@ arrow::Result<std::string> registerCustomFunctionImpl() {
    {
       arrow::compute::ScalarKernel kernel;
       kernel.exec = BinaryDecompressKernel::exec;
-      kernel.signature =
-         arrow::compute::KernelSignature::Make({arrow::binary(), arrow::binary()}, arrow::utf8());
+      kernel.signature = arrow::compute::KernelSignature::Make(
+         {arrow::large_binary(), arrow::large_binary()}, arrow::large_utf8()
+      );
       kernel.null_handling = arrow::compute::NullHandling::INTERSECTION;
       kernel.mem_allocation = arrow::compute::MemAllocation::NO_PREALLOCATE;
       ARROW_RETURN_NOT_OK(custom_function->AddKernel(std::move(kernel)));
@@ -139,7 +140,7 @@ arrow::Expression ZstdDecompressExpression::make(
 ) {
    static const std::string function_name = registerCustomFunction();
 
-   auto dict_scalar = std::make_shared<arrow::BinaryScalar>(std::move(dictionary_string));
+   auto dict_scalar = std::make_shared<arrow::LargeBinaryScalar>(std::move(dictionary_string));
 
    return arrow::compute::call(
       function_name,

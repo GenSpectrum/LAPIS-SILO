@@ -30,14 +30,14 @@ arrow::Result<std::shared_ptr<arrow::Table>> setupTestTable(
 ) {
    std::shared_ptr<arrow::Schema> schema = arrow::schema({
       arrow::field("id", arrow::int32()),
-      arrow::field("some_zstd_compressed_column", arrow::binary()),
+      arrow::field("some_zstd_compressed_column", arrow::large_binary()),
    });
 
    auto dictionary = std::make_shared<rhydb::ZstdCDictionary>(dictionary_string, 3);
    rhydb::ZstdCompressor compressor{dictionary};
 
    arrow::Int32Builder id_builder;
-   arrow::BinaryBuilder value_builder;
+   arrow::LargeBinaryBuilder value_builder;
    int32_t id_column_value = 1;
    for (auto& value : values) {
       ARROW_RETURN_NOT_OK(id_builder.Append(id_column_value++));
@@ -93,8 +93,8 @@ void assertDecompressedStringArray(
    const std::shared_ptr<arrow::Table>& result_table
 ) {
    for (int chunk_id = 0; chunk_id < result_table->column(1)->num_chunks(); ++chunk_id) {
-      std::shared_ptr<arrow::StringArray> string_array =
-         std::static_pointer_cast<arrow::StringArray>(result_table->column(1)->chunk(0));
+      std::shared_ptr<arrow::LargeStringArray> string_array =
+         std::static_pointer_cast<arrow::LargeStringArray>(result_table->column(1)->chunk(0));
 
       ASSERT_EQ(string_array->length(), expected_values.size())
          << "Decompressed array length does not match expected values size.";

@@ -20,7 +20,7 @@
 namespace rhydb::query_engine::exec_node {
 
 class ExecBatchBuilder {
-   std::map<schema::ColumnType, std::map<std::string, std::shared_ptr<arrow::ArrayBuilder>>>
+   std::map<schema::DataType, std::map<std::string, std::shared_ptr<arrow::ArrayBuilder>>>
       array_builders;
    std::vector<rhydb::schema::ColumnIdentifier> output_fields;
 

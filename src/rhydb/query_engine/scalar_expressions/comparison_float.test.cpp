@@ -86,6 +86,13 @@ const QueryTestScenario FLIPPED_OPERANDS = {
    .expected_query_result = nlohmann::json::parse(R"([{"primaryKey":"id_below"}])"),
 };
 
+const QueryTestScenario SCIENTIFIC_NOTATION = {
+   .name = "FLOAT_SCIENTIFIC_NOTATION",
+   .query = "data.filter(float_value > 1.5E-3 && float_value < 0.4e1).project(primaryKey)",
+   .expected_query_result =
+      nlohmann::json::parse(R"([{"primaryKey":"id_below"},{"primaryKey":"id_bound"}])"),
+};
+
 const QueryTestScenario TYPE_MISMATCH = {
    .name = "FLOAT_TYPE_MISMATCH",
    .query = "data.filter(float_value < 'x').project(primaryKey)",
@@ -111,6 +118,7 @@ QUERY_TEST(
       GREATER_EQUAL,
       NEGATED_LESS_THAN,
       FLIPPED_OPERANDS,
+      SCIENTIFIC_NOTATION,
       TYPE_MISMATCH,
       UNKNOWN_COLUMN
    )

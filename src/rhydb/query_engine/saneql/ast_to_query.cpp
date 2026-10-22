@@ -14,6 +14,7 @@
 
 #include "rhydb/common/aa_symbols.h"
 #include "rhydb/common/nucleotide_symbols.h"
+#include "rhydb/common/panic.h"
 #include "rhydb/query_engine/exec_node/arrow_util.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/operators/aggregate_node.h"
@@ -61,7 +62,7 @@
 #include "rhydb/query_engine/scalar_expressions/symbol_equals.h"
 #include "rhydb/query_engine/scalar_expressions/zstd_decompress_scalar.h"
 #include "rhydb/query_engine/subquery_value_set.h"
-#include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/data_type_visitor.h"
 #include "rhydb/storage/column/sequence_column.h"
 #include "rhydb/storage/column/zstd_compressed_string_column.h"
 
@@ -227,18 +228,6 @@ ScalarExpressionPtr convertBinaryExprToFilter(
    const ScalarConversionContext& context
 ) {
    switch (bin_expr.op) {
-      case BinaryOp::AND: {
-         scalar_expressions::ScalarExpressionVector children;
-         children.push_back(convertToFilter(*bin_expr.left, schema, context));
-         children.push_back(convertToFilter(*bin_expr.right, schema, context));
-         return std::make_unique<scalar_expressions::And>(std::move(children));
-      }
-      case BinaryOp::OR: {
-         scalar_expressions::ScalarExpressionVector children;
-         children.push_back(convertToFilter(*bin_expr.left, schema, context));
-         children.push_back(convertToFilter(*bin_expr.right, schema, context));
-         return std::make_unique<scalar_expressions::Or>(std::move(children));
-      }
       case BinaryOp::EQUALS:
       case BinaryOp::NOT_EQUALS:
       case BinaryOp::LESS_THAN:
@@ -256,6 +245,26 @@ ScalarExpressionPtr convertBinaryExprToFilter(
       }
    }
    throw IllegalQueryException("unhandled binary operator");
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+ScalarExpressionPtr convertLogicalExprToFilter(
+   const ast::LogicalExpr& logical_expr,
+   const std::vector<schema::ColumnIdentifier>& schema,
+   const ScalarConversionContext& context
+) {
+   scalar_expressions::ScalarExpressionVector children;
+   children.reserve(logical_expr.operands.size());
+   for (const auto& operand : logical_expr.operands) {
+      children.push_back(convertToFilter(*operand, schema, context));
+   }
+   switch (logical_expr.op) {
+      case ast::LogicalOp::AND:
+         return std::make_unique<scalar_expressions::And>(std::move(children));
+      case ast::LogicalOp::OR:
+         return std::make_unique<scalar_expressions::Or>(std::move(children));
+   }
+   RHYDB_UNREACHABLE();
 }
 
 // ========================================================================
@@ -497,11 +506,10 @@ ScalarExpressionPtr handleAt(
    const auto& input_ast = args.at("input");
    auto input = convertToScalar(input_ast, schema, "at() input", context);
    CHECK_RHYDB_QUERY(
-      input->type() == schema::ColumnType::STRING ||
-         input->type() == schema::ColumnType::DICTIONARY_ENCODED,
+      input->type().getPlainType() == schema::DataType::STRING,
       "at(): the input {} must be a string, but is of type {}",
       input_ast.toString(),
-      schema::columnTypeToString(input->type())
+      schema::dataTypeToString(input->type())
    );
    const uint32_t position = extractUint32Literal(args.at("position"));
    CHECK_RHYDB_QUERY(
@@ -519,10 +527,10 @@ ScalarExpressionPtr handleIsoWeek(
    const auto& input_ast = args.at("input");
    auto input = convertToScalar(input_ast, schema, "isoWeek() input", context);
    CHECK_RHYDB_QUERY(
-      input->type() == schema::ColumnType::DATE32,
+      input->type().getPlainType() == schema::DataType::DATE32,
       "isoWeek(): the input {} must be a date, but is of type {}",
       input_ast.toString(),
-      schema::columnTypeToString(input->type())
+      schema::dataTypeToString(input->type())
    );
    return std::make_unique<scalar_expressions::IsoWeek>(std::move(input));
 }
@@ -723,10 +731,10 @@ ScalarExpressionPtr convertFunctionCallToFilter(
    // The registry also holds value-producing scalar functions (e.g. `at`), which are not filter
    // predicates. Reject them here rather than letting a non-boolean expression reach compile().
    CHECK_RHYDB_QUERY(
-      expression->type() == schema::ColumnType::BOOL,
+      expression->type() == schema::DataType::BOOL,
       "scalar function '{}' produces a {} value and cannot be used as a filter predicate at {}:{}",
       node.function_name,
-      schema::columnTypeToString(expression->type()),
+      schema::dataTypeToString(expression->type()),
       ast.location.line,
       ast.location.column
    );
@@ -764,6 +772,8 @@ std::unique_ptr<scalar_expressions::ScalarExpression> convertToFilter(
 
          if constexpr (std::is_same_v<T, ast::BinaryExpr>) {
             return convertBinaryExprToFilter(node, schema, context);
+         } else if constexpr (std::is_same_v<T, ast::LogicalExpr>) {
+            return convertLogicalExprToFilter(node, schema, context);
          } else if constexpr (std::is_same_v<T, ast::UnaryNotExpr>) {
             return std::make_unique<scalar_expressions::Negation>(
                convertToFilter(*node.operand, schema, context)
@@ -820,9 +830,10 @@ void validateCountArguments(const ast::RecordField& field, const ast::FunctionCa
    );
 }
 
-bool isNumericColumnType(schema::ColumnType type) {
-   return type == schema::ColumnType::INT32 || type == schema::ColumnType::INT64 ||
-          type == schema::ColumnType::FLOAT;
+bool isNumericColumnType(const schema::DataType& type) {
+   const schema::DataType plain_type = type.getPlainType();
+   return plain_type == schema::DataType::INT32 || plain_type == schema::DataType::INT64 ||
+          plain_type == schema::DataType::FLOAT;
 }
 
 /// Checks the arguments of `sum(column)`: exactly one source column, which must be numeric
@@ -841,14 +852,14 @@ void validateSumArguments(
       "aggregate '{}': sum requires a numeric (int, int64 or float) column, but '{}' has type {}",
       field.name,
       source_column->name,
-      schema::columnTypeToString(source_column->type)
+      schema::dataTypeToString(source_column->type)
    );
 }
 
-bool isOrderedColumnType(schema::ColumnType type) {
-   return isNumericColumnType(type) || type == schema::ColumnType::DATE32 ||
-          type == schema::ColumnType::STRING || type == schema::ColumnType::DICTIONARY_ENCODED ||
-          type == schema::ColumnType::BOOL;
+bool isOrderedColumnType(const schema::DataType& type) {
+   const schema::DataType plain_type = type.getPlainType();
+   return isNumericColumnType(plain_type) || plain_type == schema::DataType::DATE32 ||
+          plain_type == schema::DataType::STRING || plain_type == schema::DataType::BOOL;
 }
 
 /// Checks the arguments of `min(column)` / `max(column)`: exactly one source column, whose
@@ -871,7 +882,7 @@ void validateMinMaxArguments(
       field.name,
       func.function_name,
       source_column->name,
-      schema::columnTypeToString(source_column->type)
+      schema::dataTypeToString(source_column->type)
    );
 }
 
@@ -1016,7 +1027,7 @@ std::vector<std::string> namesWithTypes(const std::vector<schema::ColumnIdentifi
    std::vector<std::string> result;
    result.reserve(schema.size());
    for (const auto& col : schema) {
-      result.push_back(fmt::format("{}:{}", col.name, schema::columnTypeToString(col.type)));
+      result.push_back(fmt::format("{}:{}", col.name, schema::dataTypeToString(col.type)));
    }
    return result;
 }
@@ -1146,7 +1157,7 @@ operators::QueryNodePtr wrapWithDecompressIfNeeded(
          storage::column::visit(col.type, ColumnToReferenceSequenceVisitor{}, *table_schema, col);
       if (reference.has_value()) {
          assignments.push_back({
-            .output_column = {.name = col.name, .type = schema::ColumnType::STRING},
+            .output_column = {.name = col.name, .type = schema::DataType::STRING},
             .expression = std::make_unique<scalar_expressions::ZstdDecompressScalar>(
                std::make_unique<scalar_expressions::FieldRef>(col), std::move(reference).value()
             ),
@@ -1512,6 +1523,19 @@ void collectJoinKeys(
    const std::vector<schema::ColumnIdentifier>& right_schema,
    JoinKeys& keys
 ) {
+   if (const auto* logical = std::get_if<ast::LogicalExpr>(&on_expression.value)) {
+      CHECK_RHYDB_QUERY(
+         logical->op == ast::LogicalOp::AND,
+         "join() on-expression only supports equality (=) comparisons, optionally combined with "
+         "'&&', at {}:{}",
+         on_expression.location.line,
+         on_expression.location.column
+      );
+      for (const auto& operand : logical->operands) {
+         collectJoinKeys(*operand, left_schema, right_schema, keys);
+      }
+      return;
+   }
    CHECK_RHYDB_QUERY(
       std::holds_alternative<ast::BinaryExpr>(on_expression.value),
       "join() on-expression must be an equality between a left and a right column, or a "
@@ -1520,11 +1544,6 @@ void collectJoinKeys(
       on_expression.location.column
    );
    const auto& binary = std::get<ast::BinaryExpr>(on_expression.value);
-   if (binary.op == BinaryOp::AND) {
-      collectJoinKeys(*binary.left, left_schema, right_schema, keys);
-      collectJoinKeys(*binary.right, left_schema, right_schema, keys);
-      return;
-   }
    CHECK_RHYDB_QUERY(
       binary.op == BinaryOp::EQUALS,
       "join() on-expression only supports equality (=) comparisons, optionally combined with "
@@ -1549,8 +1568,8 @@ void collectJoinKeys(
       "'{}' and '{}' have mismatching types {} and {} at {}",
       binary.left->toString(),
       binary.right->toString(),
-      schema::columnTypeToString(first.column.type),
-      schema::columnTypeToString(second.column.type),
+      schema::dataTypeToString(first.column.type),
+      schema::dataTypeToString(second.column.type),
       on_expression.location.toString()
    );
    if (first.side == JoinSide::LEFT) {
@@ -1677,10 +1696,10 @@ operators::QueryNodePtr handleTransitiveClosure(const BoundArguments& args, cons
       for (const auto& element : set.elements) {
          auto vertex = convertToScalar(*element, {}, "a startingFrom vertex", context);
          CHECK_RHYDB_QUERY(
-            vertex->type() == schema::ColumnType::STRING,
+            vertex->type() == schema::DataType::STRING,
             "a startingFrom vertex must be a string, but {} is of type {} at {}",
             element->toString(),
-            schema::columnTypeToString(vertex->type()),
+            schema::dataTypeToString(vertex->type()),
             element->location.toString()
          );
          starting_from->push_back(std::move(vertex));

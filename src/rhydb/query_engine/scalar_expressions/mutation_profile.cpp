@@ -139,7 +139,7 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
 
    std::optional<RowId> found_row_id;
 
-   if (primary_key_type == schema::ColumnType::STRING) {
+   if (primary_key_type == schema::DataType::STRING) {
       const auto& primary_key_column =
          table.getColumn<storage::column::StringColumn>(primary_key_name);
       for (const RowId row_id : table.row_layout) {
@@ -148,7 +148,7 @@ std::vector<typename SymbolType::Symbol> MutationProfile<SymbolType>::buildProfi
             break;
          }
       }
-   } else if (primary_key_type == schema::ColumnType::DICTIONARY_ENCODED) {
+   } else if (primary_key_type == schema::DataType::dictionaryEncoded(schema::DataType::STRING)) {
       const auto& primary_key_column =
          table.getColumn<storage::column::DictionaryEncodedColumn>(primary_key_name);
       const auto bitmap_opt = primary_key_column.filter(std::optional<std::string>(seq_id));

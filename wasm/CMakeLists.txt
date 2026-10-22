@@ -16,9 +16,24 @@ set_target_properties(rhydb_wasm PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BI
 # Emscripten-only NO_EVOBENCH define.
 target_link_libraries(rhydb_wasm PRIVATE rhydblib)
 
+# 64-bit WebAssembly (wasm64). RHYDB_WASM_MEMORY64 is set by the wasm64 preset.
+# The --target=wasm64 ABI flag reaches both compile and link via the Conan
+# profile and the preset, so the only thing left to set here is the memory ceiling.
+#
+# -sALLOW_MEMORY_GROWTH lets memory grow up to MAXIMUM_MEMORY, which defaults to
+# 2 GiB. For wasm64 that default would negate the point of the 64-bit build, so
+# raise the ceiling past 4 GiB. The 32-bit build cannot address more than 4 GiB,
+# so it keeps the default cap.
+if(RHYDB_WASM_MEMORY64)
+    set(RHYDB_WASM_MEMORY64_LINK_OPTIONS -sMAXIMUM_MEMORY=16GB)
+else()
+    set(RHYDB_WASM_MEMORY64_LINK_OPTIONS)
+endif()
+
 target_link_options(rhydb_wasm
     PRIVATE
     -lembind
+    ${RHYDB_WASM_MEMORY64_LINK_OPTIONS}
     -sALLOW_MEMORY_GROWTH=1
     -sEXIT_RUNTIME=0
     -sEXPORT_ES6=1

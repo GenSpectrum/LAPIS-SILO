@@ -105,8 +105,8 @@ class StringColumn {
    using Builder = StringColumnBuilder;
    using Buffer = std::vector<std::optional<std::string>>;
 
-   static constexpr schema::ColumnType TYPE = schema::ColumnType::STRING;
-   static constexpr schema::ValueType type() { return schema::ValueType::STRING; }
+   static constexpr const schema::DataType& TYPE = schema::DataType::STRING;
+   static schema::DataType type() { return TYPE; }
    // The type with which one can call insert
    using value_type = std::string_view;
 

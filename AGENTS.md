@@ -12,7 +12,7 @@ Documentation (for devs and users) in `documentation/`.
 # Build
 make build/Debug/rhydb             # Debug build (includes ASAN)
 make build/Release/rhydb           # Release build (includes mimalloc on Linux)
-cmake --preset debug               # Configure only (also release, wasm), see CMakePresets.json
+cmake --preset debug               # Configure only (also release, wasm, wasm64), see CMakePresets.json
 
 make clean                         # Clean generated outputs/logs/deps (keeps build/)
 make full-clean                    # clean + remove build/ (forces full reconfigure + rebuild)
@@ -22,8 +22,9 @@ make test                          # Build and run C++ unit tests
 make all-tests                     # Run C++, Python, and E2E tests
 
 # WebAssembly (browser) build (see wasm/README.md)
-make wasm                          # Build rhydb_wasm.js/.wasm into wasm/dist (requires Emscripten)
-make wasm-test                     # Build wasm and run wasm/test
+make wasm                          # Build 32-bit rhydb_wasm.js/.wasm into wasm/dist (requires Emscripten)
+make wasm64                        # Build 64-bit (wasm64/MEMORY64) variant into wasm/dist/wasm64
+make wasm-test                     # Build both variants and run wasm/test
 
 # Run specific tests
 build/Debug/src/rhydb_test --gtest_filter='TestSuite*'         # By suite
@@ -62,10 +63,10 @@ CMake auto-scans `src/` and `app/src/` directories. The Makefile maintains `.src
 #include "rhydb/common/panic.h"           // 4. Internal (quotes)
 ```
 
-### `using` statements
+### `using` declarations
 
-Never use `using my::Type` in `.h` files.
-Use `using my::Type` (only in `.cpp` files) deliberately for all `rhydb::...` types.
+Never use `using my::Type` at namespace scope in `.h` files, where it would leak into every includer.
+Inside a function body or other local scope in a header and in source files, `using` declarations should be used when it makes code more readable.
 
 ### Error handling
 - `std::expected<T, Error>` for recoverable errors.

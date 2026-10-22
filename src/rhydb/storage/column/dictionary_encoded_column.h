@@ -34,8 +34,9 @@ class DictionaryEncodedColumn {
    using Builder = DictionaryEncodedColumnBuilder;
    using Buffer = std::vector<std::optional<std::string>>;
 
-   static constexpr schema::ColumnType TYPE = schema::ColumnType::DICTIONARY_ENCODED;
-   static constexpr schema::ValueType type() { return schema::ValueType::STRING; }
+   static inline const schema::DataType TYPE =
+      schema::DataType::dictionaryEncoded(schema::DataType::STRING);
+   static schema::DataType type() { return TYPE; }
    using value_type = std::string_view;
 
    Metadata* metadata;

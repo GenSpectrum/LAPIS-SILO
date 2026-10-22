@@ -62,6 +62,41 @@ TEST(SaneQLLexer, tokenizesFloatLiteral) {
    EXPECT_DOUBLE_EQ(tokens[0].getFloatValue(), 3.14);
 }
 
+TEST(SaneQLLexer, tokenizesFloatLiteralsInScientificNotation) {
+   Lexer lexer("9.0E-4 1e5 2.5e+3 1E-10");
+   auto tokens = lexer.tokenizeAll();
+   ASSERT_EQ(tokens.size(), 5);
+   EXPECT_EQ(tokens[0].type, TokenType::FLOAT_LITERAL);
+   EXPECT_DOUBLE_EQ(tokens[0].getFloatValue(), 0.0009);
+   EXPECT_EQ(tokens[1].type, TokenType::FLOAT_LITERAL);
+   EXPECT_DOUBLE_EQ(tokens[1].getFloatValue(), 100000.0);
+   EXPECT_EQ(tokens[2].type, TokenType::FLOAT_LITERAL);
+   EXPECT_DOUBLE_EQ(tokens[2].getFloatValue(), 2500.0);
+   EXPECT_EQ(tokens[3].type, TokenType::FLOAT_LITERAL);
+   EXPECT_DOUBLE_EQ(tokens[3].getFloatValue(), 1e-10);
+}
+
+TEST(SaneQLLexer, scientificNotationDoesNotSwallowSubtraction) {
+   Lexer lexer("2-1");
+   auto tokens = lexer.tokenizeAll();
+   ASSERT_EQ(tokens.size(), 4);
+   EXPECT_EQ(tokens[0].type, TokenType::INT_LITERAL);
+   EXPECT_EQ(tokens[1].type, TokenType::MINUS);
+   EXPECT_EQ(tokens[2].type, TokenType::INT_LITERAL);
+}
+
+TEST(SaneQLLexer, invalidFloatLiteralWithIncompleteExponent) {
+   EXPECT_THAT(
+      []() {
+         Lexer lexer("1.5e-");
+         auto tokens = lexer.tokenizeAll();
+      },
+      ThrowsMessage<ParseException>(
+         ::testing::HasSubstr("Parse error at 1:1: Invalid float literal")
+      )
+   );
+}
+
 TEST(SaneQLLexer, invalidFloatLiteral) {
    EXPECT_THAT(
       []() {

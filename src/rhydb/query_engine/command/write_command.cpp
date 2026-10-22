@@ -9,6 +9,7 @@
 
 #include "rhydb/query_engine/command/create_table_command.h"
 #include "rhydb/query_engine/command/insert_command.h"
+#include "rhydb/query_engine/command/update_command.h"
 #include "rhydb/query_engine/illegal_query_exception.h"
 #include "rhydb/query_engine/saneql/ast.h"
 #include "rhydb/query_engine/saneql/ast_to_query.h"
@@ -79,6 +80,17 @@ WriteStatementRegistry::WriteStatementRegistry() {
          },
       },
       buildCreateTable
+   );
+   registerStatement(
+      "update",
+      FunctionSignature{
+         {
+            ParameterDefinition{.name = "table"},
+            ParameterDefinition{.name = "set"},
+            ParameterDefinition{.name = "where", .required = false, .positional = false},
+         },
+      },
+      buildUpdate
    );
 }
 

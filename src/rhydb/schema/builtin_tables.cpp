@@ -11,10 +11,10 @@ namespace {
 std::shared_ptr<TableSchema> createReferenceGenomesTableSchema() {
    // No primary key: a nucleotide and an amino acid sequence may share a name, so only (name, type)
    // identifies a row.
-   const ColumnIdentifier name_column{.name = "name", .type = ColumnType::STRING};
+   const ColumnIdentifier name_column{.name = "name", .type = DataType::STRING};
    // Either REFERENCE_GENOMES_NUCLEOTIDE_TYPE or REFERENCE_GENOMES_AMINO_ACID_TYPE.
-   const ColumnIdentifier type_column{.name = "type", .type = ColumnType::STRING};
-   const ColumnIdentifier sequence_column{.name = "sequence", .type = ColumnType::STRING};
+   const ColumnIdentifier type_column{.name = "type", .type = DataType::STRING};
+   const ColumnIdentifier sequence_column{.name = "sequence", .type = DataType::STRING};
    auto table_schema = std::make_shared<TableSchema>();
    for (const auto& column : {name_column, type_column, sequence_column}) {
       table_schema->column_metadata.emplace(
@@ -27,11 +27,11 @@ std::shared_ptr<TableSchema> createReferenceGenomesTableSchema() {
 std::shared_ptr<TableSchema> createLineageDefinitionsTableSchema() {
    const ColumnIdentifier column_name_column{
       .name = std::string{LINEAGE_DEFINITIONS_COLUMN_NAME_COLUMN},
-      .type = ColumnType::STRING,
+      .type = DataType::STRING,
    };
    const ColumnIdentifier definition_column{
       .name = std::string{LINEAGE_DEFINITIONS_DEFINITION_COLUMN},
-      .type = ColumnType::STRING,
+      .type = DataType::STRING,
    };
    auto table_schema = std::make_shared<TableSchema>();
    for (const auto& column : {column_name_column, definition_column}) {

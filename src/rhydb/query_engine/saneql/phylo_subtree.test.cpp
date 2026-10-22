@@ -20,11 +20,11 @@ using Tables = std::map<rhydb::schema::TableName, std::shared_ptr<rhydb::storage
 
 Tables makeTablesWithDefault() {
    using rhydb::schema::ColumnIdentifier;
-   using rhydb::schema::ColumnType;
+   using rhydb::schema::DataType;
    using rhydb::storage::column::ColumnMetadata;
    using rhydb::storage::column::StringColumnMetadata;
 
-   ColumnIdentifier primary_key{.name = "id", .type = ColumnType::STRING};
+   ColumnIdentifier primary_key{.name = "id", .type = DataType::STRING};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> col_meta{
       {primary_key, std::make_shared<StringColumnMetadata>(primary_key.name)},
    };

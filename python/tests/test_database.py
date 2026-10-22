@@ -104,7 +104,6 @@ class TestDatabaseCreation:
             'get_amino_acid_reference_sequence',
             'print_all_data',
             'save_checkpoint',
-            'update_column',
         ]
         for method in expected_methods:
             assert hasattr(empty_database, method), f"Missing method: {method}"
@@ -812,13 +811,12 @@ class TestQuery:
         assert result_before.column_names == result_after.column_names
 
 
-class TestUpdateColumn:
-    """Test the update_column binding.
+class TestUpdateStatement:
+    """Test the update statement through query().
 
-    These tests cover both the binding layer itself (argument validation, marshalling, translation
-    of C++ errors into Python exceptions) and the end-to-end update of a plain string column. The
-    update of scalar value columns (int/float/date/bool) is covered by
-    TestUpdateColumnOnLoadedDatabase and the C++ unit tests.
+    These tests cover the translation of C++ errors into Python exceptions and the end-to-end
+    update of a plain string column. The update of scalar value columns (int/float/date/bool) is
+    covered by TestUpdateStatementOnLoadedDatabase and the C++ unit tests.
     """
 
     def _database_with_string_column(self, main_reference_sequence):
@@ -840,67 +838,67 @@ class TestUpdateColumn:
     def _count(database, filter_expression):
         return len(database.get_filtered_bitmap("sequences", filter_expression))
 
-    def test_update_column_empty_table_name_raises(self, empty_database):
-        """Test that an empty table name raises ValueError before reaching C++."""
-        with pytest.raises(ValueError, match="table_name cannot be empty"):
-            empty_database.update_column("", "country", "'x'")
+    def test_update_returns_number_of_updated_rows(self, main_reference_sequence):
+        """The statement returns a single-row summary instead of rows."""
+        db = self._database_with_string_column(main_reference_sequence)
 
-    def test_update_column_empty_column_name_raises(self, empty_database):
-        """Test that an empty column name raises ValueError before reaching C++."""
-        with pytest.raises(ValueError, match="column_name cannot be empty"):
-            empty_database.update_column("sequences", "", "'x'")
+        result = db.query(
+            "update(sequences, set := {country := 'France'}, where := primary_key = 'key_29')"
+        )
 
-    def test_update_column_unknown_column_raises(self, main_reference_sequence):
-        """Test that updating a non-existent column surfaces the C++ query error as ValueError."""
+        assert result.to_pydict() == {"updatedRows": [1]}
+
+    def test_update_unknown_column_raises(self, main_reference_sequence):
+        """Updating a non-existent column surfaces the C++ query error as ValueError."""
         db = self._database_with_string_column(main_reference_sequence)
         with pytest.raises(ValueError, match="does not contain a column"):
-            db.update_column("sequences", "does_not_exist", "1")
+            db.query("update(sequences, set := {does_not_exist := 1})")
 
     def test_update_string_column_all_rows(self, main_reference_sequence):
-        """A quoted string literal is assigned to every matched row of a string column."""
+        """A string literal is assigned to every row of a string column."""
         db = self._database_with_string_column(main_reference_sequence)
         total = self._count(db, "true")
         assert self._count(db, "country = 'Switzerland'") == total
 
-        db.update_column("sequences", "country", "'Germany'")
+        db.query("update(sequences, set := {country := 'Germany'})")
 
         assert self._count(db, "country = 'Switzerland'") == 0
         assert self._count(db, "country = 'Germany'") == total
 
     def test_update_string_column_with_filter(self, main_reference_sequence):
-        """Only rows matching the filter are reassigned; a brand-new value is interned."""
+        """Only rows matching the predicate are reassigned; a brand-new value is interned."""
         db = self._database_with_string_column(main_reference_sequence)
         total = self._count(db, "true")
         assert total > 1
 
-        db.update_column("sequences", "country", "'France'", "primary_key = 'key_29'")
+        db.query("update(sequences, set := {country := 'France'}, where := primary_key = 'key_29')")
 
         assert self._count(db, "country = 'France'") == 1
         assert self._count(db, "country = 'Switzerland'") == total - 1
 
     def test_update_string_column_clears_rows_to_null(self, main_reference_sequence):
-        """The literal 'null' clears the matched rows of a string column."""
+        """Assigning null clears the matched rows of a string column."""
         db = self._database_with_string_column(main_reference_sequence)
         assert self._count(db, "country.isNull()") == 0
 
-        db.update_column("sequences", "country", "null", "primary_key = 'key_29'")
+        db.query("update(sequences, set := {country := null}, where := primary_key = 'key_29')")
 
         assert self._count(db, "country.isNull()") == 1
 
     def test_update_string_column_type_mismatch_raises(self, main_reference_sequence):
-        """A non-string literal is rejected for a string column."""
+        """A non-string value is rejected for a string column."""
         db = self._database_with_string_column(main_reference_sequence)
         with pytest.raises(ValueError, match="cannot be assigned"):
-            db.update_column("sequences", "country", "5")
+            db.query("update(sequences, set := {country := 5})")
 
 
-class TestUpdateColumnOnLoadedDatabase:
-    """End-to-end update_column tests against the serialized database checked into the repo.
+class TestUpdateStatementOnLoadedDatabase:
+    """End-to-end update statement tests against the serialized database checked into the repo.
 
     That database has real scalar value columns (age:int, qc_value:float, date:date,
-    test_boolean_column:bool) filled with real data. update_column
-    mutates only the in-memory database (the on-disk state is never saved), so every test loads its
-    own fresh copy and the repo files are left untouched.
+    test_boolean_column:bool) filled with real data. The update mutates only the in-memory database
+    (the on-disk state is never saved), so every test loads its own fresh copy and the repo files
+    are left untouched.
     """
 
     @pytest.fixture
@@ -917,22 +915,22 @@ class TestUpdateColumnOnLoadedDatabase:
         return len(database.get_filtered_bitmap("data", filter_expression))
 
     def test_update_int_column_all_rows(self, loaded_database):
-        """Updating without a filter assigns the value to every row."""
+        """Updating without a predicate assigns the value to every row."""
         total = self._count(loaded_database, "true")
         assert total > 0
 
-        loaded_database.update_column("data", "age", "42")
+        loaded_database.query("update(data, set := {age := 42})")
 
         assert self._count(loaded_database, "age = 42") == total
         assert all(age == 42 for age in self._column(loaded_database, "age"))
 
     def test_update_int_column_with_filter(self, loaded_database):
-        """Only rows matching the filter are updated; the rest keep their values."""
+        """Only rows matching the predicate are updated; the rest keep their values."""
         matching = self._count(loaded_database, "age = 4")
         total = self._count(loaded_database, "true")
         assert 0 < matching < total
 
-        loaded_database.update_column("data", "age", "100", "age = 4")
+        loaded_database.query("update(data, set := {age := 100}, where := age = 4)")
 
         assert self._count(loaded_database, "age = 4") == 0
         assert self._count(loaded_database, "age = 100") == matching
@@ -941,35 +939,35 @@ class TestUpdateColumnOnLoadedDatabase:
 
     def test_update_float_column(self, loaded_database):
         """Float literals are assigned to a float column."""
-        loaded_database.update_column("data", "qc_value", "0.5")
+        loaded_database.query("update(data, set := {qc_value := 0.5})")
         assert all(abs(value - 0.5) < 1e-9 for value in self._column(loaded_database, "qc_value"))
 
     def test_update_bool_column(self, loaded_database):
         """Boolean literals are assigned to a bool column (including rows that were null)."""
-        loaded_database.update_column("data", "test_boolean_column", "false")
+        loaded_database.query("update(data, set := {test_boolean_column := false})")
         assert all(value is False for value in self._column(loaded_database, "test_boolean_column"))
 
     def test_update_date_column(self, loaded_database):
         """SaneQL date literals are assigned to a date column."""
-        loaded_database.update_column("data", "date", "'2000-01-01'::date")
+        loaded_database.query("update(data, set := {date := '2000-01-01'::date})")
         assert all(
             value == datetime.date(2000, 1, 1) for value in self._column(loaded_database, "date")
         )
 
-    def test_update_column_clears_rows_to_null(self, loaded_database):
-        """The literal 'null' clears the matched rows."""
+    def test_update_clears_rows_to_null(self, loaded_database):
+        """Assigning null clears the matched rows."""
         matching = self._count(loaded_database, "age = 4")
         nulls_before = self._count(loaded_database, "age.isNull()")
         assert matching > 0
 
-        loaded_database.update_column("data", "age", "null", "age = 4")
+        loaded_database.query("update(data, set := {age := null}, where := age = 4)")
 
         assert self._count(loaded_database, "age = 4") == 0
         assert self._count(loaded_database, "age.isNull()") == nulls_before + matching
 
     def test_update_does_not_persist_to_disk(self, loaded_database):
         """Updating the in-memory database must not modify the on-disk repo state."""
-        loaded_database.update_column("data", "age", "999")
+        loaded_database.query("update(data, set := {age := 999})")
         assert self._count(loaded_database, "age = 999") > 0
 
         from rhydb import Database

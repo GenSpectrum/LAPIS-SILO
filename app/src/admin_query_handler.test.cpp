@@ -30,7 +30,7 @@
 namespace {
 
 using rhydb::schema::ColumnIdentifier;
-using rhydb::schema::ColumnType;
+using rhydb::schema::DataType;
 using rhydb::schema::TableName;
 using rhydb::schema::TableSchema;
 using rhydb::storage::column::ColumnMetadata;
@@ -39,9 +39,9 @@ using rhydb::storage::column::StringColumnMetadata;
 // A metadata-only schema (string primary key + a string and an int32 column) shared by the source
 // and target tables of the test fixture.
 std::shared_ptr<TableSchema> makeValueSchema() {
-   const ColumnIdentifier key{.name = "key", .type = ColumnType::STRING};
-   const ColumnIdentifier country{.name = "country", .type = ColumnType::STRING};
-   const ColumnIdentifier age{.name = "age", .type = ColumnType::INT32};
+   const ColumnIdentifier key{.name = "key", .type = DataType::STRING};
+   const ColumnIdentifier country{.name = "country", .type = DataType::STRING};
+   const ColumnIdentifier age{.name = "age", .type = DataType::INT32};
    std::map<ColumnIdentifier, std::shared_ptr<ColumnMetadata>> column_metadata{
       {key, std::make_shared<StringColumnMetadata>(key.name)},
       {country, std::make_shared<StringColumnMetadata>(country.name)},
@@ -239,11 +239,11 @@ TEST(AdminQueryHandler, createsTableAndPersistsItsSchema) {
    EXPECT_EQ(
       schema.getColumnIdentifiers(),
       (std::vector<ColumnIdentifier>{
-         {.name = "name", .type = ColumnType::STRING},
-         {.name = "population", .type = ColumnType::INT64},
+         {.name = "name", .type = DataType::STRING},
+         {.name = "population", .type = DataType::INT64},
       })
    );
-   EXPECT_EQ(schema.primary_key, (ColumnIdentifier{.name = "name", .type = ColumnType::STRING}));
+   EXPECT_EQ(schema.primary_key, (ColumnIdentifier{.name = "name", .type = DataType::STRING}));
 }
 
 // The write is not only applied in memory: it is saved to the data directory as a new data version

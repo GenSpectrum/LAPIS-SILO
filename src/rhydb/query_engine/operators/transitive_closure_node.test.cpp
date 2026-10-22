@@ -311,15 +311,6 @@ const QueryTestScenario UNKNOWN_COLUMN_SCENARIO = {
       "transitiveClosure() column 'does_not_exist' is not present in the input's output schema",
 };
 
-// A lineage-indexed column is dictionary-encoded, not STRING, so it cannot be an edge endpoint.
-const QueryTestScenario NON_STRING_COLUMN_SCENARIO = {
-   .name = "NON_STRING_COLUMN_SCENARIO",
-   .query = "data.transitiveClosure(pango_lineage_indexed, primaryKey)",
-   .expected_error_message =
-      "transitiveClosure() can only be applied to STRING columns, but "
-      "column 'pango_lineage_indexed' has type DICTIONARY_ENCODED",
-};
-
 //   ROOT
 //   └── KID
 //   ORPHAN
@@ -409,6 +400,31 @@ schema:
 const QueryTestData GRAPH_TEST_DATA{
    .ndjson_input_data = GRAPH_DATA,
    .database_config = GRAPH_DATABASE_CONFIG,
+   .reference_genomes = REFERENCE_GENOMES,
+};
+
+// The same graph with dictionary-encoded edge columns, which hold STRING values just the same
+const auto DICTIONARY_ENCODED_GRAPH_DATABASE_CONFIG =
+   R"(
+schema:
+  instanceName: "dummy name"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+    - name: "edge_from"
+      type: "string"
+      generateIndex: true
+    - name: "edge_to"
+      type: "string"
+      generateIndex: true
+    - name: "weight"
+      type: "int"
+  primaryKey: "primaryKey"
+)";
+
+const QueryTestData DICTIONARY_ENCODED_GRAPH_TEST_DATA{
+   .ndjson_input_data = GRAPH_DATA,
+   .database_config = DICTIONARY_ENCODED_GRAPH_DATABASE_CONFIG,
    .reference_genomes = REFERENCE_GENOMES,
 };
 
@@ -559,8 +575,7 @@ QUERY_TEST(
       COUNT_ONE_LINEAGE_INCLUDING_SUBLINEAGES_SCENARIO,
       STARTING_FROM_NOT_A_SET_SCENARIO,
       COLUMN_AS_STRING_LITERAL_SCENARIO,
-      UNKNOWN_COLUMN_SCENARIO,
-      NON_STRING_COLUMN_SCENARIO
+      UNKNOWN_COLUMN_SCENARIO
    )
 );
 
@@ -580,6 +595,12 @@ QUERY_TEST(
       STARTING_FROM_NOT_A_STRING_SCENARIO,
       INT_COLUMN_SCENARIO
    )
+);
+
+QUERY_TEST(
+   TransitiveClosureDictionaryEncodedGraphTest,
+   DICTIONARY_ENCODED_GRAPH_TEST_DATA,
+   ::testing::Values(CYCLIC_RELATION_SCENARIO, CYCLIC_RELATION_INCLUDE_VERTICES_SCENARIO)
 );
 
 QUERY_TEST(

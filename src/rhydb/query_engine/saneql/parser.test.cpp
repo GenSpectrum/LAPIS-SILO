@@ -1,5 +1,8 @@
 #include "rhydb/query_engine/saneql/parser.h"
 
+#include <string>
+#include <variant>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -63,6 +66,28 @@ TEST(SaneQLParser, parsesNegativeFloat) {
    EXPECT_DOUBLE_EQ(std::get<ast::FloatLiteral>(expr->value).value, -3.14);
 }
 
+TEST(SaneQLParser, parsesFloatLiteralInScientificNotation) {
+   Parser parser("9.0E-4");
+   auto expr = parser.parse();
+   ASSERT_TRUE(std::holds_alternative<ast::FloatLiteral>(expr->value));
+   EXPECT_DOUBLE_EQ(std::get<ast::FloatLiteral>(expr->value).value, 0.0009);
+}
+
+TEST(SaneQLParser, parsesNegativeFloatInScientificNotation) {
+   Parser parser("-9.0E-4");
+   auto expr = parser.parse();
+   ASSERT_TRUE(std::holds_alternative<ast::FloatLiteral>(expr->value));
+   EXPECT_DOUBLE_EQ(std::get<ast::FloatLiteral>(expr->value).value, -0.0009);
+}
+
+TEST(SaneQLParser, parsesComparisonWithFloatInScientificNotation) {
+   Parser parser("data.filter(completeness <= 9.0E-4 && 1e-5 < completeness)");
+   auto expr = parser.parse();
+   EXPECT_EQ(
+      expr->toString(), "filter(data, ((completeness <= 0.0009) && (1e-05 < completeness)))"
+   );
+}
+
 TEST(SaneQLParser, parsesBoolLiteral) {
    Parser parser("true");
    auto expr = parser.parse();
@@ -97,6 +122,44 @@ TEST(SaneQLParser, parsesOrExpression) {
    Parser parser("a = 1 || b = 2");
    auto expr = parser.parse();
    EXPECT_EQ(expr->toString(), "((a = 1) || (b = 2))");
+}
+
+TEST(SaneQLParser, parsesChainOfOrsAsSingleExpression) {
+   Parser parser("a = 1 || b = 2 || c = 3 || d = 4");
+   auto expr = parser.parse();
+   ASSERT_TRUE(std::holds_alternative<ast::LogicalExpr>(expr->value));
+   EXPECT_EQ(std::get<ast::LogicalExpr>(expr->value).operands.size(), 4);
+   EXPECT_EQ(expr->toString(), "((a = 1) || (b = 2) || (c = 3) || (d = 4))");
+}
+
+TEST(SaneQLParser, parsesChainOfAndsAsSingleExpression) {
+   Parser parser("a = 1 && b = 2 && c = 3");
+   auto expr = parser.parse();
+   EXPECT_EQ(expr->toString(), "((a = 1) && (b = 2) && (c = 3))");
+}
+
+TEST(SaneQLParser, collapsesParenthesizedChainOfSameOperator) {
+   Parser parser("(a || b) || (c || d) || e");
+   auto expr = parser.parse();
+   EXPECT_EQ(expr->toString(), "(a || b || c || d || e)");
+}
+
+TEST(SaneQLParser, doesNotCollapseChainOfOtherOperator) {
+   Parser parser("(a || b) && (c || d) && e");
+   auto expr = parser.parse();
+   EXPECT_EQ(expr->toString(), "((a || b) && (c || d) && e)");
+}
+
+TEST(SaneQLParser, parsesLongOrChainAsSingleExpression) {
+   // e.g. a filter on many accessions; a nested AST would overflow the stack in recursive passes
+   std::string query = "accession = 'a0'";
+   for (size_t i = 1; i < 100'000; ++i) {
+      query += " || accession = 'a" + std::to_string(i) + "'";
+   }
+   Parser parser(query);
+   auto expr = parser.parse();
+   ASSERT_TRUE(std::holds_alternative<ast::LogicalExpr>(expr->value));
+   EXPECT_EQ(std::get<ast::LogicalExpr>(expr->value).operands.size(), 100'000);
 }
 
 TEST(SaneQLParser, parsesNotExpression) {
@@ -470,13 +533,13 @@ TEST(SaneQLParser, acceptsDuplicateNamedArgs) {
 TEST(SaneQLParser, parsesChainedOr) {
    Parser parser("a || b || c");
    auto expr = parser.parse();
-   EXPECT_EQ(expr->toString(), "((a || b) || c)");
+   EXPECT_EQ(expr->toString(), "(a || b || c)");
 }
 
 TEST(SaneQLParser, parsesChainedAnd) {
    Parser parser("a && b && c");
    auto expr = parser.parse();
-   EXPECT_EQ(expr->toString(), "((a && b) && c)");
+   EXPECT_EQ(expr->toString(), "(a && b && c)");
 }
 
 TEST(SaneQLParser, parsesLessEqual) {

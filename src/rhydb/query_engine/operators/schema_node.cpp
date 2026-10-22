@@ -22,11 +22,11 @@ namespace {
 arrow::Result<arrow::ExecBatch> buildSchemaBatch(
    const std::vector<schema::ColumnIdentifier>& input_schema
 ) {
-   arrow::StringBuilder field_name_builder{};
-   arrow::StringBuilder type_builder{};
+   arrow::LargeStringBuilder field_name_builder{};
+   arrow::LargeStringBuilder type_builder{};
    for (const auto& field : input_schema) {
       ARROW_RETURN_NOT_OK(field_name_builder.Append(field.name));
-      ARROW_RETURN_NOT_OK(type_builder.Append(schema::columnTypeToString(field.type)));
+      ARROW_RETURN_NOT_OK(type_builder.Append(schema::dataTypeToString(field.type)));
    }
 
    arrow::Datum field_name_datum;
@@ -44,8 +44,8 @@ SchemaNode::SchemaNode(QueryNodePtr child)
 
 std::vector<schema::ColumnIdentifier> SchemaNode::getOutputSchema() const {
    return {
-      {.name = std::string{FIELD_NAME_COLUMN}, .type = schema::ColumnType::STRING},
-      {.name = std::string{TYPE_COLUMN}, .type = schema::ColumnType::STRING},
+      {.name = std::string{FIELD_NAME_COLUMN}, .type = schema::DataType::STRING},
+      {.name = std::string{TYPE_COLUMN}, .type = schema::DataType::STRING},
    };
 }
 

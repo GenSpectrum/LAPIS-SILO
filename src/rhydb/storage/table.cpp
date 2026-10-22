@@ -21,7 +21,7 @@
 #include "rhydb/preprocessing/preprocessing_exception.h"
 #include "rhydb/roaring_util/roaring_serialize.h"
 #include "rhydb/schema/duplicate_primary_key_exception.h"
-#include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/data_type_visitor.h"
 #include "rhydb/storage/table_chunk_builder.h"
 
 namespace rhydb::storage {
@@ -117,7 +117,7 @@ void Table::validatePrimaryKeyUnique() const {
    }
    SPDLOG_DEBUG("Checking that primary keys are unique.");
    const auto& primary_key = schema->primary_key.value();
-   RHYDB_ASSERT(primary_key.type == schema::ColumnType::STRING);
+   RHYDB_ASSERT(primary_key.type == schema::DataType::STRING);
 
    const auto& primary_key_column = getColumn<StringColumn>(primary_key.name);
 

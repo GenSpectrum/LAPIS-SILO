@@ -18,7 +18,7 @@
 
 namespace rhydb::query_engine::exec_node {
 
-std::shared_ptr<arrow::DataType> columnTypeToArrowType(schema::ColumnType column_type);
+std::shared_ptr<arrow::DataType> columnTypeToArrowType(const schema::DataType& column_type);
 
 std::shared_ptr<arrow::Schema> columnsToArrowSchema(
    const std::vector<rhydb::schema::ColumnIdentifier>& columns
@@ -29,31 +29,31 @@ struct ArrowBuilderSelector;
 
 template <>
 struct ArrowBuilderSelector<storage::column::StringColumn> {
-   using builder_type = arrow::StringBuilder;
+   using builder_type = arrow::LargeStringBuilder;
    using value_type = std::string;
 };
 
 template <>
 struct ArrowBuilderSelector<storage::column::DictionaryEncodedColumn> {
-   using builder_type = arrow::StringBuilder;
+   using builder_type = arrow::LargeStringBuilder;
    using value_type = std::string;
 };
 
 template <>
 struct ArrowBuilderSelector<storage::column::SequenceColumn<Nucleotide>> {
-   using builder_type = arrow::BinaryBuilder;
+   using builder_type = arrow::LargeBinaryBuilder;
    using value_type = std::string;
 };
 
 template <>
 struct ArrowBuilderSelector<storage::column::SequenceColumn<AminoAcid>> {
-   using builder_type = arrow::BinaryBuilder;
+   using builder_type = arrow::LargeBinaryBuilder;
    using value_type = std::string;
 };
 
 template <>
 struct ArrowBuilderSelector<storage::column::ZstdCompressedStringColumn> {
-   using builder_type = arrow::BinaryBuilder;
+   using builder_type = arrow::LargeBinaryBuilder;
    using value_type = std::string;
 };
 

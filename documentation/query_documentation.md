@@ -74,7 +74,7 @@ data
 |----------|---------|------------------------|
 | `=` | equals | all |
 | `<>` | not equals | all |
-| `<`, `<=`, `>`, `>=` | ordering | int, float, date, string (lexicographic) |
+| `<`, `<=`, `>`, `>=` | ordering | int32, int64, float, date, string (lexicographic) |
 
 Notes:
 - One side must be a column identifier; the other a literal value. The column may
@@ -132,7 +132,7 @@ Currently supported aggregate functions:
 |----------|--------|
 | `count()` | The number of rows in the group (an `int64`). |
 | `count(column)` | The number of rows in the group whose value in `column` is not null (an `int64`). |
-| `sum(column)` | The sum of a numeric column over the rows in the group. Sums of `int` and `int64` columns are `int64`, sums of `float` columns are `float`. Null values are skipped; a group with no non-null value (or no rows at all, when there are no `by` columns) sums to null. |
+| `sum(column)` | The sum of a numeric column over the rows in the group. Sums of `int32` and `int64` columns are `int64`, sums of `float` columns are `float`. Null values are skipped; a group with no non-null value (or no rows at all, when there are no `by` columns) sums to null. |
 | `min(column)` / `max(column)` | The smallest / largest value of a numeric, date, string or boolean column over the rows in the group, of the column's type. Null values are skipped; a group with no non-null value is null. |
 
 ```
@@ -504,7 +504,7 @@ data.mutations(minProportion:=0.1).schema()
 | Field       | Type   | Description                                                                                          |
 |-------------|--------|------------------------------------------------------------------------------------------------------|
 | `fieldName` | string | Name of the field                                                                                    |
-| `type`      | string | Type of the field (e.g. `STRING`, `INT32`, `INT64`, `DATE32`, `BOOL`, `FLOAT`, `DICTIONARY_ENCODED`) |
+| `type`      | string | Type of the field (e.g. `STRING`, `INT32`, `INT64`, `DATE32`, `BOOL`, `FLOAT`, `DICTIONARY_ENCODED(STRING)`) |
 
 ```json lines
 {"fieldName": "age", "type": "INT32"}
@@ -644,6 +644,58 @@ table in place, so it is not safe to run next to other queries against the same 
 therefore applies it to a database loaded from the data directory and saves the result back as a new
 data version, which is served once the directory watcher picks it up.
 
+### `update(table: symbol, set: record, where?: expression)`
+
+Assigns new values to columns of the rows of a table, like SQL's
+`UPDATE <table> SET <column> = <value>, ... WHERE <predicate>`. Like `insertInto`, it is a write
+statement: it must be the whole query and returns a summary instead of rows:
+
+```json
+{"updatedRows": 2}
+```
+
+```
+update(data, set := {age := 42}, where := primaryKey = 'key1')
+update(data, set := {division := 'Zurich', age := null}, where := division = 'Bern' && age < 10)
+update(data, set := {test_boolean_column := false})
+update(data, set := {division := country, country := division})
+update(data, set := {qc_value := age, region := at(country, 1)}, where := age < 10)
+data.update({age := 42}, where := primaryKey = 'key1')
+```
+
+**Rows.** `where` is a filter predicate over the columns of `table`, as in `filter(...)`; only the
+matching rows are updated. As in SQL, without `where` every row of the table is updated. `where` can
+only be passed by name. The rows are selected before any value is assigned, so the predicate sees the
+values from before the update even if it reads an updated column.
+
+**Values.** `set` is a record mapping each column to update to its new value, which is computed for
+every selected row. A value is anything a [`map`](#mapexpressions) assignment
+can compute: a literal, a column of the row, or a scalar function such as `at`. Columns are read as
+in queries, so sequence and compressed string columns are read as strings. `null` clears the rows. Each column can be assigned at most once.
+
+All values are computed from the table as it was before the update, and before anything is written,
+so `{division := country, country := division}` swaps two columns, and a value that cannot be
+assigned rejects the whole statement without changing the table.
+
+The value must have the column's type, except that integers can be assigned to `INT32`, `INT64` and
+`FLOAT` columns (an integer that does not fit an `INT32` column is an error), and that any string
+value can be assigned to any string column:
+
+| Column type                         | Value examples                                   |
+|-------------------------------------|--------------------------------------------------|
+| `INT32`, `INT64`                    | `3`, `-1`, `age`                                 |
+| `FLOAT`                             | `3.14`, `0`, `qc_value`, `age`                   |
+| `BOOL`                              | `true`, `false`, `test_boolean_column`           |
+| `DATE32`                            | `'2021-03-15'::date`, `date`                     |
+| `STRING` (plain, indexed or zstd compressed) | `'Basel'`, `country`, `at(main, 100)`  |
+| any of them                         | `null`                                           |
+
+**Limitation:** sequence columns and string columns backed by a phylogenetic tree cannot be updated.
+
+It bumps the data version and, like `insertInto`, mutates the table in place, so it is not safe to
+run next to other queries against the same database; over the API it is issued through
+[`POST /admin/query`](api.md#post-adminquery).
+
 ### `createTable(table: symbol, columns: record, primaryKey?: symbol)`
 
 Creates a new, empty table with the given schema. Like `insertInto`, it is a write statement: it must
@@ -657,7 +709,7 @@ be the whole query and returns a summary instead of rows:
 createTable(covid, {
    primaryKey := string,
    country := string(generateIndex := true),
-   age := int,
+   age := int32,
    date := date,
    main := nucleotideSequence(reference := main),
    "S" := aminoAcidSequence(reference := "S"),
@@ -671,14 +723,14 @@ The table name is an identifier made of letters, digits, `_` and `-`, other than
 It must not name an existing table (built-in tables such as `reference_genomes` included).
 
 `columns` is a record mapping each column name to its type. A type is written either as a bare name
-(`int`) or with named options (`string(generateIndex := true)`). Column names that are not plain
+(`int32`) or with named options (`string(generateIndex := true)`). Column names that are not plain
 identifiers can be written as quoted identifiers, e.g. `"S:ORF1a" := aminoAcidSequence(reference := "S:ORF1a")`. The types mirror those of
 `database_config.yaml`:
 
 | Type                          | Options                           | Column                                                        |
 |-------------------------------|-----------------------------------|---------------------------------------------------------------|
 | `string`                      | `generateIndex := <bool>`         | string; with `generateIndex := true` dictionary encoded and indexed |
-| `int` / `int32`, `int64`      |                                   | 32 / 64 bit integer                                           |
+| `int32` / `int`, `int64`      |                                   | 32 / 64 bit integer                                           |
 | `float`                       |                                   | floating point number                                         |
 | `boolean`                     |                                   | boolean                                                       |
 | `date`                        |                                   | date                                                          |

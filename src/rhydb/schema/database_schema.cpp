@@ -17,13 +17,13 @@
 #include <boost/serialization/vector.hpp>
 
 #include "rhydb/storage/column/column_metadata.h"
-#include "rhydb/storage/column/column_type_visitor.h"
+#include "rhydb/storage/column/data_type_visitor.h"
 
 namespace rhydb::schema {
 
-bool isSequenceColumn(ColumnType type) {
-   return type == ColumnType::NUCLEOTIDE_SEQUENCE || type == ColumnType::AMINO_ACID_SEQUENCE ||
-          type == ColumnType::ZSTD_COMPRESSED_STRING;
+bool isSequenceColumn(const DataType& type) {
+   return type == DataType::NUCLEOTIDE_SEQUENCE || type == DataType::AMINO_ACID_SEQUENCE ||
+          type == DataType::ZSTD_COMPRESSED_STRING;
 }
 
 std::optional<ColumnIdentifier> TableSchema::getColumn(std::string_view name) const {

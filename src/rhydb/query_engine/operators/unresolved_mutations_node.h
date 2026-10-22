@@ -33,7 +33,7 @@ class UnresolvedMutationsNode final : public QueryNode {
          fields(std::move(fields)) {}
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override {
-      using rhydb::schema::ColumnType;
+      using rhydb::schema::DataType;
       using MN = MutationsNode<SymbolType>;
       const bool include_all = fields.empty();
       auto has = [&](std::string_view name) -> bool {
@@ -41,25 +41,25 @@ class UnresolvedMutationsNode final : public QueryNode {
       };
       std::vector<schema::ColumnIdentifier> output_fields;
       if (has(MN::MUTATION_FROM_FIELD_NAME)) {
-         output_fields.emplace_back(std::string(MN::MUTATION_FROM_FIELD_NAME), ColumnType::STRING);
+         output_fields.emplace_back(std::string(MN::MUTATION_FROM_FIELD_NAME), DataType::STRING);
       }
       if (has(MN::MUTATION_TO_FIELD_NAME)) {
-         output_fields.emplace_back(std::string(MN::MUTATION_TO_FIELD_NAME), ColumnType::STRING);
+         output_fields.emplace_back(std::string(MN::MUTATION_TO_FIELD_NAME), DataType::STRING);
       }
       if (has(MN::SEQUENCE_FIELD_NAME)) {
-         output_fields.emplace_back(std::string(MN::SEQUENCE_FIELD_NAME), ColumnType::STRING);
+         output_fields.emplace_back(std::string(MN::SEQUENCE_FIELD_NAME), DataType::STRING);
       }
       if (has(MN::POSITION_FIELD_NAME)) {
-         output_fields.emplace_back(std::string(MN::POSITION_FIELD_NAME), ColumnType::INT32);
+         output_fields.emplace_back(std::string(MN::POSITION_FIELD_NAME), DataType::INT32);
       }
       if (has(MN::PROPORTION_FIELD_NAME)) {
-         output_fields.emplace_back(std::string(MN::PROPORTION_FIELD_NAME), ColumnType::FLOAT);
+         output_fields.emplace_back(std::string(MN::PROPORTION_FIELD_NAME), DataType::FLOAT);
       }
       if (has(MN::COVERAGE_FIELD_NAME)) {
-         output_fields.emplace_back(std::string(MN::COVERAGE_FIELD_NAME), ColumnType::INT32);
+         output_fields.emplace_back(std::string(MN::COVERAGE_FIELD_NAME), DataType::INT32);
       }
       if (has(MN::COUNT_FIELD_NAME)) {
-         output_fields.emplace_back(std::string(MN::COUNT_FIELD_NAME), ColumnType::INT32);
+         output_fields.emplace_back(std::string(MN::COUNT_FIELD_NAME), DataType::INT32);
       }
       return output_fields;
    }

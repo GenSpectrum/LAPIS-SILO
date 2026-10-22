@@ -73,7 +73,7 @@ std::string_view nodeKindToString(NodeKind kind) {
 nlohmann::json columnToJson(const schema::ColumnIdentifier& column) {
    return {
       {"name", column.name},
-      {"type", std::string{schema::columnTypeToString(column.type)}},
+      {"type", schema::dataTypeToString(column.type)},
    };
 }
 

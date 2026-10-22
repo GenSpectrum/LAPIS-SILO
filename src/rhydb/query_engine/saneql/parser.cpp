@@ -1,7 +1,11 @@
 #include "rhydb/query_engine/saneql/parser.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <iterator>
 #include <limits>
+#include <variant>
+#include <vector>
 
 #include "rhydb/query_engine/saneql/ast.h"
 #include "rhydb/query_engine/saneql/parse_exception.h"
@@ -59,44 +63,44 @@ ast::ExpressionPtr Parser::parseExpression() {
 
 // NOLINTNEXTLINE(misc-no-recursion)
 ast::ExpressionPtr Parser::parseOrExpr() {
-   auto left = parseAndExpr();
-
-   while (check(TokenType::OR)) {
-      const SourceLocation loc = current().location;
-      advance();
-      auto right = parseAndExpr();
-      left = ast::makeExpr(
-         ast::BinaryExpr{
-            .op = ast::BinaryOp::OR,
-            .left = std::move(left),
-            .right = std::move(right),
-         },
-         loc
-      );
-   }
-
-   return left;
+   return parseLogicalChain(ast::LogicalOp::OR, TokenType::OR, &Parser::parseAndExpr);
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
 ast::ExpressionPtr Parser::parseAndExpr() {
-   auto left = parseNotExpr();
+   return parseLogicalChain(ast::LogicalOp::AND, TokenType::AND, &Parser::parseNotExpr);
+}
 
-   while (check(TokenType::AND)) {
-      const SourceLocation loc = current().location;
-      advance();
-      auto right = parseNotExpr();
-      left = ast::makeExpr(
-         ast::BinaryExpr{
-            .op = ast::BinaryOp::AND,
-            .left = std::move(left),
-            .right = std::move(right),
-         },
-         loc
-      );
+/// Parses `operand (operator_token operand)*` into a single n-ary LogicalExpr. Operands that are
+/// themselves a LogicalExpr of the same `op`, e.g. the parenthesized `(a || b)` in
+/// `(a || b) || c`, are collapsed into it.
+// NOLINTNEXTLINE(misc-no-recursion)
+ast::ExpressionPtr Parser::parseLogicalChain(
+   ast::LogicalOp op,
+   TokenType operator_token,
+   ast::ExpressionPtr (Parser::*parse_operand)()
+) {
+   auto first_operand = (this->*parse_operand)();
+   if (!check(operator_token)) {
+      return first_operand;
+   }
+   const SourceLocation loc = current().location;
+
+   std::vector<ast::ExpressionPtr> operands;
+   auto append_operand = [&](ast::ExpressionPtr operand) {
+      auto* nested = std::get_if<ast::LogicalExpr>(&operand->value);
+      if (nested != nullptr && nested->op == op) {
+         std::ranges::move(nested->operands, std::back_inserter(operands));
+      } else {
+         operands.push_back(std::move(operand));
+      }
+   };
+   append_operand(std::move(first_operand));
+   while (match(operator_token)) {
+      append_operand((this->*parse_operand)());
    }
 
-   return left;
+   return ast::makeExpr(ast::LogicalExpr{.op = op, .operands = std::move(operands)}, loc);
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)

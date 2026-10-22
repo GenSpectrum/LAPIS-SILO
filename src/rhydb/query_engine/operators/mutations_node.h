@@ -58,28 +58,28 @@ class MutationsNode final : public QueryNode {
          fields(std::move(fields)) {}
 
    [[nodiscard]] std::vector<schema::ColumnIdentifier> getOutputSchema() const override {
-      using rhydb::schema::ColumnType;
+      using rhydb::schema::DataType;
       std::vector<schema::ColumnIdentifier> output_fields;
       if (std::ranges::find(fields, MUTATION_FROM_FIELD_NAME) != fields.end()) {
-         output_fields.emplace_back(std::string(MUTATION_FROM_FIELD_NAME), ColumnType::STRING);
+         output_fields.emplace_back(std::string(MUTATION_FROM_FIELD_NAME), DataType::STRING);
       }
       if (std::ranges::find(fields, MUTATION_TO_FIELD_NAME) != fields.end()) {
-         output_fields.emplace_back(std::string(MUTATION_TO_FIELD_NAME), ColumnType::STRING);
+         output_fields.emplace_back(std::string(MUTATION_TO_FIELD_NAME), DataType::STRING);
       }
       if (std::ranges::find(fields, SEQUENCE_FIELD_NAME) != fields.end()) {
-         output_fields.emplace_back(std::string(SEQUENCE_FIELD_NAME), ColumnType::STRING);
+         output_fields.emplace_back(std::string(SEQUENCE_FIELD_NAME), DataType::STRING);
       }
       if (std::ranges::find(fields, POSITION_FIELD_NAME) != fields.end()) {
-         output_fields.emplace_back(std::string(POSITION_FIELD_NAME), ColumnType::INT32);
+         output_fields.emplace_back(std::string(POSITION_FIELD_NAME), DataType::INT32);
       }
       if (std::ranges::find(fields, PROPORTION_FIELD_NAME) != fields.end()) {
-         output_fields.emplace_back(std::string(PROPORTION_FIELD_NAME), ColumnType::FLOAT);
+         output_fields.emplace_back(std::string(PROPORTION_FIELD_NAME), DataType::FLOAT);
       }
       if (std::ranges::find(fields, COVERAGE_FIELD_NAME) != fields.end()) {
-         output_fields.emplace_back(std::string(COVERAGE_FIELD_NAME), ColumnType::INT32);
+         output_fields.emplace_back(std::string(COVERAGE_FIELD_NAME), DataType::INT32);
       }
       if (std::ranges::find(fields, COUNT_FIELD_NAME) != fields.end()) {
-         output_fields.emplace_back(std::string(COUNT_FIELD_NAME), ColumnType::INT32);
+         output_fields.emplace_back(std::string(COUNT_FIELD_NAME), DataType::INT32);
       }
       return output_fields;
    }

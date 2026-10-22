@@ -104,7 +104,7 @@ std::string StringLiteral::toString() const {
 }
 
 arrow::Result<arrow::compute::Expression> StringLiteral::toArrowExpression() const {
-   return arrow::compute::literal(arrow::Datum(value));
+   return arrow::compute::literal(arrow::Datum(std::make_shared<arrow::LargeStringScalar>(value)));
 }
 
 std::unique_ptr<ScalarExpression> StringLiteral::rewrite(
@@ -169,8 +169,8 @@ std::unique_ptr<filter::operators::Operator> DateLiteral::
    compileNonBooleanLiteral();
 }
 
-NullLiteral::NullLiteral(schema::ColumnType value_type)
-    : value_type(value_type) {}
+NullLiteral::NullLiteral(schema::DataType value_type)
+    : value_type(std::move(value_type)) {}
 
 std::string NullLiteral::toString() const {
    return "null";

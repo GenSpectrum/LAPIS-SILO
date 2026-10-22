@@ -29,6 +29,11 @@ class Parser {
    [[nodiscard]] ast::ExpressionPtr parseExpression();
    [[nodiscard]] ast::ExpressionPtr parseOrExpr();
    [[nodiscard]] ast::ExpressionPtr parseAndExpr();
+   [[nodiscard]] ast::ExpressionPtr parseLogicalChain(
+      ast::LogicalOp op,
+      TokenType operator_token,
+      ast::ExpressionPtr (Parser::*parse_operand)()
+   );
    [[nodiscard]] ast::ExpressionPtr parseNotExpr();
    [[nodiscard]] std::optional<ast::BinaryOp> tryParseBinaryOp();
    [[nodiscard]] ast::ExpressionPtr parseComparisonExpr();

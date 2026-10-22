@@ -34,7 +34,7 @@ namespace rhydb::query_engine {
 
 namespace {
 
-using schema::ColumnType;
+using schema::DataType;
 
 // Computing values goes through arrow::Result; this raises its failures (e.g. an integer that does
 // not fit the column it is cast to) as query errors.
@@ -51,26 +51,23 @@ constexpr bool IS_SEQUENCE_COLUMN =
 
 /// The type of the values a column of `column_type` holds, as queries see them: indexed and
 /// compressed string columns hold plain strings.
-ColumnType valueTypeOf(ColumnType column_type) {
-   switch (column_type) {
-      case ColumnType::DICTIONARY_ENCODED:
-      case ColumnType::ZSTD_COMPRESSED_STRING:
-         return ColumnType::STRING;
-      default:
-         return column_type;
+DataType valueTypeOf(const DataType& column_type) {
+   if (column_type == DataType::ZSTD_COMPRESSED_STRING) {
+      return DataType::STRING;
    }
+   return column_type.getPlainType();
 }
 
 /// Whether a value of `value_type` can be assigned to a column of `column_type`. Integers of either
 /// width fit every numeric column; everything else must match the column's value type.
-bool isAssignable(ColumnType value_type, ColumnType column_type) {
-   const ColumnType target_type = valueTypeOf(column_type);
+bool isAssignable(const DataType& value_type, const DataType& column_type) {
+   const DataType target_type = valueTypeOf(column_type);
    if (valueTypeOf(value_type) == target_type) {
       return true;
    }
-   const bool is_integer = value_type == ColumnType::INT32 || value_type == ColumnType::INT64;
-   return is_integer && (target_type == ColumnType::INT32 || target_type == ColumnType::INT64 ||
-                         target_type == ColumnType::FLOAT);
+   const bool is_integer = value_type == DataType::INT32 || value_type == DataType::INT64;
+   return is_integer && (target_type == DataType::INT32 || target_type == DataType::INT64 ||
+                         target_type == DataType::FLOAT);
 }
 
 void checkColumnIsUpdatable(const storage::Table& table, const schema::ColumnIdentifier& column) {
@@ -79,7 +76,7 @@ void checkColumnIsUpdatable(const storage::Table& table, const schema::ColumnIde
          if constexpr (IS_SEQUENCE_COLUMN<Column>) {
             throw IllegalQueryException(
                "Updating columns of type '{}' is not supported (column '{}')",
-               schema::columnTypeToString(column.type),
+               schema::dataTypeToString(column.type),
                column.name
             );
          } else if constexpr (std::is_same_v<Column, storage::column::StringColumn>) {
@@ -153,6 +150,42 @@ class ValuesSink : public exec_node::ArrowBatchSink {
 
 using ChunkRows = std::vector<std::pair<uint16_t, roaring_util::RoaringContainerView>>;
 
+/// A builder of the column's storage representation (e.g. compressed values)
+template <typename Column>
+Column::Builder makeBuilder(Column& column_data) {
+   if constexpr (std::is_constructible_v<typename Column::Builder, typename Column::Metadata*>) {
+      return typename Column::Builder{column_data.metadata};
+   } else {
+      return typename Column::Builder{};
+   }
+}
+
+/// Builds one `Buffer` per chunk of `chunks`. The values are in ascending row id order, so each
+/// chunk's rows take the next values of `value_at`.
+template <typename Column, typename ValueAt>
+std::vector<typename Column::Buffer> buildChunkBuffers(
+   Column& column_data,
+   const ChunkRows& chunks,
+   const ValueAt& value_at
+) {
+   std::vector<typename Column::Buffer> buffers;
+   buffers.reserve(chunks.size());
+   int64_t index = 0;
+   for (const auto& [chunk_id, chunk_rows] : chunks) {
+      auto builder = makeBuilder(column_data);
+      for (uint32_t row = 0; row < chunk_rows.getCardinality(); ++row) {
+         auto value = value_at(index++);
+         if (value.has_value()) {
+            builder.insert(*value);
+         } else {
+            builder.insertNull();
+         }
+      }
+      buffers.push_back(builder.finalize());
+   }
+   return buffers;
+}
+
 /// Converts the computed values into the column's `Buffer`s, one per chunk of `chunks` (the chunks
 /// of `row_ids`), and returns the write of them. Everything that can fail happens here, so every
 /// assignment can be converted before any is written.
@@ -186,17 +219,7 @@ std::function<void()> prepareWrite(
                   column_data.update(row_ids, value);
                };
             }
-            // The values are in ascending row id order, so each chunk's rows take the next values
-            std::vector<typename Column::Buffer> buffers;
-            buffers.reserve(chunks.size());
-            int64_t index = 0;
-            for (const auto& [chunk_id, chunk_rows] : chunks) {
-               auto& buffer = buffers.emplace_back();
-               buffer.reserve(chunk_rows.getCardinality());
-               for (uint32_t row = 0; row < chunk_rows.getCardinality(); ++row) {
-                  buffer.push_back(value_at(index++));
-               }
-            }
+            auto buffers = buildChunkBuffers(column_data, chunks, value_at);
             return [&column_data, &chunks, buffers = std::move(buffers)] {
                storage::column::updateChunks(column_data, chunks, buffers);
             };
@@ -234,8 +257,8 @@ ColumnAssignment makeColumnAssignment(
       isAssignable(expression->type(), column.type),
       "{} has type '{}', which cannot be assigned to a column of type '{}'",
       error_context,
-      schema::columnTypeToString(expression->type()),
-      schema::columnTypeToString(column.type)
+      schema::dataTypeToString(expression->type()),
+      schema::dataTypeToString(column.type)
    );
    return {.column = column, .value = std::move(expression)};
 }
