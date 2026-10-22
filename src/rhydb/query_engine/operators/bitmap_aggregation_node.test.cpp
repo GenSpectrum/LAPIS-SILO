@@ -15,6 +15,7 @@
 
 namespace {
 using rhydb::ReferenceGenomes;
+using rhydb::test::buildLargeTestDataset;
 using rhydb::test::QueryTestData;
 using rhydb::test::QueryTestScenario;
 
@@ -669,7 +670,7 @@ schema:
   primaryKey: "primaryKey"
 )";
 
-const auto CROSS_CHUNK_REFERENCE_GENOMES = rhydb::ReferenceGenomes{
+const auto CROSS_CHUNK_REFERENCE_GENOMES = ReferenceGenomes{
    {{"segment1", "ATGCN"}},
    {},
 };
@@ -680,7 +681,7 @@ nlohmann::json crossChunkSegmentValue(const std::string& nucleotide_sequence) {
 
 constexpr std::array CROSS_CHUNK_GROUP_SYMBOLS = {'A', 'C', 'G', 'T'};
 
-nlohmann::json crossChunkRow(size_t row_index) {
+nlohmann::json crossChunkRow(const size_t row_index) {
    std::string segment_value = "ATGCN";
    segment_value.at(0) = CROSS_CHUNK_GROUP_SYMBOLS.at(row_index % CROSS_CHUNK_GROUP_SYMBOLS.size());
    return {
@@ -690,7 +691,7 @@ nlohmann::json crossChunkRow(size_t row_index) {
 }
 
 const QueryTestData CROSS_CHUNK_TEST_DATA{
-   .ndjson_input_data = rhydb::test::buildLargeTestDataset(crossChunkRow, 500'000),
+   .ndjson_input_data = buildLargeTestDataset(crossChunkRow, 500'000),
    .database_config = CROSS_CHUNK_DATABASE_CONFIG,
    .reference_genomes = CROSS_CHUNK_REFERENCE_GENOMES,
    .without_unaligned_sequences = true,

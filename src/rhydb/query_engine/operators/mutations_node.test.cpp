@@ -9,6 +9,7 @@
 
 namespace {
 using rhydb::ReferenceGenomes;
+using rhydb::test::buildLargeTestDataset;
 using rhydb::test::QueryTestData;
 using rhydb::test::QueryTestScenario;
 
@@ -273,7 +274,7 @@ nlohmann::json crossChunkRow(const size_t row_index) {
 }
 
 const QueryTestData CROSS_CHUNK_TEST_DATA{
-   .ndjson_input_data = rhydb::test::buildLargeTestDataset(crossChunkRow, 500'000),
+   .ndjson_input_data = buildLargeTestDataset(crossChunkRow, 500'000),
    .database_config = CROSS_CHUNK_DATABASE_CONFIG,
    .reference_genomes = CROSS_CHUNK_REFERENCE_GENOMES,
    .without_unaligned_sequences = true,
