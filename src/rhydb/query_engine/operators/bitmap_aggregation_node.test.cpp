@@ -1,3 +1,5 @@
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -7,10 +9,13 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <nlohmann/json.hpp>
 
+#include "rhydb/storage/reference_genomes.h"
+#include "rhydb/test/large_dataset.test.h"
 #include "rhydb/test/query_fixture.test.h"
 
 namespace {
 using rhydb::ReferenceGenomes;
+using rhydb::test::buildLargeTestDataset;
 using rhydb::test::QueryTestData;
 using rhydb::test::QueryTestScenario;
 
@@ -651,6 +656,78 @@ const QueryTestScenario GROUP_BY_MAPPED_BOOL_COLUMN = {
    ])"),
 };
 
+// ---------------------------------------------------------------------------
+// Cross-chunk aggregation
+// ---------------------------------------------------------------------------
+
+const auto CROSS_CHUNK_DATABASE_CONFIG =
+   R"(
+schema:
+  instanceName: "large dataset"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+  primaryKey: "primaryKey"
+)";
+
+const auto CROSS_CHUNK_REFERENCE_GENOMES = ReferenceGenomes{
+   {{"segment1", "ATGCN"}},
+   {},
+};
+
+nlohmann::json crossChunkSegmentValue(const std::string& nucleotide_sequence) {
+   return {{"sequence", nucleotide_sequence}, {"insertions", nlohmann::json::array()}};
+}
+
+constexpr std::array CROSS_CHUNK_GROUP_SYMBOLS = {'A', 'C', 'G', 'T'};
+
+nlohmann::json crossChunkRow(const size_t row_index) {
+   std::string segment_value = "ATGCN";
+   segment_value.at(0) = CROSS_CHUNK_GROUP_SYMBOLS.at(row_index % CROSS_CHUNK_GROUP_SYMBOLS.size());
+   return {
+      {"primaryKey", "id_" + std::to_string(row_index)},
+      {"segment1", crossChunkSegmentValue(segment_value)},
+   };
+}
+
+const QueryTestData CROSS_CHUNK_TEST_DATA{
+   .ndjson_input_data = buildLargeTestDataset(crossChunkRow, 500'000),
+   .database_config = CROSS_CHUNK_DATABASE_CONFIG,
+   .reference_genomes = CROSS_CHUNK_REFERENCE_GENOMES,
+   .without_unaligned_sequences = true,
+};
+
+const QueryTestScenario GROUP_BY_POSITION_ACROSS_CHUNKS = {
+   .name = "GROUP_BY_POSITION_ACROSS_CHUNKS",
+   .query = "data.map({s1 := segment1.at(1)}).group(by:={s1}, aggs:={count:=count()})",
+   .expected_query_result = nlohmann::json::array({
+      {{"s1", "A"}, {"count", 125'000}},
+      {{"s1", "C"}, {"count", 125'000}},
+      {{"s1", "G"}, {"count", 125'000}},
+      {{"s1", "T"}, {"count", 125'000}},
+   }),
+};
+
+const QueryTestScenario COUNT_FILTER_ACROSS_CHUNKS = {
+   .name = "COUNT_FILTER_ACROSS_CHUNKS",
+   .query =
+      "data.filter(nucleotideEquals(position := 1, symbol := 'C', sequenceName := 'segment1'))"
+      ".group(by:={}, aggs:={count:=count()})",
+   .expected_query_result = nlohmann::json::array({
+      {{"count", 125'000}},
+   }),
+};
+
+const QueryTestScenario COUNT_NEGATED_FILTER_ACROSS_CHUNKS = {
+   .name = "COUNT_NEGATED_FILTER_ACROSS_CHUNKS",
+   .query =
+      "data.filter(!(nucleotideEquals(position := 1, symbol := 'C', sequenceName := 'segment1')))"
+      ".group(by:={}, aggs:={count:=count()})",
+   .expected_query_result = nlohmann::json::array({
+      {{"count", 375'000}},
+   }),
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -720,4 +797,14 @@ QUERY_TEST(
    BitmapAggregationDeletionRun,
    DELETION_RUN_TEST_DATA,
    ::testing::Values(REFERENCE_ROW_BEFORE_DELETION_RUN)
+);
+
+QUERY_TEST(
+   BitmapAggregationCrossChunk,
+   CROSS_CHUNK_TEST_DATA,
+   ::testing::Values(
+      GROUP_BY_POSITION_ACROSS_CHUNKS,
+      COUNT_FILTER_ACROSS_CHUNKS,
+      COUNT_NEGATED_FILTER_ACROSS_CHUNKS
+   )
 );

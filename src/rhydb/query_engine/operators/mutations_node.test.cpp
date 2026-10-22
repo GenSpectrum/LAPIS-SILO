@@ -1,9 +1,15 @@
+#include <array>
+#include <cstddef>
+#include <string>
+
 #include <nlohmann/json.hpp>
 
+#include "rhydb/test/large_dataset.test.h"
 #include "rhydb/test/query_fixture.test.h"
 
 namespace {
 using rhydb::ReferenceGenomes;
+using rhydb::test::buildLargeTestDataset;
 using rhydb::test::QueryTestData;
 using rhydb::test::QueryTestScenario;
 
@@ -224,6 +230,81 @@ const QueryTestScenario AA_MUTATIONS_WRONG_TYPE_SEQUENCE_NAME = {
    .expected_error_message = "The database does not contain the AminoAcid sequence 'segment1'",
 };
 
+// ---------------------------------------------------------------------------
+// Cross-chunk mutations
+// ---------------------------------------------------------------------------
+
+const auto CROSS_CHUNK_DATABASE_CONFIG =
+   R"(
+schema:
+  instanceName: "large dataset"
+  metadata:
+    - name: "primaryKey"
+      type: "string"
+  primaryKey: "primaryKey"
+)";
+
+const auto CROSS_CHUNK_REFERENCE_GENOMES = ReferenceGenomes{
+   {{"segment1", "ATGC"}},
+   {},
+};
+
+nlohmann::json crossChunkSegmentValue(const std::string& nucleotide_sequence) {
+   return {{"sequence", nucleotide_sequence}, {"insertions", nlohmann::json::array()}};
+}
+
+constexpr std::array<const char*, 5> CROSS_CHUNK_ROW_SEQUENCES = {
+   "ATGC",
+   "CTGC",
+   "GTGC",
+   "CTGC",
+   "NTGC",
+};
+
+nlohmann::json crossChunkRow(const size_t row_index) {
+   return {
+      {"primaryKey", "id_" + std::to_string(row_index)},
+      {
+         "segment1",
+         crossChunkSegmentValue(
+            CROSS_CHUNK_ROW_SEQUENCES.at(row_index % CROSS_CHUNK_ROW_SEQUENCES.size())
+         ),
+      },
+   };
+}
+
+const QueryTestData CROSS_CHUNK_TEST_DATA{
+   .ndjson_input_data = buildLargeTestDataset(crossChunkRow, 500'000),
+   .database_config = CROSS_CHUNK_DATABASE_CONFIG,
+   .reference_genomes = CROSS_CHUNK_REFERENCE_GENOMES,
+   .without_unaligned_sequences = true,
+};
+
+const QueryTestScenario MUTATIONS_ACROSS_CHUNKS = {
+   .name = "MUTATIONS_ACROSS_CHUNKS",
+   .query = "data.mutations(minProportion:=0.0).order(by:={position, mutationTo})",
+   .expected_query_result = nlohmann::json::array({
+      {
+         {"mutationFrom", "A"},
+         {"mutationTo", "C"},
+         {"sequenceName", "segment1"},
+         {"position", 1},
+         {"proportion", 0.5},
+         {"coverage", 400'000},
+         {"count", 200'000},
+      },
+      {
+         {"mutationFrom", "A"},
+         {"mutationTo", "G"},
+         {"sequenceName", "segment1"},
+         {"position", 1},
+         {"proportion", 0.25},
+         {"coverage", 400'000},
+         {"count", 100'000},
+      },
+   }),
+};
+
 }  // namespace
 
 QUERY_TEST(
@@ -266,4 +347,10 @@ QUERY_TEST(
       AA_MUTATIONS_SEQUENCE_NAMES_SELECTS,
       AA_MUTATIONS_WRONG_TYPE_SEQUENCE_NAME
    )
+);
+
+QUERY_TEST(
+   MutationsNodeCrossChunk,
+   CROSS_CHUNK_TEST_DATA,
+   ::testing::Values(MUTATIONS_ACROSS_CHUNKS)
 );
