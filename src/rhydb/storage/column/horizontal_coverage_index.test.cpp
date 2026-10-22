@@ -875,4 +875,24 @@ TEST_F(HorizontalCoverageIndexTest, PositionCoveredByWholeChunkIsFalseWithANullR
    EXPECT_EQ(rowsIn(index->coveredRowsInChunk(10, 0)), (std::vector<uint16_t>{0, 1}));
 }
 
+TEST_F(HorizontalCoverageIndexTest, CoveredRowsMatchesCoverageBitmapAcrossChunks) {
+   // Chunk 0: two rows cover the same range, one with in-region Ns (a partial chunk at 10..12).
+   insertRange(0, 0, 0, 40);
+   insertRangeWithMissing(0, 1, 0, 40, {10, 11, 12});
+   // Chunk 1: overlapping ranges, a null row and an in-region N.
+   insertRange(1, 0, 20, 60);
+   insertRangeWithMissing(1, 1, 30, 80, {35});
+   index->insertNullSequence(RowId{.chunk_id = 1, .row_in_chunk = 2});
+   // Chunk 2: a single row near the end of the genome, so it misses every other position.
+   insertRangeWithMissing(2, 0, 90, GENOME_LENGTH, {95});
+
+   for (uint32_t position_idx = 0; position_idx < GENOME_LENGTH; ++position_idx) {
+      EXPECT_EQ(
+         index->coveredRows(position_idx),
+         index->getCoverageBitmapForPositions<1>(position_idx).at(0)
+      ) << "at position "
+        << position_idx;
+   }
+}
+
 }  // namespace rhydb::storage::column

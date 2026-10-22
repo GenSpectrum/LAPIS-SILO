@@ -82,6 +82,12 @@ class HorizontalCoverageIndex {
       uint16_t chunk_id
    ) const;
 
+   /// The rows of the whole index that cover `position`, assembled chunk by chunk from
+   /// `coveredRowsInChunk`. Equal to `getCoverageBitmapForPositions<1>(position)[0]`, but it only
+   /// visits the in-region-N rows of chunks that partially cover `position`, rather than every
+   /// in-region-N row of the index.
+   [[nodiscard]] roaring::Roaring coveredRows(uint32_t position) const;
+
    /// True if no row in `chunk_id` covers `position` -- the position lies outside the chunk's
    /// covered envelope (`[batch_min_start, batch_max_end)`), so every row is missing there. O(1);
    /// lets a caller skip building the (empty) covered set for such a chunk.
