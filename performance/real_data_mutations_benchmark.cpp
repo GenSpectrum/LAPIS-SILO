@@ -2,6 +2,8 @@
 //   * coverageGroupByOverWastewaterReads: co-occurrence group over the ~141 real SARS-CoV-2
 //     mutation positions in performance/mutations.csv.
 //   * bareCountGroupByOverWastewaterReads: a bare `count()` group-by
+//   * coverageFilterOverWastewaterReads: count the reads covering a position, filtered by
+//     `!nucleotideEquals(..., symbol := 'N')`, which evaluates the IsInCoveredRegion predicate
 // Both share a single ingested database via the RealDataMutations test fixture.
 //
 // The co-occurrence benchmark is the one for the HorizontalCoverageIndex coverage-scan
@@ -231,4 +233,22 @@ TEST_F(RealDataMutations, coverageGroupByOverWastewaterReads) {
 TEST_F(RealDataMutations, bareCountGroupByOverWastewaterReads) {
    const auto query_options = rhydb::config::RuntimeConfig::withDefaults().query_options;
    timeQuery("bareCount", "data.group(by := {}, aggs := {n := count()})", *database, query_options);
+}
+
+TEST_F(RealDataMutations, coverageFilterOverWastewaterReads) {
+   const auto query_options = rhydb::config::RuntimeConfig::withDefaults().query_options;
+   // Positions spread over the genome, so chunks of every kind (not covering, partially covering,
+   // fully covering the position) are exercised
+   for (const uint32_t position : {241U, 3037U, 14408U, 23403U, 28881U}) {
+      timeQuery(
+         fmt::format("coverageFilter@{}", position),
+         fmt::format(
+            "data.filter(!nucleotideEquals(position := {}, symbol := 'N', sequenceName := 'main'))"
+            ".group(by := {{}}, aggs := {{n := count()}})",
+            position
+         ),
+         *database,
+         query_options
+      );
+   }
 }
