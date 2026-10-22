@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 
 #include "config/config_specification.h"
+#include "rhydb/append/table_inserter.h"
 
 namespace rhydb::config {
 
@@ -20,6 +21,7 @@ class AppendConfig {
    std::filesystem::path data_directory;
    std::optional<std::filesystem::path> append_file;
    std::optional<std::filesystem::path> data_source;
+   append::ClusteredBufferingOptions clustering;
 
    /// Create AppendConfig with all default values from the specification
    static AppendConfig withDefaults();
@@ -35,7 +37,13 @@ class AppendConfig {
       const VerifiedConfigAttributes& env_source
    );
 
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE(AppendConfig, data_directory, append_file, data_source)
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+      AppendConfig,
+      data_directory,
+      append_file,
+      data_source,
+      clustering
+   )
 };
 
 }  // namespace rhydb::config

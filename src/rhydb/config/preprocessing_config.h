@@ -6,6 +6,7 @@
 
 #include <fmt/format.h>
 
+#include "rhydb/append/table_inserter.h"
 #include "rhydb/config/initialize_config.h"
 
 namespace rhydb::config {
@@ -17,6 +18,7 @@ class PreprocessingConfig {
    InitializationFiles initialization_files;
    std::optional<std::filesystem::path> input_file;
    std::filesystem::path output_directory;
+   append::ClusteredBufferingOptions clustering;
 
    /// Create PreprocessingConfig with all default values from the specification
    static PreprocessingConfig withDefaults();
@@ -34,7 +36,7 @@ class PreprocessingConfig {
 
    [[nodiscard]] std::optional<std::filesystem::path> getInputFilePath() const;
 
-   NLOHMANN_DEFINE_TYPE_INTRUSIVE(PreprocessingConfig, initialization_files, input_file)
+   NLOHMANN_DEFINE_TYPE_INTRUSIVE(PreprocessingConfig, initialization_files, input_file, clustering)
 };
 
 }  // namespace rhydb::config

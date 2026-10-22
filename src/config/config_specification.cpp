@@ -150,6 +150,10 @@ ConfigValue ConfigAttributeSpecification::parseValueFromString(std::string value
             const auto parsed_signed = boost::lexical_cast<int32_t>(value_string);
             return ConfigValue::fromInt32(parsed_signed);
          }
+         case ConfigValueType::DOUBLE: {
+            const auto parsed_double = boost::lexical_cast<double>(value_string);
+            return ConfigValue::fromDouble(parsed_double);
+         }
          case ConfigValueType::BOOL:
             if (value_string == "true" || value_string == "1") {
                return ConfigValue::fromBool(true);

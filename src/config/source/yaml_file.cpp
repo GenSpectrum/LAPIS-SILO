@@ -216,6 +216,8 @@ ConfigValue yamlNodeToConfigValue(
             return ConfigValue::fromUint32(yaml.as<uint32_t>());
          case ConfigValueType::UINT16:
             return ConfigValue::fromUint16(yaml.as<uint16_t>());
+         case ConfigValueType::DOUBLE:
+            return ConfigValue::fromDouble(yaml.as<double>());
          case ConfigValueType::BOOL:
             return ConfigValue::fromBool(yaml.as<bool>());
          case ConfigValueType::LIST:

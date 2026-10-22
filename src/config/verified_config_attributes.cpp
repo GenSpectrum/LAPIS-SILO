@@ -70,6 +70,12 @@ std::optional<uint16_t> VerifiedConfigAttributes::getUint16(
    return getValue<uint16_t, ConfigValueType::UINT16>(config_key_path, config_values);
 }
 
+std::optional<double> VerifiedConfigAttributes::getDouble(
+   const ConfigKeyPath& config_key_path
+) const {
+   return getValue<double, ConfigValueType::DOUBLE>(config_key_path, config_values);
+}
+
 std::optional<bool> VerifiedConfigAttributes::getBool(const ConfigKeyPath& config_key_path) const {
    auto value_it = config_values.find(config_key_path);
    if (value_it != config_values.end()) {

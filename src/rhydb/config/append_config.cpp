@@ -1,7 +1,11 @@
 #include "rhydb/config/append_config.h"
 
+#include <algorithm>
+#include <iterator>
+
 #include "config/config_interface.h"
 #include "config/source/yaml_file.h"
+#include "rhydb/config/clustering_config.h"
 
 using rhydb::config::ConfigKeyPath;
 using rhydb::config::YamlFile;
@@ -23,7 +27,9 @@ ConfigKeyPath dataSourceOptionKey() {
 
 namespace rhydb::config {
 
-void AppendConfig::validate() const {}
+void AppendConfig::validate() const {
+   validateClusteringOptions(clustering);
+}
 
 AppendConfig AppendConfig::withDefaults() {
    AppendConfig result;
@@ -32,7 +38,7 @@ AppendConfig AppendConfig::withDefaults() {
 }
 
 ConfigSpecification AppendConfig::getConfigSpecification() {
-   return ConfigSpecification{
+   ConfigSpecification specification{
       .program_name = "rhydb append",
       .attribute_specifications{
          ConfigAttributeSpecification::createWithDefault(
@@ -56,6 +62,11 @@ ConfigSpecification AppendConfig::getConfigSpecification() {
          ),
       },
    };
+   std::ranges::move(
+      clusteringAttributeSpecifications(),
+      std::back_inserter(specification.attribute_specifications)
+   );
+   return specification;
 }
 
 void AppendConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
@@ -68,6 +79,7 @@ void AppendConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) 
    if (auto var = config_source.getPath(dataSourceOptionKey())) {
       data_source = var.value();
    }
+   overwriteClusteringOptionsFrom(config_source, clustering);
 }
 
 std::vector<std::filesystem::path> AppendConfig::getConfigFilePaths(

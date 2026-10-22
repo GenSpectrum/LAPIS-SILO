@@ -24,6 +24,9 @@ ConfigValueType ConfigValue::getValueType() const {
    if (std::holds_alternative<uint16_t>(value)) {
       return ConfigValueType::UINT16;
    }
+   if (std::holds_alternative<double>(value)) {
+      return ConfigValueType::DOUBLE;
+   }
    if (std::holds_alternative<bool>(value)) {
       return ConfigValueType::BOOL;
    }

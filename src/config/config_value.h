@@ -10,7 +10,7 @@
 
 namespace rhydb::config {
 
-enum class ConfigValueType : uint8_t { STRING, PATH, INT32, UINT32, UINT16, BOOL, LIST };
+enum class ConfigValueType : uint8_t { STRING, PATH, INT32, UINT32, UINT16, DOUBLE, BOOL, LIST };
 
 constexpr std::string_view configValueTypeToString(ConfigValueType type) {
    switch (type) {
@@ -24,6 +24,8 @@ constexpr std::string_view configValueTypeToString(ConfigValueType type) {
          return "u32";
       case ConfigValueType::UINT16:
          return "u16";
+      case ConfigValueType::DOUBLE:
+         return "f64";
       case ConfigValueType::BOOL:
          return "bool";
       case ConfigValueType::LIST:
@@ -40,6 +42,7 @@ class ConfigValue {
          int32_t,
          uint32_t,
          uint16_t,
+         double,
          bool,
          std::vector<std::string>> value
    )
@@ -52,6 +55,7 @@ class ConfigValue {
       int32_t,
       uint32_t,
       uint16_t,
+      double,
       bool,
       std::vector<std::string>>
       value;
@@ -69,6 +73,8 @@ class ConfigValue {
    static ConfigValue fromUint32(uint32_t value) { return ConfigValue{value}; }
 
    static ConfigValue fromUint16(uint16_t value) { return ConfigValue{value}; }
+
+   static ConfigValue fromDouble(double value) { return ConfigValue{value}; }
 
    static ConfigValue fromBool(bool value) { return ConfigValue{value}; }
 

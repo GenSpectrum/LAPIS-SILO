@@ -22,7 +22,9 @@ Database preprocessing(const config::PreprocessingConfig& preprocessing_config) 
       auto input = InputStreamWrapper::openFileOrStdIn(preprocessing_config.getInputFilePath());
 
       SPDLOG_INFO("preprocessing - appending data to Database");
-      database.appendData(schema::TableName::getDefault(), input.getInputStream());
+      database.appendData(
+         schema::TableName::getDefault(), input.getInputStream(), preprocessing_config.clustering
+      );
 
       SPDLOG_INFO("preprocessing - validating primary key uniqueness");
       database.tables.at(schema::TableName::getDefault())->validatePrimaryKeyUnique();

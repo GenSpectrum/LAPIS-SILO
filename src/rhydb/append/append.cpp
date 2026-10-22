@@ -55,7 +55,9 @@ int runAppend(const AppendConfig& append_config) {
 
    SPDLOG_INFO("append - appending data to the database");
    auto input = InputStreamWrapper::openFileOrStdIn(append_config.append_file);
-   database.appendData(schema::TableName::getDefault(), input.getInputStream());
+   database.appendData(
+      schema::TableName::getDefault(), input.getInputStream(), append_config.clustering
+   );
 
    SPDLOG_INFO("append - saving database to directory '{}'", append_config.data_directory);
    database.saveDatabaseState(append_config.data_directory);

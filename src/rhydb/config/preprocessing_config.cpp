@@ -1,8 +1,11 @@
 #include "rhydb/config/preprocessing_config.h"
 
+#include <algorithm>
 #include <filesystem>
+#include <iterator>
 
 #include "config/config_interface.h"
+#include "rhydb/config/clustering_config.h"
 #include "rhydb/config/config_defaults.h"
 #include "rhydb/preprocessing/preprocessing_exception.h"
 
@@ -49,7 +52,7 @@ namespace rhydb::config {
 
 // Specification of the fields in inputs to the PreprocessingConfig struct
 ConfigSpecification PreprocessingConfig::getConfigSpecification() {
-   return ConfigSpecification{
+   ConfigSpecification specification{
       .program_name = "rhydb preprocessing",
       .attribute_specifications{
          ConfigAttributeSpecification::createWithoutDefault(
@@ -108,6 +111,11 @@ ConfigSpecification PreprocessingConfig::getConfigSpecification() {
          ),
       },
    };
+   std::ranges::move(
+      clusteringAttributeSpecifications(),
+      std::back_inserter(specification.attribute_specifications)
+   );
+   return specification;
 }
 
 PreprocessingConfig PreprocessingConfig::withDefaults() {
@@ -122,6 +130,7 @@ void PreprocessingConfig::validate() const {
          "'ndjsonInputFilename' must be specified as preprocessing option."
       );
    }
+   validateClusteringOptions(clustering);
 }
 
 void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_source) {
@@ -149,6 +158,7 @@ void PreprocessingConfig::overwriteFrom(const VerifiedConfigAttributes& config_s
    if (auto var = config_source.getPath(ndjsonInputFilenameOptionKey())) {
       input_file = var.value();
    }
+   overwriteClusteringOptionsFrom(config_source, clustering);
 }
 
 std::vector<std::filesystem::path> PreprocessingConfig::getConfigFilePaths(

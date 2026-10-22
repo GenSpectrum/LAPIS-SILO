@@ -33,6 +33,8 @@ class VerifiedConfigAttributes {
 
    [[nodiscard]] std::optional<uint16_t> getUint16(const ConfigKeyPath& config_key_path) const;
 
+   [[nodiscard]] std::optional<double> getDouble(const ConfigKeyPath& config_key_path) const;
+
    [[nodiscard]] std::optional<bool> getBool(const ConfigKeyPath& config_key_path) const;
 
    [[nodiscard]] std::optional<std::vector<std::string>> getList(
