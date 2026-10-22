@@ -99,9 +99,9 @@ TEST_F(HorizontalCoverageIndexTest, InsertMultipleNullSequences) {
 TEST_F(HorizontalCoverageIndexTest, NullSequenceIsUncoveredAtAllPositions) {
    index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 0});  // Sequence 0 is null
 
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<51>(0).at(50), roaring::Roaring{});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<99>(1).at(98), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(50), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(99), roaring::Roaring{});
 }
 
 TEST_F(HorizontalCoverageIndexTest, MultipleNullSequencesAllUncovered) {
@@ -109,8 +109,8 @@ TEST_F(HorizontalCoverageIndexTest, MultipleNullSequencesAllUncovered) {
    index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 1});  // Sequence 1
    index->insertNullSequence(RowId{.chunk_id = 0, .row_in_chunk = 2});  // Sequence 2
 
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<2>(50).at(0), (roaring::Roaring{}));
+   EXPECT_EQ(index->coveredRows(0), (roaring::Roaring{}));
+   EXPECT_EQ(index->coveredRows(50), (roaring::Roaring{}));
 }
 
 // Coverage Insertion Tests
@@ -142,19 +142,19 @@ TEST_F(HorizontalCoverageIndexTest, SequenceNotInBitmapForCoveredPositions) {
    insertSequenceCoverage("ACGT", 0);  // Covers positions 0-3
 
    // Sequence 0 is covered at positions 0-3, so it should appear in bitmap
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{0});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(1).at(0), roaring::Roaring{0});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), roaring::Roaring{0});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(3).at(0), roaring::Roaring{0});
+   EXPECT_EQ(index->coveredRows(0), roaring::Roaring{0});
+   EXPECT_EQ(index->coveredRows(1), roaring::Roaring{0});
+   EXPECT_EQ(index->coveredRows(2), roaring::Roaring{0});
+   EXPECT_EQ(index->coveredRows(3), roaring::Roaring{0});
 }
 
 TEST_F(HorizontalCoverageIndexTest, SequenceInBitmapForUncoveredPositions) {
    insertSequenceCoverage("ACGT", 0);  // Covers positions 0-3
 
    // Sequence 0 is NOT covered at positions 4+, so it should NOT appear in bitmap
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(4).at(0), roaring::Roaring{});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(10).at(0), roaring::Roaring{});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(50).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(4), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(10), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(50), roaring::Roaring{});
 }
 
 TEST_F(HorizontalCoverageIndexTest, MultipleSequencesWithOverlap) {
@@ -163,19 +163,19 @@ TEST_F(HorizontalCoverageIndexTest, MultipleSequencesWithOverlap) {
    insertSequenceCoverage("AAAA", 10);     // Sequence 2 covers 10-13
 
    // Position 6: covered by sequences 0 and 1, so only 2 is uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(6).at(0), (roaring::Roaring{0, 1}));
+   EXPECT_EQ(index->coveredRows(6), (roaring::Roaring{0, 1}));
 
    // Position 5: covered by sequences 0 and 1, so only 2 is uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), (roaring::Roaring{0, 1}));
+   EXPECT_EQ(index->coveredRows(5), (roaring::Roaring{0, 1}));
 
    // Position 7: covered by sequences 0 and 1, so only 2 is uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(7).at(0), (roaring::Roaring{0, 1}));
+   EXPECT_EQ(index->coveredRows(7), (roaring::Roaring{0, 1}));
 
    // Position 8: covered by sequence 1 only, so 0 and 2 are uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(8).at(0), (roaring::Roaring{1}));
+   EXPECT_EQ(index->coveredRows(8), (roaring::Roaring{1}));
 
    // Position 11: covered by sequence 2 only, so 0 and 1 are uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(11).at(0), (roaring::Roaring{2}));
+   EXPECT_EQ(index->coveredRows(11), (roaring::Roaring{2}));
 }
 
 TEST_F(HorizontalCoverageIndexTest, NonOverlappingSequences) {
@@ -183,13 +183,13 @@ TEST_F(HorizontalCoverageIndexTest, NonOverlappingSequences) {
    insertSequenceCoverage("TGCA", 10);  // Covers 10-13
 
    // Position 2: covered by 0, uncovered by 1
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), roaring::Roaring{0});
+   EXPECT_EQ(index->coveredRows(2), roaring::Roaring{0});
 
    // Position 11: covered by 1, uncovered by 0
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(11).at(0), roaring::Roaring{1});
+   EXPECT_EQ(index->coveredRows(11), roaring::Roaring{1});
 
    // Position 5: uncovered by both
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), (roaring::Roaring{}));
+   EXPECT_EQ(index->coveredRows(5), (roaring::Roaring{}));
 }
 
 // N Character Tests - N counts as uncovered!
@@ -197,41 +197,41 @@ TEST_F(HorizontalCoverageIndexTest, SequenceWithNIsUncoveredAtNPosition) {
    insertSequenceCoverage("ACNGT", 0);  // Position 2 has N
 
    // Positions 0, 1, 3, 4 are covered (A, C, G, T)
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{0}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(1).at(0), (roaring::Roaring{0}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(3).at(0), (roaring::Roaring{0}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(4).at(0), (roaring::Roaring{0}));
+   EXPECT_EQ(index->coveredRows(0), (roaring::Roaring{0}));
+   EXPECT_EQ(index->coveredRows(1), (roaring::Roaring{0}));
+   EXPECT_EQ(index->coveredRows(3), (roaring::Roaring{0}));
+   EXPECT_EQ(index->coveredRows(4), (roaring::Roaring{0}));
 
    // Position 2 has N, so sequence 0 is uncovered there
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), (roaring::Roaring{}));
+   EXPECT_EQ(index->coveredRows(2), (roaring::Roaring{}));
 }
 
 TEST_F(HorizontalCoverageIndexTest, SequenceWithMultipleNs) {
    insertSequenceCoverage("ANNNGTA", 0);  // Positions 1, 2, 3 have N
 
    // Positions with actual nucleotides are covered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{0});  // A
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(4).at(0), roaring::Roaring{0});  // G
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), roaring::Roaring{0});  // T
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(6).at(0), roaring::Roaring{0});  // A
+   EXPECT_EQ(index->coveredRows(0), roaring::Roaring{0});  // A
+   EXPECT_EQ(index->coveredRows(4), roaring::Roaring{0});  // G
+   EXPECT_EQ(index->coveredRows(5), roaring::Roaring{0});  // T
+   EXPECT_EQ(index->coveredRows(6), roaring::Roaring{0});  // A
 
    // Positions with N are uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(1).at(0), roaring::Roaring{});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), roaring::Roaring{});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(3).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(1), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(2), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(3), roaring::Roaring{});
 }
 
 TEST_F(HorizontalCoverageIndexTest, SequenceWithAllNs) {
    insertSequenceCoverage("NNNN", 5);
 
    // All positions with N are uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), roaring::Roaring{});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(6).at(0), roaring::Roaring{});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(7).at(0), roaring::Roaring{});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(8).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(5), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(6), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(7), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(8), roaring::Roaring{});
 
    // Positions outside the sequence range are also uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(0), roaring::Roaring{});
 }
 
 TEST_F(HorizontalCoverageIndexTest, MultipleSequencesWithNAtSamePosition) {
@@ -240,23 +240,23 @@ TEST_F(HorizontalCoverageIndexTest, MultipleSequencesWithNAtSamePosition) {
    insertSequenceCoverage("ACGGT", 0);  // No N (G at position 2)
 
    // At position 2: sequences 0 and 1 have N (uncovered), sequence 2 has G (covered)
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), (roaring::Roaring{2}));
+   EXPECT_EQ(index->coveredRows(2), (roaring::Roaring{2}));
 
    // At position 0: all have actual nucleotides (covered)
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{0, 1, 2}));
+   EXPECT_EQ(index->coveredRows(0), (roaring::Roaring{0, 1, 2}));
 }
 
 TEST_F(HorizontalCoverageIndexTest, SequenceWithNAndOffset) {
    insertSequenceCoverage("ACNGT", 10);  // N at position 12
 
    // Position 12 has N, so sequence 0 is uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(12).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(12), roaring::Roaring{});
 
    // Other positions in the sequence are covered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(10).at(0), roaring::Roaring{0});  // A
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(11).at(0), roaring::Roaring{0});  // C
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(13).at(0), roaring::Roaring{0});  // G
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(14).at(0), roaring::Roaring{0});  // T
+   EXPECT_EQ(index->coveredRows(10), roaring::Roaring{0});  // A
+   EXPECT_EQ(index->coveredRows(11), roaring::Roaring{0});  // C
+   EXPECT_EQ(index->coveredRows(13), roaring::Roaring{0});  // G
+   EXPECT_EQ(index->coveredRows(14), roaring::Roaring{0});  // T
 }
 
 TEST_F(HorizontalCoverageIndexTest, SequenceWithMixedCase) {
@@ -268,51 +268,49 @@ TEST_F(HorizontalCoverageIndexTest, SequenceWithLowercaseN) {
    insertSequenceCoverage("ACnGT", 0);  // lowercase n at position 2
 
    // Lowercase n should also count as uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(2), roaring::Roaring{});
 }
 
 // Edge Cases
 TEST_F(HorizontalCoverageIndexTest, EmptyIndexAllPositionsEmpty) {
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(50).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(50), roaring::Roaring{});
 }
 
 TEST_F(HorizontalCoverageIndexTest, GetBitmapAtGenomeBoundary) {
    insertSequenceCoverage("ACGT", 0);
 
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH - 1).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(GENOME_LENGTH - 1), roaring::Roaring{});
 }
 
 TEST_F(HorizontalCoverageIndexTest, GetBitmapBeyondGenomeLength) {
    insertSequenceCoverage("ACGT", 0);
 
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH).at(0), roaring::Roaring{});
-   EXPECT_EQ(
-      index->getCoverageBitmapForPositions<1>(GENOME_LENGTH + 100).at(0), roaring::Roaring{}
-   );
+   EXPECT_EQ(index->coveredRows(GENOME_LENGTH), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(GENOME_LENGTH + 100), roaring::Roaring{});
 }
 
 TEST_F(HorizontalCoverageIndexTest, InsertSequenceAtEndOfGenome) {
    insertSequenceCoverage("ACG", GENOME_LENGTH - 3);
 
    // Sequence covers last 3 positions
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH - 3).at(0), roaring::Roaring{0});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH - 2).at(0), roaring::Roaring{0});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH - 1).at(0), roaring::Roaring{0});
+   EXPECT_EQ(index->coveredRows(GENOME_LENGTH - 3), roaring::Roaring{0});
+   EXPECT_EQ(index->coveredRows(GENOME_LENGTH - 2), roaring::Roaring{0});
+   EXPECT_EQ(index->coveredRows(GENOME_LENGTH - 1), roaring::Roaring{0});
 
    // But not positions before
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH - 4).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(GENOME_LENGTH - 4), roaring::Roaring{});
 }
 
 TEST_F(HorizontalCoverageIndexTest, InsertSequenceWithNAtEndOfGenome) {
    insertSequenceCoverage("ACN", GENOME_LENGTH - 3);
 
    // Positions with A and C are covered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH - 3).at(0), roaring::Roaring{0});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH - 2).at(0), roaring::Roaring{0});
+   EXPECT_EQ(index->coveredRows(GENOME_LENGTH - 3), roaring::Roaring{0});
+   EXPECT_EQ(index->coveredRows(GENOME_LENGTH - 2), roaring::Roaring{0});
 
    // Position with N is uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH - 1).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(GENOME_LENGTH - 1), roaring::Roaring{});
 }
 
 TEST_F(HorizontalCoverageIndexTest, InsertSequenceExtendingBeyondGenome) {
@@ -327,13 +325,13 @@ TEST_F(HorizontalCoverageIndexTest, MixedNullAndCoveredSequences) {
    insertSequenceCoverage("TGCA", 0);  // Sequence 2: covers 0-3
 
    // At positions 0-3: sequences 0 and 2 are covered, sequence 1 is uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{0, 2}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(1).at(0), (roaring::Roaring{0, 2}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), (roaring::Roaring{0, 2}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(3).at(0), (roaring::Roaring{0, 2}));
+   EXPECT_EQ(index->coveredRows(0), (roaring::Roaring{0, 2}));
+   EXPECT_EQ(index->coveredRows(1), (roaring::Roaring{0, 2}));
+   EXPECT_EQ(index->coveredRows(2), (roaring::Roaring{0, 2}));
+   EXPECT_EQ(index->coveredRows(3), (roaring::Roaring{0, 2}));
 
    // At position 10: all are uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(10).at(0), (roaring::Roaring{}));
+   EXPECT_EQ(index->coveredRows(10), (roaring::Roaring{}));
 }
 
 TEST_F(HorizontalCoverageIndexTest, MultipleNullsWithCoverage) {
@@ -343,11 +341,11 @@ TEST_F(HorizontalCoverageIndexTest, MultipleNullsWithCoverage) {
    insertNullCoverage();               // Sequence 3: null
 
    // At position 0: all nulls are uncovered, seq 2 is also uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{}));
+   EXPECT_EQ(index->coveredRows(0), (roaring::Roaring{}));
 
    // At positions 5-8: nulls are uncovered, seq 2 is covered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), (roaring::Roaring{2}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(6).at(0), (roaring::Roaring{2}));
+   EXPECT_EQ(index->coveredRows(5), (roaring::Roaring{2}));
+   EXPECT_EQ(index->coveredRows(6), (roaring::Roaring{2}));
 }
 
 TEST_F(HorizontalCoverageIndexTest, MixedNullCoverageAndNCharacters) {
@@ -356,10 +354,10 @@ TEST_F(HorizontalCoverageIndexTest, MixedNullCoverageAndNCharacters) {
    insertSequenceCoverage("ACGGT", 0);  // Sequence 2: fully covered 0-4
 
    // Position 2: seq 0 has N (uncovered), seq 1 is null (uncovered), seq 2 has G (covered)
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), (roaring::Roaring{2}));
+   EXPECT_EQ(index->coveredRows(2), (roaring::Roaring{2}));
 
    // Position 0: seq 0 has A (covered), seq 1 is null (uncovered), seq 2 has A (covered)
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{0, 2}));
+   EXPECT_EQ(index->coveredRows(0), (roaring::Roaring{0, 2}));
 }
 
 // Overlapping Coverage Tests
@@ -369,13 +367,13 @@ TEST_F(HorizontalCoverageIndexTest, CompletelyOverlappingSequences) {
    insertSequenceCoverage("GGGG", 5);
 
    // At positions 5-8: all three sequences are covered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), (roaring::Roaring{0, 1, 2}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(6).at(0), (roaring::Roaring{0, 1, 2}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(7).at(0), (roaring::Roaring{0, 1, 2}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(8).at(0), (roaring::Roaring{0, 1, 2}));
+   EXPECT_EQ(index->coveredRows(5), (roaring::Roaring{0, 1, 2}));
+   EXPECT_EQ(index->coveredRows(6), (roaring::Roaring{0, 1, 2}));
+   EXPECT_EQ(index->coveredRows(7), (roaring::Roaring{0, 1, 2}));
+   EXPECT_EQ(index->coveredRows(8), (roaring::Roaring{0, 1, 2}));
 
    // At position 4: all three sequences are uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(4).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(4), roaring::Roaring{});
 }
 
 TEST_F(HorizontalCoverageIndexTest, OverlappingSequencesWithN) {
@@ -384,16 +382,16 @@ TEST_F(HorizontalCoverageIndexTest, OverlappingSequencesWithN) {
    insertSequenceCoverage("NNAN", 5);  // Only position 7 covered
 
    // Position 5: seq 0 covered, seq 1 and 2 have N
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), (roaring::Roaring{0}));
+   EXPECT_EQ(index->coveredRows(5), (roaring::Roaring{0}));
 
    // Position 6: seq 1 covered, seq 0 and 2 have N
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(6).at(0), (roaring::Roaring{1}));
+   EXPECT_EQ(index->coveredRows(6), (roaring::Roaring{1}));
 
    // Position 7: seq 2 covered, seq 0 and 1 have N
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(7).at(0), (roaring::Roaring{2}));
+   EXPECT_EQ(index->coveredRows(7), (roaring::Roaring{2}));
 
    // Position 8: all have N
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(8).at(0), (roaring::Roaring{}));
+   EXPECT_EQ(index->coveredRows(8), (roaring::Roaring{}));
 }
 
 TEST_F(HorizontalCoverageIndexTest, PartiallyOverlappingSequences) {
@@ -402,16 +400,16 @@ TEST_F(HorizontalCoverageIndexTest, PartiallyOverlappingSequences) {
    insertSequenceCoverage("GGGGGGGG", 8);  // 8-15
 
    // Position 2: only seq 0 is covered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(2).at(0), (roaring::Roaring{0}));
+   EXPECT_EQ(index->coveredRows(2), (roaring::Roaring{0}));
 
    // Position 5: seq 0 and 1 are covered, seq 2 is uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), (roaring::Roaring{0, 1}));
+   EXPECT_EQ(index->coveredRows(5), (roaring::Roaring{0, 1}));
 
    // Position 9: seq 1 and 2 are covered, seq 0 is uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(9).at(0), (roaring::Roaring{1, 2}));
+   EXPECT_EQ(index->coveredRows(9), (roaring::Roaring{1, 2}));
 
    // Position 14: only seq 2 is covered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(14).at(0), (roaring::Roaring{2}));
+   EXPECT_EQ(index->coveredRows(14), (roaring::Roaring{2}));
 }
 
 TEST_F(HorizontalCoverageIndexTest, AdjacentNonOverlappingSequences) {
@@ -419,10 +417,10 @@ TEST_F(HorizontalCoverageIndexTest, AdjacentNonOverlappingSequences) {
    insertSequenceCoverage("TTTT", 4);  // 4-7
    insertSequenceCoverage("GGGG", 8);  // 8-11
 
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(3).at(0), (roaring::Roaring{0}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(4).at(0), (roaring::Roaring{1}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(7).at(0), (roaring::Roaring{1}));
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(8).at(0), (roaring::Roaring{2}));
+   EXPECT_EQ(index->coveredRows(3), (roaring::Roaring{0}));
+   EXPECT_EQ(index->coveredRows(4), (roaring::Roaring{1}));
+   EXPECT_EQ(index->coveredRows(7), (roaring::Roaring{1}));
+   EXPECT_EQ(index->coveredRows(8), (roaring::Roaring{2}));
 }
 
 // Large Dataset Tests
@@ -436,10 +434,10 @@ TEST_F(HorizontalCoverageIndexTest, ManySequences) {
    full_bitmap.addRange(0, NUM_SEQUENCES);
 
    // All sequences cover position 0, so bitmap should be full
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), full_bitmap);
+   EXPECT_EQ(index->coveredRows(0), full_bitmap);
 
    // All sequences are uncovered at position 10
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(10).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(10), roaring::Roaring{});
 }
 
 TEST_F(HorizontalCoverageIndexTest, ManySequencesAtDifferentPositions) {
@@ -451,7 +449,7 @@ TEST_F(HorizontalCoverageIndexTest, ManySequencesAtDifferentPositions) {
 
    for (uint32_t pos = 0; pos < NUM_SEQUENCES; ++pos) {
       // At each position, only one sequence is covered, all others are uncovered
-      EXPECT_EQ(index->getCoverageBitmapForPositions<1>(pos).at(0), roaring::Roaring{pos});
+      EXPECT_EQ(index->coveredRows(pos), roaring::Roaring{pos});
    }
 }
 
@@ -460,14 +458,12 @@ TEST_F(HorizontalCoverageIndexTest, LongSequence) {
    insertSequenceCoverage(long_sequence, 0);
 
    // Verify coverage
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{0});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH / 4).at(0), roaring::Roaring{0});
-   EXPECT_EQ(
-      index->getCoverageBitmapForPositions<1>((GENOME_LENGTH / 2) - 1).at(0), roaring::Roaring{0}
-   );
+   EXPECT_EQ(index->coveredRows(0), roaring::Roaring{0});
+   EXPECT_EQ(index->coveredRows(GENOME_LENGTH / 4), roaring::Roaring{0});
+   EXPECT_EQ(index->coveredRows((GENOME_LENGTH / 2) - 1), roaring::Roaring{0});
 
    // Verify uncovered
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(GENOME_LENGTH / 2).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(GENOME_LENGTH / 2), roaring::Roaring{});
 }
 
 // Sequence Order Tests
@@ -477,10 +473,10 @@ TEST_F(HorizontalCoverageIndexTest, InsertSequencesInOrder) {
    insertSequenceCoverage("G", 0);
 
    // All covered at position 0
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{0, 1, 2}));
+   EXPECT_EQ(index->coveredRows(0), (roaring::Roaring{0, 1, 2}));
 
    // All uncovered at position 5
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), (roaring::Roaring{}));
+   EXPECT_EQ(index->coveredRows(5), (roaring::Roaring{}));
 }
 
 TEST_F(HorizontalCoverageIndexTest, InsertSequencesOutOfOrder) {
@@ -489,10 +485,10 @@ TEST_F(HorizontalCoverageIndexTest, InsertSequencesOutOfOrder) {
    insertSequenceCoverage("T", 0);
 
    // All covered at position 0
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), (roaring::Roaring{0, 1, 2}));
+   EXPECT_EQ(index->coveredRows(0), (roaring::Roaring{0, 1, 2}));
 
    // All uncovered at position 5
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), (roaring::Roaring{}));
+   EXPECT_EQ(index->coveredRows(5), (roaring::Roaring{}));
 }
 
 // Empty Sequence Tests
@@ -500,13 +496,13 @@ TEST_F(HorizontalCoverageIndexTest, EmptySequenceIsAlwaysUncovered) {
    insertSequenceCoverage("", 5);
 
    // Empty sequence doesn't cover anything, so it's uncovered everywhere
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(0).at(0), roaring::Roaring{});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(5).at(0), roaring::Roaring{});
-   EXPECT_EQ(index->getCoverageBitmapForPositions<1>(10).at(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(0), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(5), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(10), roaring::Roaring{});
 }
 
 // computeCoverageCardinalities must return, for every position, the cardinality of the bitmap
-// that getCoverageBitmapForPositions produces there - that equivalence is what lets finalize skip
+// that coveredRows produces there - that equivalence is what lets finalize skip
 // materializing the bitmaps.
 TEST_F(HorizontalCoverageIndexTest, CoverageCardinalitiesMatchBitmapCardinalities) {
    // A mix of ranges, an internal N run (populating the horizontal bitmaps), leading/trailing N,
@@ -523,11 +519,8 @@ TEST_F(HorizontalCoverageIndexTest, CoverageCardinalitiesMatchBitmapCardinalitie
 
    ASSERT_EQ(cardinalities.size(), GENOME_LENGTH);
    for (uint32_t position_idx = 0; position_idx < GENOME_LENGTH; ++position_idx) {
-      EXPECT_EQ(
-         cardinalities.at(position_idx),
-         index->getCoverageBitmapForPositions<1>(position_idx).at(0).cardinality()
-      ) << "at position "
-        << position_idx;
+      EXPECT_EQ(cardinalities.at(position_idx), index->coveredRows(position_idx).cardinality())
+         << "at position " << position_idx;
    }
 }
 
@@ -547,16 +540,13 @@ TEST_F(HorizontalCoverageIndexTest, CoverageCardinalitiesAcrossMultipleChunks) {
 
    ASSERT_EQ(cardinalities.size(), GENOME_LENGTH);
    for (uint32_t position_idx = 0; position_idx < GENOME_LENGTH; ++position_idx) {
-      EXPECT_EQ(
-         cardinalities.at(position_idx),
-         index->getCoverageBitmapForPositions<1>(position_idx).at(0).cardinality()
-      ) << "at position "
-        << position_idx;
+      EXPECT_EQ(cardinalities.at(position_idx), index->coveredRows(position_idx).cardinality())
+         << "at position " << position_idx;
    }
 }
 
 // The four per-batch aggregates are maintained incrementally in insertCoverage and are what the
-// chunk-skipping in getCoverageBitmapForPositions relies on, so each one is pinned separately.
+// chunk-skipping in coveredRowsInChunk relies on, so each one is pinned separately.
 // The ranges below are chosen so that all four aggregates differ within every chunk - a swap
 // between any two of them changes the expected values.
 TEST_F(HorizontalCoverageIndexTest, PerBatchAggregatesAcrossChunks) {
@@ -873,6 +863,30 @@ TEST_F(HorizontalCoverageIndexTest, PositionCoveredByWholeChunkIsFalseWithANullR
    EXPECT_FALSE(index->positionCoveredByWholeChunk(10, 0));
    // The other two rows still cover it.
    EXPECT_EQ(rowsIn(index->coveredRowsInChunk(10, 0)), (std::vector<uint16_t>{0, 1}));
+}
+
+TEST_F(HorizontalCoverageIndexTest, CoveredRowsAcrossChunks) {
+   // Chunk 0: two rows cover the same range, one with in-region Ns at 10..12.
+   insertRange(0, 0, 0, 40);
+   insertRangeWithMissing(0, 1, 0, 40, {10, 11, 12});
+   // Chunk 1: overlapping ranges, an in-region N and a null row.
+   insertRange(1, 0, 20, 60);
+   insertRangeWithMissing(1, 1, 30, 80, {35});
+   index->insertNullSequence(RowId{.chunk_id = 1, .row_in_chunk = 2});
+   // Chunk 2: a single row near the end of the genome, with an in-region N.
+   insertRangeWithMissing(2, 0, 90, GENOME_LENGTH, {95});
+
+   const uint32_t chunk_1 = 1U << 16U;
+   const uint32_t chunk_2 = 2U << 16U;
+   EXPECT_EQ(index->coveredRows(5), (roaring::Roaring{0, 1}));
+   EXPECT_EQ(index->coveredRows(11), (roaring::Roaring{0}));
+   EXPECT_EQ(index->coveredRows(25), (roaring::Roaring{0, 1, chunk_1}));
+   EXPECT_EQ(index->coveredRows(35), (roaring::Roaring{0, 1, chunk_1}));
+   EXPECT_EQ(index->coveredRows(45), (roaring::Roaring{chunk_1, chunk_1 + 1}));
+   EXPECT_EQ(index->coveredRows(70), (roaring::Roaring{chunk_1 + 1}));
+   EXPECT_EQ(index->coveredRows(85), roaring::Roaring{});
+   EXPECT_EQ(index->coveredRows(92), (roaring::Roaring{chunk_2}));
+   EXPECT_EQ(index->coveredRows(95), roaring::Roaring{});
 }
 
 }  // namespace rhydb::storage::column

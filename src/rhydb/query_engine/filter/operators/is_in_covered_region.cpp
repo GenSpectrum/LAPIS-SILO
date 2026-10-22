@@ -54,8 +54,7 @@ bool IsInCoveredRegion::match(storage::column::RowId row_id) const {
 
 roaring::Roaring IsInCoveredRegion::makeBitmap(const storage::column::RowLayout& row_layout) const {
    EVOBENCH_SCOPE("IsInCoveredRegion", "makeBitmap");
-   auto coverage_bitmap =
-      horizontal_coverage_index->getCoverageBitmapForPositions<1>(position_idx).at(0);
+   auto coverage_bitmap = horizontal_coverage_index->coveredRows(position_idx);
    if (comparator == Comparator::IS_NOT_COVERED) {
       row_layout.complementInPlace(coverage_bitmap);
       return coverage_bitmap;

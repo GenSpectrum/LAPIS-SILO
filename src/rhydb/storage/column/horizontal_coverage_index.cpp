@@ -195,6 +195,25 @@ roaring_util::RoaringContainer HorizontalCoverageIndex::coveredRowsInChunk(
    return result;
 }
 
+roaring::Roaring HorizontalCoverageIndex::coveredRows(uint32_t position) const {
+   roaring::Roaring result;
+   for (size_t chunk_id = 0; chunk_id < numChunks(); ++chunk_id) {
+      const roaring_util::RoaringContainer covered =
+         coveredRowsInChunk(position, static_cast<uint16_t>(chunk_id));
+      if (covered.empty()) {
+         continue;
+      }
+      // `ra_append` takes ownership, and `RoaringContainer` frees its own, so hand over a clone
+      roaring::internal::ra_append(
+         &result.roaring.high_low_container,
+         static_cast<uint16_t>(chunk_id),
+         roaring::internal::container_clone(covered.rawContainer(), covered.getTypecode()),
+         covered.getTypecode()
+      );
+   }
+   return result;
+}
+
 bool HorizontalCoverageIndex::noRowCoversPositionInChunk(
    uint32_t position,
    uint16_t chunk_id
