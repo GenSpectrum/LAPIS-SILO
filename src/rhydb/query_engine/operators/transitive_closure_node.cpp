@@ -39,8 +39,9 @@ struct Relation {
    std::vector<uint32_t> sources;
 };
 
-/// Validates that `column_name` is a STRING column of the input and returns its position, which
-/// is also its index into the input's exec batches.
+/// Validates that `column_name` is a column of the input holding STRING values (possibly
+/// dictionary-encoded) and returns its position, which is also its index into the input's exec
+/// batches.
 uint32_t validateAndFindColumn(
    const std::vector<schema::ColumnIdentifier>& child_schema,
    const std::string& column_name
@@ -54,7 +55,7 @@ uint32_t validateAndFindColumn(
       column_name
    );
    CHECK_RHYDB_QUERY(
-      found->type == schema::DataType::STRING,
+      found->type.getPlainType() == schema::DataType::STRING,
       "transitiveClosure() can only be applied to STRING columns, but column '{}' has type {}",
       column_name,
       schema::dataTypeToString(found->type)
